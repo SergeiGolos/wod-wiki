@@ -1,13 +1,14 @@
 import { BlockKey } from '../core/models/BlockKey';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock, IMemoryEntryShim } from './contracts/IRuntimeBlock';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
 import { BehaviorContext } from './BehaviorContext';
 import { RuntimeLogger } from './RuntimeLogger';
-import { IMemoryLocation, MemoryTag } from './memory/MemoryLocation';
+import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
+import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 
 /**
  * RuntimeBlock represents an executable unit in the workout runtime.
@@ -103,6 +104,81 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     getAllMemory(): IMemoryLocation[] {
         return [...this._memory];
+    }
+
+    // ============================================================================
+    // Backward-Compatible Memory API (shims over list-based memory)
+    // ============================================================================
+
+    /**
+     * @deprecated Use getMemoryByTag() instead.
+     * Returns a shim entry that reads value from the first fragment's `.value` field.
+     */
+    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
+        const tag = type as string as MemoryTag;
+        const locations = this._memory.filter(loc => loc.tag === tag);
+        if (locations.length === 0) return undefined;
+
+        const loc = locations[0];
+        return {
+            get value(): MemoryValueOf<T> {
+                if (loc.fragments.length === 0) return undefined as unknown as MemoryValueOf<T>;
+                // For 'fragment' type, return { groups: [...all fragment:display groups] }
+                if (type === 'fragment') {
+                    return { groups: loc.fragments } as unknown as MemoryValueOf<T>;
+                }
+                // For 'fragment:display', return the location itself (it may implement IFragmentSource)
+                if (type === 'fragment:display') {
+                    return loc as unknown as MemoryValueOf<T>;
+                }
+                // For typed memory (timer, round, display, controls, completion),
+                // the value is stored in the first fragment's .value field
+                return loc.fragments[0]?.value as MemoryValueOf<T>;
+            },
+            subscribe(listener: (nv: MemoryValueOf<T> | undefined, ov: MemoryValueOf<T> | undefined) => void): () => void {
+                return loc.subscribe((newFrags, oldFrags) => {
+                    const newVal = newFrags.length > 0 ? newFrags[0]?.value as MemoryValueOf<T> : undefined;
+                    const oldVal = oldFrags.length > 0 ? oldFrags[0]?.value as MemoryValueOf<T> : undefined;
+                    listener(newVal, oldVal);
+                });
+            }
+        };
+    }
+
+    /**
+     * @deprecated Use getMemoryByTag().length > 0 instead.
+     */
+    hasMemory(type: MemoryType): boolean {
+        const tag = type as string as MemoryTag;
+        return this._memory.some(loc => loc.tag === tag);
+    }
+
+    /**
+     * @deprecated Use pushMemory() or BehaviorContext.updateMemory() instead.
+     * Updates the first matching location's fragment value, or creates a new one.
+     */
+    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
+        const tag = type as string as MemoryTag;
+        const locations = this._memory.filter(loc => loc.tag === tag);
+        if (locations.length > 0) {
+            const loc = locations[0];
+            if (loc.fragments.length > 0) {
+                // Update existing fragment's value
+                const updated = loc.fragments.map((f, i) =>
+                    i === 0 ? { ...f, value } : f
+                );
+                loc.update(updated);
+            } else {
+                // Create a new fragment with the value
+                loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+            }
+        } else {
+            // Push a new location with the value
+            const location = new MemoryLocation(tag, [
+                { fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any
+            ]);
+            this._memory.push(location);
+        }
     }
 
     // ============================================================================

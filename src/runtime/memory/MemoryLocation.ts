@@ -10,6 +10,7 @@ export type MemoryTag =
     | 'completion'
     | 'display'
     | 'controls'
+    | 'fragment'
     | 'fragment:display';
 
 /**

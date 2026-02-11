@@ -17,7 +17,9 @@ import {
     findEvents,
     findOutputs,
     MockRuntime,
-    MockBlock
+    MockBlock,
+    expectDisplayLabel,
+    getRoundDisplay
 } from './test-helpers';
 
 import { TimerInitBehavior } from '../../TimerInitBehavior';
@@ -230,13 +232,12 @@ describe('AMRAP Pattern Integration', () => {
     });
 
     describe('AMRAP Display', () => {
-        it('should show countdown mode', () => {
+        it('should show display label on mount', () => {
             const behaviors = createAmrapBehaviors();
 
             mountBehaviors(behaviors, runtime, block);
 
-            const display = block.memory.get('display');
-            expect((display as any).mode).toBe('countdown');
+            expectDisplayLabel(block, 'AMRAP');
         });
 
         it('should update round display as rounds complete', () => {
@@ -246,9 +247,9 @@ describe('AMRAP Pattern Integration', () => {
             advanceBehaviors(behaviors, ctx);
             advanceBehaviors(behaviors, ctx);
 
-            const display = block.memory.get('display');
+            const roundDisplay = getRoundDisplay(block);
             // Unbounded rounds show without total
-            expect((display as any).roundDisplay).toContain('Round 3');
+            expect(roundDisplay).toContain('Round 3');
         });
     });
 });

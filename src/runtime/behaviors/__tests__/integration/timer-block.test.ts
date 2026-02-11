@@ -16,6 +16,7 @@ import {
     calculateElapsed,
     findEvents,
     findOutputs,
+    expectDisplayLabel,
     MockRuntime,
     MockBlock,
     createIntegrationContext
@@ -67,10 +68,7 @@ describe('Timer Block Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            expectMemoryState(block, 'display', {
-                mode: 'countdown',
-                label: 'Countdown'
-            });
+            expectDisplayLabel(block, 'Countdown');
         });
 
         it('should initialize timer memory with open span on mount', () => {

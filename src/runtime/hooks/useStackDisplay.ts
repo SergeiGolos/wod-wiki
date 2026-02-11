@@ -145,9 +145,9 @@ export function useActiveControls(): ButtonConfig[] {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const controlsEntry = block.getMemory('controls');
-            if (controlsEntry) {
-                const unsub = controlsEntry.subscribe(() => {
+            const controlsLocs = block.getMemoryByTag('controls');
+            for (const loc of controlsLocs) {
+                const unsub = loc.subscribe(() => {
                     setVersion(v => v + 1);
                 });
                 unsubscribes.push(unsub);
@@ -164,10 +164,13 @@ export function useActiveControls(): ButtonConfig[] {
         let topButtons: ButtonConfig[] = [];
 
         for (let i = 0; i < blocks.length; i++) {
-            const controlsEntry = blocks[i].getMemory('controls');
-            if (!controlsEntry?.value) continue;
+            const controlsLocs = blocks[i].getMemoryByTag('controls');
+            if (controlsLocs.length === 0) continue;
 
-            const buttons = controlsEntry.value.buttons;
+            // Each fragment in the controls location IS a button config
+            const buttons = controlsLocs[0].fragments
+                .map(f => f.value as ButtonConfig)
+                .filter(Boolean);
             const isTop = i === blocks.length - 1;
 
             for (const btn of buttons) {
@@ -252,9 +255,9 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const displayEntry = block.getMemory('fragment:display');
-            if (displayEntry) {
-                const unsub = displayEntry.subscribe(() => {
+            const displayLocs = block.getMemoryByTag('fragment:display');
+            for (const loc of displayLocs) {
+                const unsub = loc.subscribe(() => {
                     setVersion(v => v + 1);
                 });
                 unsubscribes.push(unsub);
@@ -276,12 +279,12 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
             // Skip root blocks without meaningful labels
             if (block.blockType === 'Root' && !block.label) return;
 
-            // Get the DisplayFragmentMemory entry (implements IFragmentSource)
-            const displayEntry = block.getMemory('fragment:display');
+            // Get all fragment:display locations from list-based memory
+            const displayLocs = block.getMemoryByTag('fragment:display');
 
             // Create fallback source for blocks without fragment:display memory
             let source: IFragmentSource;
-            if (!displayEntry) {
+            if (displayLocs.length === 0) {
                 // Fallback: create synthetic fragment source from block label
                 if (!block.label) return; // Skip blocks with no display entry AND no label
 
@@ -294,15 +297,24 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                     rawFragments: [],
                 } as IFragmentSource;
             } else {
-                source = displayEntry as unknown as IFragmentSource;
+                // Create an IFragmentSource adapter from the memory locations
+                const allFragments = displayLocs.flatMap(loc => loc.fragments);
+                source = {
+                    id: block.key.toString(),
+                    getDisplayFragments: () => allFragments,
+                    getFragment: (type) => allFragments.find(f => f.fragmentType === type),
+                    getAllFragmentsByType: (type) => allFragments.filter(f => f.fragmentType === type),
+                    hasFragment: (type) => allFragments.some(f => f.fragmentType === type),
+                    rawFragments: allFragments,
+                } as IFragmentSource;
             }
 
             const isLeaf = index === orderedBlocks.length - 1;
 
-            // Get raw fragment groups from block memory for multi-line display
-            const fragmentEntry = block.getMemory('fragment');
-            const groups = fragmentEntry?.value?.groups;
-            const fragmentGroups = groups && groups.length > 1 ? groups : undefined;
+            // Get raw fragment groups from list-based memory for multi-line display
+            const fragmentGroups = displayLocs.length > 1
+                ? displayLocs.map(loc => loc.fragments)
+                : undefined;
 
             entries.push({
                 source,
@@ -417,10 +429,10 @@ export function useStackDisplayRows(): StackDisplayEntry[] | undefined {
 
             const isLeaf = index === orderedBlocks.length - 1;
 
-            // Get raw fragment groups from old Map-based memory for backward compatibility
-            const fragmentEntry = block.getMemory('fragment');
-            const groups = fragmentEntry?.value?.groups;
-            const fragmentGroups = groups && groups.length > 1 ? groups : undefined;
+            // Get raw fragment groups from list-based memory for multi-line display
+            const fragmentGroups = displayLocs.length > 1
+                ? displayLocs.map(loc => loc.fragments)
+                : undefined;
 
             entries.push({
                 block,

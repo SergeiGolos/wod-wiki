@@ -8,15 +8,21 @@ import { DisplayInitBehavior } from '../DisplayInitBehavior';
 import { PopOnEventBehavior } from '../PopOnEventBehavior';
 import { ButtonBehavior } from '../ButtonBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
+import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
+import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
-    const memoryStore = new Map<string, any>();
+    const memoryLocations: IMemoryLocation[] = [];
 
     return {
         block: {
             key: { toString: () => 'test-block' },
             label: 'Test Block',
-            fragments: []
+            fragments: [],
+            getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag),
+            pushMemory: (loc: IMemoryLocation) => memoryLocations.push(loc),
+            getAllMemory: () => [...memoryLocations],
+            getBehavior: () => undefined,
         },
         clock: { now: new Date(1000) }, // 1 second epoch
         stackLevel: 0,
@@ -24,10 +30,25 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
-        pushMemory: vi.fn(),
-        updateMemory: vi.fn(),
+        getMemory: vi.fn((type: string) => {
+            const locs = memoryLocations.filter(l => l.tag === type);
+            if (locs.length > 0 && locs[0].fragments.length > 0) {
+                return locs[0].fragments[0].value;
+            }
+            return undefined;
+        }),
+        setMemory: vi.fn(),
+        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
+        }),
+        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+            const locs = memoryLocations.filter(l => l.tag === tag);
+            if (locs.length > 0) {
+                locs[0].update(fragments);
+            } else {
+                memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
+            }
+        }),
         ...overrides
     } as unknown as IBehaviorContext;
 }
@@ -44,11 +65,15 @@ describe('Time Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.setMemory).toHaveBeenCalledWith('timer', expect.objectContaining({
-                direction: 'down',
-                durationMs: 30000,
-                label: 'Work Timer'
-            }));
+            expect(ctx.pushMemory).toHaveBeenCalledWith('timer', expect.arrayContaining([
+                expect.objectContaining({
+                    value: expect.objectContaining({
+                        direction: 'down',
+                        durationMs: 30000,
+                        label: 'Work Timer'
+                    })
+                })
+            ]));
         });
 
         it('should initialize timer memory with open span (signals timer started)', () => {
@@ -58,10 +83,14 @@ describe('Time Aspect Behaviors', () => {
             behavior.onMount(ctx);
 
             // Timer start is signaled by timer memory with an open span
-            expect(ctx.setMemory).toHaveBeenCalledWith('timer', expect.objectContaining({
-                direction: 'up',
-                spans: expect.arrayContaining([expect.objectContaining({ started: expect.any(Number) })])
-            }));
+            expect(ctx.pushMemory).toHaveBeenCalledWith('timer', expect.arrayContaining([
+                expect.objectContaining({
+                    value: expect.objectContaining({
+                        direction: 'up',
+                        spans: expect.arrayContaining([expect.objectContaining({ started: expect.any(Number) })])
+                    })
+                })
+            ]));
             // No event emission - timer start is implicit from memory
             expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
@@ -87,10 +116,11 @@ describe('Iteration Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.setMemory).toHaveBeenCalledWith('round', {
-                current: 1,
-                total: undefined
-            });
+            expect(ctx.pushMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
+                expect.objectContaining({
+                    value: { current: 1, total: undefined }
+                })
+            ]));
         });
 
         it('should initialize with custom config', () => {
@@ -102,57 +132,51 @@ describe('Iteration Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.setMemory).toHaveBeenCalledWith('round', {
-                current: 2,
-                total: 5
-            });
+            expect(ctx.pushMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
+                expect.objectContaining({
+                    value: { current: 2, total: 5 }
+                })
+            ]));
         });
     });
 
     describe('RoundAdvanceBehavior', () => {
         it('should advance round on next', () => {
-            const memoryStore = new Map<string, any>();
-            memoryStore.set('round', { current: 2, total: 5 });
-
-            const ctx = createMockContext({
-                getMemory: vi.fn((type: string) => memoryStore.get(type)),
-                setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value))
-            });
+            const ctx = createMockContext();
+            // Set up round memory via pushMemory
+            const roundInit = new RoundInitBehavior({ totalRounds: 5, startRound: 2 });
+            roundInit.onMount(ctx);
 
             const behavior = new RoundAdvanceBehavior();
             behavior.onNext(ctx);
 
-            expect(ctx.setMemory).toHaveBeenCalledWith('round', {
-                current: 3,
-                total: 5
-            });
+            expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
+                expect.objectContaining({ value: { current: 3, total: 5 } })
+            ]));
         });
 
         it('should update round memory (no event emission)', () => {
-            const memoryStore = new Map<string, any>();
-            memoryStore.set('round', { current: 1, total: 3 });
-
-            const ctx = createMockContext({
-                getMemory: vi.fn((type: string) => memoryStore.get(type))
-            });
+            const ctx = createMockContext();
+            const roundInit = new RoundInitBehavior({ totalRounds: 3, startRound: 1 });
+            roundInit.onMount(ctx);
 
             const behavior = new RoundAdvanceBehavior();
             behavior.onNext(ctx);
 
             // Round advancement is signaled by memory update, no event
-            expect(ctx.setMemory).toHaveBeenCalledWith('round', { current: 2, total: 3 });
+            expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
+                expect.objectContaining({ value: { current: 2, total: 3 } })
+            ]));
             expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });
 
     describe('RoundCompletionBehavior', () => {
         it('should mark complete when rounds exceeded', () => {
-            const memoryStore = new Map<string, any>();
-            memoryStore.set('round', { current: 4, total: 3 }); // current > total
-
-            const ctx = createMockContext({
-                getMemory: vi.fn((type: string) => memoryStore.get(type))
-            });
+            const ctx = createMockContext();
+            // Set up round memory with current > total
+            const roundInit = new RoundInitBehavior({ totalRounds: 3, startRound: 4 });
+            roundInit.onMount(ctx);
 
             const behavior = new RoundCompletionBehavior();
             behavior.onNext(ctx);
@@ -161,12 +185,9 @@ describe('Iteration Aspect Behaviors', () => {
         });
 
         it('should not mark complete when rounds remaining', () => {
-            const memoryStore = new Map<string, any>();
-            memoryStore.set('round', { current: 2, total: 3 }); // current <= total
-
-            const ctx = createMockContext({
-                getMemory: vi.fn((type: string) => memoryStore.get(type))
-            });
+            const ctx = createMockContext();
+            const roundInit = new RoundInitBehavior({ totalRounds: 3, startRound: 2 });
+            roundInit.onMount(ctx);
 
             const behavior = new RoundCompletionBehavior();
             behavior.onNext(ctx);
@@ -187,10 +208,11 @@ describe('Display Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.setMemory).toHaveBeenCalledWith('display', expect.objectContaining({
-                mode: 'countdown',
-                label: 'Rest'
-            }));
+            expect(ctx.pushMemory).toHaveBeenCalledWith('display', expect.arrayContaining([
+                expect.objectContaining({
+                    value: expect.objectContaining({ text: 'Rest', role: 'label' })
+                })
+            ]));
         });
 
         it('should use block label as default', () => {
@@ -199,9 +221,11 @@ describe('Display Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            expect(ctx.setMemory).toHaveBeenCalledWith('display', expect.objectContaining({
-                label: 'Test Block'
-            }));
+            expect(ctx.pushMemory).toHaveBeenCalledWith('display', expect.arrayContaining([
+                expect.objectContaining({
+                    value: expect.objectContaining({ text: 'Test Block' })
+                })
+            ]));
         });
     });
 });
@@ -231,12 +255,12 @@ describe('Controls Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            // Controls state is set in memory, not emitted as event
-            expect(ctx.setMemory).toHaveBeenCalledWith('controls', expect.objectContaining({
-                buttons: expect.arrayContaining([
-                    expect.objectContaining({ id: 'next' })
-                ])
-            }));
+            // Controls state is pushed as fragments to memory, not emitted as event
+            expect(ctx.pushMemory).toHaveBeenCalledWith('controls', expect.arrayContaining([
+                expect.objectContaining({
+                    value: expect.objectContaining({ id: 'next' })
+                })
+            ]));
             expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
 
@@ -246,8 +270,8 @@ describe('Controls Aspect Behaviors', () => {
 
             behavior.onUnmount(ctx);
 
-            // Controls cleared (empty buttons array) on unmount
-            expect(ctx.setMemory).toHaveBeenCalledWith('controls', { buttons: [] });
+            // Controls cleared (empty array) on unmount
+            expect(ctx.updateMemory).toHaveBeenCalledWith('controls', []);
             expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });

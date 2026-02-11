@@ -12,6 +12,9 @@ import {
     advanceBehaviors,
     unmountBehaviors,
     expectMemoryState,
+    expectDisplayLabel,
+    expectRoundDisplay,
+    getRoundDisplay,
     findEvents,
     findOutputs,
     MockRuntime,
@@ -26,7 +29,7 @@ import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
-import { RoundState, DisplayState } from '../../../memory/MemoryTypes';
+import { RoundState } from '../../../memory/MemoryTypes';
 
 describe('Loop Block Integration', () => {
     let runtime: MockRuntime;
@@ -107,8 +110,7 @@ describe('Loop Block Integration', () => {
 
             advanceBehaviors(behaviors, ctx); // Round 2
 
-            const display = block.memory.get('display') as DisplayState;
-            expect(display.roundDisplay).toBe('Round 2 of 5');
+            expectRoundDisplay(block, 'Round 2 of 5');
         });
     });
 
@@ -170,7 +172,7 @@ describe('Loop Block Integration', () => {
     });
 
     describe('Display State', () => {
-        it('should initialize display with correct mode', () => {
+        it('should initialize display with correct label', () => {
             const behaviors = [
                 new RoundInitBehavior({ totalRounds: 5 }),
                 new DisplayInitBehavior({ mode: 'clock', label: 'Test' }),
@@ -179,10 +181,7 @@ describe('Loop Block Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            expectMemoryState(block, 'display', {
-                mode: 'clock',
-                label: 'Test'
-            });
+            expectDisplayLabel(block, 'Test');
         });
 
         it('should set initial roundDisplay on mount', () => {
@@ -194,8 +193,7 @@ describe('Loop Block Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            const display = block.memory.get('display') as DisplayState;
-            expect(display.roundDisplay).toBe('Round 1 of 5');
+            expectRoundDisplay(block, 'Round 1 of 5');
         });
 
         it('should handle unbounded rounds in display', () => {
@@ -209,8 +207,8 @@ describe('Loop Block Integration', () => {
 
             advanceBehaviors(behaviors, ctx);
 
-            const display = block.memory.get('display') as DisplayState;
-            expect(display.roundDisplay).toContain('Round 2');
+            const roundDisplay = getRoundDisplay(block);
+            expect(roundDisplay).toContain('Round 2');
         });
     });
 

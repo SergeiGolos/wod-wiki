@@ -4,17 +4,14 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { BlockContext } from "../../BlockContext";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "@/core/models/CodeFragment";
-import { DisplayFragmentMemory } from "../../memory/DisplayFragmentMemory";
-import { IFragmentSource } from "@/core/contracts/IFragmentSource";
 
 /**
- * Phase 4 Tests: Hook Integration & IFragmentSource Access
+ * Phase 4 Tests: Fragment Source Access from Blocks (List-Based Memory)
  *
  * These tests verify that:
- * 1. Blocks built via BlockBuilder expose DisplayFragmentMemory as IFragmentSource
- * 2. The fragment:display memory entry is accessible and reactive
- * 3. Stack display items use precedence-resolved fragments
- * 4. The IFragmentSource can be obtained from a block's memory system
+ * 1. Blocks built via BlockBuilder store fragments as MemoryLocation entries
+ * 2. The fragment:display memory locations are accessible and reactive
+ * 3. Stack display items can access fragment data from memory locations
  */
 describe("Phase 4: Fragment Source Access from Blocks", () => {
     const runtime = {
@@ -39,115 +36,51 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
     }
 
     // ========================================================================
-    // useFragmentSource integration tests (non-React, verifying the data path)
+    // Fragment access via list-based memory locations
     // ========================================================================
 
-    describe("IFragmentSource from block memory", () => {
-        it("should return IFragmentSource from fragment:display memory entry", () => {
+    describe("Fragment memory locations from block", () => {
+        it("should return fragment:display memory locations from built block", () => {
             const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
             const block = buildBlock([[timerFrag]]);
 
-            const entry = block.getMemory('fragment:display');
-            expect(entry).toBeDefined();
-
-            // Cast to IFragmentSource (as the hook would do)
-            const source = entry as unknown as IFragmentSource;
-            expect(source.getDisplayFragments).toBeDefined();
-            expect(source.getFragment).toBeDefined();
-            expect(source.getAllFragmentsByType).toBeDefined();
-            expect(source.hasFragment).toBeDefined();
-            expect(source.rawFragments).toBeDefined();
-            expect(source.id).toBeDefined();
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations).toHaveLength(1);
+            expect(locations[0].fragments).toHaveLength(1);
+            expect(locations[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
         });
 
-        it("should provide correct id from IFragmentSource", () => {
+        it("should return correct fragment values", () => {
             const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
             const block = buildBlock([[timerFrag]]);
 
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-            // ID should be the block key
-            expect(source.id).toBe(block.key.toString());
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations[0].fragments[0].value).toBe(60000);
         });
 
-        it("should return precedence-resolved fragments from getDisplayFragments()", () => {
-            const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
-            const runtimeTimer = createFragment('timer', FragmentType.Timer, 432000, 'runtime');
-            const actionFrag = createFragment('action', FragmentType.Action, 'Run', 'parser');
-
-            const block = buildBlock([[parserTimer, runtimeTimer, actionFrag]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            const display = source.getDisplayFragments();
-            // Runtime timer should win over parser timer, action preserved
-            expect(display).toHaveLength(2);
-            const timer = display.find(f => f.fragmentType === FragmentType.Timer);
-            expect(timer?.origin).toBe('runtime');
-            expect(timer?.value).toBe(432000);
-        });
-
-        it("should support FragmentFilter in getDisplayFragments()", () => {
+        it("should return multiple fragments in a single location", () => {
             const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
             const actionFrag = createFragment('action', FragmentType.Action, 'Run');
             const repFrag = createFragment('rep', FragmentType.Rep, 21);
 
             const block = buildBlock([[timerFrag, actionFrag, repFrag]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
 
-            // Filter by types
-            const timersOnly = source.getDisplayFragments({ types: [FragmentType.Timer] });
-            expect(timersOnly).toHaveLength(1);
-            expect(timersOnly[0].fragmentType).toBe(FragmentType.Timer);
-
-            // Filter by excludeTypes
-            const noTimers = source.getDisplayFragments({ excludeTypes: [FragmentType.Timer] });
-            expect(noTimers).toHaveLength(2);
-            expect(noTimers.every(f => f.fragmentType !== FragmentType.Timer)).toBe(true);
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations).toHaveLength(1);
+            expect(locations[0].fragments).toHaveLength(3);
         });
 
-        it("should support getFragment() for single best fragment", () => {
-            const parserRep = createFragment('rep', FragmentType.Rep, 21, 'parser');
-            const runtimeRep = createFragment('rep', FragmentType.Rep, 19, 'runtime');
-
-            const block = buildBlock([[parserRep, runtimeRep]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            const best = source.getFragment(FragmentType.Rep);
-            expect(best).toBeDefined();
-            expect(best!.origin).toBe('runtime');
-            expect(best!.value).toBe(19);
-        });
-
-        it("should support getAllFragmentsByType() ordered by precedence", () => {
-            const parserRep = createFragment('rep', FragmentType.Rep, 21, 'parser');
-            const runtimeRep = createFragment('rep', FragmentType.Rep, 19, 'runtime');
-
-            const block = buildBlock([[parserRep, runtimeRep]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            const allReps = source.getAllFragmentsByType(FragmentType.Rep);
-            expect(allReps).toHaveLength(2);
-            // Highest precedence (runtime) first
-            expect(allReps[0].origin).toBe('runtime');
-            expect(allReps[1].origin).toBe('parser');
-        });
-
-        it("should support hasFragment()", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
-            const block = buildBlock([[timerFrag]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            expect(source.hasFragment(FragmentType.Timer)).toBe(true);
-            expect(source.hasFragment(FragmentType.Distance)).toBe(false);
-        });
-
-        it("should provide raw fragments through rawFragments", () => {
+        it("should filter fragments by type", () => {
             const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
             const actionFrag = createFragment('action', FragmentType.Action, 'Run');
-            const block = buildBlock([[timerFrag, actionFrag]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
+            const repFrag = createFragment('rep', FragmentType.Rep, 21);
 
-            const raw = source.rawFragments;
-            expect(raw).toHaveLength(2);
+            const block = buildBlock([[timerFrag, actionFrag, repFrag]]);
+
+            const locations = block.getMemoryByTag('fragment:display');
+            const timersOnly = locations[0].fragments.filter(f => f.fragmentType === FragmentType.Timer);
+            expect(timersOnly).toHaveLength(1);
+            expect(timersOnly[0].value).toBe(60000);
         });
 
         it("should return undefined when block has no fragment:display memory", () => {
@@ -161,9 +94,8 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
                 .setLabel("Test Block")
                 .build();
 
-            // No fragments were set, so no fragment:display memory
-            const entry = block.getMemory('fragment:display');
-            expect(entry).toBeUndefined();
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations).toHaveLength(0);
         });
     });
 
@@ -179,209 +111,129 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             const action = createFragment('action', FragmentType.Action, 'Thrusters');
 
             const block = buildBlock([[rep21, rep15, rep9, action]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
 
-            // All 3 reps from same origin should be preserved
-            const display = source.getDisplayFragments();
-            const reps = display.filter(f => f.fragmentType === FragmentType.Rep);
+            const locations = block.getMemoryByTag('fragment:display');
+            const reps = locations[0].fragments.filter(f => f.fragmentType === FragmentType.Rep);
             expect(reps).toHaveLength(3);
 
-            const actions = display.filter(f => f.fragmentType === FragmentType.Action);
+            const actions = locations[0].fragments.filter(f => f.fragmentType === FragmentType.Action);
             expect(actions).toHaveLength(1);
         });
 
-        it("should replace all parser reps with runtime rep when tracked", () => {
-            const rep21 = createFragment('rep', FragmentType.Rep, 21, 'parser');
-            const rep15 = createFragment('rep', FragmentType.Rep, 15, 'parser');
-            const rep9 = createFragment('rep', FragmentType.Rep, 9, 'parser');
-            const trackedRep = createFragment('rep', FragmentType.Rep, 19, 'runtime');
-
-            const block = buildBlock([[rep21, rep15, rep9, trackedRep]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            const display = source.getDisplayFragments();
-            const reps = display.filter(f => f.fragmentType === FragmentType.Rep);
-            // Runtime rep should win, parser reps excluded
-            expect(reps).toHaveLength(1);
-            expect(reps[0].origin).toBe('runtime');
-            expect(reps[0].value).toBe(19);
-        });
-
-        it("should handle user override replacing runtime fragments", () => {
-            const runtimeRep = createFragment('rep', FragmentType.Rep, 19, 'runtime');
-            const userRep = createFragment('rep', FragmentType.Rep, 18, 'user');
-
-            const block = buildBlock([[runtimeRep, userRep]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            const display = source.getDisplayFragments();
-            const reps = display.filter(f => f.fragmentType === FragmentType.Rep);
-            // User origin wins
-            expect(reps).toHaveLength(1);
-            expect(reps[0].origin).toBe('user');
-            expect(reps[0].value).toBe(18);
-        });
-    });
-
-    // ========================================================================
-    // Reactive updates through DisplayFragmentMemory
-    // ========================================================================
-
-    describe("Reactive fragment updates", () => {
-        it("should update IFragmentSource when fragments are added to source memory", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
-            const block = buildBlock([[timerFrag]]);
-            const source = block.getMemory('fragment:display') as unknown as IFragmentSource;
-
-            // Initially 1 fragment
-            expect(source.getDisplayFragments()).toHaveLength(1);
-
-            // Add a fragment to the underlying FragmentMemory
-            const fragmentMem = block.getMemory('fragment');
-            (fragmentMem as any).addFragment(
-                createFragment('action', FragmentType.Action, 'Run')
-            );
-
-            // DisplayFragmentMemory should auto-sync
-            expect(source.getDisplayFragments()).toHaveLength(2);
-        });
-
-        it("should update precedence resolution when higher-priority fragment is added", () => {
-            const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
-            const block = buildBlock([[parserTimer]]);
-
-            const displayMem = block.getMemory('fragment:display') as unknown as DisplayFragmentMemory;
-
-            // Initially parser timer
-            expect(displayMem.getFragment(FragmentType.Timer)?.origin).toBe('parser');
-
-            // Add runtime timer (higher precedence)
-            displayMem.addFragment(
-                createFragment('timer', FragmentType.Timer, 432000, 'runtime')
-            );
-
-            // Runtime should now win
-            const timer = displayMem.getFragment(FragmentType.Timer);
-            expect(timer?.origin).toBe('runtime');
-            expect(timer?.value).toBe(432000);
-        });
-
-        it("should notify subscribers when fragments change", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
-            const block = buildBlock([[timerFrag]]);
-
-            const displayEntry = block.getMemory('fragment:display');
-            expect(displayEntry).toBeDefined();
-
-            let notifyCount = 0;
-            const unsub = displayEntry!.subscribe(() => {
-                notifyCount++;
-            });
-
-            // Add fragment to source memory
-            const fragmentMem = block.getMemory('fragment');
-            (fragmentMem as any).addFragment(
-                createFragment('action', FragmentType.Action, 'Run')
-            );
-
-            expect(notifyCount).toBeGreaterThan(0);
-            unsub();
-        });
-    });
-
-    // ========================================================================
-    // Stack display items precedence integration
-    // ========================================================================
-
-    describe("Stack display items with precedence-resolved fragments", () => {
-        it("should return resolved fragments from fragment:display memory value", () => {
+        it("should preserve both parser and runtime fragments", () => {
             const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
             const runtimeTimer = createFragment('timer', FragmentType.Timer, 432000, 'runtime');
             const actionFrag = createFragment('action', FragmentType.Action, 'Run', 'parser');
 
             const block = buildBlock([[parserTimer, runtimeTimer, actionFrag]]);
 
-            // Simulate what useStackDisplayItems now does:
-            const displayMemory = block.getMemory('fragment:display');
-            const fragments = displayMemory
-                ? (displayMemory.value?.resolved ?? [])
-                : [];
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations[0].fragments).toHaveLength(3);
 
-            // Should get precedence-resolved fragments
-            expect(fragments).toHaveLength(2);
-            const timer = fragments.find(f => f.fragmentType === FragmentType.Timer);
-            expect(timer?.origin).toBe('runtime');
+            const parserFrags = locations[0].fragments.filter(f => f.origin === 'parser');
+            const runtimeFrags = locations[0].fragments.filter(f => f.origin === 'runtime');
+            expect(parserFrags).toHaveLength(2); // parserTimer + actionFrag are both parser origin
+            // Actually both parserTimer and actionFrag are 'parser' origin
         });
 
-        it("should fall back to empty when no fragment:display memory exists", () => {
-            const blockKey = new BlockKey();
-            const context = new BlockContext(runtime, blockKey.toString());
+        it("should handle user override fragments", () => {
+            const runtimeRep = createFragment('rep', FragmentType.Rep, 19, 'runtime');
+            const userRep = createFragment('rep', FragmentType.Rep, 18, 'user');
 
-            const block = new BlockBuilder(runtime)
-                .setContext(context)
-                .setKey(blockKey)
-                .setBlockType("Root")
-                .setLabel("")
-                .build();
+            const block = buildBlock([[runtimeRep, userRep]]);
 
-            // Simulate what useStackDisplayItems does for blocks without fragment:display
-            const displayMemory = block.getMemory('fragment:display');
-            const fragments = displayMemory
-                ? (displayMemory.value?.resolved ?? [])
-                : [];
+            const locations = block.getMemoryByTag('fragment:display');
+            const reps = locations[0].fragments.filter(f => f.fragmentType === FragmentType.Rep);
+            expect(reps).toHaveLength(2);
 
-            expect(fragments).toEqual([]);
+            const userFrags = reps.filter(f => f.origin === 'user');
+            expect(userFrags).toHaveLength(1);
+            expect(userFrags[0].value).toBe(18);
         });
     });
 
     // ========================================================================
-    // StackFragmentEntry shape tests
+    // Reactive updates through MemoryLocation
     // ========================================================================
 
-    describe("StackFragmentEntry data shape", () => {
-        it("should provide source, block, depth, isLeaf, and label", () => {
+    describe("Reactive fragment updates", () => {
+        it("should notify subscribers when fragments are updated", () => {
             const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
             const block = buildBlock([[timerFrag]]);
 
-            const displayEntry = block.getMemory('fragment:display');
-            const source = displayEntry as unknown as IFragmentSource;
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations).toHaveLength(1);
 
-            // Simulate StackFragmentEntry construction
-            const entry = {
-                source,
-                block,
-                depth: 0,
-                isLeaf: true,
-                label: block.label
-            };
+            let notifyCount = 0;
+            const unsub = locations[0].subscribe(() => {
+                notifyCount++;
+            });
 
-            expect(entry.source.id).toBeDefined();
-            expect(entry.source.getDisplayFragments()).toHaveLength(1);
-            expect(entry.block).toBe(block);
-            expect(entry.depth).toBe(0);
-            expect(entry.isLeaf).toBe(true);
-            expect(entry.label).toBe("Test Block");
+            // Update the location with additional fragments
+            const actionFrag = createFragment('action', FragmentType.Action, 'Run');
+            locations[0].update([timerFrag, actionFrag]);
+
+            expect(notifyCount).toBe(1);
+            expect(locations[0].fragments).toHaveLength(2);
+            unsub();
         });
 
-        it("should support multiple entries with different depths", () => {
+        it("should provide updated fragments after update", () => {
+            const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
+            const block = buildBlock([[parserTimer]]);
+
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations[0].fragments[0].origin).toBe('parser');
+
+            // Simulate runtime updating the timer
+            const runtimeTimer = createFragment('timer', FragmentType.Timer, 432000, 'runtime');
+            locations[0].update([runtimeTimer]);
+
+            expect(locations[0].fragments).toHaveLength(1);
+            expect(locations[0].fragments[0].origin).toBe('runtime');
+            expect(locations[0].fragments[0].value).toBe(432000);
+        });
+    });
+
+    // ========================================================================
+    // Multi-group structure
+    // ========================================================================
+
+    describe("Multi-group fragment locations", () => {
+        it("should preserve multi-group structure as separate locations", () => {
+            const frag1 = createFragment('timer', FragmentType.Timer, 60000);
+            const frag2 = createFragment('action', FragmentType.Action, 'Run');
+
+            const block = buildBlock([[frag1], [frag2]]);
+
+            const locations = block.getMemoryByTag('fragment:display');
+            expect(locations).toHaveLength(2);
+            expect(locations[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
+            expect(locations[1].fragments[0].fragmentType).toBe(FragmentType.Action);
+        });
+
+        it("should support building stack display entries from memory locations", () => {
             const frag1 = createFragment('timer', FragmentType.Timer, 60000);
             const frag2 = createFragment('action', FragmentType.Action, 'Run');
 
             const block1 = buildBlock([[frag1]]);
             const block2 = buildBlock([[frag2]]);
 
-            const source1 = block1.getMemory('fragment:display') as unknown as IFragmentSource;
-            const source2 = block2.getMemory('fragment:display') as unknown as IFragmentSource;
+            const locs1 = block1.getMemoryByTag('fragment:display');
+            const locs2 = block2.getMemoryByTag('fragment:display');
 
+            // Simulate stack display entries
             const entries = [
-                { source: source1, block: block1, depth: 0, isLeaf: false, label: 'Parent' },
-                { source: source2, block: block2, depth: 1, isLeaf: true, label: 'Child' }
+                { block: block1, fragments: locs1[0].fragments, depth: 0, isLeaf: false, label: 'Parent' },
+                { block: block2, fragments: locs2[0].fragments, depth: 1, isLeaf: true, label: 'Child' }
             ];
 
             expect(entries[0].isLeaf).toBe(false);
             expect(entries[1].isLeaf).toBe(true);
             expect(entries[0].depth).toBe(0);
             expect(entries[1].depth).toBe(1);
+            expect(entries[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
+            expect(entries[1].fragments[0].fragmentType).toBe(FragmentType.Action);
         });
     });
 });

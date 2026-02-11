@@ -48,7 +48,10 @@ export class RoundDisplayBehavior implements IRuntimeBehavior {
         // Get current display fragments
         const displayLocations = ctx.block.getMemoryByTag('display');
         if (displayLocations.length > 0) {
-            const currentFragments = displayLocations[0].fragments;
+            // Filter out existing round fragments to avoid accumulation
+            const currentFragments = displayLocations[0].fragments.filter(
+                f => !(f.value && (f.value as any).role === 'round')
+            );
             
             // Add or update round display fragment
             const roundFragment: ICodeFragment = {

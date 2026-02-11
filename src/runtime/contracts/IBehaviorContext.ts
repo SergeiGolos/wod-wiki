@@ -5,6 +5,7 @@ import { IRuntimeClock } from './IRuntimeClock';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
+import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 
 import { HandlerScope } from './events/IEventBus';
 
@@ -252,4 +253,20 @@ export interface IBehaviorContext {
      * @param reason Optional reason for completion (for debugging/history)
      */
     markComplete(reason?: string): void;
+
+    // ============================================================================
+    // Backward-Compatible Memory API (shims over list-based memory)
+    // ============================================================================
+
+    /**
+     * @deprecated Use block.getMemoryByTag() and read fragment values instead.
+     * Returns the typed value from the first matching memory location's first fragment.
+     */
+    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
+
+    /**
+     * @deprecated Use pushMemory() or updateMemory() instead.
+     * Updates the first matching memory location's fragment value, or creates a new one.
+     */
+    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

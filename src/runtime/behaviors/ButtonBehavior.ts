@@ -97,13 +97,18 @@ export class ButtonBehavior implements IRuntimeBehavior {
         buttonId: string,
         updates: Partial<Pick<ButtonConfig, 'visible' | 'enabled' | 'label'>>
     ): void {
-        const controls = ctx.getMemory('controls');
-        if (!controls) return;
+        const controlsLocs = ctx.block.getMemoryByTag('controls');
+        if (controlsLocs.length === 0) return;
 
-        const updatedButtons = controls.buttons.map(btn =>
-            btn.id === buttonId ? { ...btn, ...updates } : btn
-        );
+        const loc = controlsLocs[0];
+        const updatedFragments = loc.fragments.map(f => {
+            const btn = f.value as ButtonConfig;
+            if (btn.id === buttonId) {
+                return { ...f, value: { ...btn, ...updates } };
+            }
+            return f;
+        });
 
-        ctx.setMemory('controls', { buttons: updatedButtons });
+        ctx.updateMemory('controls', updatedFragments);
     }
 }

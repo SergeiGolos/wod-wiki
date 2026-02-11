@@ -5,6 +5,16 @@ import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
+import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
+
+/**
+ * Backward-compatible memory entry shape.
+ * Provides a shim over IMemoryLocation for callers still using the old API.
+ */
+export interface IMemoryEntryShim<V = unknown> {
+    readonly value: V;
+    subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void;
+}
 
 export interface BlockLifecycleOptions {
     /** Start timestamp when the block was pushed onto the stack. */
@@ -204,4 +214,26 @@ export interface IRuntimeBlock {
      * @param reason Optional reason for completion (for debugging/history)
      */
     markComplete(reason?: string): void;
+
+    // ============================================================================
+    // Backward-Compatible Memory API (shims over list-based memory)
+    // ============================================================================
+
+    /**
+     * @deprecated Use getMemoryByTag() instead. Backward-compatible shim that
+     * reads from the list-based memory and returns a legacy-shaped entry.
+     */
+    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined;
+
+    /**
+     * @deprecated Use getMemoryByTag().length > 0 instead. Backward-compatible shim.
+     */
+    hasMemory(type: MemoryType): boolean;
+
+    /**
+     * @deprecated Use pushMemory() or the BehaviorContext API instead.
+     * Backward-compatible shim that updates the first matching memory location's
+     * fragment value, or creates a new location if none exists.
+     */
+    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

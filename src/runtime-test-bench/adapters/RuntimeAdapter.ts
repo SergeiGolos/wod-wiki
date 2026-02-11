@@ -71,10 +71,9 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       const fragments = this.extractBlockFragments(runtime, block);
 
       // Extract fragment groups from block memory for multi-line display
-      const fragmentEntry = block.getMemory('fragment');
-      const groups = fragmentEntry?.value?.groups;
-      const fragmentGroups = groups && groups.length > 1
-        ? groups.map((g: readonly ICodeFragment[]) => [...g])
+      const displayLocs = block.getMemoryByTag('fragment:display');
+      const fragmentGroups = displayLocs.length > 1
+        ? displayLocs.map(loc => [...loc.fragments])
         : undefined;
 
       return {

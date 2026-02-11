@@ -4,24 +4,14 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IEventBus } from '../contracts/events/IEventBus';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
-import { TimerMemory } from '../memory/TimerMemory';
-import { IMemoryEntry } from '../memory/IMemoryEntry';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
-
-class TestableRuntimeBlock extends RuntimeBlock {
-    public exposeSetMemory<T extends MemoryType>(
-        type: T,
-        entry: IMemoryEntry<T, MemoryValueOf<T>>
-    ): void {
-        this.setMemory(type, entry);
-    }
-}
+import { MemoryLocation } from '../memory/MemoryLocation';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
 describe('RuntimeBlock Lifecycle', () => {
     let runtime: IScriptRuntime;
     let eventBus: IEventBus;
     let clock: IRuntimeClock;
-    let block: TestableRuntimeBlock;
+    let block: RuntimeBlock;
     let behavior: IRuntimeBehavior;
 
     beforeEach(() => {
@@ -49,7 +39,7 @@ describe('RuntimeBlock Lifecycle', () => {
             onDispose: vi.fn()
         };
 
-        block = new TestableRuntimeBlock(runtime, [], [behavior]);
+        block = new RuntimeBlock(runtime, [], [behavior]);
     });
 
     describe('mount', () => {
@@ -109,9 +99,15 @@ describe('RuntimeBlock Lifecycle', () => {
         });
 
         it('should dispose memory entries', () => {
-            const timer = new TimerMemory({ direction: 'up', label: 'Test' });
-            const disposeSpy = vi.spyOn(timer, 'dispose');
-            block.exposeSetMemory('timer', timer);
+            const timerLoc = new MemoryLocation('timer', [{
+                fragmentType: FragmentType.Timer,
+                type: 'timer',
+                image: '',
+                origin: 'runtime',
+                value: { direction: 'up', spans: [] },
+            } as ICodeFragment]);
+            const disposeSpy = vi.spyOn(timerLoc, 'dispose');
+            block.pushMemory(timerLoc);
 
             block.unmount(runtime);
             expect(disposeSpy).toHaveBeenCalled();

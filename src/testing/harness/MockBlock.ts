@@ -9,11 +9,10 @@ import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
 import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
 import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
-import { IMemoryEntry } from '@/runtime/memory/IMemoryEntry';
 import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { OutputStatementType } from '@/core/models/OutputStatement';
-import { IMemoryLocation } from '@/runtime/memory/MemoryLocation';
+import { IMemoryLocation, MemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
 
 /**
  * Minimal stub context for MockBlock
@@ -101,11 +100,38 @@ class MockBehaviorContext implements IBehaviorContext {
   }
 
   getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
+    // Check list-based memory on the MockBlock first
+    const tag = type as string as MemoryTag;
+    const locations = this._mockBlock.getMemoryByTag(tag);
+    if (locations.length > 0) {
+      const loc = locations[0];
+      if (loc.fragments.length > 0) {
+        return loc.fragments[0]?.value as MemoryValueOf<T>;
+      }
+      return undefined;
+    }
+    // Fall back to context-based lookup
     const ref = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
     return ref?.get?.() ?? undefined;
   }
 
   setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
+    // Try list-based memory first
+    const tag = type as string as MemoryTag;
+    const locations = this._mockBlock.getMemoryByTag(tag);
+    if (locations.length > 0) {
+      const loc = locations[0];
+      if (loc.fragments.length > 0) {
+        const updated = loc.fragments.map((f, i) =>
+          i === 0 ? { ...f, value } : f
+        );
+        loc.update(updated);
+      } else {
+        loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+      }
+      return;
+    }
+    // Fall back to context-based storage
     const existing = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
     if (existing) {
       existing.set(value);
@@ -115,18 +141,18 @@ class MockBehaviorContext implements IBehaviorContext {
   }
 
   pushMemory(_tag: string, _fragments: ICodeFragment[]): IMemoryLocation {
-    // Mock: return a minimal IMemoryLocation stub
-    return {
-      tag: _tag,
-      fragments: _fragments,
-      subscribe: () => () => {},
-      update: () => {},
-      dispose: () => {}
-    } as IMemoryLocation;
+    // Create a real MemoryLocation and push it to the MockBlock
+    const location = new MemoryLocation(_tag as MemoryTag, _fragments);
+    this._mockBlock.pushMemory(location);
+    return location;
   }
 
   updateMemory(_tag: string, _fragments: ICodeFragment[]): void {
-    // Mock: no-op memory update
+    // Update the first matching location on the MockBlock
+    const locations = this._mockBlock.getMemoryByTag(_tag as MemoryTag);
+    if (locations.length > 0) {
+      locations[0].update(_fragments);
+    }
   }
 
   markComplete(reason?: string): void {
@@ -323,41 +349,102 @@ export class MockBlock implements IRuntimeBlock {
   }
 
   // ============================================================================
-  // Block-Owned Memory (required by IRuntimeBlock interface)
+  // List-Based Memory API
   // ============================================================================
 
+  private _memory: IMemoryLocation[] = [];
   private _memoryEntries: Map<string, MockMemoryEntry<any, any>> = new Map();
 
   /**
-   * Check if this block owns memory of the specified type.
+   * Push a new memory location onto the block's memory list.
    */
-  hasMemory<T extends MemoryType>(type: T): boolean {
+  pushMemory(location: IMemoryLocation): void {
+    this._memory.push(location);
+  }
+
+  /**
+   * Get all memory locations matching the given tag.
+   */
+  getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+    return this._memory.filter(loc => loc.tag === tag);
+  }
+
+  /**
+   * Get all memory locations.
+   */
+  getAllMemory(): IMemoryLocation[] {
+    return [...this._memory];
+  }
+
+  // ============================================================================
+  // Backward-Compatible Memory API (shims over list-based memory)
+  // ============================================================================
+
+  /**
+   * Check if this block owns memory of the specified type.
+   * @deprecated Use getMemoryByTag().length > 0
+   */
+  hasMemory(type: MemoryType): boolean {
+    // Check list-based memory first, then fall back to legacy map
+    const tag = type as string as MemoryTag;
+    if (this._memory.some(loc => loc.tag === tag)) return true;
     return this._memoryEntries.has(type);
   }
 
   /**
    * Get memory entry of the specified type.
+   * @deprecated Use getMemoryByTag() instead.
    */
   getMemory<T extends MemoryType>(
     type: T
-  ): IMemoryEntry<T, MemoryValueOf<T>> | undefined {
+  ): any {
+    // Check list-based memory first
+    const tag = type as string as MemoryTag;
+    const locations = this._memory.filter(loc => loc.tag === tag);
+    if (locations.length > 0) {
+      const loc = locations[0];
+      return {
+        get value(): MemoryValueOf<T> {
+          if (loc.fragments.length === 0) return undefined as unknown as MemoryValueOf<T>;
+          return loc.fragments[0]?.value as MemoryValueOf<T>;
+        },
+        subscribe(listener: (nv: any, ov: any) => void): () => void {
+          return loc.subscribe((newFrags, oldFrags) => {
+            const newVal = newFrags.length > 0 ? newFrags[0]?.value : undefined;
+            const oldVal = oldFrags.length > 0 ? oldFrags[0]?.value : undefined;
+            listener(newVal, oldVal);
+          });
+        }
+      };
+    }
+    // Fall back to legacy map
     return this._memoryEntries.get(type);
   }
 
   /**
-   * Get all memory types owned by this block.
-   */
-  getMemoryTypes(): MemoryType[] {
-    return Array.from(this._memoryEntries.keys()) as MemoryType[];
-  }
-
-  /**
    * Set memory value directly. Creates or updates a memory entry.
+   * @deprecated Use pushMemory() or BehaviorContext APIs.
    */
   setMemoryValue<T extends MemoryType>(
     type: T,
     value: MemoryValueOf<T>
   ): void {
+    // Try list-based first
+    const tag = type as string as MemoryTag;
+    const locations = this._memory.filter(loc => loc.tag === tag);
+    if (locations.length > 0) {
+      const loc = locations[0];
+      if (loc.fragments.length > 0) {
+        const updated = loc.fragments.map((f, i) =>
+          i === 0 ? { ...f, value } : f
+        );
+        loc.update(updated);
+      } else {
+        loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+      }
+      return;
+    }
+    // Fall back to legacy map
     if (this._memoryEntries.has(type)) {
       const entry = this._memoryEntries.get(type)!;
       entry.setValue(value);
@@ -368,9 +455,9 @@ export class MockBlock implements IRuntimeBlock {
 }
 
 /**
- * Simple mock memory entry for testing.
+ * Simple mock memory entry for testing (legacy fallback).
  */
-class MockMemoryEntry<T extends string, V> implements IMemoryEntry<T, V> {
+class MockMemoryEntry<T extends string, V> {
   readonly type: T;
   private _value: V;
   private _subscribers: Set<(newValue: V | undefined, oldValue: V | undefined) => void> = new Set();

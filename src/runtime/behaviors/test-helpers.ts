@@ -10,6 +10,8 @@ import { vi, expect } from 'bun:test';
 import { IRuntimeBlock, IRuntimeBehavior } from '../contracts';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { MemoryTypeMap, TimerState, MemoryType, RoundState } from '../memory/MemoryTypes';
+import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMemoryLocation, MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
 
 /**
@@ -72,19 +74,88 @@ export interface MockBlock {
     label: string;
     fragments: unknown[][];
     memory: Map<MemoryType, unknown>;
+    /** List-based memory storage for new API */
+    _memoryList: IMemoryLocation[];
+    /** Push a memory location (list-based API) */
+    pushMemory(location: IMemoryLocation): void;
+    /** Get memory locations by tag (list-based API) */
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
+    /** Get all memory locations */
+    getAllMemory(): IMemoryLocation[];
+    /** Backward-compat shim */
+    getMemory<T extends MemoryType>(type: T): any;
+    /** Backward-compat shim */
+    hasMemory(type: MemoryType): boolean;
+    /** Backward-compat shim */
+    setMemoryValue<T extends MemoryType>(type: T, value: any): void;
 }
 
 /**
  * Creates a mock block.
  */
 export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
-    return {
+    const memoryList: IMemoryLocation[] = [];
+    const memoryMap = config.memory ?? new Map();
+    const block: MockBlock = {
         key: { toString: () => config.key?.toString() ?? 'test-block' },
         blockType: config.blockType ?? 'Test',
         label: config.label ?? 'Test Block',
         fragments: config.fragments ?? [],
-        memory: config.memory ?? new Map()
+        memory: memoryMap,
+        _memoryList: memoryList,
+        pushMemory(location: IMemoryLocation): void {
+            memoryList.push(location);
+        },
+        getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+            return memoryList.filter(loc => loc.tag === tag);
+        },
+        getAllMemory(): IMemoryLocation[] {
+            return [...memoryList];
+        },
+        getMemory<T extends MemoryType>(type: T): any {
+            const tag = type as string as MemoryTag;
+            const locations = memoryList.filter(loc => loc.tag === tag);
+            if (locations.length > 0) {
+                const loc = locations[0];
+                return {
+                    get value() {
+                        if (loc.fragments.length === 0) return undefined;
+                        return loc.fragments[0]?.value;
+                    },
+                    subscribe(listener: (nv: any, ov: any) => void): () => void {
+                        return loc.subscribe((nf, of_) => {
+                            listener(nf[0]?.value, of_[0]?.value);
+                        });
+                    }
+                };
+            }
+            // Fall back to legacy map
+            const val = memoryMap.get(type);
+            if (val !== undefined) {
+                return { value: val, subscribe: () => () => {} };
+            }
+            return undefined;
+        },
+        hasMemory(type: MemoryType): boolean {
+            const tag = type as string as MemoryTag;
+            return memoryList.some(loc => loc.tag === tag) || memoryMap.has(type);
+        },
+        setMemoryValue<T extends MemoryType>(type: T, value: any): void {
+            const tag = type as string as MemoryTag;
+            const locations = memoryList.filter(loc => loc.tag === tag);
+            if (locations.length > 0) {
+                const loc = locations[0];
+                if (loc.fragments.length > 0) {
+                    loc.update(loc.fragments.map((f, i) => i === 0 ? { ...f, value } : f));
+                } else {
+                    loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                }
+            } else {
+                memoryMap.set(type, value);
+            }
+        },
     };
+    return block;
 }
 
 /**
@@ -123,11 +194,42 @@ export function createIntegrationContext(
         },
 
         getMemory<T extends MemoryType>(type: T): MemoryTypeMap[T] | undefined {
+            // Check list-based memory first
+            const tag = type as string as MemoryTag;
+            const locations = block._memoryList.filter(loc => loc.tag === tag);
+            if (locations.length > 0 && locations[0].fragments.length > 0) {
+                return locations[0].fragments[0]?.value as MemoryTypeMap[T];
+            }
             return block.memory.get(type) as MemoryTypeMap[T] | undefined;
         },
 
         setMemory<T extends MemoryType>(type: T, value: MemoryTypeMap[T]) {
-            block.memory.set(type, value);
+            // Try list-based first
+            const tag = type as string as MemoryTag;
+            const locations = block._memoryList.filter(loc => loc.tag === tag);
+            if (locations.length > 0) {
+                const loc = locations[0];
+                if (loc.fragments.length > 0) {
+                    loc.update(loc.fragments.map((f, i) => i === 0 ? { ...f, value } : f));
+                } else {
+                    loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                }
+            } else {
+                block.memory.set(type, value);
+            }
+        },
+
+        pushMemory(tag: string, fragments: ICodeFragment[]): IMemoryLocation {
+            const location = new MemoryLocation(tag as MemoryTag, fragments);
+            block.pushMemory(location);
+            return location;
+        },
+
+        updateMemory(tag: string, fragments: ICodeFragment[]): void {
+            const locations = block.getMemoryByTag(tag as MemoryTag);
+            if (locations.length > 0) {
+                locations[0].update(fragments);
+            }
         }
     } as IBehaviorContext;
 }

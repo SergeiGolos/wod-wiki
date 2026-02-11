@@ -29,7 +29,10 @@ function createMockBlock(label: string = 'Test Block'): IRuntimeBlock {
         getBehavior: vi.fn(),
         hasMemory: vi.fn().mockReturnValue(false),
         getMemory: vi.fn().mockReturnValue(undefined),
-        getMemoryTypes: vi.fn().mockReturnValue([]),
+        setMemoryValue: vi.fn(),
+        pushMemory: vi.fn(),
+        getMemoryByTag: vi.fn().mockReturnValue([]),
+        getAllMemory: vi.fn().mockReturnValue([]),
     } as unknown as IRuntimeBlock;
 }
 
@@ -223,8 +226,15 @@ describe('BehaviorContext', () => {
         });
 
         it('should return memory value when it exists', () => {
-            const mockEntry = { value: { elapsed: 1000 } };
-            (block.getMemory as any).mockReturnValue(mockEntry);
+            // BehaviorContext.getMemory now reads from getMemoryByTag -> fragments[0].value
+            const mockLocation = {
+                tag: 'timer',
+                fragments: [{ value: { elapsed: 1000 } }],
+                subscribe: vi.fn(),
+                update: vi.fn(),
+                dispose: vi.fn(),
+            };
+            (block.getMemoryByTag as any).mockReturnValue([mockLocation]);
 
             const result = ctx.getMemory('timer');
             expect(result).toEqual({ elapsed: 1000 });

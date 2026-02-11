@@ -15,7 +15,9 @@ import {
     findEvents,
     findOutputs,
     MockRuntime,
-    MockBlock
+    MockBlock,
+    expectDisplayLabel,
+    expectRoundDisplay
 } from './test-helpers';
 
 import { TimerInitBehavior } from '../../TimerInitBehavior';
@@ -27,7 +29,7 @@ import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
-import { TimerState, RoundState, DisplayState } from '../../../memory/MemoryTypes';
+import { TimerState, RoundState } from '../../../memory/MemoryTypes';
 
 describe('EMOM Pattern Integration', () => {
     let runtime: MockRuntime;
@@ -129,13 +131,12 @@ describe('EMOM Pattern Integration', () => {
     });
 
     describe('EMOM Display', () => {
-        it('should show countdown mode for interval', () => {
+        it('should show display label for interval', () => {
             const behaviors = createEmomBehaviors();
 
             mountBehaviors(behaviors, runtime, block);
 
-            const display = block.memory.get('display') as DisplayState;
-            expect(display.mode).toBe('countdown');
+            expectDisplayLabel(block, 'EMOM');
         });
 
         it('should show round progress', () => {
@@ -145,8 +146,7 @@ describe('EMOM Pattern Integration', () => {
             advanceBehaviors(behaviors, ctx);
             advanceBehaviors(behaviors, ctx);
 
-            const display = block.memory.get('display') as DisplayState;
-            expect(display.roundDisplay).toBe('Round 3 of 10');
+            expectRoundDisplay(block, 'Round 3 of 10');
         });
     });
 
