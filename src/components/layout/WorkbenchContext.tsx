@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
@@ -201,7 +201,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     });
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     content,
     blocks,
     activeBlockId,
@@ -224,7 +224,27 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     completeWorkout,
     expandPanel,
     collapsePanel,
-  };
+  }), [
+    content,
+    blocks,
+    activeBlockId,
+    selectedBlockId,
+    viewMode,
+    results,
+    panelLayouts,
+    provider,
+    resolvedMode,
+    stripMode,
+    historySelection,
+    historyEntries,
+    setHistoryEntries,
+    selectBlock,
+    setViewMode,
+    startWorkout,
+    completeWorkout,
+    expandPanel,
+    collapsePanel,
+  ]);
 
   return (
     <WorkbenchContext.Provider value={value}>

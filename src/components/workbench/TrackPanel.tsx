@@ -69,7 +69,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
   const lastScrollTopRef = React.useRef(0);
   const [isUserScrolledUp, setIsUserScrolledUp] = React.useState(false);
 
-  const handleScroll = () => {
+  const handleScroll = React.useCallback(() => {
     if (!scrollContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
 
@@ -85,9 +85,9 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
       // We are NOT at bottom AND scrolling up -> user action
       setIsUserScrolledUp(true);
     }
-    // If scrolling down but not at bottom yet (e.g. smooth scroll in progress), 
+    // If scrolling down but not at bottom yet (e.g. smooth scroll in progress),
     // leave state as is.
-  };
+  }, []);
 
   const timerDisplay = (
     <TimerDisplay
