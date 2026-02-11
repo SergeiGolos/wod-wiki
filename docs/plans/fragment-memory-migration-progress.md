@@ -1,13 +1,16 @@
 # Fragment-Based Memory Migration - Progress Report
 
-## Status: IN PROGRESS - Infrastructure Complete
+## Status: IN PROGRESS - Phase 2 (Behavior Migration) Partially Complete
 ## Date: 2026-02-11
+## Last Updated: 2026-02-11 - Timer and Round behaviors migrated
 
 ---
 
 ## Summary
 
 Phase 1 of the fragment-based memory migration is complete. The core infrastructure for list-based memory has been implemented alongside the existing Map-based system, enabling a phased migration approach.
+
+**Phase 2 Update (2026-02-11):** Timer and Round behaviors have been successfully migrated to push fragments using the new list-based memory API. These behaviors now write to both the old Map-based API (for backward compatibility) and the new list-based API (for the migration path).
 
 ---
 
@@ -169,12 +172,40 @@ for (const group of this.fragments) {
 
 The following behaviors need to be updated to produce `ICodeFragment[]` instead of typed state objects:
 
-1. **TimerInitBehavior** - Push timer fragment with TimeSpan data
-2. **TimerTickBehavior** - Update timer fragment on tick
-3. **RoundInitBehavior** - Push rounds fragment
-4. **RoundAdvanceBehavior** - Update rounds fragment on advance
-5. **DisplayInitBehavior** - Push display text fragment
-6. **ButtonBehavior** - Push action fragments for controls
+1. ✅ **TimerInitBehavior** - Push timer fragment with TimeSpan data (COMPLETED 2026-02-11)
+2. ✅ **TimerTickBehavior** - Update timer fragment on tick (COMPLETED 2026-02-11)
+3. ✅ **RoundInitBehavior** - Push rounds fragment (COMPLETED 2026-02-11)
+4. ✅ **RoundAdvanceBehavior** - Update rounds fragment on advance (COMPLETED 2026-02-11)
+5. **DisplayInitBehavior** - Push display text fragment (PENDING)
+6. **ButtonBehavior** - Push action fragments for controls (PENDING)
+
+### Migration Details (Completed Behaviors)
+
+All migrated behaviors follow a dual-write pattern for backward compatibility:
+
+#### TimerInitBehavior (src/runtime/behaviors/TimerInitBehavior.ts:34-66)
+- **OLD API:** `ctx.setMemory('timer', timerState)` - Map-based memory with TimerState
+- **NEW API:** `ctx.pushMemory('timer', [timerFragment])` - List-based memory with ICodeFragment[]
+- **Fragment Structure:** Timer fragment with `value.spans`, `value.direction`, `value.durationMs`
+- **Image Format:** Duration formatted as "mm:ss" or "hh:mm:ss"
+
+#### TimerTickBehavior (src/runtime/behaviors/TimerTickBehavior.ts:45-81)
+- **OLD API:** `ctx.setMemory('timer', updatedTimerState)` - Updates closed span
+- **NEW API:** `ctx.updateMemory('timer', [timerFragment])` - Updates first timer location
+- **Timing:** Only updates on unmount to close the final span
+- **Performance:** No per-tick updates (UI computes elapsed from spans)
+
+#### RoundInitBehavior (src/runtime/behaviors/RoundInitBehavior.ts:28-53)
+- **OLD API:** `ctx.setMemory('round', roundState)` - Map-based memory with RoundState
+- **NEW API:** `ctx.pushMemory('round', [roundFragment])` - List-based memory with ICodeFragment[]
+- **Fragment Structure:** Rounds fragment with `value.current`, `value.total`
+- **Image Format:** "Round X / Y" or "Round X" for unbounded
+
+#### RoundAdvanceBehavior (src/runtime/behaviors/RoundAdvanceBehavior.ts:31-71)
+- **OLD API:** `ctx.setMemory('round', updatedRoundState)` - Updates round count
+- **NEW API:** `ctx.updateMemory('round', [roundFragment])` - Updates first round location
+- **Timing:** Updates on each next() call after all children complete
+- **Child Awareness:** Respects ChildRunnerBehavior completion status
 
 ### Fragment Contracts
 
