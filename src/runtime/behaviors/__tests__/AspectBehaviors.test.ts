@@ -26,6 +26,8 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         markComplete: vi.fn(),
         getMemory: vi.fn((type: string) => memoryStore.get(type)),
         setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+        pushMemory: vi.fn(),
+        updateMemory: vi.fn(),
         ...overrides
     } as unknown as IBehaviorContext;
 }

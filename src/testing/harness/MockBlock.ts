@@ -13,6 +13,7 @@ import { IMemoryEntry } from '@/runtime/memory/IMemoryEntry';
 import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { OutputStatementType } from '@/core/models/OutputStatement';
+import { IMemoryLocation } from '@/runtime/memory/MemoryLocation';
 
 /**
  * Minimal stub context for MockBlock
@@ -111,6 +112,21 @@ class MockBehaviorContext implements IBehaviorContext {
     } else {
       this._mockBlock.context?.allocate(type, value, 'private');
     }
+  }
+
+  pushMemory(_tag: string, _fragments: ICodeFragment[]): IMemoryLocation {
+    // Mock: return a minimal IMemoryLocation stub
+    return {
+      tag: _tag,
+      fragments: _fragments,
+      subscribe: () => () => {},
+      update: () => {},
+      dispose: () => {}
+    } as IMemoryLocation;
+  }
+
+  updateMemory(_tag: string, _fragments: ICodeFragment[]): void {
+    // Mock: no-op memory update
   }
 
   markComplete(reason?: string): void {
