@@ -142,6 +142,7 @@ export class BehaviorContext implements IBehaviorContext {
             sourceStatementId: this.block.sourceIds?.[0],
             stackLevel: this.stackLevel,
             fragments: taggedFragments,
+            completionReason: _options?.completionReason,
         });
 
         // Add to runtime's output collection and notify subscribers

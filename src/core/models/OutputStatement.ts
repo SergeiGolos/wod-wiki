@@ -69,6 +69,20 @@ export interface IOutputStatement extends ICodeStatement {
      * They should have `origin: 'runtime'` or `origin: 'user'`.
      */
     readonly fragments: ICodeFragment[];
+
+    /**
+     * The reason this block completed, if applicable.
+     * 
+     * Propagated from the block's `completionReason` during unmount.
+     * Enables downstream consumers to distinguish:
+     * - `'user-advance'` — self-pop (user clicked next)
+     * - `'forced-pop'` — parent-pop (parent timer expired)
+     * - `'timer-expired'` — block's own timer completed
+     * - `'rounds-complete'` — all rounds finished
+     * 
+     * Only present on `'completion'` output type.
+     */
+    readonly completionReason?: string;
 }
 
 /**
@@ -92,6 +106,9 @@ export interface OutputStatementOptions {
 
     /** Runtime-collected fragments */
     fragments?: ICodeFragment[];
+
+    /** Reason the block completed (e.g., 'user-advance', 'forced-pop') */
+    completionReason?: string;
 
     /** Parent output statement ID (for hierarchy) */
     parent?: number;
@@ -117,6 +134,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
     readonly fragments: ICodeFragment[];
+    readonly completionReason?: string;
     readonly parent?: number;
     readonly children: number[][];
     readonly isLeaf: boolean;
@@ -131,6 +149,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
         this.sourceStatementId = options.sourceStatementId;
         this.stackLevel = options.stackLevel;
         this.fragments = options.fragments ?? [];
+        this.completionReason = options.completionReason;
         this.parent = options.parent;
         this.children = options.children ?? [];
         this.isLeaf = this.children.length === 0;

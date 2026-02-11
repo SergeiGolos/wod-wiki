@@ -208,6 +208,20 @@ export interface IRuntimeBlock {
     readonly isComplete: boolean;
 
     /**
+     * The reason this block was completed, if any.
+     * 
+     * Set by `markComplete(reason)`. Common values:
+     * - `'user-advance'` — user clicked next (self-pop)
+     * - `'forced-pop'` — parent popped this block (e.g., timer expiry)
+     * - `'timer-expired'` — block's own timer completed
+     * - `'rounds-complete'` — all rounds finished
+     * 
+     * Available during `onUnmount` so output behaviors can include
+     * completion context in the emitted output.
+     */
+    readonly completionReason?: string;
+
+    /**
      * Marks the block as complete. Idempotent - subsequent calls have no effect.
      * Called by behaviors when their completion condition is met.
      * 

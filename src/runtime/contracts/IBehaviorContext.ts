@@ -43,6 +43,16 @@ export interface SubscribeOptions {
 export interface OutputOptions {
     /** Human-readable label for the output */
     label?: string;
+
+    /**
+     * Reason the block completed.
+     * 
+     * Propagated to OutputStatement so downstream consumers can distinguish:
+     * - `'user-advance'` — self-pop (user clicked next)
+     * - `'forced-pop'` — parent-pop (parent timer expired, etc.)
+     * - `'timer-expired'` — block's own timer completed
+     */
+    completionReason?: string;
 }
 
 /**

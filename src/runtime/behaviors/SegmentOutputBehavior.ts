@@ -47,9 +47,12 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
         const fragments = this.getFragments(ctx);
 
-        // Emit completion output
+        // Emit completion output with completion reason from block.
+        // This enriches the unmount output with context about how the block
+        // was completed (self-pop via 'user-advance' vs parent-pop via 'forced-pop').
         ctx.emitOutput('completion', fragments as ICodeFragment[], {
-            label: this.label ?? ctx.block.label
+            label: this.label ?? ctx.block.label,
+            completionReason: ctx.block.completionReason,
         });
 
         return [];

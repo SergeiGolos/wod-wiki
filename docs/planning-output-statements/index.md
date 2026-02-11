@@ -37,15 +37,75 @@ Leaf blocks represent active work. They carry **display fragments** (`fragment:d
 3. **Container state change**: When a container's `next()` is called (after child pops back), the container should emit a `milestone` for any state change before pushing the next child.
 4. **Container entry**: Containers emit a `segment` on mount to establish the bracket. This output identifies the container's initial configuration.
 
+### Time Taxonomy
+
+The output system tracks five distinct time concepts. Each has a different lifecycle — where it is **defined**, when it is **collected**, and how it flows into **output**.
+
+| Time Type | Definition | Stored Type | Example |
+|-----------|-----------|-------------|----------|
+| **timestamp** | A specific point in time | `Date` or `number` (epoch ms) | Block mount time, block pop time, fragment creation time |
+| **elapsed** | Running time accumulated since a reference point | *(derived — not stored)* | Sum of all timer spans for a block; always computed on read |
+| **duration** | A prescribed/expected length of time | `number` (ms) | `5:00` timer = 300000ms; parser-defined, constant |
+| **total** | Accumulated time across all spans or segments | *(derived — not stored)* | Block total = sum of spans; session total = `RuntimeClock.elapsed` |
+| **spans** | Discrete start/end time intervals | `TimeSpan[]` | Each pause/resume cycle creates a new span |
+
+#### Time Type Lifecycle
+
+```
+         DEFINE                    COLLECT                      OUTPUT
+         ──────                    ───────                      ──────
+
+timestamp  Parser/Clock            executionTiming.startTime     OutputStatement.timeSpan.started
+           ctx.clock.now  ───────► executionTiming.completedAt ► OutputStatement.timeSpan.ended
+                                   TimerState.spans[].started    fragment.timestamp
+                                   CompletionState.completedAt   history:record.completedAt
+
+duration   Parser fragment         TimerInitConfig.durationMs    Completion threshold check
+           FragmentType.Timer ───► TimerState.durationMs ──────► TimerCompletionBehavior
+                                                                 HistoryRecord.timerDurationMs
+
+spans      TimerInitBehavior       TimerState.spans[]            calculateElapsed() → elapsed
+           RuntimeClock.start() ─► Block: open span on mount     OutputStatement.timeSpan
+                                   close span on unmount/pause   (uses first span.started)
+                                   new span on resume
+
+elapsed    (derived from spans)    calculateElapsed(timer, now)  TimerOutputBehavior → duration fragment
+           never stored ──────────► sum of all spans ───────────► HistoryRecord.elapsedMs
+                                                                  Formatted as mm:ss in output
+
+total      (derived from spans)    Same as elapsed for block     TimerOutputBehavior completion
+           never stored ──────────► RuntimeClock.elapsed ───────► Session-level total time
+                                   for global session
+```
+
+#### Time Types Per Output Type
+
+| Output Type | Time Data Present | Time Types Used |
+|-------------|-------------------|------------------|
+| `segment` (entry) | `timeSpan.started` = mount timestamp | **timestamp** only |
+| `completion` (exit) | `timeSpan.started` = first span start, `timeSpan.ended` = unmount timestamp | **timestamp** (start/end), **elapsed** (as duration fragment) |
+| `milestone` (state change) | `timeSpan` = snapshot at emission time | **timestamp** (when the state changed) |
+| `history:record` (event) | `elapsedMs`, `completedAt`, `timerDurationMs` | **elapsed**, **timestamp**, **duration** |
+
+#### Time Types Per Block Category
+
+| Block Category | Time Types Tracked | Notes |
+|---------------|-------------------|--------|
+| **Leaf (effort, no timer)** | timestamp (mount/unmount) | No timer → no spans, elapsed, or duration. Only wall-clock bracket via `executionTiming`. |
+| **Leaf (timer)** | timestamp, spans, elapsed, duration | Full timer lifecycle: prescribed duration, span tracking, elapsed computation on unmount. |
+| **Container (rounds only)** | timestamp (mount/unmount) | No own timer → wall-clock bracket only. Round state is counted, not timed. |
+| **Container (timer: AMRAP/EMOM)** | timestamp, spans, elapsed, duration | Parent timer drives completion. Spans track pause/resume. Elapsed compared to duration for expiry. |
+| **Session (RuntimeClock)** | timestamp, spans, elapsed, total | Global clock with its own span list. Total = full workout elapsed time. |
+
 ### Fragment Flow
 
 ```
 Parser Fragments (compile time)         Runtime Fragments (execution time)
 ────────────────────────────────         ──────────────────────────────────
-effort: "Pullups"                        duration: 45000ms (elapsed)
-reps: 10                                 timer: "0:45" (formatted)
+effort: "Pullups"                        elapsed: 45000ms (computed from spans)
+reps: 10                                 timer: "0:45" (formatted elapsed)
 resistance: "bodyweight"                 round: { current: 2, total: 5 }
-timer: 300000ms (prescribed)             
+duration: 300000ms (prescribed)          timestamp: 1706000000000 (epoch ms)
                                          
          │                                        │
          └──── fragment:display memory ────────────┘
@@ -54,7 +114,7 @@ timer: 300000ms (prescribed)
                   OutputStatement
                   - outputType: 'segment' | 'completion' | 'milestone'
                   - fragments: [...parser, ...runtime]
-                  - timeSpan: { start, end }
+                  - timeSpan: { started, ended }    ← timestamps
                   - sourceBlockKey, stackLevel
 ```
 
@@ -87,14 +147,30 @@ This documentation is organized by workout pattern type. Each type includes:
 
 ### Output Statement Model
 
-| Property            | Description                                                           |
-| ------------------- | --------------------------------------------------------------------- |
-| `outputType`        | `'segment'` · `'completion'` · `'milestone'` · `'metric'` · `'label'` |
-| `timeSpan`          | `{ start, end }` timestamps for the output window                     |
-| `fragments`         | Merged parser + runtime fragments attached to the output              |
-| `sourceStatementId` | Links back to the parsed `CodeStatement.id`                           |
-| `sourceBlockKey`    | Runtime block key that emitted this output                            |
-| `stackLevel`        | Depth in the runtime stack when emitted                               |
+| Property            | Description                                                           | Time Types                            |
+| ------------------- | --------------------------------------------------------------------- | ------------------------------------- |
+| `outputType`        | `'segment'` · `'completion'` · `'milestone'` · `'metric'` · `'label'` | —                                     |
+| `timeSpan`          | `{ started, ended }` epoch-ms timestamps for the output window        | **timestamp** (started), **timestamp** (ended) |
+| `fragments`         | Merged parser + runtime fragments attached to the output              | May contain **duration**, **elapsed** fragments |
+| `sourceStatementId` | Links back to the parsed `CodeStatement.id`                           | —                                     |
+| `sourceBlockKey`    | Runtime block key that emitted this output                            | —                                     |
+| `stackLevel`        | Depth in the runtime stack when emitted                               | —                                     |
+
+#### Time Data in `timeSpan`
+
+`OutputStatement.timeSpan` is constructed in `BehaviorContext.emitOutput()`:
+- `started` = **timestamp** of first `TimerState.spans[0].started` (the block's original start), or `clock.now` if no timer
+- `ended` = **timestamp** of `clock.now` at emission time
+
+This represents the **wall-clock interval** of the block, not the pause-aware sum (elapsed). Pause gaps are invisible in `timeSpan` — for accurate pause-aware time, use the **elapsed** value from timer fragments or span-level data.
+
+#### Time Data in Fragments
+
+| Fragment Type | Time Type | Origin | Location in Output |
+|--------------|-----------|--------|--------------------|
+| `FragmentType.Timer` with `type: 'duration'` | **elapsed** | `runtime` | `TimerOutputBehavior.onUnmount` — `calculateElapsed(timer, now)` |
+| `FragmentType.Timer` with parser value | **duration** | `parser` | Prescribed timer value (e.g., 300000ms for `5:00`) |
+| `fragment.timestamp` | **timestamp** | `runtime` | Tagged on every fragment in `emitOutput()` |
 
 ### Behavior → Output Mapping (by Block Category)
 
@@ -154,7 +230,14 @@ When a child block pops, `PopBlockAction` fires `NextAction` on the parent. The 
 ### Key State Variables Per Block
 
 - `round.current` / `round.total` — round counter (only on multi-round strategies)
-- `timer` — `TimerState` with elapsed, direction, durationMs (on countdown/timer blocks)
+- `timer` — `TimerState` containing:
+  - `durationMs` — **duration** (prescribed length, e.g., 300000 for `5:00`)
+  - `spans` — **spans** (`TimeSpan[]`: each has `started`/`ended` **timestamps**; new span per pause/resume)
+  - `direction` — `'up'` (countup) or `'down'` (countdown)
+  - `label` — display name for the timer
+  - *(Note: **elapsed** and **total** are always derived from spans via `calculateElapsed()`, never stored)*
+- `executionTiming.startTime` — **timestamp** of block push (`PushBlockAction`)
+- `executionTiming.completedAt` — **timestamp** of block pop (`PopBlockAction`)
 - `childIndex` — pointer to next child to push (0-based, on container blocks)
 - `allChildrenExecuted` — `childIndex >= children.length`
 - `allChildrenCompleted` — `allChildrenExecuted && !dispatchedThisCall`
@@ -189,7 +272,7 @@ Use this checklist when writing integration tests:
 
 ### Structural Integrity
 - [ ] Every `segment` output has matching `completion` output (paired lifecycle)
-- [ ] `timeSpan.start` on segment ≤ `timeSpan.end` on completion
+- [ ] `timeSpan.started` on segment ≤ `timeSpan.ended` on completion
 - [ ] `stackLevel` matches actual runtime stack depth at emission time
 - [ ] `sourceStatementId` traces back to a valid parsed `CodeStatement`
 - [ ] Round `milestone` outputs have correct `current` / `total` counts
@@ -197,3 +280,15 @@ Use this checklist when writing integration tests:
 - [ ] `history:record` event fires exactly once per block unmount
 - [ ] No duplicate outputs for the same lifecycle event
 - [ ] Fragment origins are correct (`parser` for initial, `runtime` for tracked values)
+
+### Time Type Correctness
+- [ ] **timestamp**: `timeSpan.started` uses first span's start (not emission time) for timer blocks
+- [ ] **timestamp**: `timeSpan.ended` uses emission-time `clock.now` on completion outputs
+- [ ] **duration**: Prescribed duration fragment preserved from parser through to output (constant, not mutated)
+- [ ] **elapsed**: Completion output includes elapsed value computed from spans (not wall-clock diff)
+- [ ] **elapsed**: Elapsed accounts for pause/resume cycles (summed from closed spans + current open span)
+- [ ] **total**: Session-level total from `RuntimeClock.elapsed` matches sum of all clock spans
+- [ ] **spans**: Timer blocks have at least one span on mount, last span closed on unmount
+- [ ] **spans**: Pause creates new span (close current, open new on resume)
+- [ ] **spans**: EMOM interval reset replaces spans with fresh `[new TimeSpan(now)]`
+- [ ] Leaf blocks without timers still get `timeSpan` on outputs (from `executionTiming`, not timer spans)

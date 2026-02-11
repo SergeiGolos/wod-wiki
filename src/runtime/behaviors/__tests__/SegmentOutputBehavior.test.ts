@@ -10,6 +10,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             key: { toString: () => 'test-block' },
             label: 'Default Label',
             fragments: [],
+            completionReason: undefined,
             getMemoryByTag: () => [],
         },
         clock: { now: new Date(1000) },
@@ -124,6 +125,63 @@ describe('SegmentOutputBehavior', () => {
             );
             expect(ctx.emitOutput).toHaveBeenNthCalledWith(2,
                 'completion', expect.any(Array), expect.objectContaining({ label: 'Workout' })
+            );
+        });
+    });
+
+    describe('completionReason propagation (S1)', () => {
+        it('should include user-advance completionReason on self-pop unmount', () => {
+            const behavior = new SegmentOutputBehavior();
+            const ctx = createMockContext({
+                block: {
+                    key: { toString: () => 'test-block' },
+                    label: 'Push-ups',
+                    fragments: [],
+                    completionReason: 'user-advance',
+                    getMemoryByTag: () => [],
+                } as any,
+            });
+
+            behavior.onUnmount(ctx);
+
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'completion',
+                expect.any(Array),
+                expect.objectContaining({ completionReason: 'user-advance' })
+            );
+        });
+
+        it('should include forced-pop completionReason on parent-pop unmount', () => {
+            const behavior = new SegmentOutputBehavior();
+            const ctx = createMockContext({
+                block: {
+                    key: { toString: () => 'test-block' },
+                    label: 'Effort Block',
+                    fragments: [],
+                    completionReason: 'forced-pop',
+                    getMemoryByTag: () => [],
+                } as any,
+            });
+
+            behavior.onUnmount(ctx);
+
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'completion',
+                expect.any(Array),
+                expect.objectContaining({ completionReason: 'forced-pop' })
+            );
+        });
+
+        it('should pass undefined completionReason when block has no reason', () => {
+            const behavior = new SegmentOutputBehavior();
+            const ctx = createMockContext();
+
+            behavior.onUnmount(ctx);
+
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'completion',
+                expect.any(Array),
+                expect.objectContaining({ completionReason: undefined })
             );
         });
     });
