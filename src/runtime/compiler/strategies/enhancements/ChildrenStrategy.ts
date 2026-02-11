@@ -3,7 +3,7 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 
-// New aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
     ChildRunnerBehavior,
     ChildLoopBehavior,
@@ -18,13 +18,10 @@ import {
 
 /**
  * ChildrenStrategy handles blocks with child statements.
- * 
- * Uses aspect-based behaviors:
- * - Children: ChildRunnerBehavior
- * - Iteration: RoundInit, RoundAdvance, RoundCompletion (for single-pass default)
- * 
- * This is a mid-priority enhancement that adds child execution
- * and default looping if not already configured.
+ *
+ * Uses aspect composer methods:
+ * - .asContainer() - Child execution with optional looping
+ * Plus specific behaviors for round management (for single-pass default).
  */
 export class ChildrenStrategy implements IRuntimeBlockStrategy {
     priority = 50;
@@ -64,15 +61,23 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
             builder.removeBehavior(PopOnNextBehavior);
         }
 
-        // Add child loop behavior FIRST for timer-based OR multi-round blocks
-        // This behavior must run before ChildRunnerBehavior so it can
-        // reset the child index before ChildRunner checks it
-        if ((hasCountdownCompletion || hasRoundsFromStrategy) && !builder.hasBehavior(ChildLoopBehavior)) {
-            builder.addBehavior(new ChildLoopBehavior({ childGroups }));
-        }
+        // =====================================================================
+        // ASPECT COMPOSERS - High-level composition
+        // =====================================================================
 
-        // Add child runner behavior (after ChildLoopBehavior)
-        builder.addBehavior(new ChildRunnerBehavior({ childGroups }));
+        // Container Aspect - Child execution with optional looping
+        // For timer-based OR multi-round blocks, add loop behavior
+        const shouldAddLoop = (hasCountdownCompletion || hasRoundsFromStrategy);
+
+        builder.asContainer({
+            childGroups,
+            addLoop: shouldAddLoop,
+            loopConfig: shouldAddLoop ? { childGroups } : undefined
+        });
+
+        // =====================================================================
+        // Specific Behaviors - Not covered by aspect composers
+        // =====================================================================
 
         // For timer-controlled blocks (AMRAP, EMOM), add CompletedBlockPopBehavior
         // AFTER ChildRunner. When the timer expires and all active children finish,

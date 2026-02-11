@@ -6,15 +6,11 @@ import { FragmentType } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 
-// New aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import { PopOnNextBehavior } from "../../../behaviors/PopOnNextBehavior";
 import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
 import { TimerInitBehavior } from "../../../behaviors/TimerInitBehavior";
-import { TimerTickBehavior } from "../../../behaviors/TimerTickBehavior";
-import { TimerPauseBehavior } from "../../../behaviors/TimerPauseBehavior";
 import { TimerOutputBehavior } from "../../../behaviors/TimerOutputBehavior";
-
-
 
 /**
  * Helper to extract optional content from code statement.
@@ -36,22 +32,18 @@ function getContent(statement: ICodeStatement, defaultContent: string): string {
 
 /**
  * EffortFallbackStrategy handles simple leaf effort blocks (e.g., "10 Push-ups").
- * 
+ *
  * These blocks have no timer, no rounds, and no children — they complete when
  * the user advances. They track elapsed time via a secondary countup timer so
  * the stack display can show how long each effort takes.
- * 
+ *
  * Blocks WITH children are excluded from this strategy and handled by
  * GenericGroupStrategy + ChildrenStrategy instead, which properly push child
  * blocks onto the stack via ChildRunnerBehavior.
- * 
- * ## Behaviors Applied:
- * - **TimerInitBehavior** (Time): Countup timer with 'secondary' role
- * - **TimerTickBehavior** (Time): Manages timer spans
- * - **TimerPauseBehavior** (Time): Supports pause/resume
- * - **TimerOutputBehavior** (Output): Emits elapsed time on completion
- * - **PopOnNextBehavior** (Completion): Marks block complete on next()
- * - **SegmentOutputBehavior** (Output): Emits segment/completion outputs
+ *
+ * Uses aspect composer methods:
+ * - .asTimer() - Secondary countup timer for tracking elapsed time
+ * Plus specific behaviors for completion and output.
  */
 export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     priority = 0;
@@ -92,16 +84,22 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             builder.setFragments([userFragments]);
         }
 
-        // Add behaviors
-        // Time Aspect: track elapsed time with a secondary countup timer
+        // =====================================================================
+        // ASPECT COMPOSERS - High-level composition
+        // =====================================================================
+
+        // Timer Aspect - track elapsed time with a secondary countup timer
         // Role is 'secondary' so effort timers don't steal primary display from parent
-        builder.addBehavior(new TimerInitBehavior({
+        builder.asTimer({
             direction: 'up',
             role: 'secondary',
-            label
-        }));
-        builder.addBehavior(new TimerTickBehavior());
-        builder.addBehavior(new TimerPauseBehavior());
+            label,
+            addCompletion: false  // No timer completion - user advances
+        });
+
+        // =====================================================================
+        // Specific Behaviors - Not covered by aspect composers
+        // =====================================================================
 
         // Completion Aspect: complete on user advance
         builder.addBehavior(new PopOnNextBehavior());
@@ -111,4 +109,3 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }
-

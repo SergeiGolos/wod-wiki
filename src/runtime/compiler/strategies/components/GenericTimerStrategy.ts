@@ -8,12 +8,9 @@ import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 
-// New aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
     TimerInitBehavior,
-    TimerTickBehavior,
-    TimerCompletionBehavior,
-    TimerPauseBehavior,
     DisplayInitBehavior,
     TimerOutputBehavior,
     PopOnNextBehavior,
@@ -23,12 +20,10 @@ import {
 
 /**
  * GenericTimerStrategy handles blocks with timer fragments.
- * 
- * Uses aspect-based behaviors:
- * - Time: TimerInit, TimerTick, TimerCompletion, TimerPause
- * - Display: DisplayInit
- * - Output: TimerOutput
- * - Completion: PopOnNext (for countup) or TimerCompletion (for countdown)
+ *
+ * Uses aspect composer methods:
+ * - .asTimer() - Time tracking (countdown or countup)
+ * Plus specific behaviors for display, output, completion, and sound.
  */
 export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Mid priority
@@ -77,39 +72,48 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         builder.setFragments(fragmentGroups);
 
         // =====================================================================
-        // Time Aspect
+        // ASPECT COMPOSERS - High-level composition
         // =====================================================================
-        builder.addBehavior(new TimerInitBehavior({
-            direction,
-            durationMs,
-            label,
-            role: 'primary'
-        }));
-        builder.addBehavior(new TimerTickBehavior());
-        builder.addBehavior(new TimerPauseBehavior());
 
-        // =====================================================================
-        // Completion Aspect
-        // =====================================================================
+        // Timer Aspect - countdown or countup timer
         if (durationMs && direction === 'down') {
-            // Countdown timer: complete when timer expires
-            builder.addBehavior(new TimerCompletionBehavior());
+            // Countdown timer with completion
+            builder.asTimer({
+                direction,
+                durationMs,
+                label,
+                role: 'primary',
+                addCompletion: true  // Timer completion marks block as complete
+            });
+        } else {
+            // Countup timer without completion
+            builder.asTimer({
+                direction,
+                durationMs,
+                label,
+                role: 'primary',
+                addCompletion: false  // No timer completion - user must advance
+            });
+        }
 
-            // User can still advance manually (skip or acknowledge completion).
-            // For parent blocks with children, ChildrenStrategy removes
-            // PopOnNextBehavior since children manage advancement.
-            builder.addBehavior(new PopOnNextBehavior());
+        // =====================================================================
+        // Specific Behaviors - Not covered by aspect composers
+        // =====================================================================
 
-            // Add countdown sounds
+        // Completion Aspect
+        // User can still advance manually (skip or acknowledge completion).
+        // For parent blocks with children, ChildrenStrategy removes
+        // PopOnNextBehavior since children manage advancement.
+        builder.addBehavior(new PopOnNextBehavior());
+
+        // Sound Cues
+        if (durationMs && direction === 'down') {
             builder.addBehavior(new SoundCueBehavior({
                 cues: [
                     { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] },
                     { sound: 'timer-complete', trigger: 'complete' }
                 ]
             }));
-        } else {
-            // Countup timer: complete on user advance
-            builder.addBehavior(new PopOnNextBehavior());
         }
 
         // =====================================================================

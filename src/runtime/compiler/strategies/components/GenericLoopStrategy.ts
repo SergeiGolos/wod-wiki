@@ -8,11 +8,9 @@ import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 
-// New aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
     RoundInitBehavior,
-    RoundAdvanceBehavior,
-    RoundCompletionBehavior,
     RoundDisplayBehavior,
     RoundOutputBehavior,
     DisplayInitBehavior,
@@ -22,11 +20,10 @@ import {
 
 /**
  * GenericLoopStrategy handles blocks with round/iteration fragments.
- * 
- * Uses aspect-based behaviors:
- * - Iteration: RoundInit, RoundAdvance, RoundCompletion, RoundDisplay
- * - Display: DisplayInit
- * - Output: RoundOutput, HistoryRecord
+ *
+ * Uses aspect composer methods:
+ * - .asRepeater() - Iteration/round management with completion
+ * Plus specific behaviors for display, output, and history.
  */
 export class GenericLoopStrategy implements IRuntimeBlockStrategy {
     priority = 50;
@@ -77,17 +74,18 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         builder.setFragments(fragmentGroups);
 
         // =====================================================================
-        // Iteration Aspect
+        // ASPECT COMPOSERS - High-level composition
         // =====================================================================
-        builder.addBehavior(new RoundInitBehavior({
+
+        // Repeater Aspect - rounds with completion
+        builder.asRepeater({
             totalRounds,
-            startRound: 1
-        }));
-        builder.addBehavior(new RoundAdvanceBehavior());
-        builder.addBehavior(new RoundCompletionBehavior());
+            startRound: 1,
+            addCompletion: true  // Complete when all rounds done
+        });
 
         // =====================================================================
-        // Display Aspect
+        // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
         builder.addBehavior(new DisplayInitBehavior({
             mode: 'clock',

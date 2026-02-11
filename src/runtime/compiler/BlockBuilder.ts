@@ -177,19 +177,24 @@ export class BlockBuilder {
      * Container Aspect Composer - Adds all child-management behaviors as a unit.
      * Configures child runner and optional child looping.
      *
+     * IMPORTANT: Order matters! ChildLoopBehavior must run BEFORE ChildRunnerBehavior
+     * so it can reset the child index before ChildRunner checks it.
+     *
      * @param config Container configuration
      * @returns This builder for chaining
      */
     asContainer(config: ChildRunnerConfig & { addLoop?: boolean; loopConfig?: ChildLoopConfig }): BlockBuilder {
-        // Children Aspect behaviors
-        this.addBehavior(new ChildRunnerBehavior({
-            childGroups: config.childGroups
-        }));
-
-        // Optional loop behavior
+        // Optional loop behavior MUST be added FIRST
+        // This behavior must run before ChildRunnerBehavior so it can
+        // reset the child index before ChildRunner checks it
         if (config.addLoop && config.loopConfig) {
             this.addBehavior(new ChildLoopBehavior(config.loopConfig));
         }
+
+        // Children Aspect behaviors (added AFTER ChildLoopBehavior)
+        this.addBehavior(new ChildRunnerBehavior({
+            childGroups: config.childGroups
+        }));
 
         return this;
     }
