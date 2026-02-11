@@ -171,9 +171,11 @@ class StubBlock implements IRuntimeBlock {
   unmount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
   dispose(): void { }
   getBehavior<T>(_type: any): T | undefined { return undefined; }
+  pushMemory(_location: import("@/runtime/memory/MemoryLocation").IMemoryLocation): void { }
+  getMemoryByTag(_tag: import("@/runtime/memory/MemoryLocation").MemoryTag): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return []; }
+  getAllMemory(): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return []; }
   hasMemory(): boolean { return false; }
   getMemory<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T): any { return undefined; }
-  getMemoryTypes(): import("@/runtime/memory/MemoryTypes").MemoryType[] { return []; }
   setMemoryValue<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T, _value: any): void { }
 }
 

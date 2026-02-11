@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeStack } from '../RuntimeStack';
-import { RuntimeMemory } from '../RuntimeMemory';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
@@ -10,11 +9,11 @@ import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { OutputStatement } from '../../core/models/OutputStatement';
+import { RuntimeClock } from '../RuntimeClock';
 import { TimeSpan } from '../models/TimeSpan';
 
 /**
  * Minimal mock block for testing output statement emission.
- * Simulates what SegmentOutputBehavior does: emits a 'completion' output on unmount.
  */
 function createMockBlock(options: {
     key?: string;
@@ -66,6 +65,20 @@ function createMockBlock(options: {
 
         getBehavior: vi.fn().mockReturnValue(undefined),
 
+        pushMemory: vi.fn(),
+        getMemoryByTag: vi.fn().mockImplementation((tag: string) => {
+            if (tag === 'fragment' && fragmentGroups) {
+                return [{ tag: 'fragment', fragments: fragmentGroups.flat() }] as any;
+            }
+            return [];
+        }),
+        getAllMemory: vi.fn().mockImplementation(() => {
+            if (fragmentGroups) {
+                return [{ tag: 'fragment', fragments: fragmentGroups.flat() }] as any;
+            }
+            return [];
+        }),
+
         hasMemory: vi.fn().mockImplementation((type: string) => {
             if (type === 'fragment' && fragmentGroups) return true;
             return false;
@@ -76,7 +89,6 @@ function createMockBlock(options: {
             }
             return undefined;
         }),
-        getMemoryTypes: vi.fn().mockReturnValue([]),
     } as unknown as IRuntimeBlock;
 }
 
@@ -84,31 +96,17 @@ function createMockBlock(options: {
  * Creates a minimal runtime for testing output statements.
  */
 function createTestRuntime(): ScriptRuntime {
-    const memory = new RuntimeMemory();
-    const stack = new RuntimeStack();
-    const eventBus = new EventBus();
-    const clock = {
-        now: new Date(),
-        elapsed: 0,
-        isRunning: false,
-        spans: [],
-        start: vi.fn(),
-        stop: vi.fn(),
-        pause: vi.fn(),
-        resume: vi.fn(),
-        tick: vi.fn(),
+    const dependencies = {
+        stack: new RuntimeStack(),
+        clock: new RuntimeClock(),
+        eventBus: new EventBus(),
     };
 
-    const script = new WodScript('test workout');
+    const script = new WodScript('test workout', []);
     // JitCompiler expects strategies array, pass empty for test
     const jit = new JitCompiler([]);
 
-    return new ScriptRuntime(script, jit, {
-        memory,
-        stack,
-        clock: clock as any,
-        eventBus,
-    });
+    return new ScriptRuntime(script, jit, dependencies);
 }
 
 describe('ScriptRuntime Output Statements', () => {

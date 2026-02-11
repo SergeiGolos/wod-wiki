@@ -50,9 +50,11 @@ function createMockBlock(id: string): IRuntimeBlock {
         unmount: vi.fn().mockReturnValue([]),
         dispose: vi.fn(),
         getBehavior: vi.fn().mockReturnValue(undefined),
+        pushMemory: vi.fn(),
+        getMemoryByTag: vi.fn().mockReturnValue([]),
+        getAllMemory: vi.fn().mockReturnValue([]),
         hasMemory: vi.fn().mockReturnValue(false),
         getMemory: vi.fn().mockReturnValue(undefined),
-        getMemoryTypes: vi.fn().mockReturnValue([]),
         setMemoryValue: vi.fn(),
         isComplete: false,
         markComplete: vi.fn(),
@@ -153,7 +155,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const { wrapper, wrappedBlocks } = createDebugWrapper();
 
             const dependencies = {
-                memory: new RuntimeMemory(),
                 stack: new RuntimeStack(),
                 clock: new RuntimeClock(),
                 eventBus: new EventBus(),
@@ -177,7 +178,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const { wrapper, wrappedBlocks } = createDebugWrapper();
 
             const dependencies = {
-                memory: new RuntimeMemory(),
                 stack: new RuntimeStack(),
                 clock: new RuntimeClock(),
                 eventBus: new EventBus(),
@@ -199,7 +199,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const { wrapper, wrappedBlocks } = createDebugWrapper();
 
             const dependencies = {
-                memory: new RuntimeMemory(),
                 stack: new RuntimeStack(),
                 clock: new RuntimeClock(),
                 eventBus: new EventBus(),
@@ -220,7 +219,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const { wrapper, wrappedBlocks } = createDebugWrapper();
 
             const dependencies = {
-                memory: new RuntimeMemory(),
                 stack: new RuntimeStack(),
                 clock: new RuntimeClock(),
                 eventBus: new EventBus(),
@@ -249,7 +247,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const { wrapper, wrappedBlocks } = createDebugWrapper();
 
             const dependencies = {
-                memory: new RuntimeMemory(),
                 stack: new RuntimeStack(),
                 clock: new RuntimeClock(),
                 eventBus: new EventBus(),
@@ -299,7 +296,6 @@ describe('Runtime Debugging and Testing Architecture', () => {
             const testable = new TestableBlock(mockBlock, { testId: 'test' });
 
             const dependencies = {
-                memory: new RuntimeMemory(),
                 stack: new RuntimeStack(),
                 clock: new RuntimeClock(),
                 eventBus: new EventBus(),

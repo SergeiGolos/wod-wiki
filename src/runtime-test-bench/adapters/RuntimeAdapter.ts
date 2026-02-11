@@ -138,15 +138,15 @@ export class RuntimeAdapter implements IRuntimeAdapter {
     // This is where behaviors store state (timer, round, effort, etc.)
     for (const block of runtime.stack.blocks) {
       const blockKey = block.key.toString();
-      const memoryTypes = block.getMemoryTypes();
+      const locations = block.getAllMemory();
 
-      for (const type of memoryTypes) {
-        const memEntry = block.getMemory(type);
-        if (!memEntry) continue;
+      for (const loc of locations) {
+        const tag = loc.tag;
+        // The value is usually in the first fragment for legacy behaviors
+        const value = loc.fragments.length > 0 ? loc.fragments[0].value : undefined;
 
-        const value = memEntry.value;
-        const memoryType = this.mapMemoryType(type);
-        const entryId = `${blockKey}-${type}`;
+        const memoryType = this.mapMemoryType(tag);
+        const entryId = `${blockKey}-${tag}`;
 
         entries.push({
           id: entryId,
@@ -155,7 +155,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
           type: memoryType,
           value,
           valueFormatted: this.formatValue(value),
-          label: this.generateMemoryLabelFromType(type, memoryType),
+          label: this.generateMemoryLabelFromType(tag, memoryType),
           groupLabel: this.generateGroupLabel(memoryType),
           icon: this.getMemoryIcon(memoryType),
           lineNumber: ownerLineMap.get(blockKey),

@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { ScriptRuntime } from '../ScriptRuntime';
-import { RuntimeMemory } from '../RuntimeMemory';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
@@ -30,12 +29,14 @@ const createMockBlock = (
         dispose: vi.fn(),
         isComplete: false,
         fragments: [],
-        behaviors: [],
         memoryMap: new Map(),
         getBehavior: vi.fn(),
+        pushMemory: vi.fn(),
+        getMemoryByTag: vi.fn().mockReturnValue([]),
+        getAllMemory: vi.fn().mockReturnValue([]),
         hasMemory: vi.fn(),
         getMemory: vi.fn(),
-        getMemoryTypes: vi.fn(),
+        setMemoryValue: vi.fn(),
         markComplete: vi.fn(),
     };
 };
@@ -46,7 +47,6 @@ describe('ScriptRuntime Iteration (Explicit Next)', () => {
         const script = new WodScript('test', []);
         const compiler = {} as JitCompiler;
         const dependencies = {
-            memory: new RuntimeMemory(),
             stack: new RuntimeStack(),
             clock: new RuntimeClock(),
             eventBus: new EventBus()
@@ -88,7 +88,6 @@ describe('ScriptRuntime Iteration (Explicit Next)', () => {
         const script = new WodScript('test', []);
         const compiler = {} as JitCompiler;
         const dependencies = {
-            memory: new RuntimeMemory(),
             stack: new RuntimeStack(),
             clock: new RuntimeClock(),
             eventBus: new EventBus()

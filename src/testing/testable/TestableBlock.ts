@@ -263,6 +263,18 @@ export class TestableBlock implements IRuntimeBlock {
 
   // ========== Block-Owned Memory ==========
 
+  pushMemory(location: import('../../runtime/memory/MemoryLocation').IMemoryLocation): void {
+    this._wrapped.pushMemory(location);
+  }
+
+  getMemoryByTag(tag: import('../../runtime/memory/MemoryLocation').MemoryTag): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+    return this._wrapped.getMemoryByTag(tag);
+  }
+
+  getAllMemory(): import('../../runtime/memory/MemoryLocation').IMemoryLocation[] {
+    return this._wrapped.getAllMemory();
+  }
+
   hasMemory(type: import('../../runtime/memory/MemoryTypes').MemoryType): boolean {
     return this._wrapped.hasMemory(type);
   }
