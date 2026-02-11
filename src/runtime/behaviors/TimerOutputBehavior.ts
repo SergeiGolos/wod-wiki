@@ -54,10 +54,8 @@ export class TimerOutputBehavior implements IRuntimeBehavior {
 
         // Start with the block's display fragments (label, effort, reps, etc.)
         // so the output carries meaningful content for the history panel.
-        const displayMem = ctx.getMemory('fragment:display') as any;
-        const sourceFragments: ICodeFragment[] = displayMem?.resolved
-            ? [...displayMem.resolved]
-            : [];
+        const displayLocs = ctx.block.getMemoryByTag('fragment:display');
+        const sourceFragments: ICodeFragment[] = displayLocs.flatMap(loc => loc.fragments);
 
         // Append the runtime duration fragment
         const durationFragment: ICodeFragment = {

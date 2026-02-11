@@ -21,14 +21,12 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
     }
 
     private getFragments(ctx: IBehaviorContext): ICodeFragment[] {
-        // Use ctx.getMemory directly (bound to context) rather than extracting 
-        // the method which loses `this` binding
-        const displayMem = ctx.getMemory('fragment:display' as any);
-        if (displayMem && 'getDisplayFragments' in displayMem) {
-            return (displayMem as any).getDisplayFragments();
+        // Use list-based memory API to get display fragments directly
+        const displayLocs = ctx.block.getMemoryByTag('fragment:display');
+        if (displayLocs.length > 0) {
+            return displayLocs.flatMap(loc => loc.fragments);
         }
-        const fragmentMem = ctx.getMemory('fragment' as any);
-        return (fragmentMem as any)?.value?.groups?.flat() ?? (fragmentMem as any)?.groups?.flat() ?? [];
+        return [];
     }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
