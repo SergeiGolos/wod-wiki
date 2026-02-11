@@ -6,7 +6,7 @@ import { VisualizerFilter } from '../../core/models/DisplayItem';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
 import { ActionDescriptor } from '../../runtime/models/ActionDescriptor';
-import { StackFragmentEntry } from '../../runtime/hooks/useStackDisplay';
+import { StackFragmentEntry, StackDisplayEntry } from '../../runtime/hooks/useStackDisplay';
 
 export interface TimerStackViewProps {
     elapsedMs: number;
@@ -23,7 +23,8 @@ export interface TimerStackViewProps {
     compact?: boolean;
 
     controls?: RuntimeControls;
-    stackItems?: StackFragmentEntry[];
+    /** Old API - kept for backward compatibility */
+    stackItems?: StackFragmentEntry[] | StackDisplayEntry[];
     actions?: ActionDescriptor[];
 
     /** ID of the block that should be focused/displayed on the main timer */
@@ -174,32 +175,98 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
                         const isFocused = blockKey === (focusedBlockId || primaryTimer?.ownerId);
 
-                        return (
-                            <div key={String(entry.source.id)} className="transition-all duration-300">
-                                <FragmentSourceRow
-                                    source={entry.source}
-                                    status={entry.isLeaf ? 'active' : 'pending'}
-                                    depth={entry.depth}
-                                    size="focused"
-                                    filter={stackFilter}
-                                    label={entry.label}
-                                    fragmentGroups={entry.fragmentGroups}
-                                    className={`
-                                        shadow-md border rounded-lg pr-3
-                                        ${isFocused
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
-                                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
-                                    `}
-                                    actions={state ? (
-                                        <CardTimerPill
-                                            elapsed={state.elapsed}
-                                            duration={state.duration}
-                                            format={state.format}
+                        // Check if this is the new StackDisplayEntry (has displayRows) or old StackFragmentEntry (has source)
+                        const isNewAPI = 'displayRows' in entry;
+
+                        if (isNewAPI) {
+                            // New API: entry is StackDisplayEntry with displayRows: ICodeFragment[][]
+                            const displayEntry = entry as StackDisplayEntry;
+
+                            return (
+                                <div key={blockKey} className="transition-all duration-300">
+                                    {displayEntry.displayRows.length > 0 ? (
+                                        displayEntry.displayRows.map((row, rowIdx) => (
+                                            <FragmentSourceRow
+                                                key={`${blockKey}-${rowIdx}`}
+                                                fragments={row}
+                                                status={displayEntry.isLeaf ? 'active' : 'pending'}
+                                                depth={displayEntry.depth}
+                                                size="focused"
+                                                filter={stackFilter}
+                                                label={rowIdx === 0 ? displayEntry.label : undefined}
+                                                className={`
+                                                    shadow-md border rounded-lg pr-3
+                                                    ${isFocused
+                                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
+                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
+                                                    ${rowIdx > 0 ? 'mt-1' : ''}
+                                                `}
+                                                actions={state && rowIdx === 0 ? (
+                                                    <CardTimerPill
+                                                        elapsed={state.elapsed}
+                                                        duration={state.duration}
+                                                        format={state.format}
+                                                    />
+                                                ) : undefined}
+                                            />
+                                        ))
+                                    ) : (
+                                        <FragmentSourceRow
+                                            key={blockKey}
+                                            fragments={[]}
+                                            status={displayEntry.isLeaf ? 'active' : 'pending'}
+                                            depth={displayEntry.depth}
+                                            size="focused"
+                                            filter={stackFilter}
+                                            label={displayEntry.label}
+                                            className={`
+                                                shadow-md border rounded-lg pr-3
+                                                ${isFocused
+                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
+                                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
+                                            `}
+                                            actions={state ? (
+                                                <CardTimerPill
+                                                    elapsed={state.elapsed}
+                                                    duration={state.duration}
+                                                    format={state.format}
+                                                />
+                                            ) : undefined}
                                         />
-                                    ) : undefined}
-                                />
-                            </div>
-                        );
+                                    )}
+                                </div>
+                            );
+                        } else {
+                            // Old API: entry is StackFragmentEntry with source
+                            const fragmentEntry = entry as StackFragmentEntry;
+
+                            return (
+                                <div key={String(fragmentEntry.source.id)} className="transition-all duration-300">
+                                    <FragmentSourceRow
+                                        source={fragmentEntry.source}
+                                        status={fragmentEntry.isLeaf ? 'active' : 'pending'}
+                                        depth={fragmentEntry.depth}
+                                        size="focused"
+                                        filter={stackFilter}
+                                        label={fragmentEntry.label}
+                                        fragmentGroups={fragmentEntry.fragmentGroups}
+                                        className={`
+                                            shadow-md border rounded-lg pr-3
+                                            ${isFocused
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
+                                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
+                                        `}
+                                        actions={state ? (
+                                            <CardTimerPill
+                                                elapsed={state.elapsed}
+                                                duration={state.duration}
+                                                format={state.format}
+                                            />
+                                        ) : undefined}
+                                    />
+                                </div>
+                            );
+                        }
                     })}
                     {(!stackItems || stackItems.length === 0) && (
                         <div className="p-8 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-400 text-sm">

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
 import { IFragmentSource } from '../../core/contracts/IFragmentSource';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 import { FragmentSourceEntry } from '../../components/fragments/FragmentSourceRow';
 import { useSnapshotBlocks } from './useStackSnapshot';
 
@@ -309,6 +310,124 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                 depth: index,
                 isLeaf,
                 label: block.label,
+                fragmentGroups,
+            });
+        });
+
+        return entries.length > 0 ? entries : undefined;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [blocks, version]);
+}
+
+// ============================================================================
+// Stack-Driven Display Rows Hook (List-Based Memory API)
+// ============================================================================
+
+/**
+ * Represents a display entry with list-based memory access.
+ *
+ * Replaces IFragmentSource adapter with direct ICodeFragment[][] access.
+ */
+export interface StackDisplayEntry {
+    /** The owning runtime block */
+    block: IRuntimeBlock;
+    /** Display rows - each row is an array of fragments */
+    displayRows: ICodeFragment[][];
+    /** Display label from block */
+    label: string;
+    /** Nesting depth for indentation (0 = root level) */
+    depth: number;
+    /** Whether this is the leaf (most active) entry */
+    isLeaf: boolean;
+    /** Raw fragment groups from block memory (for backward compatibility) */
+    fragmentGroups?: readonly (readonly ICodeFragment[])[];
+}
+
+/**
+ * Hook that reads list-based memory directly from runtime stack blocks.
+ *
+ * This is the Phase 3 UI migration hook that consumes the list-based memory
+ * API populated by Phase 2 behaviors. It subscribes to all 'fragment:display'
+ * memory locations and returns display rows without requiring IFragmentSource
+ * adapter layer.
+ *
+ * Each block can have multiple 'fragment:display' memory locations (non-unique
+ * tags in list-based API), where each location stores ICodeFragment[]. These
+ * are returned as displayRows: ICodeFragment[][].
+ *
+ * @returns Array of stack display entries, or undefined if no blocks on stack
+ *
+ * @example
+ * ```tsx
+ * function StackView() {
+ *   const entries = useStackDisplayRows();
+ *   if (!entries) return null;
+ *
+ *   return entries.map(entry => (
+ *     <div key={entry.block.key.toString()}>
+ *       {entry.displayRows.map((row, idx) => (
+ *         <FragmentSourceRow key={idx} fragments={row} />
+ *       ))}
+ *     </div>
+ *   ));
+ * }
+ * ```
+ */
+export function useStackDisplayRows(): StackDisplayEntry[] | undefined {
+    const blocks = useSnapshotBlocks();
+    const [version, setVersion] = useState(0);
+
+    // Subscribe to all fragment:display memory locations on all blocks
+    useEffect(() => {
+        const unsubscribes: (() => void)[] = [];
+
+        for (const block of blocks) {
+            const displayLocs = block.getMemoryByTag('fragment:display');
+            for (const loc of displayLocs) {
+                const unsub = loc.subscribe(() => {
+                    setVersion(v => v + 1);
+                });
+                unsubscribes.push(unsub);
+            }
+        }
+
+        return () => {
+            unsubscribes.forEach(fn => fn());
+        };
+    }, [blocks]);
+
+    return useMemo(() => {
+        if (blocks.length === 0) return undefined;
+
+        const entries: StackDisplayEntry[] = [];
+        const orderedBlocks = [...blocks].reverse();
+
+        orderedBlocks.forEach((block, index) => {
+            // Skip root blocks without meaningful labels
+            if (block.blockType === 'Root' && !block.label) return;
+
+            // Get all fragment:display locations from list-based memory
+            const displayLocs = block.getMemoryByTag('fragment:display');
+
+            // Convert locations to display rows
+            const displayRows = displayLocs.map(loc => loc.fragments);
+
+            // Skip blocks with no display data AND no label
+            if (displayRows.length === 0 && !block.label) return;
+
+            const isLeaf = index === orderedBlocks.length - 1;
+
+            // Get raw fragment groups from old Map-based memory for backward compatibility
+            const fragmentEntry = block.getMemory('fragment');
+            const groups = fragmentEntry?.value?.groups;
+            const fragmentGroups = groups && groups.length > 1 ? groups : undefined;
+
+            entries.push({
+                block,
+                displayRows,
+                label: block.label,
+                depth: index,
+                isLeaf,
                 fragmentGroups,
             });
         });
