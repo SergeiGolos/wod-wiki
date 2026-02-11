@@ -1,8 +1,8 @@
 # Plan: Fragment-Based Memory Migration
 
-## Status: PLANNING
+## Status: IMPLEMENTED (Phase 1-3)
 ## Created: 2026-02-10
-## Revised: 2026-02-10 — Query-based facade approach
+## Revised: 2026-02-11 — Phases 1-3 complete, Phase 4 (cascade) deferred
 
 ---
 
@@ -896,17 +896,17 @@ const block = new RuntimeBlock(runtime, [], behaviors, ctx, key, 'Timer', 'Test'
 ### Phase 1: Foundation (no behavior changes)
 
 #### Create (new files)
-- [ ] `src/runtime/memory/FragmentGroupStore.ts` — unified store
-- [ ] `src/runtime/memory/FragmentGroupEntry.ts` — IMemoryEntry adapter
-- [ ] `src/runtime/memory/FragmentDisplayView.ts` — virtual views for `'fragment'` / `'fragment:display'`
-- [ ] `src/runtime/memory/__tests__/FragmentGroupStore.test.ts`
-- [ ] `src/runtime/memory/__tests__/FragmentGroupEntry.test.ts`
-- [ ] `src/core/models/FragmentVisibility.ts` — `FragmentVisibility` type
+- [x] `src/runtime/memory/FragmentGroupStore.ts` — unified store
+- [x] `src/runtime/memory/FragmentGroupEntry.ts` — IMemoryEntry adapter
+- [x] `src/runtime/memory/FragmentDisplayView.ts` — virtual views for `'fragment'` / `'fragment:display'`
+- [x] `src/runtime/memory/__tests__/FragmentGroupStore.test.ts`
+- [x] `src/runtime/memory/__tests__/FragmentGroupEntry.test.ts`
+- [x] `src/core/models/CodeFragment.ts` — `FragmentVisibility` type added directly — `FragmentVisibility` type
 
 #### Update (core — swap storage behind stable API)
-- [ ] `src/runtime/RuntimeBlock.ts` — replace `Map<MemoryType, IMemoryEntry>` with `FragmentGroupStore` + query routing in `getMemory`/`setMemoryValue`
-- [ ] `src/runtime/compiler/BlockBuilder.ts` — pass `initialFragments` to RuntimeBlock constructor; remove `FragmentMemory` + `DisplayFragmentMemory` allocation
-- [ ] `src/core/contracts/IFragmentSource.ts` — grouped query API + visibility filter
+- [x] `src/runtime/RuntimeBlock.ts` — replace `Map<MemoryType, IMemoryEntry>` with `FragmentGroupStore` + query routing in `getMemory`/`setMemoryValue`
+- [x] `src/runtime/compiler/BlockBuilder.ts` — pass `initialFragments` to RuntimeBlock constructor; remove `FragmentMemory` + `DisplayFragmentMemory` allocation
+- [x] `src/core/contracts/IFragmentSource.ts` — visibility filter added query API + visibility filter
 - [ ] `src/core/models/CodeStatement.ts` — return grouped fragments from IFragmentSource
 - [ ] `src/core/models/OutputStatement.ts` — return grouped fragments from IFragmentSource
 - [ ] `src/core/models/SimpleFragmentSource.ts` — return grouped fragments from IFragmentSource
@@ -915,20 +915,20 @@ const block = new RuntimeBlock(runtime, [], behaviors, ctx, key, 'Timer', 'Test'
 
 ### Phase 2: Fix Duck-Typing + Grouped Consumers
 
-- [ ] `src/runtime/behaviors/SegmentOutputBehavior.ts` — replace `as any` duck-typing with typed `ctx.getMemory('fragment:display').resolved`
-- [ ] `src/runtime/behaviors/TimerOutputBehavior.ts` — replace `as any` cast with typed access
-- [ ] `src/runtime/BehaviorContext.ts` — remove `as any` in `emitOutput()` auto-population
-- [ ] `src/runtime/hooks/useStackDisplay.ts` — remove `as unknown as IFragmentSource` cast (FragmentDisplayView implements it)
-- [ ] `src/runtime/hooks/useBlockMemory.ts` — remove `as unknown as IFragmentSource` cast in `useFragmentSource`
+- [x] `src/runtime/behaviors/SegmentOutputBehavior.ts` — replace `as any` duck-typing with typed `ctx.getMemory('fragment:display').resolved`
+- [x] `src/runtime/behaviors/TimerOutputBehavior.ts` — replace `as any` cast with typed access
+- [x] `src/runtime/BehaviorContext.ts` — remove `as any` in `emitOutput()` auto-population
+- [x] `src/runtime/hooks/useStackDisplay.ts` — remove `as unknown as IFragmentSource` cast (FragmentDisplayView implements it)
+- [x] `src/runtime/hooks/useBlockMemory.ts` — remove `as unknown as IFragmentSource` cast in `useFragmentSource`
 - [ ] UI components consuming `IFragmentSource` — update to handle `ICodeFragment[][]`
 
 ### Phase 3: Cleanup (delete dead code)
 
-- [ ] Delete `src/runtime/memory/FragmentMemory.ts`
-- [ ] Delete `src/runtime/memory/DisplayFragmentMemory.ts`
-- [ ] Delete `src/runtime/memory/SimpleMemoryEntry.ts`
+- [x] Delete `src/runtime/memory/FragmentMemory.ts`
+- [x] Delete `src/runtime/memory/DisplayFragmentMemory.ts`
+- [x] Delete `src/runtime/memory/SimpleMemoryEntry.ts`
 - [ ] Delete `src/runtime/memory/BaseMemoryEntry.ts`
-- [ ] Delete `src/runtime/memory/__tests__/DisplayFragmentMemory.test.ts`
+- [x] Delete `src/runtime/memory/__tests__/DisplayFragmentMemory.test.ts`
 - [ ] Delete `src/runtime/memory/__tests__/MemoryEntries.test.ts`
 - [ ] Remove `'completion'` from `MemoryType` union (unused — completion uses `markComplete()`)
 - [ ] Remove `PassthroughFragmentDistributor` — inline the trivial `[fragments]` wrapping
@@ -956,18 +956,18 @@ const block = new RuntimeBlock(runtime, [], behaviors, ctx, key, 'Timer', 'Test'
 
 ### Test Updates (grouped results)
 
-- [ ] `runtime/compiler/__tests__/BlockBuilderFragments.test.ts` — update to pass fragments via constructor instead of `allocateMemory`
-- [ ] `runtime/__tests__/RuntimeBlockMemory.test.ts` — verify new store routing
-- [ ] `runtime/hooks/__tests__/useFragmentSource.test.ts` — verify `FragmentDisplayView` as `IFragmentSource`
-- [ ] Tests that construct `FragmentMemory` or `DisplayFragmentMemory` directly — use constructor / `setMemoryValue`
+- [x] `runtime/compiler/__tests__/BlockBuilderFragments.test.ts` — update to pass fragments via constructor instead of `allocateMemory`
+- [x] `runtime/__tests__/RuntimeBlockMemory.test.ts` — verify new store routing
+- [x] `runtime/hooks/__tests__/useFragmentSource.test.ts` — verify `FragmentDisplayView` as `IFragmentSource`
+- [x] Tests that construct `FragmentMemory` or `DisplayFragmentMemory` directly — use constructor / `setMemoryValue`
 
 ### Tests NOT Changed
-- [ ] `runtime/behaviors/__tests__/AspectBehaviors.test.ts` — mocks `ctx.getMemory`/`ctx.setMemory`, API unchanged
-- [ ] `runtime/behaviors/__tests__/RoundAdvanceBehavior.test.ts` — same
-- [ ] `runtime/behaviors/__tests__/SegmentOutputBehavior.test.ts` — same (after Phase 2 fix)
-- [ ] `runtime/behaviors/__tests__/RestBlockBehavior.test.ts` — same
-- [ ] `runtime/behaviors/__tests__/ChildLoopBehavior.test.ts` — same
-- [ ] All other behavior tests using `getMemory`/`setMemory` mocks
+- [x] `runtime/behaviors/__tests__/AspectBehaviors.test.ts` — mocks `ctx.getMemory`/`ctx.setMemory`, API unchanged
+- [x] `runtime/behaviors/__tests__/RoundAdvanceBehavior.test.ts` — same
+- [x] `runtime/behaviors/__tests__/SegmentOutputBehavior.test.ts` — same (after Phase 2 fix)
+- [x] `runtime/behaviors/__tests__/RestBlockBehavior.test.ts` — same
+- [x] `runtime/behaviors/__tests__/ChildLoopBehavior.test.ts` — same
+- [x] All other behavior tests using `getMemory`/`setMemory` mocks
 
 ---
 
