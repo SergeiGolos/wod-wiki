@@ -50,7 +50,7 @@ export interface RoundState {
  * Fragment groups represent semantic groupings from compilation (e.g., per-round,
  * per-interval). Each inner array is one group produced by the fragment distributor.
  * This preserves the multi-dimensional structure through the entire pipeline:
- * Parser → Strategy → BlockBuilder → FragmentMemory → RuntimeBlock.fragments
+ * Parser → Strategy → BlockBuilder → FragmentGroupStore → RuntimeBlock
  */
 export interface FragmentState {
     /** Fragment groups — each inner array is a semantic group (e.g., per-round fragments) */

@@ -3,7 +3,6 @@ import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { TimerMemory } from '../memory/TimerMemory';
 import { RoundMemory } from '../memory/RoundMemory';
-import { FragmentMemory } from '../memory/FragmentMemory';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { IMemoryEntry } from '../memory/IMemoryEntry';
 
@@ -90,13 +89,11 @@ describe('RuntimeBlock Memory Methods', () => {
 
             block.exposeSetMemory('timer', new TimerMemory({ direction: 'up', label: 'Test' }));
             block.exposeSetMemory('round', new RoundMemory(1, 3));
-            block.exposeSetMemory('fragment', new FragmentMemory());
 
             const types = block.getMemoryTypes();
-            expect(types).toHaveLength(3);
+            expect(types).toHaveLength(2);
             expect(types).toContain('timer');
             expect(types).toContain('round');
-            expect(types).toContain('fragment');
         });
     });
 

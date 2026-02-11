@@ -10,7 +10,7 @@ import { IFragmentSource } from "@/core/contracts/IFragmentSource";
  * Phase 4 Tests: Hook Integration & IFragmentSource Access
  *
  * These tests verify that:
- * 1. Blocks built via BlockBuilder expose DisplayFragmentMemory as IFragmentSource
+ * 1. Blocks built via BlockBuilder expose FragmentDisplayView as IFragmentSource
  * 2. The fragment:display memory entry is accessible and reactive
  * 3. Stack display items use precedence-resolved fragments
  * 4. The IFragmentSource can be obtained from a block's memory system
@@ -223,7 +223,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
     });
 
     // ========================================================================
-    // Reactive updates through DisplayFragmentMemory
+    // Reactive updates through FragmentDisplayView
     // ========================================================================
 
     describe("Reactive fragment updates", () => {

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { TimerMemory } from '../TimerMemory';
 import { RoundMemory } from '../RoundMemory';
-import { FragmentMemory } from '../FragmentMemory';
 import { TimeSpan } from '../../models/TimeSpan';
 
 describe('Memory Implementations', () => {
@@ -66,19 +65,6 @@ describe('Memory Implementations', () => {
             const round = new RoundMemory(5, 10);
             round.reset();
             expect(round.value.current).toBe(1);
-        });
-    });
-
-    describe('FragmentMemory', () => {
-        it('should manage fragments', () => {
-            const fragment = new FragmentMemory();
-            const mockFragment: any = { fragmentType: 'text', image: 'test' };
-
-            fragment.addFragment(mockFragment);
-            expect(fragment.value.groups[0]).toContain(mockFragment);
-
-            fragment.clear();
-            expect(fragment.value.groups.length).toBe(0);
         });
     });
 });

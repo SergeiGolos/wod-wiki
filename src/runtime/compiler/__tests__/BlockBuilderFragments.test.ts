@@ -138,11 +138,10 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(block.hasMemory('fragment')).toBe(false);
     });
 
-    // ========================================================================
-    // Phase 3: DisplayFragmentMemory allocation
+    // Phase 3: Fragment display memory allocation
     // ========================================================================
 
-    it("should allocate DisplayFragmentMemory ('fragment:display') alongside FragmentMemory", () => {
+    it("should allocate fragment:display memory alongside fragment memory", () => {
         const block = buildWithFragments([[timerFragment, actionFragment]]);
 
         expect(block.hasMemory('fragment')).toBe(true);
@@ -165,7 +164,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(typeof fragmentMem!.subscribe).toBe('function');
     });
 
-    it("should not allocate DisplayFragmentMemory when no fragments are set", () => {
+    it("should not allocate fragment:display when no fragments are set", () => {
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString());
 
@@ -180,7 +179,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(block.hasMemory('fragment:display')).toBe(false);
     });
 
-    it("should not allocate DisplayFragmentMemory when empty fragment groups are set", () => {
+    it("should not allocate fragment:display when empty fragment groups are set", () => {
         const block = buildWithFragments([]);
 
         expect(block.hasMemory('fragment')).toBe(false);
@@ -203,7 +202,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(displayMem!.value.resolved).toHaveLength(2);
     });
 
-    it("should apply precedence resolution in DisplayFragmentMemory", () => {
+    it("should apply precedence resolution in fragment:display", () => {
         const parserTimer: ICodeFragment = {
             type: 'timer',
             fragmentType: FragmentType.Timer,
@@ -232,18 +231,18 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(timerResolved?.origin).toBe('runtime');
     });
 
-    it("should preserve multi-group structure in FragmentMemory and flatten in DisplayFragmentMemory", () => {
+    it("should preserve multi-group structure in fragment memory and flatten in fragment:display", () => {
         const group1 = [timerFragment, actionFragment];
         const group2 = [repFragment];
         const block = buildWithFragments([group1, group2]);
 
-        // FragmentMemory preserves groups
+        // Fragment memory preserves groups
         const fragmentMem = block.getMemory('fragment');
         expect(fragmentMem!.value.groups).toHaveLength(2);
         expect(fragmentMem!.value.groups[0]).toHaveLength(2);
         expect(fragmentMem!.value.groups[1]).toHaveLength(1);
 
-        // DisplayFragmentMemory flattens for display
+        // Fragment display flattens for display
         const displayMem = block.getMemory('fragment:display');
         expect(displayMem!.value.fragments).toHaveLength(3);
         expect(displayMem!.value.resolved).toHaveLength(3);

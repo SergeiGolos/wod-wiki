@@ -80,6 +80,8 @@ export type { ICodeFragment } from './core/models/CodeFragment';
 export type { IFragmentSource, FragmentFilter } from './core/contracts/IFragmentSource';
 export { resolveFragmentPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/fragmentPrecedence';
 
-// Fragment memory
-export { DisplayFragmentMemory } from './runtime/memory/DisplayFragmentMemory';
+// Fragment memory (new unified store)
+export { FragmentGroupStore } from './runtime/memory/FragmentGroupStore';
+export { FragmentGroupEntry } from './runtime/memory/FragmentGroupEntry';
+export { FragmentDisplayView } from './runtime/memory/FragmentDisplayView';
 export type { FragmentDisplayState } from './runtime/memory/MemoryTypes';
