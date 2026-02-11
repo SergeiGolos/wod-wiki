@@ -4,18 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';
 
-const PLAYGROUND_CONTENT = `# Playground
-
-Welcome to the WOD Wiki Playground!
-This is a static environment where you can experiment with workout scripts.
-
-\`\`\`wod
-Timer 10:00
-  - 10 Pushups
-  - 10 Situps
-  - 10 Squats
-\`\`\`
-`;
+import { PLAYGROUND_CONTENT } from '@/constants/defaultContent';
 
 export const PlaygroundPage: React.FC = () => {
   const navigate = useNavigate();

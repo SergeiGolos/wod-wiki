@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
@@ -7,6 +8,7 @@ import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
 import { StaticContentProvider } from '../../services/content/StaticContentProvider';
+import { getWodContent } from '../../app/wod-loader';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -80,34 +82,96 @@ export const useWorkbench = () => {
 interface WorkbenchProviderProps {
   children: React.ReactNode;
   initialContent?: string;
+  initialActiveEntryId?: string;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
 }
 
 export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   children,
-  initialContent = '',
+  initialContent: propInitialContent = '',
+  initialActiveEntryId,
   mode: _mode = 'static',
   provider: externalProvider,
 }) => {
+  // Guard viewMode setter: navigate to the new route
+  const navigate = useNavigate();
+  const { id: routeId, view: routeView } = useParams<{ id: string, view: string }>();
+  const { pathname } = useLocation();
+
   // Resolve provider: use external if given, else auto-create from mode + initialContent
-  const provider = externalProvider ?? new StaticContentProvider(initialContent);
+  const provider = useMemo(() => externalProvider ?? new StaticContentProvider(propInitialContent), [externalProvider, propInitialContent]);
   const resolvedMode = provider.mode;
 
   // Document State
-  const [content, setContent] = useState(initialContent);
+  const [content, setContent] = useState(propInitialContent);
 
-  // Sync content when initialContent prop changes (e.g. navigation)
+  // History selection (only active when mode='history')
+  const historySelectionHook = useHistorySelection();
+
+  // Sync content when ID changes or propInitialContent changes
   useEffect(() => {
-    setContent(initialContent);
-  }, [initialContent]);
+    const loadContent = async () => {
+      if (routeId) {
+        if (provider.mode === 'history') {
+          try {
+            const entry = await provider.getEntry(routeId);
+            if (entry) {
+              setContent(entry.rawContent);
+              // Ensure visual selection matches the resolved entry.
+              // Supports friendly name routes like /note/annie/plan.
+              historySelectionHook.openEntry(entry.id);
+              return;
+            } else {
+              // Try loading from static WOD files (fallback)
+              const wodContent = getWodContent(routeId);
+              if (wodContent) {
+                setContent(wodContent);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error('[WorkbenchProvider] Failed to load content for ID:', routeId, err);
+          }
+        } else if (provider.mode === 'static' && routeId) {
+          // Static mode with ID (e.g. playground/annie)
+          const wodContent = getWodContent(routeId);
+          if (wodContent) {
+            setContent(wodContent);
+            return;
+          }
+        }
+      } else if (initialActiveEntryId && !historySelectionHook.activeEntryId) {
+        historySelectionHook.openEntry(initialActiveEntryId);
+      }
+
+      // Default fallback
+      setContent(propInitialContent);
+    };
+
+    loadContent();
+  }, [routeId, propInitialContent, provider, historySelectionHook.openEntry, initialActiveEntryId]);
 
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-  const [viewMode, setViewModeRaw] = useState<ViewMode>(resolvedMode === 'history' ? 'history' : 'plan');
+
+  // Derive viewMode from route
+  const viewMode = useMemo(() => {
+    if (pathname === '/' || pathname.startsWith('/history')) return 'history';
+
+    // Valid view from URL
+    if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze') {
+      return routeView as ViewMode;
+    }
+
+    // Default to 'plan' if we have an ID or are in playground
+    if (routeId || pathname.startsWith('/playground')) return 'plan';
+
+    return resolvedMode === 'history' ? 'history' : 'plan';
+  }, [pathname, routeView, routeId, resolvedMode]);
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
@@ -118,22 +182,42 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // History entries (managed externally, stored here for context sharing)
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
 
-  // History selection (only active when mode='history')
-  const historySelectionHook = useHistorySelection();
+  // (Selection sync now handled within loadContent effect above)
+
   const historySelection = resolvedMode === 'history' ? historySelectionHook : null;
 
   // Derive strip mode from content mode + selection state
-  const stripMode: StripMode = resolvedMode === 'static'
-    ? 'static'
-    : historySelectionHook.stripMode;
+  const stripMode: StripMode = useMemo(() => {
+    if (resolvedMode === 'static') return 'static';
 
-  // Guard viewMode setter: reject 'history' and 'analyze' in static mode
+    // Multi-select mode (when 2+ are checked)
+    if (historySelectionHook.selectedIds.size >= 2) return 'multi-select';
+
+    // Single-select mode (when an entry is open via URL or state)
+    if (routeId || historySelectionHook.activeEntryId) return 'single-select';
+
+    // Default browse mode
+    return 'history-only';
+  }, [resolvedMode, historySelectionHook.selectedIds.size, historySelectionHook.activeEntryId, routeId]);
+
+  // Guard viewMode setter: navigate to the new route
   const setViewMode = useCallback((newMode: ViewMode) => {
     if (resolvedMode === 'static' && (newMode === 'history' || newMode === 'analyze')) {
       return; // Safety guard — these views don't exist in static mode
     }
-    setViewModeRaw(newMode);
-  }, [resolvedMode]);
+
+    if (newMode === 'history') {
+      navigate('/history');
+    } else if (routeId) {
+      navigate(`/note/${routeId}/${newMode}`);
+    } else if (pathname.startsWith('/playground')) {
+      navigate(`/playground/${newMode}`);
+    } else {
+      // Fallback if no ID but trying to go to a workout view? 
+      // This happens for seeded playground etc.
+      console.warn('[WorkbenchContext] Navigation attempted to workout view without ID or playground context');
+    }
+  }, [resolvedMode, navigate, routeId, pathname]);
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -141,8 +225,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   const startWorkout = useCallback((block: WodBlock) => {
     setSelectedBlockId(block.id);
+    // Explicitly transition to 'track' view via URL
     setViewMode('track');
-  }, []);
+  }, [setViewMode]);
 
   const completeWorkout = useCallback((result: WorkoutResults) => {
     setResults(prev => [...prev, result]);
@@ -152,18 +237,29 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     if (provider.capabilities.canWrite) {
       const titleMatch = content.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
-      provider.saveEntry({
+
+      const payload = {
         title,
         rawContent: content,
-        tags: [],
         results: {
           completedAt: result.endTime,
           duration: result.duration,
           logs: [],
         },
-      }).catch(err => console.error('Failed to auto-save workout:', err));
+      };
+
+      if (routeId) {
+        provider.updateEntry(routeId, payload)
+          .catch(err => console.error('Failed to auto-update workout:', err));
+      } else {
+        provider.saveEntry({
+          ...payload,
+          tags: [],
+          notes: '',
+        }).catch(err => console.error('Failed to auto-save workout:', err));
+      }
     }
-  }, [provider, content, setViewMode]);
+  }, [provider, content, setViewMode, routeId]);
 
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {

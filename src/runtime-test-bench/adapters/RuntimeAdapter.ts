@@ -1,5 +1,5 @@
 import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, MemoryGrouping, ExecutionStatus, BlockType, BlockStatus, MemoryType } from '../types/interfaces';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
 import { ICodeFragment } from '../../core/models/CodeFragment';
@@ -14,7 +14,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   /**
    * Creates immutable snapshot of runtime state for UI rendering
    */
-  createSnapshot(runtime: ScriptRuntime): ExecutionSnapshot {
+  createSnapshot(runtime: IScriptRuntime): ExecutionSnapshot {
     const stackBlocks = this.extractStackBlocks(runtime);
     const memoryEntries = this.extractMemoryEntries(runtime);
 
@@ -59,7 +59,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   /**
    * Extracts RuntimeStackBlocks from runtime stack
    */
-  extractStackBlocks(runtime: ScriptRuntime): RuntimeStackBlock[] {
+  extractStackBlocks(runtime: IScriptRuntime): RuntimeStackBlock[] {
     const blocks = runtime.stack.blocks;
 
     return blocks.map((block, index) => {
@@ -105,7 +105,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   /**
    * Extracts fragments from block's source statements for unified visualization
    */
-  private extractBlockFragments(_runtime: ScriptRuntime, block: IRuntimeBlock): ICodeFragment[] | undefined {
+  private extractBlockFragments(_runtime: IScriptRuntime, block: IRuntimeBlock): ICodeFragment[] | undefined {
     // Try to get statements from runtime's compilation context
     if (!block.sourceIds || block.sourceIds.length === 0) {
       return undefined;
@@ -120,7 +120,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   /**
    * Extracts MemoryEntries from runtime memory
    */
-  extractMemoryEntries(runtime: ScriptRuntime): MemoryEntry[] {
+  extractMemoryEntries(runtime: IScriptRuntime): MemoryEntry[] {
     const entries: MemoryEntry[] = [];
 
     // Build a map of owner block IDs to their line numbers and labels

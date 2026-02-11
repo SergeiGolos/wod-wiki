@@ -84,11 +84,22 @@ export class LocalStorageContentProvider implements IContentProvider {
 
   async getEntry(id: string): Promise<HistoryEntry | null> {
     try {
+      // 1. Try direct ID lookup
       const raw = localStorage.getItem(`${KEY_PREFIX}${id}`);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as HistoryEntry;
-      if (!parsed.id || typeof parsed.createdAt !== 'number') return null;
-      return parsed;
+      if (raw) {
+        const parsed = JSON.parse(raw) as HistoryEntry;
+        if (parsed.id && typeof parsed.createdAt === 'number') return parsed;
+      }
+
+      // 2. Fallback: Search by "name" (title) matches
+      // This supports friendly URLs like /note/annie/plan
+      const allEntries = await this.getEntries();
+      const match = allEntries.find(e =>
+        e.title.toLowerCase() === id.toLowerCase() ||
+        e.title.toLowerCase().replace(/\s+/g, '-') === id.toLowerCase()
+      );
+
+      return match || null;
     } catch {
       return null;
     }

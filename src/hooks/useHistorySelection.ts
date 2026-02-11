@@ -37,9 +37,9 @@ export interface UseHistorySelectionReturn {
   setFilters: (partial: Partial<HistoryFilters>) => void;
 }
 
-export function useHistorySelection(): UseHistorySelectionReturn {
+export function useHistorySelection(initialActiveEntryId: string | null = null): UseHistorySelectionReturn {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(initialActiveEntryId);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [filters, setFiltersState] = useState<HistoryFilters>(defaultFilters);
 

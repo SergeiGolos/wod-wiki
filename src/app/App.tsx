@@ -1,17 +1,20 @@
 import React from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { PlaygroundPage } from './pages/PlaygroundPage';
 import { NotebookPage } from './pages/NotebookPage';
-import { WodPage } from './pages/WodPage';
 
 export const App: React.FC = () => {
     return (
-        <BrowserRouter>
+        <HashRouter>
             <Routes>
-                <Route path="/" element={<PlaygroundPage />} />
-                <Route path="/notes" element={<NotebookPage />} />
-                <Route path="/note/:id" element={<WodPage />} />
+                <Route path="/" element={<Navigate to="/history" replace />} />
+                <Route path="/history" element={<NotebookPage />} />
+                <Route path="/note/:id" element={<Navigate to="plan" replace />} />
+                <Route path="/note/:id/:view" element={<NotebookPage />} />
+                <Route path="/playground" element={<Navigate to="/playground/plan" replace />} />
+                <Route path="/playground/:view" element={<PlaygroundPage />} />
+                <Route path="/plan" element={<Navigate to="/" replace />} />
             </Routes>
-        </BrowserRouter>
+        </HashRouter>
     );
 };

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Bug } from 'lucide-react';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
 import { WodBlock } from '../../markdown-editor/types';
 import { MemoryValueDialog, useMemoryValueDialog } from '../../runtime-test-bench/components/MemoryValuePopover';
@@ -30,7 +30,7 @@ const DEBUG_TABS: { id: DebugTab; label: string }[] = [
 
 export interface RuntimeDebugPanelProps {
   /** Active runtime to inspect */
-  runtime: ScriptRuntime | null;
+  runtime: IScriptRuntime | null;
 
   /** Whether debug panel is visible */
   isOpen: boolean;

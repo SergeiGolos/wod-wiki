@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
@@ -52,6 +53,7 @@ const runtimeFactory = new RuntimeFactory(globalCompiler);
 
 export interface WorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
+  initialActiveEntryId?: string;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
   commandStrategy?: any; // CommandStrategy - typed loosely to avoid deep imports issues if interface isn't exported well, but better to import it.
@@ -63,6 +65,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   theme: propTheme,
   ...editorProps
 }) => {
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
 
@@ -141,34 +144,14 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     provider,
     historySelection,
     setHistoryEntries,
-    setViewMode,
     setContent,
   });
 
-  // Handle opening a history entry for viewing (row click → load content → slide to Plan)
-  const handleOpenEntry = useCallback(async (id: string) => {
-    if (!historySelection) return;
-
-    // Mark this entry as active in selection state
-    historySelection.openEntry(id);
-
-    // Load the entry's content into the editor
-    try {
-      console.log(`[Workbench] Loading entry ${id}...`);
-      const entry = await provider.getEntry(id);
-      if (entry) {
-        console.log(`[Workbench] Entry loaded. Content length: ${entry.rawContent.length}`);
-        setContent(entry.rawContent);
-      } else {
-        console.warn(`[Workbench] Entry ${id} returned null from provider.`);
-      }
-    } catch (err) {
-      console.error('Failed to load entry:', err);
-    }
-
-    // Navigate to Plan view
-    setViewMode('plan');
-  }, [historySelection, provider, setContent, setViewMode]);
+  // Handle opening a history entry for viewing (row click → navigate to URL)
+  const handleOpenEntry = useCallback((id: string) => {
+    // Navigate to Plan view with the specific ID
+    navigate(`/note/${id}/plan`);
+  }, [navigate]);
 
   // Load history entries on mount when in history mode
   useEffect(() => {
@@ -549,13 +532,18 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
   const defaultTheme = useMemo(() => {
     if (props.theme === 'vs-dark' || props.theme === 'wod-dark') return 'dark';
     if (props.theme === 'vs' || props.theme === 'wod-light') return 'light';
-    return 'dark';
+    return 'system';
   }, [props.theme]);
 
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <CommandProvider>
-        <WorkbenchProvider initialContent={props.initialContent} mode={props.mode} provider={props.provider}>
+        <WorkbenchProvider
+          initialContent={props.initialContent}
+          initialActiveEntryId={props.initialActiveEntryId}
+          mode={props.mode}
+          provider={props.provider}
+        >
           <AudioProvider>
             <RuntimeLifecycleProvider factory={runtimeFactory}>
               <WorkbenchSyncBridge>

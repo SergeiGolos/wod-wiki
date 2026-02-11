@@ -21,7 +21,7 @@ import { EXECUTION_TICK_RATE_MS } from '../config/constants';
 /**
  * Execution status states
  */
-export type ExecutionStatus = 
+export type ExecutionStatus =
   | 'idle'       // No runtime or not started
   | 'running'    // Active execution with interval
   | 'paused'     // Execution stopped but state preserved
@@ -71,7 +71,7 @@ export const useRuntimeExecution = (
   const [elapsedTime, setElapsedTime] = useState(0);
   const [stepCount, setStepCount] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
-  
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
@@ -123,7 +123,7 @@ export const useRuntimeExecution = (
     setStatus('running');
     const now = Date.now();
     startTimeRef.current = now - elapsedTime; // Resume from paused time
-    
+
     // Only set startTime on first start (not resume)
     if (elapsedTime === 0) {
       setStartTime(now);
@@ -141,7 +141,7 @@ export const useRuntimeExecution = (
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    
+
     // Emit timer:pause event to update timer memory spans
     if (runtime) {
       runtime.handle({
@@ -150,7 +150,7 @@ export const useRuntimeExecution = (
         data: {}
       });
     }
-    
+
     setStatus('paused');
   }, [runtime]);
 
@@ -233,9 +233,7 @@ export const useRuntimeExecution = (
    * Reset state when runtime changes
    */
   useEffect(() => {
-    if (!runtime) {
-      stop();
-    }
+    stop();
   }, [runtime, stop]);
 
   return {

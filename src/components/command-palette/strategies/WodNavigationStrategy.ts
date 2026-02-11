@@ -13,17 +13,17 @@ export class WodNavigationStrategy implements CommandStrategy {
 
         const notebookCommand: Command = {
             id: 'nav-notes',
-            label: 'Go to My Notebook (Daily Log)',
-            action: () => this.navigate('/notes'),
+            label: 'Go to My Notebook (History)',
+            action: () => this.navigate('/history'),
             group: 'Navigation',
-            keywords: ['notebook', 'journal', 'log', 'daily'],
+            keywords: ['notebook', 'journal', 'log', 'daily', 'history'],
             shortcut: ['g', 'n']
         };
 
         const playgroundCommand: Command = {
             id: 'nav-home',
             label: 'Go to Playground',
-            action: () => this.navigate('/'),
+            action: () => this.navigate('/playground'),
             group: 'Navigation',
             keywords: ['home', 'playground', 'root'],
             shortcut: ['g', 'h']

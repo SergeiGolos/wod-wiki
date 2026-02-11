@@ -7,16 +7,15 @@
  */
 
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { IContentProvider } from '../types/content-provider';
 import type { HistoryEntry } from '../types/history';
 import type { UseHistorySelectionReturn } from './useHistorySelection';
-import type { ViewMode } from '../components/layout/panel-system/ResponsiveViewport';
 
 interface UseCreateWorkoutEntryOptions {
   provider: IContentProvider;
   historySelection: UseHistorySelectionReturn | null;
   setHistoryEntries: (entries: HistoryEntry[]) => void;
-  setViewMode: (mode: ViewMode) => void;
   setContent: (content: string) => void;
 }
 
@@ -29,9 +28,10 @@ export function useCreateWorkoutEntry({
   provider,
   historySelection,
   setHistoryEntries,
-  setViewMode,
   setContent,
 }: UseCreateWorkoutEntryOptions) {
+  const navigate = useNavigate();
+
   const createNewEntry = useCallback(async () => {
     // Only available when provider supports writing
     if (!provider.capabilities.canWrite) {
@@ -60,12 +60,12 @@ export function useCreateWorkoutEntry({
       // Load content into editor
       setContent(newEntry.rawContent);
 
-      // Navigate to plan view
-      setViewMode('plan');
+      // Navigate to plan view using unique URL
+      navigate(`/note/${newEntry.id}/plan`);
     } catch (error) {
       console.error('Failed to create new workout entry:', error);
     }
-  }, [provider, historySelection, setHistoryEntries, setViewMode, setContent]);
+  }, [provider, historySelection, setHistoryEntries, setContent, navigate]);
 
   return {
     createNewEntry,
