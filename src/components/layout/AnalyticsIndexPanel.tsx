@@ -83,7 +83,7 @@ function segmentToFragments(segment: Segment, groups: AnalyticsGroup[]): ICodeFr
     type: segment.type,
     fragmentType: getFragmentTypeFromSegmentType(segment.type),
     value: segment.type,
-    image: segment.type,
+    image: segment.name || segment.type,
   });
 
   // Add Start Time as timer fragment (startTime is in seconds from workout start)
@@ -165,12 +165,13 @@ function segmentToEntry(
   }
 
   // Determine if this is a header/separator
-  const isSeparator = ['round', 'interval', 'warmup', 'cooldown'].includes(type);
+  // Aligned with RuntimeHistoryLog HEADER_TYPES
+  const isSeparator = ['round', 'interval', 'warmup', 'cooldown', 'amrap', 'emom', 'tabata', 'group', 'start', 'timer', 'rounds'].includes(type);
   const isRoot = type === 'root';
   const isHeader = isRoot || (isSeparator && depth < 2);
 
-  // Convert to fragments (skip for separators except root)
-  const fragments = (isSeparator && !isRoot) ? [] : segmentToFragments(segment, groups);
+  // Convert to fragments (do not skip separators, show full fidelity like History view)
+  const fragments = segmentToFragments(segment, groups);
 
   return {
     source: new SimpleFragmentSource(segment.id, fragments),

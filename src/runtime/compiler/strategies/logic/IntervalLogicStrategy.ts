@@ -101,8 +101,11 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new TimerTickBehavior());
         builder.addBehavior(new TimerPauseBehavior());
 
-        // Timer completion advances to next round (handled by round behaviors)
-        builder.addBehavior(new TimerCompletionBehavior());
+        // Timer completion does NOT mark EMOM as complete — the interval timer
+        // is a per-round pacing signal. When it expires, children are auto-popped
+        // and the timer resets for the next round. Block completion is handled by
+        // RoundCompletionBehavior when all rounds are exhausted.
+        builder.addBehavior(new TimerCompletionBehavior({ completesBlock: false }));
 
         // =====================================================================
         // Iteration Aspect - EMOM has fixed rounds

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { audioService } from '../../services/AudioService';
 
 interface AudioContextType {
@@ -34,8 +34,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isEnabled]);
 
+    const value = useMemo(() => ({
+        isEnabled,
+        toggleAudio,
+        playTestSound
+    }), [isEnabled, toggleAudio, playTestSound]);
+
     return (
-        <WodAudioContext.Provider value={{ isEnabled, toggleAudio, playTestSound }}>
+        <WodAudioContext.Provider value={value}>
             {children}
         </WodAudioContext.Provider>
     );

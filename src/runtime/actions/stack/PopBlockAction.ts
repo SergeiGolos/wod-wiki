@@ -32,6 +32,16 @@ export class PopBlockAction implements IRuntimeAction {
             current.executionTiming.completedAt = completedAt;
         }
 
+        // Forced-pop: if block was NOT marked complete before pop, mark it now.
+        // This distinguishes a "clean pop" (next → markComplete → pop) from a
+        // "forced pop" (direct pop on an incomplete block, e.g., parent timer expiry).
+        // Forced pops still run the full unmount lifecycle so behaviors can report
+        // their fragments via onUnmount.
+        if (!current.isComplete && typeof current.markComplete === 'function') {
+            current.markComplete('forced-pop');
+            RuntimeLogger.logPop(current, 'forced-pop (incomplete block popped without next)');
+        }
+
         // Get unmount actions from the block
         const unmountActions = current.unmount(runtime, lifecycleOptions) ?? [];
 
@@ -45,8 +55,10 @@ export class PopBlockAction implements IRuntimeAction {
         popped.dispose(runtime);
         popped.context?.release?.();
 
-        // Log the pop
-        RuntimeLogger.logPop(popped, (popped as any).completionReason);
+        // Log the pop (skip if already logged as forced-pop above)
+        if ((popped as any).completionReason !== 'forced-pop') {
+            RuntimeLogger.logPop(popped, (popped as any).completionReason);
+        }
 
         // Output statements are emitted by block behaviors (e.g., TimerOutputBehavior,
         // SegmentOutputBehavior) during onUnmount. PopBlockAction does NOT emit its own

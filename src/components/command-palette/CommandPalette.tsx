@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Command } from 'cmdk';
 import { useCommandPalette } from './CommandContext';
 import { Search } from 'lucide-react';
@@ -28,7 +28,7 @@ export const CommandPalette: React.FC = () => {
     return acc;
   }, {} as Record<string, typeof displayedCommands>);
 
-  const handleKeyDown = async (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback(async (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && activeStrategy?.handleInput) {
       e.preventDefault();
       const shouldClose = await activeStrategy.handleInput(search);
@@ -36,7 +36,7 @@ export const CommandPalette: React.FC = () => {
         setIsOpen(false);
       }
     }
-  };
+  }, [activeStrategy, search, setIsOpen]);
 
   return (
     <Command.Dialog
