@@ -30,13 +30,8 @@ export interface ControlsConfig {
  *
  * The UI should:
  * 1. Subscribe to `controls` memory changes
- * 2. Render buttons based on `ButtonsState.buttons`
+ * 2. Render buttons based on action fragments
  * 3. Emit `button.eventName` when user clicks a button
- *
- * ## Migration: Fragment-Based Memory
- *
- * This behavior now pushes action fragments to the new list-based memory API
- * while maintaining backward compatibility with the old Map-based API.
  *
  * @example
  * ```typescript
@@ -52,12 +47,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
     constructor(private config: ControlsConfig) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Initialize controls state in memory (OLD API - kept for backward compatibility)
-        ctx.setMemory('controls', {
-            buttons: this.config.buttons
-        });
-
-        // Create action fragments for each button (NEW API - fragment-based memory)
+        // Create action fragments for each button
         const fragments: ICodeFragment[] = this.config.buttons.map(button => ({
             fragmentType: FragmentType.Action,
             type: 'action',
@@ -75,7 +65,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
             timestamp: ctx.clock.now,
         }));
 
-        // Push action fragments to new list-based memory
+        // Push action fragments to list-based memory
         if (fragments.length > 0) {
             ctx.pushMemory('controls', fragments);
         }
@@ -88,12 +78,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Clear controls memory (signals UI to remove buttons) - OLD API
-        ctx.setMemory('controls', {
-            buttons: []
-        });
-
-        // Clear controls memory (NEW API) - update to empty array
+        // Clear controls memory (signals UI to remove buttons)
         ctx.updateMemory('controls', []);
 
         return [];

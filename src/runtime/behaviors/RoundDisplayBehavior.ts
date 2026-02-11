@@ -1,7 +1,8 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { RoundState, DisplayState } from '../memory/MemoryTypes';
+import { ICodeFragment } from '../../core/models/CodeFragment';
+import { FragmentType } from '../../fragments/FragmentType';
 
 /**
  * RoundDisplayBehavior updates the display roundDisplay when rounds change.
@@ -32,20 +33,37 @@ export class RoundDisplayBehavior implements IRuntimeBehavior {
     }
 
     private updateRoundDisplay(ctx: IBehaviorContext): void {
-        const round = ctx.getMemory('round') as RoundState | undefined;
-        const display = ctx.getMemory('display') as DisplayState | undefined;
+        const roundLocations = ctx.block.getMemoryByTag('round');
+        if (roundLocations.length === 0) return;
 
-        if (!round) return;
+        const roundFragments = roundLocations[0].fragments;
+        if (roundFragments.length === 0) return;
 
-        const roundDisplay = round.total !== undefined
-            ? `Round ${round.current} of ${round.total}`
-            : `Round ${round.current}`;
+        const roundValue = roundFragments[0].value;
+        if (!roundValue) return;
 
-        if (display) {
-            ctx.setMemory('display', {
-                ...display,
-                roundDisplay
-            });
+        const roundDisplay = roundValue.total !== undefined
+            ? `Round ${roundValue.current} of ${roundValue.total}`
+            : `Round ${roundValue.current}`;
+
+        // Get current display fragments
+        const displayLocations = ctx.block.getMemoryByTag('display');
+        if (displayLocations.length > 0) {
+            const currentFragments = displayLocations[0].fragments;
+            
+            // Add or update round display fragment
+            const roundFragment: ICodeFragment = {
+                fragmentType: FragmentType.Text,
+                type: 'text',
+                image: roundDisplay,
+                origin: 'runtime',
+                value: { text: roundDisplay, role: 'round' },
+                sourceBlockKey: ctx.block.key.toString(),
+                timestamp: ctx.clock.now,
+            };
+
+            // Combine with existing display fragments
+            ctx.updateMemory('display', [...currentFragments, roundFragment]);
         }
     }
 }

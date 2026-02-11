@@ -22,11 +22,6 @@ export interface TimerInitConfig {
  * ## Aspect: Time
  *
  * Sets up the initial timer state that other timer behaviors read/update.
- *
- * ## Migration: Fragment-Based Memory
- *
- * This behavior now pushes timer fragments to the new list-based memory API
- * while maintaining backward compatibility with the old Map-based API.
  */
 export class TimerInitBehavior implements IRuntimeBehavior {
     constructor(private config: TimerInitConfig) { }
@@ -36,16 +31,7 @@ export class TimerInitBehavior implements IRuntimeBehavior {
         const label = this.config.label ?? ctx.block.label;
         const role = this.config.role === 'hidden' ? 'auto' : (this.config.role ?? 'primary');
 
-        // Initialize timer state in memory (OLD API - kept for backward compatibility)
-        ctx.setMemory('timer', {
-            direction: this.config.direction,
-            durationMs: this.config.durationMs,
-            spans: [new TimeSpan(now)],
-            label,
-            role
-        });
-
-        // Create timer fragment (NEW API - fragment-based memory)
+        // Create timer fragment
         const timerFragment: ICodeFragment = {
             fragmentType: FragmentType.Timer,
             type: 'timer',
@@ -62,7 +48,7 @@ export class TimerInitBehavior implements IRuntimeBehavior {
             timestamp: ctx.clock.now,
         };
 
-        // Push timer fragment to new list-based memory
+        // Push timer fragment to list-based memory
         ctx.pushMemory('timer', [timerFragment]);
 
         return [];

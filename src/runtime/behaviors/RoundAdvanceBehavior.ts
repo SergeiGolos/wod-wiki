@@ -2,7 +2,6 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { RoundState } from '../memory/MemoryTypes';
 import { ChildRunnerBehavior } from './ChildRunnerBehavior';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
@@ -17,11 +16,6 @@ import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
  * When a block has children (ChildRunnerBehavior), the round only advances
  * after all children have been executed (a full cycle), not on every
  * intermediate child completion.
- *
- * ## Migration: Fragment-Based Memory
- *
- * This behavior now updates round fragments in the new list-based memory API
- * while maintaining backward compatibility with the old Map-based API.
  */
 export class RoundAdvanceBehavior implements IRuntimeBehavior {
     onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
@@ -29,8 +23,14 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
-        const round = ctx.getMemory('round') as RoundState | undefined;
-        if (!round) return [];
+        const roundLocations = ctx.block.getMemoryByTag('round');
+        if (roundLocations.length === 0) return [];
+
+        const roundFragments = roundLocations[0].fragments;
+        if (roundFragments.length === 0) return [];
+
+        const roundValue = roundFragments[0].value;
+        if (!roundValue) return [];
 
         // If the block has children, only advance the round when all children
         // have truly completed (not just dispatched). allChildrenCompleted
@@ -45,23 +45,17 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
         }
 
         // Advance to next round
-        const newCurrent = round.current + 1;
+        const newCurrent = roundValue.current + 1;
 
-        // Update OLD API
-        ctx.setMemory('round', {
-            current: newCurrent,
-            total: round.total
-        });
-
-        // Update NEW API - update round fragment with new current round
+        // Update round fragment with new current round
         const roundFragment: ICodeFragment = {
             fragmentType: FragmentType.Rounds,
             type: 'rounds',
-            image: this.formatRounds(newCurrent, round.total),
+            image: this.formatRounds(newCurrent, roundValue.total),
             origin: 'runtime',
             value: {
                 current: newCurrent,
-                total: round.total
+                total: roundValue.total
             },
             sourceBlockKey: ctx.block.key.toString(),
             timestamp: ctx.clock.now,
