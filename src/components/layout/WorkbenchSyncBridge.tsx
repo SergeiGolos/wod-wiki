@@ -1,0 +1,179 @@
+/**
+ * WorkbenchSyncBridge - Bridges React hooks into the Zustand store
+ *
+ * This component sits in the React tree (inside RuntimeLifecycleProvider)
+ * and performs two jobs:
+ *
+ * 1. **Hydration** — Reads React hook values (runtime, execution, controls)
+ *    and pushes them into the Zustand store so panels can consume them
+ *    via selectors without needing a Context provider.
+ *
+ * 2. **Side Effects** — Runs all the application-logic effects that were
+ *    previously in WorkbenchSyncProvider:
+ *    - Runtime initialization/disposal on view mode changes
+ *    - Wake lock management
+ *    - Analytics polling and refresh
+ *    - Active segment/statement derivation from runtime stack
+ *    - Document structure computation
+ *    - Cursor → activeBlockId mapping
+ *
+ * This is a renderless component (returns only {children}).
+ */
+
+import React, { useEffect, useRef, useMemo } from 'react';
+import { useWorkbench } from './WorkbenchContext';
+import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
+import { useWakeLock } from '../../hooks/useWakeLock';
+import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
+import { getAnalyticsFromRuntime } from '../../services/AnalyticsTransformer';
+import { hashCode } from '../../lib/utils';
+import { useWorkbenchSyncStore } from './workbenchSyncStore';
+
+interface WorkbenchSyncBridgeProps {
+  children: React.ReactNode;
+}
+
+export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ children }) => {
+  const store = useWorkbenchSyncStore;
+
+  // --- Consume upstream React contexts ---
+  const {
+    content,
+    blocks,
+    selectedBlockId,
+    viewMode,
+    setActiveBlockId,
+    startWorkout,
+    completeWorkout,
+  } = useWorkbench();
+
+  // --- Document structure → store ---
+  const documentItems = useMemo(() => {
+    return parseDocumentStructure(content, blocks);
+  }, [content, blocks]);
+
+  useEffect(() => {
+    store.getState().setDocumentItems(documentItems);
+  }, [documentItems]);
+
+  // --- Cursor → activeBlockId mapping ---
+  const cursorLine = store(s => s.cursorLine);
+
+  useEffect(() => {
+    const item = documentItems.find(
+      item => cursorLine >= item.startLine && cursorLine <= item.endLine
+    );
+    setActiveBlockId(item?.id || null);
+  }, [documentItems, cursorLine, setActiveBlockId]);
+
+  // --- Selected block resolution → store ---
+  const selectedBlock = useMemo(() => {
+    return blocks.find(b => b.id === selectedBlockId) || null;
+  }, [blocks, selectedBlockId]);
+
+  useEffect(() => {
+    store.getState().setSelectedBlock(selectedBlock);
+  }, [selectedBlock]);
+
+  // --- Runtime lifecycle & execution (from React hooks) ---
+  const {
+    runtime,
+    initializeRuntime,
+    disposeRuntime,
+    execution,
+    handleStart,
+    handlePause,
+    handleStop,
+    handleNext,
+    handleStartWorkoutAction,
+  } = useWorkbenchRuntime(viewMode, selectedBlock, completeWorkout, startWorkout);
+
+  // --- Hydrate runtime + controls into Zustand store ---
+  useEffect(() => {
+    store.getState()._hydrateRuntime({
+      runtime,
+      execution,
+      initializeRuntime,
+      disposeRuntime,
+      handleStart,
+      handlePause,
+      handleStop,
+      handleNext,
+      handleStartWorkoutAction,
+    });
+  }, [
+    runtime,
+    execution,
+    initializeRuntime,
+    disposeRuntime,
+    handleStart,
+    handlePause,
+    handleStop,
+    handleNext,
+    handleStartWorkoutAction,
+  ]);
+
+  // --- Runtime initialization on view mode changes ---
+  const lastInitializedBlockIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (viewMode === 'track' && selectedBlock && selectedBlock.statements) {
+      if (lastInitializedBlockIdRef.current !== selectedBlock.id) {
+        initializeRuntime(selectedBlock);
+        lastInitializedBlockIdRef.current = selectedBlock.id;
+      }
+    } else if (viewMode !== 'track') {
+      if (lastInitializedBlockIdRef.current !== null) {
+        disposeRuntime();
+        lastInitializedBlockIdRef.current = null;
+      }
+    }
+  }, [viewMode, selectedBlockId, selectedBlock, initializeRuntime, disposeRuntime]);
+
+  // --- Wake lock (keep screen awake during workouts) ---
+  useWakeLock({
+    enabled: viewMode === 'track' && execution.status === 'running',
+  });
+
+  // --- Analytics polling (persisted across runtime disposal) ---
+  const lastAnalyticsUpdateRef = useRef(0);
+  const lastStatusRef = useRef(execution.status);
+
+  useEffect(() => {
+    if (runtime) {
+      const now = Date.now();
+      const statusChanged = execution.status !== lastStatusRef.current;
+      const shouldUpdate = statusChanged || (now - lastAnalyticsUpdateRef.current > 1000);
+
+      if (shouldUpdate) {
+        const { data, segments, groups } = getAnalyticsFromRuntime(runtime);
+        store.getState().setAnalytics(data, segments, groups);
+        lastAnalyticsUpdateRef.current = now;
+        lastStatusRef.current = execution.status;
+      }
+    }
+  }, [runtime, execution.stepCount, execution.status]);
+
+  // --- Active segment/statement tracking (derived from runtime stack) ---
+  useEffect(() => {
+    if (!runtime || viewMode !== 'track') {
+      store.getState().setActiveSegmentIds(new Set());
+      store.getState().setActiveStatementIds(new Set());
+      return;
+    }
+
+    const segmentIds = new Set(
+      runtime.stack.blocks.map(block => hashCode(block.key.toString()))
+    );
+    store.getState().setActiveSegmentIds(segmentIds);
+
+    const statementIds = new Set<number>();
+    const leafBlock = runtime.stack.current;
+    if (leafBlock && leafBlock.sourceIds) {
+      leafBlock.sourceIds.forEach(id => statementIds.add(id));
+    }
+    store.getState().setActiveStatementIds(statementIds);
+  }, [runtime, execution.stepCount, viewMode]);
+
+  return <>{children}</>;
+};

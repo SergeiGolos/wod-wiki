@@ -14,7 +14,7 @@
  * - Mobile (<768px): Full-screen slides, 50/50 split for Track
  */
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
@@ -28,21 +28,18 @@ import { AudioProvider } from '../audio/AudioContext';
 import { AudioToggle } from '../audio/AudioToggle';
 import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
-import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView, createHistoryView, createAnalyzeView } from './panel-system/viewDescriptors';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
-import { cn, hashCode } from '../../lib/utils';
-import { AnalyticsGroup, Segment } from '../../core/models/AnalyticsModels';
+import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
+import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
+import { useWorkbenchSync } from './useWorkbenchSync';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
-import { useWakeLock } from '../../hooks/useWakeLock';
-import { getAnalyticsFromRuntime, AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 
-import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { useCreateWorkoutEntry } from '../../hooks/useCreateWorkoutEntry';
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TrackPanelIndex, TrackPanelPrimary } from '../workbench/TrackPanel';
@@ -73,7 +70,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     content,
     blocks,
     activeBlockId: _activeBlockId,
-    selectedBlockId,
+    selectedBlockId: _selectedBlockId,
     viewMode,
     results: _results,
     panelLayouts,
@@ -87,21 +84,39 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     setActiveBlockId,
     selectBlock: _selectBlock,
     setViewMode,
-    startWorkout,
-    completeWorkout,
     expandPanel,
     collapsePanel,
     setHistoryEntries,
   } = useWorkbench();
 
-  // Local UI state
-  const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
-  const [cursorLine, setCursorLine] = useState(1);
-  const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
-  const [isDebugMode, setIsDebugMode] = useState(false);
+  // Consume synced state from Zustand store (via WorkbenchSyncBridge)
+  const {
+    runtime,
+    execution,
+    activeSegmentIds,
+    activeStatementIds,
+    hoveredBlockKey,
+    setHoveredBlockKey,
+    selectedBlock,
+    documentItems,
+    highlightedLine,
+    setHighlightedLine,
+    setCursorLine,
+    analyticsData,
+    analyticsSegments,
+    analyticsGroups,
+    selectedAnalyticsIds,
+    toggleAnalyticsSegment,
+    handleStart,
+    handlePause,
+    handleStop,
+    handleNext,
+    handleStartWorkoutAction,
+  } = useWorkbenchSync();
 
-  // Block hover state (for highlighting in editor when hovering timer badges)
-  const [hoveredBlockKey, setHoveredBlockKey] = useState<string | null>(null);
+  // Local UI state (not shared across panels)
+  const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
+  const [isDebugMode, setIsDebugMode] = useState(false);
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(false);
@@ -112,37 +127,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Calculate document structure (still used for Track/Analyze views)
-  const documentItems = useMemo(() => {
-    return parseDocumentStructure(content, blocks);
-  }, [content, blocks]);
-
-  // Update active block ID based on cursor
-  useEffect(() => {
-    const item = documentItems.find(item =>
-      cursorLine >= item.startLine && cursorLine <= item.endLine
-    );
-    setActiveBlockId(item?.id || null);
-  }, [documentItems, cursorLine, setActiveBlockId]);
-
-  // Selected block object
-  const selectedBlock = useMemo(() => {
-    return blocks.find(b => b.id === selectedBlockId) || null;
-  }, [blocks, selectedBlockId]);
-
-  // Use separated runtime hook
-  const {
-    runtime,
-    initializeRuntime,
-    disposeRuntime,
-    execution,
-    handleStart,
-    handlePause,
-    handleStop,
-    handleNext,
-    handleStartWorkoutAction
-  } = useWorkbenchRuntime(viewMode, selectedBlock, completeWorkout, startWorkout);
 
   // Use create workout entry hook
   const { createNewEntry, canCreate } = useCreateWorkoutEntry({
@@ -189,80 +173,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [contentMode, provider, setHistoryEntries]);
 
-  // Initialize runtime when entering track view with selected block
-  // Use a ref to prevent re-initialization loops if selectedBlock reference changes but ID is same
-  const lastInitializedBlockIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (viewMode === 'track' && selectedBlock && selectedBlock.statements) {
-      // Only initialize if we haven't initialized this block ID yet
-      // OR if we are switching back to track mode
-      if (lastInitializedBlockIdRef.current !== selectedBlock.id) {
-        initializeRuntime(selectedBlock);
-        lastInitializedBlockIdRef.current = selectedBlock.id;
-      }
-    } else if (viewMode !== 'track') {
-      if (lastInitializedBlockIdRef.current !== null) {
-        disposeRuntime();
-        lastInitializedBlockIdRef.current = null;
-      }
-    }
-  }, [viewMode, selectedBlockId, selectedBlock, initializeRuntime, disposeRuntime]);
-
-  // Screen Wake Lock - keep screen awake when in track mode and workout is running
-  // This prevents the phone screen from dimming/locking during active workouts
-  useWakeLock({
-    enabled: viewMode === 'track' && execution.status === 'running'
-  });
-
-  // Real Analytics Data from Runtime
-  // We use state + effect to persist data even after runtime is disposed (e.g. on stop)
-  const [analyticsState, setAnalyticsState] = useState<{ data: AnalyticsDataPoint[], segments: Segment[], groups: AnalyticsGroup[] }>({ data: [], segments: [], groups: [] });
-
-  const lastAnalyticsUpdateRef = useRef(0);
-  const lastStatusRef = useRef(execution.status);
-
-  useEffect(() => {
-    if (runtime) {
-      const now = Date.now();
-      const statusChanged = execution.status !== lastStatusRef.current;
-      const shouldUpdate = statusChanged || (now - lastAnalyticsUpdateRef.current > 1000);
-
-      if (shouldUpdate) {
-        const newState = getAnalyticsFromRuntime(runtime);
-        setAnalyticsState(newState);
-        lastAnalyticsUpdateRef.current = now;
-        lastStatusRef.current = execution.status;
-      }
-    }
-  }, [runtime, execution.stepCount, execution.status]);
-
-  const { data: analyticsData, segments: analyticsSegments, groups: analyticsGroups } = analyticsState;
-
-  const [selectedAnalyticsIds, setSelectedAnalyticsIds] = useState(new Set<number>());
-
-  // Active segment/statement IDs for highlighting
-  const activeSegmentIds = useMemo(() => {
-    if (!runtime || viewMode !== 'track') return new Set<number>();
-    return new Set(runtime.stack.blocks.map(block => hashCode(block.key.toString())));
-  }, [runtime, execution.stepCount, viewMode]);
-
-  const activeStatementIds = useMemo(() => {
-    if (!runtime || viewMode !== 'track') return new Set<number>();
-    const ids = new Set<number>();
-
-    // Only highlight the LEAF block (the one currently executing)
-    // This avoids highlighting parent blocks (like "3 rounds") when a child is running
-    // Only highlight the LEAF block (the one currently executing)
-    // This avoids highlighting parent blocks (like "3 rounds") when a child is running
-    const leafBlock = runtime.stack.current;
-    if (leafBlock && leafBlock.sourceIds) {
-      leafBlock.sourceIds.forEach(id => ids.add(id));
-    }
-
-    return ids;
-  }, [runtime, execution.stepCount, viewMode]);
-
   // Sync theme
   useEffect(() => {
     if (!propTheme) return;
@@ -292,17 +202,10 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     setEditorInstance(editor);
   };
 
-  const handleSelectAnalyticsSegment = (id: number) => {
-    const newSet = new Set(selectedAnalyticsIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setSelectedAnalyticsIds(newSet);
-  };
-
   // Handle block hover from timer display (for highlighting in editor/index)
   const handleBlockHover = useCallback((blockKey: string | null) => {
     setHoveredBlockKey(blockKey);
-  }, []);
+  }, [setHoveredBlockKey]);
 
   // Handle block click from timer display (navigate to block in editor)
   const handleBlockClick = useCallback((blockKey: string) => {
@@ -326,7 +229,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
         }
       }
     }
-  }, [editorInstance, runtime, blocks]);
+  }, [editorInstance, runtime, blocks, setHighlightedLine]);
 
   // --- Panel Components ---
 
@@ -399,7 +302,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     <ReviewPanelIndex
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
-      onSelectSegment={handleSelectAnalyticsSegment}
+      onSelectSegment={toggleAnalyticsSegment}
       groups={analyticsGroups}
     />
   );
@@ -410,7 +313,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       rawData={analyticsData}
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
-      onSelectSegment={handleSelectAnalyticsSegment}
+      onSelectSegment={toggleAnalyticsSegment}
       groups={analyticsGroups}
     />
   );
@@ -621,7 +524,9 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
         <WorkbenchProvider initialContent={props.initialContent} mode={props.mode} provider={props.provider}>
           <AudioProvider>
             <RuntimeLifecycleProvider factory={runtimeFactory}>
-              <WorkbenchContent {...props} />
+              <WorkbenchSyncBridge>
+                <WorkbenchContent {...props} />
+              </WorkbenchSyncBridge>
             </RuntimeLifecycleProvider>
           </AudioProvider>
         </WorkbenchProvider>
