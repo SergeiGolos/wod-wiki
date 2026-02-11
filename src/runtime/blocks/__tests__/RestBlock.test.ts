@@ -146,8 +146,8 @@ describe('RestBlock', () => {
         it('should return correct behavior count', () => {
             const behaviors = RestBlock.buildBehaviors({ durationMs: 60000 });
 
-            // Expected: Segment(1) + Timer(3) + Display(1) + Sound(1) = 6
-            expect(behaviors.length).toBe(6);
+            // Expected: Segment(1) + Timer(3) + PopOnNext(1) + Display(1) + Sound(1) = 7
+            expect(behaviors.length).toBe(7);
         });
     });
 });

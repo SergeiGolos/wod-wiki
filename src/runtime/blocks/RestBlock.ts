@@ -12,6 +12,7 @@ import {
     TimerInitBehavior,
     TimerTickBehavior,
     TimerCompletionBehavior,
+    PopOnNextBehavior,
     DisplayInitBehavior,
     SoundCueBehavior
 } from '../behaviors';
@@ -96,6 +97,11 @@ export class RestBlock extends RuntimeBlock {
         }));
         behaviors.push(new TimerTickBehavior());
         behaviors.push(new TimerCompletionBehavior());
+
+        // =====================================================================
+        // Completion Aspect - User can skip rest or acknowledge completion
+        // =====================================================================
+        behaviors.push(new PopOnNextBehavior());
 
         // =====================================================================
         // Display Aspect

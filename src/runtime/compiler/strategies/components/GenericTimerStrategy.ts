@@ -95,6 +95,11 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             // Countdown timer: complete when timer expires
             builder.addBehavior(new TimerCompletionBehavior());
 
+            // User can still advance manually (skip or acknowledge completion).
+            // For parent blocks with children, ChildrenStrategy removes
+            // PopOnNextBehavior since children manage advancement.
+            builder.addBehavior(new PopOnNextBehavior());
+
             // Add countdown sounds
             builder.addBehavior(new SoundCueBehavior({
                 cues: [

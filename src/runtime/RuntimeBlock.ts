@@ -203,6 +203,15 @@ export class RuntimeBlock implements IRuntimeBlock {
             runtime
         );
 
+        // Prepare phase: reset per-call state on behaviors that need it.
+        // This ensures properties like allChildrenCompleted return accurate
+        // values regardless of behavior ordering in the chain.
+        for (const behavior of this.behaviors) {
+            if (typeof (behavior as any).prepareForNextCycle === 'function') {
+                (behavior as any).prepareForNextCycle();
+            }
+        }
+
         const actions: IRuntimeAction[] = [];
         for (const behavior of this.behaviors) {
             if (behavior.onNext) {

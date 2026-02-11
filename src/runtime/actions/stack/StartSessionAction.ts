@@ -58,12 +58,13 @@ export class StartSessionAction implements IRuntimeAction {
         // Build child groups: only include TOP-LEVEL statements.
         // The parser lists ALL statements flat (parents and children).
         // We filter to statements that are NOT children of any other statement.
+        // Note: children is number[][] (groups of statement IDs).
         const childStatementIds = new Set<number>();
         for (const s of statements) {
             if (s.children) {
-                for (const child of s.children) {
-                    if (child?.id !== undefined) {
-                        childStatementIds.add(child.id);
+                for (const childGroup of s.children) {
+                    for (const childId of childGroup) {
+                        childStatementIds.add(childId);
                     }
                 }
             }

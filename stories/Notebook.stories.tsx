@@ -33,21 +33,25 @@ type Story = StoryObj<typeof meta>;
 // Workouts to seed
 const sampleWorkouts = [
   {
+    id: 'seeded-fran',
     title: 'Fran',
     rawContent: franMarkdown || '# Fran (Fallback)\n\nFailed to load markdown file.',
     tags: ['benchmark', 'couplet'],
   },
   {
+    id: 'seeded-cindy',
     title: 'Cindy',
     rawContent: cindyMarkdown || '# Cindy (Fallback)\n\nFailed to load markdown file.',
     tags: ['benchmark', 'bodyweight'],
   },
   {
+    id: 'seeded-annie',
     title: 'Annie',
     rawContent: annieMarkdown || '# Annie (Fallback)\n\nFailed to load markdown file.',
     tags: ['benchmark', 'double-unders', 'situps'],
   },
   {
+    id: 'seeded-simple-sinister',
     title: 'Simple and Sinister',
     rawContent: simpleAndSinisterMarkdown || '# Simple & Sinister (Fallback)\n\nFailed to load markdown file.',
     tags: ['kettlebell', 'strength'],
@@ -55,14 +59,6 @@ const sampleWorkouts = [
 ];
 
 export const Default: Story = {
-  args: {
-    provider: notebookProvider,
-    showToolbar: false,
-    theme: 'system',
-  },
-};
-
-export const Seeded: Story = {
   args: {
     provider: notebookProvider,
     showToolbar: false,

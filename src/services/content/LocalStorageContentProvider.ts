@@ -95,12 +95,12 @@ export class LocalStorageContentProvider implements IContentProvider {
   }
 
   async saveEntry(
-    data: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>
+    data: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & { id?: string }
   ): Promise<HistoryEntry> {
     const now = Date.now();
     const entry: HistoryEntry = {
       ...data,
-      id: generateId(),
+      id: data.id || generateId(),
       createdAt: now,
       updatedAt: now,
       schemaVersion: SCHEMA_VERSION,

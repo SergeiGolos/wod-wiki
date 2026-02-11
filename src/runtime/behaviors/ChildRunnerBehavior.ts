@@ -91,8 +91,14 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(_ctx: IBehaviorContext): IRuntimeAction[] {
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         this._dispatchedOnLastNext = false;
+
+        // Don't push more children if the parent block is already completed
+        // (e.g., timer expired on an AMRAP, round cap reached externally).
+        if (ctx.block.isComplete) {
+            return [];
+        }
         
         // Push next child if available
         if (this.childIndex < this.config.childGroups.length) {
@@ -142,6 +148,15 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
      */
     resetChildIndex(): void {
         this.childIndex = 0;
+        this._dispatchedOnLastNext = false;
+    }
+
+    /**
+     * Called by RuntimeBlock.next() before the onNext loop begins.
+     * Resets per-call state so that allChildrenCompleted returns
+     * an accurate value regardless of behavior ordering.
+     */
+    prepareForNextCycle(): void {
         this._dispatchedOnLastNext = false;
     }
 }

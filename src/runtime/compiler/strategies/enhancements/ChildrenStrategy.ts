@@ -12,7 +12,8 @@ import {
     RoundCompletionBehavior,
     TimerInitBehavior,
     TimerCompletionBehavior,
-    PopOnNextBehavior
+    PopOnNextBehavior,
+    CompletedBlockPopBehavior
 } from "../../../behaviors";
 
 /**
@@ -72,6 +73,14 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
 
         // Add child runner behavior (after ChildLoopBehavior)
         builder.addBehavior(new ChildRunnerBehavior({ childGroups }));
+
+        // For timer-controlled blocks (AMRAP, EMOM), add CompletedBlockPopBehavior
+        // AFTER ChildRunner. When the timer expires and all active children finish,
+        // this behavior pops the block. ChildRunner's isComplete check prevents
+        // new children from being pushed after timer expiry.
+        if (hasCountdownCompletion) {
+            builder.addBehavior(new CompletedBlockPopBehavior());
+        }
 
         // Add default round handling if not already present
         if (!builder.hasBehavior(RoundInitBehavior)) {

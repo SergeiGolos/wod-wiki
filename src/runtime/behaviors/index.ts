@@ -32,6 +32,7 @@ export { RoundDisplayBehavior } from './RoundDisplayBehavior';
 // ============================================================================
 export { PopOnNextBehavior } from './PopOnNextBehavior';
 export { PopOnEventBehavior } from './PopOnEventBehavior';
+export { CompletedBlockPopBehavior } from './CompletedBlockPopBehavior';
 // TimerCompletionBehavior and RoundCompletionBehavior are also completion behaviors
 
 // ============================================================================
