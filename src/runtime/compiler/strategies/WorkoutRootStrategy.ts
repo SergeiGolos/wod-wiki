@@ -8,18 +8,12 @@ import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
 import { IdleConfig } from '../../behaviors/IdleInjectionBehavior';
+import { BlockBuilder } from '../BlockBuilder';
 
-// Aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerPauseBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
-    RoundCompletionBehavior,
-    RoundDisplayBehavior,
-    ChildRunnerBehavior,
     DisplayInitBehavior,
+    RoundDisplayBehavior,
     ButtonBehavior,
     HistoryRecordBehavior
 } from '../../behaviors';
@@ -63,14 +57,12 @@ const DEFAULT_END_IDLE: IdleConfig = {
 
 /**
  * WorkoutRootStrategy - Composes behaviors for the root workout block.
- * 
- * Uses aspect-based behaviors:
- * - Time: TimerInit (elapsed workout time), TimerTick, TimerPause
- * - Iteration: RoundInit, RoundAdvance, RoundCompletion (if multi-round)
- * - Children: ChildRunner to execute child blocks
- * - Display: DisplayInit, RoundDisplay
- * - Controls: ControlsInit for workout controls
- * - Output: HistoryRecord for workout logging
+ *
+ * Uses aspect composer methods:
+ * - .asTimer() - Track total workout elapsed time (countup)
+ * - .asRepeater() - Multi-round iteration (if totalRounds > 1)
+ * - .asContainer() - Execute child blocks
+ * Plus specific behaviors for display, controls, and history.
  */
 export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
     priority = 100;
@@ -93,80 +85,81 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
      * Builds a root workout block with the specified configuration.
      */
     build(runtime: IScriptRuntime, config: WorkoutRootConfig): IRuntimeBlock {
-        const behaviors = this.buildBehaviors(config);
         const blockKey = new BlockKey('root');
         const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
 
         // Flatten childGroups for sourceIds
         const sourceIds = config.childGroups.flat();
 
-        return new RuntimeBlock(
-            runtime,
-            sourceIds,
-            behaviors,
-            context,
-            blockKey,
-            'Root',
-            'Workout'
-        );
+        // Use BlockBuilder with aspect composers
+        const builder = new BlockBuilder(runtime);
+        builder
+            .setContext(context)
+            .setKey(blockKey)
+            .setBlockType('Root')
+            .setLabel('Workout')
+            .setSourceIds(sourceIds);
+
+        this.composeBehaviors(builder, config);
+
+        return builder.build();
     }
 
     /**
-     * Builds the behavior list for a root workout block.
+     * Composes behaviors for a root workout block using aspect composers.
      */
-    buildBehaviors(config: WorkoutRootConfig): IRuntimeBehavior[] {
-        const behaviors: IRuntimeBehavior[] = [];
+    private composeBehaviors(builder: BlockBuilder, config: WorkoutRootConfig): void {
         const totalRounds = config.totalRounds ?? 1;
 
         // =====================================================================
-        // Time Aspect - Track total workout elapsed time
+        // ASPECT COMPOSERS - High-level composition
         // =====================================================================
-        behaviors.push(new TimerInitBehavior({
+
+        // Timer Aspect - Track total workout elapsed time
+        builder.asTimer({
             direction: 'up',
             label: 'Workout',
-            role: 'primary'
-        }));
-        behaviors.push(new TimerTickBehavior());
-        behaviors.push(new TimerPauseBehavior());
+            role: 'primary',
+            addCompletion: false  // Workout doesn't complete on timer
+        });
 
-        // =====================================================================
-        // Iteration Aspect - If multi-round workout
-        // =====================================================================
+        // Repeater Aspect - If multi-round workout
         if (totalRounds > 1) {
-            behaviors.push(new RoundInitBehavior({
+            builder.asRepeater({
                 totalRounds,
-                startRound: 1
-            }));
-            behaviors.push(new RoundAdvanceBehavior());
-            behaviors.push(new RoundCompletionBehavior());
-            behaviors.push(new RoundDisplayBehavior());
+                startRound: 1,
+                addCompletion: true  // Complete when all rounds done
+            });
         }
 
-        // =====================================================================
-        // Children Aspect - Execute child blocks
-        // =====================================================================
-        behaviors.push(new ChildRunnerBehavior({
-            childGroups: config.childGroups
-        }));
+        // Container Aspect - Execute child blocks
+        builder.asContainer({
+            childGroups: config.childGroups,
+            addLoop: false  // Root doesn't loop children
+        });
 
         // =====================================================================
-        // Display Aspect
+        // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
-        behaviors.push(new DisplayInitBehavior({
+
+        // Display Aspect
+        builder.addBehavior(new DisplayInitBehavior({
             mode: 'clock',
             label: 'Workout'
         }));
 
-        // =====================================================================
+        if (totalRounds > 1) {
+            builder.addBehavior(new RoundDisplayBehavior());
+        }
+
         // Controls Aspect - Workout control buttons
-        // =====================================================================
         const buttons = config.executionButtons ?? [
             { id: 'pause', label: 'Pause', action: 'timer:pause' },
             { id: 'next', label: 'Next', action: 'next' },
             { id: 'stop', label: 'Stop', action: 'workout:stop' }
         ];
 
-        behaviors.push(new ButtonBehavior({
+        builder.addBehavior(new ButtonBehavior({
             buttons: buttons.map(btn => ({
                 id: btn.id,
                 label: btn.label ?? btn.id,
@@ -177,12 +170,21 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
             }))
         }));
 
-        // =====================================================================
         // Output Aspect - Record workout history
-        // =====================================================================
-        behaviors.push(new HistoryRecordBehavior());
+        builder.addBehavior(new HistoryRecordBehavior());
+    }
 
-        return behaviors;
+    /**
+     * Builds the behavior list for a root workout block (deprecated - use composeBehaviors).
+     * @deprecated Use composeBehaviors with BlockBuilder instead
+     */
+    buildBehaviors(config: WorkoutRootConfig): IRuntimeBehavior[] {
+        const behaviors: IRuntimeBehavior[] = [];
+        const totalRounds = config.totalRounds ?? 1;
+
+        // This method is kept for backwards compatibility but should be avoided
+        // Use the build() method which uses BlockBuilder with aspect composers
+        throw new Error('buildBehaviors is deprecated. Use build() method instead.');
     }
 
     /**

@@ -1,11 +1,17 @@
 /**
  * Aspect-based behaviors using IBehaviorContext pattern.
- * 
+ *
  * These behaviors are stateless (or minimally stateful) and operate on block memory.
  * Strategies compose blocks by adding these behaviors.
- * 
+ *
  * @module runtime/behaviors
  */
+
+// ============================================================================
+// Universal Invariants - Automatically added to ALL blocks
+// ============================================================================
+export { ReentryCounterBehavior } from './ReentryCounterBehavior';
+export { CompletionTimestampBehavior } from './CompletionTimestampBehavior';
 
 // ============================================================================
 // Time Aspect

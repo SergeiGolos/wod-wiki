@@ -8,18 +8,12 @@ import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 
-// New aspect-based behaviors
+// Specific behaviors not covered by aspect composers
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerCompletionBehavior,
-    TimerPauseBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
-    RoundDisplayBehavior,
-    RoundOutputBehavior,
     DisplayInitBehavior,
+    RoundDisplayBehavior,
     TimerOutputBehavior,
+    RoundOutputBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
     SegmentOutputBehavior,
@@ -28,15 +22,13 @@ import {
 
 /**
  * AmrapLogicStrategy handles "As Many Rounds As Possible" blocks.
- * 
+ *
  * Pattern: Timer (countdown) + Rounds (unbounded)
- * 
- * Uses aspect-based behaviors:
- * - Time: TimerInit (countdown), TimerTick, TimerCompletion, TimerPause
- * - Iteration: RoundInit (unbounded), RoundAdvance (no RoundCompletion!)
- * - Display: DisplayInit, RoundDisplay
- * - Output: TimerOutput, RoundOutput, HistoryRecord
- * - Controls: Sound cues for countdown
+ *
+ * Uses aspect composer methods:
+ * - .asTimer() - Time tracking with countdown
+ * - .asRepeater() - Unbounded rounds (no completion)
+ * Plus specific behaviors for display, output, rest, and sound.
  */
 export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     priority = 90; // High priority - runs before generic strategies
@@ -81,61 +73,50 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         builder.setFragments(fragmentGroups);
 
         // =====================================================================
-        // Time Aspect - AMRAP uses countdown timer
+        // ASPECT COMPOSERS - High-level composition
         // =====================================================================
-        builder.addBehavior(new TimerInitBehavior({
-            direction: 'down',  // AMRAP counts down
+
+        // Timer Aspect - AMRAP uses countdown timer that marks block complete when expired
+        builder.asTimer({
+            direction: 'down',
             durationMs,
             label: 'AMRAP',
-            role: 'primary'
-        }));
-        builder.addBehavior(new TimerTickBehavior());
-        builder.addBehavior(new TimerPauseBehavior());
+            role: 'primary',
+            addCompletion: true  // Timer completion marks block as complete
+        });
 
-        // Timer completion marks the block complete (time cap reached)
-        builder.addBehavior(new TimerCompletionBehavior());
-
-        // =====================================================================
-        // Iteration Aspect - AMRAP has unbounded rounds
-        // =====================================================================
-        builder.addBehavior(new RoundInitBehavior({
+        // Repeater Aspect - AMRAP has unbounded rounds (no completion on round exhaustion)
+        builder.asRepeater({
             totalRounds: undefined,  // Unbounded - run until timer expires
-            startRound: 1
-        }));
-        builder.addBehavior(new RoundAdvanceBehavior());
-        // NOTE: No RoundCompletionBehavior - rounds don't complete the block!
+            startRound: 1,
+            addCompletion: false  // No RoundCompletionBehavior - timer controls completion
+        });
 
         // =====================================================================
-        // Display Aspect
+        // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
+
+        // Display Aspect
         builder.addBehavior(new DisplayInitBehavior({
             mode: 'countdown',
             label
         }));
         builder.addBehavior(new RoundDisplayBehavior());
 
-        // =====================================================================
         // Output Aspect
-        // =====================================================================
         builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new RoundOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
 
-        // =====================================================================
         // Rest Insertion Aspect - Auto-generate rest blocks
-        // =====================================================================
         // RestBlockBehavior must be added BEFORE ChildLoopBehavior and
-        // ChildRunnerBehavior (which are added by ChildrenStrategy at
-        // priority 50). When exercises finish before the countdown timer
-        // expires, a RestBlock fills the remaining interval time.
+        // ChildRunnerBehavior (which are added by ChildrenStrategy at priority 50)
         builder.addBehavior(new RestBlockBehavior({
             label: 'Rest'
         }));
 
-        // =====================================================================
         // Sound Cues
-        // =====================================================================
         builder.addBehavior(new SoundCueBehavior({
             cues: [
                 { sound: 'start-beep', trigger: 'mount' },
