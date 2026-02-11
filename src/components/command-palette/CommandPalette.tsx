@@ -59,7 +59,11 @@ export const CommandPalette: React.FC = () => {
               <Command.Input
                 value={search}
                 onValueChange={setSearch}
-                onKeyDown={handleKeyDown}
+                onKeyDown={(e) => {
+                  if (activeStrategy?.handleInput) {
+                    handleKeyDown(e);
+                  }
+                }}
                 placeholder={activeStrategy?.placeholder || "Type a command or search..."}
                 className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
               />
@@ -75,12 +79,16 @@ export const CommandPalette: React.FC = () => {
                   {groupCommands.map((cmd) => (
                     <Command.Item
                       key={cmd.id}
-                      value={`${cmd.label} ${cmd.keywords?.join(' ') || ''}`}
+                      value={`${cmd.id} ${cmd.label} ${cmd.keywords?.join(' ') || ''}`}
                       onSelect={() => {
+                        console.log('[CommandPalette] onSelect for', cmd.id);
                         cmd.action();
                         setIsOpen(false);
                       }}
-                      className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none 
+                                 aria-selected:bg-accent aria-selected:text-accent-foreground 
+                                 data-[selected='true']:bg-accent data-[selected='true']:text-accent-foreground 
+                                 data-[disabled='true']:pointer-events-none data-[disabled='true']:opacity-50"
                     >
                       <span>{cmd.label}</span>
                       {cmd.shortcut && (

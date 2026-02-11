@@ -41,14 +41,4 @@ export class WodNavigationStrategy implements CommandStrategy {
     }
 
     // No specialized input handling needed, standard filtering works fine
-    handleInput = async (text: string) => {
-        // If the user clicks enter or we trigger this, we might want to check if the text matches a command exactly?
-        // Actually, CommandPalette handles selection via onSelect. 
-        // handleInput is usually for *consuming* the input as data (like "rename file to X").
-        // For navigation, we just want standard filtering + selection.
-        // So return false to let the palette stay open? Or true to close?
-        // If we want "text input" to do something, we implement this.
-        // But for navigation, we don't need to handle raw text input as an action.
-        return false;
-    };
 }
