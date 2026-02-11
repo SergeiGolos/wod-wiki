@@ -7,6 +7,12 @@ import { PushBlockAction } from '../actions/stack/PushBlockAction';
 export interface ChildRunnerConfig {
     /** Child statement ID groups to execute */
     childGroups: number[][];
+    /**
+     * When true, skip pushing the first child on mount.
+     * Used when WaitingToStartInjectorBehavior is present — the first
+     * onNext() (after WaitingToStart pops) will push childGroups[0] instead.
+     */
+    skipOnMount?: boolean;
 }
 
 /**
@@ -70,6 +76,12 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
     constructor(private config: ChildRunnerConfig) { }
 
     onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        // When skipOnMount is true, defer first child push to onNext().
+        // This allows WaitingToStartInjectorBehavior to push first.
+        if (this.config.skipOnMount) {
+            return [];
+        }
+
         // Push first child on mount
         if (this.config.childGroups.length > 0) {
             const firstGroup = this.config.childGroups[0];

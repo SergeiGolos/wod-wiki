@@ -4,6 +4,7 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { ChildRunnerBehavior } from './ChildRunnerBehavior';
+import { RestBlockBehavior } from './RestBlockBehavior';
 
 export interface ChildLoopConfig {
     /** Child statement ID groups to loop through */
@@ -44,6 +45,11 @@ export class ChildLoopBehavior implements IRuntimeBehavior {
         // runs BEFORE ChildRunnerBehavior in the behavior chain and needs to reset
         // the child index before ChildRunner checks it.
         if (!childRunner.allChildrenExecuted) return [];
+
+        // If a RestBlockBehavior is active and has pushed a rest block,
+        // don't reset the child index yet — wait for rest to complete.
+        const restBehavior = block.getBehavior(RestBlockBehavior);
+        if (restBehavior?.isRestPending) return [];
         
         // Check if we should loop (timer running and not expired)
         if (!this.shouldLoop(ctx)) return [];

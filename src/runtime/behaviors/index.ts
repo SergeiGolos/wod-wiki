@@ -48,6 +48,8 @@ export { ChildRunnerBehavior } from './ChildRunnerBehavior';
 export type { ChildRunnerConfig } from './ChildRunnerBehavior';
 export { ChildLoopBehavior } from './ChildLoopBehavior';
 export type { ChildLoopConfig } from './ChildLoopBehavior';
+export { RestBlockBehavior } from './RestBlockBehavior';
+export type { RestBlockBehaviorConfig } from './RestBlockBehavior';
 
 // ============================================================================
 // Output Aspect
@@ -69,6 +71,8 @@ export type { ControlsConfig, ButtonConfig } from './ButtonBehavior';
 // ============================================================================
 export { IdleInjectionBehavior } from './IdleInjectionBehavior';
 export type { IdleConfig } from './IdleInjectionBehavior';
+export { WaitingToStartInjectorBehavior } from './WaitingToStartInjectorBehavior';
+export { SessionCompletionBehavior } from './SessionCompletionBehavior';
 
 // ============================================================================
 // Utility Exports (not deprecated)

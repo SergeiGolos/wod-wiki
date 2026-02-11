@@ -53,6 +53,9 @@ export * from './runtime/behaviors';
 
 // Runtime blocks
 export * from './runtime/blocks/EffortBlock';
+export * from './runtime/blocks/SessionRootBlock';
+export * from './runtime/blocks/WaitingToStartBlock';
+export * from './runtime/blocks/RestBlock';
 
 // Strategies
 export * from './runtime/compiler/strategies';

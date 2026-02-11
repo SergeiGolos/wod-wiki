@@ -6,3 +6,5 @@
  */
 
 export * from '../../src/testing/harness';
+export { OutputTracingHarness } from './OutputTracingHarness';
+export type { TracedOutput, ExpectedOutput } from './OutputTracingHarness';

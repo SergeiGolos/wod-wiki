@@ -17,7 +17,7 @@ export class BlockBuilder {
     private fragments: ICodeFragment[][] | undefined;
     private sourceIds: number[] = [];
 
-    constructor(private runtime: IScriptRuntime) {}
+    constructor(private runtime: IScriptRuntime) { }
 
     addBehavior(behavior: IRuntimeBehavior): BlockBuilder {
         // Key by constructor to allow replacement by type

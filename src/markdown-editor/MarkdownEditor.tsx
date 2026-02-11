@@ -36,6 +36,9 @@ export interface MarkdownEditorProps {
   /** Initial markdown content */
   initialContent?: string;
 
+  /** Controlled markdown content */
+  value?: string;
+
   /** Callback when content changes */
   onContentChange?: (content: string) => void;
 
@@ -94,6 +97,7 @@ import { CommandPalette } from '../components/command-palette/CommandPalette';
  */
 export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   initialContent = '',
+  value,
   onContentChange,
   onTitleChange,
   showToolbar = false,
@@ -111,12 +115,20 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   highlightedLine,
   onStartWorkout
 }) => {
-  const [content, setContent] = useState(initialContent);
+  const [content, setContent] = useState(value !== undefined ? value : initialContent);
   const { setIsOpen } = useCommandPalette();
+
+  // Sync value prop to local state (for controlled mode)
+  useEffect(() => {
+    if (value !== undefined) {
+      if (value !== content) console.log('[MarkdownEditor] Value prop updated:', value.substring(0, 50) + '...', 'Length:', value.length);
+      setContent(value);
+    }
+  }, [value]);
 
   // Use the WOD blocks hook
   const { blocks, activeBlock, updateBlock } = useWodBlocks(null, content);
-  
+
   // Keep a ref to blocks for the setup hook
   const blocksRef = useRef(blocks);
   useEffect(() => {
@@ -144,7 +156,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
 
   // Update WOD blocks hook with editor instance once available
   const { blocks: editorBlocks, activeBlock: editorActiveBlock, updateBlock: editorUpdateBlock } = useWodBlocks(editorInstance, content);
-  
+
   // Use editor-aware blocks when editor is available
   const currentBlocks = editorInstance ? editorBlocks : blocks;
   const currentActiveBlock = editorInstance ? editorActiveBlock : activeBlock;
@@ -283,6 +295,7 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
         height={showToolbar ? 'calc(100% - 48px)' : '100%'}
         defaultLanguage="markdown"
         defaultValue={initialContent}
+        value={value}
         theme={theme}
         options={defaultOptions}
         beforeMount={handleEditorWillMount}

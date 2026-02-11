@@ -24,7 +24,8 @@ import {
     TimerOutputBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
-    SegmentOutputBehavior
+    SegmentOutputBehavior,
+    RestBlockBehavior
 } from "../../../behaviors";
 
 /**
@@ -129,6 +130,17 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new RoundOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
+
+        // =====================================================================
+        // Rest Insertion Aspect - Auto-generate rest blocks
+        // =====================================================================
+        // RestBlockBehavior must be added BEFORE ChildLoopBehavior and
+        // ChildRunnerBehavior (which are added by ChildrenStrategy at
+        // priority 50). When exercises finish before the interval timer
+        // expires, a RestBlock fills the remaining interval time.
+        builder.addBehavior(new RestBlockBehavior({
+            label: 'Rest'
+        }));
 
         // =====================================================================
         // Sound Cues

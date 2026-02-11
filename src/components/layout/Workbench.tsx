@@ -162,9 +162,13 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
     // Load the entry's content into the editor
     try {
+      console.log(`[Workbench] Loading entry ${id}...`);
       const entry = await provider.getEntry(id);
       if (entry) {
+        console.log(`[Workbench] Entry loaded. Content length: ${entry.rawContent.length}`);
         setContent(entry.rawContent);
+      } else {
+        console.warn(`[Workbench] Entry ${id} returned null from provider.`);
       }
     } catch (err) {
       console.error('Failed to load entry:', err);
@@ -331,6 +335,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   const planPanel = (
     <PlanPanel
       initialContent={initialContent}
+      value={content}
       onEditorMount={handleEditorMount}
       onStartWorkout={handleStartWorkoutAction}
       setActiveBlockId={setActiveBlockId}

@@ -26,6 +26,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   monacoTheme,
   ...editorProps
 }) => {
+  console.log('[PlanPanel] Render. Props Value Length:', (editorProps as any).value?.length ?? 'undefined');
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
   return (

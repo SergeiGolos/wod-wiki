@@ -2,6 +2,12 @@ import { Workbench } from '@/components/layout/Workbench';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import type { Meta, StoryObj } from '@storybook/react';
 
+// Import raw markdown content
+import franMarkdown from '../wod/fran.md?raw';
+import cindyMarkdown from '../wod/cindy.md?raw';
+import annieMarkdown from '../wod/annie.md?raw';
+import simpleAndSinisterMarkdown from '../wod/simple-and-sinister.md?raw';
+
 // Singleton — same instance across hot reloads
 const notebookProvider = new LocalStorageContentProvider();
 
@@ -14,8 +20,8 @@ const meta: Meta<typeof Workbench> = {
       description: {
         component:
           'Full workbench with persistent localStorage history. ' +
-          'Workouts you create and complete are saved and survive page reloads. ' +
-          'This is the closest experience to production mode.',
+          'The "Seeded" story will clean existing data and load sample workouts from the codebase on every load. ' +
+          'This provides a consistent "fresh" state with real data.',
       },
     },
   },
@@ -23,6 +29,30 @@ const meta: Meta<typeof Workbench> = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+// Workouts to seed
+const sampleWorkouts = [
+  {
+    title: 'Fran',
+    rawContent: franMarkdown || '# Fran (Fallback)\n\nFailed to load markdown file.',
+    tags: ['benchmark', 'couplet'],
+  },
+  {
+    title: 'Cindy',
+    rawContent: cindyMarkdown || '# Cindy (Fallback)\n\nFailed to load markdown file.',
+    tags: ['benchmark', 'bodyweight'],
+  },
+  {
+    title: 'Annie',
+    rawContent: annieMarkdown || '# Annie (Fallback)\n\nFailed to load markdown file.',
+    tags: ['benchmark', 'double-unders', 'situps'],
+  },
+  {
+    title: 'Simple and Sinister',
+    rawContent: simpleAndSinisterMarkdown || '# Simple & Sinister (Fallback)\n\nFailed to load markdown file.',
+    tags: ['kettlebell', 'strength'],
+  },
+];
 
 export const Default: Story = {
   args: {
@@ -32,24 +62,6 @@ export const Default: Story = {
   },
 };
 
-const sampleWorkouts = [
-  {
-    title: 'Fran',
-    rawContent: '# Fran\n\n```wod\n3 Rounds\n  - 21/15/9 Thrusters (95/65)\n  - 21/15/9 Pull-ups\n```\n',
-    tags: ['benchmark', 'couplet'],
-  },
-  {
-    title: 'Cindy',
-    rawContent: '# Cindy\n\n```wod\nAMRAP 20:00\n  - 5 Pull-ups\n  - 10 Push-ups\n  - 15 Air Squats\n```\n',
-    tags: ['benchmark', 'bodyweight'],
-  },
-  {
-    title: 'Morning Run',
-    rawContent: '# Morning Run\n\n```wod\nTimer 30:00\n  - Run\n```\n',
-    tags: ['cardio'],
-  },
-];
-
 export const Seeded: Story = {
   args: {
     provider: notebookProvider,
@@ -57,11 +69,25 @@ export const Seeded: Story = {
     theme: 'system',
   },
   play: async () => {
+    console.group('Notebook Story: Seeding');
+    console.log('Starting data reset...');
+
+    // 1. Clean: Remove all existing entries
     const existing = await notebookProvider.getEntries();
-    if (existing.length === 0) {
-      for (const workout of sampleWorkouts) {
-        await notebookProvider.saveEntry(workout);
-      }
+    console.log(`Found ${existing.length} existing entries to delete.`);
+    for (const entry of existing) {
+      await notebookProvider.deleteEntry(entry.id);
     }
+
+    // 2. Load: Add fresh sample workouts
+    console.log(`Seeding ${sampleWorkouts.length} sample workouts...`);
+    for (const workout of sampleWorkouts) {
+      console.log(`Saving ${workout.title}, content length: ${workout.rawContent?.length}`);
+      if (!workout.rawContent) console.error(`WARNING: Content for ${workout.title} is undefined!`);
+      await notebookProvider.saveEntry(workout);
+    }
+
+    console.log('Seeding complete.');
+    console.groupEnd();
   },
 };
