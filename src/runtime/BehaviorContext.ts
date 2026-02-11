@@ -106,11 +106,11 @@ export class BehaviorContext implements IBehaviorContext {
 
         if (timerLocations.length > 0) {
             const timerFragments = timerLocations[0].fragments;
-            if (timerFragments.length > 0 && timerFragments[0].value?.spans) {
-                const spans = timerFragments[0].value.spans;
-                if (spans.length > 0) {
+            if (timerFragments.length > 0) {
+                const timerValue = timerFragments[0].value as { spans?: TimeSpan[] } | undefined;
+                if (timerValue?.spans && timerValue.spans.length > 0) {
                     // Use the earliest span start as the output start time
-                    startTime = spans[0].started;
+                    startTime = timerValue.spans[0].started;
                 }
             }
         }

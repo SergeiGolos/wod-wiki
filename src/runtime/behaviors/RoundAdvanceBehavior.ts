@@ -29,7 +29,7 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
         const roundFragments = roundLocations[0].fragments;
         if (roundFragments.length === 0) return [];
 
-        const roundValue = roundFragments[0].value;
+        const roundValue = roundFragments[0].value as { current: number; total?: number } | undefined;
         if (!roundValue) return [];
 
         // If the block has children, only advance the round when all children

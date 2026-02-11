@@ -1,8 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { ICodeFragment } from '../../core/models/CodeFragment';
-import { FragmentType } from '../../fragments/FragmentType';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 
 /**
  * RoundDisplayBehavior updates the display roundDisplay when rounds change.
@@ -39,7 +38,7 @@ export class RoundDisplayBehavior implements IRuntimeBehavior {
         const roundFragments = roundLocations[0].fragments;
         if (roundFragments.length === 0) return;
 
-        const roundValue = roundFragments[0].value;
+        const roundValue = roundFragments[0].value as { current: number; total?: number } | undefined;
         if (!roundValue) return;
 
         const roundDisplay = roundValue.total !== undefined

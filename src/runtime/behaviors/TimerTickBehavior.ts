@@ -39,13 +39,18 @@ export class TimerTickBehavior implements IRuntimeBehavior {
         if (timerLocations.length > 0) {
             const timerFragments = timerLocations[0].fragments;
             if (timerFragments.length > 0) {
-                const timerValue = timerFragments[0].value;
-                const spans = timerValue?.spans || [];
+                const timerValue = timerFragments[0].value as {
+                    spans: TimeSpan[];
+                    direction: string;
+                    durationMs: number;
+                    label?: string;
+                    role?: string;
+                } | undefined;
                 
-                if (spans.length > 0) {
+                if (timerValue && timerValue.spans && timerValue.spans.length > 0) {
                     const now = ctx.clock.now.getTime();
-                    const updatedSpans = spans.map((span, i) => {
-                        if (i === spans.length - 1 && span.ended === undefined) {
+                    const updatedSpans = timerValue.spans.map((span: TimeSpan, i: number) => {
+                        if (i === timerValue.spans.length - 1 && span.ended === undefined) {
                             return new TimeSpan(span.started, now);
                         }
                         return span;
