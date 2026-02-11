@@ -20,7 +20,12 @@ const meta: Meta<typeof Workbench> = {
       table: { defaultValue: { summary: 'wod-light' } }
     },
     showToolbar: { control: 'boolean' },
-    readonly: { control: 'boolean' }
+    readonly: { control: 'boolean' },
+    initialViewMode: {
+      control: 'select',
+      options: ['plan', 'track', 'review'],
+      description: 'Initial view mode for the workbench',
+    }
   }
 };
 

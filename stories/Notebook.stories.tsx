@@ -25,6 +25,13 @@ const meta: Meta<typeof Workbench> = {
       },
     },
   },
+  argTypes: {
+    initialViewMode: {
+      control: 'select',
+      options: ['history', 'plan', 'track', 'review', 'analyze'],
+      description: 'Initial view mode for the workbench',
+    },
+  },
 };
 
 export default meta;

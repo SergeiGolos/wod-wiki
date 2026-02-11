@@ -54,6 +54,7 @@ const runtimeFactory = new RuntimeFactory(globalCompiler);
 export interface WorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
   initialContent?: string;
   initialActiveEntryId?: string;
+  initialViewMode?: ViewMode;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
   commandStrategy?: any; // CommandStrategy - typed loosely to avoid deep imports issues if interface isn't exported well, but better to import it.
@@ -541,6 +542,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
         <WorkbenchProvider
           initialContent={props.initialContent}
           initialActiveEntryId={props.initialActiveEntryId}
+          initialViewMode={props.initialViewMode}
           mode={props.mode}
           provider={props.provider}
         >

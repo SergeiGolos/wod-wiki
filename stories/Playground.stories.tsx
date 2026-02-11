@@ -30,6 +30,11 @@ const meta: Meta<typeof Workbench> = {
       options: ['wod-light', 'wod-dark'],
       description: 'Editor theme',
       table: { defaultValue: { summary: 'wod-light' } }
+    },
+    initialViewMode: {
+      control: 'select',
+      options: ['plan', 'track', 'review'],
+      description: 'Initial view mode for the workbench',
     }
   }
 };

@@ -83,6 +83,7 @@ interface WorkbenchProviderProps {
   children: React.ReactNode;
   initialContent?: string;
   initialActiveEntryId?: string;
+  initialViewMode?: ViewMode;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
 }
@@ -91,6 +92,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   children,
   initialContent: propInitialContent = '',
   initialActiveEntryId,
+  initialViewMode,
   mode: _mode = 'static',
   provider: externalProvider,
 }) => {
@@ -160,18 +162,29 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Derive viewMode from route
   const viewMode = useMemo(() => {
-    if (pathname === '/' || pathname.startsWith('/history')) return 'history';
-
-    // Valid view from URL
+    // Priority 1: Direct route parameters
     if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze') {
       return routeView as ViewMode;
     }
 
-    // Default to 'plan' if we have an ID or are in playground
+    // Priority 2: Forced initial mode for static/storybook setups
+    const isStorybook = pathname.includes('iframe.html');
+    const isRootOrPlayground = pathname === '/' || pathname === '/history' || pathname.startsWith('/playground') || isStorybook;
+    if (initialViewMode && (isRootOrPlayground || !routeView)) {
+      return initialViewMode;
+    }
+
+    // Priority 3: Root redirects
+    if (pathname === '/' || pathname.startsWith('/history') || isStorybook) {
+      if (!routeId && resolvedMode === 'static') return 'plan';
+      return 'history';
+    }
+
+    // Priority 4: Default based on ID
     if (routeId || pathname.startsWith('/playground')) return 'plan';
 
     return resolvedMode === 'history' ? 'history' : 'plan';
-  }, [pathname, routeView, routeId, resolvedMode]);
+  }, [pathname, routeView, routeId, resolvedMode, initialViewMode]);
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
@@ -193,8 +206,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     // Multi-select mode (when 2+ are checked)
     if (historySelectionHook.selectedIds.size >= 2) return 'multi-select';
 
-    // Single-select mode (when an entry is open via URL or state)
-    if (routeId || historySelectionHook.activeEntryId) return 'single-select';
+    // Single-select mode (when an entry is open via URL or state, or we are explicitly in a workout view)
+    const isWorkoutView = viewMode === 'plan' || viewMode === 'track' || viewMode === 'review';
+    if (routeId || historySelectionHook.activeEntryId || isWorkoutView) return 'single-select';
 
     // Default browse mode
     return 'history-only';
