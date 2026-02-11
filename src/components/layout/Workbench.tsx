@@ -20,7 +20,7 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Plus, Github } from 'lucide-react';
+import { Plus, Github, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -54,6 +54,7 @@ export interface WorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'o
   initialContent?: string;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
+  commandStrategy?: any; // CommandStrategy - typed loosely to avoid deep imports issues if interface isn't exported well, but better to import it.
 }
 
 // --- Main Workbench Content ---
@@ -64,6 +65,13 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
+
+  // Register initial strategy if provided
+  useEffect(() => {
+    if (editorProps.commandStrategy) {
+      setStrategy(editorProps.commandStrategy);
+    }
+  }, [editorProps.commandStrategy, setStrategy]);
 
   // Consume Workbench Context (document state, view mode, panel layouts)
   const {
@@ -441,6 +449,28 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             )}
 
             {!isMobile && (
+              <div className="relative mx-2 w-full max-w-[200px] hidden md:block">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-sm text-muted-foreground font-normal px-2 h-8"
+                  onClick={() => {
+                    // If a strategy is locked, ensure it's set (or let global default apply)
+                    // For this use case, we probably want to ensure the navigation strategy is active if passed
+                    if (editorProps.commandStrategy) {
+                      setStrategy(editorProps.commandStrategy);
+                    }
+                    setIsOpen(true);
+
+                  }}
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  Search...
+                  <span className="ml-auto text-xs opacity-50">⌘K</span>
+                </Button>
+              </div>
+            )}
+
+            {isMobile && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -450,46 +480,50 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 }}
                 className="text-muted-foreground hover:text-foreground"
                 aria-label="Open command palette"
-                title="Open command palette"
               >
-                <Plus className="h-4 w-4" />
+                <Search className="h-4 w-4" />
               </Button>
             )}
+
 
             {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
 
             {/* View Mode Buttons — dynamically built from current viewDescriptors */}
-            {viewDescriptors.map(view => (
-              <Button
-                key={view.id}
-                variant={viewMode === view.id ? 'default' : 'ghost'}
-                size={isMobile ? 'icon' : 'sm'}
-                onClick={() => setViewMode(view.id as ViewMode)}
-                className={cn('gap-2', viewMode !== view.id && 'text-muted-foreground hover:text-foreground')}
-                aria-label={isMobile ? `Switch to ${view.label} view` : undefined}
-                title={isMobile ? `Switch to ${view.label} view` : undefined}
-              >
-                {view.icon}
-                {!isMobile && view.label}
-              </Button>
-            ))}
+            {
+              viewDescriptors.map(view => (
+                <Button
+                  key={view.id}
+                  variant={viewMode === view.id ? 'default' : 'ghost'}
+                  size={isMobile ? 'icon' : 'sm'}
+                  onClick={() => setViewMode(view.id as ViewMode)}
+                  className={cn('gap-2', viewMode !== view.id && 'text-muted-foreground hover:text-foreground')}
+                  aria-label={isMobile ? `Switch to ${view.label} view` : undefined}
+                  title={isMobile ? `Switch to ${view.label} view` : undefined}
+                >
+                  {view.icon}
+                  {!isMobile && view.label}
+                </Button>
+              ))
+            }
 
             <div className="h-6 w-px bg-border mx-2" />
 
             <AudioToggle />
             <ThemeToggle />
-            {!isMobile && (
-              <a
-                href="https://github.com/SergeiGolos/wod-wiki"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors ml-2"
-                title="Check us out on GitHub"
-                aria-label="Visit WOD Wiki on GitHub"
-              >
-                <Github className="h-5 w-5" />
-              </a>
-            )}
+            {
+              !isMobile && (
+                <a
+                  href="https://github.com/SergeiGolos/wod-wiki"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground transition-colors ml-2"
+                  title="Check us out on GitHub"
+                  aria-label="Visit WOD Wiki on GitHub"
+                >
+                  <Github className="h-5 w-5" />
+                </a>
+              )
+            }
           </div>
         </div>
 
@@ -504,7 +538,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             onCollapsePanel={collapsePanel}
           />
         </div>
-      </div>
+      </div >
       <CommandPalette />
     </>
   );

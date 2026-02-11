@@ -21,6 +21,8 @@
     "test:perf": "bun test tests/performance",
     "test:e2e": "bun x playwright test",
     "build:lib": "vite build",
+    "build:app": "bun x vite build --config vite.app.config.ts",
+    "preview:app": "bun x vite preview --config vite.app.config.ts",
     "build": "bun run build-storybook",
     "storybook": "npx storybook dev -p 6006",
     "storybook:debug": "set NODE_OPTIONS=--inspect=9229 && npx storybook dev -p 6006",
@@ -28,7 +30,8 @@
     "prebuild-storybook": "bun run clean-storybook",
     "build-storybook": "NODE_OPTIONS=--max-old-space-size=4096 storybook build",
     "docs:check": "bun scripts/check-docs-links.cjs",
-    "dev": "bun scripts/dev-start.cjs"
+    "dev": "bun scripts/dev-start.cjs",
+    "dev:app": "bun x vite --config vite.app.config.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
@@ -44,6 +47,7 @@
     "cmdk": "^1.1.1",
     "lucide-react": "^0.545.0",
     "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.13.0",
     "recharts": "^3.4.1",
     "tailwind-merge": "^3.3.1",
     "uuid": "^13.0.0",

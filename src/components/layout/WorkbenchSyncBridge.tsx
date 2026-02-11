@@ -28,6 +28,14 @@ import { parseDocumentStructure } from '../../markdown-editor/utils/documentStru
 import { getAnalyticsFromRuntime } from '../../services/AnalyticsTransformer';
 import { hashCode } from '../../lib/utils';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
+import { WodBlock } from '../../markdown-editor/types';
+
+// Helper to generate a unique key for a block based on its content/statements
+const getBlockKey = (block: WodBlock | null): string => {
+  if (!block) return 'null';
+  // Include validation hash if available, or just length/content signature
+  return `${block.id}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
+};
 
 interface WorkbenchSyncBridgeProps {
   children: React.ReactNode;
@@ -114,21 +122,24 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
   ]);
 
   // --- Runtime initialization on view mode changes ---
-  const lastInitializedBlockIdRef = useRef<string | null>(null);
+  // --- Runtime initialization on view mode changes ---
+  const lastInitializedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (viewMode === 'track' && selectedBlock && selectedBlock.statements) {
-      if (lastInitializedBlockIdRef.current !== selectedBlock.id) {
+      const currentKey = getBlockKey(selectedBlock);
+      if (lastInitializedKeyRef.current !== currentKey) {
+        console.log('[WorkbenchSyncBridge] Re-initializing runtime for block', selectedBlock.id, 'old:', lastInitializedKeyRef.current, 'new:', currentKey);
         initializeRuntime(selectedBlock);
-        lastInitializedBlockIdRef.current = selectedBlock.id;
+        lastInitializedKeyRef.current = currentKey;
       }
     } else if (viewMode !== 'track') {
-      if (lastInitializedBlockIdRef.current !== null) {
+      if (lastInitializedKeyRef.current !== null) {
         disposeRuntime();
-        lastInitializedBlockIdRef.current = null;
+        lastInitializedKeyRef.current = null;
       }
     }
-  }, [viewMode, selectedBlockId, selectedBlock, initializeRuntime, disposeRuntime]);
+  }, [viewMode, selectedBlock, initializeRuntime, disposeRuntime]);
 
   // --- Wake lock (keep screen awake during workouts) ---
   useWakeLock({

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
@@ -96,6 +96,12 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Document State
   const [content, setContent] = useState(initialContent);
+
+  // Sync content when initialContent prop changes (e.g. navigation)
+  useEffect(() => {
+    setContent(initialContent);
+  }, [initialContent]);
+
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
