@@ -72,7 +72,7 @@ export class AnalyticsTransformer {
     );
 
     return outputs.map(output => {
-      const duration = output.timeSpan.duration / 1000;
+      const duration = output.elapsed / 1000;  // pause-aware elapsed time
       const endTime = output.timeSpan.ended ?? Date.now();
 
       // Paranoid copy of fragments to ensure they persist

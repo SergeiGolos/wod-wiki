@@ -2,7 +2,7 @@ import React from 'react';
 import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
-import { WodIndexPanel } from '../layout/WodIndexPanel';
+import { NotePreview } from './NotePreview';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
@@ -26,7 +26,7 @@ export interface TrackPanelProps {
   onNext: () => void;
 }
 
-export const TrackPanelIndex: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'execution'>> = ({
+export const SessionHistory: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'execution'>> = ({
   runtime,
   activeSegmentIds,
   activeStatementIds,
@@ -46,7 +46,7 @@ export const TrackPanelIndex: React.FC<Pick<TrackPanelProps, 'runtime' | 'active
   );
 };
 
-export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
+export const TimerScreen: React.FC<TrackPanelProps> = ({
   runtime,
   execution,
   selectedBlock,
@@ -139,7 +139,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
             <p className="text-sm text-muted-foreground">Choose a workout to start tracking</p>
           </div>
           <div className="max-h-[60vh] overflow-y-auto">
-            <WodIndexPanel
+            <NotePreview
               items={documentItems}
               activeBlockId={activeBlockId}
               onBlockClick={(item) => {
@@ -150,6 +150,7 @@ export const TrackPanelPrimary: React.FC<TrackPanelProps> = ({
                 }
               }}
               onBlockHover={onBlockHover}
+              title="Select a Workout"
             />
           </div>
         </div>

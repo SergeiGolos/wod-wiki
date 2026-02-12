@@ -2,18 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState, RoundState } from '../memory/MemoryTypes';
-
-/**
- * Calculates total elapsed time from timer spans.
- */
-function calculateElapsed(timer: TimerState, now: number): number {
-    let total = 0;
-    for (const span of timer.spans) {
-        const end = span.ended ?? now;
-        total += end - span.started;
-    }
-    return total;
-}
+import { calculateElapsed } from '../time/calculateElapsed';
 
 /**
  * HistoryRecordBehavior records block execution to workout history.

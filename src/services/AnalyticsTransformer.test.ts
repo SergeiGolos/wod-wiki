@@ -17,10 +17,14 @@ function createMockOutput(options: {
   hints?: string[];
 }): IOutputStatement {
   const now = Date.now();
+  const timeSpan = new TimeSpan(options.started ?? now, options.ended ?? now + 60000);
   return {
     id: options.id ?? 1,
     outputType: options.outputType ?? 'segment',
-    timeSpan: new TimeSpan(options.started ?? now, options.ended ?? now + 60000),
+    timeSpan,
+    spans: [],
+    elapsed: timeSpan.duration,
+    total: timeSpan.duration,
     sourceBlockKey: options.sourceBlockKey ?? 'block-1',
     stackLevel: options.stackLevel ?? 0,
     fragments: options.fragments ?? [],

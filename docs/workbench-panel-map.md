@@ -102,81 +102,21 @@ The `DesktopWorkbench` uses a responsive 3-column grid system (1/3 fractions) or
 
 
 ----
-_Decision_: How should 
-    
-    ```
-    ListFilter
-    ```
-    
-     notify the parent?
-    - **A) Callback Props**: 
-        
-        ```
-        onFilterChange={(f) => setFilter(f)}
-        ```
-        
-         (Simple, pure).
-    - **B) Context Slice**: 
-        
-        ```
-        useHistoryContext()
-        ```
-        
-         (Avoids prop drilling if intermediate containers exist).
-    - _Recommendation: A) Callback Props for atomic reusability._
-choice: A
+## Architecture Decisions (Confirmed)
 
----
+### 1. Panel Communication (ListFilter)
+- **Decision**: **Callback Props** (`onFilterChange={(f) => setFilter(f)}`).
+- **Reasoning**: Ensures atomic reusability and component purity.
 
-1. **Multiple Choice: Navigation Strategy**
-    
-    - **Option A (State-Based)**: 
-        
-        ```
-        activeView
-        ```
-        
-         string in Redux/Zustand. Fast, simple, but no deep linking.
-    - **Option B (Route-Based)**: 
-        
-        ```
-        /workbench/track
-        ```
-        
-        , 
-        
-        ```
-        /workbench/history
-        ```
-        
-        . Good for deep linking, harder to animate transitions.
-    - **Option C (Hybrid)**: "Modes" (Plan/Track) are state, "Route" (Project ID) is URL.
+### 2. Navigation Strategy
+- **Decision**: **Route-Based (HashRouter)**.
+- **Implementation**:
+  - Desktop/Electron continues using HashRouter to support deep linking and file-based environments.
+  - Routes: `/#/history`, `/#/note/:id/plan`, `/#/note/:id/track`.
 
-This depends on he workbench it is running in.. the desktop mode should keep following the format that it has today with useing hashroutes 
-      
----  
-    1. **Multiple Choice: Editor <-> Preview Sync**
-    - **Option A (Event Bus)**: 
-        
-        ```
-        EventEmitter
-        ```
-        
-         emits 
-        
-        ```
-        scroll-to-line
-        ```
-        
-        . Decoupled but harder to debug.
-    - **Option B (Shared Store)**: 
-        
-        ```
-        useWorkbenchStore(s => s.highlightedLine)
-        ```
-        
-        . Both components subscribe.
-    - **Option C (Ref Handler)**: Parent holds refs to both, calls methods directly. Tightly coupled.
-    - _Recommendation: B) Shared Store (already using Zustand)._
-      
-Event bus that is managed by the workbench panels subscribed when loaded, and unsubcribed when unlaode dto keep memorey clean.
+### 3. Editor <-> Preview Sync
+- **Decision**: **Event Bus**.
+- **Implementation**:
+  - Managed by workbench panels.
+  - Panels subscribe on mount and unsubscribe on unmount.
+  - Decouples the editor from the preview pane interactions.

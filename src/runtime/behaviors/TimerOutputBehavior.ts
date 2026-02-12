@@ -3,42 +3,24 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState } from '../memory/MemoryTypes';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { calculateElapsed, formatDuration } from '../time/calculateElapsed';
 
 /**
- * Calculates total elapsed time from timer spans.
- */
-function calculateElapsed(timer: TimerState, now: number): number {
-    let total = 0;
-    for (const span of timer.spans) {
-        const end = span.ended ?? now;
-        total += end - span.started;
-    }
-    return total;
-}
-
-/**
- * Formats milliseconds as mm:ss.
- */
-function formatDuration(ms: number): string {
-    const totalSeconds = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-/**
- * TimerOutputBehavior emits timer-specific completion output.
+ * TimerOutputBehavior writes timer-specific tracked fragments to memory.
  * 
  * ## Aspect: Output (Timer)
  * 
- * Only emits completion on unmount with elapsed time.
- * Mount-time segment output is NOT emitted here to avoid duplicates
- * with other output behaviors.
+ * On unmount, computes elapsed time from timer spans and writes a
+ * `FragmentType.Timer` duration fragment to `fragment:tracked` memory.
+ * 
+ * `SegmentOutputBehavior` reads `fragment:tracked` during its `onUnmount`
+ * and merges tracked fragments into the single `completion` output.
+ * This avoids duplicate completion outputs (S6) and ensures runtime-tracked
+ * fragments are consistently included in leaf completions (S5).
  */
 export class TimerOutputBehavior implements IRuntimeBehavior {
     onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
         // Intentionally empty - segment output is handled by SegmentOutputBehavior
-        // or the first behavior to emit. We only add timer data on completion.
         return [];
     }
 
@@ -52,12 +34,7 @@ export class TimerOutputBehavior implements IRuntimeBehavior {
 
         const elapsed = timer ? calculateElapsed(timer, now) : 0;
 
-        // Start with the block's display fragments (label, effort, reps, etc.)
-        // so the output carries meaningful content for the history panel.
-        const displayLocs = ctx.block.getMemoryByTag('fragment:display');
-        const sourceFragments: ICodeFragment[] = displayLocs.flatMap(loc => loc.fragments);
-
-        // Append the runtime duration fragment
+        // Create the runtime duration fragment
         const durationFragment: ICodeFragment = {
             type: 'duration',
             fragmentType: FragmentType.Timer,
@@ -66,11 +43,9 @@ export class TimerOutputBehavior implements IRuntimeBehavior {
             origin: 'runtime'
         } as ICodeFragment;
 
-        const fragments = [...sourceFragments, durationFragment];
-
-        ctx.emitOutput('completion', fragments, {
-            label: `${timer?.label ?? ctx.block.label} - ${formatDuration(elapsed)}`
-        });
+        // Write to fragment:tracked memory so SegmentOutputBehavior can
+        // merge it into the single completion output (S5/S6 fix).
+        ctx.pushMemory('fragment:tracked', [durationFragment]);
 
         return [];
     }

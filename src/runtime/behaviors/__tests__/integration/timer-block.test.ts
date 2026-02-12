@@ -26,7 +26,7 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
-import { TimerOutputBehavior } from '../../TimerOutputBehavior';
+import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { PopOnNextBehavior } from '../../PopOnNextBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
@@ -48,7 +48,7 @@ describe('Timer Block Integration', () => {
             new TimerTickBehavior(),
             new TimerCompletionBehavior(),
             new DisplayInitBehavior({ mode: 'countdown', label: 'Countdown' }),
-            new TimerOutputBehavior()
+            new SegmentOutputBehavior({ label: 'Countdown' })
         ];
 
         it('should initialize timer state on mount', () => {
@@ -135,7 +135,7 @@ describe('Timer Block Integration', () => {
             new TimerTickBehavior(),
             new PopOnNextBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'For Time' }),
-            new TimerOutputBehavior()
+            new SegmentOutputBehavior({ label: 'For Time' })
         ];
 
         it('should track elapsed time without auto-expiring', () => {

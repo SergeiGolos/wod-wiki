@@ -98,20 +98,26 @@ export class BehaviorContext implements IBehaviorContext {
     ): void {
         const now = this.clock.now;
 
-        // Derive TimeSpan from block's timer memory for accurate duration tracking.
-        // Without this, outputs always have 0 duration which breaks the history
-        // and analytics panels.
+        // Extract raw spans from the block's timer memory.
+        // These spans represent continuous periods of active (unpaused) execution.
+        // A "timestamp" is a degenerate span where started === ended (zero duration).
+        //
+        // Time semantics derived from spans:
+        //   elapsed = sum of all span durations (pause-aware active time)
+        //   total   = start of first span to end of last span (wall-clock bracket)
         const timerLocations = this.block.getMemoryByTag('timer');
         let startTime = now.getTime();
         const endTime = now.getTime();
+        let timerSpans: TimeSpan[] = [];
 
         if (timerLocations.length > 0) {
             const timerFragments = timerLocations[0].fragments;
             if (timerFragments.length > 0) {
                 const timerValue = timerFragments[0].value as { spans?: TimeSpan[] } | undefined;
                 if (timerValue?.spans && timerValue.spans.length > 0) {
+                    timerSpans = [...timerValue.spans];
                     // Use the earliest span start as the output start time
-                    startTime = timerValue.spans[0].started;
+                    startTime = timerSpans[0].started;
                 }
             }
         }
@@ -134,10 +140,12 @@ export class BehaviorContext implements IBehaviorContext {
             timestamp: f.timestamp ?? now
         }));
 
-        // Create the output statement
+        // Create the output statement with both the wall-clock timeSpan
+        // and the raw spans for pause-aware elapsed/total computation.
         const output = new OutputStatement({
             outputType: type,
             timeSpan: new TimeSpan(startTime, endTime),
+            spans: timerSpans.length > 0 ? timerSpans : undefined,
             sourceBlockKey: this.block.key.toString(),
             sourceStatementId: this.block.sourceIds?.[0],
             stackLevel: this.stackLevel,

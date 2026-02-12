@@ -12,7 +12,6 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     DisplayInitBehavior,
     RoundDisplayBehavior,
-    TimerOutputBehavior,
     RoundOutputBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
@@ -104,7 +103,6 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new RoundDisplayBehavior());
 
         // Output Aspect
-        builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new RoundOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());

@@ -184,7 +184,8 @@ describe('AMRAP Pattern Integration', () => {
             const roundMilestones = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.fragmentType === 'rounds')
             );
-            expect(roundMilestones.length).toBe(2);
+            // 1 initial milestone on mount + 2 from onNext advances
+            expect(roundMilestones.length).toBe(3);
         });
 
         it('should record final round count in history', () => {

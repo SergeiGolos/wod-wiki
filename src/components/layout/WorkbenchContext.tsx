@@ -163,7 +163,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // Derive viewMode from route
   const viewMode = useMemo(() => {
     // Priority 1: Direct route parameters
-    if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze') {
+    if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze' || routeView === 'history') {
       return routeView as ViewMode;
     }
 

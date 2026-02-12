@@ -8,19 +8,19 @@
 
 ## Summary
 
-| #   | Shortfall                                                                                          | Severity | Category               |
-| --- | -------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
-| S1  | ~~Leaf blocks emit no output on `next` (self-pop path)~~ ✅ RESOLVED                              | Medium   | Leaf output timing     |
-| S2  | No distinction between self-pop and parent-pop in output content                                   | Medium   | Output metadata        |
-| S3  | Container entry output lacks state identity                                                        | Low      | Container output       |
-| S4  | `RoundOutputBehavior` does not emit milestone on mount (initial round)                             | Medium   | Container state change |
-| S5  | Runtime-tracked fragments not consistently included in leaf completions                            | High     | Fragment flow          |
-| S6  | Duplicate completion outputs on blocks with both `SegmentOutputBehavior` and `TimerOutputBehavior` | Medium   | Output deduplication   |
-| S7  | No explicit leaf/container classification on `IRuntimeBlock`                                       | Low      | Architecture           |
-| S8  | Container `next` milestone only covers round state, not timer state                                | Low      | Container state change |
-| S9  | Non-timer leaf blocks have no elapsed time in outputs                                              | High     | Time tracking          |
-| S10 | `calculateElapsed()` duplicated across three behaviors                                             | Medium   | Time tracking          |
-| S11 | `timeSpan` conflates wall-clock interval with pause-aware elapsed                                  | Medium   | Time tracking          |
+| #   | Shortfall                                                                                                         | Severity | Category               |
+| --- | ----------------------------------------------------------------------------------------------------------------- | -------- | ---------------------- |
+| S1  | ~~Leaf blocks emit no output on `next` (self-pop path)~~ ✅ RESOLVED                                               | Medium   | Leaf output timing     |
+| S2  | ~~No distinction between self-pop and parent-pop in output content~~ ✅ RESOLVED                                   | Medium   | Output metadata        |
+| S3  | ~~Container entry output lacks state identity~~ ✅ RESOLVED                                                        | Low      | Container output       |
+| S4  | ~~`RoundOutputBehavior` does not emit milestone on mount (initial round)~~ ✅ RESOLVED                             | Medium   | Container state change |
+| S5  | ~~Runtime-tracked fragments not consistently included in leaf completions~~ ✅ RESOLVED                            | High     | Fragment flow          |
+| S6  | ~~Duplicate completion outputs on blocks with both `SegmentOutputBehavior` and `TimerOutputBehavior`~~ ✅ RESOLVED | Medium   | Output deduplication   |
+| S7  | No explicit leaf/container classification on `IRuntimeBlock`                                                      | Low      | Architecture           |
+| S8  | Container `next` milestone only covers round state, not timer state                                               | Low      | Container state change |
+| S9  | ~~Non-timer leaf blocks have no elapsed time in outputs~~ ✅ RESOLVED                                              | High     | Time tracking          |
+| S10 | ~~`calculateElapsed()` duplicated across three behaviors~~ ✅ RESOLVED                                             | Medium   | Time tracking          |
+| S11 | ~~`timeSpan` conflates wall-clock interval with pause-aware elapsed~~ ✅ RESOLVED                                | Medium   | Time tracking          |
 
 ---
 
@@ -64,89 +64,161 @@ Two options:
 
 ---
 
-## S2: No distinction between self-pop and parent-pop in output content
+## S2: No distinction between self-pop and parent-pop in output content — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Resolved as part of the **S1 implementation**. The `completionReason` field was added across the entire output pipeline, enabling downstream consumers to distinguish self-pop (`'user-advance'`) from parent-pop (`'forced-pop'`) and other completion scenarios.
+
+**Changes (same as S1):**
+1. **`IRuntimeBlock`** — `readonly completionReason?: string` exposes the block's completion reason.
+2. **`OutputOptions`** — `completionReason?: string` allows behaviors to pass the reason through `emitOutput`.
+3. **`IOutputStatement` / `OutputStatement`** — `completionReason?: string` field carries the reason on the output model.
+4. **`BehaviorContext.emitOutput`** — Forwards `_options?.completionReason` into the `OutputStatement` constructor.
+5. **`SegmentOutputBehavior.onUnmount`** — Reads `ctx.block.completionReason` and passes it as `completionReason` in the output options.
+
+**Test coverage** in `SegmentOutputBehavior.test.ts`:
+- `'user-advance'` completionReason propagated on self-pop unmount
+- `'forced-pop'` completionReason propagated on parent-pop unmount
+- `undefined` completionReason when block has no reason
+
+Additional integration tests validate end-to-end in `amrap-pattern.test.ts`, `for-time-single.test.ts`, `timer-block.test.ts`, and `clear-children.test.ts`.
+
+### Original Analysis
+
+#### Expected (Generic Model)
 > Leaf blocks should generate output on `next` when they self-pop, OR on pop if `next` was not called (parent-forced pop). These are distinct scenarios that should be identifiable in the output stream.
 
-### Current Behavior
-Both self-pop and parent-pop produce identical `completion` outputs via `SegmentOutputBehavior.onUnmount()`. The `OutputStatement` has no field to distinguish:
+#### Previous Behavior
+Both self-pop and parent-pop produced identical `completion` outputs via `SegmentOutputBehavior.onUnmount()`. The `OutputStatement` had no field to distinguish:
 - **Self-pop**: User clicked next → `PopOnNextBehavior` → `markComplete('user-advance')` → `PopBlockAction` → unmount
 - **Parent-pop**: Timer expired → `ClearChildrenAction` → `PopBlockAction` → `markComplete('forced-pop')` → unmount
 
-While `PopBlockAction` correctly sets `completionReason` on the block (`'user-advance'` vs `'forced-pop'`), this metadata is **not propagated** to the `OutputStatement`.
+While `PopBlockAction` correctly set `completionReason` on the block (`'user-advance'` vs `'forced-pop'`), this metadata was **not propagated** to the `OutputStatement`.
 
-### Impact
-- Downstream consumers (history panel, analytics) cannot distinguish between completed work (user finished) and interrupted work (timer forced stop).
-- The output stream treats both scenarios identically, losing important semantic information.
-
-### Affected Files
-- [src/core/models/OutputStatement.ts](../../src/core/models/OutputStatement.ts) — no `completionReason` field
-- [src/runtime/behaviors/SegmentOutputBehavior.ts](../../src/runtime/behaviors/SegmentOutputBehavior.ts) — `onUnmount` doesn't read completion context
-- [src/runtime/actions/stack/PopBlockAction.ts](../../src/runtime/actions/stack/PopBlockAction.ts) — sets reason on block but not on output
-
-### Recommended Remediation
-1. Add `completionReason?: string` to `IOutputStatement` interface
-2. Pass completion reason through `IBehaviorContext` or `BlockLifecycleOptions` to `onUnmount`
-3. `SegmentOutputBehavior.onUnmount` reads the reason and includes it in the emitted output metadata
+#### Affected Files
+- [src/core/models/OutputStatement.ts](../../src/core/models/OutputStatement.ts) — now has `completionReason` field
+- [src/runtime/behaviors/SegmentOutputBehavior.ts](../../src/runtime/behaviors/SegmentOutputBehavior.ts) — `onUnmount` now reads completion context
+- [src/runtime/actions/stack/PopBlockAction.ts](../../src/runtime/actions/stack/PopBlockAction.ts) — sets reason on block, now flows to output
 
 ---
 
-## S3: Container entry output lacks state identity
+## S3: Container entry output lacks state identity — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Implemented **Option 2** — extended `SegmentOutputBehavior.onMount` to also read from `'round'` and `'timer'` memory tags and merge those runtime state fragments alongside the parser display fragments.
+
+**Changes:**
+1. **`SegmentOutputBehavior`** — Added `getRuntimeStateFragments()` method that reads `'round'` and `'timer'` memory tags from the block.
+2. **`SegmentOutputBehavior.onMount`** — Now calls `getRuntimeStateFragments()` and merges the results with `fragment:display` fragments, deduplicating by `fragmentType:type` key to avoid repeats when the same fragment already exists in display memory.
+3. **`onUnmount` unchanged** — Completion output still uses only `fragment:display`, keeping the completion output focused on prescribed fragments (runtime state at completion is captured by other means like `completionReason`).
+
+**Key design decisions:**
+- Deduplication uses `fragmentType:type` composite key — if a `Timer:timer` fragment already exists in `fragment:display` (from the parser), the runtime's `Timer:timer` fragment is skipped.
+- `RoundInitBehavior` and `TimerInitBehavior` both run before `SegmentOutputBehavior` in the behavior chain (registered earlier in strategies), so their memory is available when `onMount` reads it.
+
+**Test coverage** in `SegmentOutputBehavior.test.ts` (6 new tests):
+- Round fragments included in segment output on mount
+- Timer fragments included in segment output on mount
+- Display + round + timer fragments merged correctly on mount
+- Deduplication when display already has a timer fragment
+- Completion output does not include runtime state fragments
+
+### Original Analysis
+
+#### Expected (Generic Model)
 > Container blocks should create an output on entry identifying their state — timer duration, round count (current/total), label.
 
-### Current Behavior
-Container blocks with `SegmentOutputBehavior` emit a `segment` on mount containing `fragment:display` memory. However:
-- **Round state** (`round.current`, `round.total`) is initialized by `RoundInitBehavior.onMount()` but is **not included** in the `SegmentOutputBehavior.onMount()` output as fragments.
-- **Timer state** (duration, direction) is initialized by `TimerInitBehavior.onMount()` but is **not included** in the segment output as a fragment.
-- The `fragment:display` memory only contains parser-level fragments (label, exercise info), not the runtime state that identifies the container's configuration.
+#### Previous Behavior
+Container blocks with `SegmentOutputBehavior` emitted a `segment` on mount containing only `fragment:display` memory. Round and timer state were initialized by their respective behaviors but not included in the segment output.
 
-### Impact
-- The entry `segment` for a container like "3 Rounds of..." doesn't explicitly carry the `round={current:1, total:3}` information in its fragments.
-- The planning docs show entries like `segment` with `rounds: 1/3` or `timer: 20:00 countdown`, but these fragments are not actually present in the emitted output.
-
-### Affected Files
-- [src/runtime/behaviors/SegmentOutputBehavior.ts](../../src/runtime/behaviors/SegmentOutputBehavior.ts) — only reads `fragment:display`
-- [src/runtime/behaviors/RoundInitBehavior.ts](../../src/runtime/behaviors/RoundInitBehavior.ts) — initializes round state but doesn't add to display fragments
-
-### Recommended Remediation
-Container entry output should merge runtime state fragments (round, timer) alongside parser display fragments. Options:
-1. `RoundInitBehavior.onMount` could write a `Rounds` fragment to `fragment:display` memory
-2. `SegmentOutputBehavior.onMount` could be extended to also read from `round` and `timer` memory tags and synthesize fragments
-3. A new `ContainerOutputBehavior` could handle this concern specifically for container blocks
+#### Affected Files
+- [src/runtime/behaviors/SegmentOutputBehavior.ts](../../src/runtime/behaviors/SegmentOutputBehavior.ts) — now reads `'round'` and `'timer'` memory tags on mount
+- [src/runtime/behaviors/RoundInitBehavior.ts](../../src/runtime/behaviors/RoundInitBehavior.ts) — unchanged (state already written to `'round'` memory)
 
 ---
 
-## S4: `RoundOutputBehavior` does not emit milestone on mount (initial round)
+## S4: `RoundOutputBehavior` does not emit milestone on mount (initial round) — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Implemented **Option 1** — `RoundOutputBehavior.onMount()` now emits a `milestone` with the initial round state (e.g., "Round 1 of 3"), matching the planning docs.
+
+**Changes:**
+1. **`RoundOutputBehavior.onMount`** — Now reads `'round'` memory and emits a `milestone` output with a `FragmentType.Rounds` fragment, using the same pattern as `onNext`. This ensures the output stream has a milestone for the initial round, not just for subsequent round advances.
+
+**Test coverage** in `RoundOutputBehavior.test.ts` (9 tests):
+- Initial milestone emitted on mount with bounded rounds (e.g., "Round 1 of 3")
+- Initial milestone emitted on mount with unbounded rounds (e.g., "Round 1")
+- No milestone emitted when no round state exists
+- Returns empty actions array on mount
+- Round advance milestones still emitted on `onNext`
+- No output on unmount (unchanged)
+- Lifecycle pairing: mount milestone followed by next milestone with no gap
+
+Integration tests updated in `amrap-pattern.test.ts`, `emom-pattern.test.ts`, and `performance.test.ts` to account for the additional initial milestone.
+
+### Original Analysis
+
+#### Expected (Generic Model)
 > Container blocks should create an output on entry identifying their state.
 
 The planning docs (e.g., [fixed-round-loop.md](./fixed-round-loop.md)) show the Loop block emitting `milestone` with `rounds: 1/3` on mount (step 6). This is the container announcing its initial round state.
 
-### Current Behavior
-`RoundOutputBehavior.onMount()` is intentionally empty ("segment output is handled elsewhere"). The initial round state is never emitted as a `milestone`. The first `milestone` only appears when `round.current` advances from 1→2 on the first `onNext` after all children complete.
+#### Previous Behavior
+`RoundOutputBehavior.onMount()` was intentionally empty ("segment output is handled elsewhere"). The initial round state was never emitted as a `milestone`. The first `milestone` only appeared when `round.current` advanced from 1→2 on the first `onNext` after all children completed.
 
-### Impact
-- The output stream has no `milestone` showing the initial round state (e.g., "Round 1 of 3").
-- The planning doc tables show this output but it's not generated by the code.
-- The initial round can be inferred from the container's `segment` entry, but only if S3 is also resolved.
-
-### Affected Files
-- [src/runtime/behaviors/RoundOutputBehavior.ts](../../src/runtime/behaviors/RoundOutputBehavior.ts) — `onMount` returns `[]`
-
-### Recommended Remediation
-Either:
-1. `RoundOutputBehavior.onMount()` emits a `milestone` with `Round 1 of N` — matches planning docs
-2. S3 is resolved so the container's `segment` entry carries the initial round state — eliminates need for a separate milestone
+#### Affected Files
+- [src/runtime/behaviors/RoundOutputBehavior.ts](../../src/runtime/behaviors/RoundOutputBehavior.ts) — `onMount` now emits initial round milestone
 
 ---
 
-## S5: Runtime-tracked fragments not consistently included in leaf completions
+## S5: Runtime-tracked fragments not consistently included in leaf completions — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Consolidated all completion output into `SegmentOutputBehavior.onUnmount`. It now merges three fragment sources into a single rich completion output:
+
+1. **`fragment:display`** — parser-prescribed fragments (existing)
+2. **`fragment:tracked`** — runtime-tracked fragments written by other behaviors (existing)
+3. **Elapsed duration** — computed directly by `SegmentOutputBehavior` (new)
+
+**Elapsed computation strategy:**
+- If `timer` memory exists → pause-aware elapsed from timer spans via `calculateElapsed()`
+- Else if `executionTiming.startTime` exists → wall-clock elapsed (`completedAt - startTime`)
+- Else → no elapsed (gracefully skipped)
+
+`TimerOutputBehavior` is no longer registered in any strategy. Its elapsed computation is now inlined in `SegmentOutputBehavior.getElapsedFragment()`. The file remains for backward compatibility but is deprecated.
+
+**This also resolves S6, S9, and S10:**
+- **S6**: No duplicate completions — `TimerOutputBehavior` no longer emits its own completion
+- **S9**: Non-timer blocks now get elapsed from `executionTiming` fallback
+- **S10**: `calculateElapsed()` extracted to shared utility `src/runtime/time/calculateElapsed.ts`
+
+**Changes:**
+1. **`SegmentOutputBehavior`** — Added `getElapsedFragment()` method with timer-span-first / executionTiming-fallback strategy. `onUnmount` merges display + tracked + elapsed with deduplication.
+2. **`src/runtime/time/calculateElapsed.ts`** — New shared utility with `calculateElapsed()` and `formatDuration()`.
+3. **`TimerOutputBehavior`** — Now only writes to `fragment:tracked` memory (no output emission). Deprecated — `SegmentOutputBehavior` computes elapsed directly.
+4. **`TimerCompletionBehavior`** — Uses shared `calculateElapsed` from `src/runtime/time/calculateElapsed.ts`.
+5. **`HistoryRecordBehavior`** — Uses shared `calculateElapsed` from `src/runtime/time/calculateElapsed.ts`.
+6. **Strategies** — `TimerOutputBehavior` removed from `GenericTimerStrategy`, `EffortFallbackStrategy`, `AmrapLogicStrategy`, `IntervalLogicStrategy`.
+7. **`behaviors/index.ts`** — `TimerOutputBehavior` export removed (deprecated comment added).
+
+**Test coverage** in `SegmentOutputBehavior.test.ts` (7 new tests):
+- Elapsed from timer spans included in completion
+- Pause-aware elapsed from multiple spans
+- Wall-clock elapsed for non-timer blocks via `executionTiming`
+- Fallback to `clock.now` when `completedAt` not set
+- No duplication when tracked fragment already has duration
+- No elapsed when no timer and no executionTiming
+- Timer spans preferred over executionTiming when both exist
+
+Integration tests updated: `timer-block.test.ts`, `performance.test.ts`.
+
+### Original Analysis
+
+#### Expected (Generic Model)
 > Leaf blocks contain display fragments that are designated and maintain certain memory fragments that should also be logged to the output. Completion outputs should include both prescribed fragments (parser) and tracked fragments (runtime memory — elapsed time, actual reps, etc.).
 
 ### Time Types Affected
@@ -179,9 +251,15 @@ Fragment inclusion in completion outputs is inconsistent:
 
 ---
 
-## S6: Duplicate completion outputs on blocks with both `SegmentOutputBehavior` and `TimerOutputBehavior`
+## S6: Duplicate completion outputs on blocks with both `SegmentOutputBehavior` and `TimerOutputBehavior` — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Resolved as part of the **S5 consolidation**. `TimerOutputBehavior` is no longer registered in any strategy, so blocks only have `SegmentOutputBehavior` emitting a single `completion` output on unmount. The elapsed duration that `TimerOutputBehavior` used to compute is now computed directly by `SegmentOutputBehavior.getElapsedFragment()`.
+
+### Original Analysis
+
+#### Expected (Generic Model)
 > Each block should emit exactly one `completion` output on exit.
 
 ### Current Behavior
@@ -271,23 +349,29 @@ Focus on timer-reset milestones for EMOM/interval patterns as the highest-value 
 
 | Shortfall | Impact | Effort | Priority |
 |-----------|--------|--------|----------|
-| **S5** Runtime fragments missing from completions | High — output data fidelity | Medium | 🔴 P1 |
-| **S6** Duplicate completion outputs | Medium — consumer confusion | Low | 🔴 P1 |
-| **S9** Non-timer leaves missing elapsed | High — silent time loss | Low | 🔴 P1 |
-| **S2** No self-pop vs parent-pop distinction | Medium — lost semantics | Low | 🟡 P2 |
-| ~~**S1**~~ | ~~No output on `next` for self-pop~~ | ~~Medium~~ | ~~Medium~~ | ✅ Resolved |
-| **S4** No initial round milestone | Medium — doc mismatch | Low | 🟡 P2 |
-| **S10** calculateElapsed duplicated 3x | Medium — maintenance risk | Low | 🟡 P2 |
+| ~~**S5**~~ | ~~Runtime fragments missing from completions~~ | ~~Medium~~ | ✅ Resolved |
+| ~~**S6**~~ | ~~Duplicate completion outputs~~ | ~~Low~~ | ✅ Resolved |
+| ~~**S9**~~ | ~~Non-timer leaves missing elapsed~~ | ~~Low~~ | ✅ Resolved |
+| ~~**S2**~~ | ~~No self-pop vs parent-pop distinction~~ | ~~Medium~~ | ✅ Resolved |
+| ~~**S1**~~ | ~~No output on `next` for self-pop~~ | ~~Medium~~ | ✅ Resolved |
+| ~~**S4**~~ | ~~No initial round milestone~~ | ~~Low~~ | ✅ Resolved |
+| ~~**S10**~~ | ~~calculateElapsed duplicated 3x~~ | ~~Low~~ | ✅ Resolved |
 | **S11** timeSpan conflates wall-clock and elapsed | Medium — semantic ambiguity | Medium | 🟡 P2 |
-| **S3** Container entry lacks state identity | Low — inferrable from context | Medium | 🟢 P3 |
+| ~~**S3**~~ | ~~Container entry lacks state identity~~ | ~~Low~~ | ✅ Resolved |
 | **S8** Only round state in container milestones | Low — most changes covered by children | Medium | 🟢 P3 |
 | **S7** No explicit leaf/container flag | Low — architectural quality | Low | 🟢 P3 |
 
 ---
 
-## S9: Non-timer leaf blocks have no elapsed time in outputs
+## S9: Non-timer leaf blocks have no elapsed time in outputs — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Resolved as part of the **S5 consolidation**. `SegmentOutputBehavior.getElapsedFragment()` now computes wall-clock elapsed from `executionTiming` (`completedAt - startTime`) when no timer state exists. All leaf blocks — with or without timers — now include an elapsed duration fragment in their completion output.
+
+### Original Analysis
+
+#### Expected (Generic Model)
 > All leaf blocks should track time spent on them. Even a simple effort block ("10 Pushups" with no timer) has a duration — the time from when the athlete started that exercise to when they advanced. This elapsed time should appear in the completion output.
 
 ### Time Types Affected
@@ -322,9 +406,18 @@ The time data exists (timestamps are recorded) but is never transformed into an 
 
 ---
 
-## S10: `calculateElapsed()` duplicated across three behaviors
+## S10: `calculateElapsed()` duplicated across three behaviors — ✅ RESOLVED
 
-### Expected
+### Resolution
+
+Resolved as part of the **S5 consolidation**. `calculateElapsed()` and `formatDuration()` extracted to a shared utility at `src/runtime/time/calculateElapsed.ts`. All three previous consumers now import from this single location:
+- `TimerCompletionBehavior` — checks if timer has expired
+- `HistoryRecordBehavior` — computes elapsed for history event
+- `SegmentOutputBehavior` — computes elapsed for completion fragment
+
+### Original Analysis
+
+#### Expected
 > The function that computes elapsed time from spans should be defined once and reused.
 
 ### Current Behavior
@@ -362,9 +455,42 @@ function calculateElapsed(timer: TimerState, now: number): number {
 
 ---
 
-## S11: `timeSpan` conflates wall-clock interval with pause-aware elapsed
+## S11: `timeSpan` conflates wall-clock interval with pause-aware elapsed — ✅ RESOLVED
 
-### Expected (Generic Model)
+### Resolution
+
+Implemented **Options 1+2** — added raw `spans` array and computed `elapsed`/`total` properties to `OutputStatement`, making the distinction between pause-aware active time and wall-clock interval explicit.
+
+**Time Semantics:**
+- A **timestamp** is a degenerate `TimeSpan` where `started === ended` (zero duration — a point-in-time marker)
+- Multiple spans on a timer fragment represent active (unpaused) execution periods
+- **`elapsed`** = sum of all individual span durations (pause-aware active time)
+- **`total`** = from start of first span to end of last span (wall-clock bracket, includes paused time)
+- When no spans are available, both `elapsed` and `total` fall back to `timeSpan.duration`
+
+**Changes:**
+1. **`IOutputStatement`** — Added `spans: ReadonlyArray<TimeSpan>`, `elapsed: number`, `total: number` to the interface.
+2. **`OutputStatementOptions`** — Added optional `spans?: TimeSpan[]` so behaviors can pass raw span data through `emitOutput`.
+3. **`OutputStatement`** — Stores defensive copy of spans; computed `elapsed` (sum of span durations) and `total` (first start to last end) getters with `timeSpan.duration` fallback.
+4. **`BehaviorContext.emitOutput()`** — Extracts spans from the block's timer memory and passes them to the `OutputStatement` constructor alongside the existing `timeSpan`.
+5. **`AnalyticsTransformer`** — Uses `output.elapsed` (pause-aware) instead of `output.timeSpan.duration` (wall-clock).
+6. **`RuntimeHistoryLog`** — Uses `output.elapsed` for duration display.
+7. **`ResultsTable`** — Uses `output.elapsed` for duration display.
+8. **`AnalyticsTransformer.test.ts`** — Mock outputs updated with `spans`, `elapsed`, `total` properties.
+
+**Test coverage** in `OutputStatementFragmentSource.test.ts` (10 new tests):
+- Default empty spans array
+- Spans stored and accessible
+- Elapsed computed as sum of span durations (pause-aware)
+- Total computed as wall-clock bracket (first start to last end)
+- Fallback to `timeSpan.duration` when no spans
+- Timestamp (start === end) as zero-duration span
+- Multiple timestamps with zero elapsed but nonzero total
+- Single continuous span (elapsed === total)
+- Mixed timestamps and spans
+- Defensive copy (readonly spans array)
+
+### Original Analysis
 > The time data in outputs should clearly represent what it measures. Wall-clock interval (start to end including pauses) and pause-aware elapsed (actual running time) are different values that serve different purposes.
 
 ### Time Types Affected

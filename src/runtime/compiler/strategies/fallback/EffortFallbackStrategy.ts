@@ -10,7 +10,6 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { PopOnNextBehavior } from "../../../behaviors/PopOnNextBehavior";
 import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
 import { TimerInitBehavior } from "../../../behaviors/TimerInitBehavior";
-import { TimerOutputBehavior } from "../../../behaviors/TimerOutputBehavior";
 
 /**
  * Helper to extract optional content from code statement.
@@ -105,7 +104,6 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new PopOnNextBehavior());
 
         // Output Aspect: emit elapsed time and segment/completion outputs
-        builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }

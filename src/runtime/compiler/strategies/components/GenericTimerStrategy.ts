@@ -12,7 +12,6 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     TimerInitBehavior,
     DisplayInitBehavior,
-    TimerOutputBehavior,
     PopOnNextBehavior,
     SoundCueBehavior,
     SegmentOutputBehavior
@@ -127,7 +126,6 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         // Output Aspect
         // =====================================================================
-        builder.addBehavior(new TimerOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
     }
 }

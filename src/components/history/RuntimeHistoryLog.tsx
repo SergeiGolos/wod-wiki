@@ -72,7 +72,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
         depth: output.stackLevel,
         isHeader,
         status,
-        duration: output.timeSpan.duration,
+        duration: output.elapsed,
         startTime: output.timeSpan.started,
         endTime: output.timeSpan.ended,
         label: fragments.map(f => f.image || '').join(' ').trim() || undefined,

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Edit, Timer, BarChart2, Calendar, BarChart3 } from 'lucide-react';
-import type { ViewDescriptor, PanelSpan } from './types';
+import type { ViewDescriptor, PanelSpan, PanelDescriptor } from './types';
 import type { StripMode } from '@/types/history';
 
 /**
@@ -129,23 +129,43 @@ export function getAllViews(
  * The History panel always uses span 3 (full width).
  */
 export function createHistoryView(
-  historyBrowserPanel: React.ReactNode,
-  _stripMode: StripMode = 'history-only',
+  filterPanel: React.ReactNode,
+  listPanel: React.ReactNode,
+  previewPanel?: React.ReactNode, // Optional: Only shown if selected
 ): ViewDescriptor {
-  const span: PanelSpan = 3;
+  const panels: PanelDescriptor[] = [
+    {
+      id: 'history-filter',
+      title: 'Filter',
+      icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
+      defaultSpan: 1,
+      content: filterPanel,
+    },
+    {
+      id: 'history-list',
+      title: 'Workouts',
+      icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
+      defaultSpan: (previewPanel ? 1 : 2) as PanelSpan,
+      content: listPanel,
+    }
+  ];
+
+  if (previewPanel) {
+    panels.push({
+      id: 'history-preview',
+      title: 'Preview',
+      icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
+      defaultSpan: 1,
+      content: previewPanel,
+      hideOnMobile: true,
+    });
+  }
+
   return {
     id: 'history',
     label: 'History',
     icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
-    panels: [
-      {
-        id: 'history-browser',
-        title: 'History',
-        icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
-        defaultSpan: span,
-        content: historyBrowserPanel,
-      },
-    ],
+    panels,
   };
 }
 

@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { MarkdownEditorBase, MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { WodBlock } from '../../markdown-editor/types';
 import { editor as monacoEditor } from 'monaco-editor';
+import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 
 export interface PlanPanelProps extends MarkdownEditorProps {
   onEditorMount: (editor: monacoEditor.IStandaloneCodeEditor) => void;
@@ -26,20 +27,39 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   monacoTheme,
   ...editorProps
 }) => {
-  console.log('[PlanPanel] Render. Props Value Length:', (editorProps as any).value?.length ?? 'undefined');
-  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
+
+  // Subscribe to Scroll Events
+  useEffect(() => {
+    const cleanup = workbenchEventBus.onScrollToBlock(() => {
+      // Future: Trigger scroll locally via editorRef
+    });
+    return () => { cleanup(); };
+  }, []);
+
+  const handleEditorMountLocal = (editor: monacoEditor.IStandaloneCodeEditor) => {
+    editorRef.current = editor;
+    onEditorMount(editor);
+  };
+
+  const handleActiveBlockChange = (block: WodBlock | null) => {
+    setActiveBlockId(block?.id || null);
+    if (block) {
+      workbenchEventBus.emitHighlightBlock(block.id, 'editor');
+    }
+  };
 
   return (
-    <div ref={editorContainerRef} className="h-full w-full">
+    <div className="h-full w-full">
       <MarkdownEditorBase
         initialContent={initialContent}
         showContextOverlay={false}
-        onActiveBlockChange={(block) => setActiveBlockId(block?.id || null)}
+        onActiveBlockChange={handleActiveBlockChange}
         onBlocksChange={setBlocks}
         onContentChange={setContent}
         onCursorPositionChange={setCursorLine}
         highlightedLine={highlightedLine}
-        onMount={onEditorMount}
+        onMount={handleEditorMountLocal}
         onStartWorkout={onStartWorkout}
         height="100%"
         {...editorProps}

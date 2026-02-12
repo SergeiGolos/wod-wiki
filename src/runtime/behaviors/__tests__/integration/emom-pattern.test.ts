@@ -159,7 +159,8 @@ describe('EMOM Pattern Integration', () => {
             advanceBehaviors(behaviors, ctx);
 
             const milestones = findOutputs(runtime, 'milestone');
-            expect(milestones.length).toBe(2);
+            // 1 initial milestone on mount + 2 from onNext advances
+            expect(milestones.length).toBe(3);
         });
 
         it('should update round memory on advance (no event emission)', () => {

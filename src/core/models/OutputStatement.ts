@@ -51,6 +51,38 @@ export interface IOutputStatement extends ICodeStatement {
     /** Execution timing — when this output occurred */
     readonly timeSpan: TimeSpan;
 
+    /**
+     * Raw time spans from the block's timer memory.
+     * 
+     * Each span represents a continuous period of active (unpaused) execution.
+     * A "timestamp" is a degenerate span where `started === ended` (zero duration).
+     * 
+     * Time semantics derived from spans:
+     * - **elapsed** = sum of all span durations (pause-aware active time)
+     * - **total** = from start of first span to end of last span (wall-clock bracket)
+     * 
+     * Empty array when no timer spans are available (e.g., non-timer leaf blocks
+     * that only have wall-clock timestamps via `timeSpan`).
+     */
+    readonly spans: ReadonlyArray<TimeSpan>;
+
+    /**
+     * Pause-aware elapsed time in milliseconds.
+     * 
+     * Computed as the sum of all individual span durations. This excludes
+     * any paused time between spans. Falls back to `timeSpan.duration`
+     * when no spans are available.
+     */
+    readonly elapsed: number;
+
+    /**
+     * Total wall-clock time in milliseconds from start of first span
+     * to end of last span. Includes paused time between spans.
+     * 
+     * Falls back to `timeSpan.duration` when no spans are available.
+     */
+    readonly total: number;
+
     /** The source statement ID that triggered this output (if any) */
     readonly sourceStatementId?: number;
 
@@ -95,6 +127,14 @@ export interface OutputStatementOptions {
     /** Execution timing */
     timeSpan: TimeSpan;
 
+    /**
+     * Raw time spans from the block's timer memory.
+     * Each span represents a continuous period of active execution.
+     * A timestamp (start === end) has zero duration.
+     * When provided, `elapsed` and `total` are computed from these spans.
+     */
+    spans?: TimeSpan[];
+
     /** The block key that produced this output */
     sourceBlockKey: string;
 
@@ -130,6 +170,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly id: number;
     readonly outputType: OutputStatementType;
     readonly timeSpan: TimeSpan;
+    readonly spans: ReadonlyArray<TimeSpan>;
     readonly sourceStatementId?: number;
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
@@ -145,6 +186,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
         this.id = OutputStatement.nextId++;
         this.outputType = options.outputType;
         this.timeSpan = options.timeSpan;
+        this.spans = options.spans ? [...options.spans] : [];
         this.sourceBlockKey = options.sourceBlockKey;
         this.sourceStatementId = options.sourceStatementId;
         this.stackLevel = options.stackLevel;
@@ -199,6 +241,40 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
 
     get rawFragments(): ICodeFragment[] {
         return [...this.fragments];
+    }
+
+    // ── Time Semantics ──────────────────────────────────────────────
+
+    /**
+     * Pause-aware elapsed time in milliseconds.
+     * 
+     * When `spans` are available, this is the sum of each span's duration
+     * (excluding paused gaps between spans). When no spans exist, falls
+     * back to `timeSpan.duration` (wall-clock interval).
+     * 
+     * A timestamp (span with start === end) contributes 0ms to elapsed.
+     */
+    get elapsed(): number {
+        if (this.spans.length === 0) {
+            return this.timeSpan.duration;
+        }
+        return this.spans.reduce((sum, span) => sum + span.duration, 0);
+    }
+
+    /**
+     * Total wall-clock time from start of first span to end of last span.
+     * 
+     * Includes any paused time between spans. When no spans exist, falls
+     * back to `timeSpan.duration`.
+     */
+    get total(): number {
+        if (this.spans.length === 0) {
+            return this.timeSpan.duration;
+        }
+        const firstStart = this.spans[0].started;
+        const lastSpan = this.spans[this.spans.length - 1];
+        const lastEnd = lastSpan.ended ?? Date.now();
+        return Math.max(0, lastEnd - firstStart);
     }
 
     /**

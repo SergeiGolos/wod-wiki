@@ -4,18 +4,7 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState } from '../memory/MemoryTypes';
 import { ClearChildrenAction } from '../actions/stack/ClearChildrenAction';
 import { TimeSpan } from '../models/TimeSpan';
-
-/**
- * Calculates total elapsed time from timer spans.
- */
-function calculateElapsed(timer: TimerState, now: number): number {
-    let total = 0;
-    for (const span of timer.spans) {
-        const end = span.ended ?? now;
-        total += end - span.started;
-    }
-    return total;
-}
+import { calculateElapsed } from '../time/calculateElapsed';
 
 export interface TimerCompletionConfig {
     /**

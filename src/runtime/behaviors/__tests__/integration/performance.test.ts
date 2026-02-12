@@ -21,7 +21,6 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
-import { TimerOutputBehavior } from '../../TimerOutputBehavior';
 import { RoundInitBehavior } from '../../RoundInitBehavior';
 import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
 import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
@@ -30,6 +29,7 @@ import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
+import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 
 describe('Performance Integration', () => {
     let runtime: MockRuntime;
@@ -72,8 +72,8 @@ describe('Performance Integration', () => {
                 new RoundAdvanceBehavior(),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'countdown' }),
-                new TimerOutputBehavior(),
                 new RoundOutputBehavior(),
+                new SegmentOutputBehavior(),
                 new HistoryRecordBehavior(),
                 new SoundCueBehavior({ cues: [] })
             ];
@@ -171,10 +171,9 @@ describe('Performance Integration', () => {
             }
 
             // Check output count is reasonable (not growing unbounded)
-            // Each advance emits 1 milestone output (no events from RoundAdvanceBehavior)
-            // RoundOutputBehavior does not emit segment on mount (SegmentOutputBehavior handles that)
+            // 1 milestone on mount + 1 milestone per advance (no events from RoundAdvanceBehavior)
             expect(runtime.events.length).toBe(0); // No internal events emitted
-            expect(runtime.outputs.length).toBe(10000);
+            expect(runtime.outputs.length).toBe(10001);
         });
     });
 
@@ -232,7 +231,7 @@ describe('Performance Integration', () => {
                 new RoundAdvanceBehavior(),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new HistoryRecordBehavior(),
-                new TimerOutputBehavior(),
+                new SegmentOutputBehavior(),
                 new RoundOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);

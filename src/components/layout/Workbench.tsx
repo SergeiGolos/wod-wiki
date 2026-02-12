@@ -30,7 +30,7 @@ import { AudioToggle } from '../audio/AudioToggle';
 import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
 import { CommitGraph } from '../ui/CommitGraph';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
-import { createPlanView, createTrackView, createReviewView, createHistoryView, createAnalyzeView } from './panel-system/viewDescriptors';
+import { createPlanView, createTrackView, createReviewView, createHistoryView } from './panel-system/viewDescriptors';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
@@ -39,13 +39,16 @@ import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
-import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
+import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
+import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 
 import { useCreateWorkoutEntry } from '../../hooks/useCreateWorkoutEntry';
 import { PlanPanel } from '../workbench/PlanPanel';
-import { TrackPanelIndex, TrackPanelPrimary } from '../workbench/TrackPanel';
+import { SessionHistory, TimerScreen } from '../workbench/TrackPanel';
 import { ReviewPanelIndex, ReviewPanelPrimary } from '../workbench/ReviewPanel';
-import { HistoryPanel } from '../workbench/HistoryPanel';
+import { ListFilter } from '../workbench/ListFilter';
+import { ListOfNotes } from '../workbench/ListOfNotes';
+import { NotePreview } from '../workbench/NotePreview';
 import { AnalyzePanel } from '../workbench/AnalyzePanel';
 
 // Create singleton factory instance
@@ -148,11 +151,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     setContent,
   });
 
-  // Handle opening a history entry for viewing (row click → navigate to URL)
-  const handleOpenEntry = useCallback((id: string) => {
-    // Navigate to Plan view with the specific ID
-    navigate(`/note/${id}/plan`);
-  }, [navigate]);
 
   // Load history entries on mount when in history mode
   useEffect(() => {
@@ -189,41 +187,73 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     block: selectedBlock
   });
 
+  // --- Event Bus Subscriptions ---
+
   // Handlers
   const handleEditorMount = (editor: monacoEditor.IStandaloneCodeEditor) => {
     setEditorInstance(editor);
   };
 
   // Handle block hover from timer display (for highlighting in editor/index)
+  // Also used by Preview in History view
   const handleBlockHover = useCallback((blockKey: string | null) => {
     setHoveredBlockKey(blockKey);
   }, [setHoveredBlockKey]);
 
   // Handle block click from timer display (navigate to block in editor)
   const handleBlockClick = useCallback((blockKey: string) => {
-    // Find the block and navigate to it
-    if (editorInstance && runtime) {
-      const block = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
-      if (block?.sourceIds && block.sourceIds.length > 0) {
-        // The sourceIds are statement IDs - try to find the line
-        const statementId = block.sourceIds[0];
-        // Look for the statement in the blocks
-        for (const wodBlock of blocks) {
-          const stmt = wodBlock.statements?.find(s => s.id === statementId);
-          if (stmt && stmt.meta?.line) {
-            const line = wodBlock.startLine + stmt.meta.line;
-            editorInstance.revealLineInCenter(line);
-            editorInstance.setPosition({ lineNumber: line, column: 1 });
-            setHighlightedLine(line);
-            setTimeout(() => setHighlightedLine(null), 2000);
-            break;
+    workbenchEventBus.emitScrollToBlock(blockKey, 'track');
+  }, []);
+
+  // --- Event Bus Subscriptions ---
+
+  // Handle SCROLL_TO_BLOCK requests from Preview or Timeline
+  useEffect(() => {
+    // Only active if we have an editor instance
+    if (!editorInstance) return;
+
+    const cleanup = workbenchEventBus.onScrollToBlock(({ blockId }) => {
+      if (!runtime) return;
+
+      // Find the block in the runtime stack or raw blocks list
+      // 1. Try finding by ID directly in raw blocks (from setBlocks)
+      //    Note: Workbench has 'blocks' state from PlanPanel
+      const targetBlock = blocks.find(b => b.id === blockId);
+
+      if (targetBlock) {
+        const line = targetBlock.startLine;
+        editorInstance.revealLineInCenter(line);
+        editorInstance.setPosition({ lineNumber: line, column: 1 });
+        setHighlightedLine(line);
+        setTimeout(() => setHighlightedLine(null), 2000);
+      } else {
+        // Fallback: Try runtime block matching
+        const block = runtime.stack.blocks.find(b => b.key.toString() === blockId);
+        if (block?.sourceIds && block.sourceIds.length > 0) {
+          const statementId = block.sourceIds[0];
+          for (const wodBlock of blocks) {
+            const stmt = wodBlock.statements?.find(s => s.id === statementId);
+            if (stmt && stmt.meta?.line) {
+              const line = wodBlock.startLine + stmt.meta.line;
+              editorInstance.revealLineInCenter(line);
+              setHighlightedLine(line);
+              setTimeout(() => setHighlightedLine(null), 2000);
+              break;
+            }
           }
         }
       }
-    }
-  }, [editorInstance, runtime, blocks, setHighlightedLine]);
+    });
 
-  // --- Panel Components ---
+    return () => { cleanup(); };
+  }, [editorInstance, blocks, runtime]);
+
+  // Handle HIGHLIGHT_BLOCK from editor (to sync Preview)
+  // Actually, PlanPanel emits this, and NotePreview listens directly via the bus.
+  // Workbench doesn't strictly need to intermediate unless it wants to track state.
+
+  // --- Layout Helpers ---
+
 
   // Plan view: Just the Monaco Editor (full width, no index panel)
   // WOD blocks get inline visualization through Monaco view zones
@@ -243,10 +273,10 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     />
   );
 
-  // Track Index: TimerIndexPanel
+  // Track Index: SessionHistory
   // Hide context panel when debugger is open (it's shown there instead)
   const trackIndexPanel = (
-    <TrackPanelIndex
+    <SessionHistory
       runtime={runtime}
       activeSegmentIds={activeSegmentIds}
       activeStatementIds={activeStatementIds}
@@ -257,7 +287,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   // Track Primary: Timer Display
   const trackPrimaryPanel = (
-    <TrackPanelPrimary
+    <TimerScreen
       runtime={runtime}
       execution={execution}
       selectedBlock={selectedBlock}
@@ -310,22 +340,31 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     />
   );
 
-  // --- History & Analyze Panels (only for history mode) ---
-  const historyBrowserPanel = contentMode === 'history' && historySelection ? (
-    <HistoryPanel
-      span={3}
+  // --- History View Components ---
+
+  // 1. Filter Panel
+  const historyFilterPanel = contentMode === 'history' && historySelection ? (
+    <ListFilter
+      calendarDate={historySelection.calendarDate}
+      onCalendarDateChange={historySelection.setCalendarDate}
+      entryDates={new Set(historyEntries.map(e => new Date(e.updatedAt).toISOString().split('T')[0]))}
+      selectedIds={historySelection.selectedIds}
+      onSelectAll={() => historySelection.selectAll(historyEntries.map(e => e.id))}
+      onClearSelection={historySelection.clearSelection}
+      onCreateNewEntry={createNewEntry}
+      canCreate={canCreate}
+    />
+  ) : null;
+
+  // 2. List Panel
+  const historyListPanel = contentMode === 'history' && historySelection ? (
+    <ListOfNotes
       entries={historyEntries}
       selectedIds={historySelection.selectedIds}
       onToggleEntry={historySelection.toggleEntry}
-      onOpenEntry={handleOpenEntry}
+      onOpenEntry={(id) => navigate(`/note/${id}/history`)}
       activeEntryId={historySelection.activeEntryId}
-      onSelectAll={historySelection.selectAll}
-      onClearSelection={historySelection.clearSelection}
-      calendarDate={historySelection.calendarDate}
-      onCalendarDateChange={historySelection.setCalendarDate}
-      stripMode={stripMode}
-      onCreateNewEntry={createNewEntry}
-      canCreate={canCreate}
+      enriched={false}
     />
   ) : null;
 
@@ -335,23 +374,51 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     return historyEntries.filter(e => historySelectedIds.has(e.id));
   }, [historyEntries, historySelectedIds]);
 
-  const analyzePanelContent = contentMode === 'history' ? (
-    <AnalyzePanel selectedEntries={selectedEntries} />
-  ) : null;
+  // 3. Preview Panel (either Note Preview or Analytics)
+  const showNotePreview = !!historySelection?.activeEntryId && stripMode !== 'multi-select';
+  const showAnalyticsPreview = stripMode === 'multi-select';
 
-  // Auto-navigate back to History when all selections are cleared
-  // (dropping back to history-only means no entry is open and nothing is checked)
+  const historyPreviewPanel = useMemo(() => {
+    if (showNotePreview) {
+      // Note Preview
+      return (
+        <NotePreview
+          items={documentItems}
+          activeBlockId={_activeBlockId || undefined}
+          onBlockClick={(item) => handleBlockClick(item.id)}
+          onBlockHover={handleBlockHover}
+          onStartWorkout={() => {
+            const block = blocks.find(b => b.id === _activeBlockId);
+            if (block) handleStartWorkoutAction(block);
+          }}
+          title="Workout Preview"
+        />
+      );
+    }
+    if (showAnalyticsPreview) {
+      // Analytics Preview (AnalyzePanel)
+      return <AnalyzePanel selectedEntries={selectedEntries} />;
+    }
+    return undefined;
+  }, [showNotePreview, showAnalyticsPreview, documentItems, _activeBlockId, handleBlockClick, handleBlockHover, handleStartWorkoutAction, selectedEntries, blocks]);
+
+
+  // Auto-navigate back to History root when all selections are cleared
   useEffect(() => {
     if (contentMode !== 'history') return;
-    if (stripMode === 'history-only' && viewMode !== 'history') {
-      setViewMode('history');
+    // If we are in history view, but no selection and URL has ID, maybe go back? 
+    // Actually, createHistoryView handles specific panels.
+    // If stripMode is 'history-only' (no selection), we might want to ensure we are at /history
+    if (stripMode === 'history-only' && viewMode === 'history' && historySelection?.activeEntryId) {
+      // Only if activeEntryId is set but stripMode thinks we are history-only? 
+      // history-only means < 2 selected. 
+      // If activeEntryId is set, stripMode is 'single-select'.
     }
-  }, [stripMode, contentMode]);
+  }, [stripMode, contentMode, viewMode]);
 
   // --- Build View Descriptors ---
   const viewDescriptors = useMemo(() => {
     if (contentMode === 'static') {
-      // Static mode: Plan | Track | Review (unchanged)
       return [
         createPlanView(planPanel),
         createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
@@ -359,34 +426,32 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       ];
     }
 
-    // History mode: strip depends on selection mode
-    switch (stripMode) {
-      case 'history-only':
-        return [
-          createHistoryView(historyBrowserPanel, stripMode),
-        ];
-      case 'single-select':
-        return [
-          createHistoryView(historyBrowserPanel, stripMode),
-          createPlanView(planPanel),
-          createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
-          createReviewView(reviewIndexPanel, reviewPrimaryPanel),
-        ];
-      case 'multi-select':
-        return [
-          createHistoryView(historyBrowserPanel, stripMode),
-          createAnalyzeView(analyzePanelContent),
-        ];
-      default:
-        return [
-          createPlanView(planPanel),
-          createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
-          createReviewView(reviewIndexPanel, reviewPrimaryPanel),
-        ];
+    // History mode: Always include History view with dynamic panels
+    const views = [
+      createHistoryView(
+        historyFilterPanel,
+        historyListPanel,
+        historyPreviewPanel
+      )
+    ];
+
+    // Add other views if we have a valid selection (active workout)
+    // or if we are forced to show them (e.g. playground)
+    if (stripMode === 'single-select' || viewMode !== 'history') {
+      views.push(createPlanView(planPanel));
+      views.push(createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode));
+      views.push(createReviewView(reviewIndexPanel, reviewPrimaryPanel));
     }
+
+    // If multi-select, we might want a dedicated Analyze view tab as well?
+    // Plan says "Col 3 renders AnalyticsPreview".
+    // But also "Col 2 spans Col 2+3".
+
+    return views;
   }, [
     contentMode,
     stripMode,
+    viewMode,
     planPanel,
     trackPrimaryPanel,
     trackIndexPanel,
@@ -394,8 +459,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     isDebugMode,
     reviewIndexPanel,
     reviewPrimaryPanel,
-    historyBrowserPanel,
-    analyzePanelContent,
+    historyFilterPanel,
+    historyListPanel,
+    historyPreviewPanel
   ]);
 
   return (

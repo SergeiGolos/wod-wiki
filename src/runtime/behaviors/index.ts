@@ -22,7 +22,9 @@ export { TimerTickBehavior } from './TimerTickBehavior';
 export { TimerCompletionBehavior } from './TimerCompletionBehavior';
 export type { TimerCompletionConfig } from './TimerCompletionBehavior';
 export { TimerPauseBehavior } from './TimerPauseBehavior';
-export { TimerOutputBehavior } from './TimerOutputBehavior';
+
+// TimerOutputBehavior is deprecated — elapsed computation is now
+// consolidated into SegmentOutputBehavior (S5/S6/S10 resolution).
 
 // ============================================================================
 // Iteration Aspect
@@ -66,7 +68,7 @@ export { SegmentOutputBehavior } from './SegmentOutputBehavior';
 export { HistoryRecordBehavior } from './HistoryRecordBehavior';
 export { SoundCueBehavior } from './SoundCueBehavior';
 export type { SoundCue, SoundCueConfig } from './SoundCueBehavior';
-// TimerOutputBehavior and RoundOutputBehavior are also output behaviors
+// RoundOutputBehavior is also an output behavior
 
 // ============================================================================
 // Controls Aspect

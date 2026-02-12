@@ -292,3 +292,135 @@ describe('OutputStatement implements IFragmentSource', () => {
         });
     });
 });
+
+describe('OutputStatement time semantics (spans, elapsed, total)', () => {
+    beforeEach(() => {
+        OutputStatement.resetIdCounter();
+    });
+
+    it('should default to empty spans array when none provided', () => {
+        const output = new OutputStatement(makeOptions());
+        expect(output.spans).toEqual([]);
+    });
+
+    it('should store provided spans', () => {
+        const spans = [
+            new TimeSpan(1000, 4000),
+            new TimeSpan(6000, 9000),
+        ];
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        expect(output.spans).toHaveLength(2);
+        expect(output.spans[0].started).toBe(1000);
+        expect(output.spans[1].ended).toBe(9000);
+    });
+
+    it('should compute elapsed as sum of span durations (pause-aware)', () => {
+        // Two spans: 3s active, 3s active, with 2s pause between
+        const spans = [
+            new TimeSpan(1000, 4000), // 3000ms
+            new TimeSpan(6000, 9000), // 3000ms
+        ];
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        // elapsed = 3000 + 3000 = 6000ms (excludes the 2s pause)
+        expect(output.elapsed).toBe(6000);
+    });
+
+    it('should compute total as wall-clock bracket from first start to last end', () => {
+        // Two spans: first starts at 1000, last ends at 9000
+        const spans = [
+            new TimeSpan(1000, 4000),
+            new TimeSpan(6000, 9000),
+        ];
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        // total = 9000 - 1000 = 8000ms (includes the 2s pause)
+        expect(output.total).toBe(8000);
+    });
+
+    it('should fall back to timeSpan.duration when no spans provided', () => {
+        const timeSpan = new TimeSpan(5000, 15000); // 10s
+        const output = new OutputStatement({
+            outputType: 'completion',
+            timeSpan,
+            sourceBlockKey: 'test-block',
+            stackLevel: 0,
+        });
+        expect(output.elapsed).toBe(10000);
+        expect(output.total).toBe(10000);
+    });
+
+    it('should handle timestamp (start === end) as zero-duration span', () => {
+        // A "timestamp" is a degenerate span with start === end
+        const timestamp = new TimeSpan(5000, 5000);
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans: [timestamp],
+        });
+        expect(output.elapsed).toBe(0);
+        expect(output.total).toBe(0);
+    });
+
+    it('should handle multiple timestamps with zero elapsed but nonzero total', () => {
+        // Multiple timestamps (point-in-time markers) spread across time
+        const spans = [
+            new TimeSpan(1000, 1000), // timestamp at t=1s
+            new TimeSpan(5000, 5000), // timestamp at t=5s
+            new TimeSpan(8000, 8000), // timestamp at t=8s
+        ];
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        // Each timestamp has 0 duration → elapsed = 0
+        expect(output.elapsed).toBe(0);
+        // total = 8000 - 1000 = 7000ms (wall-clock bracket)
+        expect(output.total).toBe(7000);
+    });
+
+    it('should handle single continuous span (no pauses)', () => {
+        const spans = [new TimeSpan(2000, 12000)]; // 10s
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        // elapsed === total when there's only one span
+        expect(output.elapsed).toBe(10000);
+        expect(output.total).toBe(10000);
+    });
+
+    it('should handle mix of timestamps and spans', () => {
+        const spans = [
+            new TimeSpan(1000, 1000), // timestamp (0ms)
+            new TimeSpan(2000, 5000), // 3000ms active
+            new TimeSpan(7000, 7000), // timestamp (0ms)
+            new TimeSpan(8000, 11000), // 3000ms active
+        ];
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        // elapsed = 0 + 3000 + 0 + 3000 = 6000ms
+        expect(output.elapsed).toBe(6000);
+        // total = 11000 - 1000 = 10000ms
+        expect(output.total).toBe(10000);
+    });
+
+    it('should be readonly (spans array)', () => {
+        const spans = [new TimeSpan(1000, 4000)];
+        const output = new OutputStatement({
+            ...makeOptions(),
+            spans,
+        });
+        // ReadonlyArray — original array mutations don't affect output
+        spans.push(new TimeSpan(5000, 8000));
+        expect(output.spans).toHaveLength(1);
+    });
+});
