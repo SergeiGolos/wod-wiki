@@ -12,7 +12,8 @@ const provider = new LocalStorageContentProvider();
 export const NotebookPage: React.FC = () => {
     const { id: routeId } = useParams<{ id: string }>();
     const [initialContent, setInitialContent] = useState<string | undefined>(undefined);
-    const [initialActiveEntryId, setInitialActiveEntryId] = useState<string | undefined>(undefined);
+    // Removed sticky state for active entry ID to genericize navigation logic
+    // const [initialActiveEntryId, setInitialActiveEntryId] = useState<string | undefined>(undefined); 
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
 
@@ -36,7 +37,6 @@ export const NotebookPage: React.FC = () => {
                         notes: ''
                     });
                     setInitialContent(newEntry.rawContent);
-                    setInitialActiveEntryId(newEntry.id);
                     navigate(`/note/${newEntry.id}/plan`);
                     return;
                 }
@@ -55,7 +55,7 @@ export const NotebookPage: React.FC = () => {
                 if (dailyEntries.length > 0) {
                     console.log('Found existing daily log:', dailyEntries[0].id);
                     setInitialContent(dailyEntries[0].rawContent);
-                    setInitialActiveEntryId(dailyEntries[0].id);
+                    // Do not auto-select entry
                 } else {
                     console.log('Creating new daily log...');
                     const newEntry = await provider.saveEntry({
@@ -65,7 +65,6 @@ export const NotebookPage: React.FC = () => {
                         notes: ''
                     });
                     setInitialContent(newEntry.rawContent);
-                    setInitialActiveEntryId(newEntry.id);
                     navigate(`/note/${newEntry.id}/plan`);
                 }
             } catch (e) {
@@ -94,7 +93,7 @@ export const NotebookPage: React.FC = () => {
             provider={provider}
             mode="history"
             initialContent={initialContent}
-            initialActiveEntryId={routeId || initialActiveEntryId}
+            initialActiveEntryId={routeId}
             commandStrategy={commandStrategy}
         />
     );

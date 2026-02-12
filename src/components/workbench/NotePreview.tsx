@@ -22,8 +22,8 @@ export interface NotePreviewProps {
     /** Callback when a block is hovered */
     onBlockHover: (blockId: string | null) => void;
 
-    /** Action to start the workout (if applicable) */
-    onStartWorkout?: () => void;
+    /** Action to start a specific workout block */
+    onStartWorkout?: (blockId: string) => void;
 
     /** Title of the note (optional) */
     title?: string;
@@ -85,17 +85,16 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
         onBlockClick(item);
     };
 
+    const handleStartClick = (e: React.MouseEvent, blockId: string) => {
+        e.stopPropagation();
+        onStartWorkout?.(blockId);
+    };
+
     return (
         <div className={cn("h-full bg-background flex flex-col overflow-hidden", !mobile && "border-l border-border")}>
             {/* Header */}
             <div className={cn("border-b border-border flex-shrink-0 bg-muted/30 flex justify-between items-center", mobile ? "p-4" : "p-3")}>
                 <h3 className="font-semibold text-foreground truncate">{title || 'Preview'}</h3>
-                {onStartWorkout && (
-                    <Button size="sm" variant="default" onClick={onStartWorkout} className="gap-2 h-7">
-                        <Play className="h-3 w-3" />
-                        Start
-                    </Button>
-                )}
             </div>
 
             {/* Document Items List */}
@@ -115,12 +114,12 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                                 key={item.id}
                                 ref={(el) => { itemRefs.current[item.id] = el; }}
                                 className={cn(
-                                    "rounded-md transition-all duration-200 cursor-pointer border-l-2",
+                                    "rounded-md transition-all duration-200 cursor-pointer border-l-2 group",
                                     isActive
                                         ? "bg-accent/10 border-primary text-foreground ring-1 ring-primary/20"
                                         : "border-transparent text-muted-foreground hover:bg-accent/5 hover:text-foreground",
                                     isHighlighted && !isActive ? "bg-muted/50" : "",
-                                    isWod ? "bg-card" : ""
+                                    isWod ? "bg-card relative" : ""
                                 )}
                                 onClick={() => handleItemClick(item)}
                                 onMouseEnter={() => onBlockHover(item.id)}
@@ -154,6 +153,20 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                                             </div>
                                         )}
                                     </div>
+
+                                    {isWod && onStartWorkout && (
+                                        <div className="pl-2">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-primary-foreground"
+                                                onClick={(e) => handleStartClick(e, item.id)}
+                                                title="Run this workout"
+                                            >
+                                                <Play className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );

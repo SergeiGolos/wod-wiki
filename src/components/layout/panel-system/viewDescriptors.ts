@@ -8,7 +8,7 @@
 import React from 'react';
 import { Edit, Timer, BarChart2, Calendar, BarChart3 } from 'lucide-react';
 import type { ViewDescriptor, PanelSpan, PanelDescriptor } from './types';
-import type { StripMode } from '@/types/history';
+
 
 /**
  * Plan View - Editor for authoring workout definitions

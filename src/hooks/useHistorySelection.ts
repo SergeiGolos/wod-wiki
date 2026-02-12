@@ -39,7 +39,7 @@ export interface UseHistorySelectionReturn {
 
 export function useHistorySelection(initialActiveEntryId: string | null = null): UseHistorySelectionReturn {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activeEntryId, setActiveEntryId] = useState<string | null>(initialActiveEntryId);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(initialActiveEntryId ?? null);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [filters, setFiltersState] = useState<HistoryFilters>(defaultFilters);
 
@@ -70,13 +70,23 @@ export function useHistorySelection(initialActiveEntryId: string | null = null):
   }, []);
 
   const toggleEntry = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+      // If unchecking the currently active entry, try to fallback to another selected entry
+      if (activeEntryId === id) {
+        if (next.size === 0) setActiveEntryId(null);
+        else setActiveEntryId(Array.from(next)[0]);
+      }
+    } else {
+      next.add(id);
+      // If this is the first selection or no active entry, make it active
+      if (next.size === 1 || activeEntryId === null) {
+        setActiveEntryId(id);
+      }
+    }
+    setSelectedIds(next);
+  }, [selectedIds, activeEntryId]);
 
   const selectAll = useCallback((visibleIds: string[]) => {
     setSelectedIds(new Set(visibleIds));

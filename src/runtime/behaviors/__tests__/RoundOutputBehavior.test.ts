@@ -133,6 +133,87 @@ describe('RoundOutputBehavior', () => {
         });
     });
 
+    describe('deduplication — only emit when round changes', () => {
+        it('should NOT emit on onNext when round has not changed since mount', () => {
+            const behavior = new RoundOutputBehavior();
+            const memoryStore = new Map<string, any>([
+                ['round', { current: 1, total: 3 } as RoundState]
+            ]);
+            const ctx = createMockContext({
+                getMemory: vi.fn((type: string) => memoryStore.get(type)),
+                setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+            });
+
+            // Mount emits round 1 milestone and records _lastEmittedRound = 1
+            behavior.onMount(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
+
+            // onNext with same round should NOT emit (child completed, round unchanged)
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(1); // still 1
+        });
+
+        it('should NOT emit on consecutive onNext calls for the same round', () => {
+            const behavior = new RoundOutputBehavior();
+            const memoryStore = new Map<string, any>([
+                ['round', { current: 1, total: 3 } as RoundState]
+            ]);
+            const ctx = createMockContext({
+                getMemory: vi.fn((type: string) => memoryStore.get(type)),
+                setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+            });
+
+            behavior.onMount(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
+
+            // Advance to round 2 — should emit
+            memoryStore.set('round', { current: 2, total: 3 } as RoundState);
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
+
+            // Call onNext again with same round 2 — should NOT emit
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(2); // still 2
+
+            // Another onNext with same round 2 — should still NOT emit
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(2); // still 2
+        });
+
+        it('should emit only on actual round changes across multiple advances', () => {
+            const behavior = new RoundOutputBehavior();
+            const memoryStore = new Map<string, any>([
+                ['round', { current: 1, total: 5 } as RoundState]
+            ]);
+            const ctx = createMockContext({
+                getMemory: vi.fn((type: string) => memoryStore.get(type)),
+                setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+            });
+
+            // Mount: round 1 → emit (1st)
+            behavior.onMount(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
+
+            // Same round: no emit
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
+
+            // Advance to round 2 → emit (2nd)
+            memoryStore.set('round', { current: 2, total: 5 } as RoundState);
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
+
+            // Advance to round 3 → emit (3rd)
+            memoryStore.set('round', { current: 3, total: 5 } as RoundState);
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(3);
+
+            // Same round 3: no emit
+            behavior.onNext(ctx);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(3);
+        });
+    });
+
     describe('onUnmount', () => {
         it('should not emit any output on unmount', () => {
             const behavior = new RoundOutputBehavior();

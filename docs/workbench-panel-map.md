@@ -35,11 +35,11 @@ The `DesktopWorkbench` uses a responsive 3-column grid system (1/3 fractions) or
 ### 1. History View
 *Navigating the database of WODs.*
 
-| State | Col 1 (1/3) | Col 2 (1/3) | Col 3 (1/3) | Interactions |
-| :--- | :--- | :--- | :--- | :--- |
-| **Nothing Selected** | `ListFilter` | `ListOfNotes` | *(Empty / Extension of List)* | Default landing state. |
-| **Single Item** | `ListFilter` | `ListOfNotes` | `NotePreview` | Clicking a note opens Preview in Col 3. |
-| **Multi Selection** | `ListFilter` | `ListOfNotes` | `AnalyticsPreview` | Select checkboxes to trigger Aggregate view. |
+| State                | Col 1 (1/3)  | Col 2 (1/3)   | Col 3 (1/3)                   | Interactions                                 |
+| :------------------- | :----------- | :------------ | :---------------------------- | :------------------------------------------- |
+| **Nothing Selected** | `ListFilter` | `ListOfNotes` | *(Empty / Extension of List)* | Default landing state.                       |
+| **Single Item**      | `ListFilter` | `ListOfNotes` | `NotePreview`                 | Clicking a note opens Preview in Col 3.      |
+| **Multi Selection**  | `ListFilter` | `ListOfNotes` | `AnalyticsPreview`            | Select checkboxes to trigger Aggregate view. |
 
 ### 2. Plan View
 *Editing and crafting workouts.*

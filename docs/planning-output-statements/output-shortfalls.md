@@ -20,7 +20,7 @@
 | S8  | Container `next` milestone only covers round state, not timer state                                               | Low      | Container state change |
 | S9  | ~~Non-timer leaf blocks have no elapsed time in outputs~~ ✅ RESOLVED                                              | High     | Time tracking          |
 | S10 | ~~`calculateElapsed()` duplicated across three behaviors~~ ✅ RESOLVED                                             | Medium   | Time tracking          |
-| S11 | ~~`timeSpan` conflates wall-clock interval with pause-aware elapsed~~ ✅ RESOLVED                                | Medium   | Time tracking          |
+| S11 | ~~`timeSpan` conflates wall-clock interval with pause-aware elapsed~~ ✅ RESOLVED                                  | Medium   | Time tracking          |
 
 ---
 

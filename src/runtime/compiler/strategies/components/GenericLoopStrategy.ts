@@ -13,6 +13,7 @@ import {
     RoundInitBehavior,
     RoundDisplayBehavior,
     RoundOutputBehavior,
+    RepSchemeBehavior,
     DisplayInitBehavior,
     HistoryRecordBehavior,
     SegmentOutputBehavior
@@ -83,6 +84,11 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             startRound: 1,
             addCompletion: true  // Complete when all rounds done
         });
+
+        // Rep Scheme Aspect — round-robin promote reps to children
+        if (repScheme && repScheme.length > 0) {
+            builder.addBehavior(new RepSchemeBehavior({ repScheme }));
+        }
 
         // =====================================================================
         // Specific Behaviors - Not covered by aspect composers

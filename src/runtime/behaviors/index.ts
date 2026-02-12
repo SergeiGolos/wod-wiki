@@ -35,6 +35,8 @@ export { RoundAdvanceBehavior } from './RoundAdvanceBehavior';
 export { RoundCompletionBehavior } from './RoundCompletionBehavior';
 export { RoundOutputBehavior } from './RoundOutputBehavior';
 export { RoundDisplayBehavior } from './RoundDisplayBehavior';
+export { RepSchemeBehavior } from './RepSchemeBehavior';
+export type { RepSchemeConfig } from './RepSchemeBehavior';
 
 // ============================================================================
 // Completion Aspect

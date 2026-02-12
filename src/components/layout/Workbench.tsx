@@ -362,7 +362,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       entries={historyEntries}
       selectedIds={historySelection.selectedIds}
       onToggleEntry={historySelection.toggleEntry}
-      onOpenEntry={(id) => navigate(`/note/${id}/history`)}
+      onOpenEntry={(id) => navigate(`/note/${id}/plan`)}
       activeEntryId={historySelection.activeEntryId}
       enriched={false}
     />
@@ -378,6 +378,13 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   const showNotePreview = !!historySelection?.activeEntryId && stripMode !== 'multi-select';
   const showAnalyticsPreview = stripMode === 'multi-select';
 
+  console.log('[Workbench] History Debug:', {
+    activeEntryId: historySelection?.activeEntryId,
+    stripMode,
+    showNotePreview,
+    showAnalyticsPreview
+  });
+
   const historyPreviewPanel = useMemo(() => {
     if (showNotePreview) {
       // Note Preview
@@ -387,8 +394,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
           activeBlockId={_activeBlockId || undefined}
           onBlockClick={(item) => handleBlockClick(item.id)}
           onBlockHover={handleBlockHover}
-          onStartWorkout={() => {
-            const block = blocks.find(b => b.id === _activeBlockId);
+          onStartWorkout={(blockId) => {
+            const block = blocks.find(b => b.id === blockId);
             if (block) handleStartWorkoutAction(block);
           }}
           title="Workout Preview"

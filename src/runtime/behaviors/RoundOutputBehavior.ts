@@ -31,6 +31,7 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
         const round = ctx.getMemory('round') as RoundState | undefined;
 
         if (round) {
+            this._lastEmittedRound = round.current;
             const label = this.formatRoundLabel(round);
             const fragments = this.buildMilestoneFragments(ctx, round);
 
@@ -43,7 +44,11 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         const round = ctx.getMemory('round') as RoundState | undefined;
 
-        if (round) {
+        // Only emit a milestone when the round actually changed.
+        // Without this guard, a milestone fires on every onNext() call
+        // (e.g., between child completions within the same round).
+        if (round && round.current !== this._lastEmittedRound) {
+            this._lastEmittedRound = round.current;
             const label = this.formatRoundLabel(round);
             const fragments = this.buildMilestoneFragments(ctx, round);
 
