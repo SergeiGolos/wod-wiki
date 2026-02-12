@@ -1,6 +1,8 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { ChildRunnerBehavior } from './ChildRunnerBehavior';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { calculateElapsed, formatDuration } from '../time/calculateElapsed';
@@ -21,6 +23,13 @@ import { calculateElapsed, formatDuration } from '../time/calculateElapsed';
  * 
  * Mount/unmount completion outputs are NOT emitted here — those are handled
  * by SegmentOutputBehavior.
+ * 
+ * ## Deduplication
+ * 
+ * For container blocks with children, milestones only emit when
+ * `ChildRunnerBehavior.allChildrenCompleted` is true — i.e., at round
+ * boundaries, not on intermediate child completions. This mirrors the
+ * same guard used by `RoundAdvanceBehavior`.
  */
 export class RoundOutputBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
@@ -31,10 +40,8 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
         const round = ctx.getMemory('round') as RoundState | undefined;
 
         if (round) {
-            this._lastEmittedRound = round.current;
             const label = this.formatRoundLabel(round);
             const fragments = this.buildMilestoneFragments(ctx, round);
-
             ctx.emitOutput('milestone', fragments, { label });
         }
 
@@ -43,17 +50,24 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         const round = ctx.getMemory('round') as RoundState | undefined;
+        if (!round) return [];
 
-        // Only emit a milestone when the round actually changed.
-        // Without this guard, a milestone fires on every onNext() call
-        // (e.g., between child completions within the same round).
-        if (round && round.current !== this._lastEmittedRound) {
-            this._lastEmittedRound = round.current;
-            const label = this.formatRoundLabel(round);
-            const fragments = this.buildMilestoneFragments(ctx, round);
-
-            ctx.emitOutput('milestone', fragments, { label });
+        // For container blocks with children, only emit a milestone when
+        // all children have completed (i.e., at a round boundary).
+        // This prevents duplicate milestones on intermediate child
+        // completions within the same round.
+        // Mirrors the same guard used by RoundAdvanceBehavior.
+        const block = ctx.block as IRuntimeBlock;
+        if (typeof block.getBehavior === 'function') {
+            const childRunner = block.getBehavior(ChildRunnerBehavior);
+            if (childRunner && !childRunner.allChildrenCompleted) {
+                return [];
+            }
         }
+
+        const label = this.formatRoundLabel(round);
+        const fragments = this.buildMilestoneFragments(ctx, round);
+        ctx.emitOutput('milestone', fragments, { label });
 
         return [];
     }

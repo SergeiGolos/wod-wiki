@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { RoundOutputBehavior } from '../RoundOutputBehavior';
+import { ChildRunnerBehavior } from '../ChildRunnerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { FragmentType } from '../../../core/models/CodeFragment';
 import { RoundState, TimerState } from '../../memory/MemoryTypes';
@@ -15,6 +16,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             fragments: [],
             completionReason: undefined,
             getMemoryByTag: () => [],
+            getBehavior: () => undefined,
         },
         clock: { now: new Date(1000) },
         stackLevel: 0,
@@ -133,84 +135,63 @@ describe('RoundOutputBehavior', () => {
         });
     });
 
-    describe('deduplication — only emit when round changes', () => {
-        it('should NOT emit on onNext when round has not changed since mount', () => {
-            const behavior = new RoundOutputBehavior();
-            const memoryStore = new Map<string, any>([
-                ['round', { current: 1, total: 3 } as RoundState]
-            ]);
-            const ctx = createMockContext({
+    describe('deduplication — only emit at round boundaries', () => {
+        function createChildRunner(allCompleted: boolean) {
+            return { allChildrenCompleted: allCompleted } as unknown as ChildRunnerBehavior;
+        }
+
+        function createCtxWithChildren(
+            round: RoundState,
+            childRunner: ChildRunnerBehavior
+        ): IBehaviorContext {
+            const memoryStore = new Map<string, any>([['round', round]]);
+            return createMockContext({
+                block: {
+                    key: { toString: () => 'loop-block' },
+                    label: 'Loop',
+                    fragments: [],
+                    completionReason: undefined,
+                    getMemoryByTag: () => [],
+                    getBehavior: (ctor: any) =>
+                        ctor === ChildRunnerBehavior ? childRunner : undefined,
+                } as any,
                 getMemory: vi.fn((type: string) => memoryStore.get(type)),
                 setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
             });
+        }
 
-            // Mount emits round 1 milestone and records _lastEmittedRound = 1
-            behavior.onMount(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
+        it('should NOT emit on onNext when children are still in progress', () => {
+            const behavior = new RoundOutputBehavior();
+            const childRunner = createChildRunner(false);
+            const ctx = createCtxWithChildren({ current: 1, total: 3 }, childRunner);
 
-            // onNext with same round should NOT emit (child completed, round unchanged)
             behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(1); // still 1
+
+            expect(ctx.emitOutput).not.toHaveBeenCalled();
         });
 
-        it('should NOT emit on consecutive onNext calls for the same round', () => {
+        it('should emit on onNext when all children have completed', () => {
             const behavior = new RoundOutputBehavior();
-            const memoryStore = new Map<string, any>([
-                ['round', { current: 1, total: 3 } as RoundState]
-            ]);
-            const ctx = createMockContext({
-                getMemory: vi.fn((type: string) => memoryStore.get(type)),
-                setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
-            });
+            const childRunner = createChildRunner(true);
+            const ctx = createCtxWithChildren({ current: 2, total: 3 }, childRunner);
 
-            behavior.onMount(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
-
-            // Advance to round 2 — should emit
-            memoryStore.set('round', { current: 2, total: 3 } as RoundState);
             behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
 
-            // Call onNext again with same round 2 — should NOT emit
-            behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(2); // still 2
-
-            // Another onNext with same round 2 — should still NOT emit
-            behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(2); // still 2
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'milestone',
+                [expect.objectContaining({ value: 2, image: 'Round 2 of 3' })],
+                expect.objectContaining({ label: 'Round 2 of 3' })
+            );
         });
 
-        it('should emit only on actual round changes across multiple advances', () => {
+        it('should emit on onNext for blocks without children (no ChildRunnerBehavior)', () => {
             const behavior = new RoundOutputBehavior();
-            const memoryStore = new Map<string, any>([
-                ['round', { current: 1, total: 5 } as RoundState]
-            ]);
-            const ctx = createMockContext({
-                getMemory: vi.fn((type: string) => memoryStore.get(type)),
-                setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
-            });
+            // Default mock has getBehavior returning undefined → no child runner
+            const ctx = createMockContext(withRoundState({ current: 2, total: 5 }));
 
-            // Mount: round 1 → emit (1st)
-            behavior.onMount(ctx);
+            behavior.onNext(ctx);
+
             expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
-
-            // Same round: no emit
-            behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
-
-            // Advance to round 2 → emit (2nd)
-            memoryStore.set('round', { current: 2, total: 5 } as RoundState);
-            behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
-
-            // Advance to round 3 → emit (3rd)
-            memoryStore.set('round', { current: 3, total: 5 } as RoundState);
-            behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(3);
-
-            // Same round 3: no emit
-            behavior.onNext(ctx);
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(3);
         });
     });
 
@@ -240,8 +221,20 @@ describe('RoundOutputBehavior', () => {
             const memoryStore = new Map<string, any>([
                 ['round', { current: 1, total: 3 } as RoundState]
             ]);
+            // Simulate a container with children — allChildrenCompleted is true
+            // at the round boundary (when RoundAdvanceBehavior has already advanced)
+            const childRunner = { allChildrenCompleted: true } as unknown as ChildRunnerBehavior;
 
             const ctx = createMockContext({
+                block: {
+                    key: { toString: () => 'loop-block' },
+                    label: 'Loop',
+                    fragments: [],
+                    completionReason: undefined,
+                    getMemoryByTag: () => [],
+                    getBehavior: (ctor: any) =>
+                        ctor === ChildRunnerBehavior ? childRunner : undefined,
+                } as any,
                 getMemory: vi.fn((type: string) => memoryStore.get(type)),
                 setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
             });
@@ -258,7 +251,7 @@ describe('RoundOutputBehavior', () => {
             // Simulate round advance
             memoryStore.set('round', { current: 2, total: 3 } as RoundState);
 
-            // Next: round 2 milestone
+            // Next: round 2 milestone (allChildrenCompleted = true → emit)
             behavior.onNext(ctx);
             expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
             expect(ctx.emitOutput).toHaveBeenLastCalledWith(
