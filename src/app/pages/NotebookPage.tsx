@@ -91,7 +91,6 @@ export const NotebookPage: React.FC = () => {
     return (
         <Workbench
             provider={provider}
-            mode="history"
             initialContent={initialContent}
             initialActiveEntryId={routeId}
             commandStrategy={commandStrategy}

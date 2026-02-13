@@ -9,13 +9,13 @@ This document provides a comprehensive framework for calculating workout intensi
 
 The strategies are organized into **five enhancement tiers**, each building upon the previous:
 
-| Tier | Data Available | Accuracy | Cross-Discipline Comparison |
-|------|---------------|----------|----------------------------|
-| **Tier 1** | Fragments only | ±25-35% | Limited (discipline-specific only) |
-| **Tier 2** | + Heart Rate | ±15-25% | Moderate (within cardio domains) |
-| **Tier 3** | + Power/Watts | ±10-20% | Good (cycling/running power) |
-| **Tier 4** | + GPS Streams | ±8-15% | Very Good (distance-based sports) |
-| **Tier 5** | + All streams + Historical | ±5-12% | Excellent (full cross-discipline) |
+| Tier       | Data Available             | Accuracy | Cross-Discipline Comparison        |
+| ---------- | -------------------------- | -------- | ---------------------------------- |
+| **Tier 1** | Fragments only             | ±25-35%  | Limited (discipline-specific only) |
+| **Tier 2** | + Heart Rate               | ±15-25%  | Moderate (within cardio domains)   |
+| **Tier 3** | + Power/Watts              | ±10-20%  | Good (cycling/running power)       |
+| **Tier 4** | + GPS Streams              | ±8-15%   | Very Good (distance-based sports)  |
+| **Tier 5** | + All streams + Historical | ±5-12%   | Excellent (full cross-discipline)  |
 
 ---
 
@@ -136,14 +136,14 @@ function calculateTier1Intensity(workoutFragments):
 
 #### 2.1.2 Workout Type Classification
 
-| Fragment Pattern | Workout Type | Base METs | Confidence |
-|-----------------|--------------|-----------|------------|
-| action + resistance + rep | Strength Training | 5.0 | High |
-| action + distance + timer | Endurance Cardio | Variable | Medium |
-| action + rounds + timer (work/rest pattern) | HIIT/Circuit | 8.0-12.0 | Medium |
-| action (yoga poses) + timer + text | Yoga | 2.5-4.0 | Medium |
-| action + distance + timer (intervals) | Sprint/Intervals | 10.0-15.0 | Low |
-| action (mixed patterns) | Cross-Training | Calculate per segment | Low |
+| Fragment Pattern                            | Workout Type      | Base METs             | Confidence |
+| ------------------------------------------- | ----------------- | --------------------- | ---------- |
+| action + resistance + rep                   | Strength Training | 5.0                   | High       |
+| action + distance + timer                   | Endurance Cardio  | Variable              | Medium     |
+| action + rounds + timer (work/rest pattern) | HIIT/Circuit      | 8.0-12.0              | Medium     |
+| action (yoga poses) + timer + text          | Yoga              | 2.5-4.0               | Medium     |
+| action + distance + timer (intervals)       | Sprint/Intervals  | 10.0-15.0             | Low        |
+| action (mixed patterns)                     | Cross-Training    | Calculate per segment | Low        |
 
 #### 2.1.3 Intensity Modifier Calculation
 
@@ -208,41 +208,41 @@ def calculateHIITModifier(rounds, timerFragments):
 
 When no explicit RPE is provided, infer from:
 
-| Fragment Pattern | Inferred RPE | Reasoning |
-|-----------------|--------------|-----------|
-| `rep.failed_reps` present | 9-10 | Reaching failure indicates high effort |
-| `increment` shows decrease | 8-9 | Fatigue causing load reduction |
-| `rounds` incomplete | 7-8 | Unable to complete planned volume |
-| `text` contains "max", "PR" | 9-10 | Maximum effort keywords |
-| `text` contains "easy", "recovery" | 3-4 | Low effort keywords |
-| `timer` exceeds target significantly | 5-6 | Pacing conservative |
-| Resistance near bodyweight (bodyweight exercises) | 6-7 | Moderate by default |
+| Fragment Pattern                                  | Inferred RPE | Reasoning                              |
+| ------------------------------------------------- | ------------ | -------------------------------------- |
+| `rep.failed_reps` present                         | 9-10         | Reaching failure indicates high effort |
+| `increment` shows decrease                        | 8-9          | Fatigue causing load reduction         |
+| `rounds` incomplete                               | 7-8          | Unable to complete planned volume      |
+| `text` contains "max", "PR"                       | 9-10         | Maximum effort keywords                |
+| `text` contains "easy", "recovery"                | 3-4          | Low effort keywords                    |
+| `timer` exceeds target significantly              | 5-6          | Pacing conservative                    |
+| Resistance near bodyweight (bodyweight exercises) | 6-7          | Moderate by default                    |
 
 #### 2.1.5 What CAN Be Identified at Tier 1
 
-| Capability | Method | Confidence |
-|------------|--------|------------|
-| Workout type classification | Action fragment analysis | High |
-| Approximate duration | Timer fragments | Exact |
-| Total volume (resistance training) | resistance × rep | High |
-| Estimated distance | Distance fragments | Exact if logged |
-| Approximate METs | Action lookup + modifiers | Medium |
-| RPE inference | Pattern analysis | Low-Medium |
-| Session load estimate | Duration × estimated METs | Medium |
-| Work:rest ratio (HIIT) | Timer role analysis | Medium-High |
+| Capability                         | Method                    | Confidence      |
+| ---------------------------------- | ------------------------- | --------------- |
+| Workout type classification        | Action fragment analysis  | High            |
+| Approximate duration               | Timer fragments           | Exact           |
+| Total volume (resistance training) | resistance × rep          | High            |
+| Estimated distance                 | Distance fragments        | Exact if logged |
+| Approximate METs                   | Action lookup + modifiers | Medium          |
+| RPE inference                      | Pattern analysis          | Low-Medium      |
+| Session load estimate              | Duration × estimated METs | Medium          |
+| Work:rest ratio (HIIT)             | Timer role analysis       | Medium-High     |
 
 #### 2.1.6 What CANNOT Be Identified at Tier 1
 
-| Limitation | Reason | Impact |
-|------------|--------|--------|
-| Actual heart rate response | No HR data | Cannot verify cardiovascular stress |
-| True power output | No power meter | Cannot measure mechanical work |
-| Actual pace/speed | No GPS | Must rely on logged distance |
-| Individual physiological response | No biometrics | Population averages only |
-| Lactate threshold proximity | No biometrics | Cannot identify training zones |
-| Recovery status | No HRV or HR data | Cannot assess readiness |
-| EPOC contribution | No oxygen data | Post-exercise calories estimated |
-| Anaerobic contribution | No lactate/HR data | HIIT intensity underestimated |
+| Limitation                        | Reason             | Impact                              |
+| --------------------------------- | ------------------ | ----------------------------------- |
+| Actual heart rate response        | No HR data         | Cannot verify cardiovascular stress |
+| True power output                 | No power meter     | Cannot measure mechanical work      |
+| Actual pace/speed                 | No GPS             | Must rely on logged distance        |
+| Individual physiological response | No biometrics      | Population averages only            |
+| Lactate threshold proximity       | No biometrics      | Cannot identify training zones      |
+| Recovery status                   | No HRV or HR data  | Cannot assess readiness             |
+| EPOC contribution                 | No oxygen data     | Post-exercise calories estimated    |
+| Anaerobic contribution            | No lactate/HR data | HIIT intensity underestimated       |
 
 ---
 
@@ -295,13 +295,13 @@ function calculateTier2Intensity(workoutFragments, hrStream):
 
 #### 2.2.2 Heart Rate Zone Calculation
 
-| Zone | %HRmax | %HRR | TRIMP Weight | Training Effect |
-|------|--------|------|--------------|-----------------|
-| Zone 1 | 50-60% | 50-60% | 1.0x | Recovery |
-| Zone 2 | 60-70% | 60-70% | 1.5x | Aerobic base |
-| Zone 3 | 70-80% | 70-80% | 2.5x | Tempo |
-| Zone 4 | 80-90% | 70-80% | 4.0x | Threshold |
-| Zone 5 | 90-100% | 90-100% | 6.0x | VO2max |
+| Zone   | %HRmax  | %HRR    | TRIMP Weight | Training Effect |
+| ------ | ------- | ------- | ------------ | --------------- |
+| Zone 1 | 50-60%  | 50-60%  | 1.0x         | Recovery        |
+| Zone 2 | 60-70%  | 60-70%  | 1.5x         | Aerobic base    |
+| Zone 3 | 70-80%  | 70-80%  | 2.5x         | Tempo           |
+| Zone 4 | 80-90%  | 70-80%  | 4.0x         | Threshold       |
+| Zone 5 | 90-100% | 90-100% | 6.0x         | VO2max          |
 
 #### 2.2.3 Fragment-HR Correlation Analysis
 
@@ -365,29 +365,29 @@ function analyzeHIIHR(hrStream, rounds, timer):
 
 #### 2.2.4 What CAN Be Identified at Tier 2
 
-| Capability | Method | Confidence |
-|------------|--------|------------|
-| All Tier 1 capabilities | Plus HR data | Improved |
-| Cardiovascular stress level | HR zone analysis | High |
-| Time in zone distribution | HR stream mapping | High |
-| Estimated VO2 response | HR-VO2 correlation | Medium |
-| Training impulse (TRIMP) | Banister formula | High (for cardio) |
-| Fatigue accumulation | HR drift analysis | Medium |
-| Recovery between sets/rounds | Inter-set HR response | Medium |
-| Session RPE inference | HR patterns | Medium |
-| Lactate threshold estimate (if test data) | HR deflection point | Low-Medium |
+| Capability                                | Method                | Confidence        |
+| ----------------------------------------- | --------------------- | ----------------- |
+| All Tier 1 capabilities                   | Plus HR data          | Improved          |
+| Cardiovascular stress level               | HR zone analysis      | High              |
+| Time in zone distribution                 | HR stream mapping     | High              |
+| Estimated VO2 response                    | HR-VO2 correlation    | Medium            |
+| Training impulse (TRIMP)                  | Banister formula      | High (for cardio) |
+| Fatigue accumulation                      | HR drift analysis     | Medium            |
+| Recovery between sets/rounds              | Inter-set HR response | Medium            |
+| Session RPE inference                     | HR patterns           | Medium            |
+| Lactate threshold estimate (if test data) | HR deflection point   | Low-Medium        |
 
 #### 2.2.5 What CANNOT Be Identified at Tier 2
 
-| Limitation | Reason | Impact |
-|------------|--------|--------|
-| Actual power output | No power meter | Cannot measure mechanical work in watts |
-| Running/cycling pace | No GPS/speed sensor | Must rely on logged distance |
-| True metabolic cost | HR doesn't capture anaerobic | HIIT underestimated |
-| Strength training intensity | HR poorly correlates with force | Limited value for RT |
-| Hot yoga HR-MET dissociation | Heat elevates HR without metabolic cost | Overestimates yoga intensity |
-| Cardiac drift vs intensity increase | Cannot distinguish causes | May misinterpret late-session data |
-| Altitude effects | No context for elevation | HR elevated without intensity increase |
+| Limitation                          | Reason                                  | Impact                                  |
+| ----------------------------------- | --------------------------------------- | --------------------------------------- |
+| Actual power output                 | No power meter                          | Cannot measure mechanical work in watts |
+| Running/cycling pace                | No GPS/speed sensor                     | Must rely on logged distance            |
+| True metabolic cost                 | HR doesn't capture anaerobic            | HIIT underestimated                     |
+| Strength training intensity         | HR poorly correlates with force         | Limited value for RT                    |
+| Hot yoga HR-MET dissociation        | Heat elevates HR without metabolic cost | Overestimates yoga intensity            |
+| Cardiac drift vs intensity increase | Cannot distinguish causes               | May misinterpret late-session data      |
+| Altitude effects                    | No context for elevation                | HR elevated without intensity increase  |
 
 ---
 
@@ -441,15 +441,15 @@ function calculateTier3Intensity(workoutFragments, hrStream, powerStream):
 
 #### 2.3.2 Power Zone Classification
 
-| Zone | %CP/FTP | Name | Training Effect |
-|------|---------|------|-----------------|
-| Zone 1 | <80% | Active Recovery | Recovery |
-| Zone 2 | 80-90% | Endurance | Aerobic base |
-| Zone 3 | 90-100% | Tempo | Threshold development |
-| Zone 4 | 100-110% | Threshold | Lactate tolerance |
-| Zone 5 | 110-120% | VO2max | Maximum aerobic |
-| Zone 6 | 120-150% | Anaerobic | Anaerobic capacity |
-| Zone 7 | >150% | Sprint | Neuromuscular |
+| Zone   | %CP/FTP  | Name            | Training Effect       |
+| ------ | -------- | --------------- | --------------------- |
+| Zone 1 | <80%     | Active Recovery | Recovery              |
+| Zone 2 | 80-90%   | Endurance       | Aerobic base          |
+| Zone 3 | 90-100%  | Tempo           | Threshold development |
+| Zone 4 | 100-110% | Threshold       | Lactate tolerance     |
+| Zone 5 | 110-120% | VO2max          | Maximum aerobic       |
+| Zone 6 | 120-150% | Anaerobic       | Anaerobic capacity    |
+| Zone 7 | >150%    | Sprint          | Neuromuscular         |
 
 #### 2.3.3 HR-Power Decoupling Analysis
 
@@ -486,26 +486,26 @@ function calculateDecoupling(hrStream, powerStream):
 
 #### 2.3.4 What CAN Be Identified at Tier 3
 
-| Capability | Method | Confidence |
-|------------|--------|------------|
-| All Tier 2 capabilities | Plus power data | Improved |
-| Actual mechanical work | Power × time | Exact |
-| Normalized power | 30-second rolling average | High |
-| Training Stress Score (TSS) | Power-based formula | High |
-| Power zone distribution | CP/FTP-based zones | High |
-| Aerobic efficiency | HR-power decoupling | High |
-| Critical power estimation | From test or ML model | Medium-High |
-| Interval quality assessment | Power consistency analysis | High |
+| Capability                  | Method                     | Confidence  |
+| --------------------------- | -------------------------- | ----------- |
+| All Tier 2 capabilities     | Plus power data            | Improved    |
+| Actual mechanical work      | Power × time               | Exact       |
+| Normalized power            | 30-second rolling average  | High        |
+| Training Stress Score (TSS) | Power-based formula        | High        |
+| Power zone distribution     | CP/FTP-based zones         | High        |
+| Aerobic efficiency          | HR-power decoupling        | High        |
+| Critical power estimation   | From test or ML model      | Medium-High |
+| Interval quality assessment | Power consistency analysis | High        |
 
 #### 2.3.5 What CANNOT Be Identified at Tier 3
 
-| Limitation | Reason | Impact |
-|------------|--------|--------|
-| Strength training power | Power meters not applicable | No benefit for RT |
-| Running power accuracy | Estimated, not measured | Lower confidence than cycling |
-| Wind resistance effects | Not captured by most meters | May underestimate outdoor effort |
-| Terrain effects (trail running) | Variable efficiency | Power-pace relationship varies |
-| Swimming intensity | No power meters in water | Must use pace or HR |
+| Limitation                      | Reason                      | Impact                           |
+| ------------------------------- | --------------------------- | -------------------------------- |
+| Strength training power         | Power meters not applicable | No benefit for RT                |
+| Running power accuracy          | Estimated, not measured     | Lower confidence than cycling    |
+| Wind resistance effects         | Not captured by most meters | May underestimate outdoor effort |
+| Terrain effects (trail running) | Variable efficiency         | Power-pace relationship varies   |
+| Swimming intensity              | No power meters in water    | Must use pace or HR              |
 
 ---
 
@@ -574,34 +574,34 @@ function calculateGradeAdjustedPace(gpsStream):
 
 #### 2.4.3 Elevation Effect on Intensity
 
-| Grade | Intensity Multiplier | Reasoning |
-|-------|---------------------|-----------|
-| -10% to -5% | 0.85-0.95 | Downhill (reduced effort, eccentric load) |
-| -5% to 0% | 0.95-1.0 | Slight downhill to flat |
-| 0% to 5% | 1.0-1.15 | Gradual climb |
-| 5% to 10% | 1.15-1.35 | Moderate climb |
-| >10% | 1.35-1.50 | Steep climb |
+| Grade       | Intensity Multiplier | Reasoning                                 |
+| ----------- | -------------------- | ----------------------------------------- |
+| -10% to -5% | 0.85-0.95            | Downhill (reduced effort, eccentric load) |
+| -5% to 0%   | 0.95-1.0             | Slight downhill to flat                   |
+| 0% to 5%    | 1.0-1.15             | Gradual climb                             |
+| 5% to 10%   | 1.15-1.35            | Moderate climb                            |
+| >10%        | 1.35-1.50            | Steep climb                               |
 
 #### 2.4.4 What CAN Be Identified at Tier 4
 
-| Capability | Method | Confidence |
-|------------|--------|------------|
-| All Tier 3 capabilities | Plus GPS data | Improved |
-| Actual speed/pace | GPS timestamps | High |
-| Grade-adjusted pace | Elevation compensation | High |
-| Route difficulty | Elevation gain/distance | High |
-| Wind effect inference | Pace-power discrepancy | Medium |
-| Terrain effect | Pace variability | Medium |
-| Accurate distance | GPS measurement | High |
+| Capability              | Method                  | Confidence |
+| ----------------------- | ----------------------- | ---------- |
+| All Tier 3 capabilities | Plus GPS data           | Improved   |
+| Actual speed/pace       | GPS timestamps          | High       |
+| Grade-adjusted pace     | Elevation compensation  | High       |
+| Route difficulty        | Elevation gain/distance | High       |
+| Wind effect inference   | Pace-power discrepancy  | Medium     |
+| Terrain effect          | Pace variability        | Medium     |
+| Accurate distance       | GPS measurement         | High       |
 
 #### 2.4.5 What CANNOT Be Identified at Tier 4
 
-| Limitation | Reason | Impact |
-|------------|--------|--------|
-| Indoor activities | GPS not functional | No benefit for gym/treadmill |
-| Strength training | GPS not applicable | No benefit |
-| Swimming | GPS underwater unreliable | Must use pool length counts |
-| Heat/humidity effects | Not captured | May underestimate hot weather effort |
+| Limitation            | Reason                    | Impact                               |
+| --------------------- | ------------------------- | ------------------------------------ |
+| Indoor activities     | GPS not functional        | No benefit for gym/treadmill         |
+| Strength training     | GPS not applicable        | No benefit                           |
+| Swimming              | GPS underwater unreliable | Must use pool length counts          |
+| Heat/humidity effects | Not captured              | May underestimate hot weather effort |
 
 ---
 
@@ -651,15 +651,15 @@ function calculateTier5Intensity(workoutFragments, allStreams, userHistory):
 
 #### 2.5.2 Feature Engineering for ML Model
 
-| Feature Category | Examples | Source |
-|-----------------|----------|--------|
-| **Workout Structure** | Duration, sets, reps, rounds | Fragments |
-| **Intensity Metrics** | Avg HR, power, pace | Streams |
-| **Distribution Metrics** | Time in zones, power variability | Streams |
-| **Fatigue Indicators** | HR drift, power decay | Streams |
-| **Historical Context** | Recent load, ACWR, recovery | History |
-| **Personal Factors** | Age, weight, fitness level, HRmax | Profile |
-| **Environmental** | Temperature, altitude (if available) | Context |
+| Feature Category         | Examples                             | Source    |
+| ------------------------ | ------------------------------------ | --------- |
+| **Workout Structure**    | Duration, sets, reps, rounds         | Fragments |
+| **Intensity Metrics**    | Avg HR, power, pace                  | Streams   |
+| **Distribution Metrics** | Time in zones, power variability     | Streams   |
+| **Fatigue Indicators**   | HR drift, power decay                | Streams   |
+| **Historical Context**   | Recent load, ACWR, recovery          | History   |
+| **Personal Factors**     | Age, weight, fitness level, HRmax    | Profile   |
+| **Environmental**        | Temperature, altitude (if available) | Context   |
 
 #### 2.5.3 Personal Physiological Model Components
 

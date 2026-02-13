@@ -1,14 +1,18 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
-import { Timer, Hash, Play } from 'lucide-react';
+import React, { useRef, useEffect, useMemo } from 'react';
+import { DocumentItem, parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
+import { detectWodBlocks } from '../../markdown-editor/utils/blockDetection';
+import { Hash, Play } from 'lucide-react';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { workbenchEventBus } from '../../services/WorkbenchEventBus';
+import type { HistoryEntry } from '@/types/history';
 
 export interface NotePreviewProps {
-    /** Document structure items to display */
-    items: DocumentItem[];
+    /** The workout entry to preview */
+    entry?: HistoryEntry;
+
+    /** Manual document structure items (optional fallback/override) */
+    items?: DocumentItem[];
 
     /** Currently active block ID (for sync) */
     activeBlockId?: string;
@@ -17,16 +21,19 @@ export interface NotePreviewProps {
     highlightedBlockId?: string | null;
 
     /** Callback when a block is clicked */
-    onBlockClick: (item: DocumentItem) => void;
+    onBlockClick?: (item: DocumentItem) => void;
 
     /** Callback when a block is hovered */
-    onBlockHover: (blockId: string | null) => void;
+    onBlockHover?: (blockId: string | null) => void;
 
     /** Action to start a specific workout block */
     onStartWorkout?: (blockId: string) => void;
 
-    /** Title of the note (optional) */
+    /** Title of the note (optional - defaults to entry.title) */
     title?: string;
+
+    /** Whether to auto-scroll to the active block */
+    autoScroll?: boolean;
 }
 
 const getBlockPreview = (content: string): string => {
@@ -39,50 +46,40 @@ const getBlockPreview = (content: string): string => {
 };
 
 export const NotePreview: React.FC<NotePreviewProps> = ({
-    items,
-    activeBlockId: propActiveBlockId,
+    entry,
+    items: propItems,
+    activeBlockId,
     highlightedBlockId,
     onBlockClick,
     onBlockHover,
     onStartWorkout,
-    title
+    title,
+    autoScroll = true
 }) => {
     const { isCompact: mobile } = usePanelSize();
     const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    const [activeBlockId, setActiveBlockId] = useState<string | undefined>(propActiveBlockId);
-
-    // Sync from props
-    useEffect(() => {
-        setActiveBlockId(propActiveBlockId);
-    }, [propActiveBlockId]);
-
-    // Subscribe to Event Bus
-    useEffect(() => {
-        const cleanup = workbenchEventBus.onHighlightBlock(({ blockId }) => {
-            setActiveBlockId(blockId);
-            if (itemRefs.current[blockId]) {
-                itemRefs.current[blockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        });
-        return () => { cleanup(); };
-    }, []);
+    // Derive document structure if entry is provided
+    const items = useMemo(() => {
+        if (propItems) return propItems;
+        if (!entry) return [];
+        const content = entry.rawContent;
+        const blocks = detectWodBlocks(content);
+        return parseDocumentStructure(content, blocks);
+    }, [entry, propItems]);
 
     // Filter out paragraphs to keep it clean like an index
     const filteredItems = items.filter(item => item.type !== 'paragraph');
 
     // Scroll to active block
     useEffect(() => {
-        if (activeBlockId && itemRefs.current[activeBlockId]) {
+        if (autoScroll && activeBlockId && itemRefs.current[activeBlockId]) {
             itemRefs.current[activeBlockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, [activeBlockId]);
+    }, [activeBlockId, autoScroll]);
 
     const handleItemClick = (item: DocumentItem) => {
-        // Emit event for Editor
-        workbenchEventBus.emitScrollToBlock(item.id, 'preview');
-        // Legacy callback
-        onBlockClick(item);
+        onBlockClick?.(item);
     };
 
     const handleStartClick = (e: React.MouseEvent, blockId: string) => {
@@ -90,18 +87,20 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
         onStartWorkout?.(blockId);
     };
 
+    const displayTitle = title || entry?.title || 'Preview';
+
     return (
         <div className={cn("h-full bg-background flex flex-col overflow-hidden", !mobile && "border-l border-border")}>
             {/* Header */}
             <div className={cn("border-b border-border flex-shrink-0 bg-muted/30 flex justify-between items-center", mobile ? "p-4" : "p-3")}>
-                <h3 className="font-semibold text-foreground truncate">{title || 'Preview'}</h3>
+                <h3 className="font-semibold text-foreground truncate">{displayTitle}</h3>
             </div>
 
             {/* Document Items List */}
             <div className={cn("flex-1 overflow-y-auto space-y-1", mobile ? "p-4" : "p-2")}>
                 {filteredItems.length === 0 ? (
                     <div className="p-4 text-sm text-muted-foreground text-center italic">
-                        {items.length === 0 ? "Empty document" : "No preview items"}
+                        {!entry && items.length === 0 ? "No workout selected" : "Empty document"}
                     </div>
                 ) : (
                     filteredItems.map((item) => {
@@ -122,8 +121,8 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                                     isWod ? "bg-card relative" : ""
                                 )}
                                 onClick={() => handleItemClick(item)}
-                                onMouseEnter={() => onBlockHover(item.id)}
-                                onMouseLeave={() => onBlockHover(null)}
+                                onMouseEnter={() => onBlockHover?.(item.id)}
+                                onMouseLeave={() => onBlockHover?.(null)}
                             >
                                 <div className={cn(
                                     "flex items-center gap-2",
@@ -132,7 +131,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                                 )}>
                                     <div className="flex-shrink-0 text-muted-foreground opacity-70">
                                         {item.type === 'header' && <Hash className="h-3.5 w-3.5" />}
-                                        {item.type === 'wod' && <Timer className="h-4 w-4" />}
+                                        {item.type === 'wod' && <Hash className="h-4 w-4" />}
                                     </div>
 
                                     <div className="flex-1 min-w-0">
@@ -176,3 +175,4 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
         </div>
     );
 };
+
