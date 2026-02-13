@@ -89,6 +89,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     selectBlock: _selectBlock,
     setContent,
     setViewMode,
+    saveState,
   } = useWorkbench();
 
   const { provider } = useWorkbench();
@@ -219,6 +220,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setCursorLine={setCursorLine}
       highlightedLine={highlightedLine}
       monacoTheme={monacoTheme}
+      saveState={saveState}
       {...editorProps}
     />
   );

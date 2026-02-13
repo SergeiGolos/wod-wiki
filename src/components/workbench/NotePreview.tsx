@@ -100,83 +100,84 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                     </h2>
                 </div>
 
-                {/* Content Card matching AnalyzePanel container style */}
-                <div className="flex-1 overflow-y-auto rounded-lg border border-border p-2 bg-card custom-scrollbar">
-                    {filteredItems.length === 0 ? (
-                        <div className="p-4 text-sm text-muted-foreground text-center italic">
-                            {!entry && items.length === 0 ? "No workout selected" : "Empty document"}
-                        </div>
-                    ) : (
-                        <div className="space-y-1">
-                            {filteredItems.map((item) => {
-                                const isActive = item.id === activeBlockId;
-                                const isHighlighted = item.id === highlightedBlockId;
-                                const isWod = item.type === 'wod';
+                <div className="flex-1 flex flex-col justify-center min-h-0">
+                    <div className="rounded-lg border border-border p-4 bg-card custom-scrollbar overflow-y-auto max-h-full w-full max-w-md mx-auto">
+                        {filteredItems.length === 0 ? (
+                            <div className="p-4 text-sm text-muted-foreground text-center italic">
+                                {!entry && items.length === 0 ? "No workout selected" : "Empty document"}
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                {filteredItems.map((item) => {
+                                    const isActive = item.id === activeBlockId;
+                                    const isHighlighted = item.id === highlightedBlockId;
+                                    const isWod = item.type === 'wod';
 
-                                return (
-                                    <div
-                                        key={item.id}
-                                        ref={(el) => { itemRefs.current[item.id] = el; }}
-                                        className={cn(
-                                            "rounded-md transition-all duration-200 cursor-pointer border-l-2 group",
-                                            isActive
-                                                ? "bg-accent/10 border-primary text-foreground ring-1 ring-primary/20"
-                                                : "border-transparent text-muted-foreground hover:bg-accent/5 hover:text-foreground",
-                                            isHighlighted && !isActive ? "bg-muted/50" : "",
-                                            isWod ? "bg-card relative" : ""
-                                        )}
-                                        onClick={() => handleItemClick(item)}
-                                        onMouseEnter={() => onBlockHover?.(item.id)}
-                                        onMouseLeave={() => onBlockHover?.(null)}
-                                    >
-                                        <div className={cn(
-                                            "flex items-center gap-2",
-                                            mobile ? "p-3" : "p-2",
-                                            isWod ? "min-h-[40px]" : "min-h-[28px]"
-                                        )}>
-                                            <div className="flex-shrink-0 text-muted-foreground opacity-70">
-                                                {item.type === 'header' && <Hash className="h-3.5 w-3.5" />}
-                                                {item.type === 'wod' && <Hash className="h-4 w-4" />}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                {item.type === 'header' && (
-                                                    <div className={cn(
-                                                        "font-medium truncate",
-                                                        item.level === 1 ? "text-sm" : "text-xs text-muted-foreground"
-                                                    )}>
-                                                        {item.content}
-                                                    </div>
-                                                )}
-
-                                                {item.type === 'wod' && (
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-medium truncate">
-                                                            {getBlockPreview(item.content)}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {isWod && onStartWorkout && (
-                                                <div className="pl-2">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-primary-foreground"
-                                                        onClick={(e) => handleStartClick(e, item.id)}
-                                                        title="Run this workout"
-                                                    >
-                                                        <Play className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            ref={(el) => { itemRefs.current[item.id] = el; }}
+                                            className={cn(
+                                                "rounded-md transition-all duration-200 cursor-pointer border-l-2 group",
+                                                isActive
+                                                    ? "bg-accent/10 border-primary text-foreground ring-1 ring-primary/20"
+                                                    : "border-transparent text-muted-foreground hover:bg-accent/5 hover:text-foreground",
+                                                isHighlighted && !isActive ? "bg-muted/50" : "",
+                                                isWod ? "bg-card relative" : ""
                                             )}
+                                            onClick={() => handleItemClick(item)}
+                                            onMouseEnter={() => onBlockHover?.(item.id)}
+                                            onMouseLeave={() => onBlockHover?.(null)}
+                                        >
+                                            <div className={cn(
+                                                "flex items-center gap-2",
+                                                mobile ? "p-3" : "p-2",
+                                                isWod ? "min-h-[40px]" : "min-h-[28px]"
+                                            )}>
+                                                <div className="flex-shrink-0 text-muted-foreground opacity-70">
+                                                    {item.type === 'header' && <Hash className="h-3.5 w-3.5" />}
+                                                    {item.type === 'wod' && <Hash className="h-4 w-4" />}
+                                                </div>
+
+                                                <div className="flex-1 min-w-0">
+                                                    {item.type === 'header' && (
+                                                        <div className={cn(
+                                                            "font-medium truncate",
+                                                            item.level === 1 ? "text-sm" : "text-xs text-muted-foreground"
+                                                        )}>
+                                                            {item.content}
+                                                        </div>
+                                                    )}
+
+                                                    {item.type === 'wod' && (
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-sm font-medium truncate">
+                                                                {getBlockPreview(item.content)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {isWod && onStartWorkout && (
+                                                    <div className="pl-2">
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-primary-foreground"
+                                                            onClick={(e) => handleStartClick(e, item.id)}
+                                                            title="Run this workout"
+                                                        >
+                                                            <Play className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

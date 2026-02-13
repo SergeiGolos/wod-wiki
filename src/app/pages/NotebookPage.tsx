@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Workbench } from '@/components/layout/Workbench';
-import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMemo } from 'react';
 import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';
@@ -8,15 +7,18 @@ import { PLAYGROUND_CONTENT, getDailyTitle, getDailyTemplate } from '@/constants
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { toNotebookTag } from '@/types/notebook';
 
-// Singleton instance to share state
-const provider = new LocalStorageContentProvider();
+import type { IContentProvider } from '@/types/content-provider';
+import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 
-export const NotebookPage: React.FC = () => {
+export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provider: propProvider }) => {
     const { id: routeId } = useParams<{ id: string }>();
     const [initialContent, setInitialContent] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
     const { activeNotebookId } = useNotebooks();
+
+    // Default to LocalStorage if not provided
+    const provider = useMemo(() => propProvider || new LocalStorageContentProvider(), [propProvider]);
 
     const navigate = useNavigate();
     const commandStrategy = useMemo(() => new WodNavigationStrategy(navigate), [navigate]);

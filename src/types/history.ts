@@ -11,7 +11,8 @@
  * - StripMode: Controls which views appear in the strip
  */
 
-import type { IOutputStatement } from '../core/models/OutputStatement';
+
+import type { WorkoutResults } from '../markdown-editor/types';
 
 /**
  * A stored workout entry in the history.
@@ -26,11 +27,8 @@ export interface HistoryEntry {
   rawContent: string;                  // Original markdown
 
   // Execution results (optional — present after completion)
-  results?: {
-    completedAt: number;
-    duration: number;                  // ms
-    logs: IOutputStatement[];
-  };
+  // Execution results (optional — present after completion)
+  results?: WorkoutResults;
 
   // Metadata
   tags: string[];

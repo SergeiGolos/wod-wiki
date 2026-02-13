@@ -6,6 +6,7 @@ import { ListFilter } from '@/components/workbench/ListFilter';
 import { ListOfNotes } from '@/components/workbench/ListOfNotes';
 import { NotePreview } from '@/components/workbench/NotePreview';
 import { AnalyzePanel } from '@/components/workbench/AnalyzePanel';
+import type { IContentProvider } from '@/types/content-provider';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
@@ -19,15 +20,20 @@ import { WodNavigationStrategy } from '@/components/command-palette/strategies/W
 import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
+
 import type { PanelSpan } from '@/components/layout/panel-system/types';
 import { NotebookMenu } from '@/components/notebook/NotebookMenu';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
 
-const provider = new LocalStorageContentProvider();
 
-const HistoryContent: React.FC = () => {
+
+interface HistoryContentProps {
+    provider: IContentProvider;
+}
+
+const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Parse initial calendar date from URL 'month' param
@@ -444,11 +450,14 @@ const HistoryContent: React.FC = () => {
     );
 };
 
-export const HistoryPage: React.FC = () => {
+export const HistoryPage: React.FC<{ provider?: IContentProvider }> = ({ provider }) => {
+    // Default to LocalStorageContentProvider for now if not provided (backward compat during refactor)
+    // In next step, App.tsx will provide IndexedDBContentProvider
+    const activeProvider = useMemo(() => provider || new LocalStorageContentProvider(), [provider]);
     return (
         <ThemeProvider defaultTheme="system" storageKey="wod-wiki-theme">
             <CommandProvider>
-                <HistoryContent />
+                <HistoryContent provider={activeProvider} />
             </CommandProvider>
         </ThemeProvider>
     );

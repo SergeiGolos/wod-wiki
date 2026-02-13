@@ -10,6 +10,8 @@ import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection'
 import { StaticContentProvider } from '../../services/content/StaticContentProvider';
 import { getWodContent } from '../../app/wod-loader';
 import { toNotebookTag } from '../../types/notebook';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useRef } from 'react';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -24,11 +26,16 @@ import { toNotebookTag } from '../../types/notebook';
  * Components needing runtime should use useRuntime() from RuntimeProvider.
  */
 
+export type SaveState = 'idle' | 'changed' | 'saving' | 'saved' | 'error';
+
 interface WorkbenchContextState {
   // Document State
   content: string;
   blocks: WodBlock[];
   activeBlockId: string | null; // Cursor location
+
+  // Save State
+  saveState: SaveState;
 
   // Execution State
   selectedBlockId: string | null; // Target for execution
@@ -108,9 +115,79 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Document State
   const [content, setContent] = useState(propInitialContent);
+  const contentRef = useRef(content);
+  useEffect(() => { contentRef.current = content; }, [content]);
+
+  const debouncedContent = useDebounce(content, 5000); // 5s debounce
+  const lastSavedContent = useRef(propInitialContent);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
 
   // History selection (only active when mode='history')
   const historySelectionHook = useHistorySelection();
+
+  // Detect content changes (immediate)
+  useEffect(() => {
+    if (provider.capabilities.canWrite && routeId && content !== lastSavedContent.current && saveState === 'idle') {
+      setSaveState('changed');
+    }
+  }, [content, lastSavedContent, provider, routeId, saveState]);
+
+  // Auto-save effect
+  useEffect(() => {
+    // Only auto-save if we have an ID (existing note) and content changed
+    // Use activeEntryId if available as it's the resolved full UUID
+    const targetId = historySelectionHook.activeEntryId || routeId;
+
+    if (provider.capabilities.canWrite && targetId && debouncedContent !== lastSavedContent.current) {
+      const titleMatch = debouncedContent.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
+
+      console.log(`[WorkbenchContext] Auto-saving content for ${targetId}...`);
+      setSaveState('saving');
+
+      provider.updateEntry(targetId, {
+        rawContent: debouncedContent,
+        title: title
+      }).then(() => {
+        lastSavedContent.current = debouncedContent;
+        console.log('[WorkbenchContext] Auto-save complete');
+        setSaveState('saved');
+        setTimeout(() => setSaveState('idle'), 3000);
+      }).catch(err => {
+        console.error('[WorkbenchContext] Auto-save failed:', err);
+        setSaveState('error');
+      });
+    }
+  }, [debouncedContent, provider, routeId, historySelectionHook.activeEntryId]);
+
+  // Save on unmount if dirty (Flush pending changes)
+  useEffect(() => {
+    return () => {
+      const targetId = historySelectionHook.activeEntryId || routeId;
+      if (provider.capabilities.canWrite && targetId && contentRef.current !== lastSavedContent.current) {
+        console.log(`[WorkbenchContext] Flushing final save for ${targetId}...`);
+        const titleMatch = contentRef.current.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
+
+        provider.updateEntry(targetId, {
+          rawContent: contentRef.current,
+          title: title
+        }).catch(err => console.error('[WorkbenchContext] Final flush failed:', err));
+      }
+    };
+  }, [provider, routeId]); // Dependencies are intentionally minimal to allow cleanup to use latest refs
+
+  // Browser-level exit protection
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (contentRef.current !== lastSavedContent.current) {
+        e.preventDefault();
+        e.returnValue = ''; // Shows the "uncommitted changes" browser dialog
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // Sync content when ID changes or propInitialContent changes
   useEffect(() => {
@@ -118,9 +195,14 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       if (routeId) {
         if (provider.mode === 'history') {
           try {
+            console.log(`[WorkbenchProvider] Attempting to load entry for ID: ${routeId}`);
             const entry = await provider.getEntry(routeId);
             if (entry) {
+              console.log(`[WorkbenchProvider] Successfully loaded entry: ${entry.title} (${entry.id})`);
               setContent(entry.rawContent);
+              lastSavedContent.current = entry.rawContent; // Sync ref so we don't auto-save immediately
+              setSaveState('idle'); // Reset any lingering save state
+
               // Ensure visual selection matches the resolved entry.
               // Supports friendly name routes like /note/annie/plan.
               historySelectionHook.openEntry(entry.id);
@@ -248,6 +330,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     setResults(prev => [...prev, result]);
     setViewMode('review');
 
+    // Explicitly set saved state if we successfully save below
+    // (Actual save logic handles promise)
+
     // Auto-save if provider supports writing
     if (provider.capabilities.canWrite) {
       const titleMatch = content.match(/^#\s+(.+)$/m);
@@ -256,11 +341,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       const payload = {
         title,
         rawContent: content,
-        results: {
-          completedAt: result.endTime,
-          duration: result.duration,
-          logs: [],
-        },
+        results: result // Pass full result object
       };
 
       if (routeId) {
@@ -331,6 +412,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     selectedBlockId,
     viewMode,
     results,
+    saveState,
     panelLayouts,
     provider,
     contentMode: resolvedMode,
@@ -354,6 +436,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     selectedBlockId,
     viewMode,
     results,
+    saveState,
     panelLayouts,
     provider,
     resolvedMode,

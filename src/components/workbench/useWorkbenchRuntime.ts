@@ -55,6 +55,28 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
         }
     }, [runtime]);
 
+    // Save partial results on unmount if workout is still running/paused
+    useEffect(() => {
+        return () => {
+            // Check current execution status from the hook's scope (using refs or direct)
+            // Since execution is a proxy/state from another hook, we need to be careful.
+            // But execution.status/startTime/elapsedTime should be available in the closure for cleanup.
+
+            const isFinishing = execution.status === 'running' || execution.status === 'paused';
+            if (isFinishing && execution.startTime) {
+                console.log('[useWorkbenchRuntime] Saving partial workout results on unmount');
+                completeWorkout({
+                    startTime: execution.startTime,
+                    endTime: Date.now(),
+                    duration: execution.elapsedTime,
+                    metrics: [],
+                    completed: false // Explicitly marked as partial
+                });
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [completeWorkout]); // Minimal deps to ensure it runs on unmount with final values in closure
+
     // Initialize runtime when entering track view with selected block
     // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock
     // This hook just provides the callbacks and state
