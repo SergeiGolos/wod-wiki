@@ -31,12 +31,6 @@ export interface PanelDescriptor {
   /** Unique identifier for this panel */
   id: string;
 
-  /** Display title for panel header */
-  title: string;
-
-  /** Optional icon to display in panel header */
-  icon?: React.ReactNode;
-
   /** Default span when panel is not expanded */
   defaultSpan: PanelSpan;
 

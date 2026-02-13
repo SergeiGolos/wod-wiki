@@ -230,8 +230,7 @@ const HistoryContent: React.FC = () => {
                 <PanelGrid
                     panels={historyView.panels}
                     layoutState={layoutState}
-                    onExpandPanel={() => { }}
-                    onCollapsePanel={() => { }}
+
                     className="h-full"
                 />
             </div>

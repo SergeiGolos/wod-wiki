@@ -23,9 +23,8 @@ export function createPlanView(planPanel: React.ReactNode): ViewDescriptor {
     panels: [
       {
         id: 'editor',
-        title: 'Editor',
-        icon: React.createElement(Edit, { className: 'w-4 h-4' }),
         defaultSpan: 3, // Full-screen
+
         content: planPanel,
       },
     ],
@@ -52,16 +51,14 @@ export function createTrackView(
     panels: [
       {
         id: 'timer',
-        title: 'Timer',
-        icon: React.createElement(Timer, { className: 'w-4 h-4' }),
         defaultSpan: 2, // 2/3 width
+
         content: timerPanel,
       },
       {
         id: isDebugMode ? 'debug' : 'history',
-        title: isDebugMode ? 'Debug' : 'History',
-        icon: React.createElement(Timer, { className: 'w-4 h-4' }),
         defaultSpan: 1, // 1/3 width
+
         content: isDebugMode && debugPanel ? debugPanel : historyPanel,
         hideOnMobile: true, // Embedded in timer panel on mobile
       },
@@ -87,16 +84,14 @@ export function createReviewView(
     panels: [
       {
         id: 'analytics-index',
-        title: 'History',
-        icon: React.createElement(BarChart2, { className: 'w-4 h-4' }),
         defaultSpan: 1, // 1/3 width
+
         content: indexPanel,
       },
       {
         id: 'timeline',
-        title: 'Timeline',
-        icon: React.createElement(BarChart2, { className: 'w-4 h-4' }),
         defaultSpan: 2, // 2/3 width
+
         content: timelinePanel,
       },
     ],
@@ -136,16 +131,14 @@ export function createHistoryView(
   const panels: PanelDescriptor[] = [
     {
       id: 'history-filter',
-      title: 'Filter',
-      icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
       defaultSpan: 1,
+
       content: filterPanel,
     },
     {
       id: 'history-list',
-      title: 'Workouts',
-      icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
       defaultSpan: (previewPanel ? 1 : 2) as PanelSpan,
+
       content: listPanel,
     }
   ];
@@ -153,9 +146,8 @@ export function createHistoryView(
   if (previewPanel) {
     panels.push({
       id: 'history-preview',
-      title: 'Preview',
-      icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
       defaultSpan: 1,
+
       content: previewPanel,
       hideOnMobile: true,
     });
@@ -182,9 +174,8 @@ export function createAnalyzeView(analyzePanel: React.ReactNode): ViewDescriptor
     panels: [
       {
         id: 'analyze-main',
-        title: 'Analyze',
-        icon: React.createElement(BarChart3, { className: 'w-4 h-4' }),
         defaultSpan: 3,
+
         content: analyzePanel,
       },
     ],

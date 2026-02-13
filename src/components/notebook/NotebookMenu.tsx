@@ -10,8 +10,9 @@
  */
 
 import React, { useState } from 'react';
-import { BookOpen, Check, Plus, X } from 'lucide-react';
+import { BookOpen, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -80,13 +81,10 @@ export const NotebookMenu: React.FC<NotebookMenuProps> = ({
                             setMenuOpen(false);
                             navigate('/');
                         }}
-                        className="gap-2"
+                        className={cn("gap-2", activeNotebookId === null && "bg-accent text-accent-foreground")}
                     >
                         <span className="w-5 text-center">📚</span>
                         <span className="flex-1">All Workouts</span>
-                        {activeNotebookId === null && (
-                            <Check className="h-4 w-4 text-primary" />
-                        )}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
@@ -106,17 +104,12 @@ export const NotebookMenu: React.FC<NotebookMenuProps> = ({
                                     }
                                     navigate('/');
                                 }}
-                                className="gap-2 group"
+                                className={cn("gap-2 group", isActive && "bg-accent text-accent-foreground")}
                             >
                                 <span className="w-5 text-center">{nb.icon}</span>
                                 <span className="flex-1 truncate">
                                     {nb.name}
                                 </span>
-
-                                {/* Active checkmark */}
-                                {isActive && (
-                                    <Check className="h-4 w-4 text-primary shrink-0" />
-                                )}
 
                                 {/* Entry toggle (+/×) — shown only when entry context is provided */}
                                 {hasEntryContext && (
@@ -161,7 +154,7 @@ export const NotebookMenu: React.FC<NotebookMenuProps> = ({
                         <span>New Notebook</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu >
 
             <CreateNotebookDialog
                 open={showCreate}

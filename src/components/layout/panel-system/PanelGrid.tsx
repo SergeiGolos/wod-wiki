@@ -17,11 +17,6 @@ export interface PanelGridProps {
   /** Current layout state */
   layoutState: PanelLayoutState;
 
-  /** Callback to expand a panel */
-  onExpandPanel: (panelId: string) => void;
-
-  /** Callback to collapse the expanded panel */
-  onCollapsePanel: () => void;
 
   /** Additional CSS classes */
   className?: string;
@@ -74,8 +69,7 @@ function getPanelFlexValue(
 export function PanelGrid({
   panels,
   layoutState,
-  onExpandPanel,
-  onCollapsePanel,
+
   className,
 }: PanelGridProps) {
   const screenMode = useScreenMode();
@@ -107,10 +101,6 @@ export function PanelGrid({
         // Calculate flex value
         const flexValue = getPanelFlexValue(currentSpan, screenMode, isExpanded);
 
-        // Hide the PanelShell header when this is the only panel in view
-        // (expand/collapse has no meaning and title is redundant with the view tab)
-        const isSolePanel = visiblePanels.length === 1;
-
         return (
           <div
             key={panel.id}
@@ -128,20 +118,15 @@ export function PanelGrid({
           >
             <PanelShell
               id={panel.id}
-              title={panel.title}
-              icon={panel.icon}
               span={currentSpan}
               isExpanded={isExpanded}
-              onExpand={() => onExpandPanel(panel.id)}
-              onCollapse={onCollapsePanel}
               className="h-full"
-              hideHeader={isSolePanel}
             >
               {panel.content}
             </PanelShell>
           </div>
         );
       })}
-    </div>
+    </div >
   );
 }

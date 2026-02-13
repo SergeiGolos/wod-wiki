@@ -35,11 +35,7 @@ export interface ResponsiveViewportProps {
   /** Panel layout state from WorkbenchContext */
   panelLayouts: Record<string, any>;
 
-  /** Expand panel callback */
-  onExpandPanel: (viewId: string, panelId: string) => void;
 
-  /** Collapse panel callback */
-  onCollapsePanel: (viewId: string) => void;
 
   /** Additional CSS classes */
   className?: string;
@@ -59,8 +55,7 @@ export function ResponsiveViewport({
   currentView,
   onViewChange,
   panelLayouts,
-  onExpandPanel,
-  onCollapsePanel,
+
   className,
 }: ResponsiveViewportProps) {
   // Find current view index (for keyboard navigation)
@@ -127,8 +122,7 @@ export function ResponsiveViewport({
             <PanelGrid
               panels={view.panels}
               layoutState={layoutState}
-              onExpandPanel={(panelId) => onExpandPanel(view.id, panelId)}
-              onCollapsePanel={() => onCollapsePanel(view.id)}
+
               className="h-full"
             />
           </div>

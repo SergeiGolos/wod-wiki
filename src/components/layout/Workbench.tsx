@@ -89,8 +89,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     selectBlock: _selectBlock,
     setContent,
     setViewMode,
-    expandPanel,
-    collapsePanel,
   } = useWorkbench();
 
   const { provider } = useWorkbench();
@@ -418,8 +416,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             currentView={viewMode}
             onViewChange={setViewMode}
             panelLayouts={panelLayouts}
-            onExpandPanel={expandPanel}
-            onCollapsePanel={collapsePanel}
           />
         </div>
       </div >
