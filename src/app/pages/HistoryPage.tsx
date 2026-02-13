@@ -45,7 +45,7 @@ const HistoryContent: React.FC = () => {
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
     const [isMobile, setIsMobile] = useState(false);
     const { setIsOpen, setStrategy } = useCommandPalette();
-    const { activeNotebookId, activeNotebook, setActiveNotebook } = useNotebooks();
+    const { activeNotebookId, activeNotebook, setActiveNotebook, notebooks } = useNotebooks();
 
     // Filter State
     type FilterMode = 'month' | 'list' | 'range';
@@ -235,7 +235,7 @@ const HistoryContent: React.FC = () => {
         return new Set<string>();
     }, [filterMode, customDates, dateRange]);
 
-    const { createNewEntry, canCreate } = useCreateWorkoutEntry({
+    const { createNewEntry } = useCreateWorkoutEntry({
         provider,
         historySelection,
         setHistoryEntries,
@@ -250,10 +250,10 @@ const HistoryContent: React.FC = () => {
 
 
     const selectedEntries = useMemo(() => {
-        return filteredEntries.filter(e => historySelection.selectedIds.has(e.id));
-    }, [filteredEntries, historySelection.selectedIds]);
+        // Selection persists across filters, so check against ALL history entries
+        return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
+    }, [historyEntries, historySelection.selectedIds]);
 
-    const stripMode = historySelection.stripMode;
     const notebookLabel = activeNotebook ? activeNotebook.name : 'All Workouts';
 
     // Handle notebook tag toggling on entries
@@ -284,8 +284,20 @@ const HistoryContent: React.FC = () => {
                         selectedIds={historySelection.selectedIds}
                         onSelectAll={() => historySelection.selectAll(filteredEntries.map(e => e.id))}
                         onClearSelection={historySelection.clearSelection}
-                        onCreateNewEntry={createEntryInNotebook}
-                        canCreate={canCreate}
+                        notebooks={notebooks}
+                        activeNotebookId={activeNotebookId}
+                        onNotebookSelect={setActiveNotebook}
+                        onResetFilters={() => {
+                            setActiveNotebook(null);
+                            setFilterMode('month');
+                            setCustomDates(new Set());
+                            setDateRange(null);
+                            historySelection.setCalendarDate(new Date()); // Reset calendar to today too? User said "reset everything to full view".
+                            // Usually full view implies default view which is today's month.
+                            // But maybe current month is fine.
+                            // I'll stick to clearing filters for now, keeping current calendar view unless user wants "Home".
+                            // User said "reset everything to full view". Maybe just clear filters.
+                        }}
                         className="p-0"
                         compact={true}
                     />
@@ -310,14 +322,19 @@ const HistoryContent: React.FC = () => {
     );
 
     const previewPanel = useMemo(() => {
+        // Case 1: No explicit selection -> Analyze ALL visible (filtered) entries (default view)
         if (selectedEntries.length === 0) {
-            return null;
+            if (filteredEntries.length === 0) return null;
+            return <AnalyzePanel selectedEntries={filteredEntries} />;
         }
-        if (stripMode === 'multi-select' && selectedEntries.length >= 2) {
+
+        // Case 2: Multi-selection -> Analyze SELECTED entries
+        if (selectedEntries.length >= 2) {
             return <AnalyzePanel selectedEntries={selectedEntries} />;
         }
-        const entryToShow = selectedEntries.length > 0 ? selectedEntries[selectedEntries.length - 1] : null;
 
+        // Case 3: Single selection -> Preview
+        const entryToShow = selectedEntries[0];
         if (!entryToShow) return null;
 
         return (
@@ -328,7 +345,7 @@ const HistoryContent: React.FC = () => {
                 }}
             />
         );
-    }, [stripMode, selectedEntries, navigate]);
+    }, [selectedEntries, filteredEntries, navigate]);
 
     // Used updated viewDescriptors which expects (mainPanel, previewPanel)
     const historyView = createHistoryView(

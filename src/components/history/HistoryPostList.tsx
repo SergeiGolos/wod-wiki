@@ -83,6 +83,10 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
           <button
             key={entry.id}
             onClick={() => onOpen ? onOpen(entry.id) : onToggle(entry.id)}
+            onDoubleClick={(e) => {
+              e.preventDefault(); // Prevent text selection
+              if (onEdit) onEdit(entry.id);
+            }}
             className={cn(
               'w-full text-left px-3 py-2 transition-colors',
               'hover:bg-muted/50',
@@ -90,24 +94,18 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
               isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
             )}
           >
-            <div className="flex items-start gap-2">
-              {/* Checkbox — clicking stops propagation to row, toggles selection */}
-              <div
-                role="checkbox"
-                aria-checked={isSelected}
-                onClick={(e) => { e.stopPropagation(); onToggle(entry.id); }}
-                className={cn(
-                  'mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
-                  isSelected
-                    ? 'bg-primary border-primary text-primary-foreground'
-                    : 'border-muted-foreground/40 hover:border-primary/60',
-                )}>
-                {isSelected && (
-                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </div>
+            <div className="flex items-start gap-3">
+              {/* Edit button - Left side */}
+              {onEdit && (
+                <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => onEdit(entry.id)}
+                    className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {/* Content */}
               <div className="flex-1 min-w-0">
@@ -147,29 +145,38 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                 )}
               </div>
 
-              {/* Add to Notebook button */}
-              {onNotebookToggle && (
-                <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-                  <AddToNotebookButton
-                    entryTags={entry.tags}
-                    onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
-                    variant="icon"
-                    className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
-                  />
-                </div>
-              )}
+              {/* Right Side: Notebook Button + Checkbox */}
+              <div className="flex items-center gap-2 mt-0.5">
+                {/* Add to Notebook button */}
+                {onNotebookToggle && (
+                  <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    <AddToNotebookButton
+                      entryTags={entry.tags}
+                      onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
+                      variant="icon"
+                      className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
+                    />
+                  </div>
+                )}
 
-              {/* Edit button */}
-              {onEdit && (
-                <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => onEdit(entry.id)}
-                    className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
+                {/* Checkbox */}
+                <div
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  onClick={(e) => { e.stopPropagation(); onToggle(entry.id); }}
+                  className={cn(
+                    'w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
+                    isSelected
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : 'border-muted-foreground/40 hover:border-primary/60',
+                  )}>
+                  {isSelected && (
+                    <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </button>
         );
