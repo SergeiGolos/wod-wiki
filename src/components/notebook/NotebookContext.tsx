@@ -12,6 +12,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import type { Notebook } from '../../types/notebook';
 import { toNotebookTag, fromNotebookTag } from '../../types/notebook';
 import { notebookService } from '../../services/NotebookService';
+import { matchesId } from '../../lib/idUtils';
 
 interface NotebookContextState {
     notebooks: Notebook[];
@@ -65,10 +66,22 @@ export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) 
     }, []);
 
     const setActiveNotebook = useCallback((id: string | null) => {
-        notebookService.setActiveId(id);
-        setActiveNotebookIdState(id);
+        // Resolve potentially short ID to full ID
+        let targetId = id;
         if (id) {
-            notebookService.touchNotebook(id);
+            // We fetch fresh list to ensure resolution is correct
+            // (State 'notebooks' might be slightly stale if update hasn't propagated)
+            const all = notebookService.getAll();
+            const match = all.find(n => matchesId(n.id, id));
+            if (match) {
+                targetId = match.id;
+            }
+        }
+
+        notebookService.setActiveId(targetId);
+        setActiveNotebookIdState(targetId);
+        if (targetId) {
+            notebookService.touchNotebook(targetId);
             refreshNotebooks();
         }
     }, [refreshNotebooks]);

@@ -20,11 +20,11 @@ export interface CalendarWidgetProps {
   /** Callback when month changes */
   onDateChange: (date: Date) => void;
   /** Callback when a specific date is selected */
-  onDateSelect?: (date: Date) => void;
+  onDateSelect?: (date: Date, modifiers: { shiftKey: boolean; ctrlKey: boolean }) => void;
   /** Dates that have entries (highlighted) */
   entryDates?: Set<string>; // ISO date strings (YYYY-MM-DD)
-  /** Currently selected/filtered date */
-  selectedDate?: Date | null;
+  /** Currently selected/filtered dates */
+  selectedDates?: Set<string>;
   /** Compact mode for narrow layouts */
   compact?: boolean;
 }
@@ -50,7 +50,7 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = ({
   onDateChange,
   onDateSelect,
   entryDates = new Set(),
-  selectedDate,
+  selectedDates = new Set(),
   compact: compactProp = false,
 }) => {
   const { isCompact: containerCompact } = usePanelSize();
@@ -74,10 +74,6 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = ({
 
     return days;
   }, [year, month]);
-
-  const selectedDateKey = selectedDate
-    ? formatDateKey(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
-    : null;
 
   const prevMonth = () => {
     onDateChange(new Date(year, month - 1, 1));
@@ -133,7 +129,7 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = ({
 
           const dateKey = formatDateKey(year, month, day);
           const hasEntry = entryDates.has(dateKey);
-          const isSelected = dateKey === selectedDateKey;
+          const isSelected = selectedDates.has(dateKey);
           const isToday =
             day === new Date().getDate() &&
             month === new Date().getMonth() &&
@@ -142,17 +138,22 @@ export const CalendarWidget: React.FC<CalendarWidgetProps> = ({
           return (
             <button
               key={dateKey}
-              onClick={() => onDateSelect?.(new Date(year, month, day))}
+              onClick={(e) => onDateSelect?.(new Date(year, month, day), { shiftKey: e.shiftKey, ctrlKey: e.ctrlKey || e.metaKey })}
               className={cn(
                 'aspect-square flex items-center justify-center rounded transition-colors',
                 compact ? 'text-[10px]' : 'text-xs',
-                hasEntry
-                  ? 'font-bold text-foreground'
-                  : 'text-muted-foreground',
-                isSelected && 'bg-primary text-primary-foreground',
-                !isSelected && hasEntry && 'hover:bg-muted',
-                !isSelected && !hasEntry && 'hover:bg-muted/50',
-                isToday && !isSelected && 'ring-1 ring-primary/50',
+
+                // Text styling
+                isToday
+                  ? 'font-bold text-primary'
+                  : hasEntry
+                    ? 'font-bold text-foreground'
+                    : 'text-muted-foreground',
+
+                // Selection (outline + light bg) vs Hover
+                isSelected
+                  ? 'ring-1 ring-primary bg-primary/10'
+                  : (hasEntry ? 'hover:bg-muted' : 'hover:bg-muted/50'),
               )}
               aria-label={`${day} ${monthLabel}${hasEntry ? ' (has entries)' : ''}`}
             >

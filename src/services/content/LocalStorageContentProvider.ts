@@ -8,6 +8,7 @@
 
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
+import { matchesId } from '../../lib/idUtils';
 
 const KEY_PREFIX = 'wodwiki:history:';
 const SCHEMA_VERSION = 1;
@@ -91,10 +92,11 @@ export class LocalStorageContentProvider implements IContentProvider {
         if (parsed.id && typeof parsed.createdAt === 'number') return parsed;
       }
 
-      // 2. Fallback: Search by "name" (title) matches
-      // This supports friendly URLs like /note/annie/plan
+      // 2. Fallback: Search by "name" (title) matches OR short ID
+      // This supports friendly URLs like /note/annie/plan or short UUIDs
       const allEntries = await this.getEntries();
       const match = allEntries.find(e =>
+        matchesId(e.id, id) ||
         e.title.toLowerCase() === id.toLowerCase() ||
         e.title.toLowerCase().replace(/\s+/g, '-') === id.toLowerCase()
       );

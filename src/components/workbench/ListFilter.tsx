@@ -10,9 +10,11 @@ export interface ListFilterProps {
     /** Calendar date change handler */
     onCalendarDateChange: (date: Date) => void;
     /** Date filter handler */
-    onDateSelect?: (date: Date) => void;
+    onDateSelect?: (date: Date, modifiers: { shiftKey: boolean; ctrlKey: boolean }) => void;
     /** Dates that have entries */
     entryDates: Set<string>;
+    /** Selected dates for filtering */
+    selectedDates?: Set<string>;
 
     /** Optional actions to render in the filter sidebar */
     className?: string;
@@ -36,6 +38,7 @@ export const ListFilter: React.FC<ListFilterProps> = ({
     onCalendarDateChange,
     onDateSelect,
     entryDates,
+    selectedDates,
     className,
     compact = false,
     selectedIds,
@@ -51,6 +54,7 @@ export const ListFilter: React.FC<ListFilterProps> = ({
                 onDateChange={onCalendarDateChange}
                 onDateSelect={onDateSelect}
                 entryDates={entryDates}
+                selectedDates={selectedDates}
                 compact={compact}
             />
 

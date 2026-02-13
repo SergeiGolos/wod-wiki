@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Edit2 } from 'lucide-react';
 import type { HistoryEntry } from '@/types/history';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 
@@ -28,6 +29,8 @@ export interface HistoryPostListProps {
   enriched?: boolean;
   /** Callback when notebook tag is toggled on an entry */
   onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
+  /** Edit entry callback (pencil icon) */
+  onEdit?: (id: string) => void;
 }
 
 function formatDuration(ms: number): string {
@@ -60,6 +63,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   activeEntryId,
   enriched = false,
   onNotebookToggle,
+  onEdit,
 }) => {
   if (entries.length === 0) {
     return (
@@ -152,6 +156,18 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                     variant="icon"
                     className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
                   />
+                </div>
+              )}
+
+              {/* Edit button */}
+              {onEdit && (
+                <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => onEdit(entry.id)}
+                    className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
             </div>

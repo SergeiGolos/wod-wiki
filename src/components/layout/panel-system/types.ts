@@ -13,7 +13,7 @@ import React from 'react';
  * - 2 = 2/3 width (primary content panel)
  * - 3 = Full width (expanded or single-panel view)
  */
-export type PanelSpan = 1 | 2 | 3;
+export type PanelSpan = number;
 
 /**
  * Screen mode based on viewport width

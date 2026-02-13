@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PanelGrid } from '@/components/layout/panel-system/PanelGrid';
 import { createHistoryView } from '@/components/layout/panel-system/viewDescriptors';
 import { ListFilter } from '@/components/workbench/ListFilter';
@@ -23,16 +23,53 @@ import type { PanelSpan } from '@/components/layout/panel-system/types';
 import { NotebookMenu } from '@/components/notebook/NotebookMenu';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { toNotebookTag } from '@/types/notebook';
+import { toShortId } from '@/lib/idUtils';
 
 const provider = new LocalStorageContentProvider();
 
 const HistoryContent: React.FC = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    // Parse initial calendar date from URL 'month' param
+    const initialCalendarDate = useMemo(() => {
+        const monthParam = searchParams.get('month'); // YYYY-MM
+        if (monthParam && /^\d{4}-\d{2}$/.test(monthParam)) {
+            const [y, m] = monthParam.split('-').map(Number);
+            return new Date(y, m - 1, 1);
+        }
+        return undefined; // useHistorySelection defaults to new Date()
+    }, []); // Empty dependency array to only run once on mount
+
+    const historySelection = useHistorySelection(null, initialCalendarDate);
     const navigate = useNavigate();
-    const historySelection = useHistorySelection();
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
     const [isMobile, setIsMobile] = useState(false);
     const { setIsOpen, setStrategy } = useCommandPalette();
-    const { activeNotebookId, activeNotebook } = useNotebooks();
+    const { activeNotebookId, activeNotebook, setActiveNotebook } = useNotebooks();
+
+    // Filter State
+    type FilterMode = 'month' | 'list' | 'range';
+    const [filterMode, setFilterMode] = useState<FilterMode>(() => {
+        if (searchParams.has('range')) return 'range';
+        if (searchParams.has('dates')) return 'list';
+        return 'month';
+    });
+
+    const [customDates, setCustomDates] = useState<Set<string>>(() => {
+        const datesParam = searchParams.get('dates');
+        return datesParam ? new Set(datesParam.split(',')) : new Set();
+    });
+
+    const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(() => {
+        const rangeParam = searchParams.get('range');
+        if (rangeParam) {
+            const [start, end] = rangeParam.split(',');
+            return { start, end };
+        }
+        return null;
+    });
+
+    const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
     const commandStrategy = useMemo(() => new WodNavigationStrategy(navigate), [navigate]);
 
@@ -47,60 +84,177 @@ const HistoryContent: React.FC = () => {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // Sync Notebook with URL
+    useEffect(() => {
+        const notebookParam = searchParams.get('notebook');
+        if (notebookParam !== activeNotebookId) {
+            setActiveNotebook(notebookParam || null);
+        }
+    }, [searchParams, setActiveNotebook]);
+
+    // Sync URL with Filter State
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams);
+
+        // Notebook
+        if (activeNotebookId) {
+            params.set('notebook', toShortId(activeNotebookId));
+        } else {
+            params.delete('notebook');
+        }
+
+        // Dates
+        if (filterMode === 'list' && customDates.size > 0) {
+            params.set('dates', Array.from(customDates).sort().join(','));
+            params.delete('range');
+            params.delete('month');
+        } else if (filterMode === 'range' && dateRange) {
+            params.set('range', `${dateRange.start},${dateRange.end}`);
+            params.delete('dates');
+            params.delete('month');
+        } else {
+            // 'month' mode (default)
+            params.delete('dates');
+            params.delete('range');
+
+            // Sync calendar month to URL
+            // Format: YYYY-MM
+            const d = historySelection.calendarDate;
+            const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+            // Optional: Don't set if it's current month? 
+            // User said: "going back and forth between month... doesn't update the filter in the URL".
+            // Implies they want it updated.
+            params.set('month', monthStr);
+        }
+
+        setSearchParams(params, { replace: true });
+    }, [activeNotebookId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
+
+    // Calendar Date Selection Handler
+    const handleDateSelect = useCallback((date: Date, modifiers: { shiftKey: boolean; ctrlKey: boolean }) => {
+        const dateKey = date.toISOString().split('T')[0];
+        setLastClickedDate(date);
+
+        if (modifiers.shiftKey && lastClickedDate) {
+            // Range selection (Shift+Click)
+            const d1 = lastClickedDate < date ? lastClickedDate : date;
+            const d2 = lastClickedDate < date ? date : lastClickedDate;
+
+            setDateRange({
+                start: d1.toISOString().split('T')[0],
+                end: d2.toISOString().split('T')[0]
+            });
+            setFilterMode('range');
+            return;
+        }
+
+        if (modifiers.ctrlKey) {
+            // Toggle selection (Ctrl+Click) -> 'list' mode
+            setCustomDates(prev => {
+                const next = new Set(filterMode === 'list' ? prev : []);
+                if (next.has(dateKey)) {
+                    next.delete(dateKey);
+                } else {
+                    next.add(dateKey);
+                }
+                return next;
+            });
+            setFilterMode('list');
+            return;
+        }
+
+        // Simple Click -> Select Single Date ('list' mode of 1)
+        setCustomDates(new Set([dateKey]));
+        setFilterMode('list');
+    }, [lastClickedDate, filterMode]);
+
+    // Handle Month Change -> Reset to Month Mode
+    const handleCalendarDateChange = useCallback((date: Date) => {
+        historySelection.setCalendarDate(date);
+        setFilterMode('month');
+        // Clear specific selections when changing month to view that whole month
+        setCustomDates(new Set());
+        setDateRange(null);
+    }, [historySelection]);
+
     // Load entries
     useEffect(() => {
         provider.getEntries().then(setHistoryEntries);
     }, []);
 
-    // Filter entries by active notebook
+    // Filter Logic
     const filteredEntries = useMemo(() => {
-        if (!activeNotebookId) return historyEntries; // "All" mode
-        const tag = toNotebookTag(activeNotebookId);
-        return historyEntries.filter(e => e.tags.includes(tag));
-    }, [historyEntries, activeNotebookId]);
+        let entries = historyEntries;
+
+        // 1. Notebook Filter
+        if (activeNotebookId) {
+            const tag = toNotebookTag(activeNotebookId);
+            entries = entries.filter(e => e.tags.includes(tag));
+        }
+
+        // 2. Date Filter
+        if (filterMode === 'month') {
+            const year = historySelection.calendarDate.getFullYear();
+            const month = historySelection.calendarDate.getMonth();
+            entries = entries.filter(e => {
+                const d = new Date(e.updatedAt);
+                return d.getFullYear() === year && d.getMonth() === month;
+            });
+        } else if (filterMode === 'range' && dateRange) {
+            entries = entries.filter(e => {
+                const d = new Date(e.updatedAt).toISOString().split('T')[0];
+                return d >= dateRange.start && d <= dateRange.end;
+            });
+        } else if (filterMode === 'list') {
+            entries = entries.filter(e => {
+                const d = new Date(e.updatedAt).toISOString().split('T')[0];
+                return customDates.has(d);
+            });
+        }
+
+        return entries;
+    }, [historyEntries, activeNotebookId, filterMode, dateRange, customDates, historySelection.calendarDate]);
+
+    // Compute Selected Dates for Calendar Visuals
+    const visualSelectedDates = useMemo(() => {
+        if (filterMode === 'month') return undefined; // No highlight logic "if whole month... don't show selection"
+
+        if (filterMode === 'list') return customDates;
+
+        if (filterMode === 'range' && dateRange) {
+            const set = new Set<string>();
+            const current = new Date(dateRange.start);
+            const end = new Date(dateRange.end);
+            while (current <= end) {
+                set.add(current.toISOString().split('T')[0]);
+                current.setDate(current.getDate() + 1);
+            }
+            return set;
+        }
+        return new Set<string>();
+    }, [filterMode, customDates, dateRange]);
 
     const { createNewEntry, canCreate } = useCreateWorkoutEntry({
         provider,
         historySelection,
         setHistoryEntries,
-        setContent: () => { }, // No-op for standalone history view
+        setContent: () => { },
     });
 
-    // Wrap createNewEntry to auto-tag with active notebook
     const createEntryInNotebook = useCallback(async () => {
         await createNewEntry();
-        // After creation, reload entries so the new one shows up
         const entries = await provider.getEntries();
         setHistoryEntries(entries);
     }, [createNewEntry]);
 
-    const activeEntry = useMemo(() => {
-        return filteredEntries.find(e => e.id === historySelection.activeEntryId);
-    }, [filteredEntries, historySelection.activeEntryId]);
 
     const selectedEntries = useMemo(() => {
         return filteredEntries.filter(e => historySelection.selectedIds.has(e.id));
     }, [filteredEntries, historySelection.selectedIds]);
 
     const stripMode = historySelection.stripMode;
-
-    // Display label for active notebook
     const notebookLabel = activeNotebook ? activeNotebook.name : 'All Workouts';
-
-    // View Components
-    const filterPanel = (
-        <ListFilter
-            calendarDate={historySelection.calendarDate}
-            onCalendarDateChange={historySelection.setCalendarDate}
-            entryDates={new Set(filteredEntries.map(e => new Date(e.updatedAt).toISOString().split('T')[0]))}
-            selectedIds={historySelection.selectedIds}
-            onSelectAll={() => historySelection.selectAll(filteredEntries.map(e => e.id))}
-            onClearSelection={historySelection.clearSelection}
-            onCreateNewEntry={createEntryInNotebook}
-            canCreate={canCreate}
-            className="p-4"
-        />
-    );
 
     // Handle notebook tag toggling on entries
     const handleNotebookToggle = useCallback(async (entryId: string, notebookId: string, isAdding: boolean) => {
@@ -115,37 +269,70 @@ const HistoryContent: React.FC = () => {
         setHistoryEntries(entries);
     }, [historyEntries]);
 
-    const listPanel = (
-        <ListOfNotes
-            entries={filteredEntries}
-            selectedIds={historySelection.selectedIds}
-            onToggleEntry={historySelection.toggleEntry}
-            onOpenEntry={(id) => navigate(`/note/${id}/plan`)}
-            activeEntryId={historySelection.activeEntryId}
-            enriched={false}
-            onNotebookToggle={handleNotebookToggle}
-        />
+    // Combined Main Panel (Filter + List)
+    const mainPanel = (
+        <div className="flex h-full divide-x divide-border">
+            {/* Filter Sidebar */}
+            <div className="w-[280px] flex-shrink-0 bg-muted/10 h-full overflow-hidden flex flex-col">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                    <ListFilter
+                        calendarDate={historySelection.calendarDate}
+                        onCalendarDateChange={handleCalendarDateChange}
+                        entryDates={new Set(historyEntries.map(e => new Date(e.updatedAt).toISOString().split('T')[0]))}
+                        selectedDates={visualSelectedDates}
+                        onDateSelect={handleDateSelect}
+                        selectedIds={historySelection.selectedIds}
+                        onSelectAll={() => historySelection.selectAll(filteredEntries.map(e => e.id))}
+                        onClearSelection={historySelection.clearSelection}
+                        onCreateNewEntry={createEntryInNotebook}
+                        canCreate={canCreate}
+                        className="p-0"
+                        compact={true}
+                    />
+                </div>
+            </div>
+
+            {/* List Area */}
+            <div className="flex-1 min-w-0 bg-background h-full overflow-hidden flex flex-col">
+                <ListOfNotes
+                    entries={filteredEntries}
+                    selectedIds={historySelection.selectedIds}
+                    onToggleEntry={historySelection.toggleEntry}
+                    onOpenEntry={historySelection.toggleEntry}
+                    activeEntryId={historySelection.activeEntryId}
+                    enriched={false}
+                    onNotebookToggle={handleNotebookToggle}
+                    onEdit={(id) => navigate(`/note/${toShortId(id)}/plan`)}
+                    className="h-full overflow-y-auto"
+                />
+            </div>
+        </div>
     );
 
     const previewPanel = useMemo(() => {
+        if (selectedEntries.length === 0) {
+            return null;
+        }
         if (stripMode === 'multi-select' && selectedEntries.length >= 2) {
             return <AnalyzePanel selectedEntries={selectedEntries} />;
         }
+        const entryToShow = selectedEntries.length > 0 ? selectedEntries[selectedEntries.length - 1] : null;
+
+        if (!entryToShow) return null;
+
         return (
             <NotePreview
-                entry={activeEntry}
+                entry={entryToShow}
                 onStartWorkout={() => {
-                    if (activeEntry) {
-                        navigate(`/note/${activeEntry.id}/plan`);
-                    }
+                    navigate(`/note/${toShortId(entryToShow.id)}/plan`);
                 }}
             />
         );
-    }, [stripMode, activeEntry, selectedEntries, navigate]);
+    }, [stripMode, selectedEntries, navigate]);
 
+    // Used updated viewDescriptors which expects (mainPanel, previewPanel)
     const historyView = createHistoryView(
-        filterPanel,
-        listPanel,
+        mainPanel,
         previewPanel
     );
 

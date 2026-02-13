@@ -124,22 +124,14 @@ export function getAllViews(
  * The History panel always uses span 3 (full width).
  */
 export function createHistoryView(
-  filterPanel: React.ReactNode,
-  listPanel: React.ReactNode,
+  mainPanel: React.ReactNode,
   previewPanel?: React.ReactNode, // Optional: Only shown if selected
 ): ViewDescriptor {
   const panels: PanelDescriptor[] = [
     {
-      id: 'history-filter',
-      defaultSpan: 1,
-
-      content: filterPanel,
-    },
-    {
       id: 'history-list',
-      defaultSpan: (previewPanel ? 1 : 2) as PanelSpan,
-
-      content: listPanel,
+      defaultSpan: (previewPanel ? 2 : 3) as PanelSpan,
+      content: mainPanel,
     }
   ];
 
@@ -147,7 +139,6 @@ export function createHistoryView(
     panels.push({
       id: 'history-preview',
       defaultSpan: 1,
-
       content: previewPanel,
       hideOnMobile: true,
     });
