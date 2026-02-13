@@ -12,7 +12,22 @@ import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types
 import { indexedDBService } from '../db/IndexedDBService';
 import { Note, WorkoutResult, SectionHistory } from '../../types/storage';
 import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
-import { Section } from '../../markdown-editor/types/section';
+import { Section, SectionType } from '../../markdown-editor/types/section';
+
+/**
+ * Migrate legacy section types stored in IndexedDB to the new model.
+ * 'heading' → 'title', 'paragraph' | 'empty' → 'markdown', others pass through.
+ */
+function migrateSectionType(storedType: string): SectionType {
+  switch (storedType) {
+    case 'heading': return 'title';
+    case 'paragraph':
+    case 'empty':
+      return 'markdown';
+    default:
+      return storedType as SectionType;
+  }
+}
 
 export class IndexedDBContentProvider implements IContentProvider {
     readonly mode: ContentProviderMode = 'history';
@@ -35,10 +50,15 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // We can do this in parallel
         const entryPromises = notes.map(async (note) => {
-            const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
-            if (!latestScript) return null; // Should not happen for valid notes
-
-            // Get results context if needed (omitted for speed in list view usually)
+            // Prefer rawContent cached on the note (segment-based model),
+            // fall back to latest Script record (legacy model).
+            let rawContent = note.rawContent || '';
+            if (!rawContent) {
+                const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
+                if (latestScript) {
+                    rawContent = latestScript.content;
+                }
+            }
 
             return {
                 id: note.id,
@@ -46,11 +66,9 @@ export class IndexedDBContentProvider implements IContentProvider {
                 createdAt: note.createdAt,
                 updatedAt: note.updatedAt,
                 targetDate: note.targetDate || note.createdAt,
-                rawContent: latestScript.content, // Show latest content
+                rawContent,
                 tags: note.tags,
                 schemaVersion: 1,
-                // Results are typically loaded on demand or summarized. 
-                // ex: results: ... (fetch if query requires it)
             } as HistoryEntry;
         });
 
@@ -63,7 +81,18 @@ export class IndexedDBContentProvider implements IContentProvider {
             if (query.tags && query.tags.length > 0) {
                 filtered = filtered.filter(e => query.tags!.every(t => e.tags.includes(t)));
             }
-            // Date range, etc.
+
+            // Date range filtering
+            let dateRange = query.dateRange;
+            if (!dateRange && query.daysBack != null) {
+                const now = Date.now();
+                dateRange = { start: now - query.daysBack * 86_400_000, end: now };
+            }
+            if (dateRange) {
+                filtered = filtered.filter(
+                    e => e.targetDate >= dateRange!.start && e.targetDate <= dateRange!.end
+                );
+            }
         }
 
         // Sort by targetDate desc
@@ -93,8 +122,13 @@ export class IndexedDBContentProvider implements IContentProvider {
 
             // Rebuild rawContent
             rawContent = segments.map(s => {
-                if (s.type === 'wod') return `\`\`\`wod\n${s.content}\n\`\`\``;
-                if (s.type === 'heading') {
+                const resolvedType = migrateSectionType(s.type);
+                if (resolvedType === 'wod') {
+                    const dialect = s.wodBlock?.dialect ?? 'wod';
+                    return `\`\`\`${dialect}\n${s.content}\n\`\`\``;
+                }
+                if (resolvedType === 'title') {
+                    // Title sections may have been stored with heading prefix stripped; reconstruct
                     const prefix = '#'.repeat(s.level || 1);
                     return `${prefix} ${s.content}`;
                 }
@@ -111,20 +145,27 @@ export class IndexedDBContentProvider implements IContentProvider {
         }
 
         // Map SectionHistory to Section types for the editor
-        const sections: Section[] = segments.map(s => ({
-            id: s.sectionId,
-            type: s.type,
-            rawContent: s.type === 'wod' ? `\`\`\`wod\n${s.content}\n\`\`\`` : (s.type === 'heading' ? `${'#'.repeat(s.level || 1)} ${s.content}` : s.content),
-            displayContent: s.content,
-            level: s.level,
-            wodBlock: s.wodBlock,
-            version: s.version,
-            createdAt: s.timestamp,
-            // lines will be recomputed by the hook
-            startLine: 0,
-            endLine: 0,
-            lineCount: 0
-        }));
+        const sections: Section[] = segments.map(s => {
+            const resolvedType = migrateSectionType(s.type);
+            const dialect = s.wodBlock?.dialect ?? 'wod';
+            return {
+                id: s.sectionId,
+                type: resolvedType,
+                rawContent: resolvedType === 'wod'
+                    ? `\`\`\`${dialect}\n${s.content}\n\`\`\``
+                    : (resolvedType === 'title' ? `${'#'.repeat(s.level || 1)} ${s.content}` : s.content),
+                displayContent: s.content,
+                dialect: resolvedType === 'wod' ? dialect : undefined,
+                level: s.level,
+                wodBlock: s.wodBlock,
+                version: s.version,
+                createdAt: s.timestamp,
+                // lines will be recomputed by the hook
+                startLine: 0,
+                endLine: 0,
+                lineCount: 0
+            };
+        });
 
         return {
             id: note.id,
@@ -218,7 +259,15 @@ export class IndexedDBContentProvider implements IContentProvider {
                 : [];
 
             for (const section of sections) {
-                const existingSegment = currentSegments.find(s => s.sectionId === section.id);
+                // Match by position + type first (stable across content changes),
+                // then fall back to exact sectionId match.
+                const existingSegment =
+                    currentSegments.find(s => s.sectionId === section.id) ||
+                    currentSegments.find((s, idx) => {
+                        const samePosition = idx === newSegmentIds.length; // same ordinal
+                        const sameType = s.type === section.type || migrateSectionType(s.type) === section.type;
+                        return samePosition && sameType;
+                    });
 
                 // Content changed or new segment
                 if (!existingSegment || existingSegment.content !== section.displayContent) {
@@ -232,6 +281,19 @@ export class IndexedDBContentProvider implements IContentProvider {
                         level: section.level,
                         wodBlock: section.wodBlock,
                         timestamp: now
+                    };
+                    await indexedDBService.saveSectionHistory(segment);
+                } else if (existingSegment.sectionId !== section.id) {
+                    // Same content, different ID — carry forward under the new ID
+                    const segment: SectionHistory = {
+                        sectionId: section.id,
+                        version: existingSegment.version,
+                        noteId: note.id,
+                        content: existingSegment.content,
+                        type: section.type,
+                        level: section.level,
+                        wodBlock: section.wodBlock,
+                        timestamp: existingSegment.timestamp
                     };
                     await indexedDBService.saveSectionHistory(segment);
                 }

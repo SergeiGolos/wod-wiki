@@ -28,8 +28,8 @@ describe('useSectionDocument', () => {
       );
 
       expect(result.current.rawContent).toBe('# New');
-      const heading = result.current.sections.find(s => s.type === 'heading');
-      expect(heading?.displayContent).toBe('New');
+      const title = result.current.sections.find(s => s.type === 'title');
+      expect(title?.displayContent).toBe('# New');
     });
 
     it('starts with no active section', () => {
@@ -109,11 +109,11 @@ describe('useSectionDocument', () => {
         useSectionDocument({ initialContent: '# Title\n\nParagraph' }),
       );
 
-      const headingSection = result.current.sections.find(s => s.type === 'heading')!;
+      const titleSection = result.current.sections.find(s => s.type === 'title')!;
 
       act(() => {
-        result.current.activateSection(headingSection.id);
-        result.current.updateSectionContent(headingSection.id, '# New Title');
+        result.current.activateSection(titleSection.id);
+        result.current.updateSectionContent(titleSection.id, '# New Title');
       });
 
       expect(result.current.rawContent).toContain('# New Title');

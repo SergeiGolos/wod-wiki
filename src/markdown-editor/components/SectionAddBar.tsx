@@ -4,26 +4,27 @@
  * A row of buttons displayed at the bottom of the section editor
  * allowing users to insert a new section of a specific type.
  *
+ * Each button adds a NEW section to the note (not a line to the current section).
+ *
  * Section types:
- *  - H1 – H4 headings
- *  - Paragraph (plain text)
- *  - WOD block (also accessible via todo / log / plan aliases)
- *  - YouTube embed (future — currently inserts a wod placeholder)
+ *  - Markdown (free-form text/headings)
+ *  - WOD  (```wod dialect)
+ *  - Log  (```log dialect)
+ *  - Plan (```plan dialect)
  */
 
 import React from 'react';
 import { cn } from '@/lib/utils';
 import {
-  Heading1, Heading2, Heading3, Heading4,
   AlignLeft, ListTodo, ScrollText, ClipboardList,
-  Youtube, Plus,
+  Plus,
 } from 'lucide-react';
 
 export type NewSectionType =
-  | 'h1' | 'h2' | 'h3' | 'h4'
-  | 'paragraph'
+  | 'markdown'
   | 'wod'
-  | 'youtube';
+  | 'log'
+  | 'plan';
 
 export interface SectionAddBarProps {
   /** Called when the user picks a section type to add */
@@ -41,15 +42,10 @@ interface ButtonDef {
 }
 
 const BUTTONS: ButtonDef[] = [
-  { type: 'h1',        label: 'H1',        icon: <Heading1 className="w-4 h-4" /> },
-  { type: 'h2',        label: 'H2',        icon: <Heading2 className="w-4 h-4" /> },
-  { type: 'h3',        label: 'H3',        icon: <Heading3 className="w-4 h-4" /> },
-  { type: 'h4',        label: 'H4',        icon: <Heading4 className="w-4 h-4" /> },
-  { type: 'paragraph', label: 'Paragraph', icon: <AlignLeft className="w-4 h-4" />, group: true },
-  { type: 'wod',       label: 'Todo',      icon: <ListTodo className="w-4 h-4" />,  group: true },
-  { type: 'wod',       label: 'Log',       icon: <ScrollText className="w-4 h-4" /> },
-  { type: 'wod',       label: 'Plan',      icon: <ClipboardList className="w-4 h-4" /> },
-  { type: 'youtube',   label: 'YouTube',   icon: <Youtube className="w-4 h-4" />, group: true },
+  { type: 'markdown',  label: 'Text',  icon: <AlignLeft className="w-4 h-4" /> },
+  { type: 'wod',       label: 'WOD',   icon: <ListTodo className="w-4 h-4" />,       group: true },
+  { type: 'log',       label: 'Log',   icon: <ScrollText className="w-4 h-4" /> },
+  { type: 'plan',      label: 'Plan',  icon: <ClipboardList className="w-4 h-4" /> },
 ];
 
 export const SectionAddBar: React.FC<SectionAddBarProps> = ({ onAdd, className }) => {

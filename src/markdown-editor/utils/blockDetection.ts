@@ -1,14 +1,33 @@
 /**
- * Utility functions for detecting and managing WOD blocks in markdown content
+ * Utility functions for detecting and managing WOD blocks in markdown content.
+ * Supports dialect fences: ```wod, ```log, ```plan
  */
 
 import { WodBlock } from '../types';
+import type { WodDialect } from '../types/section';
+import { VALID_WOD_DIALECTS } from '../types/section';
 
 /**
- * Detects all WOD blocks in markdown content
+ * Try to match a line against known dialect fence patterns.
+ * Returns the dialect if the line opens a fenced block, or null otherwise.
+ */
+function matchDialectFence(trimmedLine: string): WodDialect | null {
+  const lower = trimmedLine.toLowerCase();
+  for (const d of VALID_WOD_DIALECTS) {
+    // Match ```wod, ```log, ```plan (with optional trailing text)
+    if (lower === '```' + d || lower.startsWith('```' + d + ' ') || lower.startsWith('```' + d + '\t')) {
+      return d;
+    }
+  }
+  return null;
+}
+
+/**
+ * Detects all WOD blocks in markdown content.
+ * Recognises ```wod, ```log and ```plan as valid dialect fences.
  * 
  * @param content - Markdown content to parse
- * @returns Array of detected WOD blocks
+ * @returns Array of detected WOD blocks (with dialect set)
  */
 export function detectWodBlocks(content: string): WodBlock[] {
   const lines = content.split('\n');
@@ -19,23 +38,29 @@ export function detectWodBlocks(content: string): WodBlock[] {
 
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
-    const normalizedLine = trimmedLine.toLowerCase();
 
-    if (!inBlock && normalizedLine.startsWith('```wod')) {
-      // Start of WOD block
-      inBlock = true;
-      const now = Date.now();
-      currentBlock = {
-        id: `wod-block-${now}-${Math.random().toString(36).substr(2, 9)}`,
-        startLine: index,
-        state: 'idle',
-        widgetIds: {},
-        version: 1,
-        createdAt: now
-      };
-      blockContent = [];
-    } else if (inBlock && trimmedLine.startsWith('```')) {
-      // End of WOD block
+    if (!inBlock) {
+      const dialect = matchDialectFence(trimmedLine);
+      if (dialect) {
+        // Start of a dialect block
+        inBlock = true;
+        const now = Date.now();
+        currentBlock = {
+          id: `wod-block-${now}-${Math.random().toString(36).substr(2, 9)}`,
+          dialect,
+          startLine: index,
+          state: 'idle',
+          widgetIds: {},
+          version: 1,
+          createdAt: now,
+        };
+        blockContent = [];
+        return;
+      }
+    }
+
+    if (inBlock && trimmedLine.startsWith('```')) {
+      // End of block
       inBlock = false;
       currentBlock.endLine = index;
       currentBlock.content = blockContent.join('\n');
@@ -43,7 +68,7 @@ export function detectWodBlocks(content: string): WodBlock[] {
       currentBlock = {};
       blockContent = [];
     } else if (inBlock) {
-      // Content inside WOD block
+      // Content inside block
       blockContent.push(line);
     }
   });

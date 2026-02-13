@@ -2,8 +2,9 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { CalendarWidget } from '../history/CalendarWidget';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Dumbbell, Tag, Layers, X } from 'lucide-react';
+import { BookOpen, Dumbbell, Tag, Layers, X, Plus, FolderOpen, ChevronRight } from 'lucide-react';
 import type { Notebook } from '@/types/notebook';
+import type { WodCollection } from '@/app/wod-collections';
 
 export interface ListFilterProps {
     /** Current calendar date */
@@ -21,6 +22,13 @@ export interface ListFilterProps {
     notebooks: Notebook[];
     activeNotebookId: string | null;
     onNotebookSelect: (id: string | null) => void;
+    /** Callback to create a new notebook */
+    onCreateNotebook?: () => void;
+
+    /** WOD Collections */
+    collections?: WodCollection[];
+    activeCollectionId?: string | null;
+    onCollectionSelect?: (id: string | null) => void;
 
     /** Reset all filters */
     onResetFilters?: () => void;
@@ -46,6 +54,10 @@ export const ListFilter: React.FC<ListFilterProps> = ({
     notebooks,
     activeNotebookId,
     onNotebookSelect,
+    onCreateNotebook,
+    collections = [],
+    activeCollectionId = null,
+    onCollectionSelect,
     onResetFilters,
     className,
     compact = false,
@@ -83,14 +95,26 @@ export const ListFilter: React.FC<ListFilterProps> = ({
             <div className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
                     <BookOpen className="h-3 w-3" />
-                    Notebooks
+                    <span className="flex-1">Notebooks</span>
+                    {onCreateNotebook && (
+                        <button
+                            onClick={onCreateNotebook}
+                            className="p-0.5 rounded hover:bg-accent hover:text-accent-foreground transition-colors"
+                            title="New Notebook"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </button>
+                    )}
                 </h3>
                 <div className="space-y-0.5">
                     <button
-                        onClick={() => onNotebookSelect(null)}
+                        onClick={() => {
+                            onNotebookSelect(null);
+                            onCollectionSelect?.(null);
+                        }}
                         className={cn(
                             "w-full text-left text-sm px-2 py-1.5 rounded transition-colors flex items-center gap-2",
-                            activeNotebookId === null
+                            activeNotebookId === null && !activeCollectionId
                                 ? "bg-accent text-accent-foreground font-medium"
                                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
@@ -101,10 +125,13 @@ export const ListFilter: React.FC<ListFilterProps> = ({
                     {notebooks.map(nb => (
                         <button
                             key={nb.id}
-                            onClick={() => onNotebookSelect(nb.id)}
+                            onClick={() => {
+                                onNotebookSelect(nb.id);
+                                onCollectionSelect?.(null);
+                            }}
                             className={cn(
                                 "w-full text-left text-sm px-2 py-1.5 rounded transition-colors flex items-center gap-2",
-                                activeNotebookId === nb.id
+                                activeNotebookId === nb.id && !activeCollectionId
                                     ? "bg-accent text-accent-foreground font-medium"
                                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
@@ -116,20 +143,43 @@ export const ListFilter: React.FC<ListFilterProps> = ({
                 </div>
             </div>
 
+            {/* Collections Section */}
+            {collections.length > 0 && (
+                <div className="space-y-2">
+                    <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                        <FolderOpen className="h-3 w-3" />
+                        Collections
+                    </h3>
+                    <div className="space-y-0.5">
+                        {collections.map(col => (
+                            <button
+                                key={col.id}
+                                onClick={() => {
+                                    onCollectionSelect?.(col.id);
+                                    onNotebookSelect(null);
+                                }}
+                                className={cn(
+                                    "w-full text-left text-sm px-2 py-1.5 rounded transition-colors flex items-center gap-2",
+                                    activeCollectionId === col.id
+                                        ? "bg-accent text-accent-foreground font-medium"
+                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                            >
+                                <FolderOpen className="h-3 w-3 shrink-0" />
+                                <span className="truncate flex-1">{col.name}</span>
+                                <span className="text-[10px] text-muted-foreground tabular-nums">{col.count}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Placeholder Sections */}
             <div className="space-y-4 opacity-50">
                 <div className="space-y-2">
                     <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
                         <Dumbbell className="h-3 w-3" />
                         Equipment
-                    </h3>
-                    <div className="text-xs text-muted-foreground px-2 italic">No filters</div>
-                </div>
-
-                <div className="space-y-2">
-                    <h3 className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-2">
-                        <Layers className="h-3 w-3" />
-                        Discipline
                     </h3>
                     <div className="text-xs text-muted-foreground px-2 italic">No filters</div>
                 </div>

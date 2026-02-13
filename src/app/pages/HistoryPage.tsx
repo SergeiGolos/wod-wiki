@@ -24,8 +24,10 @@ import type { HistoryEntry } from '@/types/history';
 import type { PanelSpan } from '@/components/layout/panel-system/types';
 import { NotebookMenu } from '@/components/notebook/NotebookMenu';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
+import { CreateNotebookDialog } from '@/components/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
+import { useWodCollections } from '@/hooks/useWodCollections';
 
 
 
@@ -51,7 +53,14 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
     const [isMobile, setIsMobile] = useState(false);
     const { setIsOpen, setStrategy } = useCommandPalette();
-    const { activeNotebookId, activeNotebook, setActiveNotebook, notebooks } = useNotebooks();
+    const { activeNotebookId, activeNotebook, setActiveNotebook, notebooks, createNotebook } = useNotebooks();
+    const { collections, activeCollectionId, activeCollection, activeCollectionItems, setActiveCollection } = useWodCollections();
+    const [showCreateNotebook, setShowCreateNotebook] = useState(false);
+
+    // Clear history selection when collection changes
+    useEffect(() => {
+        historySelection.clearSelection();
+    }, [activeCollectionId]);
 
     // Filter State
     type FilterMode = 'month' | 'list' | 'range';
@@ -96,7 +105,11 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         if (notebookParam !== activeNotebookId) {
             setActiveNotebook(notebookParam || null);
         }
-    }, [searchParams, setActiveNotebook]);
+        const collectionParam = searchParams.get('collection');
+        if (collectionParam !== activeCollectionId) {
+            setActiveCollection(collectionParam || null);
+        }
+    }, [searchParams, setActiveNotebook, setActiveCollection]);
 
     // Sync URL with Filter State
     useEffect(() => {
@@ -107,6 +120,13 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             params.set('notebook', toShortId(activeNotebookId));
         } else {
             params.delete('notebook');
+        }
+
+        // Collection
+        if (activeCollectionId) {
+            params.set('collection', activeCollectionId);
+        } else {
+            params.delete('collection');
         }
 
         // Dates
@@ -135,7 +155,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         }
 
         setSearchParams(params, { replace: true });
-    }, [activeNotebookId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
+    }, [activeNotebookId, activeCollectionId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
 
     // Calendar Date Selection Handler
     const handleDateSelect = useCallback((date: Date, modifiers: { shiftKey: boolean; ctrlKey: boolean }) => {
@@ -189,8 +209,29 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         provider.getEntries().then(setHistoryEntries);
     }, []);
 
+    // Convert collection items to HistoryEntry[] for unified list rendering
+    const collectionEntries = useMemo((): HistoryEntry[] => {
+        if (!activeCollectionId) return [];
+        return activeCollectionItems.map(item => ({
+            id: `collection:${activeCollectionId}:${item.id}`,
+            title: item.name,
+            createdAt: 0,
+            updatedAt: 0,
+            targetDate: 0,
+            rawContent: item.content,
+            tags: [`collection:${activeCollectionId}`],
+            notes: '',
+            schemaVersion: 1,
+        }));
+    }, [activeCollectionId, activeCollectionItems]);
+
     // Filter Logic
     const filteredEntries = useMemo(() => {
+        // When a collection is active, show collection entries (no date/notebook filtering)
+        if (activeCollectionId) {
+            return collectionEntries;
+        }
+
         let entries = historyEntries;
 
         // 1. Notebook Filter
@@ -220,7 +261,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         }
 
         return entries;
-    }, [historyEntries, activeNotebookId, filterMode, dateRange, customDates, historySelection.calendarDate]);
+    }, [historyEntries, activeNotebookId, activeCollectionId, collectionEntries, filterMode, dateRange, customDates, historySelection.calendarDate]);
 
     // Compute Selected Dates for Calendar Visuals
     const visualSelectedDates = useMemo(() => {
@@ -260,7 +301,11 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
     }, [historyEntries, historySelection.selectedIds]);
 
-    const notebookLabel = activeNotebook ? activeNotebook.name : 'All Workouts';
+    const notebookLabel = activeCollection
+        ? activeCollection.name
+        : activeNotebook
+            ? activeNotebook.name
+            : 'All Workouts';
 
     // Handle notebook tag toggling on entries
     const handleNotebookToggle = useCallback(async (entryId: string, notebookId: string, isAdding: boolean) => {
@@ -293,16 +338,17 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         notebooks={notebooks}
                         activeNotebookId={activeNotebookId}
                         onNotebookSelect={setActiveNotebook}
+                        onCreateNotebook={() => setShowCreateNotebook(true)}
+                        collections={collections}
+                        activeCollectionId={activeCollectionId}
+                        onCollectionSelect={setActiveCollection}
                         onResetFilters={() => {
                             setActiveNotebook(null);
+                            setActiveCollection(null);
                             setFilterMode('month');
                             setCustomDates(new Set());
                             setDateRange(null);
-                            historySelection.setCalendarDate(new Date()); // Reset calendar to today too? User said "reset everything to full view".
-                            // Usually full view implies default view which is today's month.
-                            // But maybe current month is fine.
-                            // I'll stick to clearing filters for now, keeping current calendar view unless user wants "Home".
-                            // User said "reset everything to full view". Maybe just clear filters.
+                            historySelection.setCalendarDate(new Date());
                         }}
                         className="p-0"
                         compact={true}
@@ -318,8 +364,8 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     onToggleEntry={(id, modifiers) => historySelection.handleSelection(id, modifiers || { ctrlKey: false, shiftKey: false }, filteredEntries.map(e => e.id))}
                     activeEntryId={historySelection.activeEntryId}
                     enriched={false}
-                    onNotebookToggle={handleNotebookToggle}
-                    onEdit={(id) => navigate(`/note/${toShortId(id)}/plan`)}
+                    onNotebookToggle={activeCollectionId ? undefined : handleNotebookToggle}
+                    onEdit={activeCollectionId ? undefined : (id) => navigate(`/note/${toShortId(id)}/plan`)}
                     className="h-full overflow-y-auto"
                 />
             </div>
@@ -328,13 +374,15 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
 
     const previewPanel = useMemo(() => {
         // Case 1: No explicit selection -> Analyze ALL visible (filtered) entries (default view)
+        // (skip analytics for collection items since they have no real dates/results)
         if (selectedEntries.length === 0) {
             if (filteredEntries.length === 0) return null;
+            if (activeCollectionId) return null;
             return <AnalyzePanel selectedEntries={filteredEntries} />;
         }
 
         // Case 2: Multi-selection -> Analyze SELECTED entries
-        if (selectedEntries.length >= 2) {
+        if (selectedEntries.length >= 2 && !activeCollectionId) {
             return <AnalyzePanel selectedEntries={selectedEntries} />;
         }
 
@@ -342,15 +390,17 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         const entryToShow = selectedEntries[0];
         if (!entryToShow) return null;
 
+        const isCollectionEntry = entryToShow.id.startsWith('collection:');
+
         return (
             <NotePreview
                 entry={entryToShow}
-                onStartWorkout={() => {
+                onStartWorkout={isCollectionEntry ? undefined : () => {
                     navigate(`/note/${toShortId(entryToShow.id)}/plan`);
                 }}
             />
         );
-    }, [selectedEntries, filteredEntries, navigate]);
+    }, [selectedEntries, filteredEntries, navigate, activeCollectionId]);
 
     // Used updated viewDescriptors which expects (mainPanel, previewPanel)
     const historyView = createHistoryView(
@@ -445,6 +495,14 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             </div>
 
             <CommandPalette />
+            <CreateNotebookDialog
+                open={showCreateNotebook}
+                onOpenChange={setShowCreateNotebook}
+                onCreate={(name, description, icon) => {
+                    createNotebook(name, description, icon);
+                    setShowCreateNotebook(false);
+                }}
+            />
         </div>
     );
 };

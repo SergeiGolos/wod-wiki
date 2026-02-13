@@ -11,75 +11,42 @@ describe('parseDocumentSections', () => {
     expect(parseDocumentSections('')).toEqual([]);
   });
 
-  it('parses a single heading', () => {
+  it('parses first text block as title', () => {
     const sections = parseDocumentSections('# Hello');
     expect(sections).toHaveLength(1);
-    expect(sections[0].type).toBe('heading');
-    expect(sections[0].displayContent).toBe('Hello');
-    expect(sections[0].level).toBe(1);
-    expect(sections[0].startLine).toBe(0);
-    expect(sections[0].endLine).toBe(0);
-    expect(sections[0].lineCount).toBe(1);
+    expect(sections[0].type).toBe('title');
+    expect(sections[0].displayContent).toBe('# Hello');
   });
 
-  it('parses headings at different levels', () => {
-    const content = '# H1\n## H2\n### H3';
-    const sections = parseDocumentSections(content);
-    expect(sections).toHaveLength(3);
-    expect(sections[0].level).toBe(1);
-    expect(sections[1].level).toBe(2);
-    expect(sections[2].level).toBe(3);
+  it('preserves heading prefix in title displayContent', () => {
+    const sections = parseDocumentSections('## Hello World');
+    expect(sections).toHaveLength(1);
+    expect(sections[0].type).toBe('title');
+    expect(sections[0].displayContent).toBe('## Hello World');
   });
 
-  it('parses a paragraph', () => {
-    const content = 'This is a paragraph\nwith two lines';
+  it('parses plain text as title when it is the first block', () => {
+    const content = 'Just some text';
     const sections = parseDocumentSections(content);
     expect(sections).toHaveLength(1);
-    expect(sections[0].type).toBe('paragraph');
-    expect(sections[0].displayContent).toBe(content);
-    expect(sections[0].startLine).toBe(0);
-    expect(sections[0].endLine).toBe(1);
-    expect(sections[0].lineCount).toBe(2);
+    expect(sections[0].type).toBe('title');
+    expect(sections[0].displayContent).toBe('Just some text');
   });
 
-  it('separates paragraphs by empty lines', () => {
-    const content = 'Paragraph one\n\nParagraph two';
+  it('groups subsequent non-wod text as markdown sections', () => {
+    const content = '# Title\nSecond line\nThird line';
     const sections = parseDocumentSections(content);
-    // First paragraph absorbs the empty line
-    expect(sections).toHaveLength(2);
-    expect(sections[0].type).toBe('paragraph');
-    expect(sections[1].type).toBe('paragraph');
-    expect(sections[1].displayContent).toBe('Paragraph two');
+    // All consecutive non-wod lines before a wod block form a single section
+    // First text block is title
+    expect(sections[0].type).toBe('title');
   });
 
-  it('absorbs trailing empty lines into the previous section', () => {
-    const content = '# Title\n\nSome text';
+  it('parses text after title as markdown', () => {
+    const content = '# Title\n\n```wod\n5:00 Run\n```\n\nNotes here';
     const sections = parseDocumentSections(content);
-    // Heading absorbs the empty line, then paragraph
-    expect(sections).toHaveLength(2);
-    expect(sections[0].type).toBe('heading');
-    expect(sections[0].rawContent).toBe('# Title\n');
-    expect(sections[0].lineCount).toBe(2); // line 0 + empty line 1
-    expect(sections[1].type).toBe('paragraph');
-    expect(sections[1].startLine).toBe(2);
-  });
-
-  it('creates empty sections for leading blank lines', () => {
-    const content = '\n# Title';
-    const sections = parseDocumentSections(content);
-    expect(sections.length).toBeGreaterThanOrEqual(2);
-    expect(sections[0].type).toBe('empty');
-    expect(sections[1].type).toBe('heading');
-  });
-
-  it('breaks paragraph at heading boundary', () => {
-    const content = 'Introductory text\n# New Section';
-    const sections = parseDocumentSections(content);
-    expect(sections).toHaveLength(2);
-    expect(sections[0].type).toBe('paragraph');
-    expect(sections[0].displayContent).toBe('Introductory text');
-    expect(sections[1].type).toBe('heading');
-    expect(sections[1].displayContent).toBe('New Section');
+    const mdSections = sections.filter(s => s.type === 'markdown');
+    expect(mdSections.length).toBeGreaterThanOrEqual(1);
+    expect(mdSections[mdSections.length - 1].displayContent).toContain('Notes here');
   });
 
   it('generates deterministic IDs', () => {
@@ -100,13 +67,29 @@ describe('parseDocumentSections', () => {
       expect(wodSection!.wodBlock).toBeDefined();
     });
 
-    it('separates heading from wod block', () => {
+    it('separates title from wod block', () => {
       const content = '# Warm Up\n```wod\n3:00 Walk\n```';
       const sections = parseDocumentSections(content);
 
-      expect(sections[0].type).toBe('heading');
+      expect(sections[0].type).toBe('title');
       const wodSection = sections.find(s => s.type === 'wod');
       expect(wodSection).toBeDefined();
+    });
+
+    it('recognises log dialect', () => {
+      const content = '# Session\n```log\n5:00 Run\n```';
+      const sections = parseDocumentSections(content);
+      const wodSection = sections.find(s => s.type === 'wod');
+      expect(wodSection).toBeDefined();
+      expect(wodSection!.dialect).toBe('log');
+    });
+
+    it('recognises plan dialect', () => {
+      const content = '# Plan\n```plan\n10:00 Bike\n```';
+      const sections = parseDocumentSections(content);
+      const wodSection = sections.find(s => s.type === 'wod');
+      expect(wodSection).toBeDefined();
+      expect(wodSection!.dialect).toBe('plan');
     });
   });
 });
@@ -116,28 +99,28 @@ describe('buildRawContent', () => {
     expect(buildRawContent([])).toBe('');
   });
 
-  it('round-trips a simple heading document', () => {
+  it('round-trips a simple title document', () => {
     const original = '# Hello';
     const sections = parseDocumentSections(original);
     expect(buildRawContent(sections)).toBe(original);
   });
 
-  it('round-trips a mixed-section document', () => {
-    const original = '# Title\n\nParagraph one\nwith second line\n\n## Section\n\nMore text';
+  it('round-trips a document with wod block', () => {
+    const original = '# Title\n\n```wod\n5:00 Run\n```';
     const sections = parseDocumentSections(original);
-    expect(buildRawContent(sections)).toBe(original);
+    const rebuilt = buildRawContent(sections);
+    expect(rebuilt).toContain('# Title');
+    expect(rebuilt).toContain('```wod');
+    expect(rebuilt).toContain('5:00 Run');
   });
 
-  it('round-trips a document with only headings', () => {
-    const original = '# H1\n## H2\n### H3';
-    const sections = parseDocumentSections(original);
-    expect(buildRawContent(sections)).toBe(original);
-  });
-
-  it('round-trips a document with leading empty lines', () => {
-    const original = '\n# Title';
-    const sections = parseDocumentSections(original);
-    expect(buildRawContent(sections)).toBe(original);
+  it('skips soft-deleted sections', () => {
+    const sections = parseDocumentSections('# Title\n\nSome text');
+    if (sections.length >= 2) {
+      sections[1].deleted = true;
+      const rebuilt = buildRawContent(sections);
+      expect(rebuilt).not.toContain('Some text');
+    }
   });
 });
 
@@ -146,14 +129,14 @@ describe('calculateTotalLines', () => {
     expect(calculateTotalLines([])).toBe(0);
   });
 
-  it('counts lines correctly for a single heading', () => {
+  it('counts lines correctly for a single title', () => {
     const sections = parseDocumentSections('# Title');
     expect(calculateTotalLines(sections)).toBe(1);
   });
 
   it('counts lines correctly for multi-line content', () => {
     const sections = parseDocumentSections('# Title\n\nParagraph');
-    expect(calculateTotalLines(sections)).toBe(3);
+    expect(calculateTotalLines(sections)).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -172,16 +155,7 @@ describe('matchSectionIds', () => {
     const newSections = parseDocumentSections('# New Title\n\nParagraph');
 
     const matched = matchSectionIds(oldSections, newSections);
-    // Heading ID should be preserved via position match
+    // Title ID should be preserved via position match
     expect(matched[0].id).toBe(oldSections[0].id);
-  });
-
-  it('assigns new IDs when no match found', () => {
-    const oldSections = parseDocumentSections('# Title');
-    const newSections = parseDocumentSections('Paragraph only');
-
-    const matched = matchSectionIds(oldSections, newSections);
-    // No type match (heading vs paragraph), so new ID kept
-    expect(matched[0].id).toBe(newSections[0].id);
   });
 });

@@ -51,7 +51,7 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
         className="flex items-center gap-2 px-2 text-[10px] text-muted-foreground/60 font-mono border-b border-border/30 bg-muted/30"
         style={{ height: SECTION_LINE_HEIGHT, lineHeight: `${SECTION_LINE_HEIGHT}px` }}
       >
-        <span>wod</span>
+        <span>{section.dialect ?? 'wod'}</span>
         <div className="flex-1" />
         {onStartWorkout && wodBlock && (
           <button

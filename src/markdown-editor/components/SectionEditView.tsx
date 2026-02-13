@@ -10,6 +10,7 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { Section } from '../types/section';
+import { VALID_WOD_DIALECTS, type WodDialect } from '../types/section';
 import { SECTION_LINE_HEIGHT } from './SectionContainer';
 import { cn } from '@/lib/utils';
 
@@ -30,8 +31,8 @@ export interface SectionEditViewProps {
   onDeactivate?: () => void;
   /** Called when a heading section should split at cursor (Enter in heading) */
   onSplitSection?: (beforeContent: string, afterContent: string) => void;
-  /** Called when user types ```wod to convert paragraph into a WOD block */
-  onConvertToWod?: (contentBefore: string, wodBodyContent: string) => void;
+  /** Called when user types a dialect fence (```wod, ```log, ```plan) to convert into a WOD block */
+  onConvertToWod?: (contentBefore: string, wodBodyContent: string, dialect?: WodDialect) => void;
   /** The section type (used for type-specific behavior) */
   sectionType?: string;
   /** Additional CSS classes */
@@ -118,17 +119,22 @@ export const SectionEditView: React.FC<SectionEditViewProps> = ({
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
 
-    // Detect ```wod fence typed in a paragraph — auto-convert to WOD block
-    if (sectionType === 'paragraph' && onConvertToWod) {
+    // Detect dialect fences (```wod, ```log, ```plan) typed in a markdown section — auto-convert to WOD block
+    if (sectionType === 'markdown' && onConvertToWod) {
       const lines = newContent.split('\n');
-      const fenceLineIdx = lines.findIndex(l => l.trim().startsWith('```wod'));
-      if (fenceLineIdx !== -1) {
-        // Content before the fence line stays in this section
-        const contentBefore = lines.slice(0, fenceLineIdx).join('\n');
-        // Content after the fence line becomes the WOD block body
-        const contentAfter = lines.slice(fenceLineIdx + 1).join('\n');
-        onConvertToWod(contentBefore, contentAfter);
-        return;
+      for (const dialect of VALID_WOD_DIALECTS) {
+        const fenceLineIdx = lines.findIndex(l => {
+          const trimmed = l.trim().toLowerCase();
+          return trimmed === '```' + dialect || trimmed.startsWith('```' + dialect + ' ');
+        });
+        if (fenceLineIdx !== -1) {
+          // Content before the fence line stays in this section
+          const contentBefore = lines.slice(0, fenceLineIdx).join('\n');
+          // Content after the fence line becomes the WOD block body
+          const contentAfter = lines.slice(fenceLineIdx + 1).join('\n');
+          onConvertToWod(contentBefore, contentAfter, dialect);
+          return;
+        }
       }
     }
 
@@ -185,15 +191,6 @@ export const SectionEditView: React.FC<SectionEditViewProps> = ({
     if (e.key === 'ArrowDown' && e.ctrlKey) {
       e.preventDefault();
       onBoundaryReached?.('bottom', e);
-      return;
-    }
-
-    // Heading sections: Enter always splits — headings are single-line
-    if (e.key === 'Enter' && sectionType === 'heading') {
-      e.preventDefault();
-      const beforeCursor = value.substring(0, selectionStart);
-      const afterCursor = value.substring(selectionStart);
-      onSplitSection?.(beforeCursor, afterCursor);
       return;
     }
 

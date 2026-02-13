@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
-import type { Section, SectionType } from '../types/section';
+import type { Section, SectionType, WodDialect } from '../types/section';
 import type { WodBlock } from '../types';
 import { detectWodBlocks } from './blockDetection';
 
@@ -52,7 +51,21 @@ function generateSectionId(type: SectionType, startLine: number, content: string
 }
 
 /**
+ * Detect the dialect from a WodBlock (fallback to 'wod').
+ */
+function blockDialect(block: WodBlock): WodDialect {
+  return block.dialect ?? 'wod';
+}
+
+/**
  * Parse a markdown document into an ordered list of sections.
+ *
+ * Section model (simplified):
+ *  - title:    First heading-like or text row becomes the title section.
+ *  - markdown: All non-fenced text (headings, paragraphs, blanks) are
+ *              grouped into contiguous markdown sections.
+ *  - wod:      Each fenced dialect block (```wod / ```log / ```plan)
+ *              becomes its own section with `dialect` set.
  * 
  * @param content - Full markdown content
  * @param wodBlocks - Pre-detected WOD blocks (optional; will be detected if omitted)
@@ -67,21 +80,71 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
 
   const now = Date.now();
   let currentLine = 0;
+  let isFirstTextBlock = true;
+
+  /** Helper: flush accumulated markdown lines into a section */
+  function flushMarkdownLines(mdLines: string[], startLine: number) {
+    if (mdLines.length === 0) return;
+
+    const raw = mdLines.join('\n');
+    const { metadata, cleanText } = extractMetadata(raw);
+    const cleanLineCount = cleanText.split('\n').length;
+
+    if (isFirstTextBlock) {
+      // First text block → title section (renders as markdown, title extracted from first # line)
+      isFirstTextBlock = false;
+
+      sections.push({
+        id: metadata?.id || generateSectionId('title', startLine, cleanText),
+        type: 'title',
+        rawContent: cleanText,
+        displayContent: cleanText, // full markdown preserved — title extracted separately
+        startLine,
+        endLine: startLine + cleanLineCount - 1,
+        lineCount: cleanLineCount,
+        level: undefined,
+        version: metadata?.version || 1,
+        createdAt: metadata?.createdAt || now,
+      });
+    } else {
+      sections.push({
+        id: metadata?.id || generateSectionId('markdown', startLine, cleanText),
+        type: 'markdown',
+        rawContent: cleanText,
+        displayContent: cleanText,
+        startLine,
+        endLine: startLine + cleanLineCount - 1,
+        lineCount: cleanLineCount,
+        version: metadata?.version || 1,
+        createdAt: metadata?.createdAt || now,
+      });
+    }
+  }
+
+  // Accumulate markdown (non-wod) lines between wod blocks
+  let mdBuffer: string[] = [];
+  let mdBufferStart = 0;
 
   while (currentLine < lines.length) {
     // Check if current line is start of a WOD block
     const wodBlock = blocks.find(b => b.startLine === currentLine);
 
     if (wodBlock) {
-      // WOD section: includes fence lines (```wod through ```)
+      // Flush any accumulated markdown before this wod block
+      flushMarkdownLines(mdBuffer, mdBufferStart);
+      mdBuffer = [];
+
+      // WOD section — includes fence lines
+      const dialect = blockDialect(wodBlock);
       const { metadata, cleanText } = extractMetadata(wodBlock.content);
-      // Reconstruct rawContent without metadata: ```wod\n<clean content>\n```
-      const cleanRawContent = `\`\`\`wod\n${cleanText}\n\`\`\``;
+      const fenceTag = dialect;
+      const cleanRawContent = `\`\`\`${fenceTag}\n${cleanText}\n\`\`\``;
       const cleanLineCount = cleanRawContent.split('\n').length;
 
       sections.push({
         id: metadata?.id || generateSectionId('wod', wodBlock.startLine, cleanText),
         type: 'wod',
+        dialect,
         rawContent: cleanRawContent,
         displayContent: cleanText,
         startLine: wodBlock.startLine,
@@ -91,6 +154,7 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
           ...wodBlock,
           id: metadata?.id || wodBlock.id,
           content: cleanText,
+          dialect,
           version: metadata?.version || 1,
           createdAt: metadata?.createdAt || now,
         },
@@ -99,127 +163,43 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
       });
 
       currentLine = wodBlock.endLine + 1;
+      mdBufferStart = currentLine;
       continue;
     }
 
-    const lineContent = lines[currentLine];
-    const trimmedLine = lineContent.trim();
-
-    // Empty line — attach to previous section as trailing whitespace
-    if (trimmedLine === '') {
-      if (sections.length > 0) {
-        const prev = sections[sections.length - 1];
-        prev.rawContent += '\n' + lineContent;
-        prev.endLine = currentLine;
-        prev.lineCount = prev.endLine - prev.startLine + 1;
-      } else {
-        const newId = uuidv4();
-        sections.push({
-          id: newId,
-          type: 'empty',
-          rawContent: lineContent,
-          displayContent: '',
-          startLine: currentLine,
-          endLine: currentLine,
-          lineCount: 1,
-          version: 1,
-          createdAt: now,
-        });
-      }
-      currentLine++;
-      continue;
+    // Not a wod-block line — accumulate for markdown
+    if (mdBuffer.length === 0) {
+      mdBufferStart = currentLine;
     }
-
-    // Check for headers
-    const headerMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
-    if (headerMatch) {
-      const { metadata, cleanText } = extractMetadata(headerMatch[2]);
-      // Reconstruct rawContent without metadata comment
-      const cleanRawContent = `${headerMatch[1]} ${cleanText}`;
-
-      sections.push({
-        id: metadata?.id || generateSectionId('heading', currentLine, cleanText),
-        type: 'heading',
-        rawContent: cleanRawContent,
-        displayContent: cleanText,
-        startLine: currentLine,
-        endLine: currentLine,
-        lineCount: 1,
-        level: headerMatch[1].length,
-        version: metadata?.version || 1,
-        createdAt: metadata?.createdAt || now,
-      });
-      currentLine++;
-      continue;
-    }
-
-    // Paragraph: group consecutive non-empty, non-header, non-wod lines
-    const paragraphStartLine = currentLine;
-    const paragraphLines: string[] = [lineContent];
-
-    let nextLine = currentLine + 1;
-    while (nextLine < lines.length) {
-      // Stop if next line is start of WOD block
-      if (blocks.some(b => b.startLine === nextLine)) break;
-
-      const nextLineContent = lines[nextLine];
-      const nextTrimmed = nextLineContent.trim();
-
-      // Stop if empty line (paragraph break)
-      if (nextTrimmed === '') break;
-
-      // Stop if header
-      if (nextTrimmed.match(/^(#{1,6})\s+(.+)$/)) break;
-
-      paragraphLines.push(nextLineContent);
-      nextLine++;
-    }
-
-    const paragraphEndLine = nextLine - 1;
-    const paragraphContent = paragraphLines.join('\n');
-    const { metadata, cleanText } = extractMetadata(paragraphContent);
-    // lineCount based on clean text (without metadata lines)
-    const cleanLineCount = cleanText.split('\n').length;
-
-    sections.push({
-      id: metadata?.id || generateSectionId('paragraph', paragraphStartLine, cleanText),
-      type: 'paragraph',
-      rawContent: cleanText,
-      displayContent: cleanText,
-      startLine: paragraphStartLine,
-      endLine: paragraphStartLine + cleanLineCount - 1,
-      lineCount: cleanLineCount,
-      version: metadata?.version || 1,
-      createdAt: metadata?.createdAt || now,
-    });
-
-    currentLine = paragraphEndLine + 1;
+    mdBuffer.push(lines[currentLine]);
+    currentLine++;
   }
+
+  // Flush any trailing markdown
+  flushMarkdownLines(mdBuffer, mdBufferStart);
 
   return sections;
 }
 
 /**
  * Rebuild the full rawContent from a section list.
- * This is the inverse of parseDocumentSections. 
- * ensures that metadata comment is attached to the rawContent if present.
+ * This is the inverse of parseDocumentSections.
+ * Skips soft-deleted sections.
  */
 export function buildRawContent(sections: Section[]): string {
-  return sections.map(s => {
-    // If it's a paragraph or heading, metadata is usually inside displayContent if we stripped it,
-    // but we want it appended to the rawContent for persistence.
-    // Actually, updateSectionContent will handle appending metadata to rawContent.
-    // buildRawContent should simply join sections as they are.
-    return s.rawContent;
-  }).join('\n');
+  return sections
+    .filter(s => !s.deleted)
+    .map(s => s.rawContent)
+    .join('\n');
 }
 
 /**
- * Calculate the total line count from a section list.
+ * Calculate the total line count from a section list (visible only).
  */
 export function calculateTotalLines(sections: Section[]): number {
-  if (sections.length === 0) return 0;
-  const last = sections[sections.length - 1];
+  const visible = sections.filter(s => !s.deleted);
+  if (visible.length === 0) return 0;
+  const last = visible[visible.length - 1];
   return last.endLine + 1;
 }
 

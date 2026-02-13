@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import type { Section } from '../types/section';
+import type { Section, WodDialect } from '../types/section';
 import type { WodBlock } from '../types';
 import { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds, extractMetadata } from '../utils/sectionParser';
 import { detectWodBlocks } from '../utils/blockDetection';
@@ -52,8 +52,10 @@ export interface UseSectionDocumentReturn {
   deleteSection: (sectionId: string) => void;
   /** Split a section at cursor — update current with beforeContent, create new section with afterContent */
   splitSection: (sectionId: string, beforeContent: string, afterContent: string) => void;
-  /** Convert a paragraph into a WOD block — optionally keeping content before the fence in the paragraph */
-  convertToWod: (sectionId: string, contentBefore: string, wodBodyContent: string) => void;
+  /** Convert a markdown section into a WOD block — optionally keeping content before the fence */
+  convertToWod: (sectionId: string, contentBefore: string, wodBodyContent: string, dialect?: WodDialect) => void;
+  /** Soft-delete a section (bumps version, sets deleted flag) */
+  softDeleteSection: (sectionId: string) => void;
 
   /** The full raw content (source of truth) */
   rawContent: string;
@@ -219,55 +221,28 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
 
       let cleanForUpdate = extractMetadata(newContent).cleanText;
 
-      // Promote paragraph → heading when user types # at the start
-      if (s.type === 'paragraph') {
-        const firstLine = cleanForUpdate.split('\n')[0];
-        const headingMatch = firstLine.trim().match(/^(#{1,6})\s+(.*)$/);
-        if (headingMatch) {
-          // Convert to heading — take only the first line
-          return {
-            ...s,
-            type: 'heading' as const,
-            rawContent: firstLine,
-            displayContent: headingMatch[2],
-            level: headingMatch[1].length,
-            lineCount: 1,
-            endLine: s.startLine,
-          };
-        }
+      // Title sections: update content, extract note title from first # line
+      if (s.type === 'title') {
+        const newLineCount = cleanForUpdate.split('\n').length;
+        return {
+          ...s,
+          rawContent: cleanForUpdate,
+          displayContent: cleanForUpdate,
+          lineCount: newLineCount,
+          endLine: s.startLine + newLineCount - 1,
+        };
       }
 
-      // Enforce single-line constraint for headers
-      if (s.type === 'heading') {
-        const lines = cleanForUpdate.split('\n');
-        if (lines.length > 1) {
-          cleanForUpdate = lines[0]; // Only take first line
-        }
-      }
-
+      // Markdown sections: multi-line allowed, content is preserved as-is
       const newLineCount = cleanForUpdate.split('\n').length;
 
       const updatedSection: Section = {
         ...s,
-        rawContent: cleanForUpdate, // Store clean content while editing
+        rawContent: cleanForUpdate,
         displayContent: cleanForUpdate,
         lineCount: newLineCount,
         endLine: s.startLine + newLineCount - 1,
       };
-
-      // For headings, update displayContent level or demote to paragraph
-      if (s.type === 'heading' || updatedSection.type === 'heading') {
-        const match = cleanForUpdate.trim().match(/^(#{1,6})\s+(.+)$/);
-        if (match) {
-          updatedSection.displayContent = match[2];
-          updatedSection.level = match[1].length;
-        } else {
-          // No longer a heading — demote to paragraph
-          updatedSection.type = 'paragraph';
-          updatedSection.level = undefined;
-          updatedSection.displayContent = cleanForUpdate;
-        }
-      }
 
       return updatedSection;
     });
@@ -315,34 +290,22 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
       afterSection.endLine = afterSection.startLine + afterSection.lineCount - 1;
     }
 
-    // Determine type from content (# prefix = heading)
+    // New sections inserted via the add-bar are always markdown type
     const newStartLine = afterSection.endLine + 1;
     const now = Date.now();
     const newId = uuidv4();
     const sectionContent = content || '';
-    const headingMatch = sectionContent.trim().match(/^(#{1,6})\s+(.*)$/);
 
-    let sectionType: 'heading' | 'paragraph' = 'paragraph';
-    let displayContent = sectionContent;
-    let level: number | undefined;
-
-    if (headingMatch) {
-      sectionType = 'heading';
-      displayContent = headingMatch[2];
-      level = headingMatch[1].length;
-    }
-
-    const contentLineCount = sectionType === 'heading' ? 1 : sectionContent.split('\n').length;
+    const contentLineCount = sectionContent.split('\n').length;
 
     const newSection: Section = {
       id: newId,
-      type: sectionType,
+      type: 'markdown',
       rawContent: sectionContent,
-      displayContent,
+      displayContent: sectionContent,
       startLine: newStartLine,
       endLine: newStartLine + contentLineCount - 1,
       lineCount: contentLineCount,
-      level,
       version: 1,
       createdAt: now,
     };
@@ -418,15 +381,9 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     // Update the existing section with beforeContent
     section.rawContent = beforeContent;
     section.lineCount = beforeContent.split('\n').length;
-    if (section.type === 'heading') {
-      const match = beforeContent.trim().match(/^(#{1,6})\s+(.+)$/);
-      if (match) {
-        section.displayContent = match[2];
-        section.level = match[1].length;
-      }
-    }
+    section.displayContent = beforeContent;
 
-    // Create a new paragraph section with afterContent
+    // Create a new markdown section with afterContent
     const now = Date.now();
     const newId = uuidv4();
     const sectionContent = afterContent || '';
@@ -434,7 +391,7 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
 
     const newSection: Section = {
       id: newId,
-      type: 'paragraph',
+      type: 'markdown',
       rawContent: sectionContent,
       displayContent: sectionContent,
       startLine: 0, // will be recomputed
@@ -461,12 +418,13 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
   }, [reconcileFromSections]);
 
   /**
-   * Convert a paragraph into a WOD block.
-   * If contentBefore is non-empty, the paragraph keeps that content
-   * and the WOD block is inserted after. Otherwise the paragraph
+   * Convert a markdown section into a WOD block.
+   * Supports dialect parameter (defaults to 'wod').
+   * If contentBefore is non-empty, the markdown section keeps that content
+   * and the WOD block is inserted after. Otherwise the section
    * is replaced by the WOD block.
    */
-  const convertToWod = useCallback((sectionId: string, contentBefore: string, wodBodyContent: string) => {
+  const convertToWod = useCallback((sectionId: string, contentBefore: string, wodBodyContent: string, dialect: WodDialect = 'wod') => {
     const currentSections = [...sectionsRef.current];
     const sectionIndex = currentSections.findIndex(s => s.id === sectionId);
     if (sectionIndex === -1) return;
@@ -474,12 +432,13 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     // Build the WOD section raw content with fences
     const now = Date.now();
     const newId = `wod-${Date.now().toString(16)}`;
-    const wodRawContent = `\`\`\`wod\n${wodBodyContent || ''}\n\`\`\``;
+    const wodRawContent = `\`\`\`${dialect}\n${wodBodyContent || ''}\n\`\`\``;
     const wodLineCount = wodRawContent.split('\n').length;
 
     const newWodSection: Section = {
       id: newId,
       type: 'wod',
+      dialect,
       rawContent: wodRawContent,
       displayContent: wodBodyContent || '',
       startLine: 0,
@@ -516,6 +475,44 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     setPendingCursorPosition({ line: 0, column: 0 });
   }, [reconcileFromSections]);
 
+  /**
+   * Soft-delete a section: marks it as deleted with a version bump.
+   * The section is hidden but preserved in the array for undo / history.
+   */
+  const softDeleteSection = useCallback((sectionId: string) => {
+    const currentSections = [...sectionsRef.current];
+    const idx = currentSections.findIndex(s => s.id === sectionId);
+    if (idx === -1) return;
+
+    currentSections[idx] = {
+      ...currentSections[idx],
+      deleted: true,
+      version: currentSections[idx].version + 1,
+    };
+
+    // Recompute line numbers for visible sections
+    let currentLine = 0;
+    for (const section of currentSections) {
+      if (section.deleted) continue;
+      section.startLine = currentLine;
+      section.endLine = currentLine + section.lineCount - 1;
+      currentLine = section.endLine + 1;
+    }
+
+    sectionsRef.current = currentSections;
+    reconcileFromSections(currentSections);
+
+    // Activate a neighbouring section if available
+    const visible = currentSections.filter(s => !s.deleted);
+    if (visible.length > 0) {
+      const next = visible.find(s => currentSections.indexOf(s) > idx) ?? visible[visible.length - 1];
+      setActiveSectionId(next.id);
+      setPendingCursorPosition({ line: 0, column: 0 });
+    } else {
+      setActiveSectionId(null);
+    }
+  }, [reconcileFromSections]);
+
   // Cleanup debounce timer on unmount
   useEffect(() => {
     return () => {
@@ -537,6 +534,7 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     deleteSection,
     splitSection,
     convertToWod,
+    softDeleteSection,
     rawContent,
     wodBlocks,
   };

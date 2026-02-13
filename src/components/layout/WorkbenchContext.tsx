@@ -281,6 +281,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // History entries (managed externally, stored here for context sharing)
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
 
+  // Load history entries from provider on mount
+  useEffect(() => {
+    if (resolvedMode === 'history' && provider.capabilities.canFilter) {
+      provider.getEntries().then(setHistoryEntries).catch(err => {
+        console.error('[WorkbenchContext] Failed to load history entries:', err);
+      });
+    }
+  }, [provider, resolvedMode]);
+
   // (Selection sync now handled within loadContent effect above)
 
   const historySelection = resolvedMode === 'history' ? historySelectionHook : null;

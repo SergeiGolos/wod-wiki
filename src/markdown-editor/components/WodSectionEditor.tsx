@@ -15,6 +15,7 @@ import Editor from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import { editor, IDisposable } from 'monaco-editor';
 import type { Section } from '../types/section';
+import { VALID_WOD_DIALECTS, type WodDialect } from '../types/section';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { ParseError } from '../types';
 import { SECTION_LINE_HEIGHT } from './SectionContainer';
@@ -59,12 +60,15 @@ export interface WodSectionEditorProps {
 
 /**
  * Extract the inner WOD content from a section's rawContent.
- * Strips the opening ```wod and closing ``` fence lines.
+ * Strips the opening dialect fence (```wod, ```log, ```plan) and closing ```.
  */
 function extractInnerContent(rawContent: string): string {
   const lines = rawContent.split('\n');
-  // Find opening fence (```wod)
-  const openIdx = lines.findIndex(l => l.trim().startsWith('```wod'));
+  // Find opening fence — any recognised dialect
+  const openIdx = lines.findIndex(l => {
+    const t = l.trim().toLowerCase();
+    return VALID_WOD_DIALECTS.some(d => t === '```' + d || t.startsWith('```' + d + ' '));
+  });
   // Find closing fence (```)
   let closeIdx = -1;
   for (let i = lines.length - 1; i > openIdx; i--) {
@@ -82,9 +86,10 @@ function extractInnerContent(rawContent: string): string {
 
 /**
  * Re-wrap inner content with fence lines to produce full rawContent.
+ * Uses the section's dialect (defaults to 'wod').
  */
-function wrapWithFences(innerContent: string): string {
-  return '```wod\n' + innerContent + '\n```';
+function wrapWithFences(innerContent: string, dialect: WodDialect = 'wod'): string {
+  return '```' + dialect + '\n' + innerContent + '\n```';
 }
 
 export const WodSectionEditor: React.FC<WodSectionEditorProps> = ({
@@ -229,7 +234,7 @@ export const WodSectionEditor: React.FC<WodSectionEditorProps> = ({
     // Content change → notify parent with full fence-wrapped rawContent + live preview
     const contentDisposable = mountedEditor.onDidChangeModelContent(() => {
       const newInnerContent = mountedEditor.getValue();
-      const newRawContent = wrapWithFences(newInnerContent);
+      const newRawContent = wrapWithFences(newInnerContent, section.dialect ?? 'wod');
       onChange(newRawContent);
       updateLivePreview(newInnerContent);
     });

@@ -5,16 +5,16 @@
  * styled section components with continuous line numbers.
  * 
  * Phase 2: Sections are editable. Clicking a section activates an
- * inline editor (textarea for headings/paragraphs, Monaco for WOD blocks).
+ * inline editor (textarea for title/markdown, Monaco for WOD blocks).
  * Content changes flow back through useSectionDocument.
  */
 
 import React, { useCallback, useRef, useEffect } from 'react';
 import type { WodBlock } from './types';
-import type { Section } from './types/section';
+import type { Section, WodDialect } from './types/section';
 import { useSectionDocument } from './hooks/useSectionDocument';
-import { SectionContainer, SECTION_LINE_HEIGHT } from './components/SectionContainer';
-import { HeadingDisplay, ParagraphDisplay, WodBlockDisplay } from './components/section-renderers';
+import { SectionContainer } from './components/SectionContainer';
+import { MarkdownDisplay, WodBlockDisplay } from './components/section-renderers';
 import { SectionEditView } from './components/SectionEditView';
 import { WodSectionEditor } from './components/WodSectionEditor';
 import { SectionAddBar, type NewSectionType } from './components/SectionAddBar';
@@ -54,10 +54,9 @@ const SectionDisplayRenderer: React.FC<{
   onStartWorkout?: (block: WodBlock) => void;
 }> = ({ section, onStartWorkout }) => {
   switch (section.type) {
-    case 'heading':
-      return <HeadingDisplay section={section} />;
-    case 'paragraph':
-      return <ParagraphDisplay section={section} />;
+    case 'title':
+    case 'markdown':
+      return <MarkdownDisplay section={section} />;
     case 'wod':
       return (
         <WodBlockDisplay
@@ -65,8 +64,6 @@ const SectionDisplayRenderer: React.FC<{
           onStartWorkout={onStartWorkout}
         />
       );
-    case 'empty':
-      return <div style={{ height: SECTION_LINE_HEIGHT }} />;
     default:
       return null;
   }
@@ -99,6 +96,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
     deleteSection: _deleteSection,
     splitSection,
     convertToWod,
+    softDeleteSection: _softDeleteSection,
     wodBlocks,
   } = useSectionDocument({
     initialContent,
@@ -125,44 +123,29 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
     const afterId = lastSection?.id;
 
     switch (type) {
-      case 'h1':
-        if (afterId) insertSectionAfter(afterId, '# ');
-        else onContentChange?.('# ');
-        break;
-      case 'h2':
-        if (afterId) insertSectionAfter(afterId, '## ');
-        else onContentChange?.('## ');
-        break;
-      case 'h3':
-        if (afterId) insertSectionAfter(afterId, '### ');
-        else onContentChange?.('### ');
-        break;
-      case 'h4':
-        if (afterId) insertSectionAfter(afterId, '#### ');
-        else onContentChange?.('#### ');
-        break;
-      case 'paragraph':
+      case 'markdown':
         if (afterId) insertSectionAfter(afterId, '');
         else onContentChange?.('');
         break;
       case 'wod':
-      case 'youtube':
-        // For wod/todo/log/plan/youtube — directly append a wod block to content
+      case 'log':
+      case 'plan': {
+        const dialect: WodDialect = type as WodDialect;
         if (afterId) {
-          // First insert a blank paragraph, then convert the last inserted section
+          // Insert a blank markdown section, then immediately convert to wod with dialect
           insertSectionAfter(afterId, '');
-          // Use setTimeout to wait for state reconciliation
           setTimeout(() => {
             const latest = sectionsRef.current;
             const afterIdx = latest.findIndex(s => s.id === afterId);
             if (afterIdx !== -1 && afterIdx + 1 < latest.length) {
-              convertToWod(latest[afterIdx + 1].id, '', '');
+              convertToWod(latest[afterIdx + 1].id, '', '', dialect);
             }
           }, 0);
         } else {
-          onContentChange?.('```wod\n\n```');
+          onContentChange?.(`\`\`\`${dialect}\n\n\`\`\``);
         }
         break;
+      }
     }
   }, [sections, insertSectionAfter, convertToWod, onContentChange]);
 
@@ -209,7 +192,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           column: 0,
         });
       } else {
-        // At the last section — create a new paragraph after it
+        // At the last section — create a new markdown section after it
         insertSectionAfter(currentSectionId, '');
       }
     }
@@ -245,7 +228,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
       );
     }
 
-    // Heading, paragraph, empty → textarea editor
+    // Title, markdown → textarea editor
     return (
       <SectionEditView
         section={section}
@@ -256,7 +239,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
         onNewSectionRequest={() => handleNewSectionRequest(section.id)}
         onDeactivate={deactivateSection}
         onSplitSection={(before, after) => splitSection(section.id, before, after)}
-        onConvertToWod={(contentBefore, bodyContent) => convertToWod(section.id, contentBefore, bodyContent)}
+        onConvertToWod={(contentBefore, bodyContent, dialect) => convertToWod(section.id, contentBefore, bodyContent, dialect)}
       />
     );
   }, [
@@ -282,7 +265,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
             Empty document
           </div>
         ) : (
-          sections.map((section) => {
+          sections.filter(s => !s.deleted).map((section) => {
             const isActive = section.id === activeSectionId;
             return (
               <SectionContainer

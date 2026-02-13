@@ -8,6 +8,8 @@ import { MdTimerRuntime } from '../../parser/md-timer';
 import { ICodeFragment } from '../../core/models/CodeFragment';
 import { MetricBehavior } from '../../types/MetricBehavior';
 export * from './section';
+export type { WodDialect } from './section';
+export { VALID_WOD_DIALECTS } from './section';
 
 /**
  * State of a WOD block
@@ -95,7 +97,10 @@ export interface WodBlock {
   /** Unique identifier for this block */
   id: string;
 
-  /** Line number where ```wod appears (0-indexed) */
+  /** WOD dialect — determines which strategies are loaded */
+  dialect?: import('./section').WodDialect;
+
+  /** Line number where ```wod/```log/```plan appears (0-indexed) */
   startLine: number;
 
   /** Line number where closing ``` appears (0-indexed) */

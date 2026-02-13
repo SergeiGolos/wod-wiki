@@ -27,6 +27,12 @@ export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provid
         if (initialized.current) return;
         initialized.current = true;
 
+        // If navigating to a specific note, skip daily-log init
+        if (routeId) {
+            setLoading(false);
+            return;
+        }
+
         const init = async () => {
             try {
                 // Build tags that include the active notebook
