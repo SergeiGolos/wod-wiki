@@ -297,6 +297,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   effort(ctx: any): EffortFragment[] {
+    if (!ctx.Identifier || !Array.isArray(ctx.Identifier)) return [];
     const effort = ctx.Identifier.map(
       (identifier: any) => identifier.image
     ).join(" ");
@@ -329,6 +330,7 @@ export class MdTimerInterpreter extends BaseCstVisitor {
   }
 
   sequence(ctx: any): number[] {
+    if (!ctx.Number || !Array.isArray(ctx.Number)) return [];
     return ctx.Number.map((identifier: any) => identifier.image * 1);
   }
 

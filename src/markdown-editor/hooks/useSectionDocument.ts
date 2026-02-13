@@ -11,6 +11,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Section, WodDialect } from '../types/section';
+import { VALID_WOD_DIALECTS } from '../types/section';
 import type { WodBlock } from '../types';
 import { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds, extractMetadata } from '../utils/sectionParser';
 import { detectWodBlocks } from '../utils/blockDetection';
@@ -95,6 +96,9 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
   // Debounce timer for reconciliation
   const reconcileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Flag to prevent re-parse when the rawContent change came from local editing
+  const isLocalEditRef = useRef(false);
+
   // Ref to hold latest sections for use in callbacks without stale closures
   const sectionsRef = useRef<Section[]>([]);
 
@@ -137,6 +141,13 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
 
   // Parse sections from raw content (when rawContent changes externally or via local edits)
   useEffect(() => {
+    // Skip re-parse when the change came from local editing
+    // (updateSectionContent already set sections directly)
+    if (isLocalEditRef.current) {
+      isLocalEditRef.current = false;
+      return;
+    }
+
     // Only parse if rawContent has actually changed from what we already have in sections
     const currentRaw = buildRawContent(sections);
     if (rawContent !== currentRaw) {
@@ -255,11 +266,24 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
       currentLine = section.endLine + 1;
     }
 
-    // Store updated sections for reconciliation
+    // Store updated sections in both ref and state for immediate UI feedback
     sectionsRef.current = updatedSections;
+    setSections(updatedSections);
 
     // Rebuild rawContent immediately for responsive UI
     const newRawContent = buildRawContent(updatedSections);
+
+    // If the content contains a WOD fence line (e.g. from paste), allow re-parse
+    // so the fence gets detected and converted to a WOD block section.
+    // Otherwise, skip re-parse to avoid cursor jumps during normal typing.
+    const containsFence = newContent.split('\n').some(line => {
+      const trimmed = line.trim().toLowerCase();
+      return VALID_WOD_DIALECTS.some(d => trimmed === '```' + d || trimmed.startsWith('```' + d + ' '));
+    });
+    if (!containsFence) {
+      isLocalEditRef.current = true;
+    }
+
     setRawContent(newRawContent);
 
     // Schedule debounced notification to parent
@@ -470,6 +494,8 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     }
 
     sectionsRef.current = currentSections;
+    setSections(currentSections);
+    isLocalEditRef.current = true;
     reconcileFromSections(currentSections);
     setActiveSectionId(newWodSection.id);
     setPendingCursorPosition({ line: 0, column: 0 });

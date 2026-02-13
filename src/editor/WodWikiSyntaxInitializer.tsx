@@ -224,9 +224,14 @@ export class WodWikiSyntaxInitializer {
     this.monacoInstance = monaco;
     this.editorModel = editor.getModel() || undefined;
     
-    const parse = () => {          
-      this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
-      this.onChange?.(this.objectCode);
+    const parse = () => {
+      try {
+        this.objectCode = this.runtime.read(editor.getValue().trimEnd());      
+        this.onChange?.(this.objectCode);
+      } catch (e) {
+        // Parser error on malformed/empty input — don't crash the editor
+        console.warn('[WodWikiSyntax] parse error:', e);
+      }
     }        
     
     // Track cursor position changes to hide hints on the current line

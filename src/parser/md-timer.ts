@@ -22,6 +22,11 @@ export class MdTimerRuntime {
   }
 
   read(inputText: string): IScript {
+    // Handle empty/whitespace-only input without invoking the parser
+    if (!inputText || !inputText.trim()) {
+      return new WodScript(inputText, [], []);
+    }
+
     const { tokens } = this.lexer.tokenize(inputText);
     const parser = new MdTimerParse(tokens) as ExtendedParser;
 

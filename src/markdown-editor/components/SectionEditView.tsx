@@ -119,8 +119,8 @@ export const SectionEditView: React.FC<SectionEditViewProps> = ({
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
 
-    // Detect dialect fences (```wod, ```log, ```plan) typed in a markdown section — auto-convert to WOD block
-    if (sectionType === 'markdown' && onConvertToWod) {
+    // Detect dialect fences (```wod, ```log, ```plan) typed in a markdown or title section — auto-convert to WOD block
+    if ((sectionType === 'markdown' || sectionType === 'title') && onConvertToWod) {
       const lines = newContent.split('\n');
       for (const dialect of VALID_WOD_DIALECTS) {
         const fenceLineIdx = lines.findIndex(l => {
