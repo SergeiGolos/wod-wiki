@@ -172,6 +172,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 end: d2.toISOString().split('T')[0]
             });
             setFilterMode('range');
+            setActiveCollection(null);
             return;
         }
 
@@ -187,13 +188,15 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 return next;
             });
             setFilterMode('list');
+            setActiveCollection(null);
             return;
         }
 
         // Simple Click -> Select Single Date ('list' mode of 1)
         setCustomDates(new Set([dateKey]));
         setFilterMode('list');
-    }, [lastClickedDate, filterMode]);
+        setActiveCollection(null);
+    }, [lastClickedDate, filterMode, setActiveCollection]);
 
     // Handle Month Change -> Reset to Month Mode
     const handleCalendarDateChange = useCallback((date: Date) => {
@@ -202,7 +205,8 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         // Clear specific selections when changing month to view that whole month
         setCustomDates(new Set());
         setDateRange(null);
-    }, [historySelection]);
+        setActiveCollection(null);
+    }, [historySelection, setActiveCollection]);
 
     // Load entries
     useEffect(() => {
@@ -297,9 +301,10 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
 
 
     const selectedEntries = useMemo(() => {
-        // Selection persists across filters, so check against ALL history entries
-        return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
-    }, [historyEntries, historySelection.selectedIds]);
+        // Search both real history entries and synthetic collection entries
+        const allEntries = activeCollectionId ? collectionEntries : historyEntries;
+        return allEntries.filter(e => historySelection.selectedIds.has(e.id));
+    }, [historyEntries, collectionEntries, activeCollectionId, historySelection.selectedIds]);
 
     const notebookLabel = activeCollection
         ? activeCollection.name
@@ -466,7 +471,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         className="gap-2 hidden md:flex"
                     >
                         <Plus className="h-4 w-4" />
-                        New Workout
+                        New
                     </Button>
 
                     <ThemeToggle />

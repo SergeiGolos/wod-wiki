@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { CalendarWidget } from '../history/CalendarWidget';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Dumbbell, Tag, Layers, X, Plus, FolderOpen, ChevronRight } from 'lucide-react';
+import { BookOpen, Dumbbell, Tag, X, Plus, FolderOpen } from 'lucide-react';
 import type { Notebook } from '@/types/notebook';
 import type { WodCollection } from '@/app/wod-collections';
 

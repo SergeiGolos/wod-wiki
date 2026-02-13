@@ -60,9 +60,10 @@ export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) 
 
     // Initialize on mount
     useEffect(() => {
-        const resolvedId = notebookService.ensureDefault();
+        notebookService.ensureDefault();
         setNotebooks(notebookService.getAll());
-        setActiveNotebookIdState(resolvedId);
+        // Don't auto-select — let the route determine the active notebook
+        // activeNotebookId stays null ("All Workouts") unless the URL says otherwise
     }, []);
 
     const setActiveNotebook = useCallback((id: string | null) => {
@@ -78,7 +79,6 @@ export const NotebookProvider: React.FC<NotebookProviderProps> = ({ children }) 
             }
         }
 
-        notebookService.setActiveId(targetId);
         setActiveNotebookIdState(targetId);
         if (targetId) {
             notebookService.touchNotebook(targetId);
