@@ -7,6 +7,7 @@
 import React from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeHistoryLog } from '../history/RuntimeHistoryLog';
+import { FragmentSourceEntry } from '../fragments/FragmentSourceRow';
 
 export interface TimerIndexPanelProps {
   /** Active runtime for live tracking */
@@ -32,6 +33,15 @@ export interface TimerIndexPanelProps {
 
   /** Workout start time (timestamp when execution began) */
   workoutStartTime?: number | null;
+
+  /** Pre-computed entries — when provided, bypasses live runtime data */
+  entries?: FragmentSourceEntry[];
+
+  /** Set of selected item IDs for multi-select (string) */
+  selectedIds?: Set<string>;
+
+  /** Callback when an item's selection is toggled */
+  onSelectionChange?: (id: string | null) => void;
 }
 
 /**
@@ -43,7 +53,10 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   highlightedBlockKey,
   autoScroll = true,
   className = '',
-  workoutStartTime
+  workoutStartTime,
+  entries,
+  selectedIds,
+  onSelectionChange,
 }) => {
   return (
     <RuntimeHistoryLog
@@ -54,6 +67,9 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       className={className}
       workoutStartTime={workoutStartTime}
       showActive={false}
+      entries={entries}
+      selectedIds={selectedIds}
+      onSelectionChange={onSelectionChange}
     />
   );
 };

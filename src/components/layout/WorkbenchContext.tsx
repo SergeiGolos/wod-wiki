@@ -9,6 +9,7 @@ import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
 import { StaticContentProvider } from '../../services/content/StaticContentProvider';
 import { getWodContent } from '../../app/wod-loader';
+import { toNotebookTag } from '../../types/notebook';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -221,7 +222,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     }
 
     if (newMode === 'history') {
-      navigate('/history');
+      navigate('/');
     } else if (routeId) {
       navigate(`/note/${routeId}/${newMode}`);
     } else if (pathname.startsWith('/playground')) {
@@ -266,9 +267,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         provider.updateEntry(routeId, payload)
           .catch(err => console.error('Failed to auto-update workout:', err));
       } else {
+        // Auto-tag with active notebook
+        const tags: string[] = [];
+        const activeNotebookId = localStorage.getItem('wodwiki:active-notebook');
+        if (activeNotebookId) {
+          tags.push(toNotebookTag(activeNotebookId));
+        }
         provider.saveEntry({
           ...payload,
-          tags: [],
+          tags,
           notes: '',
         }).catch(err => console.error('Failed to auto-save workout:', err));
       }

@@ -73,7 +73,7 @@ export function createTrackView(
  * Review View - Post-workout analytics
  *
  * Two panels:
- * - Index (1/3 width) - Segment selection sidebar
+ * - History (1/3 width) - Execution history with segment selection
  * - Timeline (2/3 width) - Analytics visualization
  */
 export function createReviewView(
@@ -87,7 +87,7 @@ export function createReviewView(
     panels: [
       {
         id: 'analytics-index',
-        title: 'Segments',
+        title: 'History',
         icon: React.createElement(BarChart2, { className: 'w-4 h-4' }),
         defaultSpan: 1, // 1/3 width
         content: indexPanel,

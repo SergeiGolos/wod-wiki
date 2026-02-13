@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PanelGrid } from '@/components/layout/panel-system/PanelGrid';
 import { createHistoryView } from '@/components/layout/panel-system/viewDescriptors';
@@ -20,6 +20,9 @@ import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { PanelSpan } from '@/components/layout/panel-system/types';
+import { NotebookMenu } from '@/components/notebook/NotebookMenu';
+import { useNotebooks } from '@/components/notebook/NotebookContext';
+import { toNotebookTag } from '@/types/notebook';
 
 const provider = new LocalStorageContentProvider();
 
@@ -29,6 +32,7 @@ const HistoryContent: React.FC = () => {
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
     const [isMobile, setIsMobile] = useState(false);
     const { setIsOpen, setStrategy } = useCommandPalette();
+    const { activeNotebookId, activeNotebook } = useNotebooks();
 
     const commandStrategy = useMemo(() => new WodNavigationStrategy(navigate), [navigate]);
 
@@ -48,6 +52,13 @@ const HistoryContent: React.FC = () => {
         provider.getEntries().then(setHistoryEntries);
     }, []);
 
+    // Filter entries by active notebook
+    const filteredEntries = useMemo(() => {
+        if (!activeNotebookId) return historyEntries; // "All" mode
+        const tag = toNotebookTag(activeNotebookId);
+        return historyEntries.filter(e => e.tags.includes(tag));
+    }, [historyEntries, activeNotebookId]);
+
     const { createNewEntry, canCreate } = useCreateWorkoutEntry({
         provider,
         historySelection,
@@ -55,39 +66,64 @@ const HistoryContent: React.FC = () => {
         setContent: () => { }, // No-op for standalone history view
     });
 
+    // Wrap createNewEntry to auto-tag with active notebook
+    const createEntryInNotebook = useCallback(async () => {
+        await createNewEntry();
+        // After creation, reload entries so the new one shows up
+        const entries = await provider.getEntries();
+        setHistoryEntries(entries);
+    }, [createNewEntry]);
+
     const activeEntry = useMemo(() => {
-        return historyEntries.find(e => e.id === historySelection.activeEntryId);
-    }, [historyEntries, historySelection.activeEntryId]);
+        return filteredEntries.find(e => e.id === historySelection.activeEntryId);
+    }, [filteredEntries, historySelection.activeEntryId]);
 
     const selectedEntries = useMemo(() => {
-        return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
-    }, [historyEntries, historySelection.selectedIds]);
+        return filteredEntries.filter(e => historySelection.selectedIds.has(e.id));
+    }, [filteredEntries, historySelection.selectedIds]);
 
     const stripMode = historySelection.stripMode;
+
+    // Display label for active notebook
+    const notebookLabel = activeNotebook ? activeNotebook.name : 'All Workouts';
 
     // View Components
     const filterPanel = (
         <ListFilter
             calendarDate={historySelection.calendarDate}
             onCalendarDateChange={historySelection.setCalendarDate}
-            entryDates={new Set(historyEntries.map(e => new Date(e.updatedAt).toISOString().split('T')[0]))}
+            entryDates={new Set(filteredEntries.map(e => new Date(e.updatedAt).toISOString().split('T')[0]))}
             selectedIds={historySelection.selectedIds}
-            onSelectAll={() => historySelection.selectAll(historyEntries.map(e => e.id))}
+            onSelectAll={() => historySelection.selectAll(filteredEntries.map(e => e.id))}
             onClearSelection={historySelection.clearSelection}
-            onCreateNewEntry={createNewEntry}
+            onCreateNewEntry={createEntryInNotebook}
             canCreate={canCreate}
             className="p-4"
         />
     );
 
+    // Handle notebook tag toggling on entries
+    const handleNotebookToggle = useCallback(async (entryId: string, notebookId: string, isAdding: boolean) => {
+        const entry = historyEntries.find(e => e.id === entryId);
+        if (!entry) return;
+        const tag = toNotebookTag(notebookId);
+        const newTags = isAdding
+            ? [...entry.tags, tag]
+            : entry.tags.filter(t => t !== tag);
+        await provider.updateEntry(entryId, { tags: newTags });
+        const entries = await provider.getEntries();
+        setHistoryEntries(entries);
+    }, [historyEntries]);
+
     const listPanel = (
         <ListOfNotes
-            entries={historyEntries}
+            entries={filteredEntries}
             selectedIds={historySelection.selectedIds}
             onToggleEntry={historySelection.toggleEntry}
             onOpenEntry={(id) => navigate(`/note/${id}/plan`)}
             activeEntryId={historySelection.activeEntryId}
             enriched={false}
+            onNotebookToggle={handleNotebookToggle}
         />
     );
 
@@ -132,7 +168,7 @@ const HistoryContent: React.FC = () => {
                             'h-10 flex items-center cursor-pointer hover:opacity-80 transition-opacity',
                             isMobile ? 'w-[150px]' : 'w-[300px]'
                         )}
-                        onClick={() => navigate('/history')}
+                        onClick={() => navigate('/')}
                     >
                         <CommitGraph
                             text={isMobile ? 'WOD.WIKI' : 'WOD.WIKI++'}
@@ -147,7 +183,7 @@ const HistoryContent: React.FC = () => {
                     </div>
                     {!isMobile && (
                         <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground uppercase">
-                            History
+                            {notebookLabel}
                         </span>
                     )}
                 </div>
@@ -167,7 +203,7 @@ const HistoryContent: React.FC = () => {
                     <Button
                         variant="default"
                         size="sm"
-                        onClick={createNewEntry}
+                        onClick={createEntryInNotebook}
                         className="gap-2 hidden md:flex"
                     >
                         <Plus className="h-4 w-4" />
@@ -180,11 +216,12 @@ const HistoryContent: React.FC = () => {
                             href="https://github.com/SergeiGolos/wod-wiki"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground transition-colors ml-2"
+                            className="text-muted-foreground hover:text-foreground transition-colors"
                         >
                             <Github className="h-5 w-5" />
                         </a>
                     )}
+                    <NotebookMenu />
                 </div>
             </div>
 

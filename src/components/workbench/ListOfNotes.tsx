@@ -11,6 +11,7 @@ export interface ListOfNotesProps {
     activeEntryId?: string | null;
     enriched?: boolean;
     className?: string;
+    onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
 }
 
 export const ListOfNotes: React.FC<ListOfNotesProps> = ({
@@ -21,18 +22,10 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
     activeEntryId,
     enriched = false,
     className,
+    onNotebookToggle,
 }) => {
     return (
         <div className={cn("flex flex-col h-full", className)}>
-            {/* In compact mode, HistoryPanel put the Create button in the sidebar (top part). 
-           If using ListOfNotes in a context where we want internal headers or actions, we can add them here.
-           For now, it delegates mainly to HistoryPostList.
-       */}
-
-            {/* If we wanted to inject the create button inside the list flow for compact views, we could do it here,
-           but HistoryPanel logic separated it. We'll keep it flexible.
-       */}
-
             <HistoryPostList
                 entries={entries}
                 selectedIds={selectedIds}
@@ -40,6 +33,7 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
                 onOpen={onOpenEntry}
                 activeEntryId={activeEntryId}
                 enriched={enriched}
+                onNotebookToggle={onNotebookToggle}
             />
         </div>
     );

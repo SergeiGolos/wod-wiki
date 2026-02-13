@@ -14,7 +14,7 @@ export class WodNavigationStrategy implements CommandStrategy {
         const notebookCommand: Command = {
             id: 'nav-notes',
             label: 'Go to My Notebook (History)',
-            action: () => this.navigate('/history'),
+            action: () => this.navigate('/'),
             group: 'Navigation',
             keywords: ['notebook', 'journal', 'log', 'daily', 'history'],
             shortcut: ['g', 'n']

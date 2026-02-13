@@ -12,6 +12,8 @@ import type { IContentProvider } from '../types/content-provider';
 import type { HistoryEntry } from '../types/history';
 import type { UseHistorySelectionReturn } from './useHistorySelection';
 
+import { toNotebookTag } from '../types/notebook';
+
 interface UseCreateWorkoutEntryOptions {
   provider: IContentProvider;
   historySelection: UseHistorySelectionReturn | null;
@@ -40,11 +42,18 @@ export function useCreateWorkoutEntry({
     }
 
     try {
+      // Auto-tag with active notebook if one is set
+      const tags: string[] = [];
+      const activeNotebookId = localStorage.getItem('wodwiki:active-notebook');
+      if (activeNotebookId) {
+        tags.push(toNotebookTag(activeNotebookId));
+      }
+
       // Create new entry with default content
       const newEntry = await provider.saveEntry({
         title: 'New Workout',
         rawContent: DEFAULT_WORKOUT_CONTENT,
-        tags: [],
+        tags,
       });
 
       // Fetch all entries to refresh the list

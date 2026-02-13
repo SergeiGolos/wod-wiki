@@ -4,12 +4,14 @@
  * Features:
  * - Each row: checkbox + name + date + duration + tags (when space allows)
  * - Enriched mode for full-span (show summary, stats)
+ * - "Add to Notebook" button per row
  * - Emits onToggle(id) for selection
  */
 
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
+import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 
 export interface HistoryPostListProps {
   /** Workout entries to display */
@@ -24,6 +26,8 @@ export interface HistoryPostListProps {
   activeEntryId?: string | null;
   /** Show enriched metadata (for full-span mode) */
   enriched?: boolean;
+  /** Callback when notebook tag is toggled on an entry */
+  onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
 }
 
 function formatDuration(ms: number): string {
@@ -55,6 +59,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   onOpen,
   activeEntryId,
   enriched = false,
+  onNotebookToggle,
 }) => {
   if (entries.length === 0) {
     return (
@@ -88,11 +93,11 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                 aria-checked={isSelected}
                 onClick={(e) => { e.stopPropagation(); onToggle(entry.id); }}
                 className={cn(
-                'mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
-                isSelected
-                  ? 'bg-primary border-primary text-primary-foreground'
-                  : 'border-muted-foreground/40 hover:border-primary/60',
-              )}>
+                  'mt-0.5 w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
+                  isSelected
+                    ? 'bg-primary border-primary text-primary-foreground'
+                    : 'border-muted-foreground/40 hover:border-primary/60',
+                )}>
                 {isSelected && (
                   <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
                     <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -124,17 +129,31 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                 {/* Tags (shown in enriched mode or when space allows) */}
                 {enriched && entry.tags.length > 0 && (
                   <div className="flex gap-1 mt-1 flex-wrap">
-                    {entry.tags.map(tag => (
-                      <span
-                        key={tag}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
+                    {entry.tags
+                      .filter(tag => !tag.startsWith('notebook:'))
+                      .map(tag => (
+                        <span
+                          key={tag}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
                   </div>
                 )}
               </div>
+
+              {/* Add to Notebook button */}
+              {onNotebookToggle && (
+                <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
+                  <AddToNotebookButton
+                    entryTags={entry.tags}
+                    onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
+                    variant="icon"
+                    className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
+                  />
+                </div>
+              )}
             </div>
           </button>
         );

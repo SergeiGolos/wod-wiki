@@ -1,13 +1,13 @@
 import React, { Fragment } from 'react';
-import { 
-  Dialog as HeadlessDialog, 
-  DialogPanel, 
-  DialogTitle as HeadlessDialogTitle, 
+import {
+  Dialog as HeadlessDialog,
+  DialogPanel,
+  DialogTitle as HeadlessDialogTitle,
   DialogDescription as HeadlessDialogDescription,
-  Transition, 
-  TransitionChild 
+  Transition,
+  TransitionChild
 } from '@headlessui/react';
-import { cn } from '@/lib/utils'; 
+import { cn } from '@/lib/utils';
 
 export interface DialogProps {
   open?: boolean;
@@ -55,7 +55,7 @@ export const DialogContent = React.forwardRef<
         <DialogPanel
           ref={ref}
           className={cn(
-            "w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all",
+            "w-full max-w-md transform overflow-hidden rounded-2xl bg-popover text-popover-foreground p-6 text-left align-middle shadow-xl transition-all border border-border",
             className
           )}
           {...props}
@@ -90,7 +90,7 @@ export const DialogTitle = React.forwardRef<
     ref={ref}
     as="h3"
     className={cn(
-      "text-lg font-medium leading-6 text-gray-900",
+      "text-lg font-medium leading-6 text-foreground",
       className
     )}
     {...props}
@@ -104,7 +104,7 @@ export const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <HeadlessDialogDescription
     ref={ref}
-    className={cn("text-sm text-gray-500", className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ));

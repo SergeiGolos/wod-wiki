@@ -15,13 +15,15 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
 import { Github, Search } from 'lucide-react';
+import { NotebookMenu } from '../notebook/NotebookMenu';
+import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -65,6 +67,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   ...editorProps
 }) => {
   const navigate = useNavigate();
+  const { id: routeId } = useParams<{ id: string }>();
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
 
@@ -89,6 +92,27 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     expandPanel,
     collapsePanel,
   } = useWorkbench();
+
+  const { provider } = useWorkbench();
+
+  // Current entry tags (for Add to Notebook button)
+  const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
+  useEffect(() => {
+    if (!routeId || provider.mode !== 'history') return;
+    provider.getEntry(routeId).then(entry => {
+      if (entry) setCurrentEntryTags(entry.tags);
+    });
+  }, [routeId, provider]);
+
+  const handleNotebookToggleForCurrent = useCallback(async (notebookId: string, isAdding: boolean) => {
+    if (!routeId || provider.mode !== 'history') return;
+    const tag = toNotebookTag(notebookId);
+    const newTags = isAdding
+      ? [...currentEntryTags, tag]
+      : currentEntryTags.filter(t => t !== tag);
+    await provider.updateEntry(routeId, { tags: newTags });
+    setCurrentEntryTags(newTags);
+  }, [routeId, provider, currentEntryTags]);
 
   // Consume synced state from Zustand store (via WorkbenchSyncBridge)
   const {
@@ -245,6 +269,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   const reviewIndexPanel = (
     <ReviewPanelIndex
+      runtime={runtime}
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
       onSelectSegment={toggleAnalyticsSegment}
@@ -288,7 +313,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 'h-10 flex items-center cursor-pointer hover:opacity-80 transition-opacity',
                 isMobile ? 'w-[150px]' : 'w-[300px]'
               )}
-              onClick={() => navigate('/history')}
+              onClick={() => navigate('/')}
             >
               <CommitGraph
                 text={isMobile ? 'WOD.WIKI' : 'WOD.WIKI++'}
@@ -374,11 +399,16 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 href="https://github.com/SergeiGolos/wod-wiki"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors ml-2"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Github className="h-5 w-5" />
               </a>
             )}
+
+            <NotebookMenu
+              entryTags={routeId && provider.mode === 'history' ? currentEntryTags : undefined}
+              onEntryToggle={routeId && provider.mode === 'history' ? handleNotebookToggleForCurrent : undefined}
+            />
           </div>
         </div>
 

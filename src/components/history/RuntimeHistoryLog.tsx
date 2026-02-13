@@ -18,6 +18,12 @@ export interface RuntimeHistoryLogProps {
   showActive?: boolean;
   /** Compact display mode */
   compact?: boolean;
+  /** Pre-computed entries — when provided, skips useOutputStatements */
+  entries?: FragmentSourceEntry[];
+  /** Set of selected item IDs (string) for multi-select */
+  selectedIds?: Set<string>;
+  /** Callback when an item's selection is toggled */
+  onSelectionChange?: (id: string | null) => void;
 }
 
 /**
@@ -34,7 +40,10 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   autoScroll = true,
   className,
   showActive = true,
-  compact = false
+  compact = false,
+  entries: externalEntries,
+  selectedIds,
+  onSelectionChange,
 }) => {
   const { outputs } = useOutputStatements(runtime);
   const [updateVersion, setUpdateVersion] = useState(0);
@@ -48,7 +57,12 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     };
   }, [runtime]);
 
+  // When external entries are provided (e.g. historical segments), skip runtime derivation
   const { entries, activeItemId } = useMemo(() => {
+    if (externalEntries) {
+      return { entries: externalEntries, activeItemId: null };
+    }
+
     if (!runtime) return { entries: [] as FragmentSourceEntry[], activeItemId: null };
     void updateVersion; // Dependency to force re-calc for timers
 
@@ -99,7 +113,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     }
 
     return { entries: displayEntries, activeItemId };
-  }, [runtime, outputs, updateVersion, showActive]);
+  }, [runtime, outputs, updateVersion, showActive, externalEntries]);
 
   const effectiveSize: VisualizerSize = compact ? 'compact' : 'normal';
 
@@ -107,6 +121,8 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     <FragmentSourceList
       entries={entries}
       activeItemId={activeItemId || highlightedBlockKey || undefined}
+      selectedIds={selectedIds}
+      onSelectionChange={onSelectionChange}
       autoScroll={autoScroll}
       size={effectiveSize}
       showDurations

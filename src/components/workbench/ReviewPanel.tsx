@@ -1,10 +1,12 @@
-import React from 'react';
-import { AnalyticsIndexPanel } from '../layout/AnalyticsIndexPanel';
+import React, { useMemo, useCallback } from 'react';
+import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimelineView } from '../../timeline/TimelineView';
 import { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
+import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 
 export interface ReviewPanelProps {
+  runtime: IScriptRuntime | null;
   segments: Segment[];
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number) => void;
@@ -12,19 +14,32 @@ export interface ReviewPanelProps {
   rawData: AnalyticsDataPoint[];
 }
 
-export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
-  segments,
+export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'runtime' | 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
+  runtime,
   selectedSegmentIds,
   onSelectSegment,
-  groups
-}) => (
-  <AnalyticsIndexPanel
-    segments={segments}
-    selectedSegmentIds={selectedSegmentIds}
-    onSelectSegment={onSelectSegment}
-    groups={groups}
-  />
-);
+}) => {
+  const selectedIds = useMemo(
+    () => new Set(Array.from(selectedSegmentIds).map(String)),
+    [selectedSegmentIds]
+  );
+
+  const handleSelectionChange = useCallback((id: string | null) => {
+    if (id && id !== 'workout-end') {
+      onSelectSegment(parseInt(id, 10));
+    }
+  }, [onSelectSegment]);
+
+  return (
+    <TimerIndexPanel
+      runtime={runtime as any}
+      selectedIds={selectedIds}
+      onSelectionChange={handleSelectionChange}
+      autoScroll={false}
+      className="h-full"
+    />
+  );
+};
 
 export const ReviewPanelPrimary: React.FC<Pick<ReviewPanelProps, 'rawData' | 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
   rawData,

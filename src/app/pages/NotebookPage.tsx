@@ -5,6 +5,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMemo } from 'react';
 import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';
 import { PLAYGROUND_CONTENT, getDailyTitle, getDailyTemplate } from '@/constants/defaultContent';
+import { useNotebooks } from '@/components/notebook/NotebookContext';
+import { toNotebookTag } from '@/types/notebook';
 
 // Singleton instance to share state
 const provider = new LocalStorageContentProvider();
@@ -12,10 +14,9 @@ const provider = new LocalStorageContentProvider();
 export const NotebookPage: React.FC = () => {
     const { id: routeId } = useParams<{ id: string }>();
     const [initialContent, setInitialContent] = useState<string | undefined>(undefined);
-    // Removed sticky state for active entry ID to genericize navigation logic
-    // const [initialActiveEntryId, setInitialActiveEntryId] = useState<string | undefined>(undefined); 
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
+    const { activeNotebookId } = useNotebooks();
 
     const navigate = useNavigate();
     const commandStrategy = useMemo(() => new WodNavigationStrategy(navigate), [navigate]);
@@ -26,6 +27,14 @@ export const NotebookPage: React.FC = () => {
 
         const init = async () => {
             try {
+                // Build tags that include the active notebook
+                const baseTags = (tags: string[]) => {
+                    if (activeNotebookId) {
+                        return [...tags, toNotebookTag(activeNotebookId)];
+                    }
+                    return tags;
+                };
+
                 // Check if totally empty (first load)
                 const allEntries = await provider.getEntries();
                 if (allEntries.length === 0) {
@@ -33,7 +42,7 @@ export const NotebookPage: React.FC = () => {
                     const newEntry = await provider.saveEntry({
                         title: 'Playground',
                         rawContent: PLAYGROUND_CONTENT,
-                        tags: ['playground'],
+                        tags: baseTags(['playground']),
                         notes: ''
                     });
                     setInitialContent(newEntry.rawContent);
@@ -55,13 +64,12 @@ export const NotebookPage: React.FC = () => {
                 if (dailyEntries.length > 0) {
                     console.log('Found existing daily log:', dailyEntries[0].id);
                     setInitialContent(dailyEntries[0].rawContent);
-                    // Do not auto-select entry
                 } else {
                     console.log('Creating new daily log...');
                     const newEntry = await provider.saveEntry({
                         title: getDailyTitle(),
                         rawContent: getDailyTemplate(),
-                        tags: ['daily'],
+                        tags: baseTags(['daily']),
                         notes: ''
                     });
                     setInitialContent(newEntry.rawContent);
