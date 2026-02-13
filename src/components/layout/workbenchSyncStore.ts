@@ -39,11 +39,11 @@ const noopExecution: UseRuntimeExecutionReturn = {
   elapsedTime: 0,
   stepCount: 0,
   startTime: null,
-  start: () => {},
-  pause: () => {},
-  stop: () => {},
-  reset: () => {},
-  step: () => {},
+  start: () => { },
+  pause: () => { },
+  stop: () => { },
+  reset: () => { },
+  step: () => { },
 };
 
 // ─── State shape ───────────────────────────────────────────────
@@ -71,6 +71,7 @@ interface WorkbenchSyncState {
   analyticsSegments: Segment[];
   analyticsGroups: AnalyticsGroup[];
   selectedAnalyticsIds: Set<number>;
+  lastSelectedAnalyticsId: number | null;
 
   // --- Cross-Panel Interaction ---
   hoveredBlockKey: string | null;
@@ -91,7 +92,7 @@ interface WorkbenchSyncActions {
   setActiveSegmentIds: (ids: Set<number>) => void;
   setActiveStatementIds: (ids: Set<number>) => void;
   setAnalytics: (data: AnalyticsDataPoint[], segments: Segment[], groups: AnalyticsGroup[]) => void;
-  toggleAnalyticsSegment: (id: number) => void;
+  toggleAnalyticsSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
   setHoveredBlockKey: (key: string | null) => void;
   setDocumentItems: (items: DocumentItem[]) => void;
   setSelectedBlock: (block: WodBlock | null) => void;
@@ -122,13 +123,13 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   // --- Initial state ---
   runtime: null,
   execution: noopExecution,
-  initializeRuntime: () => {},
-  disposeRuntime: () => {},
-  handleStart: () => {},
-  handlePause: () => {},
-  handleStop: () => {},
-  handleNext: () => {},
-  handleStartWorkoutAction: () => {},
+  initializeRuntime: () => { },
+  disposeRuntime: () => { },
+  handleStart: () => { },
+  handlePause: () => { },
+  handleStop: () => { },
+  handleNext: () => { },
+  handleStartWorkoutAction: () => { },
 
   activeSegmentIds: new Set(),
   activeStatementIds: new Set(),
@@ -137,6 +138,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   analyticsSegments: [],
   analyticsGroups: [],
   selectedAnalyticsIds: new Set(),
+  lastSelectedAnalyticsId: null,
 
   hoveredBlockKey: null,
 
@@ -157,11 +159,30 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     analyticsGroups: groups,
   }),
 
-  toggleAnalyticsSegment: (id) => set((state) => {
+  toggleAnalyticsSegment: (id, modifiers, visibleIds) => set((state) => {
     const next = new Set(state.selectedAnalyticsIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    return { selectedAnalyticsIds: next };
+
+    if (modifiers?.shiftKey && state.lastSelectedAnalyticsId !== null && visibleIds) {
+      const idx1 = visibleIds.indexOf(state.lastSelectedAnalyticsId);
+      const idx2 = visibleIds.indexOf(id);
+      if (idx1 !== -1 && idx2 !== -1) {
+        const start = Math.min(idx1, idx2);
+        const end = Math.max(idx1, idx2);
+        const rangeIds = visibleIds.slice(start, end + 1);
+        rangeIds.forEach(rid => next.add(rid));
+      }
+    } else if (modifiers?.ctrlKey) {
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+    } else {
+      next.clear();
+      next.add(id);
+    }
+
+    return {
+      selectedAnalyticsIds: next,
+      lastSelectedAnalyticsId: id
+    };
   }),
 
   setHoveredBlockKey: (key) => set({ hoveredBlockKey: key }),

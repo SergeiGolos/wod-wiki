@@ -6,13 +6,13 @@
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Note, Script, WorkoutResult } from '../../types/storage';
+import { Note, Script, WorkoutResult, SectionHistory } from '../../types/storage';
 
 interface WodWikiDB extends DBSchema {
     notes: {
         key: string;
         value: Note;
-        indexes: { 'by-updated': number };
+        indexes: { 'by-updated': number, 'by-target-date': number };
     };
     scripts: {
         key: string;
@@ -24,10 +24,15 @@ interface WodWikiDB extends DBSchema {
         value: WorkoutResult;
         indexes: { 'by-script': string, 'by-note': string, 'by-completed': number };
     };
+    'section_history': {
+        key: [string, number];
+        value: SectionHistory;
+        indexes: { 'by-section': string, 'by-note': string };
+    };
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 1;
+const DB_VERSION = 3; // Incremented for section_history
 
 class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
@@ -39,6 +44,13 @@ class IndexedDBService {
                 if (!db.objectStoreNames.contains('notes')) {
                     const store = db.createObjectStore('notes', { keyPath: 'id' });
                     store.createIndex('by-updated', 'updatedAt');
+                    store.createIndex('by-target-date', 'targetDate');
+                } else {
+                    const tx = db.transaction('notes', 'versionchange');
+                    const store = tx.objectStore('notes');
+                    if (!store.indexNames.contains('by-target-date')) {
+                        store.createIndex('by-target-date', 'targetDate');
+                    }
                 }
 
                 // Scripts Store
@@ -55,6 +67,13 @@ class IndexedDBService {
                     store.createIndex('by-note', 'noteId');
                     store.createIndex('by-completed', 'completedAt');
                 }
+
+                // Section History Store (V3)
+                if (!db.objectStoreNames.contains('section_history')) {
+                    const store = db.createObjectStore('section_history', { keyPath: ['sectionId', 'version'] });
+                    store.createIndex('by-section', 'sectionId');
+                    store.createIndex('by-note', 'noteId');
+                }
             },
         });
     }
@@ -70,7 +89,7 @@ class IndexedDBService {
     }
 
     async getAllNotes(): Promise<Note[]> {
-        return (await this.dbPromise).getAllFromIndex('notes', 'by-updated');
+        return (await this.dbPromise).getAllFromIndex('notes', 'by-target-date');
     }
 
     async saveNote(note: Note): Promise<string> {
@@ -79,7 +98,7 @@ class IndexedDBService {
 
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
-        const tx = db.transaction(['notes', 'scripts', 'results'], 'readwrite');
+        const tx = db.transaction(['notes', 'scripts', 'results', 'section_history'], 'readwrite');
 
         // Delete Note
         await tx.objectStore('notes').delete(id);
@@ -98,6 +117,14 @@ class IndexedDBService {
         while (resultCursor) {
             await resultCursor.delete();
             resultCursor = await resultCursor.continue();
+        }
+
+        // Delete associated Section History (V3)
+        const historyIndex = tx.objectStore('section_history').index('by-note');
+        let historyCursor = await historyIndex.openKeyCursor(id);
+        while (historyCursor) {
+            await historyCursor.delete();
+            historyCursor = await historyCursor.continue();
         }
 
         await tx.done;
@@ -134,6 +161,41 @@ class IndexedDBService {
 
     async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
         return (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
+    }
+
+    // --- Section History Operations ---
+
+    async saveSectionHistory(history: SectionHistory): Promise<[string, number]> {
+        return (await this.dbPromise).put('section_history', history);
+    }
+
+    async getSectionHistory(sectionId: string): Promise<SectionHistory[]> {
+        return (await this.dbPromise).getAllFromIndex('section_history', 'by-section', sectionId);
+    }
+
+    async getLatestSectionVersion(sectionId: string): Promise<SectionHistory | undefined> {
+        const history = await this.getSectionHistory(sectionId);
+        if (history.length === 0) return undefined;
+        return history.sort((a, b) => b.version - a.version)[0];
+    }
+
+    /**
+     * Get the latest version of multiple segments.
+     */
+    async getLatestSegments(segmentIds: string[]): Promise<SectionHistory[]> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('section_history', 'readonly');
+        const store = tx.objectStore('section_history');
+        const index = store.index('by-section');
+
+        const result: SectionHistory[] = [];
+        for (const id of segmentIds) {
+            const cursor = await index.openCursor(IDBKeyRange.only(id), 'prev');
+            if (cursor) {
+                result.push(cursor.value);
+            }
+        }
+        return result;
     }
 }
 

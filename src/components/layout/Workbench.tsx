@@ -81,6 +81,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Consume Workbench Context (document state, view mode, panel layouts)
   const {
     content,
+    sections,
     viewMode,
     panelLayouts,
     activeBlockId: _activeBlockId,
@@ -123,9 +124,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     setHoveredBlockKey,
     selectedBlock,
     documentItems,
-    highlightedLine,
+    highlightedLine: _highlightedLine,
     setHighlightedLine,
-    setCursorLine,
+    setCursorLine: _setCursorLine,
     analyticsData,
     analyticsSegments,
     analyticsGroups,
@@ -139,7 +140,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   } = useWorkbenchSync();
 
   // Local UI state
-  const [editorInstance, setEditorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
+  // editorInstance kept for useBlockEditor and scroll-to-block compatibility
+  // (will be null since PlanPanel no longer provides a Monaco instance)
+  const [editorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -159,25 +162,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [propTheme, theme, setTheme]);
 
-  // Monaco theme derivation
-  const monacoTheme = useMemo(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    if (theme === 'system') {
-      return mediaQuery.matches ? 'wod-dark' : 'wod-light';
-    }
-    return theme === 'dark' ? 'wod-dark' : 'wod-light';
-  }, [theme]);
-
   // Block editor hooks
   const { editStatement: _editStatement, deleteStatement: _deleteStatement } = useBlockEditor({
     editor: editorInstance,
     block: selectedBlock
   });
-
-  // Handlers
-  const handleEditorMount = (editor: monacoEditor.IStandaloneCodeEditor) => {
-    setEditorInstance(editor);
-  };
 
   const handleBlockHover = useCallback((blockKey: string | null) => {
     setHoveredBlockKey(blockKey);
@@ -212,16 +201,12 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     <PlanPanel
       initialContent={initialContent}
       value={content}
-      onEditorMount={handleEditorMount}
+      sections={sections}
       onStartWorkout={handleStartWorkoutAction}
       setActiveBlockId={setActiveBlockId}
       setBlocks={setBlocks}
       setContent={setContent}
-      setCursorLine={setCursorLine}
-      highlightedLine={highlightedLine}
-      monacoTheme={monacoTheme}
       saveState={saveState}
-      {...editorProps}
     />
   );
 

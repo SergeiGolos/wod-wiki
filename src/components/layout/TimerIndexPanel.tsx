@@ -41,7 +41,10 @@ export interface TimerIndexPanelProps {
   selectedIds?: Set<string>;
 
   /** Callback when an item's selection is toggled */
-  onSelectionChange?: (id: string | null) => void;
+  onSelectionChange?: (id: string | null, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
+
+  /** Callback for double click */
+  onDoubleClick?: () => void;
 }
 
 /**
@@ -57,6 +60,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
   entries,
   selectedIds,
   onSelectionChange,
+  onDoubleClick,
 }) => {
   return (
     <RuntimeHistoryLog
@@ -70,6 +74,7 @@ export const TimerIndexPanel: React.FC<TimerIndexPanelProps> = ({
       entries={entries}
       selectedIds={selectedIds}
       onSelectionChange={onSelectionChange}
+      onDoubleClick={onDoubleClick}
     />
   );
 };

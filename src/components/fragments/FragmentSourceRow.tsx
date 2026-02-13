@@ -83,7 +83,9 @@ export interface FragmentSourceRowProps {
     /** Raw fragment groups for multi-line rendering within a single row */
     fragmentGroups?: readonly (readonly ICodeFragment[])[];
     /** Click handler */
-    onClick?: (source?: IFragmentSource) => void;
+    onClick?: (source?: IFragmentSource, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
+    /** Double click handler */
+    onDoubleClick?: (source?: IFragmentSource) => void;
     /** Hover handler */
     onHover?: (source?: IFragmentSource | null) => void;
     /** Additional CSS classes */
@@ -169,6 +171,7 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
     actions,
     fragmentGroups,
     onClick,
+    onDoubleClick,
     onHover,
     className
 }) => {
@@ -200,7 +203,13 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
         // Map VisualizerFilter to FragmentFilter where possible
     } : undefined) || []);
 
-    const handleClick = () => { onClick?.(source); };
+    const handleClick = (e: React.MouseEvent) => {
+        onClick?.(source, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
+    };
+    const handleDoubleClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        onDoubleClick?.(source);
+    };
     const handleMouseEnter = () => { onHover?.(source); };
     const handleMouseLeave = () => { onHover?.(null); };
 
@@ -234,6 +243,7 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
                 paddingBottom: 'var(--wod-preview-statement-gap)',
             }}
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             role={onClick ? 'button' : undefined}

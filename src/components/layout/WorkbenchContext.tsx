@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { WodBlock, WorkoutResults } from '../../markdown-editor/types';
+import { WodBlock, WorkoutResults, Section } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
 import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
@@ -31,6 +31,7 @@ export type SaveState = 'idle' | 'changed' | 'saving' | 'saved' | 'error';
 interface WorkbenchContextState {
   // Document State
   content: string;
+  sections: Section[] | null;
   blocks: WodBlock[];
   activeBlockId: string | null; // Cursor location
 
@@ -115,6 +116,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Document State
   const [content, setContent] = useState(propInitialContent);
+  const [sections, setSectionsState] = useState<Section[] | null>(null);
   const contentRef = useRef(content);
   useEffect(() => { contentRef.current = content; }, [content]);
 
@@ -200,6 +202,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
             if (entry) {
               console.log(`[WorkbenchProvider] Successfully loaded entry: ${entry.title} (${entry.id})`);
               setContent(entry.rawContent);
+              setSectionsState(entry.sections || null);
               lastSavedContent.current = entry.rawContent; // Sync ref so we don't auto-save immediately
               setSaveState('idle'); // Reset any lingering save state
 
@@ -358,6 +361,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
           ...payload,
           tags,
           notes: '',
+          targetDate: Date.now()
         }).catch(err => console.error('Failed to auto-save workout:', err));
       }
     }
@@ -407,6 +411,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   const value = useMemo(() => ({
     content,
+    sections,
     blocks,
     activeBlockId,
     selectedBlockId,

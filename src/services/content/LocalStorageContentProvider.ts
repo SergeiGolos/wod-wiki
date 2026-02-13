@@ -39,6 +39,7 @@ export class LocalStorageContentProvider implements IContentProvider {
         if (!raw) continue;
         const parsed = JSON.parse(raw) as HistoryEntry;
         if (!parsed.id || typeof parsed.createdAt !== 'number') continue;
+        if (parsed.targetDate === undefined) parsed.targetDate = parsed.createdAt;
         entries.push(parsed);
       } catch {
         // Skip entries with invalid JSON (graceful degradation)
@@ -55,10 +56,10 @@ export class LocalStorageContentProvider implements IContentProvider {
         dateRange = { start: now - query.daysBack * 86_400_000, end: now };
       }
 
-      // Filter by date range (using updatedAt)
+      // Filter by date range (using targetDate)
       if (dateRange) {
         filtered = filtered.filter(
-          e => e.updatedAt >= dateRange!.start && e.updatedAt <= dateRange!.end
+          e => e.targetDate >= dateRange!.start && e.targetDate <= dateRange!.end
         );
       }
 
@@ -70,8 +71,8 @@ export class LocalStorageContentProvider implements IContentProvider {
       }
     }
 
-    // Sort by updatedAt desc (newest first)
-    filtered.sort((a, b) => b.updatedAt - a.updatedAt);
+    // Sort by targetDate desc (newest first)
+    filtered.sort((a, b) => b.targetDate - a.targetDate);
 
     // Apply offset and limit
     if (query) {
@@ -108,14 +109,16 @@ export class LocalStorageContentProvider implements IContentProvider {
   }
 
   async saveEntry(
-    data: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & { id?: string }
+    data: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & { id?: string; targetDate?: number }
   ): Promise<HistoryEntry> {
     const now = Date.now();
+    const targetDate = data.targetDate || now;
     const entry: HistoryEntry = {
       ...data,
       id: data.id || generateId(),
       createdAt: now,
       updatedAt: now,
+      targetDate,
       schemaVersion: SCHEMA_VERSION,
     };
     localStorage.setItem(`${KEY_PREFIX}${entry.id}`, JSON.stringify(entry));

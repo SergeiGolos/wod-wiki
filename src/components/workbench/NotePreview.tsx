@@ -1,29 +1,28 @@
-import React, { useRef, useEffect, useMemo } from 'react';
-import { DocumentItem, parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
-import { detectWodBlocks } from '../../markdown-editor/utils/blockDetection';
-import { Hash, Play, Dumbbell } from 'lucide-react';
+import React from 'react';
+import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
+import { Dumbbell } from 'lucide-react';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
+import { SectionEditor } from '../../markdown-editor/SectionEditor';
 
 export interface NotePreviewProps {
     /** The workout entry to preview */
     entry?: HistoryEntry;
 
-    /** Manual document structure items (optional fallback/override) */
+    /** Manual document structure items (for TrackPanel workout selector) */
     items?: DocumentItem[];
 
-    /** Currently active block ID (for sync) */
+    /** Currently active block ID (for sync highlighting in items mode) */
     activeBlockId?: string;
 
     /** Highlighted block ID (from hover) */
     highlightedBlockId?: string | null;
 
-    /** Callback when a block is clicked */
+    /** Callback when a block is clicked (items mode) */
     onBlockClick?: (item: DocumentItem) => void;
 
-    /** Callback when a block is hovered */
+    /** Callback when a block is hovered (items mode) */
     onBlockHover?: (blockId: string | null) => void;
 
     /** Action to start a specific workout block */
@@ -36,62 +35,81 @@ export interface NotePreviewProps {
     autoScroll?: boolean;
 }
 
-const getBlockPreview = (content: string): string => {
-    const lines = content.trim().split('\n');
-    if (lines.length === 0) return 'Empty WOD';
-    const firstLine = lines.find(line => line.trim().length > 0);
-    if (!firstLine) return 'Empty WOD';
-    const preview = firstLine.trim();
-    return preview.length > 40 ? preview.substring(0, 40) + '...' : preview;
-};
+/**
+ * Items-based rendering for TrackPanel workout selector.
+ * Renders DocumentItem[] as a clickable card list.
+ */
+const ItemsRenderer: React.FC<{
+    items: DocumentItem[];
+    activeBlockId?: string;
+    onBlockClick?: (item: DocumentItem) => void;
+    onBlockHover?: (blockId: string | null) => void;
+}> = ({ items, activeBlockId, onBlockClick, onBlockHover }) => (
+    <div className="flex flex-col">
+        {items.map((item) => {
+            const isActive = item.id === activeBlockId;
+            return (
+                <div
+                    key={item.id}
+                    className={cn(
+                        "px-4 py-2 cursor-pointer transition-colors border-b border-border/50",
+                        "hover:bg-accent/50",
+                        isActive && "bg-accent border-l-2 border-l-primary",
+                        item.type === 'wod' && "font-mono text-sm",
+                        item.type === 'header' && "font-semibold",
+                        item.type === 'paragraph' && "text-muted-foreground text-sm"
+                    )}
+                    onClick={() => onBlockClick?.(item)}
+                    onMouseEnter={() => onBlockHover?.(item.id)}
+                    onMouseLeave={() => onBlockHover?.(null)}
+                >
+                    {item.type === 'header' && (
+                        <span className="text-base">{item.content.replace(/^#+\s*/, '')}</span>
+                    )}
+                    {item.type === 'wod' && (
+                        <div className="flex items-center gap-2">
+                            <Dumbbell className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="truncate">{item.content.split('\n')[0]}</span>
+                        </div>
+                    )}
+                    {item.type === 'paragraph' && (
+                        <span className="line-clamp-2">{item.content}</span>
+                    )}
+                </div>
+            );
+        })}
+    </div>
+);
 
 export const NotePreview: React.FC<NotePreviewProps> = ({
     entry,
-    items: propItems,
+    items,
     activeBlockId,
-    highlightedBlockId,
     onBlockClick,
     onBlockHover,
     onStartWorkout,
     title,
-    autoScroll = true
 }) => {
     const { isCompact: mobile } = usePanelSize();
-    const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-    // Derive document structure if entry is provided
-    const items = useMemo(() => {
-        if (propItems) return propItems;
-        if (!entry) return [];
-        const content = entry.rawContent;
-        const blocks = detectWodBlocks(content);
-        return parseDocumentStructure(content, blocks);
-    }, [entry, propItems]);
-
-    // Filter out paragraphs to keep it clean like an index
-    const filteredItems = items.filter(item => item.type !== 'paragraph');
-
-    // Scroll to active block
-    useEffect(() => {
-        if (autoScroll && activeBlockId && itemRefs.current[activeBlockId]) {
-            itemRefs.current[activeBlockId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, [activeBlockId, autoScroll]);
-
-    const handleItemClick = (item: DocumentItem) => {
-        onBlockClick?.(item);
-    };
-
-    const handleStartClick = (e: React.MouseEvent, blockId: string) => {
-        e.stopPropagation();
-        onStartWorkout?.(blockId);
-    };
 
     const displayTitle = title || entry?.title || 'Preview';
 
+    // Items mode: render clickable card list (used by TrackPanel)
+    if (items && !entry) {
+        return (
+            <ItemsRenderer
+                items={items}
+                activeBlockId={activeBlockId}
+                onBlockClick={onBlockClick}
+                onBlockHover={onBlockHover}
+            />
+        );
+    }
+
+    // Entry mode: render section-based preview (used by HistoryPage)
     return (
         <div className={cn("h-full bg-background flex flex-col overflow-hidden", !mobile && "border-l border-border")}>
-            <div className={cn("flex-1 flex flex-col gap-6 overflow-hidden", mobile ? "p-4" : "p-6")}>
+            <div className={cn("flex-1 flex flex-col gap-4 overflow-hidden", mobile ? "p-4" : "p-6")}>
                 {/* Header matching AnalyzePanel visual style */}
                 <div className="flex items-center gap-3 text-foreground flex-shrink-0">
                     <Dumbbell className="h-6 w-6" />
@@ -100,84 +118,23 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                     </h2>
                 </div>
 
-                <div className="flex-1 flex flex-col justify-center min-h-0">
-                    <div className="rounded-lg border border-border p-4 bg-card custom-scrollbar overflow-y-auto max-h-full w-full max-w-md mx-auto">
-                        {filteredItems.length === 0 ? (
-                            <div className="p-4 text-sm text-muted-foreground text-center italic">
-                                {!entry && items.length === 0 ? "No workout selected" : "Empty document"}
-                            </div>
-                        ) : (
-                            <div className="space-y-1">
-                                {filteredItems.map((item) => {
-                                    const isActive = item.id === activeBlockId;
-                                    const isHighlighted = item.id === highlightedBlockId;
-                                    const isWod = item.type === 'wod';
-
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            ref={(el) => { itemRefs.current[item.id] = el; }}
-                                            className={cn(
-                                                "rounded-md transition-all duration-200 cursor-pointer border-l-2 group",
-                                                isActive
-                                                    ? "bg-accent/10 border-primary text-foreground ring-1 ring-primary/20"
-                                                    : "border-transparent text-muted-foreground hover:bg-accent/5 hover:text-foreground",
-                                                isHighlighted && !isActive ? "bg-muted/50" : "",
-                                                isWod ? "bg-card relative" : ""
-                                            )}
-                                            onClick={() => handleItemClick(item)}
-                                            onMouseEnter={() => onBlockHover?.(item.id)}
-                                            onMouseLeave={() => onBlockHover?.(null)}
-                                        >
-                                            <div className={cn(
-                                                "flex items-center gap-2",
-                                                mobile ? "p-3" : "p-2",
-                                                isWod ? "min-h-[40px]" : "min-h-[28px]"
-                                            )}>
-                                                <div className="flex-shrink-0 text-muted-foreground opacity-70">
-                                                    {item.type === 'header' && <Hash className="h-3.5 w-3.5" />}
-                                                    {item.type === 'wod' && <Hash className="h-4 w-4" />}
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    {item.type === 'header' && (
-                                                        <div className={cn(
-                                                            "font-medium truncate",
-                                                            item.level === 1 ? "text-sm" : "text-xs text-muted-foreground"
-                                                        )}>
-                                                            {item.content}
-                                                        </div>
-                                                    )}
-
-                                                    {item.type === 'wod' && (
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-sm font-medium truncate">
-                                                                {getBlockPreview(item.content)}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {isWod && onStartWorkout && (
-                                                    <div className="pl-2">
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-primary-foreground"
-                                                            onClick={(e) => handleStartClick(e, item.id)}
-                                                            title="Run this workout"
-                                                        >
-                                                            <Play className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                {/* Section-based document rendering */}
+                <div className="flex-1 min-h-0">
+                    {entry ? (
+                        <SectionEditor
+                            value={entry.rawContent}
+                            onStartWorkout={onStartWorkout ? (block) => onStartWorkout(block.id) : undefined}
+                            height="100%"
+                            showLineNumbers={!mobile}
+                            editable={false}
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-sm text-muted-foreground italic">
+                                No workout selected
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

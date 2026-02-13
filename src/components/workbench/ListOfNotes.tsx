@@ -6,8 +6,7 @@ import { cn } from '@/lib/utils';
 export interface ListOfNotesProps {
     entries: HistoryEntry[];
     selectedIds: Set<string>;
-    onToggleEntry: (id: string) => void;
-    onOpenEntry?: (id: string) => void;
+    onToggleEntry: (id: string, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
     activeEntryId?: string | null;
     enriched?: boolean;
     className?: string;
@@ -19,7 +18,6 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
     entries,
     selectedIds,
     onToggleEntry,
-    onOpenEntry,
     activeEntryId,
     enriched = false,
     className,
@@ -32,7 +30,6 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
                 entries={entries}
                 selectedIds={selectedIds}
                 onToggle={onToggleEntry}
-                onOpen={onOpenEntry}
                 activeEntryId={activeEntryId}
                 enriched={enriched}
                 onNotebookToggle={onNotebookToggle}

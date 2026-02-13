@@ -20,9 +20,7 @@ export interface HistoryPostListProps {
   /** Currently selected entry IDs (checkboxes) */
   selectedIds: Set<string>;
   /** Toggle checkbox selection callback */
-  onToggle: (id: string) => void;
-  /** Open entry for viewing callback (row click) */
-  onOpen?: (id: string) => void;
+  onToggle: (id: string, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
   /** Currently active/open entry ID */
   activeEntryId?: string | null;
   /** Show enriched metadata (for full-span mode) */
@@ -59,7 +57,6 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   entries,
   selectedIds,
   onToggle,
-  onOpen,
   activeEntryId,
   enriched = false,
   onNotebookToggle,
@@ -82,7 +79,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
         return (
           <button
             key={entry.id}
-            onClick={() => onOpen ? onOpen(entry.id) : onToggle(entry.id)}
+            onClick={(e) => onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey })}
             onDoubleClick={(e) => {
               e.preventDefault(); // Prevent text selection
               if (onEdit) onEdit(entry.id);
@@ -119,7 +116,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>{formatDate(entry.updatedAt, enriched)}</span>
+                  <span>{formatDate(entry.targetDate, enriched)}</span>
                   {entry.results && (
                     <>
                       <span>·</span>
@@ -163,7 +160,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                 <div
                   role="checkbox"
                   aria-checked={isSelected}
-                  onClick={(e) => { e.stopPropagation(); onToggle(entry.id); }}
+                  onClick={(e) => { e.stopPropagation(); onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey }); }}
                   className={cn(
                     'w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
                     isSelected

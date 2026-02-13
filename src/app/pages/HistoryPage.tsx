@@ -204,17 +204,17 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             const year = historySelection.calendarDate.getFullYear();
             const month = historySelection.calendarDate.getMonth();
             entries = entries.filter(e => {
-                const d = new Date(e.updatedAt);
+                const d = new Date(e.targetDate);
                 return d.getFullYear() === year && d.getMonth() === month;
             });
         } else if (filterMode === 'range' && dateRange) {
             entries = entries.filter(e => {
-                const d = new Date(e.updatedAt).toISOString().split('T')[0];
+                const d = new Date(e.targetDate).toISOString().split('T')[0];
                 return d >= dateRange.start && d <= dateRange.end;
             });
         } else if (filterMode === 'list') {
             entries = entries.filter(e => {
-                const d = new Date(e.updatedAt).toISOString().split('T')[0];
+                const d = new Date(e.targetDate).toISOString().split('T')[0];
                 return customDates.has(d);
             });
         }
@@ -284,7 +284,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     <ListFilter
                         calendarDate={historySelection.calendarDate}
                         onCalendarDateChange={handleCalendarDateChange}
-                        entryDates={new Set(historyEntries.map(e => new Date(e.updatedAt).toISOString().split('T')[0]))}
+                        entryDates={new Set(historyEntries.map(e => new Date(e.targetDate).toISOString().split('T')[0]))}
                         selectedDates={visualSelectedDates}
                         onDateSelect={handleDateSelect}
                         selectedIds={historySelection.selectedIds}
@@ -315,8 +315,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 <ListOfNotes
                     entries={filteredEntries}
                     selectedIds={historySelection.selectedIds}
-                    onToggleEntry={historySelection.toggleEntry}
-                    onOpenEntry={historySelection.toggleEntry}
+                    onToggleEntry={(id, modifiers) => historySelection.handleSelection(id, modifiers || { ctrlKey: false, shiftKey: false }, filteredEntries.map(e => e.id))}
                     activeEntryId={historySelection.activeEntryId}
                     enriched={false}
                     onNotebookToggle={handleNotebookToggle}

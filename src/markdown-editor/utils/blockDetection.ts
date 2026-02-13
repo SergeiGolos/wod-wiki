@@ -16,19 +16,22 @@ export function detectWodBlocks(content: string): WodBlock[] {
   let inBlock = false;
   let currentBlock: Partial<WodBlock> = {};
   let blockContent: string[] = [];
-  
+
   lines.forEach((line, index) => {
     const trimmedLine = line.trim();
     const normalizedLine = trimmedLine.toLowerCase();
-    
+
     if (!inBlock && normalizedLine.startsWith('```wod')) {
       // Start of WOD block
       inBlock = true;
+      const now = Date.now();
       currentBlock = {
-        id: `wod-block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `wod-block-${now}-${Math.random().toString(36).substr(2, 9)}`,
         startLine: index,
         state: 'idle',
-        widgetIds: {}
+        widgetIds: {},
+        version: 1,
+        createdAt: now
       };
       blockContent = [];
     } else if (inBlock && trimmedLine.startsWith('```')) {
@@ -44,14 +47,14 @@ export function detectWodBlocks(content: string): WodBlock[] {
       blockContent.push(line);
     }
   });
-  
+
   // Handle unclosed block (treat as malformed but still track it)
   if (inBlock && currentBlock.startLine !== undefined) {
     currentBlock.endLine = lines.length - 1;
     currentBlock.content = blockContent.join('\n');
     blocks.push(currentBlock as WodBlock);
   }
-  
+
   return blocks;
 }
 
@@ -66,7 +69,7 @@ export function findBlockAtLine(
   blocks: WodBlock[],
   lineNumber: number
 ): WodBlock | null {
-  return blocks.find(block => 
+  return blocks.find(block =>
     lineNumber >= block.startLine && lineNumber <= block.endLine
   ) || null;
 }

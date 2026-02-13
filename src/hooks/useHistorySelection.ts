@@ -31,6 +31,7 @@ export interface UseHistorySelectionReturn {
   openEntry: (id: string) => void;
   closeEntry: () => void;
   toggleEntry: (id: string) => void;
+  handleSelection: (id: string, modifiers: { ctrlKey: boolean; shiftKey: boolean }, visibleIds: string[]) => void;
   selectAll: (visibleIds: string[]) => void;
   clearSelection: () => void;
   setCalendarDate: (date: Date) => void;
@@ -43,6 +44,7 @@ export function useHistorySelection(
 ): UseHistorySelectionReturn {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeEntryId, setActiveEntryId] = useState<string | null>(initialActiveEntryId ?? null);
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const [calendarDate, setCalendarDate] = useState(initialCalendarDate ?? new Date());
   const [filters, setFiltersState] = useState<HistoryFilters>(defaultFilters);
 
@@ -89,7 +91,42 @@ export function useHistorySelection(
       }
     }
     setSelectedIds(next);
+    setLastSelectedId(id);
   }, [selectedIds, activeEntryId]);
+
+  const handleSelection = useCallback((id: string, modifiers: { ctrlKey: boolean; shiftKey: boolean }, visibleIds: string[]) => {
+    const next = new Set(selectedIds);
+
+    if (modifiers.shiftKey && lastSelectedId && visibleIds.includes(lastSelectedId)) {
+      // Range selection
+      const idx1 = visibleIds.indexOf(lastSelectedId);
+      const idx2 = visibleIds.indexOf(id);
+      const start = Math.min(idx1, idx2);
+      const end = Math.max(idx1, idx2);
+
+      const rangeIds = visibleIds.slice(start, end + 1);
+      rangeIds.forEach(rid => next.add(rid));
+    } else if (modifiers.ctrlKey) {
+      // Toggle
+      if (next.has(id)) {
+        next.delete(id);
+        if (activeEntryId === id) {
+          setActiveEntryId(next.size > 0 ? Array.from(next)[0] : null);
+        }
+      } else {
+        next.add(id);
+        if (activeEntryId === null) setActiveEntryId(id);
+      }
+    } else {
+      // Single select
+      next.clear();
+      next.add(id);
+      setActiveEntryId(id);
+    }
+
+    setSelectedIds(next);
+    setLastSelectedId(id);
+  }, [selectedIds, activeEntryId, lastSelectedId]);
 
   const selectAll = useCallback((visibleIds: string[]) => {
     setSelectedIds(new Set(visibleIds));
@@ -114,6 +151,7 @@ export function useHistorySelection(
     openEntry,
     closeEntry,
     toggleEntry,
+    handleSelection,
     selectAll,
     clearSelection,
     setCalendarDate,

@@ -10,7 +10,9 @@ import { toShortId } from '../../lib/idUtils';
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '../db/IndexedDBService';
-import { Note, Script, WorkoutResult } from '../../types/storage';
+import { Note, WorkoutResult, SectionHistory } from '../../types/storage';
+import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
+import { Section } from '../../markdown-editor/types/section';
 
 export class IndexedDBContentProvider implements IContentProvider {
     readonly mode: ContentProviderMode = 'history';
@@ -43,6 +45,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 title: note.title,
                 createdAt: note.createdAt,
                 updatedAt: note.updatedAt,
+                targetDate: note.targetDate || note.createdAt,
                 rawContent: latestScript.content, // Show latest content
                 tags: note.tags,
                 schemaVersion: 1,
@@ -63,8 +66,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             // Date range, etc.
         }
 
-        // Sort by updated desc
-        filtered.sort((a, b) => b.updatedAt - a.updatedAt);
+        // Sort by targetDate desc
+        filtered.sort((a, b) => b.targetDate - a.targetDate);
 
         return filtered;
     }
@@ -72,7 +75,6 @@ export class IndexedDBContentProvider implements IContentProvider {
     async getEntry(id: string): Promise<HistoryEntry | null> {
         let note = await indexedDBService.getNote(id);
 
-        // Resolution fallback (for short IDs or titles passed from URL)
         if (!note) {
             const allNotes = await indexedDBService.getAllNotes();
             const resolved = allNotes.find((n: Note) => toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
@@ -81,57 +83,104 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         if (!note) return null;
 
-        const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
-        if (!latestScript) return null;
+        let rawContent = '';
+        let segments: SectionHistory[] = [];
+        if (note.segmentIds && note.segmentIds.length > 0) {
+            // Reconstruct from segments
+            const fetchedSegments = await indexedDBService.getLatestSegments(note.segmentIds);
+            // Sort segments according to segmentIds order
+            segments = note.segmentIds.map(sid => fetchedSegments.find(s => s.sectionId === sid)).filter((s): s is SectionHistory => !!s);
 
-        // TODO: Load results for this note/script if needed
-        // const results = await indexedDBService.getResultsForNote(note.id);
+            // Rebuild rawContent
+            rawContent = segments.map(s => {
+                if (s.type === 'wod') return `\`\`\`wod\n${s.content}\n\`\`\``;
+                if (s.type === 'heading') {
+                    const prefix = '#'.repeat(s.level || 1);
+                    return `${prefix} ${s.content}`;
+                }
+                return s.content;
+            }).join('\n\n');
+        } else {
+            // Legacy Note (no segmentIds) — fallback to script storage
+            const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
+            if (latestScript) {
+                rawContent = latestScript.content;
+            } else {
+                rawContent = note.rawContent || '';
+            }
+        }
+
+        // Map SectionHistory to Section types for the editor
+        const sections: Section[] = segments.map(s => ({
+            id: s.sectionId,
+            type: s.type,
+            rawContent: s.type === 'wod' ? `\`\`\`wod\n${s.content}\n\`\`\`` : (s.type === 'heading' ? `${'#'.repeat(s.level || 1)} ${s.content}` : s.content),
+            displayContent: s.content,
+            level: s.level,
+            wodBlock: s.wodBlock,
+            version: s.version,
+            createdAt: s.timestamp,
+            // lines will be recomputed by the hook
+            startLine: 0,
+            endLine: 0,
+            lineCount: 0
+        }));
 
         return {
             id: note.id,
             title: note.title,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
-            rawContent: latestScript.content,
+            targetDate: note.targetDate || note.createdAt,
+            rawContent,
+            sections,
             tags: note.tags,
             schemaVersion: 1,
-            // results: ...
         };
     }
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
-        // This is typically "Create New" or "Save as New" from the UI perspective for a totally new note
-        // BUT the UI might call this for an existing note if it doesn't pass ID? 
-        // The type definition implies ID is optional aka 'create'.
-
         const noteId = uuidv4();
         const now = Date.now();
+
+        // TRANSITION TO SEGMENTS
+        const sections = parseDocumentSections(entry.rawContent);
+        const segmentIds: string[] = [];
+
+        for (const section of sections) {
+            const segment: SectionHistory = {
+                sectionId: section.id,
+                version: 1,
+                noteId: noteId,
+                content: section.displayContent,
+                type: section.type,
+                level: section.level,
+                wodBlock: section.wodBlock,
+                timestamp: now
+            };
+            await indexedDBService.saveSectionHistory(segment);
+            segmentIds.push(section.id);
+        }
 
         const note: Note = {
             id: noteId,
             title: entry.title,
-            rawContent: entry.rawContent, // Draft/Latest
+            rawContent: entry.rawContent,
             tags: entry.tags,
             createdAt: now,
-            updatedAt: now
-        };
-
-        const script: Script = {
-            id: uuidv4(),
-            noteId: noteId,
-            content: entry.rawContent,
-            versionHash: this.hashContent(entry.rawContent),
-            createdAt: now
+            updatedAt: now,
+            targetDate: entry.targetDate || now,
+            segmentIds
         };
 
         await indexedDBService.saveNote(note);
-        await indexedDBService.saveScript(script);
 
         return {
             ...entry,
             id: noteId,
             createdAt: now,
             updatedAt: now,
+            targetDate: entry.targetDate || now,
             schemaVersion: 1
         };
     }
@@ -139,7 +188,6 @@ export class IndexedDBContentProvider implements IContentProvider {
     async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title'>>): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
-        // Resolution fallback (for short IDs or titles passed from URL)
         if (!note) {
             const allNotes = await indexedDBService.getAllNotes();
             const resolved = allNotes.find((n: Note) => toShortId(n.id) === id || n.title.toLowerCase() === id.toLowerCase());
@@ -149,56 +197,60 @@ export class IndexedDBContentProvider implements IContentProvider {
         if (!note) throw new Error(`Note not found: ${id}`);
 
         const now = Date.now();
-        let latestScript = await indexedDBService.getLatestScriptForNote(id);
 
-        // Update Note Metadata
+        // Update Metadata
         if (patch.title) note.title = patch.title;
         if (patch.tags) note.tags = patch.tags;
 
-        // Handle Content Changes (Versioning)
+        let finalRawContent = note.rawContent;
+
         if (patch.rawContent !== undefined) {
-            note.rawContent = patch.rawContent; // Update current draft state
+            finalRawContent = patch.rawContent;
 
-            const newHash = this.hashContent(patch.rawContent);
+            // TRANSITION TO SEGMENTS
+            // Parse into sections to identify units
+            const sections = parseDocumentSections(patch.rawContent);
+            const newSegmentIds: string[] = [];
 
-            // Strict Versioning: If hash is different from LATEST script, create new script.
-            // Debounce logic in UI prevents this from happening on every keystroke.
-            if (!latestScript || latestScript.versionHash !== newHash) {
-                const newScript: Script = {
-                    id: uuidv4(),
-                    noteId: id,
-                    content: patch.rawContent,
-                    versionHash: newHash,
-                    createdAt: now
-                };
-                await indexedDBService.saveScript(newScript);
-                latestScript = newScript;
+            // Fetch current segments to compare versions
+            const currentSegments = note.segmentIds && note.segmentIds.length > 0
+                ? await indexedDBService.getLatestSegments(note.segmentIds)
+                : [];
+
+            for (const section of sections) {
+                const existingSegment = currentSegments.find(s => s.sectionId === section.id);
+
+                // Content changed or new segment
+                if (!existingSegment || existingSegment.content !== section.displayContent) {
+                    const newVersion = (existingSegment?.version || 0) + 1;
+                    const segment: SectionHistory = {
+                        sectionId: section.id,
+                        version: newVersion,
+                        noteId: note.id,
+                        content: section.displayContent,
+                        type: section.type,
+                        level: section.level,
+                        wodBlock: section.wodBlock,
+                        timestamp: now
+                    };
+                    await indexedDBService.saveSectionHistory(segment);
+                }
+                newSegmentIds.push(section.id);
             }
+
+            note.segmentIds = newSegmentIds;
+            note.rawContent = patch.rawContent; // Keep cache updated
         }
 
-        // Handle Results Saving
+        // Handle Results (linked to latest version state of note)
         if (patch.results) {
-            // Ensure we have a script to link to
-            if (!latestScript) {
-                // Fallback: If no script exists yet (rare, but possible if note was just created empty?), create one
-                const content = patch.rawContent || note.rawContent || '';
-                latestScript = {
-                    id: uuidv4(),
-                    noteId: id,
-                    content: content,
-                    versionHash: this.hashContent(content),
-                    createdAt: now
-                };
-                await indexedDBService.saveScript(latestScript);
-            }
-
             const resultData = patch.results;
             const newResult: WorkoutResult = {
                 id: uuidv4(),
-                scriptId: latestScript.id,
+                scriptId: id, // Link to note ID as the base versioning unit now
                 noteId: id,
-                data: resultData, // Now compatible due to HistoryEntry update
-                completedAt: resultData.endTime || now // Use endTime from results or now
+                data: resultData,
+                completedAt: resultData.endTime || now
             };
             await indexedDBService.saveResult(newResult);
         }
@@ -211,7 +263,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             title: note.title,
             createdAt: note.createdAt,
             updatedAt: note.updatedAt,
-            rawContent: latestScript ? latestScript.content : note.rawContent,
+            targetDate: note.targetDate || note.createdAt,
+            rawContent: finalRawContent,
             tags: note.tags,
             schemaVersion: 1
         };
@@ -219,20 +272,5 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     async deleteEntry(id: string): Promise<void> {
         await indexedDBService.deleteNote(id);
-    }
-
-    // Helper
-    private hashContent(content: string): string {
-        // Simple robust hash for string content
-        const len = content.length;
-        let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
-        for (let i = 0; i < len; i++) {
-            let ch = content.charCodeAt(i);
-            h1 = Math.imul(h1 ^ ch, 2654435761);
-            h2 = Math.imul(h2 ^ ch, 1597334677);
-        }
-        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-        return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
     }
 }

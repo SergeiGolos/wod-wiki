@@ -23,7 +23,9 @@ export interface RuntimeHistoryLogProps {
   /** Set of selected item IDs (string) for multi-select */
   selectedIds?: Set<string>;
   /** Callback when an item's selection is toggled */
-  onSelectionChange?: (id: string | null) => void;
+  onSelectionChange?: (id: string | null, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
+  /** Callback for double click */
+  onDoubleClick?: () => void;
 }
 
 /**
@@ -44,6 +46,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   entries: externalEntries,
   selectedIds,
   onSelectionChange,
+  onDoubleClick,
 }) => {
   const { outputs } = useOutputStatements(runtime);
   const [updateVersion, setUpdateVersion] = useState(0);
@@ -123,6 +126,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
       activeItemId={activeItemId || highlightedBlockKey || undefined}
       selectedIds={selectedIds}
       onSelectionChange={onSelectionChange}
+      onDoubleClick={onDoubleClick}
       autoScroll={autoScroll}
       size={effectiveSize}
       showDurations

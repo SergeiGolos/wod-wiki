@@ -42,8 +42,10 @@ export interface FragmentSourceListProps {
     renderActions?: (entry: FragmentSourceEntry) => React.ReactNode;
     /** Click handler (receives source) */
     onClick?: (source: IFragmentSource) => void;
-    /** Selection change handler (receives source ID as string) */
-    onSelectionChange?: (id: string | null) => void;
+    /** Selection change handler (receives source ID as string + modifiers) */
+    onSelectionChange?: (id: string | null, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
+    /** Double click handler */
+    onDoubleClick?: (source: IFragmentSource) => void;
     /** Hover handler */
     onHover?: (source: IFragmentSource | null) => void;
     /** Additional CSS classes */
@@ -105,6 +107,7 @@ export const FragmentSourceList: React.FC<FragmentSourceListProps> = ({
     renderActions,
     onClick,
     onSelectionChange,
+    onDoubleClick,
     onHover,
     className,
     emptyMessage = "No items to display",
@@ -133,15 +136,19 @@ export const FragmentSourceList: React.FC<FragmentSourceListProps> = ({
     }, [autoScroll, activeEntry, scrollBehavior]);
 
     // Handlers
-    const handleClick = useCallback((source: IFragmentSource) => {
-        if (onSelectionChange) {
-            onSelectionChange(String(source.id));
+    const handleClick = useCallback((source?: IFragmentSource, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => {
+        if (source && onSelectionChange) {
+            onSelectionChange(String(source.id), modifiers);
         }
-        onClick?.(source);
+        if (source) onClick?.(source);
     }, [onClick, onSelectionChange]);
 
-    const handleHover = useCallback((source: IFragmentSource | null) => {
-        onHover?.(source);
+    const handleDoubleClick = useCallback((source?: IFragmentSource) => {
+        if (source) onDoubleClick?.(source);
+    }, [onDoubleClick]);
+
+    const handleHover = useCallback((source?: IFragmentSource | null | undefined) => {
+        onHover?.(source as IFragmentSource | null);
     }, [onHover]);
 
     // Process entries: optionally group linked items
@@ -196,6 +203,7 @@ export const FragmentSourceList: React.FC<FragmentSourceListProps> = ({
                     fragmentGroups={entry.fragmentGroups}
                     actions={renderActions?.(entry)}
                     onClick={onSelectionChange || onClick ? handleClick : undefined}
+                    onDoubleClick={onDoubleClick ? handleDoubleClick : undefined}
                     onHover={onHover ? handleHover : undefined}
                     className={isInGroup ? 'border-l-orange-400/30' : undefined}
                 />

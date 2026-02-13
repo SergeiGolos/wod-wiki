@@ -1,60 +1,36 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { Loader2, Check, AlertCircle } from 'lucide-react';
 import { SaveState } from '../layout/WorkbenchContext';
-import { MarkdownEditorBase, MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { WodBlock } from '../../markdown-editor/types';
-import { editor as monacoEditor } from 'monaco-editor';
-import { workbenchEventBus } from '../../services/WorkbenchEventBus';
+import { SectionEditor } from '../../markdown-editor/SectionEditor';
 
-export interface PlanPanelProps extends MarkdownEditorProps {
-  onEditorMount: (editor: monacoEditor.IStandaloneCodeEditor) => void;
+export interface PlanPanelProps {
+  initialContent?: string;
+  value?: string;
+  sections?: any[] | null; // Use any[] temporarily if Section is not imported, or import it
   onStartWorkout: (block: WodBlock) => void;
   setActiveBlockId: (blockId: string | null) => void;
   setBlocks: (blocks: any[]) => void;
   setContent: (content: string) => void;
-  setCursorLine: (line: number) => void;
-  highlightedLine: number | null;
-  monacoTheme: string;
   saveState: SaveState;
 }
 
 export const PlanPanel: React.FC<PlanPanelProps> = ({
   initialContent,
-  onEditorMount,
+  value,
+  sections,
   onStartWorkout,
   setActiveBlockId,
   setBlocks,
   setContent,
-  setCursorLine,
-  highlightedLine,
-  monacoTheme,
   saveState,
-  ...editorProps
 }) => {
-  const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null);
-
-  // Subscribe to Scroll Events
-  useEffect(() => {
-    const cleanup = workbenchEventBus.onScrollToBlock(() => {
-      // Future: Trigger scroll locally via editorRef
-    });
-    return () => { cleanup(); };
-  }, []);
-
-  const handleEditorMountLocal = (editor: monacoEditor.IStandaloneCodeEditor) => {
-    editorRef.current = editor;
-    onEditorMount(editor);
-  };
-
   const handleActiveBlockChange = (block: WodBlock | null) => {
     setActiveBlockId(block?.id || null);
-    if (block) {
-      workbenchEventBus.emitHighlightBlock(block.id, 'editor');
-    }
   };
 
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative flex flex-col">
       {/* Save Status Indicator */}
       <div className="absolute top-4 right-8 z-50 flex items-center gap-2 pointer-events-none transition-opacity duration-300">
         {saveState === 'changed' && (
@@ -83,20 +59,21 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
         )}
       </div>
 
-      <MarkdownEditorBase
-        initialContent={initialContent}
-        showContextOverlay={false}
-        onActiveBlockChange={handleActiveBlockChange}
-        onBlocksChange={setBlocks}
-        onContentChange={setContent}
-        onCursorPositionChange={setCursorLine}
-        highlightedLine={highlightedLine}
-        onMount={handleEditorMountLocal}
-        onStartWorkout={onStartWorkout}
-        height="100%"
-        {...editorProps}
-        theme={monacoTheme}
-      />
+      {/* Section-based editor with padding */}
+      <div className="flex-1 min-h-0 px-6 py-4">
+        <SectionEditor
+          initialContent={initialContent}
+          initialSections={sections || undefined}
+          value={value}
+          onContentChange={setContent}
+          onBlocksChange={setBlocks}
+          onActiveBlockChange={handleActiveBlockChange}
+          onStartWorkout={onStartWorkout}
+          height="100%"
+          editable={true}
+          showLineNumbers={true}
+        />
+      </div>
     </div>
   );
 };

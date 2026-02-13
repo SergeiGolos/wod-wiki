@@ -12,7 +12,7 @@
  */
 
 
-import type { WorkoutResults } from '../markdown-editor/types';
+import type { WorkoutResults, Section } from '../markdown-editor/types';
 
 /**
  * A stored workout entry in the history.
@@ -22,6 +22,7 @@ export interface HistoryEntry {
   title: string;
   createdAt: number;                   // Unix ms — immutable
   updatedAt: number;                   // Unix ms — bumped on edit
+  targetDate: number;                  // Unix ms — primary date for view/sorting
 
   // Source
   rawContent: string;                  // Original markdown
@@ -33,6 +34,8 @@ export interface HistoryEntry {
   // Metadata
   tags: string[];
   notes?: string;
+  // Pre-parsed segments for instant rendering
+  sections?: Section[];
   schemaVersion: number;               // For future migration
 }
 

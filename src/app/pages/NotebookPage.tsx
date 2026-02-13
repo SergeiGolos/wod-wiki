@@ -45,7 +45,8 @@ export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provid
                         title: 'Playground',
                         rawContent: PLAYGROUND_CONTENT,
                         tags: baseTags(['playground']),
-                        notes: ''
+                        notes: '',
+                        targetDate: Date.now()
                     });
                     setInitialContent(newEntry.rawContent);
                     navigate(`/note/${newEntry.id}/plan`);
@@ -72,7 +73,8 @@ export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provid
                         title: getDailyTitle(),
                         rawContent: getDailyTemplate(),
                         tags: baseTags(['daily']),
-                        notes: ''
+                        notes: '',
+                        targetDate: Date.now()
                     });
                     setInitialContent(newEntry.rawContent);
                     navigate(`/note/${newEntry.id}/plan`);
