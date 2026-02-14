@@ -238,3 +238,43 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
 
   return { data, segments, groups };
 }
+
+/**
+ * Transform raw output statements into analytics-ready data.
+ * Used for historical analysis where no runtime instance exists.
+ */
+export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTime?: number): AnalyticsResult {
+  if (!outputs || outputs.length === 0) return { data: [], segments: [], groups: [] };
+
+  const transformer = new AnalyticsTransformer();
+  const segments = transformer.fromOutputStatements(outputs, workoutStartTime);
+
+  if (segments.length === 0) {
+    return { data: [], segments: [], groups: [] };
+  }
+
+  const groups = transformer.toAnalyticsGroup(segments);
+  const data: AnalyticsDataPoint[] = [];
+
+  const totalDuration = segments.length > 0 ? Math.max(...segments.map(s => s.endTime)) : 0;
+  const availableMetricKeys = new Set<string>();
+  segments.forEach(s => Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k)));
+
+  for (let t = 0; t <= totalDuration; t++) {
+    const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
+    const dataPoint: AnalyticsDataPoint = { time: t };
+
+    availableMetricKeys.forEach(key => {
+      const segWithMetric = activeSegs.find(s => s.metrics[key] !== undefined);
+      if (segWithMetric) {
+        const baseVal = segWithMetric.metrics[key];
+        dataPoint[key] = Math.round(baseVal); // No variation for historical logs
+      } else {
+        dataPoint[key] = 0;
+      }
+    });
+    data.push(dataPoint);
+  }
+
+  return { data, segments, groups };
+}

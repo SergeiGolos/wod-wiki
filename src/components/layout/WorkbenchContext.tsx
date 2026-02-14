@@ -69,6 +69,9 @@ interface WorkbenchContextState {
   historyEntries: HistoryEntry[];
   setHistoryEntries: (entries: HistoryEntry[]) => void;
 
+  // Active entry
+  currentEntry: HistoryEntry | null;
+
   // Actions
   setContent: (content: string) => void;
   setBlocks: (blocks: WodBlock[]) => void;
@@ -218,6 +221,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
             const entry = await provider.getEntry(routeId);
             if (entry) {
               console.log(`[WorkbenchProvider] Successfully loaded entry: ${entry.title} (${entry.id})`);
+              setCurrentEntry(entry);
               setContent(entry.rawContent);
               setSectionsState(entry.sections || null);
               lastSavedContent.current = entry.rawContent; // Sync ref so we don't auto-save immediately
@@ -259,6 +263,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
 
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -310,6 +315,52 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // (Selection sync now handled within loadContent effect above)
 
   const historySelection = resolvedMode === 'history' ? historySelectionHook : null;
+
+  // Sync selectedBlockId with routeSectionId from the URL (enables deep-linking/refresh)
+  useEffect(() => {
+    if (routeSectionId) {
+      if (routeSectionId !== selectedBlockId) {
+        // Robust ID matching: if the exact ID (which includes line number) isn't found, 
+        // we'll try to match by content hash in a separate effect that has access to 'blocks'.
+        // For now, just set the state to trigger that resolution.
+        setSelectedBlockId(routeSectionId);
+      }
+    } else if (selectedBlockId && viewMode !== 'plan') {
+      // Clear selection when navigating away from a specific track/review section
+      // (but keep it in plan mode as it might represent the cursor-focused block)
+      setSelectedBlockId(null);
+    }
+  }, [routeSectionId, selectedBlockId, viewMode]);
+
+  // Fallback selector for shifted IDs (e.g. after edits that move a block by +/- 1 line)
+  useEffect(() => {
+    if (!selectedBlockId || blocks.length === 0) return;
+
+    // Is there a block with this exact ID?
+    const hasExact = blocks.some(b => b.id === selectedBlockId);
+    if (hasExact) return;
+
+    // If not, and it looks like a generated ID (type-line-hash), try matching by hash
+    const generatedMatch = selectedBlockId.match(/^wod-\d+-([a-f0-9]{8})$/);
+    if (generatedMatch) {
+      const targetHash = generatedMatch[1];
+      const match = blocks.find(b => {
+        // Crude but fast hash check
+        let h = 0;
+        const c = b.content;
+        for (let i = 0; i < c.length && i < 64; i++) h = ((h << 5) - h + c.charCodeAt(i)) | 0;
+        return (h >>> 0).toString(16).padStart(8, '0') === targetHash;
+      });
+
+      if (match) {
+        console.log(`[WorkbenchContext] Block shifted. Updating selectedBlockId: ${selectedBlockId} -> ${match.id}`);
+        setSelectedBlockId(match.id);
+        if (routeId) {
+          navigate(trackPath(routeId, match.id), { replace: true });
+        }
+      }
+    }
+  }, [blocks, selectedBlockId, routeId, navigate]);
 
   // Derive strip mode from content mode + selection state
   const stripMode: StripMode = useMemo(() => {
@@ -469,6 +520,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     historySelection,
     historyEntries,
     setHistoryEntries,
+    currentEntry,
     setContent,
     setBlocks,
     setActiveBlockId,
@@ -495,6 +547,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     historySelection,
     historyEntries,
     setHistoryEntries,
+    currentEntry,
     selectBlock,
     setViewMode,
     startWorkout,

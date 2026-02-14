@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
+import type { IContentProvider } from '@/types/content-provider';
 import { SectionEditor } from '../../markdown-editor/SectionEditor';
 
 export interface NotePreviewProps {
@@ -46,6 +47,8 @@ export interface NotePreviewProps {
 
     /** Whether to auto-scroll to the active block */
     autoScroll?: boolean;
+    /** Provider for history/persistence (needed for WOD block "Add to Plan") */
+    provider?: IContentProvider;
 }
 
 /**
@@ -106,6 +109,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
     onEdit,
     onDelete,
     title,
+    provider,
 }) => {
     const { isCompact: mobile } = usePanelSize();
 
@@ -164,6 +168,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                             value={entry.rawContent}
                             onStartWorkout={onStartWorkout ? (block) => onStartWorkout(block.id) : undefined}
                             onAddToPlan={onAddToPlan ? (block) => onAddToPlan(block.id) : undefined}
+                            provider={provider}
                             height="100%"
                             showLineNumbers={!mobile}
                             editable={false}

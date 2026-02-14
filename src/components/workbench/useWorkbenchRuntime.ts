@@ -90,6 +90,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             endTime: Date.now(),
             duration: execution.elapsedTime,
             metrics: [],
+            logs: runtime?.getOutputStatements() || [],
             completed: true
         });
     };

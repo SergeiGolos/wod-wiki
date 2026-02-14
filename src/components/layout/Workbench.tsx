@@ -265,6 +265,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setBlocks={setBlocks}
       setContent={setContent}
       saveState={saveState}
+      provider={provider}
     />
   );
 
@@ -471,23 +472,23 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
       <DebugModeProvider>
-      <CommandProvider>
-        <WorkbenchProvider
-          initialContent={props.initialContent}
-          initialActiveEntryId={props.initialActiveEntryId}
-          initialViewMode={props.initialViewMode}
-          mode={props.mode}
-          provider={props.provider}
-        >
-          <AudioProvider>
-            <RuntimeLifecycleProvider factory={runtimeFactory}>
-              <WorkbenchSyncBridge>
-                <WorkbenchContent {...props} />
-              </WorkbenchSyncBridge>
-            </RuntimeLifecycleProvider>
-          </AudioProvider>
-        </WorkbenchProvider>
-      </CommandProvider>
+        <CommandProvider>
+          <WorkbenchProvider
+            initialContent={props.initialContent}
+            initialActiveEntryId={props.initialActiveEntryId}
+            initialViewMode={props.initialViewMode}
+            mode={props.mode}
+            provider={props.provider}
+          >
+            <AudioProvider>
+              <RuntimeLifecycleProvider factory={runtimeFactory}>
+                <WorkbenchSyncBridge>
+                  <WorkbenchContent {...props} />
+                </WorkbenchSyncBridge>
+              </RuntimeLifecycleProvider>
+            </AudioProvider>
+          </WorkbenchProvider>
+        </CommandProvider>
       </DebugModeProvider>
     </ThemeProvider>
   );

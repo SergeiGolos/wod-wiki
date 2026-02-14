@@ -27,7 +27,7 @@ import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { CreateNotebookDialog } from '@/components/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
-import { planPath } from '@/lib/routes';
+import { planPath, trackPath } from '@/lib/routes';
 import { useWodCollections } from '@/hooks/useWodCollections';
 
 
@@ -442,7 +442,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         return (
             <NotePreview
                 entry={entryToShow}
-                onStartWorkout={async () => {
+                onStartWorkout={async (blockId) => {
                     if (isCollectionEntry) return;
 
                     if (entryToShow.type === 'template') {
@@ -450,11 +450,11 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         // For now, clone whole entry -> navigate to Track
                         if (provider.capabilities.canWrite) {
                             const cloned = await provider.cloneEntry(entryToShow.id);
-                            navigate(`/note/${toShortId(cloned.id)}/track`);
+                            navigate(trackPath(toShortId(cloned.id), blockId));
                         }
                     } else {
                         // Regular note: Navigate to Track
-                        navigate(`/note/${toShortId(entryToShow.id)}/track`);
+                        navigate(trackPath(toShortId(entryToShow.id), blockId));
                     }
                 }}
                 onAddToPlan={async () => {
@@ -466,6 +466,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 onClone={entryToShow.type === 'template' ? () => handleClone(entryToShow.id) : undefined}
                 onEdit={entryToShow.type !== 'template' && !isCollectionEntry ? () => navigate(planPath(toShortId(entryToShow.id))) : undefined}
                 onDelete={provider.capabilities.canDelete && !entryToShow.results && entryToShow.type !== 'template' ? () => handleDelete(entryToShow.id) : undefined}
+                provider={provider}
             />
         );
     }, [selectedEntries, filteredEntries, navigate, activeCollectionId, handleDelete]);

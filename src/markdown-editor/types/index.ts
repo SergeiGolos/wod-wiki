@@ -6,6 +6,7 @@ import { ICodeStatement } from '../../core/models/CodeStatement';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { MdTimerRuntime } from '../../parser/md-timer';
 import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IOutputStatement } from '../../core/models/OutputStatement';
 import { MetricBehavior } from '../../types/MetricBehavior';
 export * from './section';
 export type { WodDialect } from './section';
@@ -85,6 +86,9 @@ export interface WorkoutResults {
 
   /** Metrics collected from runtime (fragment-based format) */
   metrics: WorkoutMetricFragment[];
+
+  /** The detailed runtime logs (splits, reps) */
+  logs?: IOutputStatement[];
 
   /** Whether workout was completed or stopped early */
   completed: boolean;

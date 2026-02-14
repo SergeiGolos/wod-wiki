@@ -18,6 +18,7 @@ import { MarkdownDisplay, WodBlockDisplay } from './components/section-renderers
 import { SectionEditView } from './components/SectionEditView';
 import { WodSectionEditor } from './components/WodSectionEditor';
 import { SectionAddBar, type NewSectionType } from './components/SectionAddBar';
+import type { IContentProvider } from '@/types/content-provider';
 
 export interface SectionEditorProps {
   /** Initial markdown content */
@@ -32,7 +33,6 @@ export interface SectionEditorProps {
   onBlocksChange?: (blocks: WodBlock[]) => void;
   /** Active block change callback */
   onActiveBlockChange?: (block: WodBlock | null) => void;
-  /** Start workout callback */
   /** Start workout callback */
   onStartWorkout?: (block: WodBlock) => void;
   /** Add to plan callback (template mode) */
@@ -51,6 +51,8 @@ export interface SectionEditorProps {
   editable?: boolean;
   /** Viewing mode (preview vs template) */
   mode?: 'preview' | 'template';
+  /** Provider for history/persistence (needed for WOD block "Add to Plan") */
+  provider?: IContentProvider;
 }
 
 /** Read-only dispatcher — selects renderer by section type */
@@ -58,8 +60,9 @@ const SectionDisplayRenderer: React.FC<{
   section: Section;
   onStartWorkout?: (block: WodBlock) => void;
   onAddToPlan?: (block: WodBlock) => void;
+  provider?: IContentProvider;
   mode?: 'preview' | 'template';
-}> = ({ section, onStartWorkout, onAddToPlan, mode }) => {
+}> = ({ section, onStartWorkout, onAddToPlan, provider, mode }) => {
   switch (section.type) {
     case 'title':
     case 'markdown':
@@ -70,6 +73,7 @@ const SectionDisplayRenderer: React.FC<{
           section={section}
           onStartWorkout={onStartWorkout}
           onAddToPlan={onAddToPlan}
+          provider={provider}
           mode={mode}
         />
       );
@@ -94,6 +98,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   editable = true,
   onAddToPlan,
   mode = 'preview',
+  provider,
 }) => {
   const {
     sections,
@@ -222,6 +227,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           section={section}
           onStartWorkout={onStartWorkout}
           onAddToPlan={onAddToPlan}
+          provider={provider}
           mode={mode}
         />
       );

@@ -109,35 +109,33 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     }
   }, [value]);
 
-  // Detect and parse WOD blocks
-  const wodBlocks = useMemo(() => {
-    const detected = detectWodBlocks(rawContent);
-    // Parse each block to populate statements/errors
-    return detected.map(block => {
-      if (!block.content || block.content.trim().length === 0) {
-        return { ...block, statements: [], errors: [], state: 'parsed' as const };
-      }
-      try {
-        const result = parseWodBlock(block.content, sharedParser);
-        return {
-          ...block,
-          statements: result.statements,
-          errors: result.errors,
-          state: (result.success ? 'parsed' : 'error') as any,
-        };
-      } catch (error: any) {
-        return {
-          ...block,
-          statements: [],
-          errors: [{ message: error?.message || 'Unknown parse error', severity: 'error' as const }],
-          state: 'error' as any,
-        };
-      }
-    });
-  }, [rawContent]);
-
   // Initialize sections state from initialData but allow state updates
   const [sections, setSections] = useState<Section[]>(initialData.sections);
+
+  // Derived WOD blocks from sections (ensures stable IDs and consistent objects)
+  const wodBlocks = useMemo(() => {
+    return sections
+      .filter(s => s.type === 'wod' && s.wodBlock && !s.deleted)
+      .map(s => {
+        const block = s.wodBlock!;
+        // Re-parse if statements are missing (happens on initial load from DB or when sections change)
+        if (!block.statements || block.statements.length === 0) {
+          try {
+            const result = parseWodBlock(block.content, sharedParser);
+            return {
+              ...block,
+              statements: result.statements,
+              errors: result.errors,
+              state: (result.success ? 'parsed' : 'error') as any,
+            };
+          } catch (error) {
+            console.error('[useSectionDocument] Failed to parse block statements:', error);
+            return block;
+          }
+        }
+        return block;
+      });
+  }, [sections]);
 
   // Parse sections from raw content (when rawContent changes externally or via local edits)
   useEffect(() => {

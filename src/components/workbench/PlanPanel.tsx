@@ -3,6 +3,7 @@ import { Loader2, Check, AlertCircle } from 'lucide-react';
 import { SaveState } from '../layout/WorkbenchContext';
 import { WodBlock } from '../../markdown-editor/types';
 import { SectionEditor } from '../../markdown-editor/SectionEditor';
+import type { IContentProvider } from '../../types/content-provider';
 
 export interface PlanPanelProps {
   initialContent?: string;
@@ -14,6 +15,7 @@ export interface PlanPanelProps {
   setContent: (content: string) => void;
   saveState: SaveState;
   readOnly?: boolean;
+  provider?: IContentProvider;
 }
 
 export const PlanPanel: React.FC<PlanPanelProps> = ({
@@ -26,6 +28,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   setContent,
   saveState,
   readOnly = false,
+  provider,
 }) => {
   const handleActiveBlockChange = (block: WodBlock | null) => {
     setActiveBlockId(block?.id || null);
@@ -74,6 +77,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
           height="100%"
           editable={!readOnly}
           showLineNumbers={true}
+          provider={provider}
         />
       </div>
     </div>

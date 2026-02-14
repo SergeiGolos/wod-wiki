@@ -23,7 +23,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
-import { executionLogService } from '../../services/ExecutionLogService';
 import type { WodBlock } from '../../markdown-editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 
@@ -102,7 +101,6 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
       setRuntime(currentRuntime => {
         if (currentRuntime) {
           try {
-            executionLogService.cleanup();
             factoryRef.current.disposeRuntime(currentRuntime);
           } catch (err) {
             console.error('[RuntimeProvider] Error disposing existing runtime:', err);
@@ -112,7 +110,6 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
       });
 
       if (newRuntime) {
-        executionLogService.startSession(newRuntime);
         currentRuntimeRef.current = newRuntime;
       } else {
         currentRuntimeRef.current = null;
@@ -132,7 +129,6 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
       // Use ref to get current runtime value, avoiding stale closure
       if (currentRuntimeRef.current) {
         try {
-          executionLogService.cleanup();
           factoryRef.current.disposeRuntime(currentRuntimeRef.current);
         } catch (err) {
           console.error('[RuntimeProvider] Error disposing runtime on unmount:', err);

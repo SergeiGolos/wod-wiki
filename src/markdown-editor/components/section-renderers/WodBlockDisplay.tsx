@@ -15,11 +15,14 @@ import { SECTION_LINE_HEIGHT } from '../SectionContainer';
 import { StatementDisplay } from '@/components/fragments/StatementDisplay';
 import { Play, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AddWodToNoteDropdown } from '@/components/workbench/AddWodToNoteDropdown';
+import type { IContentProvider } from '@/types/content-provider';
 
 export interface WodBlockDisplayProps {
   section: Section;
   onStartWorkout?: (wodBlock: WodBlock) => void;
   onAddToPlan?: (wodBlock: WodBlock) => void;
+  provider?: IContentProvider;
   mode?: 'preview' | 'template';
   className?: string;
 }
@@ -28,6 +31,7 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
   section,
   onStartWorkout,
   onAddToPlan,
+  provider,
   mode = 'preview',
   className,
 }) => {
@@ -81,18 +85,25 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
             </button>
           )}
 
-          {isTemplate && onAddToPlan && wodBlock && (
-            <button
-              onClick={handleAddClick}
-              className={cn(
-                'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-                'text-muted-foreground hover:text-primary hover:bg-primary/10'
-              )}
-              title="Clone & Add to Plan"
-            >
-              <Plus className="h-3 w-3" />
-              <span>Plan</span>
-            </button>
+          {isTemplate && wodBlock && (
+            provider ? (
+              <AddWodToNoteDropdown
+                wodBlock={wodBlock}
+                provider={provider}
+              />
+            ) : onAddToPlan ? (
+              <button
+                onClick={handleAddClick}
+                className={cn(
+                  'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
+                  'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                )}
+                title="Clone & Add to Plan"
+              >
+                <Plus className="h-3 w-3" />
+                <span>Plan</span>
+              </button>
+            ) : null
           )}
         </div>
       </div>

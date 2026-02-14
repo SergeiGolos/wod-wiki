@@ -19,14 +19,14 @@ import { Section, SectionType } from '../../markdown-editor/types/section';
  * 'heading' → 'title', 'paragraph' | 'empty' → 'markdown', others pass through.
  */
 function migrateSectionType(storedType: string): SectionType {
-  switch (storedType) {
-    case 'heading': return 'title';
-    case 'paragraph':
-    case 'empty':
-      return 'markdown';
-    default:
-      return storedType as SectionType;
-  }
+    switch (storedType) {
+        case 'heading': return 'title';
+        case 'paragraph':
+        case 'empty':
+            return 'markdown';
+        default:
+            return storedType as SectionType;
+    }
 }
 
 export class IndexedDBContentProvider implements IContentProvider {
@@ -133,7 +133,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                     return `${prefix} ${s.content}`;
                 }
                 return s.content;
-            }).join('\n\n');
+            }).join('\n');
         } else {
             // Legacy Note (no segmentIds) — fallback to script storage
             const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
@@ -143,6 +143,12 @@ export class IndexedDBContentProvider implements IContentProvider {
                 rawContent = note.rawContent || '';
             }
         }
+
+        // Fetch latest result for this note
+        const latestResults = await indexedDBService.getResultsForNote(note.id);
+        const latestResult = latestResults.length > 0
+            ? latestResults.sort((a, b) => b.completedAt - a.completedAt)[0]
+            : undefined;
 
         // Map SectionHistory to Section types for the editor
         const sections: Section[] = segments.map(s => {
@@ -175,9 +181,24 @@ export class IndexedDBContentProvider implements IContentProvider {
             targetDate: note.targetDate || note.createdAt,
             rawContent,
             sections,
+            results: latestResult?.data,
             tags: note.tags,
+            type: (note.type as any) || 'note',
             schemaVersion: 1,
         };
+    }
+
+    async cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry> {
+        const source = await this.getEntry(sourceId);
+        if (!source) throw new Error(`Source entry not found: ${sourceId}`);
+
+        return this.saveEntry({
+            title: source.title,
+            rawContent: source.rawContent,
+            tags: source.tags,
+            targetDate: targetDate || Date.now(),
+            type: 'note' // Cloned templates become notes
+        });
     }
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
@@ -208,6 +229,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             title: entry.title,
             rawContent: entry.rawContent,
             tags: entry.tags,
+            type: entry.type || 'note',
             createdAt: now,
             updatedAt: now,
             targetDate: entry.targetDate || now,
@@ -226,7 +248,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title'>>): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type'>>): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
         if (!note) {
@@ -242,6 +264,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         // Update Metadata
         if (patch.title) note.title = patch.title;
         if (patch.tags) note.tags = patch.tags;
+        if (patch.type) note.type = patch.type;
 
         let finalRawContent = note.rawContent;
 
@@ -328,6 +351,7 @@ export class IndexedDBContentProvider implements IContentProvider {
             targetDate: note.targetDate || note.createdAt,
             rawContent: finalRawContent,
             tags: note.tags,
+            type: (note.type as any) || 'note',
             schemaVersion: 1
         };
     }

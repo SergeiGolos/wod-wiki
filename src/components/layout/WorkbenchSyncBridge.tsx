@@ -25,7 +25,7 @@ import { useWorkbench } from './WorkbenchContext';
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
-import { getAnalyticsFromRuntime } from '../../services/AnalyticsTransformer';
+import { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '../../services/AnalyticsTransformer';
 import { hashCode } from '../../lib/utils';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
 import { WodBlock } from '../../markdown-editor/types';
@@ -53,6 +53,7 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     setActiveBlockId,
     startWorkout,
     completeWorkout,
+    currentEntry,
   } = useWorkbench();
 
   // --- Document structure → store ---
@@ -162,6 +163,11 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
         lastAnalyticsUpdateRef.current = now;
         lastStatusRef.current = execution.status;
       }
+    } else if (currentEntry?.results?.logs) {
+      // If no runtime, but we have historical logs, use them for analytics
+      const logs = currentEntry.results.logs;
+      const { data, segments, groups } = getAnalyticsFromLogs(logs, currentEntry.results.startTime);
+      store.getState().setAnalytics(data, segments, groups);
     }
   }, [runtime, execution.stepCount, execution.status]);
 

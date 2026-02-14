@@ -141,8 +141,10 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
       const cleanRawContent = `\`\`\`${fenceTag}\n${cleanText}\n\`\`\``;
       const cleanLineCount = cleanRawContent.split('\n').length;
 
+      const sectionId = metadata?.id || generateSectionId('wod', wodBlock.startLine, cleanText);
+
       sections.push({
-        id: metadata?.id || generateSectionId('wod', wodBlock.startLine, cleanText),
+        id: sectionId,
         type: 'wod',
         dialect,
         rawContent: cleanRawContent,
@@ -152,7 +154,7 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
         lineCount: cleanLineCount,
         wodBlock: {
           ...wodBlock,
-          id: metadata?.id || wodBlock.id,
+          id: sectionId, // Ensure WodBlock ID matches Section ID
           content: cleanText,
           dialect,
           version: metadata?.version || 1,
@@ -212,7 +214,11 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
     // If new section already has a metadata ID from content, that wins
     const { metadata } = extractMetadata(newSec.rawContent);
     if (metadata) {
-      return { ...newSec, id: metadata.id, version: metadata.version, createdAt: metadata.createdAt };
+      const updated = { ...newSec, id: metadata.id, version: metadata.version, createdAt: metadata.createdAt };
+      if (updated.wodBlock) {
+        updated.wodBlock = { ...updated.wodBlock, id: metadata.id };
+      }
+      return updated;
     }
 
     // First try: exact match by type + startLine + content hash
@@ -220,7 +226,11 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
       old => old.type === newSec.type && old.startLine === newSec.startLine && old.displayContent === newSec.displayContent
     );
     if (exactMatch) {
-      return { ...newSec, id: exactMatch.id, version: exactMatch.version, createdAt: exactMatch.createdAt };
+      const updated = { ...newSec, id: exactMatch.id, version: exactMatch.version, createdAt: exactMatch.createdAt };
+      if (updated.wodBlock) {
+        updated.wodBlock = { ...updated.wodBlock, id: exactMatch.id };
+      }
+      return updated;
     }
 
     // Second try: match by type + startLine only (content changed but position same)
@@ -228,7 +238,11 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
       old => old.type === newSec.type && old.startLine === newSec.startLine
     );
     if (positionMatch) {
-      return { ...newSec, id: positionMatch.id, version: positionMatch.version, createdAt: positionMatch.createdAt };
+      const updated = { ...newSec, id: positionMatch.id, version: positionMatch.version, createdAt: positionMatch.createdAt };
+      if (updated.wodBlock) {
+        updated.wodBlock = { ...updated.wodBlock, id: positionMatch.id };
+      }
+      return updated;
     }
 
     // No match — keep new ID (which was generated in parseDocumentSections)
