@@ -1,10 +1,10 @@
 import React, { useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { TimerIndexPanel } from '../layout/TimerIndexPanel';
-import { TimelineView } from '../../timeline/TimelineView';
-import { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
-import { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+import { TimerIndexPanel } from '../../layout/TimerIndexPanel';
+import { TimelineView } from '../../../timeline/TimelineView';
+import { Segment, AnalyticsGroup } from '../../../core/models/AnalyticsModels';
+import { AnalyticsDataPoint } from '../../../services/AnalyticsTransformer';
+import { IScriptRuntime } from '../../../runtime/contracts/IScriptRuntime';
 
 export interface ReviewPanelProps {
   runtime: IScriptRuntime | null;

@@ -40,42 +40,45 @@ export function createPlanView(planPanel: React.ReactNode): ViewDescriptor {
  */
 export function createTrackView(
   timerPanel: React.ReactNode,
-  historyPanel: React.ReactNode,
+  historyPanel: React.ReactNode | null | undefined, // Allow null/undefined
   debugPanel?: React.ReactNode,
   isDebugMode = false
 ): ViewDescriptor {
+  const showSidePanel = isDebugMode || !!historyPanel;
+
+  const panels: PanelDescriptor[] = [
+    {
+      id: 'timer',
+      defaultSpan: showSidePanel ? 2 : 3, // Full width if no side panel
+      content: timerPanel,
+    }
+  ];
+
+  if (showSidePanel) {
+    panels.push({
+      id: isDebugMode ? 'debug' : 'history',
+      defaultSpan: 1, // 1/3 width
+      content: (isDebugMode && debugPanel) ? debugPanel : historyPanel,
+      hideOnMobile: true, // Embedded in timer panel on mobile
+    });
+  }
+
   return {
     id: 'track',
     label: 'Track',
     icon: React.createElement(Timer, { className: 'w-4 h-4' }),
-    panels: [
-      {
-        id: 'timer',
-        defaultSpan: 2, // 2/3 width
-
-        content: timerPanel,
-      },
-      {
-        id: isDebugMode ? 'debug' : 'history',
-        defaultSpan: 1, // 1/3 width
-
-        content: isDebugMode && debugPanel ? debugPanel : historyPanel,
-        hideOnMobile: true, // Embedded in timer panel on mobile
-      },
-    ],
+    panels,
   };
 }
 
 /**
- * Review View - Post-workout analytics
+ * Review View - Post-workout analytics grid
  *
- * Two panels:
- * - History (1/3 width) - Execution history with segment selection
- * - Timeline (2/3 width) - Analytics visualization
+ * Single full-width panel containing the ReviewGrid component,
+ * which replaces the previous two-panel (index + timeline) layout.
  */
 export function createReviewView(
-  indexPanel: React.ReactNode,
-  timelinePanel: React.ReactNode
+  gridPanel: React.ReactNode,
 ): ViewDescriptor {
   return {
     id: 'review',
@@ -83,16 +86,10 @@ export function createReviewView(
     icon: React.createElement(BarChart2, { className: 'w-4 h-4' }),
     panels: [
       {
-        id: 'analytics-index',
-        defaultSpan: 1, // 1/3 width
+        id: 'review-grid',
+        defaultSpan: 3, // Full width
 
-        content: indexPanel,
-      },
-      {
-        id: 'timeline',
-        defaultSpan: 2, // 2/3 width
-
-        content: timelinePanel,
+        content: gridPanel,
       },
     ],
   };
@@ -105,15 +102,14 @@ export function getAllViews(
   planPanel: React.ReactNode,
   timerPanel: React.ReactNode,
   historyPanel: React.ReactNode,
-  indexPanel: React.ReactNode,
-  timelinePanel: React.ReactNode,
+  reviewGridPanel: React.ReactNode,
   debugPanel?: React.ReactNode,
   isDebugMode = false
 ): ViewDescriptor[] {
   return [
     createPlanView(planPanel),
     createTrackView(timerPanel, historyPanel, debugPanel, isDebugMode),
-    createReviewView(indexPanel, timelinePanel),
+    createReviewView(reviewGridPanel),
   ];
 }
 

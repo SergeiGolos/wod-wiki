@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import type { FragmentType } from '@/core/models/CodeFragment';
 import type { GridRow as GridRowData, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
 import { GridCell } from './GridCell';
@@ -24,6 +25,8 @@ interface GridRowProps {
   isHovered: boolean;
   /** Callback when the mouse enters/leaves row */
   onHover: (blockKey: string | null) => void;
+  /** Callback when a fragment cell is double-clicked for override editing */
+  onCellDoubleClick?: (blockKey: string, fragmentType: FragmentType, anchorRect: DOMRect) => void;
 }
 
 /**
@@ -36,6 +39,7 @@ export const GridRow: React.FC<GridRowProps> = ({
   onSelect,
   isHovered,
   onHover,
+  onCellDoubleClick,
 }) => {
   const handleClick = (e: React.MouseEvent) => {
     onSelect(row.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
@@ -58,7 +62,12 @@ export const GridRow: React.FC<GridRowProps> = ({
       {columns.map((col) => (
         <React.Fragment key={col.id}>
           {renderFixedCell(col, row) ?? (
-            <GridCell cell={col.fragmentType ? row.cells.get(col.fragmentType) : undefined} />
+            <GridCell
+              cell={col.fragmentType ? row.cells.get(col.fragmentType) : undefined}
+              fragmentType={col.fragmentType}
+              blockKey={row.sourceBlockKey}
+              onDoubleClick={onCellDoubleClick}
+            />
           )}
         </React.Fragment>
       ))}

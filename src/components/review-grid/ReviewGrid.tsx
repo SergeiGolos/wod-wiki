@@ -13,13 +13,16 @@ import React, { useState, useCallback, useMemo } from 'react';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { AnalyticsDataPoint } from '@/services/AnalyticsTransformer';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import type { ICodeFragment } from '@/core/models/CodeFragment';
+import type { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';
 import { getPreset } from './gridPresets';
 import { GridToolbar } from './GridToolbar';
 import { GridHeader } from './GridHeader';
 import { GridRow } from './GridRow';
+import { GridGraphPanel } from './GridGraphPanel';
+import { UserOverrideDialog } from './UserOverrideDialog';
+import { useUserOverrides } from './useUserOverrides';
 
 // ─── Props ─────────────────────────────────────────────────────
 
@@ -72,6 +75,34 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   const [graphTaggedColumns, setGraphTaggedColumns] = useState<Set<string>>(new Set());
   const [columnVisibilityOverrides, setColumnVisibilityOverrides] = useState<Record<string, boolean>>({});
 
+  // ── User override dialog state ──────────────────────────────
+
+  const { overrides, setOverride, removeOverride } = useUserOverrides(true);
+
+  const [overrideDialog, setOverrideDialog] = useState<{
+    isOpen: boolean;
+    blockKey: string;
+    fragmentType: FragmentType;
+    anchorRect: DOMRect | null;
+    existingFragments: ICodeFragment[];
+    existingUserValue?: string;
+  }>({
+    isOpen: false,
+    blockKey: '',
+    fragmentType: 'Timer' as FragmentType,
+    anchorRect: null,
+    existingFragments: [],
+  });
+
+  // Merge store overrides + local overrides (local wins)
+  const mergedOverrides = useMemo(() => {
+    const merged = new Map(userOutputOverrides);
+    for (const [key, frags] of overrides) {
+      merged.set(key, frags);
+    }
+    return merged;
+  }, [userOutputOverrides, overrides]);
+
   // ── Derived preset (debug mode auto-switches) ───────────────
 
   const effectivePresetId = isDebugMode ? 'debug' : gridViewPreset;
@@ -89,9 +120,9 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
   // ── Grid data ────────────────────────────────────────────────
 
-  const { rows, columns } = useGridData({
+  const { rows, columns, graphTaggedColumnIds } = useGridData({
     segments,
-    userOutputOverrides,
+    userOutputOverrides: mergedOverrides,
     presetId: effectivePresetId,
     isDebugMode,
     sortConfigs,
@@ -211,6 +242,53 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
     [onHoverBlockKey],
   );
 
+  const handleGraphSelectRow = useCallback(
+    (id: number) => {
+      onSelectSegment(id, { ctrlKey: false, shiftKey: false }, visibleRowIds);
+    },
+    [onSelectSegment, visibleRowIds],
+  );
+
+  const handleCellDoubleClick = useCallback(
+    (blockKey: string, fragmentType: FragmentType, anchorRect: DOMRect) => {
+      // Find existing fragments for context
+      const row = rows.find((r) => r.sourceBlockKey === blockKey);
+      const cell = row?.cells.get(fragmentType);
+      const existingFragments = cell?.fragments ?? [];
+
+      // Check for existing user override value
+      const userFrag = existingFragments.find((f) => f.origin === 'user');
+      const existingUserValue = userFrag?.value != null ? String(userFrag.value) : undefined;
+
+      setOverrideDialog({
+        isOpen: true,
+        blockKey,
+        fragmentType,
+        anchorRect,
+        existingFragments,
+        existingUserValue,
+      });
+    },
+    [rows],
+  );
+
+  const handleOverrideSave = useCallback(
+    (value: string, image?: string) => {
+      setOverride(overrideDialog.blockKey, overrideDialog.fragmentType, value, image);
+      setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
+    },
+    [overrideDialog.blockKey, overrideDialog.fragmentType, setOverride],
+  );
+
+  const handleOverrideRemove = useCallback(() => {
+    removeOverride(overrideDialog.blockKey, overrideDialog.fragmentType);
+    setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
+  }, [overrideDialog.blockKey, overrideDialog.fragmentType, removeOverride]);
+
+  const handleOverrideClose = useCallback(() => {
+    setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
   // ── Render ───────────────────────────────────────────────────
 
   return (
@@ -227,6 +305,15 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
         onToggleFilters={() => setShowFilters((p) => !p)}
         totalRows={totalRows}
         visibleRows={rows.length}
+      />
+
+      {/* Graph panel (visible when columns are tagged) */}
+      <GridGraphPanel
+        rows={rows}
+        columns={visibleColumns}
+        graphTaggedColumnIds={graphTaggedColumnIds}
+        selectedIds={selectedSegmentIds}
+        onSelectRow={handleGraphSelectRow}
       />
 
       {/* Grid table */}
@@ -264,12 +351,26 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
                   onSelect={handleSelectRow}
                   isHovered={hoveredBlockKey === row.sourceBlockKey}
                   onHover={handleHover}
+                  onCellDoubleClick={handleCellDoubleClick}
                 />
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {/* User override dialog */}
+      <UserOverrideDialog
+        isOpen={overrideDialog.isOpen}
+        blockKey={overrideDialog.blockKey}
+        fragmentType={overrideDialog.fragmentType}
+        existingFragments={overrideDialog.existingFragments}
+        existingUserValue={overrideDialog.existingUserValue}
+        anchorRect={overrideDialog.anchorRect ?? undefined}
+        onSave={handleOverrideSave}
+        onRemove={handleOverrideRemove}
+        onClose={handleOverrideClose}
+      />
 
       {/* Footer */}
       <div className="px-3 py-1.5 border-t border-border bg-muted/10 text-xs text-muted-foreground flex items-center justify-between">

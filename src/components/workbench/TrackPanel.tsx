@@ -107,11 +107,6 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
     />
   );
 
-  import { VisualStatePanel } from '../track/VisualStatePanel';
-
-  // ... (imports)
-
-  // ...
 
   const content = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>

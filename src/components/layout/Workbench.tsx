@@ -47,8 +47,8 @@ import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '../../app/wod-loader';
 
 import { PlanPanel } from '../workbench/PlanPanel';
-import { SessionHistory, TimerScreen } from '../workbench/TrackPanel';
-import { ReviewPanelIndex, ReviewPanelPrimary } from '../workbench/ReviewPanel';
+import { TimerScreen } from '../workbench/TrackPanel';
+import { ReviewGrid } from '../review-grid';
 import { NoteActions } from '../notebook/NoteActions';
 
 // Create singleton factory instance
@@ -268,15 +268,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     />
   );
 
-  const trackIndexPanel = (
-    <SessionHistory
-      runtime={runtime}
-      activeSegmentIds={activeSegmentIds}
-      activeStatementIds={activeStatementIds}
-      hoveredBlockKey={hoveredBlockKey}
-      execution={execution}
-    />
-  );
+
 
   const trackPrimaryPanel = (
     <TimerScreen
@@ -310,31 +302,25 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     />
   );
 
-  const reviewIndexPanel = (
-    <ReviewPanelIndex
+  const reviewGridPanel = (
+    <ReviewGrid
       runtime={runtime}
       segments={analyticsSegments}
       selectedSegmentIds={selectedAnalyticsIds}
       onSelectSegment={toggleAnalyticsSegment}
       groups={analyticsGroups}
-    />
-  );
-
-  const reviewPrimaryPanel = (
-    <ReviewPanelPrimary
       rawData={analyticsData}
-      segments={analyticsSegments}
-      selectedSegmentIds={selectedAnalyticsIds}
-      onSelectSegment={toggleAnalyticsSegment}
-      groups={analyticsGroups}
+      isDebugMode={isDebugMode}
+      hoveredBlockKey={hoveredBlockKey}
+      onHoverBlockKey={setHoveredBlockKey}
     />
   );
 
   const viewDescriptors = useMemo(() => {
     const all = [
       createPlanView(planPanel),
-      createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
-      createReviewView(reviewIndexPanel, reviewPrimaryPanel),
+      createTrackView(trackPrimaryPanel, null, trackDebugPanel, isDebugMode),
+      createReviewView(reviewGridPanel),
     ];
 
     // Branch: If we are viewing a template, only show Plan (View)
@@ -351,11 +337,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   }, [
     planPanel,
     trackPrimaryPanel,
-    trackIndexPanel,
     trackDebugPanel,
     isDebugMode,
-    reviewIndexPanel,
-    reviewPrimaryPanel,
+    reviewGridPanel,
     currentEntry?.type
   ]);
 
