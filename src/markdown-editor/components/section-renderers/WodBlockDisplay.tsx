@@ -70,15 +70,14 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
         <span>{section.dialect ?? 'wod'}</span>
         <div className="flex-1" />
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {onStartWorkout && wodBlock && (
+          {!isTemplate && onStartWorkout && wodBlock && (
             <button
               onClick={handlePlayClick}
               className={cn(
                 'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-                'text-muted-foreground hover:text-primary hover:bg-primary/10',
-                isTemplate && 'bg-primary/10 text-primary font-medium'
+                'text-muted-foreground hover:text-primary hover:bg-primary/10'
               )}
-              title={isTemplate ? "Clone & Run" : "Run this workout"}
+              title="Run this workout"
             >
               <Play className="h-3 w-3" />
               <span>Run</span>

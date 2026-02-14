@@ -18,6 +18,7 @@ import { MarkdownDisplay, WodBlockDisplay } from './components/section-renderers
 import { SectionEditView } from './components/SectionEditView';
 import { WodSectionEditor } from './components/WodSectionEditor';
 import { SectionAddBar, type NewSectionType } from './components/SectionAddBar';
+import { SectionSeparator } from './components/SectionSeparator';
 import type { IContentProvider } from '@/types/content-provider';
 
 export interface SectionEditorProps {
@@ -109,6 +110,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
     pendingCursorPosition,
     updateSectionContent,
     insertSectionAfter,
+    prependSection,
     deleteSection: _deleteSection,
     splitSection,
     convertToWod,
@@ -133,26 +135,37 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   // Compute gutter width from total line count digit count
   const gutterWidth = showLineNumbers ? Math.max(2, String(totalLines).length) : 0;
 
-  // Handle adding a new section via the add-bar at the bottom
-  const handleAddSection = useCallback((type: NewSectionType) => {
-    const lastSection = sections[sections.length - 1];
-    const afterId = lastSection?.id;
+  // Handle adding a new section at a specific position (or bottom if no afterId)
+  const handleAddSection = useCallback((type: NewSectionType, afterId?: string) => {
+    // If no afterId is provided and we have sections, default to the last one.
+    // If afterId is explicitly 'START', we prepend.
+    const isPrepend = afterId === 'START';
+    const targetAfterId = !isPrepend ? (afterId || (sections.length > 0 ? sections[sections.length - 1].id : undefined)) : undefined;
 
     switch (type) {
       case 'markdown':
-        if (afterId) insertSectionAfter(afterId, '');
+        if (isPrepend) prependSection('');
+        else if (targetAfterId) insertSectionAfter(targetAfterId, '');
         else onContentChange?.('');
         break;
       case 'wod':
       case 'log':
       case 'plan': {
         const dialect: WodDialect = type as WodDialect;
-        if (afterId) {
-          // Insert a blank markdown section, then immediately convert to wod with dialect
-          insertSectionAfter(afterId, '');
+        if (isPrepend) {
+          prependSection('');
           setTimeout(() => {
             const latest = sectionsRef.current;
-            const afterIdx = latest.findIndex(s => s.id === afterId);
+            if (latest.length > 0) {
+              convertToWod(latest[0].id, '', '', dialect);
+            }
+          }, 0);
+        } else if (targetAfterId) {
+          // Insert a blank markdown section, then immediately convert to wod with dialect
+          insertSectionAfter(targetAfterId, '');
+          setTimeout(() => {
+            const latest = sectionsRef.current;
+            const afterIdx = latest.findIndex(s => s.id === targetAfterId);
             if (afterIdx !== -1 && afterIdx + 1 < latest.length) {
               convertToWod(latest[afterIdx + 1].id, '', '', dialect);
             }
@@ -163,7 +176,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
         break;
       }
     }
-  }, [sections, insertSectionAfter, convertToWod, onContentChange]);
+  }, [sections, insertSectionAfter, prependSection, convertToWod, onContentChange]);
 
   // Handle section click → activate for editing
   const handleSectionClick = useCallback((sectionId: string, clickPosition: { line: number; column: number }) => {
@@ -275,36 +288,53 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
 
   return (
     <div
-      className={`section-editor overflow-auto custom-scrollbar ${className}`}
+      className={`section-editor overflow-auto custom-scrollbar cursor-default ${className}`}
       style={{ height, width }}
     >
       <div className="py-2">
         {sections.length === 0 ? (
           <div className="px-4 py-8 text-sm text-muted-foreground text-center italic">
-            Empty document
+            Empty document. Click below to add your first segment.
           </div>
         ) : (
-          sections.filter(s => !s.deleted).map((section) => {
-            const isActive = section.id === activeSectionId;
-            return (
-              <SectionContainer
-                key={section.id}
-                section={section}
-                startLineNumber={section.startLine + 1}
-                gutterWidth={gutterWidth}
-                isActive={isActive}
-                onClick={handleSectionClick}
-              >
-                {renderSectionContent(section, isActive)}
-              </SectionContainer>
-            );
-          })
+          <>
+            {editable && (
+              <SectionSeparator
+                onAdd={(type) => handleAddSection(type, 'START')}
+              />
+            )}
+            {sections.filter(s => !s.deleted).map((section) => {
+              const isActive = section.id === activeSectionId;
+              return (
+                <React.Fragment key={section.id}>
+                  <SectionContainer
+                    section={section}
+                    startLineNumber={section.startLine + 1}
+                    gutterWidth={gutterWidth}
+                    isActive={isActive}
+                    onClick={handleSectionClick}
+                    onDelete={(editable && mode !== 'template') ? (id) => _softDeleteSection(id) : undefined}
+                  >
+                    {renderSectionContent(section, isActive)}
+                  </SectionContainer>
+
+                  {editable && (
+                    <SectionSeparator
+                      onAdd={(type) => handleAddSection(type, section.id)}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </>
         )}
       </div>
 
-      {/* Section type buttons at the bottom */}
-      {editable && (
-        <SectionAddBar onAdd={handleAddSection} />
+      {/* Add at top or bottom if empty */}
+      {editable && sections.length === 0 && (
+        <div className="px-4 py-2 border-t border-border/40 mt-4">
+          <SectionAddBar onAdd={handleAddSection} />
+        </div>
       )}
     </div>
   );

@@ -49,6 +49,8 @@ export interface UseSectionDocumentReturn {
   updateSectionContent: (sectionId: string, newContent: string) => void;
   /** Insert a new section after the given section */
   insertSectionAfter: (afterSectionId: string, content: string) => void;
+  /** Prepend a new section at the beginning of the document */
+  prependSection: (content: string) => void;
   /** Delete a section and merge content with the preceding section */
   deleteSection: (sectionId: string) => void;
   /** Split a section at cursor — update current with beforeContent, create new section with afterContent */
@@ -352,6 +354,47 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
   }, [reconcileFromSections]);
 
   /**
+   * Prepend a new empty section at the beginning of the document.
+   */
+  const prependSection = useCallback((content: string) => {
+    const currentSections = [...sectionsRef.current];
+    const now = Date.now();
+    const newId = uuidv4();
+    const sectionContent = content || '';
+    const contentLineCount = sectionContent.split('\n').length;
+
+    const newSection: Section = {
+      id: newId,
+      type: 'markdown',
+      rawContent: sectionContent,
+      displayContent: sectionContent,
+      startLine: 0,
+      endLine: contentLineCount - 1,
+      lineCount: contentLineCount,
+      version: 1,
+      createdAt: now,
+    };
+
+    // Insert at the beginning
+    currentSections.unshift(newSection);
+
+    // Recompute line numbers for all sections
+    let currentLine = 0;
+    for (const section of currentSections) {
+      section.startLine = currentLine;
+      section.endLine = currentLine + section.lineCount - 1;
+      currentLine = section.endLine + 1;
+    }
+
+    sectionsRef.current = currentSections;
+
+    // Reconcile immediately and activate the new section
+    reconcileFromSections(currentSections);
+    setActiveSectionId(newSection.id);
+    setPendingCursorPosition({ line: 0, column: 0 });
+  }, [reconcileFromSections]);
+
+  /**
    * Delete a section and merge its content with the preceding section.
    * Used on Backspace at the start of an empty section.
    */
@@ -555,6 +598,7 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
     pendingCursorPosition,
     updateSectionContent,
     insertSectionAfter,
+    prependSection,
     deleteSection,
     splitSection,
     convertToWod,

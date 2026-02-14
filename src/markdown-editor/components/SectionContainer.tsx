@@ -7,6 +7,7 @@
  */
 
 import React, { useRef, useCallback } from 'react';
+import { XCircle } from 'lucide-react';
 import type { Section } from '../types/section';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +25,8 @@ export interface SectionContainerProps {
   isActive: boolean;
   /** Click handler — reports section ID and approximate click position */
   onClick?: (sectionId: string, clickPosition: { line: number; column: number }) => void;
+  /** Delete handler */
+  onDelete?: (sectionId: string) => void;
   /** Content to render (display or edit view) */
   children: React.ReactNode;
   /** Additional CSS classes */
@@ -36,6 +39,7 @@ export const SectionContainer: React.FC<SectionContainerProps> = ({
   gutterWidth,
   isActive,
   onClick,
+  onDelete,
   children,
   className,
 }) => {
@@ -97,17 +101,40 @@ export const SectionContainer: React.FC<SectionContainerProps> = ({
         ))}
       </div>
 
-      {/* Content area */}
       <div
         ref={contentRef}
         className={cn(
-          'flex-1 min-w-0 cursor-text',
+          'flex-1 min-w-0 cursor-text relative',
           'border-l-2 pl-3',
           isActive ? 'border-primary/50' : 'border-transparent hover:border-muted-foreground/20',
         )}
         onClick={handleClick}
       >
         {children}
+
+        {/* Delete Button */}
+        {onDelete && (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-1 pointer-events-none">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(section.id);
+              }}
+              className={cn(
+                "pointer-events-auto",
+                "flex items-center justify-center",
+                "w-7 h-7 rounded-full border border-border shadow-sm bg-background",
+                "text-muted-foreground/40 transition-all duration-200",
+                "opacity-0 group-hover:opacity-100",
+                "hover:bg-destructive hover:border-destructive hover:text-destructive-foreground hover:scale-110 active:scale-95",
+                "z-20"
+              )}
+              title="Delete segment"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

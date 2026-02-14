@@ -2,7 +2,6 @@ import React from 'react';
 import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
-import { NotePreview } from './NotePreview';
 import { VisualStatePanel } from '../track/VisualStatePanel';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
@@ -52,12 +51,8 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   runtime,
   execution,
   selectedBlock,
-  documentItems,
-  activeBlockId,
   onBlockHover,
   onBlockClick,
-  onSelectBlock,
-  onSetActiveBlockId,
   onStart,
   onPause,
   onStop,
@@ -133,28 +128,8 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   ) : (
     // ... (selection state remains same)
     selectedBlock ? timerDisplay : (
-      <div className="h-full w-full bg-background p-4 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full border border-border rounded-lg shadow-sm bg-card overflow-hidden">
-          <div className="p-4 border-b border-border bg-muted/30">
-            <h3 className="font-semibold text-lg">Select a Session</h3>
-            <p className="text-sm text-muted-foreground">Choose a session to start tracking</p>
-          </div>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <NotePreview
-              items={documentItems}
-              activeBlockId={activeBlockId}
-              onBlockClick={(item) => {
-                if (item.type === 'wod') {
-                  onSelectBlock(item.id);
-                } else {
-                  onSetActiveBlockId(item.id);
-                }
-              }}
-              onBlockHover={onBlockHover}
-              title="Select a Session"
-            />
-          </div>
-        </div>
+      <div className="h-full w-full bg-background flex items-center justify-center text-muted-foreground italic">
+        Redirecting to Plan...
       </div>
     )
   );

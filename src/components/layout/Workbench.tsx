@@ -22,7 +22,7 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Github, Search, Lock } from 'lucide-react';
+import { Github, Search, Lock, Loader2, Check, AlertCircle } from 'lucide-react';
 import { NotebookMenu } from '../notebook/NotebookMenu';
 import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
@@ -264,7 +264,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setActiveBlockId={setActiveBlockId}
       setBlocks={setBlocks}
       setContent={setContent}
-      saveState={saveState}
       provider={provider}
     />
   );
@@ -361,6 +360,34 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
           </div>
 
           <div className="flex gap-2 items-center">
+            {!isMobile && saveState !== 'idle' && (
+              <div className="flex items-center transition-opacity duration-300">
+                {saveState === 'changed' && (
+                  <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1 flex items-center gap-2 text-xs text-muted-foreground shadow-sm">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                    <span>Changed</span>
+                  </div>
+                )}
+                {saveState === 'saving' && (
+                  <div className="bg-background/80 backdrop-blur-sm border border-border rounded-full px-3 py-1 flex items-center gap-2 text-xs text-muted-foreground shadow-sm">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Saving...</span>
+                  </div>
+                )}
+                {saveState === 'saved' && (
+                  <div className="bg-background/80 backdrop-blur-sm border border-input rounded-full px-3 py-1 flex items-center gap-2 text-xs text-emerald-500 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                    <Check className="h-3 w-3" />
+                    <span>Saved</span>
+                  </div>
+                )}
+                {saveState === 'error' && (
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-full px-3 py-1 flex items-center gap-2 text-xs text-destructive shadow-sm">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>Save Failed</span>
+                  </div>
+                )}
+              </div>
+            )}
             {!isMobile && (
               <DebugButton />
             )}

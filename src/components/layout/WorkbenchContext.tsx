@@ -320,9 +320,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   useEffect(() => {
     if (routeSectionId) {
       if (routeSectionId !== selectedBlockId) {
-        // Robust ID matching: if the exact ID (which includes line number) isn't found, 
-        // we'll try to match by content hash in a separate effect that has access to 'blocks'.
-        // For now, just set the state to trigger that resolution.
         setSelectedBlockId(routeSectionId);
       }
     } else if (selectedBlockId && viewMode !== 'plan') {
@@ -332,35 +329,47 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     }
   }, [routeSectionId, selectedBlockId, viewMode]);
 
-  // Fallback selector for shifted IDs (e.g. after edits that move a block by +/- 1 line)
+  // Handle broken links or empty Track view -> redirect to Plan
   useEffect(() => {
-    if (!selectedBlockId || blocks.length === 0) return;
+    // Wait for blocks to be available before making a decision
+    if (blocks.length === 0 || viewMode !== 'track') return;
 
-    // Is there a block with this exact ID?
+    // Case 1: Track view entered without a section ID
+    if (!routeSectionId) {
+      console.log('[WorkbenchContext] Track view entered without section ID. Redirecting to Plan.');
+      navigate(planPath(routeId || ''));
+      return;
+    }
+
+    // Case 2: Link is broken (ID not found in current blocks)
     const hasExact = blocks.some(b => b.id === selectedBlockId);
-    if (hasExact) return;
+    if (!hasExact) {
+      // Try hash-based matching first (self-healing for IDs shifted by line number changes)
+      const generatedMatch = selectedBlockId?.match(/^wod-\d+-([a-f0-9]{8})$/);
+      if (generatedMatch) {
+        const targetHash = generatedMatch[1];
+        const match = blocks.find(b => {
+          let h = 0;
+          const c = b.content;
+          for (let i = 0; i < c.length && i < 64; i++) h = ((h << 5) - h + c.charCodeAt(i)) | 0;
+          return (h >>> 0).toString(16).padStart(8, '0') === targetHash;
+        });
 
-    // If not, and it looks like a generated ID (type-line-hash), try matching by hash
-    const generatedMatch = selectedBlockId.match(/^wod-\d+-([a-f0-9]{8})$/);
-    if (generatedMatch) {
-      const targetHash = generatedMatch[1];
-      const match = blocks.find(b => {
-        // Crude but fast hash check
-        let h = 0;
-        const c = b.content;
-        for (let i = 0; i < c.length && i < 64; i++) h = ((h << 5) - h + c.charCodeAt(i)) | 0;
-        return (h >>> 0).toString(16).padStart(8, '0') === targetHash;
-      });
-
-      if (match) {
-        console.log(`[WorkbenchContext] Block shifted. Updating selectedBlockId: ${selectedBlockId} -> ${match.id}`);
-        setSelectedBlockId(match.id);
-        if (routeId) {
-          navigate(trackPath(routeId, match.id), { replace: true });
+        if (match) {
+          console.log(`[WorkbenchContext] Block shifted. Healing ID: ${selectedBlockId} -> ${match.id}`);
+          setSelectedBlockId(match.id);
+          if (routeId) {
+            navigate(trackPath(routeId, match.id), { replace: true });
+          }
+          return;
         }
       }
+
+      // If hash matching also fails, the link is truly broken
+      console.log(`[WorkbenchContext] Block NOT found for ID: ${selectedBlockId}. Redirecting to Plan.`);
+      navigate(planPath(routeId || ''));
     }
-  }, [blocks, selectedBlockId, routeId, navigate]);
+  }, [blocks, selectedBlockId, routeId, navigate, viewMode, routeSectionId]);
 
   // Derive strip mode from content mode + selection state
   const stripMode: StripMode = useMemo(() => {
