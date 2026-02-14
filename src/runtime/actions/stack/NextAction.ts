@@ -35,6 +35,7 @@ export class NextAction implements IRuntimeAction {
       const lifecycleOptions = { ...snapshotClock, ...this.options };
 
       // Execute block's next logic with the lifecycle options
+      // System output for next lifecycle is now emitted by RuntimeBlock.next() itself
       return currentBlock.next(runtime, lifecycleOptions);
 
     } catch (error) {

@@ -67,5 +67,6 @@ export enum FragmentType {
   Group = 'group',
   Text = 'text',
   Resistance = 'resistance',
-  Sound = 'sound'
+  Sound = 'sound',
+  System = 'system'
 }

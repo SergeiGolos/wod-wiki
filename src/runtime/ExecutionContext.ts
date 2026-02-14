@@ -6,6 +6,7 @@ import { IOutputStatement } from '../core/models/OutputStatement';
 import { IEvent } from './contracts/events/IEvent';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
+import { EmitSystemOutputAction } from './actions/stack/EmitSystemOutputAction';
 
 /**
  * ExecutionContext manages a "turn" of execution.
@@ -106,7 +107,19 @@ export class ExecutionContext implements IScriptRuntime {
      */
     handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
-        this.doAll(actions);
+        if (actions.length > 0) {
+            const systemOutput = new EmitSystemOutputAction(
+                `event: ${event.name} → ${actions.length} action(s)`,
+                'event-action',
+                (event as any).source ?? 'event-bus',
+                undefined,
+                this.stack.count,
+                { eventName: event.name, actionTypes: actions.map(a => a.type) }
+            );
+            this.doAll([systemOutput, ...actions]);
+        } else {
+            this.doAll(actions);
+        }
     }
 
     /**
