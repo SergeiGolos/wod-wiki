@@ -2,27 +2,7 @@
   "settingsVersion": "1.14.0",
   "highlightColor": "#ffd700",
   "sidebarPosition": "right",
-  "highlights": {
-    "docs/responsive-panel-system.md": [
-      {
-        "id": "ekn2fdaiz",
-        "text": "Keep for reference, unused",
-        "tags": [],
-        "line": 422,
-        "startOffset": 24533,
-        "endOffset": 24563,
-        "filePath": "docs/responsive-panel-system.md",
-        "footnoteCount": 1,
-        "footnoteContents": [
-          "Do not keep, remove this com"
-        ],
-        "createdAt": 1770675113891,
-        "isNativeComment": false,
-        "type": "highlight"
-      }
-    ],
-    "docs/content-provider-system.md": []
-  },
+  "highlights": {},
   "collections": {},
   "groupingMode": "none",
   "taskSecondaryGroupingMode": "none",

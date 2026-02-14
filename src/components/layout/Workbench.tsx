@@ -42,11 +42,13 @@ import { useWorkbenchSync } from './useWorkbenchSync';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
+import { HistoryEntry } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 
 import { PlanPanel } from '../workbench/PlanPanel';
 import { SessionHistory, TimerScreen } from '../workbench/TrackPanel';
 import { ReviewPanelIndex, ReviewPanelPrimary } from '../workbench/ReviewPanel';
+import { NoteActions } from '../notebook/NoteActions';
 
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
@@ -95,12 +97,25 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   const { provider } = useWorkbench();
 
+  // Current entry state
+  const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
+
   // Current entry tags (for Add to Notebook button)
   const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
-    if (!routeId || provider.mode !== 'history') return;
+    if (!routeId || provider.mode !== 'history') {
+      setCurrentEntry(null);
+      setCurrentEntryTags([]);
+      return;
+    }
     provider.getEntry(routeId).then(entry => {
-      if (entry) setCurrentEntryTags(entry.tags);
+      if (entry) {
+        setCurrentEntry(entry);
+        setCurrentEntryTags(entry.tags);
+      } else {
+        setCurrentEntry(null);
+        setCurrentEntryTags([]);
+      }
     });
   }, [routeId, provider]);
 
@@ -112,7 +127,10 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       : currentEntryTags.filter(t => t !== tag);
     await provider.updateEntry(routeId, { tags: newTags });
     setCurrentEntryTags(newTags);
-  }, [routeId, provider, currentEntryTags]);
+    if (currentEntry) {
+      setCurrentEntry({ ...currentEntry, tags: newTags });
+    }
+  }, [routeId, provider, currentEntryTags, currentEntry]);
 
   // Consume synced state from Zustand store (via WorkbenchSyncBridge)
   const {
@@ -273,11 +291,18 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   );
 
   const viewDescriptors = useMemo(() => {
-    return [
+    const all = [
       createPlanView(planPanel),
       createTrackView(trackPrimaryPanel, trackIndexPanel, trackDebugPanel, isDebugMode),
       createReviewView(reviewIndexPanel, reviewPrimaryPanel),
     ];
+
+    // Branch: If we are viewing a template, only show Plan
+    if (currentEntry?.type === 'template') {
+      return all.filter(v => v.id === 'plan');
+    }
+
+    return all;
   }, [
     planPanel,
     trackPrimaryPanel,
@@ -285,7 +310,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     trackDebugPanel,
     isDebugMode,
     reviewIndexPanel,
-    reviewPrimaryPanel
+    reviewPrimaryPanel,
+    currentEntry?.type
   ]);
 
   return (
@@ -375,6 +401,18 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             ))}
 
             <div className="h-6 w-px bg-border mx-2" />
+
+            <NoteActions
+              entry={currentEntry}
+              showLabel={currentEntry?.type === 'template'}
+              variant={currentEntry?.type === 'template' ? 'primary' : 'default'}
+              onClone={async () => {
+                if (routeId && provider.mode === 'history') {
+                  const cloned = await provider.cloneEntry(routeId);
+                  navigate(`/note/${cloned.id}/plan`);
+                }
+              }}
+            />
 
             <AudioToggle />
             <ThemeToggle />

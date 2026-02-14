@@ -37,6 +37,10 @@ export interface HistoryEntry {
   // Pre-parsed segments for instant rendering
   sections?: Section[];
   schemaVersion: number;               // For future migration
+
+  // Note Management
+  type?: 'note' | 'template';          // Default to 'note' if undefined
+  templateId?: string;                 // ID of the template this note was cloned from
 }
 
 /**

@@ -22,6 +22,10 @@ export interface Note {
     updatedAt: number;    // Last edit time
     targetDate: number;   // Primary date for view/sorting
     segmentIds: string[]; // Ordered list of segment UUIDs
+
+    // Note Management
+    type?: 'note' | 'template';
+    templateId?: string;
 }
 
 /**

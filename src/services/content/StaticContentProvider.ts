@@ -30,6 +30,7 @@ export class StaticContentProvider implements IContentProvider {
       title: 'Untitled Workout',
       createdAt: now,
       updatedAt: now,
+      targetDate: now,
       rawContent: initialContent,
       tags: [],
       schemaVersion: 1,
@@ -47,6 +48,10 @@ export class StaticContentProvider implements IContentProvider {
   async saveEntry(
     _entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>
   ): Promise<HistoryEntry> {
+    throw new Error('Static provider is read-only');
+  }
+
+  async cloneEntry(_sourceId: string, _targetDate?: number): Promise<HistoryEntry> {
     throw new Error('Static provider is read-only');
   }
 

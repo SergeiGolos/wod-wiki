@@ -112,17 +112,34 @@ export class LocalStorageContentProvider implements IContentProvider {
     data: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'> & { id?: string; targetDate?: number }
   ): Promise<HistoryEntry> {
     const now = Date.now();
-    const targetDate = data.targetDate || now;
     const entry: HistoryEntry = {
       ...data,
       id: data.id || generateId(),
       createdAt: now,
       updatedAt: now,
-      targetDate,
+      targetDate: data.targetDate || now,
       schemaVersion: SCHEMA_VERSION,
+      type: data.type || 'note',
     };
     localStorage.setItem(`${KEY_PREFIX}${entry.id}`, JSON.stringify(entry));
     return entry;
+  }
+
+  async cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry> {
+    const source = await this.getEntry(sourceId);
+    if (!source) throw new Error(`Source entry not found: ${sourceId}`);
+
+    return this.saveEntry({
+      title: source.title,
+      // If cloning a template, use its title directly. If cloning a note, add "Copy of"
+      // or just keep it same? Let's keep same for now, let user rename.
+      rawContent: source.rawContent,
+      tags: source.tags,
+      sections: source.sections || [], // Map sections to blocks if needed, or just copy
+      type: 'note',
+      templateId: source.id,
+      targetDate: targetDate || Date.now(),
+    });
   }
 
   async updateEntry(
