@@ -101,100 +101,98 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
               isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
             )}
           >
-            <div className="flex items-start gap-3">
-              <div className="flex items-start gap-3">
-                {/* Action Button: Clone (Template) or Edit (Note) */}
-                <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-                  {entry.type === 'template' ? (
+            <div className="flex items-center gap-3 w-full">
+              {/* Action Button: Clone (Template) or Edit (Note) on the left */}
+              <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+                {entry.type === 'template' ? (
+                  <button
+                    onClick={() => onClone?.(entry.id)}
+                    className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-blue-500 transition-colors"
+                    title="Clone to Today"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                ) : (
+                  onEdit && (
                     <button
-                      onClick={() => onClone?.(entry.id)}
-                      className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-blue-500 transition-colors"
-                      title="Clone to Today"
+                      onClick={() => onEdit(entry.id, entry.type)}
+                      className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
+                      title="Edit Note"
                     >
-                      <Copy className="w-3.5 h-3.5" />
+                      <Edit2 className="w-4 h-4" />
                     </button>
-                  ) : (
-                    onEdit && (
-                      <button
-                        onClick={() => onEdit(entry.id, entry.type)}
-                        className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
-                        title="Edit Note"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    )
-                  )}
+                  )
+                )}
+              </div>
+
+              {/* Content area that fills available space */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className={cn(
+                    'font-medium truncate text-sm',
+                    isSelected ? 'text-foreground' : 'text-foreground/80',
+                  )}>
+                    {entry.title}
+                  </span>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className={cn(
-                      'font-medium truncate text-sm',
-                      isSelected ? 'text-foreground' : 'text-foreground/80',
-                    )}>
-                      {entry.title}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                    <span>{formatDate(entry.targetDate, enriched)}</span>
-                    {entry.results && (
-                      <>
-                        <span>·</span>
-                        <span>{formatDuration(entry.results.duration)}</span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Tags (shown in enriched mode or when space allows) */}
-                  {enriched && entry.tags.length > 0 && (
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {entry.tags
-                        .filter(tag => !tag.startsWith('notebook:'))
-                        .map(tag => (
-                          <span
-                            key={tag}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                    </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                  <span>{formatDate(entry.targetDate, enriched)}</span>
+                  {entry.results && (
+                    <>
+                      <span>·</span>
+                      <span>{formatDuration(entry.results.duration)}</span>
+                    </>
                   )}
                 </div>
+              </div>
 
-                {/* Right Side: Notebook Button + Checkbox */}
-                <div className="flex items-center gap-2 mt-0.5">
-                  {/* Add to Notebook button */}
-                  {onNotebookToggle && (
-                    <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-                      <AddToNotebookButton
-                        entryTags={entry.tags}
-                        onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
-                        variant="icon"
-                        className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
-                      />
-                    </div>
-                  )}
-
-                  {/* Checkbox */}
-                  <div
-                    role="checkbox"
-                    aria-checked={isSelected}
-                    onClick={(e) => { e.stopPropagation(); onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey }); }}
-                    className={cn(
-                      'w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
-                      isSelected
-                        ? 'bg-primary border-primary text-primary-foreground'
-                        : 'border-muted-foreground/40 hover:border-primary/60',
-                    )}>
-                    {isSelected && (
-                      <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
+              {/* Right Side: Tags + Notebook Button + Checkbox */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {/* Tags (moved to right side, shown in enriched mode) */}
+                {enriched && entry.tags.length > 0 && (
+                  <div className="hidden sm:flex gap-1 flex-wrap justify-end max-w-[150px]">
+                    {entry.tags
+                      .filter(tag => !tag.startsWith('notebook:'))
+                      .map(tag => (
+                        <span
+                          key={tag}
+                          className="text-[9px] px-1 py-0.5 rounded-full bg-muted/60 text-muted-foreground/80 border border-border/50"
+                        >
+                          {tag}
+                        </span>
+                      ))}
                   </div>
+                )}
+
+                {/* Add to Notebook button */}
+                {onNotebookToggle && (
+                  <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+                    <AddToNotebookButton
+                      entryTags={entry.tags}
+                      onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
+                      variant="icon"
+                      className="h-8 w-8 text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all"
+                    />
+                  </div>
+                )}
+
+                {/* Checkbox */}
+                <div
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  onClick={(e) => { e.stopPropagation(); onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey }); }}
+                  className={cn(
+                    'w-5 h-5 rounded-md border flex-shrink-0 flex items-center justify-center transition-all cursor-pointer mr-1',
+                    isSelected
+                      ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                      : 'border-muted-foreground/30 hover:border-primary/60 bg-background',
+                  )}>
+                  {isSelected && (
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
                 </div>
               </div>
             </div>

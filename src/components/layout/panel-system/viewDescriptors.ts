@@ -126,7 +126,7 @@ export function createHistoryView(
   const panels: PanelDescriptor[] = [
     {
       id: 'history-list',
-      defaultSpan: (previewPanel ? 2 : 3) as PanelSpan,
+      defaultSpan: (previewPanel ? 1 : 3) as PanelSpan,
       content: mainPanel,
     }
   ];
