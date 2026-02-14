@@ -2,6 +2,7 @@ import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { SnapshotClock } from '../../RuntimeClock';
+import { EmitSystemOutputAction } from './EmitSystemOutputAction';
 
 export class NextAction implements IRuntimeAction {
   readonly type = 'next';
@@ -35,7 +36,18 @@ export class NextAction implements IRuntimeAction {
       const lifecycleOptions = { ...snapshotClock, ...this.options };
 
       // Execute block's next logic with the lifecycle options
-      return currentBlock.next(runtime, lifecycleOptions);
+      const nextActions = currentBlock.next(runtime, lifecycleOptions);
+
+      // Emit system output for next lifecycle event
+      const systemOutput = new EmitSystemOutputAction(
+          `next: ${currentBlock.label ?? currentBlock.blockType ?? 'Block'} [${currentBlock.key.toString().slice(0, 8)}]`,
+          'next',
+          currentBlock.key.toString(),
+          currentBlock.label,
+          runtime.stack.count
+      );
+
+      return [systemOutput, ...nextActions];
 
     } catch (error) {
       // Add error to runtime errors array if available

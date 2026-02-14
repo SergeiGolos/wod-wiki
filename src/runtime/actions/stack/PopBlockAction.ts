@@ -3,6 +3,7 @@ import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { NextAction } from './NextAction';
 import { RuntimeLogger } from '../../RuntimeLogger';
+import { EmitSystemOutputAction } from './EmitSystemOutputAction';
 
 /**
  * Action that pops the current block from the runtime stack.
@@ -69,11 +70,21 @@ export class PopBlockAction implements IRuntimeAction {
         // lifecycle phase (unmount → next → push) is a distinct action in the ExecutionContext.
         const parent = runtime.stack.current;
 
-        // Return unmount actions first, then a NextAction for the parent (if any).
-        // ExecutionContext reverse-pushes returned arrays so first element executes first:
-        // unmount effects run before parent advancement.
+        // Emit system output for pop lifecycle event
+        const completionReason = (popped as any).completionReason ?? 'normal';
+        const systemOutput = new EmitSystemOutputAction(
+            `pop: ${popped.label ?? popped.blockType ?? 'Block'} [${popped.key.toString().slice(0, 8)}] reason=${completionReason}`,
+            'pop',
+            popped.key.toString(),
+            popped.label,
+            runtime.stack.count,
+            { completionReason }
+        );
+
+        // Return system output first, then unmount actions, then NextAction for parent.
+        // ExecutionContext processes first element first (reverse-push LIFO).
         return parent
-            ? [...unmountActions, new NextAction(lifecycleOptions)]
-            : unmountActions;
+            ? [systemOutput, ...unmountActions, new NextAction(lifecycleOptions)]
+            : [systemOutput, ...unmountActions];
     }
 }

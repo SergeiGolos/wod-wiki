@@ -7,6 +7,7 @@ export type { StartWorkoutOptions } from './StartWorkoutAction';
 export { StartSessionAction } from './StartSessionAction';
 export type { StartSessionOptions } from './StartSessionAction';
 export { CompileAndPushBlockAction } from './CompileAndPushBlockAction';
+export { EmitSystemOutputAction } from './EmitSystemOutputAction';
 
 // Re-export ActionDescriptor from shared models
 export type { ActionDescriptor } from '../../models/ActionDescriptor';
