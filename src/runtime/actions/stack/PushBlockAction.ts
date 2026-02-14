@@ -1,7 +1,6 @@
 import { IRuntimeAction, IRuntimeBlock, IScriptRuntime } from "@/core";
 import { BlockLifecycleOptions } from "@/runtime/contracts";
 import { RuntimeLogger } from "../../RuntimeLogger";
-import { EmitSystemOutputAction } from './EmitSystemOutputAction';
 
 /**
  * Action that pushes a compiled block onto the runtime stack.
@@ -61,17 +60,7 @@ export class PushBlockAction implements IRuntimeAction {
                 : undefined;
             RuntimeLogger.logPush(this.block, parentKey);
 
-            // Emit system output for push lifecycle event
-            const systemOutput = new EmitSystemOutputAction(
-                `push: ${this.block.label ?? this.block.blockType ?? 'Block'} [${this.block.key.toString().slice(0, 8)}]`,
-                'push',
-                this.block.key.toString(),
-                this.block.label,
-                runtime.stack.count,
-                { parentKey }
-            );
-
-            return [systemOutput, ...mountActions];
+            return mountActions;
 
         } catch (error) {
             // Check if runtime has optional setError method

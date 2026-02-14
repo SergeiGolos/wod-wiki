@@ -10,12 +10,14 @@ import {
 } from './contracts/IRuntimeOptions';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
-import { IOutputStatement } from '../core/models/OutputStatement';
+import { IOutputStatement, OutputStatement } from '../core/models/OutputStatement';
 import { IRuntimeAction } from './contracts';
 import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
+import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
+import { TimeSpan } from './models/TimeSpan';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -71,8 +73,14 @@ export class ScriptRuntime implements IScriptRuntime {
 
         this.jit = compiler;
 
-        // Bridge stack events to StackSnapshot observers
+        // Bridge stack events to StackSnapshot observers and emit system outputs
         this._stackSubscriptionUnsub = this.stack.subscribe((event) => {
+            // Emit system output for push/pop events
+            if (event.type === 'push' || event.type === 'pop') {
+                this.emitSystemOutput(event);
+            }
+
+            // Notify stack observers
             if (this._stackObservers.size === 0) return;
 
             const snapshot: StackSnapshot = {
@@ -327,6 +335,65 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Call after hooks
         this.options.hooks?.onAfterPop?.(currentBlock);
+    }
+
+    /**
+     * Emit a system output for stack lifecycle events (push/pop).
+     * Called directly from the stack subscription handler to ensure accurate timing.
+     */
+    private emitSystemOutput(event: { type: 'push' | 'pop'; block: IRuntimeBlock; depth: number }): void {
+        const now = this.clock.now;
+        const block = event.block;
+
+        // Build structured data for the fragment value
+        interface SystemOutputValue {
+            event: 'push' | 'pop';
+            blockKey: string;
+            blockLabel?: string;
+            [key: string]: unknown;
+        }
+
+        const value: SystemOutputValue = {
+            event: event.type,
+            blockKey: block.key.toString(),
+            blockLabel: block.label,
+        };
+
+        // Add extra data based on event type
+        if (event.type === 'push') {
+            // For push, include parent key if available
+            const parentBlock = this.stack.blocks.length > 1 ? this.stack.blocks[1] : undefined;
+            if (parentBlock) {
+                value.parentKey = parentBlock.key.toString();
+            }
+        } else if (event.type === 'pop') {
+            // For pop, include completion reason
+            const completionReason = (block as any).completionReason ?? 'normal';
+            value.completionReason = completionReason;
+        }
+
+        // Create the fragment
+        const fragment: ICodeFragment = {
+            fragmentType: FragmentType.System,
+            type: 'lifecycle',
+            image: event.type === 'push'
+                ? `push: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}]`
+                : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${(block as any).completionReason ?? 'normal'}`,
+            value,
+            origin: 'runtime',
+            timestamp: now,
+        };
+
+        // Create and emit the output statement
+        const output = new OutputStatement({
+            outputType: 'system',
+            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+            sourceBlockKey: block.key.toString(),
+            stackLevel: event.depth,
+            fragments: [fragment],
+        });
+
+        this.addOutput(output);
     }
 }
 
