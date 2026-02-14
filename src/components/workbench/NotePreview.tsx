@@ -172,7 +172,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                     ) : (
                         <div className="flex items-center justify-center h-full">
                             <p className="text-sm text-muted-foreground italic">
-                                No workout selected
+                                No session selected
                             </p>
                         </div>
                     )}

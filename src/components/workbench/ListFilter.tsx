@@ -120,7 +120,7 @@ export const ListFilter: React.FC<ListFilterProps> = ({
                         )}
                     >
                         <span>📚</span>
-                        <span>All Workouts</span>
+                        <span>All Sessions</span>
                     </button>
                     {notebooks.map(nb => (
                         <button

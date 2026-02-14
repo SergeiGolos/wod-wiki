@@ -23,6 +23,7 @@ import { GridRow } from './GridRow';
 import { GridGraphPanel } from './GridGraphPanel';
 import { UserOverrideDialog } from './UserOverrideDialog';
 import { useUserOverrides } from './useUserOverrides';
+import { useDebugMode } from '@/components/layout/DebugModeContext';
 
 // ─── Props ─────────────────────────────────────────────────────
 
@@ -39,8 +40,6 @@ export interface ReviewGridProps {
   groups: AnalyticsGroup[];
   /** Raw analytics data points (reserved for Phase 3 graph panel) */
   rawData: AnalyticsDataPoint[];
-  /** Whether the workbench is in debug mode */
-  isDebugMode: boolean;
   /** User override map from the store */
   userOutputOverrides?: Map<string, ICodeFragment[]>;
   /** Active grid preset id from the store */
@@ -59,13 +58,16 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   segments,
   selectedSegmentIds,
   onSelectSegment,
-  isDebugMode,
   userOutputOverrides = new Map(),
   gridViewPreset = 'default',
   onPresetChange,
   hoveredBlockKey,
   onHoverBlockKey,
 }) => {
+  // ── Debug mode from context ─────────────────────────────────
+
+  const { isDebugMode } = useDebugMode();
+
   // ── Local UI state ──────────────────────────────────────────
 
   const [sortConfigs, setSortConfigs] = useState<GridSortConfig[]>([]);
@@ -337,7 +339,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
                   className="py-8 text-center text-muted-foreground text-sm"
                 >
                   {segments.length === 0
-                    ? 'No output data available. Run a workout to see results.'
+                    ? 'No output data available. Run a session to see results.'
                     : 'No rows match the current filters.'}
                 </td>
               </tr>

@@ -84,7 +84,7 @@ export const NotebookMenu: React.FC<NotebookMenuProps> = ({
                         className={cn("gap-2", activeNotebookId === null && "bg-accent text-accent-foreground")}
                     >
                         <span className="w-5 text-center">📚</span>
-                        <span className="flex-1">All Workouts</span>
+                        <span className="flex-1">All Sessions</span>
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />

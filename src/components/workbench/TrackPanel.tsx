@@ -115,7 +115,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
         {/* Let's make TimerDisplay the main focus on the left, maybe 40-50% width? */}
         <div className={cn(
           "flex flex-col border-r border-border bg-background transition-all duration-300",
-          isCompact ? "w-full" : "w-1/2 lg:w-5/12"
+          isCompact ? "w-full" : "w-1/2"
         )}>
           <div className="flex-1 flex flex-col justify-center">
             {timerDisplay}
@@ -136,8 +136,8 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       <div className="h-full w-full bg-background p-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full border border-border rounded-lg shadow-sm bg-card overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30">
-            <h3 className="font-semibold text-lg">Select a Workout</h3>
-            <p className="text-sm text-muted-foreground">Choose a workout to start tracking</p>
+            <h3 className="font-semibold text-lg">Select a Session</h3>
+            <p className="text-sm text-muted-foreground">Choose a session to start tracking</p>
           </div>
           <div className="max-h-[60vh] overflow-y-auto">
             <NotePreview
@@ -151,7 +151,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
                 }
               }}
               onBlockHover={onBlockHover}
-              title="Select a Workout"
+              title="Select a Session"
             />
           </div>
         </div>

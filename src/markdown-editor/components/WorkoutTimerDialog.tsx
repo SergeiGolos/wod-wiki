@@ -17,10 +17,10 @@ import { Play, Pause, Square, RotateCcw } from 'lucide-react';
 export interface WorkoutTimerDialogProps {
   /** Whether dialog is open */
   open: boolean;
-  
+
   /** Callback when dialog should close */
   onOpenChange: (open: boolean) => void;
-  
+
   /** WOD block to execute */
   block: WodBlock;
 }
@@ -107,7 +107,7 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     const centiseconds = Math.floor((ms % 1000) / 10);
-    
+
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   };
 
@@ -115,7 +115,7 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Workout Timer</DialogTitle>
+          <DialogTitle>Session Timer</DialogTitle>
           <DialogDescription>
             Lines {block.startLine + 1} - {block.endLine + 1}
           </DialogDescription>
@@ -156,7 +156,7 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
                 Pause
               </Button>
             )}
-            
+
             <Button
               onClick={handleStop}
               size="lg"
@@ -166,7 +166,7 @@ export const WorkoutTimerDialog: React.FC<WorkoutTimerDialogProps> = ({
               <Square className="h-5 w-5" />
               Stop
             </Button>
-            
+
             <Button
               onClick={handleReset}
               size="lg"

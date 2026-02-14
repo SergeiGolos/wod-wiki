@@ -16,6 +16,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { planPath } from '@/lib/routes';
 import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
@@ -29,7 +30,7 @@ import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { AudioProvider } from '../audio/AudioContext';
 import { AudioToggle } from '../audio/AudioToggle';
-import { DebugButton, RuntimeDebugPanel } from '../workout/RuntimeDebugPanel';
+import { DebugModeProvider, DebugButton } from './DebugModeContext';
 import { CommitGraph } from '../ui/CommitGraph';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
@@ -70,7 +71,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   ...editorProps
 }) => {
   const navigate = useNavigate();
-  const { id: routeId } = useParams<{ id: string }>();
+  const { noteId: routeId } = useParams<{ noteId: string }>();
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
 
@@ -201,7 +202,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // editorInstance kept for useBlockEditor and scroll-to-block compatibility
   // (will be null since PlanPanel no longer provides a Monaco instance)
   const [editorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
-  const [isDebugMode, setIsDebugMode] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -291,17 +291,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     />
   );
 
-  const trackDebugPanel = (
-    <RuntimeDebugPanel
-      runtime={runtime}
-      isOpen={true}
-      onClose={() => setIsDebugMode(false)}
-      embedded={true}
-      activeBlock={selectedBlock}
-      activeStatementIds={activeStatementIds}
-    />
-  );
-
   const reviewGridPanel = (
     <ReviewGrid
       runtime={runtime}
@@ -310,7 +299,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       onSelectSegment={toggleAnalyticsSegment}
       groups={analyticsGroups}
       rawData={analyticsData}
-      isDebugMode={isDebugMode}
       hoveredBlockKey={hoveredBlockKey}
       onHoverBlockKey={setHoveredBlockKey}
     />
@@ -319,7 +307,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   const viewDescriptors = useMemo(() => {
     const all = [
       createPlanView(planPanel),
-      createTrackView(trackPrimaryPanel, null, trackDebugPanel, isDebugMode),
+      createTrackView(trackPrimaryPanel, null),
       createReviewView(reviewGridPanel),
     ];
 
@@ -337,8 +325,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   }, [
     planPanel,
     trackPrimaryPanel,
-    trackDebugPanel,
-    isDebugMode,
     reviewGridPanel,
     currentEntry?.type
   ]);
@@ -375,10 +361,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
           <div className="flex gap-2 items-center">
             {!isMobile && (
-              <DebugButton
-                isDebugMode={isDebugMode}
-                onClick={() => setIsDebugMode(!isDebugMode)}
-              />
+              <DebugButton />
             )}
 
             {!isMobile && (
@@ -438,7 +421,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               onClone={async () => {
                 if (routeId && provider.mode === 'history') {
                   const cloned = await provider.cloneEntry(routeId);
-                  navigate(`/note/${cloned.id}/plan`);
+                  navigate(planPath(cloned.id));
                 }
               }}
             />
@@ -487,6 +470,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
 
   return (
     <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
+      <DebugModeProvider>
       <CommandProvider>
         <WorkbenchProvider
           initialContent={props.initialContent}
@@ -504,6 +488,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
           </AudioProvider>
         </WorkbenchProvider>
       </CommandProvider>
+      </DebugModeProvider>
     </ThemeProvider>
   );
 };

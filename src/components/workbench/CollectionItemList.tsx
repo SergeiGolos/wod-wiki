@@ -25,7 +25,7 @@ export const CollectionItemList: React.FC<CollectionItemListProps> = ({
             <div className="flex-1 overflow-y-auto">
                 {items.length === 0 && (
                     <div className="text-sm text-muted-foreground text-center py-8">
-                        No workouts in this collection
+                        No sessions in this collection
                     </div>
                 )}
                 {items.map(item => (

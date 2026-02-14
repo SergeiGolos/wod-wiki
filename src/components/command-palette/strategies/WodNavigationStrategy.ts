@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Command, CommandStrategy } from '../types';
 import { getAllWodIds } from '@/app/wod-loader';
+import { planPath } from '@/lib/routes';
 
 export class WodNavigationStrategy implements CommandStrategy {
     id = 'wod-navigation';
@@ -32,7 +33,7 @@ export class WodNavigationStrategy implements CommandStrategy {
         const wodCommands: Command[] = wodIds.map(id => ({
             id: `nav-wod-${id}`,
             label: `WOD: ${id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
-            action: () => this.navigate(`/note/${id}`),
+            action: () => this.navigate(planPath(id)),
             group: 'Example Workouts',
             keywords: ['wod', 'workout', id]
         }));

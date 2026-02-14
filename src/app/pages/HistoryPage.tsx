@@ -27,6 +27,7 @@ import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { CreateNotebookDialog } from '@/components/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
+import { planPath } from '@/lib/routes';
 import { useWodCollections } from '@/hooks/useWodCollections';
 
 
@@ -341,13 +342,13 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         tags: [], // Start fresh without tags
                         notes: '',
                     });
-                    navigate(`/note/${toShortId(newEntry.id)}/plan`);
+                    navigate(planPath(toShortId(newEntry.id)));
                     return;
                 }
             }
 
             const cloned = await provider.cloneEntry(entryId);
-            navigate(`/note/${toShortId(cloned.id)}/plan`);
+            navigate(planPath(toShortId(cloned.id)));
         } catch (err) {
             console.error('Failed to clone entry:', err);
         }
@@ -410,7 +411,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     activeEntryId={historySelection.activeEntryId}
                     enriched={false}
                     onNotebookToggle={activeCollectionId ? undefined : handleNotebookToggle}
-                    onEdit={activeCollectionId ? undefined : (id) => navigate(`/note/${toShortId(id)}/plan`)}
+                    onEdit={activeCollectionId ? undefined : (id) => navigate(planPath(toShortId(id)))}
                     onClone={activeCollectionId ? undefined : handleClone}
                     className="h-full overflow-y-auto"
                 />
@@ -460,10 +461,10 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     if (isCollectionEntry || !provider.capabilities.canWrite) return;
                     // Template "+": Clone -> Plan
                     const cloned = await provider.cloneEntry(entryToShow.id);
-                    navigate(`/note/${toShortId(cloned.id)}/plan`);
+                    navigate(planPath(toShortId(cloned.id)));
                 }}
                 onClone={entryToShow.type === 'template' ? () => handleClone(entryToShow.id) : undefined}
-                onEdit={entryToShow.type !== 'template' && !isCollectionEntry ? () => navigate(`/note/${toShortId(entryToShow.id)}/plan`) : undefined}
+                onEdit={entryToShow.type !== 'template' && !isCollectionEntry ? () => navigate(planPath(toShortId(entryToShow.id))) : undefined}
                 onDelete={provider.capabilities.canDelete && !entryToShow.results && entryToShow.type !== 'template' ? () => handleDelete(entryToShow.id) : undefined}
             />
         );

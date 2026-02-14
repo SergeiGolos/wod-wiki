@@ -46,7 +46,7 @@ export const CommandPalette: React.FC = () => {
         <Dialog.Content className="fixed left-[50%] top-[20%] z-50 w-full max-w-lg translate-x-[-50%] outline-none p-0 shadow-lg">
           <Dialog.Title className="sr-only">Global Command Menu</Dialog.Title>
           <Dialog.Description className="sr-only">
-            Search for commands, workouts, or navigate the application.
+            Search for commands, sessions, or navigate the application.
           </Dialog.Description>
 
 

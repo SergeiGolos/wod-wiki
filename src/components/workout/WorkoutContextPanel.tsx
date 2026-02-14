@@ -21,43 +21,43 @@ export type WorkoutContextMode = 'edit' | 'run' | 'review';
 export interface WorkoutContextPanelProps {
   /** The workout block to display */
   block: WodBlock | null;
-  
+
   /** Display mode */
   mode: WorkoutContextMode;
-  
+
   /** Whether to show the start button (edit mode only) */
   showStartButton?: boolean;
-  
+
   /** Callback when start button is clicked */
   onStart?: () => void;
-  
+
   /** Callback when editing a statement (edit mode only) */
   onEditStatement?: (index: number, text: string) => void;
-  
+
   /** Callback when deleting a statement (edit mode only) */
   onDeleteStatement?: (index: number) => void;
-  
+
   /** Callback when adding a statement (edit mode with new statements) */
   onAddStatement?: (text: string) => void;
-  
+
   /** Active statement IDs (blocks currently on the stack) */
   activeStatementIds?: Set<number>;
-  
+
   /** Whether to show parse errors (default: false) */
   showErrors?: boolean;
-  
+
   /** Whether to show block metadata (default: false) */
   showMetadata?: boolean;
-  
+
   /** Whether to show the timer dialog (default: false) */
   showTimerDialog?: boolean;
-  
+
   /** Whether panel is in mobile/compact mode (default: false) */
   mobile?: boolean;
-  
+
   /** Whether panel is compact (default: false) */
   compact?: boolean;
-  
+
   /** Additional CSS classes */
   className?: string;
 }
@@ -80,11 +80,11 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
   compact = false,
   className = ''
 }) => {
-  
+
   if (!block) {
     return (
       <div className={`flex flex-col items-center justify-center h-full text-muted-foreground ${className}`}>
-        <p className="text-sm">No workout selected</p>
+        <p className="text-sm">No session selected</p>
       </div>
     );
   }
@@ -112,7 +112,7 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
         {/* Parsing Status */}
         {block.state === 'parsing' && (
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-            <p className="text-sm text-blue-700 dark:text-blue-300">Parsing workout...</p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">Parsing session...</p>
           </div>
         )}
 
@@ -134,8 +134,8 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
         {/* Statement List */}
         <div className="font-mono text-sm relative">
           {hasStatements ? (
-            <EditableStatementList 
-              statements={block.statements || []} 
+            <EditableStatementList
+              statements={block.statements || []}
               onAddStatement={readonly || !onAddStatement ? undefined : onAddStatement}
               onEditStatement={readonly ? undefined : onEditStatement}
               onDeleteStatement={readonly ? undefined : onDeleteStatement}
@@ -145,9 +145,9 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
           ) : (
             <div className="text-muted-foreground italic">
               {mode === 'edit' && '// No parsed statements available'}
-              {mode === 'run' && '// Waiting for workout to start'}
+              {mode === 'run' && '// Waiting for session to start'}
               {mode === 'review' && '// No data available'}
-              {mobile && block.state !== 'parsing' && '// No workout content yet'}
+              {mobile && block.state !== 'parsing' && '// No session content yet'}
             </div>
           )}
         </div>
@@ -182,7 +182,7 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
           <div className={mobile ? 'p-4' : 'px-4 py-2 border-t border-border'}>
             <Button onClick={onStart} className="w-full" size={mobile ? 'lg' : 'sm'}>
               <Play className="mr-2 h-5 w-5" />
-              Start Workout
+              Start Session
             </Button>
           </div>
         )}

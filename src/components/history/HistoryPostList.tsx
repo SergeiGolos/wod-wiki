@@ -67,7 +67,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   if (entries.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground text-sm p-4">
-        No workout entries found
+        No session entries found
       </div>
     );
   }

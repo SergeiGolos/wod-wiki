@@ -34,7 +34,7 @@ const CARD_COLORS: Record<CardType, string> = {
 };
 
 const CARD_TITLES: Record<CardType, string> = {
-  'wod-block': 'Workout',
+  'wod-block': 'Session',
   'frontmatter': 'Document Properties',
   'image': 'Image',
   'youtube': 'Video',
@@ -53,7 +53,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
   const displayTitle = title || CARD_TITLES[cardType] || cardType;
 
   return (
-    <div 
+    <div
       className={`
         card-header 
         flex items-center gap-2 

@@ -55,8 +55,9 @@ export const HistorySummaryView: React.FC<{
 
 export const RuntimeStackView: React.FC<{
     runtime: IScriptRuntime;
-}> = ({ runtime }) => {
-    const blocks = runtime.stack.blocks; // ReadonlyArray<IRuntimeBlock>
+    outputs: IOutputStatement[];
+}> = ({ runtime, outputs }) => {
+    const blocks = runtime.stack.blocks; // Stack is usually Leaf -> Root. We want Root (Top) -> Leaf (Bottom).
 
     if (blocks.length === 0) {
         return (
@@ -67,62 +68,107 @@ export const RuntimeStackView: React.FC<{
         );
     }
 
+    // Helper to render history summary for a specific level
+    const renderHistorySummary = (level: number) => {
+        const levelOutputs = outputs.filter(o => o.stackLevel === level && o.outputType === 'completion');
+
+        if (levelOutputs.length === 0) return null;
+
+        const totalDuration = levelOutputs.reduce((acc, curr) => acc + (curr.elapsed ?? curr.timeSpan.duration), 0);
+        const formatDuration = (ms: number) => {
+            const seconds = Math.floor(ms / 1000);
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        };
+
+        return (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground py-2 pl-4 border-l-2 border-muted ml-3 my-1 bg-muted/5 rounded-r-md">
+                <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span className="font-medium">{levelOutputs.length} Completed</span>
+                </div>
+                <div className="w-px h-3 bg-border/50" />
+                <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span className="font-mono">{formatDuration(totalDuration)}</span>
+                </div>
+            </div>
+        );
+    };
+
+    // Correct Order: Root (Top) -> Leaf (Bottom)
+    // Assuming runtime.stack.blocks is [Leaf, Parent, Root] (Stack order)
+    // We reverse it to get [Root, Parent, Leaf]
+    const visibleBlocks = [...blocks].reverse();
+
     return (
         <div className="flex flex-col gap-1 relative pl-2">
             {/* Connecting line for hierarchy */}
-            {blocks.length > 1 && (
+            {visibleBlocks.length > 1 && (
                 <div className="absolute left-[1.65rem] top-4 bottom-4 w-px bg-border/50" style={{ zIndex: 0 }} />
             )}
 
-            {blocks.map((block, index) => {
-                const isLeaf = index === blocks.length - 1;
-                const isRoot = index === 0;
+            {visibleBlocks.map((block, index) => {
+                const isLeaf = index === visibleBlocks.length - 1; // Last item is the active leaf
+                const isRoot = index === 0; // First item is root
+
+                // Level: Root is 0, Children of Root are 1.
+                // We want to show history for children of THIS block.
+                // So if this is Root (Level 0), we show history for Level 1.
+                const childLevel = index + 1;
 
                 return (
-                    <div
-                        key={block.key.toString()}
-                        className={cn(
-                            "relative flex items-start group",
-                            isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
-                        )}
-                        style={{ marginLeft: `${index * 0.5}rem` }} // Indent based on depth
-                    >
-                        {/* Connector Icon */}
-                        <div className="mr-2 mt-2.5 z-10 relative shrink-0">
-                            {isRoot ? (
-                                <div className="h-2 w-2 rounded-full bg-primary/20 ring-2 ring-primary/10" />
-                            ) : (
-                                <CornerDownRight className="h-4 w-4 text-muted-foreground/40" />
-                            )}
-                        </div>
-
+                    <React.Fragment key={block.key.toString()}>
                         {/* Block Card */}
-                        <div className={cn(
-                            "flex-1 rounded-md border text-sm p-3 transition-all",
-                            isLeaf
-                                ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
-                                : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
-                        )}>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className={cn(
-                                    "font-semibold tracking-tight",
-                                    isLeaf ? "text-foreground" : "text-muted-foreground"
-                                )}>
-                                    {block.label}
-                                </span>
-                                {block.blockType && (
-                                    <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
-                                        {block.blockType}
-                                    </span>
+                        <div
+                            className={cn(
+                                "relative flex items-start group",
+                                isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
+                            )}
+                            style={{ marginLeft: `${index * 0.5}rem` }}
+                        >
+                            {/* Connector Icon */}
+                            <div className="mr-2 mt-2.5 z-10 relative shrink-0">
+                                {isRoot ? (
+                                    <div className="h-2 w-2 rounded-full bg-primary/20 ring-2 ring-primary/10" />
+                                ) : (
+                                    <CornerDownRight className="h-4 w-4 text-muted-foreground/40" />
                                 )}
                             </div>
 
-                            {/* Optional definition or ID for debug context */}
-                            <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px]">
-                                {block.key.toString()}
+                            <div className={cn(
+                                "flex-1 rounded-md border text-sm p-3 transition-all",
+                                isLeaf
+                                    ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
+                                    : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
+                            )}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={cn(
+                                        "font-semibold tracking-tight",
+                                        isLeaf ? "text-foreground" : "text-muted-foreground"
+                                    )}>
+                                        {block.label}
+                                    </span>
+                                    {block.blockType && (
+                                        <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
+                                            {block.blockType}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px]">
+                                    {block.key.toString()}
+                                </div>
                             </div>
                         </div>
-                    </div>
+
+                        {/* Interleaved History: Children of this block */}
+                        {/* Rendered BELOW the block, indented to match child level */}
+                        <div style={{ marginLeft: `${(index + 1) * 0.5}rem` }}>
+                            {renderHistorySummary(childLevel)}
+                        </div>
+                    </React.Fragment>
                 );
             })}
         </div>

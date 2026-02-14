@@ -175,7 +175,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
 
     if (!runtime || !snapshot) {
       const target = activeTab === 'stack' ? 'runtime stack' : 'memory state';
-      return renderEmptyState('No active runtime', `Start a workout to inspect the ${target}.`);
+      return renderEmptyState('No active runtime', `Start a session to inspect the ${target}.`);
     }
 
     // Stack tab (the only remaining tab besides parser)

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { planPath, trackPath, reviewPath } from '@/lib/routes';
 import { WodBlock, WorkoutResults, Section } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
@@ -41,6 +42,10 @@ interface WorkbenchContextState {
   // Execution State
   selectedBlockId: string | null; // Target for execution
   viewMode: ViewMode;
+
+  // Route context — section & result filtering from URL
+  routeSectionId: string | undefined;
+  routeResultId: string | undefined;
 
   // Results State
   results: WorkoutResults[];
@@ -107,8 +112,20 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 }) => {
   // Guard viewMode setter: navigate to the new route
   const navigate = useNavigate();
-  const { id: routeId, view: routeView } = useParams<{ id: string, view: string }>();
+  const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId, view: legacyView } = useParams<{
+    noteId?: string; sectionId?: string; resultId?: string; view?: string;
+  }>();
   const { pathname } = useLocation();
+
+  // Derive routeView from the URL path segments (explicit routes) or legacy :view param
+  const routeView = useMemo(() => {
+    // Check explicit path patterns first
+    if (pathname.match(/\/plan(\/|$)/)) return 'plan';
+    if (pathname.match(/\/track(\/|$)/)) return 'track';
+    if (pathname.match(/\/review(\/|$)/)) return 'review';
+    // Fall back to legacy :view param for backward compat
+    return legacyView;
+  }, [pathname, legacyView]);
 
   // Resolve provider: use external if given, else auto-create from mode + initialContent
   const provider = useMemo(() => externalProvider ?? new StaticContentProvider(propInitialContent), [externalProvider, propInitialContent]);
@@ -142,7 +159,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
     if (provider.capabilities.canWrite && targetId && debouncedContent !== lastSavedContent.current) {
       const titleMatch = debouncedContent.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
+      const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
 
       console.log(`[WorkbenchContext] Auto-saving content for ${targetId}...`);
       setSaveState('saving');
@@ -169,7 +186,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       if (provider.capabilities.canWrite && targetId && contentRef.current !== lastSavedContent.current) {
         console.log(`[WorkbenchContext] Flushing final save for ${targetId}...`);
         const titleMatch = contentRef.current.match(/^#\s+(.+)$/m);
-        const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
+        const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
 
         provider.updateEntry(targetId, {
           rawContent: contentRef.current,
@@ -318,7 +335,17 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     if (newMode === 'history') {
       navigate('/');
     } else if (routeId) {
-      navigate(`/note/${routeId}/${newMode}`);
+      // Use typed path builders for plan/track/review
+      if (newMode === 'plan') {
+        navigate(planPath(routeId));
+      } else if (newMode === 'track' && routeSectionId) {
+        navigate(trackPath(routeId, routeSectionId));
+      } else if (newMode === 'review') {
+        navigate(reviewPath(routeId, routeSectionId, routeResultId));
+      } else {
+        // Fallback for analyze or other modes
+        navigate(`/note/${routeId}/${newMode}`);
+      }
     } else if (pathname.startsWith('/playground')) {
       navigate(`/playground/${newMode}`);
     } else {
@@ -326,7 +353,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       // This happens for seeded playground etc.
       console.warn('[WorkbenchContext] Navigation attempted to workout view without ID or playground context');
     }
-  }, [resolvedMode, navigate, routeId, pathname]);
+  }, [resolvedMode, navigate, routeId, routeSectionId, routeResultId, pathname]);
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -334,9 +361,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   const startWorkout = useCallback((block: WodBlock) => {
     setSelectedBlockId(block.id);
-    // Explicitly transition to 'track' view via URL
-    setViewMode('track');
-  }, [setViewMode]);
+    // Navigate to track view with the block's id as the section identifier
+    if (routeId) {
+      navigate(trackPath(routeId, block.id));
+    } else if (pathname.startsWith('/playground')) {
+      navigate(`/playground/track/${block.id}`);
+    } else {
+      setViewMode('track');
+    }
+  }, [routeId, navigate, pathname, setViewMode]);
 
   const completeWorkout = useCallback((result: WorkoutResults) => {
     setResults(prev => [...prev, result]);
@@ -348,7 +381,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     // Auto-save if provider supports writing
     if (provider.capabilities.canWrite) {
       const titleMatch = content.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1].trim() : 'Untitled Workout';
+      const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
 
       const payload = {
         title,
@@ -425,6 +458,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     activeBlockId,
     selectedBlockId,
     viewMode,
+    routeSectionId,
+    routeResultId,
     results,
     saveState,
     panelLayouts,
@@ -449,6 +484,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     activeBlockId,
     selectedBlockId,
     viewMode,
+    routeSectionId,
+    routeResultId,
     results,
     saveState,
     panelLayouts,

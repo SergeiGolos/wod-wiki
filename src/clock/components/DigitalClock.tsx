@@ -40,7 +40,7 @@ export interface DigitalClockProps {
  */
 export const DigitalClock: React.FC<DigitalClockProps> = ({
   blockKey,
-  title = "Workout Timer",
+  title = "Session Timer",
   duration,
   timerType = 'countup',
   currentRound = 1,
@@ -108,7 +108,7 @@ export const DigitalClock: React.FC<DigitalClockProps> = ({
           {timerType === 'countdown' && duration && (
             <div className="mt-4">
               <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                <div 
+                <div
                   className={cn(
                     "h-full transition-all duration-300",
                     progress >= 90 ? "bg-red-500" : progress >= 70 ? "bg-yellow-500" : "bg-primary"
@@ -131,7 +131,7 @@ export const DigitalClock: React.FC<DigitalClockProps> = ({
             <h4 className="text-sm font-semibold text-muted-foreground mb-3">Metrics</h4>
             <div className="grid grid-cols-2 gap-3">
               {metrics.map((metric, index) => (
-                <div 
+                <div
                   key={index}
                   className="bg-secondary/50 rounded-lg p-3"
                 >

@@ -27,7 +27,7 @@ export const IdleStartCard: React.FC<CardComponentProps> = ({
               <Play size={32} weight="fill" className="text-primary" />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-foreground">
               {entry.title || 'Ready to Start'}
@@ -53,7 +53,7 @@ export const IdleStartCard: React.FC<CardComponentProps> = ({
             ) : (
               <Button size="lg" onClick={handleStart} className="px-8">
                 <Play size={20} className="mr-2" />
-                Start Workout
+                Start Session
               </Button>
             )}
           </div>
@@ -85,10 +85,10 @@ export const IdleCompleteCard: React.FC<CardComponentProps> = ({
               <ChartLine size={32} weight="fill" className="text-green-500" />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-foreground">
-              {entry.title || 'Workout Complete!'}
+              {entry.title || 'Session Complete!'}
             </h2>
             {entry.subtitle && (
               <p className="text-muted-foreground">{entry.subtitle}</p>
@@ -131,7 +131,7 @@ export const ActiveBlockCard: React.FC<CardComponentProps> = ({
   onButtonClick
 }) => {
   const metrics = entry.metrics || [];
-  
+
   // Separate buttons: "Next" goes with metrics, others go below
   const nextButton = entry.buttons?.find(b => b.id === 'btn-next' || b.label === 'Next');
   const otherButtons = entry.buttons?.filter(b => b.id !== 'btn-next' && b.label !== 'Next') || [];
@@ -176,50 +176,50 @@ export const ActiveBlockCard: React.FC<CardComponentProps> = ({
       <div className="flex items-center justify-between gap-4">
         {/* Metrics Display */}
         <div className="flex-1">
-            {metrics.length > 0 ? (
+          {metrics.length > 0 ? (
             <div className="flex flex-wrap gap-2 justify-center">
-                {metrics.map((metric, index) => (
+              {metrics.map((metric, index) => (
                 <span
-                    key={index}
-                    className={cn(
+                  key={index}
+                  className={cn(
                     'inline-flex items-center gap-1 px-3 py-1.5 rounded-md border font-mono text-sm bg-background',
                     getMetricColor(metric.type),
                     metric.isActive && 'ring-2 ring-primary ring-offset-1'
-                    )}
-                    title={`${metric.type}: ${metric.value}`}
+                  )}
+                  title={`${metric.type}: ${metric.value}`}
                 >
-                    {getMetricIcon(metric.type) && (
+                  {getMetricIcon(metric.type) && (
                     <span className="text-base leading-none">
-                        {getMetricIcon(metric.type)}
+                      {getMetricIcon(metric.type)}
                     </span>
-                    )}
-                    <span className="font-medium">
+                  )}
+                  <span className="font-medium">
                     {metric.image || String(metric.value)}
-                    </span>
-                    {metric.unit && (
+                  </span>
+                  {metric.unit && (
                     <span className="text-xs opacity-70">{metric.unit}</span>
-                    )}
+                  )}
                 </span>
-                ))}
+              ))}
             </div>
-            ) : (
+          ) : (
             <div className="text-muted-foreground text-center py-2">
-                {entry.title || 'Current Exercise'}
+              {entry.title || 'Current Exercise'}
             </div>
-            )}
+          )}
         </div>
 
         {/* Next Button */}
         {nextButton && (
-            <Button
-                key={nextButton.id}
-                variant={nextButton.variant === 'primary' ? 'default' : nextButton.variant as any || 'outline'}
-                size="lg"
-                className="shrink-0"
-                onClick={() => onButtonClick?.(nextButton.eventName, nextButton.payload)}
-            >
-                {nextButton.label}
-            </Button>
+          <Button
+            key={nextButton.id}
+            variant={nextButton.variant === 'primary' ? 'default' : nextButton.variant as any || 'outline'}
+            size="lg"
+            className="shrink-0"
+            onClick={() => onButtonClick?.(nextButton.eventName, nextButton.payload)}
+          >
+            {nextButton.label}
+          </Button>
         )}
       </div>
 
@@ -260,7 +260,7 @@ export const RestPeriodCard: React.FC<CardComponentProps> = ({
               <Bed size={24} className="text-slate-500" />
             </div>
           </div>
-          
+
           <div className="space-y-1">
             <h3 className="text-xl font-semibold text-foreground">
               {entry.title || 'Rest'}

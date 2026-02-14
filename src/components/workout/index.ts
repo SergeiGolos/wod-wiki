@@ -7,6 +7,3 @@ export type { TimerDisplayProps, TimerStatus } from './TimerDisplay';
 
 export { WorkoutContextPanel } from './WorkoutContextPanel';
 export type { WorkoutContextPanelProps, WorkoutContextMode } from './WorkoutContextPanel';
-
-export { RuntimeDebugPanel, DebugButton } from './RuntimeDebugPanel';
-export type { RuntimeDebugPanelProps, DebugButtonProps } from './RuntimeDebugPanel';

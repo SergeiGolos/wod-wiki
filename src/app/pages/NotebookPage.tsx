@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Workbench } from '@/components/layout/Workbench';
 import { useNavigate, useParams } from 'react-router-dom';
+import { planPath } from '@/lib/routes';
 import { useMemo } from 'react';
 import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';
 import { PLAYGROUND_CONTENT, getDailyTitle, getDailyTemplate } from '@/constants/defaultContent';
@@ -11,7 +12,7 @@ import type { IContentProvider } from '@/types/content-provider';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 
 export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provider: propProvider }) => {
-    const { id: routeId } = useParams<{ id: string }>();
+    const { noteId: routeId } = useParams<{ noteId: string }>();
     const [initialContent, setInitialContent] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
@@ -55,7 +56,7 @@ export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provid
                         targetDate: Date.now()
                     });
                     setInitialContent(newEntry.rawContent);
-                    navigate(`/note/${newEntry.id}/plan`);
+                    navigate(planPath(newEntry.id));
                     return;
                 }
 
@@ -83,7 +84,7 @@ export const NotebookPage: React.FC<{ provider?: IContentProvider }> = ({ provid
                         targetDate: Date.now()
                     });
                     setInitialContent(newEntry.rawContent);
-                    navigate(`/note/${newEntry.id}/plan`);
+                    navigate(planPath(newEntry.id));
                 }
             } catch (e) {
                 console.error('Error initializing Notebook:', e);

@@ -328,7 +328,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         <button
                             onClick={onStop}
                             className="group flex flex-col items-center gap-1 sm:gap-2 text-slate-400 hover:text-red-500 transition-colors p-2"
-                            title="Stop Workout"
+                            title="Stop Session"
                         >
                             <div className={`flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-colors ${compact ? 'w-12 h-12' : 'w-12 h-12 sm:w-14 sm:h-14'}`}>
                                 <StopCircle className="w-6 h-6" />

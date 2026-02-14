@@ -55,7 +55,7 @@ export const CreateNotebookDialog: React.FC<CreateNotebookDialogProps> = ({
                 <DialogHeader>
                     <DialogTitle className="text-foreground">Create Notebook</DialogTitle>
                     <DialogDescription>
-                        Organize your workouts into collections.
+                        Organize your sessions into collections.
                     </DialogDescription>
                 </DialogHeader>
 

@@ -75,7 +75,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     <div className={`${panelBase} ${className}`} data-testid={testId}>
       {/* Panel Header */}
       <div className={panelHeader}>
-        <h3 className={panelHeaderTitle}>Workout Script</h3>
+        <h3 className={panelHeaderTitle}>Script</h3>
         {getStatusBadge()}
       </div>
 

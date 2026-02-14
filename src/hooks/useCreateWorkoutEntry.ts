@@ -8,6 +8,7 @@
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { planPath } from '@/lib/routes';
 import type { IContentProvider } from '../types/content-provider';
 import type { HistoryEntry } from '../types/history';
 import type { UseHistorySelectionReturn } from './useHistorySelection';
@@ -70,7 +71,7 @@ export function useCreateWorkoutEntry({
       setContent(newEntry.rawContent);
 
       // Navigate to plan view using unique URL
-      navigate(`/note/${newEntry.id}/plan`);
+      navigate(planPath(newEntry.id));
     } catch (error) {
       console.error('Failed to create new workout entry:', error);
     }
