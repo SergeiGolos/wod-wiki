@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, ListTree, ArrowRight, CornerDownRight } from 'lucide-react';
+import { Clock, CheckCircle2, ListTree, ArrowRight, CornerDownRight, Timer } from 'lucide-react';
+import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
+import { formatTimeMMSS } from '../../lib/formatTime';
+import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
+import { ICodeFragment } from '@/core/models/CodeFragment';
 
 // ============================================================================
 // History View
@@ -52,6 +56,109 @@ export const HistorySummaryView: React.FC<{
 // ============================================================================
 // Stack View
 // ============================================================================
+
+const StackBlockItem: React.FC<{
+    block: IRuntimeBlock;
+    index: number;
+    isLeaf: boolean;
+    isRoot: boolean;
+}> = ({ block, index, isLeaf, isRoot }) => {
+    const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
+    const [displayRows, setDisplayRows] = useState<ICodeFragment[][]>([]);
+
+    // Subscribe to fragment:display memory
+    useEffect(() => {
+        const displayLocs = block.getMemoryByTag('fragment:display');
+        setDisplayRows(displayLocs.map(loc => loc.fragments));
+
+        const unsubscribes = displayLocs.map(loc =>
+            loc.subscribe(() => {
+                const updatedLocs = block.getMemoryByTag('fragment:display');
+                setDisplayRows(updatedLocs.map(l => l.fragments));
+            })
+        );
+
+        return () => unsubscribes.forEach(unsub => unsub());
+    }, [block]);
+
+    // Only show timer if there are active or completed time spans (it's a time tracker)
+    const hasTime = timeSpans.length > 0;
+
+    return (
+        <div
+            className={cn(
+                "relative flex flex-col gap-1 w-full",
+                isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
+            )}
+            style={{ marginLeft: `${index * 0.5}rem` }}
+        >
+            <div className="flex items-start group">
+                {/* Connector Icon */}
+                <div className="mr-2 mt-2.5 z-10 relative shrink-0">
+                    {isRoot ? (
+                        <div className="h-2 w-2 rounded-full bg-primary/20 ring-2 ring-primary/10" />
+                    ) : (
+                        <CornerDownRight className="h-4 w-4 text-muted-foreground/40" />
+                    )}
+                </div>
+
+                <div className={cn(
+                    "flex-1 rounded-md border text-sm p-3 transition-all flex items-center justify-between gap-3",
+                    isLeaf
+                        ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
+                        : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
+                )}>
+                    <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className={cn(
+                                "font-semibold tracking-tight",
+                                isLeaf ? "text-foreground" : "text-muted-foreground"
+                            )}>
+                                {block.label}
+                            </span>
+                            {block.blockType && (
+                                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
+                                    {block.blockType}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px]">
+                            {block.key.toString()}
+                        </div>
+                    </div>
+
+                    {hasTime && (
+                        <div className={cn(
+                            "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
+                            isRunning
+                                ? "bg-primary/10 text-primary animate-pulse"
+                                : "bg-muted text-muted-foreground"
+                        )}>
+                            <Timer className="h-3 w-3" />
+                            {formatTimeMMSS(elapsed)}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Rendered Fragments (Exercises, Reps, etc.) */}
+            {displayRows.length > 0 && (
+                <div className="flex flex-col gap-1 mt-1 ml-6">
+                    {displayRows.map((row, rowIdx) => (
+                        <FragmentSourceRow
+                            key={rowIdx}
+                            fragments={row}
+                            status={isLeaf ? 'active' : 'pending'}
+                            size="compact"
+                            className="bg-transparent border-none p-0 min-h-0"
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const RuntimeStackView: React.FC<{
     runtime: IScriptRuntime;
@@ -121,47 +228,12 @@ export const RuntimeStackView: React.FC<{
                 return (
                     <React.Fragment key={block.key.toString()}>
                         {/* Block Card */}
-                        <div
-                            className={cn(
-                                "relative flex items-start group",
-                                isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
-                            )}
-                            style={{ marginLeft: `${index * 0.5}rem` }}
-                        >
-                            {/* Connector Icon */}
-                            <div className="mr-2 mt-2.5 z-10 relative shrink-0">
-                                {isRoot ? (
-                                    <div className="h-2 w-2 rounded-full bg-primary/20 ring-2 ring-primary/10" />
-                                ) : (
-                                    <CornerDownRight className="h-4 w-4 text-muted-foreground/40" />
-                                )}
-                            </div>
-
-                            <div className={cn(
-                                "flex-1 rounded-md border text-sm p-3 transition-all",
-                                isLeaf
-                                    ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
-                                    : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
-                            )}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span className={cn(
-                                        "font-semibold tracking-tight",
-                                        isLeaf ? "text-foreground" : "text-muted-foreground"
-                                    )}>
-                                        {block.label}
-                                    </span>
-                                    {block.blockType && (
-                                        <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
-                                            {block.blockType}
-                                        </span>
-                                    )}
-                                </div>
-
-                                <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px]">
-                                    {block.key.toString()}
-                                </div>
-                            </div>
-                        </div>
+                        <StackBlockItem
+                            block={block}
+                            index={index}
+                            isLeaf={isLeaf}
+                            isRoot={isRoot}
+                        />
 
                         {/* Interleaved History: Children of this block */}
                         {/* Rendered BELOW the block, indented to match child level */}

@@ -1,12 +1,7 @@
 import React, { useMemo } from 'react';
 import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
-import { RuntimeControls } from '../../runtime/models/MemoryModels';
-import { VisualizerFilter } from '../../core/models/DisplayItem';
 import { formatTimeMMSS } from '../../lib/formatTime';
-import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
-import { ActionDescriptor } from '../../runtime/models/ActionDescriptor';
-import { StackFragmentEntry, StackDisplayEntry } from '../../runtime/hooks/useStackDisplay';
 
 export interface TimerStackViewProps {
     elapsedMs: number;
@@ -15,20 +10,10 @@ export interface TimerStackViewProps {
     onPause: () => void;
     onStop: () => void;
     onNext: () => void;
-    onAction?: (eventName: string, payload?: Record<string, unknown>) => void;
     isRunning: boolean;
     primaryTimer?: ITimerDisplayEntry;
-    secondaryTimers?: ITimerDisplayEntry[];
     currentCard?: IDisplayCardEntry;
     compact?: boolean;
-
-    controls?: RuntimeControls;
-    /** Old API - kept for backward compatibility */
-    stackItems?: StackFragmentEntry[] | StackDisplayEntry[];
-    actions?: ActionDescriptor[];
-
-    /** ID of the block that should be focused/displayed on the main timer */
-    focusedBlockId?: string;
 
     /** Map of all active timer states by block ID (ownerId) */
     timerStates?: Map<string, {
@@ -40,27 +25,6 @@ export interface TimerStackViewProps {
 
 const formatTime = formatTimeMMSS;
 
-/**
- * Timer Pill for card display
- */
-const CardTimerPill: React.FC<{
-    elapsed: number;
-    duration?: number;
-    format: 'down' | 'up';
-}> = ({ elapsed, duration, format }) => {
-    const displayTime = Math.max(0, format === 'down' && duration ? duration - elapsed : elapsed);
-
-    return (
-        <div className={`
-            font-mono text-sm font-bold px-3 py-1 rounded-md min-w-[70px] text-center
-            ${format === 'down'
-                ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
-                : 'text-slate-500 dark:text-slate-400'}
-        `}>
-            {formatTime(displayTime)}
-        </div>
-    );
-};
 
 export const TimerStackView: React.FC<TimerStackViewProps> = ({
     elapsedMs,
@@ -68,28 +32,18 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     onPause,
     onStop,
     onNext,
-    onAction,
     isRunning,
     primaryTimer,
-    secondaryTimers = [],
+    currentCard,
     compact = false,
 
-    stackItems,
-    focusedBlockId,
     timerStates,
-    actions
 }) => {
 
     // Determine which timer is "Focused" for the big ring
     // Default to the primaryTimer (usually the leaf) if no focus override
     // If focusedBlockId is present, try to find that timer.
-    const effectivePrimaryTimer = useMemo(() => {
-        if (!focusedBlockId) return primaryTimer;
-
-        // Search in secondary timers (or primary)
-        if (primaryTimer?.ownerId === focusedBlockId) return primaryTimer;
-        return secondaryTimers.find(t => t.ownerId === focusedBlockId) || primaryTimer;
-    }, [focusedBlockId, primaryTimer, secondaryTimers]);
+    const effectivePrimaryTimer = primaryTimer;
 
     // Calculate progress for the ring based on EFFECTIVE primary timer
     // We need the state for this timer.
@@ -135,17 +89,6 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         }
         return effectiveTimerState.elapsed;
     }, [effectiveTimerState]);
-    // Filter configuration for Stack View
-    const stackFilter: VisualizerFilter = {
-        allowedOrigins: [
-            'parser',
-            'collected',
-        ],
-        nameOverrides: {
-            'ellapsed-time': false,
-            'elapsed': false
-        }
-    };
 
 
     return (
@@ -161,125 +104,10 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
             `}</style>
 
             {/* Main Content Area */}
-            <div className={`flex-1 min-h-0 grid grid-cols-1 ${compact ? '' : 'lg:grid-cols-[minmax(280px,35%)_1fr] lg:gap-8 lg:items-start'} gap-4 items-center overflow-hidden`}>
-
-                {/* Left Panel - Stack View - CENTERED content */}
-                <div className={`
-                    flex flex-col gap-3 justify-center
-                    ${compact ? 'order-1 w-full flex-1 overflow-y-auto min-h-0' : 'order-1 lg:h-full lg:overflow-y-auto lg:pr-2'}
-                `}>
-                    {stackItems && stackItems.map((entry) => {
-                        // Get state for this entry's block
-                        const blockKey = entry.block.key.toString();
-                        const state = timerStates?.get(blockKey);
-
-                        const isFocused = blockKey === (focusedBlockId || primaryTimer?.ownerId);
-
-                        // Check if this is the new StackDisplayEntry (has displayRows) or old StackFragmentEntry (has source)
-                        const isNewAPI = 'displayRows' in entry;
-
-                        if (isNewAPI) {
-                            // New API: entry is StackDisplayEntry with displayRows: ICodeFragment[][]
-                            const displayEntry = entry as StackDisplayEntry;
-
-                            return (
-                                <div key={blockKey} className="transition-all duration-300">
-                                    {displayEntry.displayRows.length > 0 ? (
-                                        displayEntry.displayRows.map((row, rowIdx) => (
-                                            <FragmentSourceRow
-                                                key={`${blockKey}-${rowIdx}`}
-                                                fragments={row}
-                                                status={displayEntry.isLeaf ? 'active' : 'pending'}
-                                                depth={displayEntry.depth}
-                                                size="focused"
-                                                filter={stackFilter}
-                                                label={rowIdx === 0 ? displayEntry.label : undefined}
-                                                className={`
-                                                    shadow-md border rounded-lg pr-3
-                                                    ${isFocused
-                                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
-                                                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
-                                                    ${rowIdx > 0 ? 'mt-1' : ''}
-                                                `}
-                                                actions={state && rowIdx === 0 ? (
-                                                    <CardTimerPill
-                                                        elapsed={state.elapsed}
-                                                        duration={state.duration}
-                                                        format={state.format}
-                                                    />
-                                                ) : undefined}
-                                            />
-                                        ))
-                                    ) : (
-                                        <FragmentSourceRow
-                                            key={blockKey}
-                                            fragments={[]}
-                                            status={displayEntry.isLeaf ? 'active' : 'pending'}
-                                            depth={displayEntry.depth}
-                                            size="focused"
-                                            filter={stackFilter}
-                                            label={displayEntry.label}
-                                            className={`
-                                                shadow-md border rounded-lg pr-3
-                                                ${isFocused
-                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
-                                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
-                                            `}
-                                            actions={state ? (
-                                                <CardTimerPill
-                                                    elapsed={state.elapsed}
-                                                    duration={state.duration}
-                                                    format={state.format}
-                                                />
-                                            ) : undefined}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        } else {
-                            // Old API: entry is StackFragmentEntry with source
-                            const fragmentEntry = entry as StackFragmentEntry;
-
-                            return (
-                                <div key={String(fragmentEntry.source.id)} className="transition-all duration-300">
-                                    <FragmentSourceRow
-                                        source={fragmentEntry.source}
-                                        status={fragmentEntry.isLeaf ? 'active' : 'pending'}
-                                        depth={fragmentEntry.depth}
-                                        size="focused"
-                                        filter={stackFilter}
-                                        label={fragmentEntry.label}
-                                        fragmentGroups={fragmentEntry.fragmentGroups}
-                                        className={`
-                                            shadow-md border rounded-lg pr-3
-                                            ${isFocused
-                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
-                                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'}
-                                        `}
-                                        actions={state ? (
-                                            <CardTimerPill
-                                                elapsed={state.elapsed}
-                                                duration={state.duration}
-                                                format={state.format}
-                                            />
-                                        ) : undefined}
-                                    />
-                                </div>
-                            );
-                        }
-                    })}
-                    {(!stackItems || stackItems.length === 0) && (
-                        <div className="p-8 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 text-center text-slate-400 text-sm">
-                            <p>Ready to start...</p>
-                        </div>
-                    )}
-                </div>
+            <div className={`flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden`}>
 
                 {/* Right Panel - Timer & Controls */}
-                <div className={`
-                    flex flex-col items-center justify-center h-full relative
-                    ${compact ? 'order-2 shrink-0 py-2' : 'order-1 lg:order-2'}
-                `}>
+                <div className="flex flex-col items-center justify-center h-full relative">
                     {/* Header Label - Shows what the BIG timer is focused on */}
                     <div className={`text-center ${compact ? 'mb-4' : 'mb-4 sm:mb-8'} shrink-0`}>
                         <h2 className={`${compact ? 'text-lg' : 'text-lg sm:text-xl'} font-bold text-slate-700 dark:text-slate-200`}>
@@ -336,28 +164,13 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             <span className="text-xs font-medium uppercase tracking-wider">Stop</span>
                         </button>
 
-                        {actions && actions.length > 0 ? (
-                            <div className={`flex items-center ${compact ? 'gap-2' : 'gap-2 sm:gap-3'} flex-wrap justify-center`}>
-                                {actions.map(action => (
-                                    <button
-                                        key={action.id}
-                                        onClick={() => onAction?.(action.eventName, action.payload)}
-                                        className={`${compact ? 'px-3 py-2 min-h-[44px] text-xs' : 'px-3 sm:px-4 py-2 min-h-[44px] sm:min-h-[48px] text-xs sm:text-sm'} rounded-full font-semibold shadow-sm transition-all border ${action.isPinned ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-500' : 'bg-white text-blue-600 border-blue-200 hover:border-blue-400'} hover:-translate-y-0.5`}
-                                        title={action.displayLabel || action.name}
-                                    >
-                                        {action.displayLabel || action.name}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <button
-                                onClick={onNext}
-                                className={`flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
-                                title="Next Block"
-                            >
-                                <SkipForward className={compact ? 'w-6 h-6' : 'w-6 h-6 sm:w-8 sm:h-8'} />
-                            </button>
-                        )}
+                        <button
+                            onClick={onNext}
+                            className={`flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
+                            title="Next Block"
+                        >
+                            <SkipForward className={compact ? 'w-6 h-6' : 'w-6 h-6 sm:w-8 sm:h-8'} />
+                        </button>
                     </div>
                 </div>
             </div>
