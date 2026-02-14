@@ -33,7 +33,10 @@ export interface SectionEditorProps {
   /** Active block change callback */
   onActiveBlockChange?: (block: WodBlock | null) => void;
   /** Start workout callback */
+  /** Start workout callback */
   onStartWorkout?: (block: WodBlock) => void;
+  /** Add to plan callback (template mode) */
+  onAddToPlan?: (block: WodBlock) => void;
   /** Section click callback */
   onSectionClick?: (section: Section) => void;
   /** Height */
@@ -46,13 +49,17 @@ export interface SectionEditorProps {
   showLineNumbers?: boolean;
   /** Whether editing is enabled (default true) */
   editable?: boolean;
+  /** Viewing mode (preview vs template) */
+  mode?: 'preview' | 'template';
 }
 
 /** Read-only dispatcher — selects renderer by section type */
 const SectionDisplayRenderer: React.FC<{
   section: Section;
   onStartWorkout?: (block: WodBlock) => void;
-}> = ({ section, onStartWorkout }) => {
+  onAddToPlan?: (block: WodBlock) => void;
+  mode?: 'preview' | 'template';
+}> = ({ section, onStartWorkout, onAddToPlan, mode }) => {
   switch (section.type) {
     case 'title':
     case 'markdown':
@@ -62,6 +69,8 @@ const SectionDisplayRenderer: React.FC<{
         <WodBlockDisplay
           section={section}
           onStartWorkout={onStartWorkout}
+          onAddToPlan={onAddToPlan}
+          mode={mode}
         />
       );
     default:
@@ -83,6 +92,8 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   className = '',
   showLineNumbers = true,
   editable = true,
+  onAddToPlan,
+  mode = 'preview',
 }) => {
   const {
     sections,
@@ -210,6 +221,8 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
         <SectionDisplayRenderer
           section={section}
           onStartWorkout={onStartWorkout}
+          onAddToPlan={onAddToPlan}
+          mode={mode}
         />
       );
     }

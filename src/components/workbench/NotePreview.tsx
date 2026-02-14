@@ -1,6 +1,7 @@
 import React from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, Copy, Edit2, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
@@ -27,6 +28,18 @@ export interface NotePreviewProps {
 
     /** Action to start a specific workout block */
     onStartWorkout?: (blockId: string) => void;
+
+    /** Action to add a block to today's plan (Template +) */
+    onAddToPlan?: (blockId: string) => void;
+
+    /** Action to clone the entire entry */
+    onClone?: () => void;
+
+    /** Action to edit the note */
+    onEdit?: () => void;
+
+    /** Action to delete the note (only if no data) */
+    onDelete?: () => void;
 
     /** Title of the note (optional - defaults to entry.title) */
     title?: string;
@@ -88,6 +101,10 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
     onBlockClick,
     onBlockHover,
     onStartWorkout,
+    onAddToPlan,
+    onClone,
+    onEdit,
+    onDelete,
     title,
 }) => {
     const { isCompact: mobile } = usePanelSize();
@@ -111,11 +128,33 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
         <div className={cn("h-full bg-background flex flex-col overflow-hidden", !mobile && "border-l border-border")}>
             <div className={cn("flex-1 flex flex-col gap-4 overflow-hidden", mobile ? "p-4" : "p-6")}>
                 {/* Header matching AnalyzePanel visual style */}
-                <div className="flex items-center gap-3 text-foreground flex-shrink-0">
-                    <Dumbbell className="h-6 w-6" />
-                    <h2 className="text-xl font-semibold truncate">
-                        {displayTitle}
-                    </h2>
+                <div className="flex items-center gap-3 text-foreground flex-shrink-0 justify-between">
+                    <div className="flex items-center gap-3 truncate">
+                        <Dumbbell className="h-6 w-6" />
+                        <h2 className="text-xl font-semibold truncate">
+                            {displayTitle}
+                        </h2>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        {onClone && (
+                            <Button variant="outline" size="sm" onClick={onClone} className="gap-2">
+                                <Copy className="h-4 w-4" />
+                                Use Template
+                            </Button>
+                        )}
+                        {onEdit && (
+                            <Button variant="outline" size="sm" onClick={onEdit} className="gap-2">
+                                <Edit2 className="h-4 w-4" />
+                                Edit Note
+                            </Button>
+                        )}
+                        {onDelete && (
+                            <Button variant="ghost" size="sm" onClick={onDelete} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Section-based document rendering */}
@@ -124,9 +163,11 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                         <SectionEditor
                             value={entry.rawContent}
                             onStartWorkout={onStartWorkout ? (block) => onStartWorkout(block.id) : undefined}
+                            onAddToPlan={onAddToPlan ? (block) => onAddToPlan(block.id) : undefined}
                             height="100%"
                             showLineNumbers={!mobile}
                             editable={false}
+                            mode={entry.type === 'template' ? 'template' : 'preview'}
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full">

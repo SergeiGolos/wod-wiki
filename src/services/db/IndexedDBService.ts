@@ -105,7 +105,7 @@ class IndexedDBService {
 
         // Delete associated Scripts
         const scriptsIndex = tx.objectStore('scripts').index('by-note');
-        let scriptCursor = await scriptsIndex.openKeyCursor(id);
+        let scriptCursor = await scriptsIndex.openCursor(IDBKeyRange.only(id));
         while (scriptCursor) {
             await scriptCursor.delete();
             scriptCursor = await scriptCursor.continue();
@@ -113,7 +113,7 @@ class IndexedDBService {
 
         // Delete associated Results
         const resultsIndex = tx.objectStore('results').index('by-note');
-        let resultCursor = await resultsIndex.openKeyCursor(id);
+        let resultCursor = await resultsIndex.openCursor(IDBKeyRange.only(id));
         while (resultCursor) {
             await resultCursor.delete();
             resultCursor = await resultCursor.continue();
@@ -121,7 +121,7 @@ class IndexedDBService {
 
         // Delete associated Section History (V3)
         const historyIndex = tx.objectStore('section_history').index('by-note');
-        let historyCursor = await historyIndex.openKeyCursor(id);
+        let historyCursor = await historyIndex.openCursor(IDBKeyRange.only(id));
         while (historyCursor) {
             await historyCursor.delete();
             historyCursor = await historyCursor.continue();

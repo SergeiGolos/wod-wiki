@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Edit2 } from 'lucide-react';
+import { Edit2, Copy, LayoutTemplate } from 'lucide-react';
 import type { HistoryEntry } from '@/types/history';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 
@@ -28,7 +28,9 @@ export interface HistoryPostListProps {
   /** Callback when notebook tag is toggled on an entry */
   onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
   /** Edit entry callback (pencil icon) */
-  onEdit?: (id: string) => void;
+  onEdit?: (id: string, type?: 'note' | 'template') => void;
+  /** Clone entry callback (copy icon) */
+  onClone?: (id: string) => void;
 }
 
 function formatDuration(ms: number): string {
@@ -77,105 +79,126 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
         const isActive = entry.id === activeEntryId;
 
         return (
-          <button
+          <div
             key={entry.id}
+            role="button"
+            tabIndex={0}
             onClick={(e) => onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey })}
             onDoubleClick={(e) => {
               e.preventDefault(); // Prevent text selection
               if (onEdit) onEdit(entry.id);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
+              }
+            }}
             className={cn(
-              'w-full text-left px-3 py-2 transition-colors',
+              'w-full text-left px-3 py-2 transition-colors cursor-pointer outline-none focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
               'hover:bg-muted/50',
               isSelected && 'bg-primary/10',
               isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
             )}
           >
             <div className="flex items-start gap-3">
-              {/* Edit button - Left side */}
-              {onEdit && (
+              <div className="flex items-start gap-3">
+                {/* Action Button: Clone (Template) or Edit (Note) */}
                 <div className="flex-shrink-0 mt-0.5" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => onEdit(entry.id)}
-                    className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className={cn(
-                    'font-medium truncate text-sm',
-                    isSelected ? 'text-foreground' : 'text-foreground/80',
-                  )}>
-                    {entry.title}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>{formatDate(entry.targetDate, enriched)}</span>
-                  {entry.results && (
-                    <>
-                      <span>·</span>
-                      <span>{formatDuration(entry.results.duration)}</span>
-                    </>
+                  {entry.type === 'template' ? (
+                    <button
+                      onClick={() => onClone?.(entry.id)}
+                      className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-blue-500 transition-colors"
+                      title="Clone to Today"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    onEdit && (
+                      <button
+                        onClick={() => onEdit(entry.id, entry.type)}
+                        className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
+                        title="Edit Note"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    )
                   )}
                 </div>
 
-                {/* Tags (shown in enriched mode or when space allows) */}
-                {enriched && entry.tags.length > 0 && (
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {entry.tags
-                      .filter(tag => !tag.startsWith('notebook:'))
-                      .map(tag => (
-                        <span
-                          key={tag}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className={cn(
+                      'font-medium truncate text-sm',
+                      isSelected ? 'text-foreground' : 'text-foreground/80',
+                    )}>
+                      {entry.title}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Right Side: Notebook Button + Checkbox */}
-              <div className="flex items-center gap-2 mt-0.5">
-                {/* Add to Notebook button */}
-                {onNotebookToggle && (
-                  <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    <AddToNotebookButton
-                      entryTags={entry.tags}
-                      onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
-                      variant="icon"
-                      className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
-                    />
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <span>{formatDate(entry.targetDate, enriched)}</span>
+                    {entry.results && (
+                      <>
+                        <span>·</span>
+                        <span>{formatDuration(entry.results.duration)}</span>
+                      </>
+                    )}
                   </div>
-                )}
 
-                {/* Checkbox */}
-                <div
-                  role="checkbox"
-                  aria-checked={isSelected}
-                  onClick={(e) => { e.stopPropagation(); onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey }); }}
-                  className={cn(
-                    'w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
-                    isSelected
-                      ? 'bg-primary border-primary text-primary-foreground'
-                      : 'border-muted-foreground/40 hover:border-primary/60',
-                  )}>
-                  {isSelected && (
-                    <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  {/* Tags (shown in enriched mode or when space allows) */}
+                  {enriched && entry.tags.length > 0 && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {entry.tags
+                        .filter(tag => !tag.startsWith('notebook:'))
+                        .map(tag => (
+                          <span
+                            key={tag}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                    </div>
                   )}
+                </div>
+
+                {/* Right Side: Notebook Button + Checkbox */}
+                <div className="flex items-center gap-2 mt-0.5">
+                  {/* Add to Notebook button */}
+                  {onNotebookToggle && (
+                    <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+                      <AddToNotebookButton
+                        entryTags={entry.tags}
+                        onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
+                        variant="icon"
+                        className="h-6 w-6 text-muted-foreground/50 hover:text-foreground"
+                      />
+                    </div>
+                  )}
+
+                  {/* Checkbox */}
+                  <div
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    onClick={(e) => { e.stopPropagation(); onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey }); }}
+                    className={cn(
+                      'w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-colors cursor-pointer',
+                      isSelected
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'border-muted-foreground/40 hover:border-primary/60',
+                    )}>
+                    {isSelected && (
+                      <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </button>
+          </div>
         );
       })}
     </div>

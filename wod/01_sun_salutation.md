@@ -112,7 +112,7 @@ Surya Namaskar B follows the same principles but adds Chair Pose and Warrior I t
   :30 Eight Point Salutation
   :30 Cobra Pose
   5:00 Downward Dog
-  :30 Low Lunge (opposite side)
+  :30 Low Lunge // opposite side
   :30 Standing Forward Fold
   :30 Raised Arms Pose
   :30 Prayer Pose
@@ -125,12 +125,12 @@ Surya Namaskar B follows the same principles but adds Chair Pose and Warrior I t
   :30 Eight Point Salutation
   :30 Cobra Pose
   5:00 Downward Dog
-  :30 Warrior I (5 breath hold)
+  :30 Warrior I // 5 breath hold
   :30 Plank
   :30 Eight Point Salutation
   :30 Cobra
   5:00 Downward Dog
-  :30 Warrior I (5 breath hold, opposite side)
+  :30 Warrior I // 5 breath hold opposite side
   :30 Standing Forward Fold
   :30 Raised Arms Pose
   :30 Prayer Pose

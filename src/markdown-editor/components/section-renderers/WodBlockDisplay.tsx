@@ -13,28 +13,40 @@ import type { Section } from '../../types/section';
 import type { WodBlock } from '../../types';
 import { SECTION_LINE_HEIGHT } from '../SectionContainer';
 import { StatementDisplay } from '@/components/fragments/StatementDisplay';
-import { Play } from 'lucide-react';
+import { Play, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface WodBlockDisplayProps {
   section: Section;
   onStartWorkout?: (wodBlock: WodBlock) => void;
+  onAddToPlan?: (wodBlock: WodBlock) => void;
+  mode?: 'preview' | 'template';
   className?: string;
 }
 
 export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
   section,
   onStartWorkout,
+  onAddToPlan,
+  mode = 'preview',
   className,
 }) => {
   const wodBlock = section.wodBlock;
   const hasParsedStatements = wodBlock?.statements && wodBlock.statements.length > 0;
   const hasErrors = wodBlock?.errors && wodBlock.errors.length > 0;
+  const isTemplate = mode === 'template';
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (wodBlock && onStartWorkout) {
       onStartWorkout(wodBlock);
+    }
+  };
+
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (wodBlock && onAddToPlan) {
+      onAddToPlan(wodBlock);
     }
   };
 
@@ -53,20 +65,36 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
       >
         <span>{section.dialect ?? 'wod'}</span>
         <div className="flex-1" />
-        {onStartWorkout && wodBlock && (
-          <button
-            onClick={handlePlayClick}
-            className={cn(
-              'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-              'text-muted-foreground hover:text-primary hover:bg-primary/10',
-              'opacity-0 group-hover:opacity-100 transition-opacity',
-            )}
-            title="Run this workout"
-          >
-            <Play className="h-3 w-3" />
-            <span>Run</span>
-          </button>
-        )}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onStartWorkout && wodBlock && (
+            <button
+              onClick={handlePlayClick}
+              className={cn(
+                'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
+                'text-muted-foreground hover:text-primary hover:bg-primary/10',
+                isTemplate && 'bg-primary/10 text-primary font-medium'
+              )}
+              title={isTemplate ? "Clone & Run" : "Run this workout"}
+            >
+              <Play className="h-3 w-3" />
+              <span>Run</span>
+            </button>
+          )}
+
+          {isTemplate && onAddToPlan && wodBlock && (
+            <button
+              onClick={handleAddClick}
+              className={cn(
+                'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
+                'text-muted-foreground hover:text-primary hover:bg-primary/10'
+              )}
+              title="Clone & Add to Plan"
+            >
+              <Plus className="h-3 w-3" />
+              <span>Plan</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Block content */}

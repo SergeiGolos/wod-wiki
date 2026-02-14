@@ -21,7 +21,7 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Github, Search } from 'lucide-react';
+import { Github, Search, Lock } from 'lucide-react';
 import { NotebookMenu } from '../notebook/NotebookMenu';
 import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,7 @@ import { globalCompiler } from '../../runtime-test-bench/services/testbench-serv
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import { HistoryEntry } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
+import { getWodContent } from '../../app/wod-loader';
 
 import { PlanPanel } from '../workbench/PlanPanel';
 import { SessionHistory, TimerScreen } from '../workbench/TrackPanel';
@@ -103,20 +104,59 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Current entry tags (for Add to Notebook button)
   const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
-    if (!routeId || provider.mode !== 'history') {
+    // Helper to synthesize template entry from static content
+    const createTemplateEntry = (id: string, content: string): HistoryEntry => {
+      const titleMatch = content.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1].trim() : id;
+      return {
+        id,
+        title,
+        rawContent: content,
+        type: 'template',
+        tags: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        targetDate: Date.now(),
+        schemaVersion: 1
+      };
+    };
+
+    if (!routeId) {
       setCurrentEntry(null);
       setCurrentEntryTags([]);
       return;
     }
-    provider.getEntry(routeId).then(entry => {
-      if (entry) {
-        setCurrentEntry(entry);
-        setCurrentEntryTags(entry.tags);
-      } else {
-        setCurrentEntry(null);
-        setCurrentEntryTags([]);
+
+    const loadEntry = async () => {
+      // 1. Try fetching from provider (if history mode)
+      if (provider.mode === 'history') {
+        try {
+          const entry = await provider.getEntry(routeId);
+          if (entry) {
+            setCurrentEntry(entry);
+            setCurrentEntryTags(entry.tags);
+            return;
+          }
+        } catch (e) {
+          console.warn('Failed to load entry from provider', e);
+        }
       }
-    });
+
+      // 2. Fallback: Try static WOD content (for static mode OR history mode fallback)
+      const wodContent = getWodContent(routeId);
+      if (wodContent) {
+        const templateEntry = createTemplateEntry(routeId, wodContent);
+        setCurrentEntry(templateEntry);
+        setCurrentEntryTags([]);
+        return;
+      }
+
+      // 3. Nothing found
+      setCurrentEntry(null);
+      setCurrentEntryTags([]);
+    };
+
+    loadEntry();
   }, [routeId, provider]);
 
   const handleNotebookToggleForCurrent = useCallback(async (notebookId: string, isAdding: boolean) => {
@@ -297,9 +337,14 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       createReviewView(reviewIndexPanel, reviewPrimaryPanel),
     ];
 
-    // Branch: If we are viewing a template, only show Plan
+    // Branch: If we are viewing a template, only show Plan (View)
     if (currentEntry?.type === 'template') {
-      return all.filter(v => v.id === 'plan');
+      const planView = createPlanView(planPanel);
+      return [{
+        ...planView,
+        title: 'View',
+        icon: <Lock className="h-4 w-4" />,
+      }];
     }
 
     return all;

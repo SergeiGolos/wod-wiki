@@ -13,6 +13,7 @@ export interface PlanPanelProps {
   setBlocks: (blocks: any[]) => void;
   setContent: (content: string) => void;
   saveState: SaveState;
+  readOnly?: boolean;
 }
 
 export const PlanPanel: React.FC<PlanPanelProps> = ({
@@ -24,6 +25,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   setBlocks,
   setContent,
   saveState,
+  readOnly = false,
 }) => {
   const handleActiveBlockChange = (block: WodBlock | null) => {
     setActiveBlockId(block?.id || null);
@@ -70,7 +72,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
           onActiveBlockChange={handleActiveBlockChange}
           onStartWorkout={onStartWorkout}
           height="100%"
-          editable={true}
+          editable={!readOnly}
           showLineNumbers={true}
         />
       </div>

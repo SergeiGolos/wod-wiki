@@ -224,6 +224,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             targetDate: 0,
             rawContent: item.content,
             tags: [`collection:${activeCollectionId}`],
+            type: 'template',
             notes: '',
             schemaVersion: 1,
         }));
@@ -325,6 +326,45 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         setHistoryEntries(entries);
     }, [historyEntries]);
 
+    const handleClone = useCallback(async (entryId: string) => {
+        if (!provider.capabilities.canWrite) return;
+        try {
+            // Handle virtual collection entries
+            if (entryId.startsWith('collection:')) {
+                const entry = collectionEntries.find(e => e.id === entryId);
+                if (entry) {
+                    // Create a new entry from the collection item
+                    const newEntry = await provider.saveEntry({
+                        title: entry.title,
+                        rawContent: entry.rawContent,
+                        targetDate: Date.now(),
+                        tags: [], // Start fresh without tags
+                        notes: '',
+                    });
+                    navigate(`/note/${toShortId(newEntry.id)}/plan`);
+                    return;
+                }
+            }
+
+            const cloned = await provider.cloneEntry(entryId);
+            navigate(`/note/${toShortId(cloned.id)}/plan`);
+        } catch (err) {
+            console.error('Failed to clone entry:', err);
+        }
+    }, [provider, navigate, collectionEntries]);
+
+    const handleDelete = useCallback(async (entryId: string) => {
+        if (!provider.capabilities.canDelete) return;
+        try {
+            await provider.deleteEntry(entryId);
+            const entries = await provider.getEntries();
+            setHistoryEntries(entries);
+            historySelection.clearSelection();
+        } catch (err) {
+            console.error('Failed to delete entry:', err);
+        }
+    }, [provider, historySelection]);
+
     // Combined Main Panel (Filter + List)
     const mainPanel = (
         <div className="flex h-full divide-x divide-border">
@@ -371,6 +411,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     enriched={false}
                     onNotebookToggle={activeCollectionId ? undefined : handleNotebookToggle}
                     onEdit={activeCollectionId ? undefined : (id) => navigate(`/note/${toShortId(id)}/plan`)}
+                    onClone={activeCollectionId ? undefined : handleClone}
                     className="h-full overflow-y-auto"
                 />
             </div>
@@ -400,12 +441,33 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         return (
             <NotePreview
                 entry={entryToShow}
-                onStartWorkout={isCollectionEntry ? undefined : () => {
-                    navigate(`/note/${toShortId(entryToShow.id)}/plan`);
+                onStartWorkout={async () => {
+                    if (isCollectionEntry) return;
+
+                    if (entryToShow.type === 'template') {
+                        // Template: Clone -> Copy block if needed? -> Track
+                        // For now, clone whole entry -> navigate to Track
+                        if (provider.capabilities.canWrite) {
+                            const cloned = await provider.cloneEntry(entryToShow.id);
+                            navigate(`/note/${toShortId(cloned.id)}/track`);
+                        }
+                    } else {
+                        // Regular note: Navigate to Track
+                        navigate(`/note/${toShortId(entryToShow.id)}/track`);
+                    }
                 }}
+                onAddToPlan={async () => {
+                    if (isCollectionEntry || !provider.capabilities.canWrite) return;
+                    // Template "+": Clone -> Plan
+                    const cloned = await provider.cloneEntry(entryToShow.id);
+                    navigate(`/note/${toShortId(cloned.id)}/plan`);
+                }}
+                onClone={entryToShow.type === 'template' ? () => handleClone(entryToShow.id) : undefined}
+                onEdit={entryToShow.type !== 'template' && !isCollectionEntry ? () => navigate(`/note/${toShortId(entryToShow.id)}/plan`) : undefined}
+                onDelete={provider.capabilities.canDelete && !entryToShow.results && entryToShow.type !== 'template' ? () => handleDelete(entryToShow.id) : undefined}
             />
         );
-    }, [selectedEntries, filteredEntries, navigate, activeCollectionId]);
+    }, [selectedEntries, filteredEntries, navigate, activeCollectionId, handleDelete]);
 
     // Used updated viewDescriptors which expects (mainPanel, previewPanel)
     const historyView = createHistoryView(

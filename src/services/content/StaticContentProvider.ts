@@ -34,6 +34,7 @@ export class StaticContentProvider implements IContentProvider {
       rawContent: initialContent,
       tags: [],
       schemaVersion: 1,
+      type: 'template',
     };
   }
 

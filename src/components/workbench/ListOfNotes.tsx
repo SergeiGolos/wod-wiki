@@ -11,7 +11,8 @@ export interface ListOfNotesProps {
     enriched?: boolean;
     className?: string;
     onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
-    onEdit?: (id: string) => void;
+    onEdit?: (id: string, type?: 'note' | 'template') => void;
+    onClone?: (id: string) => void;
 }
 
 export const ListOfNotes: React.FC<ListOfNotesProps> = ({
@@ -23,6 +24,7 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
     className,
     onNotebookToggle,
     onEdit,
+    onClone,
 }) => {
     return (
         <div className={cn("flex flex-col h-full", className)}>
@@ -34,6 +36,7 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
                 enriched={enriched}
                 onNotebookToggle={onNotebookToggle}
                 onEdit={onEdit}
+                onClone={onClone}
             />
         </div>
     );
