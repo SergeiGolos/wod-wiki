@@ -350,6 +350,7 @@ export class ScriptRuntime implements IScriptRuntime {
             event: 'push' | 'pop';
             blockKey: string;
             blockLabel?: string;
+            actionType?: string;
             [key: string]: unknown;
         }
 
@@ -357,6 +358,8 @@ export class ScriptRuntime implements IScriptRuntime {
             event: event.type,
             blockKey: block.key.toString(),
             blockLabel: block.label,
+            // Include action type for debugging - helps trace lifecycle actions
+            actionType: event.type === 'push' ? 'push-block' : 'pop-block',
         };
 
         // Add extra data based on event type

@@ -9,6 +9,10 @@ import { BehaviorContext } from './BehaviorContext';
 import { RuntimeLogger } from './RuntimeLogger';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
+import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
+import { OutputStatement } from '../core/models/OutputStatement';
+import { TimeSpan } from './models/TimeSpan';
+import { IRuntimeClock } from './contracts/IRuntimeClock';
 
 /**
  * RuntimeBlock represents an executable unit in the workout runtime.
@@ -230,7 +234,7 @@ export class RuntimeBlock implements IRuntimeBlock {
 
     /**
      * Called when a child block completes or user advances.
-     * 
+     *
      * @param runtime The script runtime context
      * @param options Lifecycle options including optional clock for timing consistency
      */
@@ -242,6 +246,9 @@ export class RuntimeBlock implements IRuntimeBlock {
 
         // Use provided clock or fall back to existing context clock
         const clock = options?.clock ?? this._behaviorContext.clock;
+
+        // Emit system output for next lifecycle event
+        this.emitNextSystemOutput(runtime, clock);
 
         // Create a fresh context for this next() call with the appropriate clock
         // This ensures all behaviors in this next() chain see the same frozen time
@@ -391,5 +398,51 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined {
         return this.behaviors.find(b => b instanceof behaviorType) as T | undefined;
+    }
+
+    /**
+     * Emit a system output for next lifecycle event.
+     * Called directly from next() to ensure accurate timing.
+     */
+    private emitNextSystemOutput(runtime: IScriptRuntime, clock: IRuntimeClock): void {
+        const now = clock.now;
+
+        // Build structured data for the fragment value
+        interface SystemOutputValue {
+            event: 'next';
+            blockKey: string;
+            blockLabel?: string;
+            actionType?: string;
+            [key: string]: unknown;
+        }
+
+        const value: SystemOutputValue = {
+            event: 'next',
+            blockKey: this.key.toString(),
+            blockLabel: this.label,
+            // Include action type for debugging - helps trace what triggered this next() call
+            actionType: 'next',
+        };
+
+        // Create the fragment
+        const fragment: ICodeFragment = {
+            fragmentType: FragmentType.System,
+            type: 'lifecycle',
+            image: `next: ${this.label ?? this.blockType ?? 'Block'} [${this.key.toString().slice(0, 8)}]`,
+            value,
+            origin: 'runtime',
+            timestamp: now,
+        };
+
+        // Create and emit the output statement
+        const output = new OutputStatement({
+            outputType: 'system',
+            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+            sourceBlockKey: this.key.toString(),
+            stackLevel: runtime.stack.count,
+            fragments: [fragment],
+        });
+
+        runtime.addOutput(output);
     }
 }
