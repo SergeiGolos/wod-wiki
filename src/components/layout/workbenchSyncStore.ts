@@ -30,6 +30,7 @@ import type { WodBlock } from '../../markdown-editor/types';
 import type { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import type { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
+import type { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
  * Default no-op execution return used before the bridge hydrates the store
@@ -73,6 +74,12 @@ interface WorkbenchSyncState {
   selectedAnalyticsIds: Set<number>;
   lastSelectedAnalyticsId: number | null;
 
+  // --- Review Grid ---
+  /** User-supplied fragment overrides keyed by sourceBlockKey */
+  userOutputOverrides: Map<string, ICodeFragment[]>;
+  /** Active grid view preset id ('default' | 'debug' | custom) */
+  gridViewPreset: string;
+
   // --- Cross-Panel Interaction ---
   hoveredBlockKey: string | null;
 
@@ -93,6 +100,11 @@ interface WorkbenchSyncActions {
   setActiveStatementIds: (ids: Set<number>) => void;
   setAnalytics: (data: AnalyticsDataPoint[], segments: Segment[], groups: AnalyticsGroup[]) => void;
   toggleAnalyticsSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
+
+  // --- Review Grid Actions ---
+  setUserOverride: (blockKey: string, fragments: ICodeFragment[]) => void;
+  clearUserOverride: (blockKey: string) => void;
+  setGridViewPreset: (presetId: string) => void;
   setHoveredBlockKey: (key: string | null) => void;
   setDocumentItems: (items: DocumentItem[]) => void;
   setSelectedBlock: (block: WodBlock | null) => void;
@@ -140,6 +152,9 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   selectedAnalyticsIds: new Set(),
   lastSelectedAnalyticsId: null,
 
+  userOutputOverrides: new Map(),
+  gridViewPreset: 'default',
+
   hoveredBlockKey: null,
 
   documentItems: [],
@@ -184,6 +199,20 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
       lastSelectedAnalyticsId: id
     };
   }),
+
+  setUserOverride: (blockKey, fragments) => set((state) => {
+    const next = new Map(state.userOutputOverrides);
+    next.set(blockKey, fragments);
+    return { userOutputOverrides: next };
+  }),
+
+  clearUserOverride: (blockKey) => set((state) => {
+    const next = new Map(state.userOutputOverrides);
+    next.delete(blockKey);
+    return { userOutputOverrides: next };
+  }),
+
+  setGridViewPreset: (presetId) => set({ gridViewPreset: presetId }),
 
   setHoveredBlockKey: (key) => set({ hoveredBlockKey: key }),
   setDocumentItems: (items) => set({ documentItems: items }),

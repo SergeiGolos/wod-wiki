@@ -3,9 +3,11 @@ import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { NotePreview } from './NotePreview';
+import { VisualStatePanel } from '../track/VisualStatePanel';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
+import { cn } from '@/lib/utils';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
@@ -105,32 +107,36 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
     />
   );
 
+  import { VisualStatePanel } from '../track/VisualStatePanel';
+
+  // ... (imports)
+
+  // ...
+
   const content = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
-      <div className="flex flex-col h-full overflow-hidden">
-        {isCompact && (
-          <div
-            ref={scrollContainerRef}
-            onScroll={handleScroll}
-            className="flex-1 overflow-y-auto min-h-0 border-b border-border bg-slate-50/50 dark:bg-slate-900/50"
-          >
-            <TimerIndexPanel
-              runtime={runtime as any}
-              activeSegmentIds={activeSegmentIds}
-              activeStatementIds={activeStatementIds}
-              highlightedBlockKey={hoveredBlockKey}
-              autoScroll={execution.status === 'running' && !isUserScrolledUp}
-              workoutStartTime={execution.startTime}
-              className="overflow-visible"
-            />
+      <div className="flex h-full overflow-hidden">
+        {/* Left Column: Timer & Controls (flex-1 or fixed width?) */}
+        {/* Let's make TimerDisplay the main focus on the left, maybe 40-50% width? */}
+        <div className={cn(
+          "flex flex-col border-r border-border bg-background transition-all duration-300",
+          isCompact ? "w-full" : "w-1/2 lg:w-5/12"
+        )}>
+          <div className="flex-1 flex flex-col justify-center">
+            {timerDisplay}
+          </div>
+        </div>
+
+        {/* Right Column: Visual State */}
+        {!isCompact && (
+          <div className="flex-1 min-w-0 bg-secondary/10">
+            <VisualStatePanel />
           </div>
         )}
-        <div className={isCompact ? "shrink-0 bg-background z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]" : "h-full"}>
-          {timerDisplay}
-        </div>
       </div>
     </ScriptRuntimeProvider>
   ) : (
+    // ... (selection state remains same)
     selectedBlock ? timerDisplay : (
       <div className="h-full w-full bg-background p-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full border border-border rounded-lg shadow-sm bg-card overflow-hidden">
