@@ -38,8 +38,8 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
 
   return (
     <div className="h-full w-full relative flex flex-col group/plan-panel">
-      {/* Section-based editor with padding */}
-      <div className="flex-1 min-h-0 px-6 py-4 relative">
+      {/* Section-based editor */}
+      <div className="flex-1 min-h-0 relative">
         <SectionEditor
           initialContent={initialContent}
           initialSections={sections || undefined}
@@ -52,6 +52,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
           editable={!readOnly}
           showLineNumbers={true}
           sourceNoteId={sourceNoteId}
+          contentClassName="max-w-5xl mx-auto px-6 py-8"
         />
       </div>
     </div>

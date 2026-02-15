@@ -61,7 +61,17 @@ export interface SectionEditorProps {
    * When set, only sections whose `type` is in this array are rendered.
    * Sections not matching the filter are completely hidden.
    */
+  /**
+   * Optional list of section types to display.
+   * When set, only sections whose `type` is in this array are rendered.
+   * Sections not matching the filter are completely hidden.
+   */
   filter?: SectionType[];
+  /**
+   * Optional class name for the inner content container.
+   * Use this to control padding/width of the content while keeping the scrollbar at the edge.
+   */
+  contentClassName?: string;
 }
 
 /** Read-only dispatcher — selects renderer by section type */
@@ -112,6 +122,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   provider,
   sourceNoteId,
   filter,
+  contentClassName,
 }) => {
   const {
     sections,
@@ -310,7 +321,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
       className={`section-editor overflow-auto custom-scrollbar cursor-default ${className}`}
       style={{ height, width }}
     >
-      <div className="py-2">
+      <div className={contentClassName || "py-2"}>
         {visibleSections.length === 0 ? (
           <div className="px-4 py-8 text-sm text-muted-foreground text-center italic">
             {filter ? 'No matching sections found.' : 'Empty document. Click below to add your first segment.'}
@@ -343,14 +354,14 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
             })}
           </>
         )}
-      </div>
 
-      {/* Add at top or bottom if empty */}
-      {editable && sections.length === 0 && (
-        <div className="px-4 py-2 border-t border-border/40 mt-4">
-          <SectionAddBar onAdd={handleAddSection} />
-        </div>
-      )}
+        {/* Add at top or bottom if empty */}
+        {editable && sections.length === 0 && (
+          <div className="px-4 py-2 border-t border-border/40 mt-4">
+            <SectionAddBar onAdd={handleAddSection} />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

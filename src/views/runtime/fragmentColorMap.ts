@@ -11,7 +11,12 @@ export type FragmentType =
   | 'increment' 
   | 'lap' 
   | 'text' 
-  | 'resistance';
+  | 'resistance'
+  | 'duration'
+  | 'spans'
+  | 'elapsed'
+  | 'total'
+  | 'system-time';
 
 export type FragmentColorMap = {
   readonly [key in FragmentType]: string;
@@ -32,6 +37,11 @@ export const fragmentColorMap: FragmentColorMap = {
   lap: 'bg-orange-100 border-orange-200 text-orange-800 dark:bg-orange-900/50 dark:border-orange-800 dark:text-orange-100',
   text: 'bg-gray-100 border-gray-200 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100',
   resistance: 'bg-red-100 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100',
+  duration: 'bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100',
+  spans: 'bg-cyan-100 border-cyan-200 text-cyan-800 dark:bg-cyan-900/50 dark:border-cyan-800 dark:text-cyan-100',
+  elapsed: 'bg-sky-100 border-sky-200 text-sky-800 dark:bg-sky-900/50 dark:border-sky-800 dark:text-sky-100',
+  total: 'bg-slate-100 border-slate-200 text-slate-800 dark:bg-slate-900/50 dark:border-slate-800 dark:text-slate-100',
+  'system-time': 'bg-zinc-100 border-zinc-200 text-zinc-800 dark:bg-zinc-900/50 dark:border-zinc-800 dark:text-zinc-100',
 };
 
 /**
@@ -61,7 +71,10 @@ const fragmentIconMap: Record<string, string> = {
   'effort': '🏃',
   'increment': '↕️',
   'text': '📝',
-  'ellapsed': '⏱️',
+  'elapsed': '⏱️',
+  'spans': '📊',
+  'total': '🕐',
+  'system-time': '🖥️',
 };
 
 /**

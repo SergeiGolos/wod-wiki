@@ -69,5 +69,10 @@ export enum FragmentType {
   Resistance = 'resistance',
   Sound = 'sound',
   System = 'system',
-  Label = 'label'
+  Label = 'label',
+  Duration = 'duration',
+  Spans = 'spans',
+  Elapsed = 'elapsed',
+  Total = 'total',
+  SystemTime = 'system-time'
 }

@@ -60,109 +60,109 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
   };
 
   return (
-    <div
-      className={cn(
-        'group relative rounded-md border border-border/50 bg-card/50',
-        'overflow-hidden',
-        className,
-      )}
-    >
-      {/* Fence top indicator */}
+    <>
       <div
-        className="flex items-center gap-2 px-2 text-[10px] text-muted-foreground/60 font-mono border-b border-border/30 bg-muted/30"
-        style={{ height: SECTION_LINE_HEIGHT, lineHeight: `${SECTION_LINE_HEIGHT}px` }}
+        className={cn(
+          'group relative rounded-md border border-border/50 bg-card/50',
+          'overflow-hidden',
+          className,
+        )}
       >
-        <span>{section.dialect ?? 'wod'}</span>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2">
-          {onStartWorkout && wodBlock && !isTemplate && (
-            <button
-              onClick={handlePlayClick}
-              className={cn(
-                'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm',
-                'bg-primary text-primary-foreground hover:bg-primary/90'
-              )}
-              title="Run this workout"
-            >
-              <Play className="h-3 w-3 fill-current" />
-              <span>Run</span>
-            </button>
-          )}
-
-          {wodBlock && (
-            provider ? (
-              <AddWodToNoteDropdown
-                wodBlock={wodBlock}
-                provider={provider}
-                sourceNoteId={sourceNoteId}
-                className={cn(
-                  'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm border border-border/50',
-                  'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                )}
-              />
-            ) : onAddToPlan ? (
+        {/* Fence top indicator */}
+        <div
+          className="flex items-center gap-2 px-2 text-[10px] text-muted-foreground/60 font-mono border-b border-border/30 bg-muted/30"
+          style={{ height: SECTION_LINE_HEIGHT, lineHeight: `${SECTION_LINE_HEIGHT}px` }}
+        >
+          <span>{section.dialect ?? 'wod'}</span>
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            {onStartWorkout && wodBlock && !isTemplate && (
               <button
-                onClick={handleAddClick}
+                onClick={handlePlayClick}
                 className={cn(
-                  'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm border border-border/50',
-                  'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm',
+                  'bg-primary text-primary-foreground hover:bg-primary/90'
                 )}
-                title="Clone & Add to Plan"
+                title="Run this workout"
               >
-                <Plus className="h-3 w-3" />
-                <span>Plan</span>
+                <Play className="h-3 w-3 fill-current" />
+                <span>Run</span>
               </button>
-            ) : null
-          )}
-        </div>
-      </div>
+            )}
 
-      {/* Block content */}
-      <div className="px-2">
-        {hasParsedStatements ? (
-          // Render parsed statements with fragment visualization, including hierarchy and grouping
-          <WodStatementList statements={wodBlock!.statements!} />
-        ) : hasErrors ? (
-          // Show raw content + error indicator
-          <div>
+            {wodBlock && (
+              provider ? (
+                <AddWodToNoteDropdown
+                  wodBlock={wodBlock}
+                  provider={provider}
+                  sourceNoteId={sourceNoteId}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm border border-border/50',
+                    'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  )}
+                />
+              ) : onAddToPlan ? (
+                <button
+                  onClick={handleAddClick}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm border border-border/50',
+                    'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  )}
+                  title="Clone & Add to Plan"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Plan</span>
+                </button>
+              ) : null
+            )}
+          </div>
+        </div>
+
+        {/* Block content */}
+        <div className="px-2">
+          {hasParsedStatements ? (
+            // Render parsed statements with fragment visualization, including hierarchy and grouping
+            <WodStatementList statements={wodBlock!.statements!} />
+          ) : hasErrors ? (
+            // Show raw content + error indicator
+            <div>
+              <pre
+                className="text-sm font-mono text-destructive/80 whitespace-pre-wrap"
+                style={{ lineHeight: `${SECTION_LINE_HEIGHT}px` }}
+              >
+                {section.displayContent}
+              </pre>
+              <div className="text-[10px] text-destructive py-1">
+                {wodBlock!.errors!.map((err, i) => (
+                  <div key={i}>⚠ {err.message}</div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            // Unparsed — show raw content
             <pre
-              className="text-sm font-mono text-destructive/80 whitespace-pre-wrap"
+              className="text-sm font-mono text-foreground/70 whitespace-pre-wrap py-1"
               style={{ lineHeight: `${SECTION_LINE_HEIGHT}px` }}
             >
-              {section.displayContent}
+              {section.displayContent || '\u00A0'}
             </pre>
-            <div className="text-[10px] text-destructive py-1">
-              {wodBlock!.errors!.map((err, i) => (
-                <div key={i}>⚠ {err.message}</div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          // Unparsed — show raw content
-          <pre
-            className="text-sm font-mono text-foreground/70 whitespace-pre-wrap py-1"
-            style={{ lineHeight: `${SECTION_LINE_HEIGHT}px` }}
-          >
-            {section.displayContent || '\u00A0'}
-          </pre>
-        )}
-      </div>
-
-      {/* Results segment — shows recent completions with review links */}
-      {sourceNoteId && section.id && (
-        <div className="px-2 pb-1">
-          <WodBlockResults noteId={sourceNoteId} sectionId={section.id} />
+          )}
         </div>
-      )}
 
-      {/* Fence bottom indicator */}
-      <div
-        className="px-2 text-[10px] text-muted-foreground/40 font-mono border-t border-border/30 bg-muted/30"
-        style={{ height: SECTION_LINE_HEIGHT, lineHeight: `${SECTION_LINE_HEIGHT}px` }}
-      >
-        {/* Closing fence line — visually minimal */}
+        {/* Fence bottom indicator */}
+        <div
+          className="px-2 text-[10px] text-muted-foreground/40 font-mono border-t border-border/30 bg-muted/30"
+          style={{ height: SECTION_LINE_HEIGHT, lineHeight: `${SECTION_LINE_HEIGHT}px` }}
+        >
+          {/* Closing fence line — visually minimal */}
+        </div>
       </div>
-    </div>
+
+      {/* Results segment — shows recent completions as a separate box below */}
+      {sourceNoteId && section.id && (
+        <WodBlockResults noteId={sourceNoteId} sectionId={section.id} className="mt-2" />
+      )}
+    </>
   );
 };
 

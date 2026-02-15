@@ -1,4 +1,9 @@
 export { TimerFragment } from './TimerFragment';
+export { DurationFragment } from './DurationFragment';
+export { SpansFragment } from './SpansFragment';
+export { ElapsedFragment } from './ElapsedFragment';
+export { TotalFragment } from './TotalFragment';
+export { SystemTimeFragment } from './SystemTimeFragment';
 export { EffortFragment } from './EffortFragment';
 export { RoundsFragment } from './RoundsFragment';
 export { RepFragment } from './RepFragment';

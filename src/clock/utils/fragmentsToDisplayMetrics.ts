@@ -101,11 +101,22 @@ function formatFragmentValue(fragment: ICodeFragment): string {
   // Handle different fragment types
   switch (fragment.fragmentType) {
     case FragmentType.Timer:
+    case FragmentType.Duration:
+    case FragmentType.Elapsed:
+    case FragmentType.Total:
       // Format time values (assume milliseconds)
       if (typeof value === 'number') {
         return formatDuration(value);
       }
       return String(value);
+
+    case FragmentType.Spans:
+      // Display span count or use image
+      return fragment.image || `${Array.isArray(value) ? value.length : 0} spans`;
+
+    case FragmentType.SystemTime:
+      // Display ISO timestamp
+      return value instanceof Date ? value.toISOString() : String(value);
 
     case FragmentType.Rep:
       return `${value} reps`;
@@ -144,6 +155,11 @@ function getFragmentUnit(fragment: ICodeFragment): string | undefined {
       return 'm';
     case FragmentType.Rounds:
       return 'rounds';
+    case FragmentType.Timer:
+    case FragmentType.Duration:
+    case FragmentType.Elapsed:
+    case FragmentType.Total:
+      return 'ms';
     default:
       return undefined;
   }

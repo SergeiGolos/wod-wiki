@@ -3,7 +3,9 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { TimerState } from '../memory/MemoryTypes';
-import { calculateElapsed, formatDuration } from '../time/calculateElapsed';
+import { calculateElapsed } from '../time/calculateElapsed';
+import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
+import { SystemTimeFragment } from '../compiler/fragments/SystemTimeFragment';
 
 /**
  * SegmentOutputBehavior emits output statements for block execution tracking.
@@ -95,18 +97,14 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
      */
     private getElapsedFragment(ctx: IBehaviorContext): ICodeFragment | null {
         const now = ctx.clock.now.getTime();
+        const blockKey = ctx.block.key.toString();
+        const clockNow = ctx.clock.now;
         const timer = ctx.getMemory('timer') as TimerState | undefined;
 
         if (timer) {
             // Pause-aware elapsed from timer spans
             const elapsed = calculateElapsed(timer, now);
-            return {
-                type: 'duration',
-                fragmentType: FragmentType.Timer,
-                value: elapsed,
-                image: formatDuration(elapsed),
-                origin: 'runtime'
-            } as ICodeFragment;
+            return new ElapsedFragment(elapsed, blockKey, clockNow);
         }
 
         // Wall-clock fallback for non-timer blocks
@@ -115,13 +113,7 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
             const endTime = timing.completedAt ?? ctx.clock.now;
             const elapsed = endTime.getTime() - timing.startTime.getTime();
             if (elapsed >= 0) {
-                return {
-                    type: 'duration',
-                    fragmentType: FragmentType.Timer,
-                    value: elapsed,
-                    image: formatDuration(elapsed),
-                    origin: 'runtime'
-                } as ICodeFragment;
+                return new ElapsedFragment(elapsed, blockKey, clockNow);
             }
         }
 
@@ -175,6 +167,13 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
             if (!alreadyPresent.has(elapsedKey)) {
                 fragments.push(elapsedFragment);
             }
+        }
+
+        // Add system time fragment if not already present from tracked fragments.
+        // This provides a real Date.now() timestamp independent of the runtime clock.
+        const hasSystemTime = fragments.some(f => f.fragmentType === FragmentType.SystemTime);
+        if (!hasSystemTime) {
+            fragments.push(new SystemTimeFragment(new Date(), ctx.block.key.toString()));
         }
 
         // Emit completion output with completion reason from block.

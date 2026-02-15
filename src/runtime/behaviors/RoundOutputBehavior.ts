@@ -5,7 +5,9 @@ import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { ChildRunnerBehavior } from './ChildRunnerBehavior';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { calculateElapsed, formatDuration } from '../time/calculateElapsed';
+import { calculateElapsed } from '../time/calculateElapsed';
+import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
+import { SpansFragment } from '../compiler/fragments/SpansFragment';
 
 /**
  * RoundOutputBehavior emits round milestone outputs that include both
@@ -103,41 +105,43 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
             origin: 'runtime'
         } as ICodeFragment);
 
-        // Timer fragment (S8 — when timer memory exists)
-        const timerFragment = this.getTimerFragment(ctx);
-        if (timerFragment) {
-            fragments.push(timerFragment);
-        }
+        // Timer fragments (S8 — when timer memory exists)
+        const timerFragments = this.getTimerFragments(ctx);
+        fragments.push(...timerFragments);
 
         return fragments;
     }
 
     /**
-     * Reads timer memory and creates a timer fragment for the milestone.
+     * Reads timer memory and creates time fragments for the milestone.
      * 
      * For EMOM/interval patterns, the timer spans are reset each round
-     * by TimerCompletionBehavior. The elapsed value in this fragment
+     * by TimerCompletionBehavior. The elapsed value in these fragments
      * reflects the fresh interval start (near zero on reset).
      * 
      * For AMRAP patterns, the timer is cumulative and the elapsed value
      * shows total time consumed so far.
      */
-    private getTimerFragment(ctx: IBehaviorContext): ICodeFragment | null {
+    private getTimerFragments(ctx: IBehaviorContext): ICodeFragment[] {
         const timer = ctx.getMemory('timer') as TimerState | undefined;
-        if (!timer) return null;
+        if (!timer) return [];
 
         const now = ctx.clock.now.getTime();
+        const blockKey = ctx.block.key.toString();
+        const clockNow = ctx.clock.now;
         const elapsed = calculateElapsed(timer, now);
 
-        return {
-            type: 'timer',
-            fragmentType: FragmentType.Timer,
-            value: elapsed,
-            image: formatDuration(timer.durationMs ?? elapsed),
-            origin: 'runtime',
-            sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
-        } as ICodeFragment;
+        const fragments: ICodeFragment[] = [];
+
+        // Elapsed time fragment
+        fragments.push(new ElapsedFragment(elapsed, blockKey, clockNow));
+
+        // Spans fragment (snapshot of current timer spans)
+        if (timer.spans.length > 0) {
+            fragments.push(new SpansFragment([...timer.spans], blockKey, clockNow));
+        }
+
+        return fragments;
     }
 
     /**
