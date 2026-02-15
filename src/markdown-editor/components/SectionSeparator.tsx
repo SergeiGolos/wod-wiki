@@ -42,7 +42,7 @@ export const SectionSeparator: React.FC<SectionSeparatorProps> = ({
     return (
         <div
             className={cn(
-                "group flex items-center justify-center relative h-4 overflow-visible transition-all duration-300 z-10 cursor-default",
+                "group flex items-center justify-center relative h-8 my-2 overflow-visible transition-all duration-300 z-10 cursor-default",
                 className
             )}
         >

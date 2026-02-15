@@ -296,11 +296,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           </div>
         ) : (
           <>
-            {editable && (
-              <SectionSeparator
-                onAdd={(type) => handleAddSection(type, 'START')}
-              />
-            )}
+
             {sections.filter(s => !s.deleted).map((section) => {
               const isActive = section.id === activeSectionId;
               return (
