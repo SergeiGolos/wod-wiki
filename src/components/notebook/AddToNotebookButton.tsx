@@ -5,7 +5,7 @@
  * Calls onToggle(notebookId, isAdding) to let the parent persist the change.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { BookOpen, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,9 +36,10 @@ export const AddToNotebookButton: React.FC<AddToNotebookButtonProps> = ({
     className,
 }) => {
     const { notebooks, entryBelongsToNotebook } = useNotebooks();
+    const [open, setOpen] = useState(false);
 
     return (
-        <DropdownMenu>
+        <DropdownMenu open={open} onOpenChange={setOpen}>
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
@@ -63,6 +64,7 @@ export const AddToNotebookButton: React.FC<AddToNotebookButtonProps> = ({
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onToggle(nb.id, !belongs);
+                                setOpen(false);
                             }}
                             className="gap-2"
                         >

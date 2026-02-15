@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Calendar, Clock, Tag, Trash2, Link as LinkIcon, GitFork, ExternalLink, ArrowRightLeft, Plus, BookOpen, Check, Sun, Moon, Volume2, VolumeX, Bug, Github, Settings } from 'lucide-react';
+import { X, Calendar, Clock, Tag, Trash2, Link as LinkIcon, GitFork, ExternalLink, ArrowRightLeft, Plus, BookOpen, Sun, Moon, Volume2, VolumeX, Bug, Github, Settings } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAudio } from '@/components/audio/AudioContext';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
@@ -11,6 +11,7 @@ import { toShortId } from '@/lib/idUtils';
 import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
 import { isNotebookTag } from '@/types/notebook';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
+import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 
 export interface NoteDetailsPanelProps {
     isOpen: boolean;
@@ -41,7 +42,7 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
     const tagInputRef = useRef<HTMLInputElement>(null);
 
     // Notebook context
-    const { notebooks, entryBelongsToNotebook, buildNotebookTag } = useNotebooks();
+    const { buildNotebookTag, getEntryNotebooks } = useNotebooks();
 
     // Close calendar on outside click
     useEffect(() => {
@@ -197,6 +198,44 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                         <div className="text-sm font-medium">{entry.title}</div>
                     </div>
 
+                    {/* Notebooks — show only belonging notebooks */}
+                    <div>
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                                <label className="text-xs font-medium text-muted-foreground">Notebooks</label>
+                            </div>
+                            {canWrite && (
+                                <AddToNotebookButton
+                                    entryTags={entry.tags}
+                                    onToggle={handleNotebookToggle}
+                                    variant="icon"
+                                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                />
+                            )}
+                        </div>
+                        {(() => {
+                            const belongingNotebooks = getEntryNotebooks(entry.tags);
+                            return belongingNotebooks.length > 0 ? (
+                                <div className="space-y-1">
+                                    {belongingNotebooks.map(nb => (
+                                        <button
+                                            key={nb.id}
+                                            onClick={() => navigate(`/?notebook=${toShortId(nb.id)}`)}
+                                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm bg-primary/10 text-foreground hover:bg-primary/20 transition-colors text-left group"
+                                        >
+                                            <span className="w-5 text-center text-sm">{nb.icon}</span>
+                                            <span className="flex-1 truncate">{nb.name}</span>
+                                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-xs text-muted-foreground italic">Not in any notebook</div>
+                            );
+                        })()}
+                    </div>
+
                     {/* Dates */}
                     <div className="space-y-4">
                         {/* Target Date — with Move button + calendar popup */}
@@ -315,41 +354,6 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                                     Add
                                 </button>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Notebooks — toggle membership */}
-                    <div>
-                        <div className="flex items-center gap-1.5 mb-1">
-                            <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                            <label className="text-xs font-medium text-muted-foreground">Notebooks</label>
-                        </div>
-                        {notebooks.length > 0 ? (
-                            <div className="space-y-1">
-                                {notebooks.map(nb => {
-                                    const belongs = entryBelongsToNotebook(entry.tags, nb.id);
-                                    return (
-                                        <button
-                                            key={nb.id}
-                                            onClick={() => canWrite && handleNotebookToggle(nb.id, !belongs)}
-                                            disabled={!canWrite}
-                                            className={cn(
-                                                "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm transition-colors text-left",
-                                                belongs
-                                                    ? "bg-primary/10 text-foreground"
-                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                                                !canWrite && "cursor-default"
-                                            )}
-                                        >
-                                            <span className="w-5 text-center text-sm">{nb.icon}</span>
-                                            <span className="flex-1 truncate">{nb.name}</span>
-                                            {belongs && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="text-xs text-muted-foreground italic">No notebooks available</div>
                         )}
                     </div>
 

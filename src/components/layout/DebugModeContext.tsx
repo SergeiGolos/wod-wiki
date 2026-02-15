@@ -9,7 +9,7 @@
  * no longer need their own local debug toggles.
  */
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Bug } from 'lucide-react';
 import { RuntimeLogger } from '../../runtime/RuntimeLogger';
@@ -23,17 +23,25 @@ interface DebugModeContextValue {
 
 const DebugModeContext = createContext<DebugModeContextValue>({
   isDebugMode: false,
-  toggleDebugMode: () => {},
+  toggleDebugMode: () => { },
 });
 
 // ── Provider ───────────────────────────────────────────────────
 
 export const DebugModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('wod-wiki-debug-mode') === 'true';
+    }
+    return false;
+  });
 
   const toggleDebugMode = useCallback(() => {
     setIsDebugMode(prev => {
       const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('wod-wiki-debug-mode', String(next));
+      }
       if (next) {
         RuntimeLogger.enable();
       } else {
@@ -41,6 +49,15 @@ export const DebugModeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
       return next;
     });
+  }, []);
+
+  // Sync logger state on mount
+  useEffect(() => {
+    if (isDebugMode) {
+      RuntimeLogger.enable();
+    } else {
+      RuntimeLogger.disable();
+    }
   }, []);
 
   return (

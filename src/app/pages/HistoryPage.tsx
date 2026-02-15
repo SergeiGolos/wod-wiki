@@ -9,7 +9,6 @@ import { AnalyzePanel } from '@/components/workbench/AnalyzePanel';
 import type { IContentProvider } from '@/types/content-provider';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
-import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { CommitGraph } from '@/components/ui/CommitGraph';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,8 +19,6 @@ import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import { HistoryDetailsPanel } from '@/components/workbench/HistoryDetailsPanel';
-import { AudioProvider } from '@/components/audio/AudioContext';
-import { DebugModeProvider } from '@/components/layout/DebugModeContext';
 import { PanelRightOpen } from 'lucide-react';
 
 import type { PanelSpan } from '@/components/layout/panel-system/types';
@@ -587,15 +584,9 @@ export const HistoryPage: React.FC<{ provider?: IContentProvider }> = ({ provide
     // In next step, App.tsx will provide IndexedDBContentProvider
     const activeProvider = useMemo(() => provider || new LocalStorageContentProvider(), [provider]);
     return (
-        <ThemeProvider defaultTheme="system" storageKey="wod-wiki-theme">
-            <AudioProvider>
-                <DebugModeProvider>
-                    <CommandProvider>
-                        <HistoryContent provider={activeProvider} />
-                    </CommandProvider>
-                </DebugModeProvider>
-            </AudioProvider>
-        </ThemeProvider>
+        <CommandProvider>
+            <HistoryContent provider={activeProvider} />
+        </CommandProvider>
     );
 };
 

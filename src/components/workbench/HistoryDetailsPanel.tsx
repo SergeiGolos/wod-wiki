@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Bug, Github, ExternalLink } from 'lucide-react';
+import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Bug, Github, ExternalLink } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAudio } from '@/components/audio/AudioContext';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
@@ -33,17 +33,6 @@ export const HistoryDetailsPanel: React.FC<HistoryDetailsPanelProps> = ({
             )}
         >
             <div className="flex flex-col h-full">
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Settings</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
                     {/* Collections Section */}
@@ -62,6 +51,7 @@ export const HistoryDetailsPanel: React.FC<HistoryDetailsPanelProps> = ({
                                             if (activeCollectionId !== col.id) {
                                                 onNotebookClear?.();
                                             }
+                                            onClose();
                                         }}
                                         className={cn(
                                             "w-full text-left text-sm px-2 py-1.5 rounded transition-colors flex items-center gap-2",

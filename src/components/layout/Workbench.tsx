@@ -27,9 +27,7 @@ import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen } from 'lucid
 // import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
 import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
-import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
-import { AudioProvider } from '../audio/AudioContext';
-import { DebugModeProvider } from './DebugModeContext';
+import { useTheme } from '../theme/ThemeProvider';
 import { CommitGraph } from '../ui/CommitGraph';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
@@ -507,34 +505,23 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 };
 
 export const Workbench: React.FC<WorkbenchProps> = (props) => {
-  const defaultTheme = useMemo(() => {
-    if (props.theme === 'vs-dark' || props.theme === 'wod-dark') return 'dark';
-    if (props.theme === 'vs' || props.theme === 'wod-light') return 'light';
-    return 'system';
-  }, [props.theme]);
 
   return (
-    <ThemeProvider defaultTheme={defaultTheme} storageKey="wod-wiki-theme">
-      <DebugModeProvider>
-        <CommandProvider>
-          <WorkbenchProvider
-            initialContent={props.initialContent}
-            initialActiveEntryId={props.initialActiveEntryId}
-            initialViewMode={props.initialViewMode}
-            mode={props.mode}
-            provider={props.provider}
-          >
-            <AudioProvider>
-              <RuntimeLifecycleProvider factory={runtimeFactory}>
-                <WorkbenchSyncBridge>
-                  <WorkbenchContent {...props} />
-                </WorkbenchSyncBridge>
-              </RuntimeLifecycleProvider>
-            </AudioProvider>
-          </WorkbenchProvider>
-        </CommandProvider>
-      </DebugModeProvider>
-    </ThemeProvider>
+    <CommandProvider>
+      <WorkbenchProvider
+        initialContent={props.initialContent}
+        initialActiveEntryId={props.initialActiveEntryId}
+        initialViewMode={props.initialViewMode}
+        mode={props.mode}
+        provider={props.provider}
+      >
+        <RuntimeLifecycleProvider factory={runtimeFactory}>
+          <WorkbenchSyncBridge>
+            <WorkbenchContent {...props} />
+          </WorkbenchSyncBridge>
+        </RuntimeLifecycleProvider>
+      </WorkbenchProvider>
+    </CommandProvider>
   );
 };
 
