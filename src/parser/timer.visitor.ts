@@ -10,6 +10,7 @@ import { ResistanceFragment } from "../runtime/compiler/fragments/ResistanceFrag
 import { DistanceFragment } from "../runtime/compiler/fragments/DistanceFragment";
 import { RoundsFragment } from "../runtime/compiler/fragments/RoundsFragment";
 import { TimerFragment } from "../runtime/compiler/fragments/TimerFragment";
+import { TextFragment } from "../runtime/compiler/fragments/TextFragment";
 import { MdTimerParse } from "./timer.parser";
 import { ICodeStatement, ParsedCodeStatement } from "../core/models/CodeStatement";
 
@@ -141,7 +142,8 @@ export class MdTimerInterpreter extends BaseCstVisitor {
       ctx.reps,
       ctx.effort,
       ctx.resistance,
-      ctx.distance
+      ctx.distance,
+      ctx.text // Add text producer
     ];
 
     for (const producer of fragmentProducers) {
@@ -172,6 +174,13 @@ export class MdTimerInterpreter extends BaseCstVisitor {
 
     statement.isLeaf = statement.fragments.filter(f => f.fragmentType === FragmentType.Group).length > 0;
     return [statement];
+  }
+
+  text(ctx: any): TextFragment[] {
+    const meta = this.getMeta([ctx.TextComment[0]]);
+    // Remove the leading // and trim
+    const textContent = ctx.TextComment[0].image.substring(2).trim();
+    return [new TextFragment(textContent, undefined, meta)];
   }
 
   action(ctx: any): ActionFragment[] {

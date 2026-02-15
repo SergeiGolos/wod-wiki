@@ -45,7 +45,7 @@ export const Collon = createToken({
   pattern: /:/,
 });
 
-export const  AllowedSymbol = createToken({
+export const AllowedSymbol = createToken({
   name: "AllowedSymbol",
   pattern: /[\\\/.,@!$%^*=&]+/,
   // pick up anything that isn't whitespace, a digit, or a "special" character
@@ -65,13 +65,19 @@ export const Number = createToken({
   pattern: /\d*\.?\d+/,
 });
 
+// Define TextComment token (matches // followed by anything until line end)
+export const TextComment = createToken({
+  name: "TextComment",
+  pattern: /\/\/[^\r\n]*/,
+});
+
 export const Identifier = createToken({
   name: "Identifier",
   pattern: /[a-zA-Z]\w*/,
 });
 
 export const Comma = createToken({
-  
+
   name: "Comma",
   pattern: /,/,
 });
@@ -106,7 +112,7 @@ export const GroupClose = createToken({
   pattern: /\)/,
 });
 
-export const allTokens = [  
+export const allTokens = [
   Return,
   WhiteSpace,
   // "keywords" appear before the Identifier
@@ -118,13 +124,19 @@ export const allTokens = [
   AtSign,
   CollectibleTimer,  // Must be before Timer to match :? before :digit
   Timer,
-  Trend,    
-  Collon,  
+  Trend,
+  Collon,
   Up,
   Minus,
   Plus,
   Weight,
+  TextComment, // Add TextComment here, before AllowedSymbol/Distance/etc to ensure priority?
+  // Wait, regex for AllowedSymbol is /[\\\/.,@!$%^*=&]+/. 
+  // TextComment pattern is /\/\/[^\r\n]*/.
+  // Since TextComment starts with //, and AllowedSymbol can match //,
+  // we MUST place TextComment BEFORE AllowedSymbol in this array.
   Distance,
+  Weight,
   QuestionSymbol,
   AllowedSymbol,
   Identifier,

@@ -383,9 +383,11 @@ describe('SegmentOutputBehavior', () => {
 
             behavior.onUnmount(ctx);
 
-            // Completion output uses getFragments() which only reads fragment:display
+            // Completion output uses getFragments() which only reads fragment:display.
+            // The only fragment present should be the SystemTimeFragment added automatically.
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            expect(emittedFragments).toHaveLength(0);
+            expect(emittedFragments).toHaveLength(1);
+            expect(emittedFragments[0].fragmentType).toBe(FragmentType.SystemTime);
         });
     });
 
@@ -417,13 +419,13 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
-            expect(durationFragments).toHaveLength(1);
-            expect(durationFragments[0].value).toBe(7500);
-            expect(durationFragments[0].origin).toBe('runtime');
-            expect(durationFragments[0].image).toBe('0:07');
+            expect(elapsedFragments).toHaveLength(1);
+            expect(elapsedFragments[0].value).toBe(7500);
+            expect(elapsedFragments[0].origin).toBe('collected');
+            expect(elapsedFragments[0].image).toBe('0:07');
         });
 
         it('should include elapsed duration from timer with multiple spans (pause-aware)', () => {
@@ -455,12 +457,12 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
-            expect(durationFragments).toHaveLength(1);
+            expect(elapsedFragments).toHaveLength(1);
             // 3000 + 3000 = 6000ms pause-aware elapsed
-            expect(durationFragments[0].value).toBe(6000);
+            expect(elapsedFragments[0].value).toBe(6000);
         });
 
         it('should compute wall-clock elapsed for non-timer blocks via executionTiming', () => {
@@ -483,12 +485,12 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
-            expect(durationFragments).toHaveLength(1);
-            expect(durationFragments[0].value).toBe(30000); // 31000 - 1000
-            expect(durationFragments[0].origin).toBe('runtime');
+            expect(elapsedFragments).toHaveLength(1);
+            expect(elapsedFragments[0].value).toBe(30000); // 31000 - 1000
+            expect(elapsedFragments[0].origin).toBe('collected');
         });
 
         it('should use clock.now as fallback when completedAt is not set', () => {
@@ -510,11 +512,11 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
-            expect(durationFragments).toHaveLength(1);
-            expect(durationFragments[0].value).toBe(10000); // 15000 - 5000
+            expect(elapsedFragments).toHaveLength(1);
+            expect(elapsedFragments[0].value).toBe(10000); // 15000 - 5000
         });
 
         it('should not duplicate elapsed if tracked fragment already has duration', () => {
@@ -525,10 +527,10 @@ describe('SegmentOutputBehavior', () => {
                 spans: [{ started: 0, ended: 5000 }],
             };
             const trackedDurationFragment = {
-                fragmentType: FragmentType.Timer,
-                type: 'duration',
+                fragmentType: FragmentType.Elapsed,
+                type: 'elapsed',
                 image: '0:05',
-                origin: 'runtime' as const,
+                origin: 'collected' as const,
                 value: 5000,
             };
             const memoryStore = new Map<string, any>([['timer', timerState]]);
@@ -554,11 +556,11 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
             // Should only have the tracked fragment, not a duplicate from getElapsedFragment
-            expect(durationFragments).toHaveLength(1);
+            expect(elapsedFragments).toHaveLength(1);
         });
 
         it('should not include elapsed when no timer and no executionTiming', () => {
@@ -577,10 +579,10 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
-            expect(durationFragments).toHaveLength(0);
+            expect(elapsedFragments).toHaveLength(0);
         });
 
         it('should prefer timer spans over executionTiming when both exist', () => {
@@ -615,12 +617,12 @@ describe('SegmentOutputBehavior', () => {
             behavior.onUnmount(ctx);
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-            const durationFragments = emittedFragments.filter((f: any) =>
-                f.fragmentType === FragmentType.Timer && f.type === 'duration'
+            const elapsedFragments = emittedFragments.filter((f: any) =>
+                f.fragmentType === FragmentType.Elapsed && f.type === 'elapsed'
             );
-            expect(durationFragments).toHaveLength(1);
+            expect(elapsedFragments).toHaveLength(1);
             // Should use timer spans (5000ms) not wall-clock (7000ms)
-            expect(durationFragments[0].value).toBe(5000);
+            expect(elapsedFragments[0].value).toBe(5000);
         });
     });
 });

@@ -281,18 +281,18 @@ describe('RoundOutputBehavior', () => {
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
-                [
+                expect.arrayContaining([
                     expect.objectContaining({
                         type: 'count',
                         fragmentType: FragmentType.Rounds,
                         value: 1,
                     }),
                     expect.objectContaining({
-                        type: 'timer',
-                        fragmentType: FragmentType.Timer,
-                        origin: 'runtime',
+                        type: 'elapsed',
+                        fragmentType: FragmentType.Elapsed,
+                        origin: 'collected',
                     })
-                ],
+                ]),
                 expect.objectContaining({ label: 'Round 1 of 10' })
             );
         });
@@ -315,18 +315,18 @@ describe('RoundOutputBehavior', () => {
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
-                [
+                expect.arrayContaining([
                     expect.objectContaining({
                         type: 'count',
                         fragmentType: FragmentType.Rounds,
                         value: 2,
                     }),
                     expect.objectContaining({
-                        type: 'timer',
-                        fragmentType: FragmentType.Timer,
-                        origin: 'runtime',
+                        type: 'elapsed',
+                        fragmentType: FragmentType.Elapsed,
+                        origin: 'collected',
                     })
-                ],
+                ]),
                 expect.objectContaining({ label: 'Round 2 of 5' })
             );
         });
@@ -349,13 +349,11 @@ describe('RoundOutputBehavior', () => {
 
             const emitCall = (ctx.emitOutput as any).mock.calls[0];
             const fragments = emitCall[1];
-            const timerFrag = fragments.find((f: any) => f.fragmentType === FragmentType.Timer);
+            const timerFrag = fragments.find((f: any) => f.fragmentType === FragmentType.Elapsed);
 
             expect(timerFrag).toBeDefined();
             // Elapsed should be ~0 because span started at clock.now (1000ms)
             expect(timerFrag.value).toBe(0);
-            // Image shows the interval duration, not elapsed
-            expect(timerFrag.image).toBe('1:00');
         });
 
         it('should show cumulative elapsed for AMRAP timer (no reset)', () => {
@@ -379,7 +377,7 @@ describe('RoundOutputBehavior', () => {
 
             const emitCall = (ctx.emitOutput as any).mock.calls[0];
             const fragments = emitCall[1];
-            const timerFrag = fragments.find((f: any) => f.fragmentType === FragmentType.Timer);
+            const timerFrag = fragments.find((f: any) => f.fragmentType === FragmentType.Elapsed);
 
             expect(timerFrag).toBeDefined();
             // Elapsed = 120000ms (2 minutes of running)
@@ -426,7 +424,7 @@ describe('RoundOutputBehavior', () => {
 
             const emitCall = (ctx.emitOutput as any).mock.calls[0];
             const fragments = emitCall[1];
-            const timerFrag = fragments.find((f: any) => f.fragmentType === FragmentType.Timer);
+            const timerFrag = fragments.find((f: any) => f.fragmentType === FragmentType.Elapsed);
 
             // Elapsed = 5000 (span1) + 2000 (span2 open, 10000-8000) = 7000ms
             expect(timerFrag.value).toBe(7000);

@@ -11,7 +11,7 @@ import {
   allTokens,
   Timer,
   Weight,
-  Number,  
+  Number,
   Minus,
   AllowedSymbol,
   Distance,
@@ -21,6 +21,7 @@ import {
   Collon,
   QuestionSymbol,
   CollectibleTimer,
+  TextComment,
 } from "./timer.tokens";
 
 export class MdTimerParse extends CstParser {
@@ -40,17 +41,22 @@ export class MdTimerParse extends CstParser {
     $.RULE("wodBlock", () => {
       $.OPTION(() => $.SUBRULE($.lap));
       $.AT_LEAST_ONE(() => {
-        $.OR([          
+        $.OR([
           { ALT: () => $.SUBRULE($.rounds) },
-          { ALT: () => $.SUBRULE($.trend) },          
+          { ALT: () => $.SUBRULE($.trend) },
           { ALT: () => $.SUBRULE($.duration) },
           { ALT: () => $.SUBRULE($.effort) },
           { ALT: () => $.SUBRULE($.resistance) },
           { ALT: () => $.SUBRULE($.distance) },
           { ALT: () => $.SUBRULE($.reps) },
           { ALT: () => $.SUBRULE($.action) },
+          { ALT: () => $.SUBRULE($.text) }, // Add text rule
         ]);
       });
+    });
+
+    $.RULE("text", () => {
+      $.CONSUME(TextComment);
     });
 
     $.RULE("action", () => {
@@ -58,7 +64,7 @@ export class MdTimerParse extends CstParser {
       $.CONSUME(Collon)
       $.AT_LEAST_ONE(() => {
         $.OR([
-          { ALT: () => $.CONSUME(Identifier) },          
+          { ALT: () => $.CONSUME(Identifier) },
           { ALT: () => $.CONSUME(AllowedSymbol) },
           { ALT: () => $.CONSUME(Minus) },
         ]);
@@ -83,7 +89,7 @@ export class MdTimerParse extends CstParser {
         { ALT: () => $.CONSUME(Number) }
       ]);
     });
-    
+
     $.RULE("duration", () => {
       $.OPTION(() => $.CONSUME(Up, { LABEL: "countUpModifier" }));
       $.OR([
@@ -96,12 +102,12 @@ export class MdTimerParse extends CstParser {
       $.CONSUME(GroupOpen);
       $.AT_LEAST_ONE(() => {
         $.OR([
-          { ALT: () => $.CONSUME(Identifier, { LABEL: "label" }) },          
+          { ALT: () => $.CONSUME(Identifier, { LABEL: "label" }) },
           { ALT: () => $.SUBRULE($.sequence) },
         ]);
       });
       $.CONSUME(GroupClose);
-    });    
+    });
 
     $.RULE("sequence", () => {
       $.AT_LEAST_ONE_SEP({
@@ -119,11 +125,11 @@ export class MdTimerParse extends CstParser {
           { ALT: () => $.CONSUME(Number) }
         ]);
       });
-      $.CONSUME(Distance);        
+      $.CONSUME(Distance);
     });
 
 
-    $.RULE("resistance", () => {            
+    $.RULE("resistance", () => {
       $.OPTION1(() => $.CONSUME(AtSign));
       $.OPTION(() => {
         $.OR([
