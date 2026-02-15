@@ -96,7 +96,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
               }
             }}
             className={cn(
-              'w-full text-left px-3 py-2 transition-colors cursor-pointer outline-none focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+              'w-full text-left px-3 py-2 transition-colors cursor-pointer outline-none focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset select-none',
               'hover:bg-muted/50',
               isSelected && 'bg-primary/10',
               isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
@@ -178,23 +178,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
                   </div>
                 )}
 
-                {/* Checkbox */}
-                <div
-                  role="checkbox"
-                  aria-checked={isSelected}
-                  onClick={(e) => { e.stopPropagation(); onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey }); }}
-                  className={cn(
-                    'w-5 h-5 rounded-md border flex-shrink-0 flex items-center justify-center transition-all cursor-pointer mr-1',
-                    isSelected
-                      ? 'bg-primary border-primary text-primary-foreground shadow-sm'
-                      : 'border-muted-foreground/30 hover:border-primary/60 bg-background',
-                  )}>
-                  {isSelected && (
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 12 12" fill="none">
-                      <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
+
               </div>
             </div>
           </div>

@@ -220,10 +220,8 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           line: 0, // First line of next section
           column: 0,
         });
-      } else {
-        // At the last section — create a new markdown section after it
-        insertSectionAfter(currentSectionId, '');
       }
+      // If at the last section, do nothing (don't auto-create a new one)
     }
   }, [sections, activateSection, insertSectionAfter]);
 
