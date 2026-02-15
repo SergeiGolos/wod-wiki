@@ -88,6 +88,24 @@ export class AnalyticsTransformer {
       const label = nameFragment?.image || output.sourceBlockKey;
       const type = nameFragment?.type || output.outputType;
 
+      // Transfer raw spans from OutputStatement for grid display.
+      // Spans are TimeSpan objects with `started`/`ended` in epoch ms;
+      // convert to seconds for the Segment interface.
+      const spans = output.spans.length > 0
+        ? output.spans.map(s => ({
+            started: s.started / 1000,
+            ended: s.ended !== undefined ? s.ended / 1000 : undefined,
+          }))
+        : undefined;
+
+      // Compute relative spans (offset from workout start) for display
+      const relativeSpans = output.spans.length > 0
+        ? output.spans.map(s => ({
+            started: (s.started - startTime) / 1000,
+            ended: s.ended !== undefined ? (s.ended - startTime) / 1000 : undefined,
+          }))
+        : undefined;
+
       return {
         id: output.id,
         name: label,
@@ -99,14 +117,16 @@ export class AnalyticsTransformer {
         depth: output.stackLevel,
         metrics,
         lane: output.stackLevel,
-        spans: output.spans.map(s => ({ started: s.started, ended: s.ended })),
-        relativeSpans: output.spans.map(s => ({
-          started: (s.started - startTime) / 1000,
-          ended: s.ended ? (s.ended - startTime) / 1000 : undefined
-        })),
+        spans,
+        relativeSpans,
         fragments,
         tags: output.hints ? Array.from(output.hints) : undefined,
-        context: { outputType: output.outputType, sourceStatementId: output.sourceStatementId },
+        context: {
+          outputType: output.outputType,
+          sourceStatementId: output.sourceStatementId,
+          sourceBlockKey: output.sourceBlockKey,
+          completionReason: output.completionReason,
+        },
         spanType: output.outputType
       };
     });

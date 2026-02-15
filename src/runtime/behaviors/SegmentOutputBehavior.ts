@@ -132,6 +132,19 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
         // System time for audit trail (uses real Date.now(), not the mock clock)
         fragments.push(new SystemTimeFragment(new Date(), blockKey));
 
+        // Also write to fragment:result memory for other consumers
+        ctx.pushMemory('fragment:result', fragments.filter(f =>
+            f.fragmentType === 'elapsed' ||
+            f.fragmentType === 'total' ||
+            f.fragmentType === 'spans' ||
+            f.fragmentType === 'system-time'
+        ));
+
+        // Emit completion output with all fragments
+        ctx.emitOutput('completion', fragments, {
+            label: this.label ?? ctx.block.label,
+            completionReason: ctx.block.completionReason
+        });
 
         return [];
     }

@@ -118,10 +118,24 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
         </td>
       );
 
+    case FIXED_COLUMN_IDS.DURATION:
+      return (
+        <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
+          {formatDuration(row.duration)}
+        </td>
+      );
+
     case FIXED_COLUMN_IDS.TOTAL:
       return (
         <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
           {formatDuration(row.total)}
+        </td>
+      );
+
+    case FIXED_COLUMN_IDS.SPANS:
+      return (
+        <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-28">
+          {formatSpans(row.relativeSpans, row.duration)}
         </td>
       );
 
@@ -173,4 +187,26 @@ function formatDuration(ms: number): string {
     return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+/**
+ * Format spans into a human-readable string.
+ * "start - finish" across spans, or just "timestamp" if duration is 0.
+ */
+function formatSpans(spans?: { started: number; ended?: number }[], durationMs: number = 0): string {
+  if (!spans || spans.length === 0) return '';
+
+  // If duration is 0 and we have at least one span, show it as a timestamp
+  if (durationMs === 0 && spans.length > 0) {
+    const first = spans[0];
+    return formatDuration(first.started * 1000);
+  }
+
+  // Otherwise show the bracket across all spans
+  const first = spans[0];
+  const last = spans[spans.length - 1];
+  const start = formatDuration(first.started * 1000);
+  const end = last.ended !== undefined ? formatDuration(last.ended * 1000) : '...';
+
+  return `${start} — ${end}`;
 }

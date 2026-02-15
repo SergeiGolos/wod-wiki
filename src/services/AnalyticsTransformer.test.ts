@@ -107,6 +107,59 @@ describe('AnalyticsTransformer', () => {
         expect(segments[0].tags).toContain('time_bound');
       });
 
+      it('should transfer spans and relativeSpans from output to segment', () => {
+        const workoutStart = 1000000;
+        const spanStart = 1002000; // 2s after workout start
+        const spanEnd = 1005000;   // 5s after workout start
+        const output = createMockOutput({
+          started: workoutStart,
+          ended: spanEnd,
+          sourceBlockKey: 'timed-block',
+          fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Run', image: 'Run' }],
+        });
+        // Inject real spans (TimeSpan objects use epoch ms)
+        (output as any).spans = [new TimeSpan(spanStart, spanEnd)];
+        (output as any).elapsed = spanEnd - spanStart; // 3000ms
+
+        const segments = transformer.fromOutputStatements([output], workoutStart);
+
+        expect(segments).toHaveLength(1);
+        const seg = segments[0];
+
+        // spans should be in seconds (epoch-based / 1000)
+        expect(seg.spans).toBeDefined();
+        expect(seg.spans!.length).toBe(1);
+        expect(seg.spans![0].started).toBe(spanStart / 1000);
+        expect(seg.spans![0].ended).toBe(spanEnd / 1000);
+
+        // relativeSpans should be offset from workout start
+        expect(seg.relativeSpans).toBeDefined();
+        expect(seg.relativeSpans!.length).toBe(1);
+        expect(seg.relativeSpans![0].started).toBe((spanStart - workoutStart) / 1000); // 2s
+        expect(seg.relativeSpans![0].ended).toBe((spanEnd - workoutStart) / 1000);     // 5s
+
+        // Duration should reflect pause-aware elapsed (3s)
+        expect(seg.duration).toBe(3);
+      });
+
+      it('should include sourceBlockKey and completionReason in context', () => {
+        const startTime = Date.now();
+        const output = createMockOutput({
+          started: startTime,
+          ended: startTime + 10000,
+          sourceBlockKey: 'my-block-uuid',
+          fragments: [],
+        });
+        (output as any).completionReason = 'timer-expired';
+
+        const segments = transformer.fromOutputStatements([output]);
+
+        expect(segments).toHaveLength(1);
+        const ctx = (segments[0] as SegmentWithMetadata).context;
+        expect(ctx?.sourceBlockKey).toBe('my-block-uuid');
+        expect(ctx?.completionReason).toBe('timer-expired');
+      });
+
       it('should handle missing fragment images by defaulting to sourceBlockKey', () => {
         const startTime = Date.now();
         const output = createMockOutput({

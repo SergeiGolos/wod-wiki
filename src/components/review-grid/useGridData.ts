@@ -196,17 +196,24 @@ function segmentsToRows(
     const isMilestone = outputType === 'milestone';
 
     // Segment active time (pause-aware)
-    const duration = seg.duration * 1000;
+    const duration = (seg.duration ?? 0) * 1000;
 
     // Absolute running time from workout start to end of segment
-    let elapsed = seg.endTime * 1000;
+    // seg.endTime is relative to workoutStartTime (in seconds)
+    let elapsed = (seg.endTime ?? 0) * 1000;
 
-    // For milestones, prefer the explicit Elapsed fragment if present
+    // For milestones, prefer the explicit Elapsed fragment if present, 
+    // as it might be more precise than the span end time.
     if (isMilestone) {
       const elapsedFrag = seg.fragments?.find((f) => f.fragmentType === FragmentType.Elapsed);
       if (elapsedFrag && typeof elapsedFrag.value === 'number') {
         elapsed = elapsedFrag.value;
       }
+    }
+
+    // Fallback: if elapsed is 0 but startTime is not (highly unlikely if start is 0, but safe)
+    if (elapsed === 0 && seg.startTime > 0) {
+      elapsed = seg.startTime * 1000;
     }
 
     return {
@@ -218,7 +225,7 @@ function segmentsToRows(
       stackLevel: seg.depth,
       elapsed,
       duration,
-      total: (seg.endTime - seg.startTime) * 1000,
+      total: ((seg.endTime ?? 0) - (seg.startTime ?? 0)) * 1000,
       spans: seg.spans,
       relativeSpans: seg.relativeSpans,
       completionReason: (seg as SegmentWithContext).context?.completionReason as string | undefined,
