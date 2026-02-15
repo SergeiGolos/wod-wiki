@@ -75,7 +75,7 @@ System-level code creates `OutputStatement` directly and calls `runtime.addOutpu
 | Lifecycle | Output Type | Fragments | Notes |
 |-----------|-------------|-----------|-------|
 | `onMount` | `segment` | `fragment:display` + runtime state (round, timer memory), deduped by `fragmentType:type` | Announces "block started" with full state identity |
-| `onUnmount` | `completion` | `fragment:display` + `fragment:tracked` + computed elapsed duration, deduped by `fragmentType:type` | Richest output — consolidates all data sources. Passes `completionReason`. |
+| `onUnmount` | `completion` | `fragment:result` + `fragment:tracked` (legacy) + `fragment:display` + computed elapsed fallback, deduped by `fragmentType:type` | Richest output — consolidates all data sources. Result fragments take priority. Passes `completionReason`. |
 
 **Elapsed computation** (in `getElapsedFragment()`):
 1. If `timer` memory exists → `calculateElapsed(timer, now)` (pause-aware from spans)
@@ -118,9 +118,9 @@ System-level code creates `OutputStatement` directly and calls `runtime.addOutpu
 
 | Lifecycle | Output Type | Fragments | Notes |
 |-----------|-------------|-----------|-------|
-| `onUnmount` | *(none — writes to memory only)* | Pushes duration `ICodeFragment` to `fragment:tracked` memory | SegmentOutputBehavior reads this and merges it into its `completion` output |
+| `onUnmount` | *(none — writes to memory only)* | Pushes time fragments (Elapsed, Total, Spans, SystemTime) to `fragment:result` memory | SegmentOutputBehavior reads this and includes it in the `completion` output |
 
-This behavior **does not emit outputs directly**. It writes to `fragment:tracked` memory which SegmentOutputBehavior picks up.
+This behavior **does not emit outputs directly**. It writes to `fragment:result` memory which SegmentOutputBehavior picks up.
 
 > ⚠️ **REPEAT FLAG**: See §6.1 — this writes the same elapsed calculation that SegmentOutputBehavior also computes independently.
 
@@ -239,13 +239,13 @@ When a block with timer memory unmounts, the same `calculateElapsed(timer, now)`
 
 | # | Who | What it does with the value | File |
 |---|-----|----------------------------|------|
-| 1 | **TimerOutputBehavior** | Writes duration fragment to `fragment:tracked` memory | [TimerOutputBehavior.ts](../../src/runtime/behaviors/TimerOutputBehavior.ts) |
-| 2 | **SegmentOutputBehavior** | Reads `fragment:tracked` (from #1) AND computes its own `getElapsedFragment()` — but deduplicates by `fragmentType:type` so only one survives | [SegmentOutputBehavior.ts](../../src/runtime/behaviors/SegmentOutputBehavior.ts) |
+| 1 | **TimerOutputBehavior** | Writes time fragments to `fragment:result` memory | [TimerOutputBehavior.ts](../../src/runtime/behaviors/TimerOutputBehavior.ts) |
+| 2 | **SegmentOutputBehavior** | Reads `fragment:result` (from #1) + `fragment:tracked` (legacy) AND computes its own `getElapsedFragment()` fallback — deduplicates by `fragmentType:type` so only one survives | [SegmentOutputBehavior.ts](../../src/runtime/behaviors/SegmentOutputBehavior.ts) |
 | 3 | **HistoryRecordBehavior** | Computes `calculateElapsed()` for the `history:record` event payload | [HistoryRecordBehavior.ts](../../src/runtime/behaviors/HistoryRecordBehavior.ts) |
 
 **Additionally**, `BehaviorContext.emitOutput()` extracts timer spans from memory and puts them into the `OutputStatement.spans` field, which enables the `elapsed` and `total` getters. This means the elapsed value exists in **four places** on a single completion output:
-1. As a `FragmentType.Timer` fragment with `type: 'duration'` (from TimerOutputBehavior via fragment:tracked)
-2. Potentially as a second `FragmentType.Timer` fragment (from SegmentOutputBehavior's `getElapsedFragment()` — but dedup usually prevents this)
+1. As a `FragmentType.Elapsed` fragment with `type: 'elapsed'` (from TimerOutputBehavior via fragment:result)
+2. Potentially as a second `FragmentType.Elapsed` fragment (from SegmentOutputBehavior's `getElapsedFragment()` — but dedup usually prevents this)
 3. In `output.spans` (raw spans in the envelope)
 4. In `output.elapsed` (derived getter from spans)
 

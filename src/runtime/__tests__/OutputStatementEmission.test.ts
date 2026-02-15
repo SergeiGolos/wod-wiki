@@ -133,10 +133,11 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block);
             runtime.popBlock();
 
-            expect(listener).toHaveBeenCalledTimes(1);
+            // Pop emits a system output (lifecycle event), not a completion output
+            expect(listener).toHaveBeenCalled();
 
             const output: IOutputStatement = listener.mock.calls[0][0];
-            expect(output.outputType).toBe('completion');
+            expect(output.outputType).toBe('system');
             expect(output.sourceBlockKey).toBe(block.key.toString());
         });
 

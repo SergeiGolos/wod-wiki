@@ -1,7 +1,7 @@
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
-import type { CodeStatement } from "@/core/models/CodeStatement";
+import { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
 
@@ -27,16 +27,43 @@ export class JitCompiler {
     return this.dialectRegistry;
   }
 
-  compile(nodes: CodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
+  compile(nodes: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined {
     if (nodes.length === 0) {
       return undefined;
     }
 
-    this.dialectRegistry.processAll(nodes);
+    let effectiveNodes = nodes;
+    const parentBlock = runtime.stack?.current;
+
+    // Parent Injection Layer: Inject promoted fragments from parent block
+    if (parentBlock) {
+      const promotedLocations = parentBlock.getFragmentMemoryByVisibility('promote');
+
+      if (promotedLocations.length > 0) {
+        // Flatten fragments from all promoted locations
+        const promotedFragments = promotedLocations.flatMap(loc => loc.fragments);
+
+        if (promotedFragments.length > 0) {
+          // Clone nodes and append promoted fragments
+          // We append so that explicit child fragments (index 0) take precedence 
+          // when origins are equal (defaults), but higher-precedence origins (compiler)
+          // will still resort to the top.
+          effectiveNodes = nodes.map(node => {
+            // Create a clone that preserves the prototype chain (to keep methods like getFragment)
+            const clone = Object.create(Object.getPrototypeOf(node));
+            Object.assign(clone, node);
+            clone.fragments = [...node.fragments, ...promotedFragments];
+            return clone;
+          });
+        }
+      }
+    }
+
+    this.dialectRegistry.processAll(effectiveNodes);
 
     // Filter matching strategies and sort by priority (Desc)
     const matchingStrategies = this.strategies
-      .filter(s => s.match(nodes, runtime))
+      .filter(s => s.match(effectiveNodes, runtime))
       .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     if (matchingStrategies.length === 0) {
@@ -47,7 +74,7 @@ export class JitCompiler {
     const builder = new BlockBuilder(runtime);
 
     for (const strategy of matchingStrategies) {
-      strategy.apply(builder, nodes, runtime);
+      strategy.apply(builder, effectiveNodes, runtime);
     }
 
     try {

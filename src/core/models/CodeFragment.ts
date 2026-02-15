@@ -24,7 +24,8 @@ export type FragmentOrigin =
   | 'collected'
   | 'hinted'
   | 'tracked'
-  | 'analyzed';
+  | 'analyzed'
+  | 'execution';
 
 export interface ICodeFragment {
   readonly image?: string;

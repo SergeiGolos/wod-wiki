@@ -145,7 +145,7 @@ describe('Loop Block Integration', () => {
             expect(milestones.length).toBeGreaterThanOrEqual(1);
         });
 
-        it('should emit completion output with correct round count', () => {
+        it('should not emit completion output on unmount (results in fragment:result)', () => {
             const behaviors = createLoopBehaviors(2);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -153,8 +153,9 @@ describe('Loop Block Integration', () => {
             advanceBehaviors(behaviors, ctx); // Round 3 > 2, complete
             unmountBehaviors(behaviors, ctx);
 
+            // Completion outputs are no longer emitted — results live in fragment:result memory
             const completions = findOutputs(runtime, 'completion');
-            expect(completions.length).toBeGreaterThanOrEqual(1);
+            expect(completions.length).toBe(0);
         });
 
         it('should record history on unmount', () => {

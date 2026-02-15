@@ -10,21 +10,25 @@ import { SpansFragment } from '../compiler/fragments/SpansFragment';
 import { SystemTimeFragment } from '../compiler/fragments/SystemTimeFragment';
 
 /**
- * TimerOutputBehavior writes timer-specific tracked fragments to memory.
+ * TimerOutputBehavior writes timer-specific result fragments to memory.
  * 
  * ## Aspect: Output (Timer)
  * 
  * On unmount, computes time values from timer spans and writes
- * typed time fragments to `fragment:tracked` memory:
+ * typed time fragments to `fragment:result` memory:
  * - **SpansFragment** — raw start/stop timestamps
  * - **ElapsedFragment** — sum of active span durations
  * - **TotalFragment** — wall-clock bracket from first start to last end
  * - **SystemTimeFragment** — actual system time (Date.now()) for audit
  * 
- * `SegmentOutputBehavior` reads `fragment:tracked` during its `onUnmount`
- * and merges tracked fragments into the single `completion` output.
- * This avoids duplicate completion outputs (S6) and ensures runtime-tracked
- * fragments are consistently included in leaf completions (S5).
+ * `SegmentOutputBehavior` reads `fragment:result` during its `onUnmount`
+ * and merges result fragments into the single `completion` output.
+ * 
+ * ## fragment:result contract
+ * 
+ * By writing to `fragment:result`, this behavior explicitly declares
+ * which time fragments should be included in the block's completion output.
+ * Blocks that don't need timer results simply omit this behavior.
  */
 export class TimerOutputBehavior implements IRuntimeBehavior {
     onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
@@ -64,9 +68,9 @@ export class TimerOutputBehavior implements IRuntimeBehavior {
         // This is independent of the IRuntimeClock which may be frozen/faked
         fragments.push(new SystemTimeFragment(new Date(), blockKey));
 
-        // Write to fragment:tracked memory so SegmentOutputBehavior can
-        // merge it into the single completion output (S5/S6 fix).
-        ctx.pushMemory('fragment:tracked', fragments);
+        // Write to fragment:result memory so SegmentOutputBehavior can
+        // include these in the single completion output.
+        ctx.pushMemory('fragment:result', fragments);
 
         return [];
     }

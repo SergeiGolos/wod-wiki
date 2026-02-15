@@ -1,29 +1,26 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { TimerState } from '../memory/MemoryTypes';
-import { calculateElapsed } from '../time/calculateElapsed';
-import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
-import { SystemTimeFragment } from '../compiler/fragments/SystemTimeFragment';
+import { ICodeFragment } from '../../core/models/CodeFragment';
 
 /**
- * SegmentOutputBehavior emits output statements for block execution tracking.
- * 
- * - Emits 'segment' output on mount (block started)
- * - Emits 'completion' output on unmount (block finished)
+ * SegmentOutputBehavior emits a 'segment' output on mount to announce
+ * that a block has started executing.
  * 
  * ## Aspect: Output
  * 
- * This behavior is the single output emitter for segment/completion reporting.
- * On unmount it merges:
- *   1. `fragment:display` — parser-prescribed fragments
- *   2. `fragment:tracked` — runtime-tracked fragments written by other behaviors
- *   3. Elapsed duration — computed from timer spans (pause-aware) or
- *      from executionTiming (wall-clock fallback for non-timer blocks)
+ * This behavior is the segment output emitter. It does NOT emit completion
+ * outputs — block results are captured via `fragment:result` memory by
+ * other behaviors (e.g., TimerOutputBehavior) and read by consumers
+ * (e.g., HistoryRecordBehavior) directly from block memory.
  * 
- * This consolidation ensures every block gets a single, rich completion
- * output regardless of whether it has a timer (S5/S6).
+ * On mount it merges:
+ *   1. `fragment:display` — parser-prescribed fragments (the block's identity)
+ *   2. Runtime state (round, timer) — container state identity
+ * 
+ * Blocks that only want milestones (no segment tracking) simply don't
+ * include `SegmentOutputBehavior` — they use `RoundOutputBehavior` or
+ * `HistoryRecordBehavior` alone.
  */
 export class SegmentOutputBehavior implements IRuntimeBehavior {
     private readonly label?: string;
@@ -33,7 +30,6 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
     }
 
     private getFragments(ctx: IBehaviorContext): ICodeFragment[] {
-        // Use list-based memory API to get display fragments directly
         const displayLocs = ctx.block.getMemoryByTag('fragment:display');
         if (displayLocs.length > 0) {
             return displayLocs.flatMap(loc => loc.fragments);
@@ -53,13 +49,11 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
     private getRuntimeStateFragments(ctx: IBehaviorContext): ICodeFragment[] {
         const stateFragments: ICodeFragment[] = [];
 
-        // Collect round state (e.g., Round 1/3)
         const roundLocs = ctx.block.getMemoryByTag('round');
         if (roundLocs.length > 0) {
             stateFragments.push(...roundLocs.flatMap(loc => loc.fragments));
         }
 
-        // Collect timer state (e.g., 20:00 countdown)
         const timerLocs = ctx.block.getMemoryByTag('timer');
         if (timerLocs.length > 0) {
             stateFragments.push(...timerLocs.flatMap(loc => loc.fragments));
@@ -68,72 +62,18 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
         return stateFragments;
     }
 
-    /**
-     * Collects runtime-tracked fragments from block memory.
-     * These are written by other behaviors during their onUnmount
-     * (which runs before SegmentOutputBehavior in the behavior chain).
-     *
-     * Used to enrich the unmount-time 'completion' output with runtime data
-     * alongside the parser's display fragments.
-     */
-    private getTrackedFragments(ctx: IBehaviorContext): ICodeFragment[] {
-        const trackedLocs = ctx.block.getMemoryByTag('fragment:tracked');
-        if (trackedLocs.length > 0) {
-            return trackedLocs.flatMap(loc => loc.fragments);
-        }
-        return [];
-    }
-
-    /**
-     * Computes an elapsed duration fragment for the completion output.
-     * 
-     * Strategy:
-     * 1. If timer state exists → compute pause-aware elapsed from spans
-     * 2. Else if executionTiming exists → compute wall-clock elapsed
-     * 3. Else → return null (no timing data available)
-     * 
-     * This ensures every block (timer or not) gets elapsed time in
-     * its completion output (S5/S9).
-     */
-    private getElapsedFragment(ctx: IBehaviorContext): ICodeFragment | null {
-        const now = ctx.clock.now.getTime();
-        const blockKey = ctx.block.key.toString();
-        const clockNow = ctx.clock.now;
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
-
-        if (timer) {
-            // Pause-aware elapsed from timer spans
-            const elapsed = calculateElapsed(timer, now);
-            return new ElapsedFragment(elapsed, blockKey, clockNow);
-        }
-
-        // Wall-clock fallback for non-timer blocks
-        const timing = ctx.block.executionTiming;
-        if (timing?.startTime) {
-            const endTime = timing.completedAt ?? ctx.clock.now;
-            const elapsed = endTime.getTime() - timing.startTime.getTime();
-            if (elapsed >= 0) {
-                return new ElapsedFragment(elapsed, blockKey, clockNow);
-            }
-        }
-
-        return null;
-    }
-
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         const displayFragments = this.getFragments(ctx);
         const stateFragments = this.getRuntimeStateFragments(ctx);
 
         // Merge display fragments with runtime state fragments.
-        // Deduplicate by fragmentType to avoid repeats when the same
-        // fragment already appears in fragment:display.
+        // Deduplicate by fragmentType:type to avoid repeats.
         const displayTypes = new Set(displayFragments.map(f => `${f.fragmentType}:${f.type}`));
         const uniqueStateFragments = stateFragments.filter(
             f => !displayTypes.has(`${f.fragmentType}:${f.type}`)
         );
         const fragments = [...displayFragments, ...uniqueStateFragments];
 
-        // Emit segment started output with full state identity
         ctx.emitOutput('segment', fragments as ICodeFragment[], {
             label: this.label ?? ctx.block.label
         });
@@ -145,45 +85,10 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const displayFragments = this.getFragments(ctx);
-        const trackedFragments = this.getTrackedFragments(ctx);
-
-        // Merge display fragments with runtime-tracked fragments (S5).
-        // Deduplicate by fragmentType:type to avoid repeats when the same
-        // fragment already appears in fragment:display.
-        const displayTypes = new Set(displayFragments.map(f => `${f.fragmentType}:${f.type}`));
-        const uniqueTrackedFragments = trackedFragments.filter(
-            f => !displayTypes.has(`${f.fragmentType}:${f.type}`)
-        );
-        const fragments = [...displayFragments, ...uniqueTrackedFragments];
-
-        // Compute elapsed duration fragment (S5/S9).
-        // Only add if not already present from display or tracked fragments.
-        const elapsedFragment = this.getElapsedFragment(ctx);
-        if (elapsedFragment) {
-            const elapsedKey = `${elapsedFragment.fragmentType}:${elapsedFragment.type}`;
-            const alreadyPresent = new Set(fragments.map(f => `${f.fragmentType}:${f.type}`));
-            if (!alreadyPresent.has(elapsedKey)) {
-                fragments.push(elapsedFragment);
-            }
-        }
-
-        // Add system time fragment if not already present from tracked fragments.
-        // This provides a real Date.now() timestamp independent of the runtime clock.
-        const hasSystemTime = fragments.some(f => f.fragmentType === FragmentType.SystemTime);
-        if (!hasSystemTime) {
-            fragments.push(new SystemTimeFragment(new Date(), ctx.block.key.toString()));
-        }
-
-        // Emit completion output with completion reason from block.
-        // This enriches the unmount output with context about how the block
-        // was completed (self-pop via 'user-advance' vs parent-pop via 'forced-pop').
-        ctx.emitOutput('completion', fragments as ICodeFragment[], {
-            label: this.label ?? ctx.block.label,
-            completionReason: ctx.block.completionReason,
-        });
-
+    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
+        // No completion output emitted.
+        // Block results live in `fragment:result` memory and are
+        // consumed directly by interested behaviors / consumers.
         return [];
     }
 

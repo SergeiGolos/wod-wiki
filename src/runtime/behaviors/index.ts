@@ -37,6 +37,8 @@ export { RoundOutputBehavior } from './RoundOutputBehavior';
 export { RoundDisplayBehavior } from './RoundDisplayBehavior';
 export { RepSchemeBehavior } from './RepSchemeBehavior';
 export type { RepSchemeConfig } from './RepSchemeBehavior';
+export { PromoteFragmentBehavior } from './PromoteFragmentBehavior';
+export type { PromoteFragmentConfig } from './PromoteFragmentBehavior';
 
 // ============================================================================
 // Completion Aspect

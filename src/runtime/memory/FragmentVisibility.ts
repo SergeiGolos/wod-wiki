@@ -8,6 +8,7 @@
  * | Visibility | Purpose | Example tags |
  * |------------|---------|-------------|
  * | `display`  | Shown on the workout card in the UI (one row per location) | `fragment:display` |
+ * | `result`   | Block output fragments collected when the block is popped | `fragment:result` |
  * | `promote`  | Promoted/inherited by child blocks during compilation | `fragment:promote`, `fragment:rep-target` |
  * | `private`  | Internal behavior state; hidden from UI in normal mode | `fragment:tracked`, `fragment:label` |
  *
@@ -22,9 +23,9 @@ import { MemoryTag } from './MemoryLocation';
 // ---------------------------------------------------------------------------
 
 /**
- * The three visibility tiers for fragment memory tags.
+ * The four visibility tiers for fragment memory tags.
  */
-export type FragmentVisibility = 'display' | 'promote' | 'private';
+export type FragmentVisibility = 'display' | 'result' | 'promote' | 'private';
 
 // ---------------------------------------------------------------------------
 // Classification helpers
@@ -33,6 +34,11 @@ export type FragmentVisibility = 'display' | 'promote' | 'private';
 /** Tags whose fragments are rendered in the UI card. */
 const DISPLAY_TAGS: ReadonlySet<MemoryTag> = new Set<MemoryTag>([
     'fragment:display',
+]);
+
+/** Tags whose fragments are collected as block output on pop/completion. */
+const RESULT_TAGS: ReadonlySet<MemoryTag> = new Set<MemoryTag>([
+    'fragment:result',
 ]);
 
 /** Tags whose fragments are promoted/inherited to child blocks. */
@@ -57,6 +63,7 @@ const PRIVATE_TAGS: ReadonlySet<MemoryTag> = new Set<MemoryTag>([
  */
 export function getFragmentVisibility(tag: MemoryTag): FragmentVisibility | undefined {
     if (DISPLAY_TAGS.has(tag)) return 'display';
+    if (RESULT_TAGS.has(tag)) return 'result';
     if (PROMOTE_TAGS.has(tag)) return 'promote';
     if (PRIVATE_TAGS.has(tag)) return 'private';
 
@@ -94,6 +101,7 @@ export function filterTagsByVisibility(
  */
 export const VISIBILITY_ICONS: Record<FragmentVisibility, string> = {
     display: '👁',   // Eye – publicly visible fragments
+    result: '📤',    // Outbox tray – block output on pop
     promote: '⬆',   // Up arrow – promoted to children
     private: '🔒',  // Lock – internal/private state
 };
@@ -103,6 +111,7 @@ export const VISIBILITY_ICONS: Record<FragmentVisibility, string> = {
  */
 export const VISIBILITY_LABELS: Record<FragmentVisibility, string> = {
     display: 'Display',
+    result: 'Result',
     promote: 'Promote',
     private: 'Private',
 };

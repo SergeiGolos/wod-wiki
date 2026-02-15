@@ -10,6 +10,7 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
  * | Tier      | Tags                                     | Purpose                          |
  * |-----------|------------------------------------------|----------------------------------|
  * | display   | `fragment:display`                       | Shown on UI cards                |
+ * | result    | `fragment:result`                        | Block output collected on pop    |
  * | promote   | `fragment:promote`, `fragment:rep-target` | Inherited by child blocks       |
  * | private   | `fragment:tracked`, `fragment:label`      | Internal behavior state          |
  *
@@ -27,6 +28,8 @@ export type MemoryTag =
     // fragment:promote — fragments promoted/inherited to child blocks
     | 'fragment:promote'
     | 'fragment:rep-target'
+    // fragment:result — block output fragments collected on pop/completion
+    | 'fragment:result'
     // fragment:private — internal behavior state (not shown in normal UI)
     | 'fragment:tracked'
     | 'fragment:label'

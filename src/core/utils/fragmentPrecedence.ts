@@ -11,6 +11,7 @@ import { FragmentFilter } from '../contracts/IFragmentSource';
  * Tier 3: parser — parsed from source text (the "plan")
  */
 export const ORIGIN_PRECEDENCE: Record<FragmentOrigin, number> = {
+    'execution': 0,
     'user': 0,
     'collected': 0,
     'runtime': 1,

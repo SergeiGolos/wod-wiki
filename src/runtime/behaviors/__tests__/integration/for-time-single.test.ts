@@ -139,16 +139,17 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         expect(runtime.completionReason).toBe('user-advance');
     });
 
-    // Step 9: SegmentOutputBehavior unmount emits completion
-    it('should emit completion output on unmount', () => {
+    // Step 9: SegmentOutputBehavior emits segment on mount only (no completion output)
+    it('should not emit completion output on unmount', () => {
         const behaviors = createExerciseBehaviors();
         const ctx = mountBehaviors(behaviors, runtime, block);
 
         runtime.clock.advance(45000);
         unmountBehaviors(behaviors, ctx);
 
+        // Completion outputs are no longer emitted — results live in fragment:result memory
         const completions = findOutputs(runtime, 'completion');
-        expect(completions.length).toBeGreaterThanOrEqual(1);
+        expect(completions.length).toBe(0);
     });
 
     // Step 10: SoundCueBehavior unmount emits completion-beep

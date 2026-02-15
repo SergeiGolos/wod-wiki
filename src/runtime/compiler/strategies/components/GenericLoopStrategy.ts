@@ -16,7 +16,8 @@ import {
     RepSchemeBehavior,
     DisplayInitBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior
+    SegmentOutputBehavior,
+    PromoteFragmentBehavior
 } from "../../../behaviors";
 
 /**
@@ -31,7 +32,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        return statements[0].hasFragment(FragmentType.Rounds);
+        return statements[0].fragments.some(f => f.fragmentType === FragmentType.Rounds);
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -60,7 +61,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
         // Block metadata
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const context = new BlockContext(runtime, blockKey.toString(), (statement as any).exerciseId || '');
         const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
 
         builder
@@ -105,5 +106,13 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new RoundOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
+
+        // Promotion Aspect - Share internal state with children
+        // Use execution origin to override parser-based text fragments
+        builder.addBehavior(new PromoteFragmentBehavior({
+            fragmentType: FragmentType.Rounds,
+            enableDynamicUpdates: true,
+            origin: 'execution'
+        }));
     }
 }
