@@ -173,6 +173,17 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [routeId, provider, currentEntryTags, currentEntry]);
 
+  // Update document title based on current entry or route
+  useEffect(() => {
+    if (currentEntry?.title) {
+      document.title = `Wod.Wiki - ${currentEntry.title}`;
+    } else if (routeId) {
+      document.title = `Wod.Wiki - ${routeId}`;
+    } else {
+      document.title = 'Wod.Wiki';
+    }
+  }, [currentEntry?.title, routeId]);
+
   // Consume synced state from Zustand store (via WorkbenchSyncBridge)
   const {
     runtime,

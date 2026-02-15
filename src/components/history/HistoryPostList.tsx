@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Edit2, Copy, LayoutTemplate } from 'lucide-react';
+import { Edit2, Copy } from 'lucide-react';
 import type { HistoryEntry } from '@/types/history';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 
@@ -63,6 +63,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   enriched = false,
   onNotebookToggle,
   onEdit,
+  onClone,
 }) => {
   if (entries.length === 0) {
     return (

@@ -412,7 +412,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     enriched={false}
                     onNotebookToggle={activeCollectionId ? undefined : handleNotebookToggle}
                     onEdit={activeCollectionId ? undefined : (id) => navigate(planPath(toShortId(id)))}
-                    onClone={activeCollectionId ? undefined : handleClone}
+                    onClone={handleClone}
                     className="h-full overflow-y-auto"
                 />
             </div>
