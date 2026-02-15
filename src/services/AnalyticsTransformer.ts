@@ -99,6 +99,11 @@ export class AnalyticsTransformer {
         depth: output.stackLevel,
         metrics,
         lane: output.stackLevel,
+        spans: output.spans.map(s => ({ started: s.started, ended: s.ended })),
+        relativeSpans: output.spans.map(s => ({
+          started: (s.started - startTime) / 1000,
+          ended: s.ended ? (s.ended - startTime) / 1000 : undefined
+        })),
         fragments,
         tags: output.hints ? Array.from(output.hints) : undefined,
         context: { outputType: output.outputType, sourceStatementId: output.sourceStatementId },

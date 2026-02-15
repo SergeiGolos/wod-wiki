@@ -35,11 +35,11 @@ import { SpansFragment } from '../compiler/fragments/SpansFragment';
  */
 export class RoundOutputBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Restore: Emit initial round milestone on mount.
-        // This ensures Round 1 milestone appears as a "header" for the first round.
         const round = ctx.getMemory('round') as RoundState | undefined;
 
-        if (round) {
+        // SKIP milestones for 1-round blocks (Round 1 of 1 is noise).
+        // Only emit for multi-round containers or open-ended blocks.
+        if (round && (round.total === undefined || round.total > 1)) {
             const label = this.formatRoundLabel(round);
             const fragments = this.buildMilestoneFragments(ctx, round);
             ctx.emitOutput('milestone', fragments, { label });
@@ -50,7 +50,8 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         const round = ctx.getMemory('round') as RoundState | undefined;
-        if (!round) return [];
+        // Skip milestones for 1-round blocks
+        if (!round || (round.total !== undefined && round.total <= 1)) return [];
 
         const block = ctx.block as IRuntimeBlock;
         if (typeof block.getBehavior === 'function') {

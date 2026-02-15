@@ -26,10 +26,16 @@ export interface GridRow {
   readonly outputType: OutputStatementType;
   /** Stack depth when emitted */
   readonly stackLevel: number;
-  /** Pause-aware elapsed time in ms */
+  /** Absolute running time desde workout start in ms */
   readonly elapsed: number;
-  /** Total wall-clock time in ms */
+  /** Active duration of this segment in ms */
+  readonly duration: number;
+  /** Total wall-clock time in ms (including pauses) */
   readonly total: number;
+  /** Raw spans for display */
+  readonly spans?: { started: number; ended?: number }[];
+  /** Relative spans for display */
+  readonly relativeSpans?: { started: number; ended?: number }[];
   /** Completion reason (only for 'completion' type) */
   readonly completionReason?: string;
   /** Fragment-type → cell data */
@@ -126,6 +132,8 @@ export const FIXED_COLUMN_IDS = {
   OUTPUT_TYPE: 'outputType',
   STACK_LEVEL: 'stackLevel',
   ELAPSED: 'elapsed',
+  DURATION: 'duration',
   TOTAL: 'total',
+  SPANS: 'spans',
   COMPLETION_REASON: 'completionReason',
 } as const;

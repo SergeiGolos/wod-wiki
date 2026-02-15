@@ -33,6 +33,10 @@ export interface Segment {
   depth: number;
   metrics: Record<string, number>; // Dynamic metrics map (e.g., 'power': 200, 'heart_rate': 150)
   lane: number;
+  /** Raw time spans from the output statement */
+  spans?: { started: number; ended?: number }[];
+  /** Relative time spans (offset from workout start) */
+  relativeSpans?: { started: number; ended?: number }[];
   /** Optional fragments carried from runtime spans for visualization */
   fragments?: import('./CodeFragment').ICodeFragment[];
 }

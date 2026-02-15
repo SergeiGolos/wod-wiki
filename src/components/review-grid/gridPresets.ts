@@ -103,6 +103,15 @@ export const FIXED_COLUMNS: GridColumn[] = [
     visible: true,
   },
   {
+    id: FIXED_COLUMN_IDS.SPANS,
+    label: 'Spans',
+    sortable: true,
+    filterable: false,
+    graphable: false,
+    isGraphed: false,
+    visible: true,
+  },
+  {
     id: FIXED_COLUMN_IDS.BLOCK_KEY,
     label: 'Block',
     sortable: true,
@@ -132,6 +141,15 @@ export const FIXED_COLUMNS: GridColumn[] = [
   {
     id: FIXED_COLUMN_IDS.ELAPSED,
     label: 'Elapsed',
+    sortable: true,
+    filterable: false,
+    graphable: true,
+    isGraphed: false,
+    visible: true,
+  },
+  {
+    id: FIXED_COLUMN_IDS.DURATION,
+    label: 'Duration',
     sortable: true,
     filterable: false,
     graphable: true,

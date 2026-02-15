@@ -193,13 +193,16 @@ function segmentsToRows(
     }
 
     const outputType = ((seg as SegmentWithContext).context?.outputType as string) ?? seg.type;
+    const isMilestone = outputType === 'milestone';
 
-    // Default elapsed from duration (seconds -> ms)
-    let elapsed = seg.duration * 1000;
+    // Segment active time (pause-aware)
+    const duration = seg.duration * 1000;
 
-    // For milestone outputs, check if an explicit ElapsedFragment exists
-    // Round milestones emit an ElapsedFragment with the current timer value
-    if (outputType === 'milestone') {
+    // Absolute running time from workout start to end of segment
+    let elapsed = seg.endTime * 1000;
+
+    // For milestones, prefer the explicit Elapsed fragment if present
+    if (isMilestone) {
       const elapsedFrag = seg.fragments?.find((f) => f.fragmentType === FragmentType.Elapsed);
       if (elapsedFrag && typeof elapsedFrag.value === 'number') {
         elapsed = elapsedFrag.value;
@@ -213,8 +216,11 @@ function segmentsToRows(
       sourceStatementId: (seg as SegmentWithContext).context?.sourceStatementId as number | undefined,
       outputType: outputType as GridRow['outputType'],
       stackLevel: seg.depth,
-      elapsed, // Segment stores duration in seconds
+      elapsed,
+      duration,
       total: (seg.endTime - seg.startTime) * 1000,
+      spans: seg.spans,
+      relativeSpans: seg.relativeSpans,
       completionReason: (seg as SegmentWithContext).context?.completionReason as string | undefined,
       cells,
     } satisfies GridRow;
@@ -369,8 +375,12 @@ function getSortValue(row: GridRow, col: GridColumn): string | number {
       return row.stackLevel;
     case 'elapsed':
       return row.elapsed;
+    case 'duration':
+      return row.duration;
     case 'total':
       return row.total;
+    case 'spans':
+      return row.relativeSpans?.[0]?.started ?? 0;
     case 'completionReason':
       return row.completionReason ?? '';
   }
@@ -409,8 +419,12 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
       return String(row.stackLevel);
     case 'elapsed':
       return formatDuration(row.elapsed);
+    case 'duration':
+      return formatDuration(row.duration);
     case 'total':
       return formatDuration(row.total);
+    case 'spans':
+      return formatSpans(row.relativeSpans, row.duration);
     case 'completionReason':
       return row.completionReason ?? '';
   }
@@ -447,4 +461,26 @@ function formatDuration(ms: number): string {
     return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+/**
+ * Format spans into a human-readable string.
+ * "start - finish" across spans, or just "timestamp" if duration is 0.
+ */
+function formatSpans(spans?: { started: number; ended?: number }[], durationMs: number = 0): string {
+  if (!spans || spans.length === 0) return '';
+
+  // If duration is 0 and we have at least one span, show it as a timestamp
+  if (durationMs === 0 && spans.length > 0) {
+    const first = spans[0];
+    return formatDuration(first.started * 1000);
+  }
+
+  // Otherwise show the bracket across all spans
+  const first = spans[0];
+  const last = spans[spans.length - 1];
+  const start = formatDuration(first.started * 1000);
+  const end = last.ended !== undefined ? formatDuration(last.ended * 1000) : '...';
+
+  return `${start} — ${end}`;
 }
