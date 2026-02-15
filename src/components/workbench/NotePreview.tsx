@@ -1,12 +1,13 @@
 import React from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
-import { Dumbbell, Copy, Edit2, Trash2 } from 'lucide-react';
+import { Dumbbell, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
 import { SectionEditor } from '../../markdown-editor/SectionEditor';
+import { CloneDateDropdown } from './CloneDateDropdown';
 
 export interface NotePreviewProps {
     /** The workout entry to preview */
@@ -33,8 +34,8 @@ export interface NotePreviewProps {
     /** Action to add a block to today's plan (Template +) */
     onAddToPlan?: (blockId: string) => void;
 
-    /** Action to clone the entire entry */
-    onClone?: () => void;
+    /** Action to clone the entire entry (receives optional target date) */
+    onClone?: (targetDate?: number) => void;
 
     /** Action to edit the note */
     onEdit?: () => void;
@@ -142,10 +143,13 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
 
                     <div className="flex items-center gap-2 shrink-0">
                         {onClone && (
-                            <Button variant="outline" size="sm" onClick={onClone} className="gap-2">
-                                <Copy className="h-4 w-4" />
-                                Use Template
-                            </Button>
+                            <CloneDateDropdown
+                                onClone={(targetDate) => onClone(targetDate)}
+                                provider={provider}
+                                variant="button"
+                                showLabel={true}
+                                label="Use Template"
+                            />
                         )}
                         {onEdit && (
                             <Button variant="outline" size="sm" onClick={onEdit} className="gap-2">
@@ -169,6 +173,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                             onStartWorkout={onStartWorkout ? (block) => onStartWorkout(block.id) : undefined}
                             onAddToPlan={onAddToPlan ? (block) => onAddToPlan(block.id) : undefined}
                             provider={provider}
+                            sourceNoteId={entry.id}
                             height="100%"
                             showLineNumbers={!mobile}
                             editable={false}

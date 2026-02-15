@@ -1,15 +1,18 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Copy, Lock, LayoutTemplate } from 'lucide-react';
+import { Lock, LayoutTemplate } from 'lucide-react';
 import { HistoryEntry } from '../../types/history';
 import { cn } from '../../lib/utils';
+import { CloneDateDropdown } from '@/components/workbench/CloneDateDropdown';
+import type { IContentProvider } from '@/types/content-provider';
 
 interface NoteActionsProps {
     entry: HistoryEntry | null;
-    onClone: () => void;
+    onClone: (targetDate?: number) => void;
     className?: string;
     showLabel?: boolean;
     variant?: 'default' | 'primary';
+    /** Content provider for calendar date hints */
+    provider?: IContentProvider;
 }
 
 export const NoteActions: React.FC<NoteActionsProps> = ({
@@ -17,7 +20,8 @@ export const NoteActions: React.FC<NoteActionsProps> = ({
     onClone,
     className,
     showLabel,
-    variant = 'default'
+    variant = 'default',
+    provider,
 }) => {
     if (!entry) return null;
 
@@ -40,19 +44,18 @@ export const NoteActions: React.FC<NoteActionsProps> = ({
                 </div>
             )}
 
-            <Button
-                variant={variant === 'primary' ? 'default' : 'ghost'}
-                size={showLabel ? 'sm' : 'icon'}
-                onClick={onClone}
+            <CloneDateDropdown
+                onClone={(targetDate) => onClone(targetDate)}
+                provider={provider}
+                variant={showLabel ? 'button' : 'icon'}
+                showLabel={!!showLabel}
+                label="Use Template"
+                title="Clone to date..."
                 className={cn(
-                    variant === 'default' ? "h-8 w-8 text-muted-foreground hover:text-foreground" : "gap-2 px-4 h-8",
+                    variant === 'primary' && 'bg-primary text-primary-foreground hover:bg-primary/90',
                     className
                 )}
-                title="Clone to Today"
-            >
-                <Copy className="h-4 w-4" />
-                {showLabel && <span>Use Template</span>}
-            </Button>
+            />
         </div>
     );
 };

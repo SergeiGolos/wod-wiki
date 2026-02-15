@@ -81,40 +81,40 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
   const todayKey = toDateKey(new Date());
 
   return (
-    <div className={cn('select-none px-2 py-1', className)} onClick={(e) => e.stopPropagation()}>
+    <div className={cn('select-none px-2 py-2', className)} onClick={(e) => e.stopPropagation()}>
       {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={prevMonth}
-          className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Previous month"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
-        <span className="text-xs font-medium text-foreground">{monthLabel}</span>
+        <span className="text-sm font-medium text-foreground">{monthLabel}</span>
         <button
           onClick={nextMonth}
-          className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Next month"
         >
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
       {/* Day Names */}
-      <div className="grid grid-cols-7 gap-px mb-0.5">
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAY_NAMES.map(day => (
-          <div key={day} className="text-center text-[9px] text-muted-foreground font-medium py-0.5">
+          <div key={day} className="text-center text-[10px] text-muted-foreground font-medium py-0.5 w-8">
             {day}
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-px">
+      <div className="grid grid-cols-7 gap-0.5">
         {calendarDays.map((day, idx) => {
           if (day === null) {
-            return <div key={`empty-${idx}`} className="aspect-square" />;
+            return <div key={`empty-${idx}`} className="w-8 h-8" />;
           }
 
           const dateKey = formatDateKey(year, month, day);
@@ -131,7 +131,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
                 onDateSelect(new Date(year, month, day));
               }}
               className={cn(
-                'aspect-square flex items-center justify-center rounded text-[10px] transition-colors relative',
+                'w-8 h-8 flex items-center justify-center rounded text-xs transition-colors relative',
                 // Selected state
                 isSelected
                   ? 'bg-primary text-primary-foreground font-bold'

@@ -54,6 +54,8 @@ export interface SectionEditorProps {
   mode?: 'preview' | 'template';
   /** Provider for history/persistence (needed for WOD block "Add to Plan") */
   provider?: IContentProvider;
+  /** ID of the note being edited/viewed (for link tracking) */
+  sourceNoteId?: string;
 }
 
 /** Read-only dispatcher — selects renderer by section type */
@@ -62,8 +64,9 @@ const SectionDisplayRenderer: React.FC<{
   onStartWorkout?: (block: WodBlock) => void;
   onAddToPlan?: (block: WodBlock) => void;
   provider?: IContentProvider;
+  sourceNoteId?: string;
   mode?: 'preview' | 'template';
-}> = ({ section, onStartWorkout, onAddToPlan, provider, mode }) => {
+}> = ({ section, onStartWorkout, onAddToPlan, provider, sourceNoteId, mode }) => {
   switch (section.type) {
     case 'title':
     case 'markdown':
@@ -75,6 +78,7 @@ const SectionDisplayRenderer: React.FC<{
           onStartWorkout={onStartWorkout}
           onAddToPlan={onAddToPlan}
           provider={provider}
+          sourceNoteId={sourceNoteId}
           mode={mode}
         />
       );
@@ -100,6 +104,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   onAddToPlan,
   mode = 'preview',
   provider,
+  sourceNoteId,
 }) => {
   const {
     sections,
@@ -239,6 +244,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           onStartWorkout={onStartWorkout}
           onAddToPlan={onAddToPlan}
           provider={provider}
+          sourceNoteId={sourceNoteId}
           mode={mode}
         />
       );

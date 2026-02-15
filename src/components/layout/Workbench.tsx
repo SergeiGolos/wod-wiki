@@ -22,10 +22,11 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Github, Search, Lock, Loader2, Check, AlertCircle } from 'lucide-react';
-import { NotebookMenu } from '../notebook/NotebookMenu';
-import { toNotebookTag } from '../../types/notebook';
+import { Github, Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen } from 'lucide-react';
+// import { NotebookMenu } from '../notebook/NotebookMenu'; // Unused
+// import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
+import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { AudioProvider } from '../audio/AudioContext';
@@ -102,8 +103,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Current entry state
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
 
-  // Current entry tags (for Add to Notebook button)
-  const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
+  // Current entry tags (for Add to Notebook button) -- Not currently used, commented out
+  // const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
     // Helper to synthesize template entry from static content
     const createTemplateEntry = (id: string, content: string): HistoryEntry => {
@@ -124,7 +125,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
     if (!routeId) {
       setCurrentEntry(null);
-      setCurrentEntryTags([]);
+      // setCurrentEntryTags([]);
       return;
     }
 
@@ -135,7 +136,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
           const entry = await provider.getEntry(routeId);
           if (entry) {
             setCurrentEntry(entry);
-            setCurrentEntryTags(entry.tags);
+            // setCurrentEntryTags(entry.tags);
             return;
           }
         } catch (e) {
@@ -148,18 +149,22 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       if (wodContent) {
         const templateEntry = createTemplateEntry(routeId, wodContent);
         setCurrentEntry(templateEntry);
-        setCurrentEntryTags([]);
+        // setCurrentEntryTags([]);
         return;
       }
 
       // 3. Nothing found
       setCurrentEntry(null);
-      setCurrentEntryTags([]);
+      // setCurrentEntryTags([]);
     };
 
     loadEntry();
   }, [routeId, provider]);
 
+  // Details panel state
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  /* Unused in current design - keeping for reference if NotebookMenu returns
   const handleNotebookToggleForCurrent = useCallback(async (notebookId: string, isAdding: boolean) => {
     if (!routeId || provider.mode !== 'history') return;
     const tag = toNotebookTag(notebookId);
@@ -172,6 +177,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setCurrentEntry({ ...currentEntry, tags: newTags });
     }
   }, [routeId, provider, currentEntryTags, currentEntry]);
+  */
 
   // Update document title based on current entry or route
   useEffect(() => {
@@ -276,6 +282,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setBlocks={setBlocks}
       setContent={setContent}
       provider={provider}
+      sourceNoteId={routeId}
     />
   );
 
@@ -457,9 +464,10 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               entry={currentEntry}
               showLabel={currentEntry?.type === 'template'}
               variant={currentEntry?.type === 'template' ? 'primary' : 'default'}
-              onClone={async () => {
+              provider={provider}
+              onClone={async (targetDate?: number) => {
                 if (routeId && provider.mode === 'history') {
-                  const cloned = await provider.cloneEntry(routeId);
+                  const cloned = await provider.cloneEntry(routeId, targetDate);
                   navigate(planPath(cloned.id));
                 }
               }}
@@ -479,19 +487,34 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               </a>
             )}
 
-            <NotebookMenu
-              entryTags={routeId && provider.mode === 'history' ? currentEntryTags : undefined}
-              onEntryToggle={routeId && provider.mode === 'history' ? handleNotebookToggleForCurrent : undefined}
-            />
+            <button
+              onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+              className={cn(
+                "p-2 rounded-md transition-colors",
+                isDetailsOpen
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              title="Toggle Note Details"
+            >
+              <PanelRightOpen className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden relative">
           <ResponsiveViewport
             views={viewDescriptors}
             currentView={viewMode}
             onViewChange={setViewMode}
             panelLayouts={panelLayouts}
+          />
+          <NoteDetailsPanel
+            isOpen={isDetailsOpen}
+            onClose={() => setIsDetailsOpen(false)}
+            entry={currentEntry}
+            provider={provider}
+            onEntryUpdate={(updated) => setCurrentEntry(updated)}
           />
         </div>
       </div >

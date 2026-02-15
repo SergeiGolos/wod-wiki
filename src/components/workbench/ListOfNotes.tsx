@@ -2,6 +2,7 @@ import React from 'react';
 import { HistoryPostList } from '../history/HistoryPostList';
 import { HistoryEntry } from '@/types/history';
 import { cn } from '@/lib/utils';
+import type { IContentProvider } from '@/types/content-provider';
 
 export interface ListOfNotesProps {
     entries: HistoryEntry[];
@@ -12,7 +13,9 @@ export interface ListOfNotesProps {
     className?: string;
     onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
     onEdit?: (id: string, type?: 'note' | 'template') => void;
-    onClone?: (id: string) => void;
+    onClone?: (id: string, targetDate?: number) => void;
+    /** Content provider for calendar date hints */
+    provider?: IContentProvider;
 }
 
 export const ListOfNotes: React.FC<ListOfNotesProps> = ({
@@ -25,6 +28,7 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
     onNotebookToggle,
     onEdit,
     onClone,
+    provider,
 }) => {
     return (
         <div className={cn("flex flex-col h-full", className)}>
@@ -37,6 +41,7 @@ export const ListOfNotes: React.FC<ListOfNotesProps> = ({
                 onNotebookToggle={onNotebookToggle}
                 onEdit={onEdit}
                 onClone={onClone}
+                provider={provider}
             />
         </div>
     );

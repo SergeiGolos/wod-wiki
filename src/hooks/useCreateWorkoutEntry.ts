@@ -35,7 +35,7 @@ export function useCreateWorkoutEntry({
 }: UseCreateWorkoutEntryOptions) {
   const navigate = useNavigate();
 
-  const createNewEntry = useCallback(async () => {
+  const createNewEntry = useCallback(async (targetDate?: Date) => {
     // Only available when provider supports writing
     if (!provider.capabilities.canWrite) {
       console.warn('Content provider does not support writing');
@@ -54,6 +54,7 @@ export function useCreateWorkoutEntry({
       const newEntry = await provider.saveEntry({
         title: 'New Workout',
         rawContent: DEFAULT_WORKOUT_CONTENT,
+        targetDate: targetDate?.getTime() || Date.now(),
         tags,
       });
 

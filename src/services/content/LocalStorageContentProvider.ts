@@ -129,22 +129,26 @@ export class LocalStorageContentProvider implements IContentProvider {
     const source = await this.getEntry(sourceId);
     if (!source) throw new Error(`Source entry not found: ${sourceId}`);
 
-    return this.saveEntry({
+    const cloned = await this.saveEntry({
       title: source.title,
-      // If cloning a template, use its title directly. If cloning a note, add "Copy of"
-      // or just keep it same? Let's keep same for now, let user rename.
       rawContent: source.rawContent,
       tags: source.tags,
-      sections: source.sections || [], // Map sections to blocks if needed, or just copy
+      sections: source.sections || [],
       type: 'note',
       templateId: source.id,
       targetDate: targetDate || Date.now(),
     });
+
+    // Update source entry's clonedIds to track this clone
+    const updatedClonedIds = [...(source.clonedIds || []), cloned.id];
+    await this.updateEntry(sourceId, { clonedIds: updatedClonedIds });
+
+    return cloned;
   }
 
   async updateEntry(
     id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title'>>
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>>
   ): Promise<HistoryEntry> {
     const existing = await this.getEntry(id);
     if (!existing) {

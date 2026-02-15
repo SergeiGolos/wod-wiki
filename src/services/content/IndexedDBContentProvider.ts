@@ -180,6 +180,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             results: latestResult?.data,
             tags: note.tags,
             type: (note.type as any) || 'note',
+            templateId: note.templateId,
+            clonedIds: note.clonedIds,
             schemaVersion: 1,
         };
     }
@@ -188,13 +190,20 @@ export class IndexedDBContentProvider implements IContentProvider {
         const source = await this.getEntry(sourceId);
         if (!source) throw new Error(`Source entry not found: ${sourceId}`);
 
-        return this.saveEntry({
+        const cloned = await this.saveEntry({
             title: source.title,
             rawContent: source.rawContent,
             tags: source.tags,
             targetDate: targetDate || Date.now(),
-            type: 'note' // Cloned templates become notes
+            type: 'note',
+            templateId: source.id,  // Track which entry this was cloned from
         });
+
+        // Update source entry's clonedIds to track this clone
+        const updatedClonedIds = [...(source.clonedIds || []), cloned.id];
+        await this.updateEntry(sourceId, { clonedIds: updatedClonedIds });
+
+        return cloned;
     }
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
@@ -226,6 +235,8 @@ export class IndexedDBContentProvider implements IContentProvider {
             rawContent: entry.rawContent,
             tags: entry.tags,
             type: entry.type || 'note',
+            templateId: entry.templateId,
+            clonedIds: entry.clonedIds,
             createdAt: now,
             updatedAt: now,
             targetDate: entry.targetDate || now,
@@ -244,7 +255,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type'>>): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type' | 'clonedIds' | 'targetDate'>>): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
         if (!note) {
@@ -261,6 +272,8 @@ export class IndexedDBContentProvider implements IContentProvider {
         if (patch.title) note.title = patch.title;
         if (patch.tags) note.tags = patch.tags;
         if (patch.type) note.type = patch.type;
+        if (patch.clonedIds) note.clonedIds = patch.clonedIds;
+        if (patch.targetDate !== undefined) note.targetDate = patch.targetDate;
 
         let finalRawContent = note.rawContent;
 

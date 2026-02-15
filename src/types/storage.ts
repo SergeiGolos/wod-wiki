@@ -26,6 +26,7 @@ export interface Note {
     // Note Management
     type?: 'note' | 'template';
     templateId?: string;
+    clonedIds?: string[];              // IDs of notes cloned FROM this note
 }
 
 /**

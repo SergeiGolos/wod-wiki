@@ -1,7 +1,8 @@
 import React from 'react';
-import { WodBlock } from '../../markdown-editor/types';
+import type { WodBlock } from '../../markdown-editor/types';
 import { SectionEditor } from '../../markdown-editor/SectionEditor';
 import type { IContentProvider } from '../../types/content-provider';
+// import { HistoryEntry } from '../../types/history';
 
 export interface PlanPanelProps {
   initialContent?: string;
@@ -13,6 +14,9 @@ export interface PlanPanelProps {
   setContent: (content: string) => void;
   readOnly?: boolean;
   provider?: IContentProvider;
+  /** ID of the note being edited (for link tracking) */
+  sourceNoteId?: string;
+  // entry?: HistoryEntry | null;
 }
 
 export const PlanPanel: React.FC<PlanPanelProps> = ({
@@ -25,15 +29,17 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   setContent,
   readOnly = false,
   provider,
+  sourceNoteId,
+  // entry,
 }) => {
   const handleActiveBlockChange = (block: WodBlock | null) => {
     setActiveBlockId(block?.id || null);
   };
 
   return (
-    <div className="h-full w-full relative flex flex-col">
+    <div className="h-full w-full relative flex flex-col group/plan-panel">
       {/* Section-based editor with padding */}
-      <div className="flex-1 min-h-0 px-6 py-4">
+      <div className="flex-1 min-h-0 px-6 py-4 relative">
         <SectionEditor
           initialContent={initialContent}
           initialSections={sections || undefined}
@@ -46,6 +52,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
           editable={!readOnly}
           showLineNumbers={true}
           provider={provider}
+          sourceNoteId={sourceNoteId}
         />
       </div>
     </div>

@@ -40,7 +40,8 @@ export interface HistoryEntry {
 
   // Note Management
   type?: 'note' | 'template';          // Default to 'note' if undefined
-  templateId?: string;                 // ID of the template this note was cloned from
+  templateId?: string;                 // ID of the template/note this was cloned from
+  clonedIds?: string[];                // IDs of notes cloned FROM this entry (reverse links)
 }
 
 /**

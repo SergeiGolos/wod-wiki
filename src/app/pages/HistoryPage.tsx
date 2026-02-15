@@ -12,7 +12,7 @@ import { useHistorySelection } from '@/hooks/useHistorySelection';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { CommitGraph } from '@/components/ui/CommitGraph';
-import { Search, Github, Plus } from 'lucide-react';
+import { Search, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CommandProvider, useCommandPalette } from '@/components/command-palette/CommandContext';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
@@ -22,13 +22,14 @@ import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 
 import type { PanelSpan } from '@/components/layout/panel-system/types';
-import { NotebookMenu } from '@/components/notebook/NotebookMenu';
+// import { NotebookMenu } from '@/components/notebook/NotebookMenu';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { CreateNotebookDialog } from '@/components/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
 import { planPath, trackPath } from '@/lib/routes';
 import { useWodCollections } from '@/hooks/useWodCollections';
+import { NewPostButton } from '@/components/history/NewPostButton';
 
 
 
@@ -295,8 +296,8 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         setContent: () => { },
     });
 
-    const createEntryInNotebook = useCallback(async () => {
-        await createNewEntry();
+    const createEntryInNotebook = useCallback(async (targetDate?: Date) => {
+        await createNewEntry(targetDate);
         const entries = await provider.getEntries();
         setHistoryEntries(entries);
     }, [createNewEntry]);
@@ -327,7 +328,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         setHistoryEntries(entries);
     }, [historyEntries]);
 
-    const handleClone = useCallback(async (entryId: string) => {
+    const handleClone = useCallback(async (entryId: string, targetDate?: number) => {
         if (!provider.capabilities.canWrite) return;
         try {
             // Handle virtual collection entries
@@ -338,7 +339,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     const newEntry = await provider.saveEntry({
                         title: entry.title,
                         rawContent: entry.rawContent,
-                        targetDate: Date.now(),
+                        targetDate: targetDate || Date.now(),
                         tags: [], // Start fresh without tags
                         notes: '',
                     });
@@ -347,7 +348,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 }
             }
 
-            const cloned = await provider.cloneEntry(entryId);
+            const cloned = await provider.cloneEntry(entryId, targetDate);
             navigate(planPath(toShortId(cloned.id)));
         } catch (err) {
             console.error('Failed to clone entry:', err);
@@ -413,6 +414,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     onNotebookToggle={activeCollectionId ? undefined : handleNotebookToggle}
                     onEdit={activeCollectionId ? undefined : (id) => navigate(planPath(toShortId(id)))}
                     onClone={handleClone}
+                    provider={provider}
                     className="h-full overflow-y-auto"
                 />
             </div>
@@ -463,7 +465,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     const cloned = await provider.cloneEntry(entryToShow.id);
                     navigate(planPath(toShortId(cloned.id)));
                 }}
-                onClone={entryToShow.type === 'template' ? () => handleClone(entryToShow.id) : undefined}
+                onClone={entryToShow.type === 'template' ? (targetDate?: number) => handleClone(entryToShow.id, targetDate) : undefined}
                 onEdit={entryToShow.type !== 'template' && !isCollectionEntry ? () => navigate(planPath(toShortId(entryToShow.id))) : undefined}
                 onDelete={provider.capabilities.canDelete && !entryToShow.results && entryToShow.type !== 'template' ? () => handleDelete(entryToShow.id) : undefined}
                 provider={provider}
@@ -528,15 +530,10 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
 
                     <div className="h-6 w-px bg-border mx-2" />
 
-                    <Button
-                        variant="default"
-                        size="sm"
-                        onClick={createEntryInNotebook}
-                        className="gap-2 hidden md:flex"
-                    >
-                        <Plus className="h-4 w-4" />
-                        New
-                    </Button>
+                    <NewPostButton
+                        onCreate={createEntryInNotebook}
+                        className="hidden md:flex"
+                    />
 
                     <ThemeToggle />
                     {!isMobile && (
@@ -549,7 +546,6 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                             <Github className="h-5 w-5" />
                         </a>
                     )}
-                    <NotebookMenu />
                 </div>
             </div>
 

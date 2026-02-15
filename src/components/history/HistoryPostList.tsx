@@ -10,9 +10,11 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Edit2, Copy } from 'lucide-react';
+import { Edit2 } from 'lucide-react';
 import type { HistoryEntry } from '@/types/history';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
+import { CloneDateDropdown } from '@/components/workbench/CloneDateDropdown';
+import type { IContentProvider } from '@/types/content-provider';
 
 export interface HistoryPostListProps {
   /** Workout entries to display */
@@ -29,8 +31,10 @@ export interface HistoryPostListProps {
   onNotebookToggle?: (entryId: string, notebookId: string, isAdding: boolean) => void;
   /** Edit entry callback (pencil icon) */
   onEdit?: (id: string, type?: 'note' | 'template') => void;
-  /** Clone entry callback (copy icon) */
-  onClone?: (id: string) => void;
+  /** Clone entry callback (copy icon) — receives entryId and optional targetDate */
+  onClone?: (id: string, targetDate?: number) => void;
+  /** Content provider for calendar date hints */
+  provider?: IContentProvider;
 }
 
 function formatDuration(ms: number): string {
@@ -64,6 +68,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   onNotebookToggle,
   onEdit,
   onClone,
+  provider,
 }) => {
   if (entries.length === 0) {
     return (
@@ -106,13 +111,12 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
               {/* Action Button: Clone (Template) or Edit (Note) on the left */}
               <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
                 {entry.type === 'template' ? (
-                  <button
-                    onClick={() => onClone?.(entry.id)}
-                    className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-blue-500 transition-colors"
-                    title="Clone to Today"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                  <CloneDateDropdown
+                    onClone={(targetDate) => onClone?.(entry.id, targetDate)}
+                    provider={provider}
+                    variant="list-icon"
+                    title="Clone to date..."
+                  />
                 ) : (
                   onEdit && (
                     <button

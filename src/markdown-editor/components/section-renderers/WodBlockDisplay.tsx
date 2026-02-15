@@ -23,6 +23,8 @@ export interface WodBlockDisplayProps {
   onStartWorkout?: (wodBlock: WodBlock) => void;
   onAddToPlan?: (wodBlock: WodBlock) => void;
   provider?: IContentProvider;
+  /** ID of the note containing this WOD block (for link tracking) */
+  sourceNoteId?: string;
   mode?: 'preview' | 'template';
   className?: string;
 }
@@ -32,6 +34,7 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
   onStartWorkout,
   onAddToPlan,
   provider,
+  sourceNoteId,
   mode = 'preview',
   className,
 }) => {
@@ -69,33 +72,38 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
       >
         <span>{section.dialect ?? 'wod'}</span>
         <div className="flex-1" />
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {!isTemplate && onStartWorkout && wodBlock && (
+        <div className="flex items-center gap-2">
+          {onStartWorkout && wodBlock && !isTemplate && (
             <button
               onClick={handlePlayClick}
               className={cn(
-                'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-                'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm',
+                'bg-primary text-primary-foreground hover:bg-primary/90'
               )}
               title="Run this workout"
             >
-              <Play className="h-3 w-3" />
+              <Play className="h-3 w-3 fill-current" />
               <span>Run</span>
             </button>
           )}
 
-          {isTemplate && wodBlock && (
+          {wodBlock && (
             provider ? (
               <AddWodToNoteDropdown
                 wodBlock={wodBlock}
                 provider={provider}
+                sourceNoteId={sourceNoteId}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm border border-border/50',
+                  'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                )}
               />
             ) : onAddToPlan ? (
               <button
                 onClick={handleAddClick}
                 className={cn(
-                  'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]',
-                  'text-muted-foreground hover:text-primary hover:bg-primary/10'
+                  'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm border border-border/50',
+                  'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                 )}
                 title="Clone & Add to Plan"
               >
