@@ -32,7 +32,7 @@ export interface SectionEditViewProps {
   /** Called when a heading section should split at cursor (Enter in heading) */
   onSplitSection?: (beforeContent: string, afterContent: string) => void;
   /** Called when user types a dialect fence (```wod, ```log, ```plan) to convert into a WOD block */
-  onConvertToWod?: (contentBefore: string, wodBodyContent: string, dialect?: WodDialect) => void;
+  onConvertToWod?: (contentBefore: string, contentAfterFence: string, dialect?: WodDialect) => void;
   /** The section type (used for type-specific behavior) */
   sectionType?: string;
   /** Additional CSS classes */
@@ -130,8 +130,12 @@ export const SectionEditView: React.FC<SectionEditViewProps> = ({
         if (fenceLineIdx !== -1) {
           // Content before the fence line stays in this section
           const contentBefore = lines.slice(0, fenceLineIdx).join('\n');
-          // Content after the fence line becomes the WOD block body
+          // Content after the fence line is preserved as a separate section, NOT the WOD body.
+          // The WOD block is always created with an empty body for the user to type into.
           const contentAfter = lines.slice(fenceLineIdx + 1).join('\n');
+          // Update the section content first so React doesn't reset the controlled
+          // textarea value (which would drop the last typed character).
+          onChange(newContent);
           onConvertToWod(contentBefore, contentAfter, dialect);
           return;
         }

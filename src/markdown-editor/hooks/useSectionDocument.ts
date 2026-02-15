@@ -19,6 +19,29 @@ import { parseWodBlock } from '../utils/parseWodBlock';
 import { sharedParser } from '../../parser/parserInstance';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Strip WOD fence markers (```wod / ```log / ```plan and closing ```)
+ * from raw content, returning only the inner content.
+ */
+function stripWodFences(rawContent: string): string {
+  const lines = rawContent.split('\n');
+  const openIdx = lines.findIndex(l => {
+    const t = l.trim().toLowerCase();
+    return VALID_WOD_DIALECTS.some(d => t === '```' + d || t.startsWith('```' + d + ' '));
+  });
+  if (openIdx === -1) return rawContent; // No fence found, return as-is
+  let closeIdx = -1;
+  for (let i = lines.length - 1; i > openIdx; i--) {
+    if (lines[i].trim() === '```') {
+      closeIdx = i;
+      break;
+    }
+  }
+  const startLine = openIdx + 1;
+  const endLine = closeIdx > openIdx ? closeIdx : lines.length;
+  return lines.slice(startLine, endLine).join('\n');
+}
+
 export interface UseSectionDocumentOptions {
   /** Initial markdown content */
   initialContent: string;
@@ -56,7 +79,7 @@ export interface UseSectionDocumentReturn {
   /** Split a section at cursor — update current with beforeContent, create new section with afterContent */
   splitSection: (sectionId: string, beforeContent: string, afterContent: string) => void;
   /** Convert a markdown section into a WOD block — optionally keeping content before the fence */
-  convertToWod: (sectionId: string, contentBefore: string, wodBodyContent: string, dialect?: WodDialect) => void;
+  convertToWod: (sectionId: string, contentBefore: string, contentAfterFence: string, dialect?: WodDialect) => void;
   /** Soft-delete a section (bumps version, sets deleted flag) */
   softDeleteSection: (sectionId: string) => void;
 
@@ -241,6 +264,20 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
           displayContent: cleanForUpdate,
           lineCount: newLineCount,
           endLine: s.startLine + newLineCount - 1,
+        };
+      }
+
+      // WOD sections: rawContent has fences, displayContent is inner content only
+      if (s.type === 'wod') {
+        const innerContent = stripWodFences(cleanForUpdate);
+        const newLineCount = cleanForUpdate.split('\n').length;
+        return {
+          ...s,
+          rawContent: cleanForUpdate,
+          displayContent: innerContent,
+          lineCount: newLineCount,
+          endLine: s.startLine + newLineCount - 1,
+          wodBlock: s.wodBlock ? { ...s.wodBlock, content: innerContent } : undefined,
         };
       }
 
@@ -489,15 +526,22 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
    * and the WOD block is inserted after. Otherwise the section
    * is replaced by the WOD block.
    */
-  const convertToWod = useCallback((sectionId: string, contentBefore: string, wodBodyContent: string, dialect: WodDialect = 'wod') => {
+  const convertToWod = useCallback((sectionId: string, contentBefore: string, contentAfterFence: string, dialect: WodDialect = 'wod') => {
+    // Cancel any pending debounced reconciliation from a preceding updateSectionContent
+    // call — convertToWod will reconcile with the correct sections immediately.
+    if (reconcileTimerRef.current) {
+      clearTimeout(reconcileTimerRef.current);
+      reconcileTimerRef.current = null;
+    }
+
     const currentSections = [...sectionsRef.current];
     const sectionIndex = currentSections.findIndex(s => s.id === sectionId);
     if (sectionIndex === -1) return;
 
-    // Build the WOD section raw content with fences
+    // Build the WOD section with an empty body — the user will type inside it
     const now = Date.now();
     const newId = `wod-${Date.now().toString(16)}`;
-    const wodRawContent = `\`\`\`${dialect}\n${wodBodyContent || ''}\n\`\`\``;
+    const wodRawContent = `\`\`\`${dialect}\n\n\`\`\``;
     const wodLineCount = wodRawContent.split('\n').length;
 
     const newWodSection: Section = {
@@ -505,13 +549,31 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
       type: 'wod',
       dialect,
       rawContent: wodRawContent,
-      displayContent: wodBodyContent || '',
+      displayContent: '',
       startLine: 0,
       endLine: 0,
       lineCount: wodLineCount,
       version: 1,
       createdAt: now,
     };
+
+    // Build an optional "after" markdown section for text that was below the fence line
+    let afterSection: Section | null = null;
+    if (contentAfterFence.trim()) {
+      const afterId = `markdown-${Date.now().toString(16)}-after`;
+      const afterLineCount = contentAfterFence.split('\n').length;
+      afterSection = {
+        id: afterId,
+        type: 'markdown',
+        rawContent: contentAfterFence,
+        displayContent: contentAfterFence,
+        startLine: 0,
+        endLine: 0,
+        lineCount: afterLineCount,
+        version: 1,
+        createdAt: now,
+      };
+    }
 
     if (contentBefore.trim()) {
       // Keep the paragraph with contentBefore, insert WOD after
@@ -520,10 +582,15 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
       section.displayContent = contentBefore;
       section.lineCount = contentBefore.split('\n').length;
 
-      currentSections.splice(sectionIndex + 1, 0, newWodSection);
+      // Insert WOD section (and optional after section) after the current section
+      const insertions: Section[] = [newWodSection];
+      if (afterSection) insertions.push(afterSection);
+      currentSections.splice(sectionIndex + 1, 0, ...insertions);
     } else {
-      // Replace the paragraph entirely with the WOD section
-      currentSections.splice(sectionIndex, 1, newWodSection);
+      // Replace the paragraph entirely with the WOD section (and optional after section)
+      const replacements: Section[] = [newWodSection];
+      if (afterSection) replacements.push(afterSection);
+      currentSections.splice(sectionIndex, 1, ...replacements);
     }
 
     // Recompute line numbers

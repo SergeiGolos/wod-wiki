@@ -127,11 +127,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                     const dialect = s.wodBlock?.dialect ?? 'wod';
                     return `\`\`\`${dialect}\n${s.content}\n\`\`\``;
                 }
-                if (resolvedType === 'title') {
-                    // Title sections may have been stored with heading prefix stripped; reconstruct
-                    const prefix = '#'.repeat(s.level || 1);
-                    return `${prefix} ${s.content}`;
-                }
+                // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
                 return s.content;
             }).join('\n');
         } else {
@@ -159,7 +155,7 @@ export class IndexedDBContentProvider implements IContentProvider {
                 type: resolvedType,
                 rawContent: resolvedType === 'wod'
                     ? `\`\`\`${dialect}\n${s.content}\n\`\`\``
-                    : (resolvedType === 'title' ? `${'#'.repeat(s.level || 1)} ${s.content}` : s.content),
+                    : s.content,
                 displayContent: s.content,
                 dialect: resolvedType === 'wod' ? dialect : undefined,
                 level: s.level,

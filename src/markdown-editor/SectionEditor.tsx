@@ -269,7 +269,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
         onNewSectionRequest={() => handleNewSectionRequest(section.id)}
         onDeactivate={deactivateSection}
         onSplitSection={(before, after) => splitSection(section.id, before, after)}
-        onConvertToWod={(contentBefore, bodyContent, dialect) => convertToWod(section.id, contentBefore, bodyContent, dialect)}
+        onConvertToWod={(contentBefore, contentAfterFence, dialect) => convertToWod(section.id, contentBefore, contentAfterFence, dialect)}
       />
     );
   }, [
