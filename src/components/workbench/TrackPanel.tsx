@@ -37,6 +37,8 @@ export interface TrackPanelProps {
    * Defaults to `['wod']` to show only runnable blocks.
    */
   previewFilter?: SectionType[];
+  /** Callback to update parsed blocks */
+  setBlocks?: (blocks: any[]) => void;
 }
 
 export const SessionHistory: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'execution'>> = ({
@@ -69,38 +71,18 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   onPause,
   onStop,
   onNext,
-  activeSegmentIds,
-  activeStatementIds,
-  hoveredBlockKey,
+  // activeSegmentIds, // Unused
+  // activeStatementIds, // Unused
+  // hoveredBlockKey, // Unused
   content,
   onStartWorkout,
+  setBlocks,
   previewFilter = ['wod'],
 }) => {
   const { isCompact } = usePanelSize();
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const lastScrollTopRef = React.useRef(0);
-  const [isUserScrolledUp, setIsUserScrolledUp] = React.useState(false);
 
-  const handleScroll = React.useCallback(() => {
-    if (!scrollContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
-    const isScrollingUp = scrollTop < lastScrollTopRef.current;
-
-    lastScrollTopRef.current = scrollTop;
-
-    if (isAtBottom) {
-      // We are at the bottom, re-enable auto-scroll
-      setIsUserScrolledUp(false);
-    } else if (isScrollingUp) {
-      // We are NOT at bottom AND scrolling up -> user action
-      setIsUserScrolledUp(true);
-    }
-    // If scrolling down but not at bottom yet (e.g. smooth scroll in progress),
-    // leave state as is.
-  }, []);
-
+  // No runtime -> Show preview panel for block selection
+  // If selectedBlock is present, show timer (legacy behavior?)
   const timerDisplay = (
     <TimerDisplay
       elapsedMs={execution.elapsedTime}
@@ -121,33 +103,52 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
       <div className="flex h-full overflow-hidden">
-        {/* Left Column: Timer & Controls (flex-1 or fixed width?) */}
-        {/* Let's make TimerDisplay the main focus on the left, maybe 40-50% width? */}
+        {/* Left Column: Visual State */}
+        {!isCompact && (
+          <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
+            <VisualStatePanel />
+          </div>
+        )}
+
+        {/* Right Column: Timer & Controls */}
         <div className={cn(
-          "flex flex-col border-r border-border bg-background transition-all duration-300",
+          "flex flex-col bg-background transition-all duration-300",
           isCompact ? "w-full" : "w-1/2"
         )}>
           <div className="flex-1 flex flex-col justify-center">
             {timerDisplay}
           </div>
         </div>
-
-        {/* Right Column: Visual State */}
-        {!isCompact && (
-          <div className="flex-1 min-w-0 bg-secondary/10">
-            <VisualStatePanel />
-          </div>
-        )}
       </div>
     </ScriptRuntimeProvider>
   ) : (
     // No runtime — show workout preview panel for block selection
+    // If selectedBlock is present, show timer (legacy behavior? or maybe just for transition)
     selectedBlock ? timerDisplay : (
-      <WorkoutPreviewPanel
-        content={content || ''}
-        filter={previewFilter}
-        onStartWorkout={onStartWorkout}
-      />
+      <div className="flex h-full overflow-hidden">
+        {/* Left Column: Placeholder / Visual State equivalent */}
+        {!isCompact && (
+          <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border flex items-center justify-center text-muted-foreground">
+            <div className="text-center p-6 disabled-state-panel">
+              <h3 className="text-lg font-semibold mb-2">Select a Session</h3>
+              <p className="text-sm opacity-80">Choose a workout block to begin.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Right Column: Workout Preview */}
+        <div className={cn(
+          "flex flex-col bg-background transition-all duration-300 overflow-hidden",
+          isCompact ? "w-full" : "w-1/2"
+        )}>
+          <WorkoutPreviewPanel
+            content={content || ''}
+            filter={previewFilter}
+            onStartWorkout={onStartWorkout}
+            onBlocksChange={setBlocks}
+          />
+        </div>
+      </div>
     )
   );
 

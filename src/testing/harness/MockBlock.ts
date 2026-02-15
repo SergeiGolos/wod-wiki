@@ -13,6 +13,7 @@ import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, Unsubscribe
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { OutputStatementType } from '@/core/models/OutputStatement';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
+import { FragmentVisibility, getFragmentVisibility } from '@/runtime/memory/FragmentVisibility';
 
 /**
  * Minimal stub context for MockBlock
@@ -399,6 +400,13 @@ export class MockBlock implements IRuntimeBlock {
    */
   getAllMemory(): IMemoryLocation[] {
     return [...this._memory];
+  }
+
+  /**
+   * Get all fragment memory locations matching a given visibility tier.
+   */
+  getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[] {
+    return this._memory.filter(loc => getFragmentVisibility(loc.tag) === visibility);
   }
 
   // ============================================================================

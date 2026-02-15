@@ -3,6 +3,17 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
 /**
  * Tags for memory locations. A block can have multiple locations with the same tag.
  * Tags replace the previous MemoryType keys but are no longer unique per block.
+ *
+ * Fragment tags follow the `fragment:*` namespace convention and are classified
+ * into three visibility tiers:
+ *
+ * | Tier      | Tags                                     | Purpose                          |
+ * |-----------|------------------------------------------|----------------------------------|
+ * | display   | `fragment:display`                       | Shown on UI cards                |
+ * | promote   | `fragment:promote`, `fragment:rep-target` | Inherited by child blocks       |
+ * | private   | `fragment:tracked`, `fragment:label`      | Internal behavior state          |
+ *
+ * @see FragmentVisibility for classification helpers.
  */
 export type MemoryTag =
     | 'timer'
@@ -11,7 +22,13 @@ export type MemoryTag =
     | 'display'
     | 'controls'
     | 'fragment'
+    // fragment:display — public fragments rendered on the UI card
     | 'fragment:display'
+    // fragment:promote — fragments promoted/inherited to child blocks
+    | 'fragment:promote'
+    | 'fragment:rep-target'
+    // fragment:private — internal behavior state (not shown in normal UI)
+    | 'fragment:tracked'
     | 'fragment:label';
 
 /**

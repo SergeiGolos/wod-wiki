@@ -6,6 +6,7 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
+import { FragmentVisibility } from '../memory/FragmentVisibility';
 
 /**
  * Backward-compatible memory entry shape.
@@ -196,6 +197,29 @@ export interface IRuntimeBlock {
      * @returns Array of all memory locations
      */
     getAllMemory(): IMemoryLocation[];
+
+    /**
+     * Get all fragment memory locations matching a given visibility tier.
+     *
+     * Fragment tags follow the `fragment:*` namespace convention and are
+     * classified into three visibility tiers: `'display'`, `'promote'`,
+     * and `'private'`. This method filters all memory locations to those
+     * with fragment tags belonging to the specified tier.
+     *
+     * @param visibility The visibility tier to filter by
+     * @returns Array of memory locations in the requested tier
+     *
+     * @example
+     * ```typescript
+     * // Get fragments visible in the UI card
+     * const displayLocs = block.getFragmentMemoryByVisibility('display');
+     *
+     * // Get all tiers for debug view
+     * const all = (['display', 'promote', 'private'] as const)
+     *   .flatMap(v => block.getFragmentMemoryByVisibility(v));
+     * ```
+     */
+    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[];
 
     /**
      * Indicates whether this block has completed execution.

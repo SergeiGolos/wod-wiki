@@ -308,6 +308,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       hoveredBlockKey={hoveredBlockKey}
       content={content}
       onStartWorkout={handleStartWorkoutAction}
+      setBlocks={setBlocks}
     />
   );
 

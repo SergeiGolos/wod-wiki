@@ -9,6 +9,7 @@ import { BehaviorContext } from './BehaviorContext';
 import { RuntimeLogger } from './RuntimeLogger';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
+import { FragmentVisibility, getFragmentVisibility } from './memory/FragmentVisibility';
 import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
 import { OutputStatement } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
@@ -132,6 +133,16 @@ export class RuntimeBlock implements IRuntimeBlock {
      */
     getAllMemory(): IMemoryLocation[] {
         return [...this._memory];
+    }
+
+    /**
+     * Get all fragment memory locations matching a given visibility tier.
+     *
+     * @param visibility The visibility tier: 'display' | 'promote' | 'private'
+     * @returns Memory locations whose tags belong to the requested tier
+     */
+    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[] {
+        return this._memory.filter(loc => getFragmentVisibility(loc.tag) === visibility);
     }
 
     // ============================================================================

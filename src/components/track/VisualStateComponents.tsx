@@ -3,11 +3,13 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, ListTree, ArrowRight, CornerDownRight, Timer } from 'lucide-react';
+import { Clock, CheckCircle2, ListTree, ArrowRight, CornerDownRight, Timer, Eye, ArrowUpCircle, Lock } from 'lucide-react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
 import { ICodeFragment } from '@/core/models/CodeFragment';
+import { FragmentVisibility, VISIBILITY_ICONS, VISIBILITY_LABELS } from '@/runtime/memory/FragmentVisibility';
+import { useDebugMode } from '@/components/layout/DebugModeContext';
 
 // ============================================================================
 // History View
@@ -54,6 +56,41 @@ export const HistorySummaryView: React.FC<{
 };
 
 // ============================================================================
+// Visibility badge for debug mode
+// ============================================================================
+
+const VISIBILITY_ICON_MAP: Record<FragmentVisibility, React.ElementType> = {
+    display: Eye,
+    promote: ArrowUpCircle,
+    private: Lock,
+};
+
+const VISIBILITY_COLOR_MAP: Record<FragmentVisibility, string> = {
+    display: 'text-green-500',
+    promote: 'text-blue-500',
+    private: 'text-amber-500',
+};
+
+const VisibilityBadge: React.FC<{ visibility: FragmentVisibility }> = ({ visibility }) => {
+    const Icon = VISIBILITY_ICON_MAP[visibility];
+    return (
+        <span
+            className={cn(
+                'inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded',
+                VISIBILITY_COLOR_MAP[visibility],
+                visibility === 'display' && 'bg-green-500/10',
+                visibility === 'promote' && 'bg-blue-500/10',
+                visibility === 'private' && 'bg-amber-500/10',
+            )}
+            title={VISIBILITY_LABELS[visibility]}
+        >
+            <Icon className="h-3 w-3" />
+            {VISIBILITY_LABELS[visibility]}
+        </span>
+    );
+};
+
+// ============================================================================
 // Stack View
 // ============================================================================
 
@@ -62,27 +99,78 @@ const StackBlockItem: React.FC<{
     index: number;
     isLeaf: boolean;
     isRoot: boolean;
-}> = ({ block, index, isLeaf, isRoot }) => {
+    debug?: boolean;
+}> = ({ block, index, isLeaf, isRoot, debug: debugProp }) => {
+    // Consume debug context directly as fallback if prop not passed
+    const { isDebugMode } = useDebugMode();
+    const debug = debugProp ?? isDebugMode;
     const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
     const [displayRows, setDisplayRows] = useState<ICodeFragment[][]>([]);
+    const [promoteRows, setPromoteRows] = useState<ICodeFragment[][]>([]);
+    const [privateRows, setPrivateRows] = useState<ICodeFragment[][]>([]);
 
-    // Subscribe to fragment:display memory
+    // Subscribe to fragment memory by visibility tier
     useEffect(() => {
-        const displayLocs = block.getMemoryByTag('fragment:display');
-        setDisplayRows(displayLocs.map(loc => loc.fragments));
+        const updateRows = () => {
+            // Display tier — always collected
+            const displayLocs = block.getFragmentMemoryByVisibility('display');
+            setDisplayRows(displayLocs.map(loc => loc.fragments));
 
-        const unsubscribes = displayLocs.map(loc =>
-            loc.subscribe(() => {
-                const updatedLocs = block.getMemoryByTag('fragment:display');
-                setDisplayRows(updatedLocs.map(l => l.fragments));
-            })
+            if (debug) {
+                // Promote & private tiers — only in debug mode
+                const promoteLocs = block.getFragmentMemoryByVisibility('promote');
+                setPromoteRows(promoteLocs.map(loc => loc.fragments));
+
+                const privateLocs = block.getFragmentMemoryByVisibility('private');
+                setPrivateRows(privateLocs.map(loc => loc.fragments));
+            }
+        };
+
+        updateRows();
+
+        // Subscribe to all fragment memory locations for reactivity
+        const allLocs = debug
+            ? [
+                ...block.getFragmentMemoryByVisibility('display'),
+                ...block.getFragmentMemoryByVisibility('promote'),
+                ...block.getFragmentMemoryByVisibility('private'),
+              ]
+            : block.getFragmentMemoryByVisibility('display');
+
+        const unsubscribes = allLocs.map(loc =>
+            loc.subscribe(() => updateRows())
         );
 
         return () => unsubscribes.forEach(unsub => unsub());
-    }, [block]);
+    }, [block, debug]);
 
     // Only show timer if there are active or completed time spans (it's a time tracker)
     const hasTime = timeSpans.length > 0;
+
+    /** Render a visibility-tagged section of fragment rows */
+    const renderFragmentSection = (
+        rows: ICodeFragment[][],
+        visibility: FragmentVisibility,
+        showBadge: boolean
+    ) => {
+        if (rows.length === 0) return null;
+        return (
+            <div className="flex flex-col gap-0.5">
+                {showBadge && <VisibilityBadge visibility={visibility} />}
+                {rows.map((row, rowIdx) => (
+                    <FragmentSourceRow
+                        key={`${visibility}-${rowIdx}`}
+                        fragments={row}
+                        status={isLeaf ? 'active' : 'pending'}
+                        size="compact"
+                        className="bg-transparent border-none p-0 min-h-0"
+                    />
+                ))}
+            </div>
+        );
+    };
+
+    const hasFragments = displayRows.length > 0 || (debug && (promoteRows.length > 0 || privateRows.length > 0));
 
     return (
         <div
@@ -103,59 +191,62 @@ const StackBlockItem: React.FC<{
                 </div>
 
                 <div className={cn(
-                    "flex-1 rounded-md border text-sm p-3 transition-all flex items-center justify-between gap-3",
+                    "flex-1 rounded-md border text-sm transition-all",
                     isLeaf
                         ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
                         : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
                 )}>
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className={cn(
-                                "font-semibold tracking-tight",
-                                isLeaf ? "text-foreground" : "text-muted-foreground"
-                            )}>
-                                {block.label}
-                            </span>
-                            {block.blockType && (
-                                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
-                                    {block.blockType}
+                    {/* Block header row */}
+                    <div className="flex items-center justify-between gap-3 p-3">
+                        <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-2">
+                                <span className={cn(
+                                    "font-semibold tracking-tight",
+                                    isLeaf ? "text-foreground" : "text-muted-foreground"
+                                )}>
+                                    {block.label}
                                 </span>
+                                {block.blockType && (
+                                    <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
+                                        {block.blockType}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Block key — debug only */}
+                            {debug && (
+                                <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px] mt-0.5">
+                                    {block.key.toString()}
+                                </div>
                             )}
                         </div>
 
-                        <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px]">
-                            {block.key.toString()}
-                        </div>
+                        {hasTime && (
+                            <div className={cn(
+                                "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
+                                isRunning
+                                    ? "bg-primary/10 text-primary animate-pulse"
+                                    : "bg-muted text-muted-foreground"
+                            )}>
+                                <Timer className="h-3 w-3" />
+                                {formatTimeMMSS(elapsed)}
+                            </div>
+                        )}
                     </div>
 
-                    {hasTime && (
-                        <div className={cn(
-                            "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
-                            isRunning
-                                ? "bg-primary/10 text-primary animate-pulse"
-                                : "bg-muted text-muted-foreground"
-                        )}>
-                            <Timer className="h-3 w-3" />
-                            {formatTimeMMSS(elapsed)}
+                    {/* Fragment rows — inside the card */}
+                    {hasFragments && (
+                        <div className="flex flex-col gap-1 px-3 pb-2">
+                            {/* Display tier — always shown */}
+                            {renderFragmentSection(displayRows, 'display', debug)}
+
+                            {/* Promote & private — debug mode only */}
+                            {debug && renderFragmentSection(promoteRows, 'promote', true)}
+                            {debug && renderFragmentSection(privateRows, 'private', true)}
                         </div>
                     )}
                 </div>
             </div>
-
-            {/* Rendered Fragments (Exercises, Reps, etc.) */}
-            {displayRows.length > 0 && (
-                <div className="flex flex-col gap-1 mt-1 ml-6">
-                    {displayRows.map((row, rowIdx) => (
-                        <FragmentSourceRow
-                            key={rowIdx}
-                            fragments={row}
-                            status={isLeaf ? 'active' : 'pending'}
-                            size="compact"
-                            className="bg-transparent border-none p-0 min-h-0"
-                        />
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
@@ -163,7 +254,8 @@ const StackBlockItem: React.FC<{
 export const RuntimeStackView: React.FC<{
     runtime: IScriptRuntime;
     outputs: IOutputStatement[];
-}> = ({ runtime, outputs }) => {
+    debug?: boolean;
+}> = ({ runtime, outputs, debug = false }) => {
     const blocks = runtime.stack.blocks; // Stack is usually Leaf -> Root. We want Root (Top) -> Leaf (Bottom).
 
     if (blocks.length === 0) {
@@ -233,6 +325,7 @@ export const RuntimeStackView: React.FC<{
                             index={index}
                             isLeaf={isLeaf}
                             isRoot={isRoot}
+                            debug={debug}
                         />
 
                         {/* Interleaved History: Children of this block */}

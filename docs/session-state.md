@@ -138,14 +138,14 @@ The `StackBlockItem` component subscribes to `fragment:display` memory locations
 
 #### Other memory types (used by block internals, not directly by the panel)
 
-| Tag              | Shape                                        | Purpose                     |
-| ---------------- | -------------------------------------------- | --------------------------- |
-| `'fragment:label'` | `ICodeFragment` with `FragmentType.Label`  | Block display label (computed via `block.label` getter) |
-| `'round'`        | `RoundState` `{ current, total }`            | Loop iteration counter      |
-| `'completion'`   | `CompletionState` `{ isComplete, reason }`   | Block completion tracking   |
-| `'display'`      | `DisplayState` `{ mode, label, subtitle }`   | UI labels for timer display |
-| `'controls'`     | `ButtonsState` `{ buttons: ButtonConfig[] }` | Action buttons              |
-| `'fragment'`     | `FragmentState` `{ groups }`                 | Raw compiled fragments      |
+| Tag                | Shape                                        | Purpose                                                 |
+| ------------------ | -------------------------------------------- | ------------------------------------------------------- |
+| `'fragment:label'` | `ICodeFragment` with `FragmentType.Label`    | Block display label (computed via `block.label` getter) |
+| `'round'`          | `RoundState` `{ current, total }`            | Loop iteration counter                                  |
+| `'completion'`     | `CompletionState` `{ isComplete, reason }`   | Block completion tracking                               |
+| `'display'`        | `DisplayState` `{ mode, label, subtitle }`   | UI labels for timer display                             |
+| `'controls'`       | `ButtonsState` `{ buttons: ButtonConfig[] }` | Action buttons                                          |
+| `'fragment'`       | `FragmentState` `{ groups }`                 | Raw compiled fragments                                  |
 
 ---
 

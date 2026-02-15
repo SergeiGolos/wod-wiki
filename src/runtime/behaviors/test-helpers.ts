@@ -12,6 +12,7 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { MemoryTypeMap, TimerState, MemoryType, RoundState } from '../memory/MemoryTypes';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
+import { FragmentVisibility, getFragmentVisibility } from '../memory/FragmentVisibility';
 
 
 /**
@@ -83,6 +84,8 @@ export interface MockBlock {
     getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
     /** Get all memory locations */
     getAllMemory(): IMemoryLocation[];
+    /** Get fragment memory by visibility tier */
+    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[];
     /** Backward-compat shim */
     getMemory<T extends MemoryType>(type: T): any;
     /** Backward-compat shim */
@@ -121,6 +124,9 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         },
         getAllMemory(): IMemoryLocation[] {
             return [...memoryList];
+        },
+        getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[] {
+            return memoryList.filter(loc => getFragmentVisibility(loc.tag) === visibility);
         },
         getMemory<T extends MemoryType>(type: T): any {
             const tag = type as string as MemoryTag;

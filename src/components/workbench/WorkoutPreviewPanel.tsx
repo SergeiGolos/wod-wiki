@@ -31,6 +31,9 @@ export interface WorkoutPreviewPanelProps {
   /** Called when the user clicks "Run" on a WOD block */
   onStartWorkout?: (block: WodBlock) => void;
 
+  /** Callback when blocks change (parsed from content) */
+  onBlocksChange?: (blocks: any[]) => void;
+
   /** Optional CSS class */
   className?: string;
 }
@@ -39,6 +42,7 @@ export const WorkoutPreviewPanel: React.FC<WorkoutPreviewPanelProps> = ({
   content,
   filter,
   onStartWorkout,
+  onBlocksChange,
   className,
 }) => {
   if (!content) {
@@ -65,6 +69,7 @@ export const WorkoutPreviewPanel: React.FC<WorkoutPreviewPanelProps> = ({
           mode="preview"
           showLineNumbers={false}
           onStartWorkout={onStartWorkout}
+          onBlocksChange={onBlocksChange}
           filter={filter}
           height="100%"
         />

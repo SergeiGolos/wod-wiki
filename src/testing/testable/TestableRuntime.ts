@@ -6,6 +6,7 @@ import { IOutputStatement } from "@/core/models/OutputStatement";
 import { ITestSetupAction } from "../setup";
 import { MemoryOperation, StackOperation } from "./TestableBlock";
 import { MemoryLocation } from "@/runtime/memory/MemoryLocation";
+import { FragmentVisibility, getFragmentVisibility } from "@/runtime/memory/FragmentVisibility";
 
 
 // Re-export for backward compatibility
@@ -202,6 +203,9 @@ class StubBlock implements IRuntimeBlock {
   pushMemory(location: import("@/runtime/memory/MemoryLocation").IMemoryLocation): void { this._memory.push(location); }
   getMemoryByTag(tag: import("@/runtime/memory/MemoryLocation").MemoryTag): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return this._memory.filter(loc => loc.tag === tag); }
   getAllMemory(): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return [...this._memory]; }
+  getFragmentMemoryByVisibility(visibility: FragmentVisibility): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] {
+    return this._memory.filter(loc => getFragmentVisibility(loc.tag) === visibility);
+  }
   hasMemory(): boolean { return false; }
   getMemory<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T): any { return undefined; }
   setMemoryValue<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T, _value: any): void { }
