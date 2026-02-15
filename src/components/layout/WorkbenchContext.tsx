@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { planPath, trackPath, reviewPath } from '@/lib/routes';
 import { WodBlock, WorkoutResults, Section } from '../../markdown-editor/types';
@@ -121,7 +122,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId, view: legacyView } = useParams<{
     noteId?: string; sectionId?: string; resultId?: string; view?: string;
   }>();
-  const { pathname } = useLocation();
+  const { pathname, state: locationState } = useLocation();
 
   // Derive routeView from the URL path segments (explicit routes) or legacy :view param
   const routeView = useMemo(() => {
@@ -293,6 +294,17 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
     async function loadRouteResult() {
       try {
+        // Optimization: Check navigation state first (passed from completeWorkout)
+        if (locationState && (locationState as any).result) {
+          const passedResult = (locationState as any).result as WorkoutResults;
+          // If passedResult corresponds to this view (weak check, but good for immediate transition)
+          // We assume if state is present, it's relevant.
+          if (!cancelled) {
+            setCurrentEntry(prev => prev ? ({ ...prev, results: passedResult }) : prev);
+            return;
+          }
+        }
+
         let targetResult;
 
         if (routeResultId) {
@@ -327,7 +339,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     loadRouteResult();
 
     return () => { cancelled = true; };
-  }, [currentEntry?.id, routeView, routeSectionId, routeResultId]);
+  }, [currentEntry?.id, routeView, routeSectionId, routeResultId, locationState]);
 
   // Derived state: Parse content into sections and blocks whenever content changes
   useEffect(() => {
@@ -538,13 +550,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   }, [routeId, navigate, pathname, setViewMode]);
 
   const completeWorkout = useCallback((result: WorkoutResults) => {
-    setResults(prev => [...prev, result]);
-    setViewMode('review');
+    const resultId = uuidv4(); // Generate deterministic ID for this result
 
-    // Explicitly set saved state if we successfully save below
-    // (Actual save logic handles promise)
-
-    // Auto-save if provider supports writing
+    // Auto-save in BACKGROUND if provider supports writing
+    // We do NOT wait for this to finish to avoid blocking the UI
     if (provider.capabilities.canWrite) {
       const titleMatch = content.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
@@ -554,6 +563,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         rawContent: content,
         results: result, // Pass full result object
         sectionId: selectedBlockId ?? undefined, // Link result to the WOD section
+        resultId, // Pass the ID we generated
       };
 
       if (routeId) {
@@ -574,7 +584,19 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         }).catch(err => console.error('Failed to auto-save workout:', err));
       }
     }
-  }, [provider, content, setViewMode, routeId, selectedBlockId]);
+
+    setResults(prev => [...prev, result]);
+
+    // Navigate to Review with the specific result ID IMMEDIATELY
+    // Pass the result object in state so the destination can use it without waiting for IDB
+    if (routeId) {
+      navigate(reviewPath(routeId, selectedBlockId ?? undefined, resultId), {
+        state: { result }
+      });
+    } else {
+      setViewMode('review');
+    }
+  }, [provider, content, routeId, selectedBlockId, navigate, setViewMode]);
 
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {

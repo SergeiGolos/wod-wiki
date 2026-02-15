@@ -148,15 +148,19 @@ export class LocalStorageContentProvider implements IContentProvider {
 
   async updateEntry(
     id: string,
-    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string }
+    patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     const existing = await this.getEntry(id);
     if (!existing) {
       throw new Error(`Entry not found: ${id}`);
     }
+
+    // Extract resultId to prevent it from leaking into HistoryEntry if it's not defined there
+    const { resultId: _resultId, sectionId: _sectionId, ...cleanPatch } = patch;
+
     const updated: HistoryEntry = {
       ...existing,
-      ...patch,
+      ...cleanPatch,
       updatedAt: Date.now(),
     };
     localStorage.setItem(`${KEY_PREFIX}${id}`, JSON.stringify(updated));

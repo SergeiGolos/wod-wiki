@@ -58,7 +58,7 @@ export class StaticContentProvider implements IContentProvider {
 
   async updateEntry(
     _id: string,
-    _patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds'>>
+    _patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'targetDate' | 'clonedIds'>> & { sectionId?: string; resultId?: string }
   ): Promise<HistoryEntry> {
     throw new Error('Static provider is read-only');
   }

@@ -4,6 +4,7 @@ import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { CodeStatement } from "@/core/models/CodeStatement";
 import { TimerFragment } from "../fragments/TimerFragment";
 import { RoundsFragment } from "../fragments/RoundsFragment";
+import { RepFragment } from "../fragments/RepFragment";
 import { AmrapLogicStrategy } from "../strategies/logic/AmrapLogicStrategy";
 import { IntervalLogicStrategy } from "../strategies/logic/IntervalLogicStrategy";
 import { GenericTimerStrategy } from "../strategies/components/GenericTimerStrategy";
@@ -18,7 +19,8 @@ import {
     TimerInitBehavior,
     RoundInitBehavior,
     SoundCueBehavior,
-    HistoryRecordBehavior
+    HistoryRecordBehavior,
+    RepSchemeBehavior
 } from "../../behaviors";
 
 describe("JIT Composition", () => {
@@ -134,5 +136,60 @@ describe("JIT Composition", () => {
         expect(block?.blockType).toBe("Timer");
         expect(block?.getBehavior(TimerInitBehavior)).toBeDefined();
         expect(block?.getBehavior(SoundCueBehavior)).toBeDefined();
+    });
+
+    it("should auto-detect rep scheme from RepFragments and add RepSchemeBehavior", () => {
+        // (21-15-9) — parser creates RoundsFragment(3) + 3 RepFragments
+        const meta = new CodeMetadata(0, 0, 0, 0);
+        const statement = new CodeStatement();
+        statement.fragments = [
+            new RoundsFragment(3, meta),
+            new RepFragment(21, meta),
+            new RepFragment(15, meta),
+            new RepFragment(9, meta),
+        ];
+
+        compiler.registerStrategy(new GenericLoopStrategy());
+
+        const block = compiler.compile([statement], runtime);
+
+        expect(block).toBeDefined();
+        if (!block) return;
+
+        expect(block.blockType).toBe("Rounds");
+        expect(block.label).toBe("21-15-9");
+
+        // RepSchemeBehavior should be attached with round-robin rep scheme
+        const repBehavior = block.getBehavior(RepSchemeBehavior);
+        expect(repBehavior).toBeDefined();
+        expect(repBehavior!.repScheme).toEqual([21, 15, 9]);
+        expect(repBehavior!.getRepsForRound(1)).toBe(21);
+        expect(repBehavior!.getRepsForRound(2)).toBe(15);
+        expect(repBehavior!.getRepsForRound(3)).toBe(9);
+        // Round-robin wraps
+        expect(repBehavior!.getRepsForRound(4)).toBe(21);
+    });
+
+    it("should not add RepSchemeBehavior when no RepFragments present", () => {
+        // (3 rounds) — only RoundsFragment, no RepFragments
+        const meta = new CodeMetadata(0, 0, 0, 0);
+        const statement = new CodeStatement();
+        statement.fragments = [
+            new RoundsFragment(3, meta),
+        ];
+
+        compiler.registerStrategy(new GenericLoopStrategy());
+
+        const block = compiler.compile([statement], runtime);
+
+        expect(block).toBeDefined();
+        if (!block) return;
+
+        expect(block.blockType).toBe("Rounds");
+        expect(block.label).toBe("3 Rounds");
+
+        // No RepSchemeBehavior when no rep fragments
+        const repBehavior = block.getBehavior(RepSchemeBehavior);
+        expect(repBehavior).toBeUndefined();
     });
 });

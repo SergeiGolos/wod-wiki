@@ -55,7 +55,7 @@ export const DEFAULT_PRESET: GridViewPreset = {
   id: 'default',
   label: 'Default',
   filters: {
-    outputTypes: ['segment', 'completion', 'metric'],
+    outputTypes: ['segment', 'completion', 'metric', 'milestone'],
   },
   visibleColumns: DEFAULT_VISIBLE_COLUMNS,
   isDefault: true,

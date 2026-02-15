@@ -111,7 +111,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     };
 
     const handleNext = () => {
-        if (runtime) {
+        if (runtime && execution.status !== 'completed') {
             runtime.handle(new NextEvent());
             if (execution.status !== 'running') {
                 execution.step();

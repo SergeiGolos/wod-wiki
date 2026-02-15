@@ -52,11 +52,23 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         let totalRounds = 1;
         let repScheme: number[] | undefined = undefined;
 
-        if (Array.isArray(roundsFragment.value)) {
-            repScheme = roundsFragment.value as number[];
-            totalRounds = repScheme.length;
-        } else if (typeof roundsFragment.value === 'number') {
+        if (typeof roundsFragment.value === 'number') {
             totalRounds = roundsFragment.value;
+        }
+
+        // Collect individual RepFragments from the statement to build a rep scheme.
+        // The parser creates separate RepFragment instances (e.g., 21-15-9 becomes
+        // three RepFragments with values 21, 15, 9) alongside a RoundsFragment.
+        const repFragments = statement.fragments
+            .filter(f => f.fragmentType === FragmentType.Rep && typeof f.value === 'number')
+            .map(f => f.value as number);
+
+        if (repFragments.length > 0) {
+            repScheme = repFragments;
+            // If rounds weren't explicitly set, infer from rep scheme length
+            if (totalRounds <= 1) {
+                totalRounds = repScheme.length;
+            }
         }
 
         // Block metadata
@@ -112,7 +124,8 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new PromoteFragmentBehavior({
             fragmentType: FragmentType.Rounds,
             enableDynamicUpdates: true,
-            origin: 'execution'
+            origin: 'execution',
+            sourceTag: 'round'
         }));
     }
 }

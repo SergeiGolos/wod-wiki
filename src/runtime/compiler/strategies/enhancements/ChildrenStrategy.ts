@@ -2,6 +2,7 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
+import { FragmentType } from "@/core/models/CodeFragment";
 
 // Specific behaviors not covered by aspect composers
 import {
@@ -13,7 +14,8 @@ import {
     TimerInitBehavior,
     TimerCompletionBehavior,
     PopOnNextBehavior,
-    CompletedBlockPopBehavior
+    CompletedBlockPopBehavior,
+    PromoteFragmentBehavior
 } from "../../../behaviors";
 
 /**
@@ -106,6 +108,16 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
                 builder.addBehavior(new RoundAdvanceBehavior());
                 builder.addBehavior(new RoundCompletionBehavior());
             }
+
+            // Promote current round fragment to children (e.g. for display)
+            // Explicitly target 'round' tag to get the runtime value, avoiding
+            // ambiguity with other fragments (like total rounds or parser hints)
+            builder.addBehavior(new PromoteFragmentBehavior({
+                fragmentType: FragmentType.Rounds,
+                origin: 'execution',
+                enableDynamicUpdates: true,
+                sourceTag: 'round'
+            }));
         }
     }
 }

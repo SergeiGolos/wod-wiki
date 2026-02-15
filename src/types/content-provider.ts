@@ -31,6 +31,6 @@ export interface IContentProvider {
   // Write (throws if !capabilities.canWrite)
   saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry>;
   cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry>;
-  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string }): Promise<HistoryEntry>;
+  updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string }): Promise<HistoryEntry>;
   deleteEntry(id: string): Promise<void>;
 }
