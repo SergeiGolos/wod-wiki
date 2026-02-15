@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Calendar, Clock, Tag, Trash2, Link as LinkIcon, GitFork, ExternalLink, ArrowRightLeft, Plus, BookOpen, Sun, Moon, Volume2, VolumeX, Bug, Github, Settings } from 'lucide-react';
+import { X, Calendar, Clock, Tag, Trash2, Link as LinkIcon, GitFork, ExternalLink, ArrowRightLeft, Plus, BookOpen, Sun, Moon, Volume2, VolumeX, Bug, Github, Settings, Download, Upload, FileDown } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAudio } from '@/components/audio/AudioContext';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
@@ -13,6 +13,7 @@ import { isNotebookTag } from '@/types/notebook';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 import { CloneDateDropdown } from '@/components/workbench/CloneDateDropdown';
+import { exportAllNotes, exportNote, importFromZip, pickFile } from '@/services/ExportImportService';
 
 export interface NoteDetailsPanelProps {
     isOpen: boolean;
@@ -168,6 +169,17 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
         } catch (error) {
             console.error('Failed to delete entry:', error);
             alert('Failed to delete entry');
+        }
+    };
+
+    // ---- Export handler ----
+    const handleExportNote = async () => {
+        if (!entry) return;
+        try {
+            await exportNote(entry);
+        } catch (error) {
+            console.error('Failed to export note:', error);
+            alert('Failed to export note');
         }
     };
 
@@ -430,12 +442,19 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                     </div>
 
                     {/* Preferences */}
-                    <PreferencesSection />
+                    <PreferencesSection provider={provider} />
 
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-4 border-t border-border bg-muted/20">
+                <div className="p-4 border-t border-border bg-muted/20 space-y-2">
+                    <button
+                        onClick={handleExportNote}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
+                    >
+                        <FileDown className="w-4 h-4" />
+                        Export Note
+                    </button>
                     <button
                         onClick={handleDelete}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-sm font-medium"
@@ -453,10 +472,16 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
 // Preferences Section — relocated from the toolbar
 // ──────────────────────────────────────────────────────────────
 
-const PreferencesSection: React.FC = () => {
+interface PreferencesSectionProps {
+    provider?: IContentProvider;
+}
+
+const PreferencesSection: React.FC<PreferencesSectionProps> = ({ provider }) => {
     const { setTheme, theme } = useTheme();
     const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
     const { isDebugMode, toggleDebugMode } = useDebugMode();
+    const [isExporting, setIsExporting] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     const toggleTheme = () => {
         if (theme === 'dark') setTheme('light');
@@ -464,6 +489,45 @@ const PreferencesSection: React.FC = () => {
         else {
             const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             setTheme(sys === 'dark' ? 'light' : 'dark');
+        }
+    };
+
+    const handleExportAll = async () => {
+        if (!provider) return;
+        setIsExporting(true);
+        try {
+            await exportAllNotes(provider);
+        } catch (err) {
+            alert(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleImport = async () => {
+        if (!provider) return;
+        setIsImporting(true);
+        try {
+            const file = await pickFile('.zip');
+            if (!file) {
+                setIsImporting(false);
+                return;
+            }
+
+            const result = await importFromZip(file, provider);
+
+            if (result.errors.length > 0) {
+                alert(`Import completed with errors:\n${result.imported} notes imported\n\nErrors:\n${result.errors.join('\n')}`);
+            } else {
+                alert(`Successfully imported ${result.imported} notes!`);
+            }
+
+            // Reload the page to show imported notes
+            window.location.reload();
+        } catch (err) {
+            alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+            setIsImporting(false);
         }
     };
 
@@ -514,6 +578,31 @@ const PreferencesSection: React.FC = () => {
                     {isDebugMode && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
                     <span className="text-xs text-muted-foreground">{isDebugMode ? 'On' : 'Off'}</span>
                 </button>
+
+                {/* Separator for data management */}
+                {provider && (
+                    <>
+                        <div className="h-px bg-border my-2" />
+
+                        <button
+                            onClick={handleExportAll}
+                            disabled={isExporting}
+                            className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Download className="w-4 h-4 shrink-0" />
+                            <span className="flex-1">{isExporting ? 'Exporting...' : 'Export All Data'}</span>
+                        </button>
+
+                        <button
+                            onClick={handleImport}
+                            disabled={isImporting}
+                            className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Upload className="w-4 h-4 shrink-0" />
+                            <span className="flex-1">{isImporting ? 'Importing...' : 'Import Data'}</span>
+                        </button>
+                    </>
+                )}
 
                 <a
                     href="https://github.com/SergeiGolos/wod-wiki"

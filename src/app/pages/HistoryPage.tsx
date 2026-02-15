@@ -31,6 +31,7 @@ import { toShortId } from '@/lib/idUtils';
 import { planPath, trackPath } from '@/lib/routes';
 import { useWodCollections } from '@/hooks/useWodCollections';
 import { NewPostButton } from '@/components/history/NewPostButton';
+import { createNoteFromMarkdown } from '@/services/ExportImportService';
 
 
 
@@ -303,7 +304,22 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         await createNewEntry(targetDate);
         const entries = await provider.getEntries();
         setHistoryEntries(entries);
-    }, [createNewEntry]);
+    }, [createNewEntry, provider]);
+
+    const handleImportMarkdown = useCallback(async (markdown: string) => {
+        try {
+            const noteData = createNoteFromMarkdown(markdown);
+            const newEntry = await provider.saveEntry(noteData);
+            const entries = await provider.getEntries();
+            setHistoryEntries(entries);
+
+            // Navigate to the new entry
+            navigate(planPath(toShortId(newEntry.id)));
+        } catch (error) {
+            console.error('Failed to import markdown:', error);
+            alert('Failed to import markdown: ' + (error instanceof Error ? error.message : String(error)));
+        }
+    }, [provider, navigate]);
 
 
     const selectedEntries = useMemo(() => {
@@ -543,6 +559,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     <div id="tutorial-new-workout" className="hidden md:flex">
                         <NewPostButton
                             onCreate={createEntryInNotebook}
+                            onImportMarkdown={handleImportMarkdown}
                         />
                     </div>
 
