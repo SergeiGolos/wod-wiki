@@ -238,9 +238,16 @@ export function matchSectionIds(oldSections: Section[], newSections: Section[]):
       old => old.type === newSec.type && old.startLine === newSec.startLine
     );
     if (positionMatch) {
-      const updated = { ...newSec, id: positionMatch.id, version: positionMatch.version, createdAt: positionMatch.createdAt };
+      // Content changed, so bump version
+      const newVersion = (positionMatch.version || 1) + 1;
+      const updated = {
+        ...newSec,
+        id: positionMatch.id,
+        version: newVersion,
+        createdAt: positionMatch.createdAt
+      };
       if (updated.wodBlock) {
-        updated.wodBlock = { ...updated.wodBlock, id: positionMatch.id };
+        updated.wodBlock = { ...updated.wodBlock, id: positionMatch.id, version: newVersion };
       }
       return updated;
     }

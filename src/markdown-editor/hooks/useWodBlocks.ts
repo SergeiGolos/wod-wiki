@@ -10,10 +10,10 @@ import { detectWodBlocks, findBlockAtLine } from '../utils/blockDetection';
 export interface UseWodBlocksOptions {
   /** Debounce delay for detection (default: 300ms) */
   debounceMs?: number;
-  
+
   /** Whether to auto-parse blocks */
   autoParse?: boolean;
-  
+
   /** Parse delay after detection (default: 500ms) */
   parseDelayMs?: number;
 }
@@ -21,19 +21,19 @@ export interface UseWodBlocksOptions {
 export interface UseWodBlocksResult {
   /** All detected blocks */
   blocks: WodBlock[];
-  
+
   /** Currently active block (based on cursor) */
   activeBlock: WodBlock | null;
-  
+
   /** Get block by ID */
   getBlock: (id: string) => WodBlock | undefined;
-  
+
   /** Update block content */
   updateBlock: (id: string, updates: Partial<WodBlock>) => void;
-  
+
   /** Trigger re-detection */
   redetect: () => void;
-  
+
   /** Whether detection is in progress */
   detecting: boolean;
 }
@@ -55,50 +55,60 @@ export function useWodBlocks(
   const [blocks, setBlocks] = useState<WodBlock[]>([]);
   const [activeBlock, setActiveBlock] = useState<WodBlock | null>(null);
   const [detecting, setDetecting] = useState(false);
-  
+
   const detectionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Detect blocks from content
   const detectBlocks = useCallback(() => {
     setDetecting(true);
-    
+
     try {
       const detected = detectWodBlocks(content);
-      
+
       setBlocks(prevBlocks => {
         // Preserve state from existing blocks where possible
         const updatedBlocks = detected.map(newBlock => {
-          // 1. Try exact match (content + position)
-          let existingBlock = prevBlocks.find(b => 
-            b.startLine === newBlock.startLine && 
+          // 1. Try exact match (content + position) - Highest confidence
+          let existingBlock = prevBlocks.find(b =>
+            b.startLine === newBlock.startLine &&
             b.content === newBlock.content
           );
-          
-          // 2. Try position match (same start line) - assumes editing content in place
+
+          // 2. Try content match (same content, different position) - Block moved
           if (!existingBlock) {
-            existingBlock = prevBlocks.find(b => 
+            existingBlock = prevBlocks.find(b =>
+              b.content === newBlock.content
+            );
+          }
+
+          // 3. Try position match (same start line, different content) - Block edited in place
+          // We only do this if we haven't found a better match yet.
+          if (!existingBlock) {
+            existingBlock = prevBlocks.find(b =>
               b.startLine === newBlock.startLine
             );
           }
 
-          // 3. Try fuzzy match (same ID if we can track it? No, ID is on the block object)
-          // If we had a way to track "this block moved", we'd need more complex diffing.
-          // For now, startLine match handles the most common case (editing inside block).
-          
           if (existingBlock) {
-            // Keep existing block state
+            const contentChanged = existingBlock.content !== newBlock.content;
+
+            // Keep existing block ID for stable keys
             return {
               ...newBlock,
               id: existingBlock.id,
-              state: existingBlock.state,
-              parser: existingBlock.parser,
-              statements: existingBlock.statements,
-              errors: existingBlock.errors,
-              runtime: existingBlock.runtime,
-              results: existingBlock.results
+              // Only keep parsed/runtime state if content IS IDENTICAL
+              state: contentChanged ? 'idle' : existingBlock.state,
+              parser: contentChanged ? undefined : existingBlock.parser,
+              statements: contentChanged ? [] : existingBlock.statements,
+              errors: contentChanged ? [] : existingBlock.errors,
+              runtime: contentChanged ? undefined : existingBlock.runtime,
+              results: contentChanged ? undefined : existingBlock.results,
+              // Keep other metadata
+              createdAt: existingBlock.createdAt,
+              version: contentChanged ? (existingBlock.version || 1) + 1 : existingBlock.version
             };
           }
-          
+
           return newBlock;
         });
 
@@ -106,17 +116,17 @@ export function useWodBlocks(
         if (prevBlocks.length === updatedBlocks.length) {
           const isSame = prevBlocks.every((b, i) => {
             const ub = updatedBlocks[i];
-            return b.id === ub.id && 
-                   b.content === ub.content && 
-                   b.startLine === ub.startLine &&
-                   b.endLine === ub.endLine;
+            return b.id === ub.id &&
+              b.content === ub.content &&
+              b.startLine === ub.startLine &&
+              b.endLine === ub.endLine;
           });
-          
+
           if (isSame) {
             return prevBlocks;
           }
         }
-        
+
         return updatedBlocks;
       });
     } finally {
@@ -156,17 +166,17 @@ export function useWodBlocks(
       const lineNumber = position.lineNumber - 1;
       const block = findBlockAtLine(blocks, lineNumber);
       const newBlock = block || null;
-      
+
       setActiveBlock(prev => {
         // If reference is same, no update needed
         if (prev === newBlock) return prev;
-        
+
         // If ID is same (and content presumably same if blocks didn't change), 
         // but object reference is different (e.g. blocks regenerated),
         // we SHOULD update to the new block object to get latest state.
         // However, if blocks didn't change (due to our optimization above),
         // then block === prev should catch it.
-        
+
         return newBlock;
       });
     };
@@ -187,8 +197,8 @@ export function useWodBlocks(
 
   // Update block
   const updateBlock = useCallback((id: string, updates: Partial<WodBlock>) => {
-    setBlocks(prevBlocks => 
-      prevBlocks.map(block => 
+    setBlocks(prevBlocks =>
+      prevBlocks.map(block =>
         block.id === id ? { ...block, ...updates } : block
       )
     );

@@ -19,7 +19,8 @@ import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import { HistoryDetailsPanel } from '@/components/workbench/HistoryDetailsPanel';
-import { PanelRightOpen } from 'lucide-react';
+import { PanelRightOpen, HelpCircle } from 'lucide-react';
+import { useTutorialStore } from '@/hooks/useTutorialStore';
 
 import type { PanelSpan } from '@/components/layout/panel-system/types';
 // import { NotebookMenu } from '@/components/notebook/NotebookMenu';
@@ -59,6 +60,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     const { collections, activeCollectionId, activeCollection, activeCollectionItems, setActiveCollection } = useWodCollections();
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const { startTutorial } = useTutorialStore();
 
     // Clear history selection when collection changes
     useEffect(() => {
@@ -372,7 +374,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     const mainPanel = (
         <div className="flex h-full divide-x divide-border">
             {/* Filter Sidebar */}
-            <div className="w-[280px] flex-shrink-0 bg-muted/10 h-full overflow-hidden flex flex-col">
+            <div id="tutorial-filters" className="w-[280px] flex-shrink-0 bg-muted/10 h-full overflow-hidden flex flex-col">
                 <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                     <ListFilter
                         calendarDate={historySelection.calendarDate}
@@ -489,7 +491,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     return (
         <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
             {/* Header */}
-            <div className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
+            <div id="tutorial-header" className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
                 <div className="font-bold flex items-center gap-4">
                     <div
                         className={cn(
@@ -526,14 +528,26 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         <Search className="h-4 w-4" />
                     </Button>
 
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => startTutorial('history')}
+                        className="text-muted-foreground hover:text-foreground"
+                        title="Show Help"
+                    >
+                        <HelpCircle className="h-5 w-5" />
+                    </Button>
+
                     <div className="h-6 w-px bg-border mx-2" />
 
-                    <NewPostButton
-                        onCreate={createEntryInNotebook}
-                        className="hidden md:flex"
-                    />
+                    <div id="tutorial-new-workout" className="hidden md:flex">
+                        <NewPostButton
+                            onCreate={createEntryInNotebook}
+                        />
+                    </div>
 
                     <button
+                        id="tutorial-details"
                         onClick={() => setIsDetailsOpen(!isDetailsOpen)}
                         className={cn(
                             "p-2 rounded-md transition-colors",

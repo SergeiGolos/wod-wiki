@@ -33,8 +33,8 @@ import { WodBlock } from '../../markdown-editor/types';
 // Helper to generate a unique key for a block based on its content/statements
 const getBlockKey = (block: WodBlock | null): string => {
   if (!block) return 'null';
-  // Include validation hash if available, or just length/content signature
-  return `${block.id}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
+  // Include version and hash of statements to ensure re-init when content or parsing changes
+  return `${block.id}-v${block.version || 0}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
 };
 
 interface WorkbenchSyncBridgeProps {

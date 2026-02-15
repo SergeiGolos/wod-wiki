@@ -143,8 +143,8 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
       .filter(s => s.type === 'wod' && s.wodBlock && !s.deleted)
       .map(s => {
         const block = s.wodBlock!;
-        // Re-parse if statements are missing (happens on initial load from DB or when sections change)
-        if (!block.statements || block.statements.length === 0) {
+        // Re-parse if state is idle or statements are missing
+        if (block.state === 'idle' || !block.statements || block.statements.length === 0) {
           try {
             const result = parseWodBlock(block.content, sharedParser);
             return {
@@ -271,13 +271,23 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
       if (s.type === 'wod') {
         const innerContent = stripWodFences(cleanForUpdate);
         const newLineCount = cleanForUpdate.split('\n').length;
+        const contentChanged = s.wodBlock?.content !== innerContent;
+
         return {
           ...s,
           rawContent: cleanForUpdate,
           displayContent: innerContent,
           lineCount: newLineCount,
           endLine: s.startLine + newLineCount - 1,
-          wodBlock: s.wodBlock ? { ...s.wodBlock, content: innerContent } : undefined,
+          wodBlock: s.wodBlock ? {
+            ...s.wodBlock,
+            content: innerContent,
+            // Clear stale state if content changed
+            statements: contentChanged ? [] : s.wodBlock.statements,
+            errors: contentChanged ? [] : s.wodBlock.errors,
+            state: contentChanged ? 'idle' : s.wodBlock.state,
+            version: contentChanged ? (s.wodBlock.version || 1) + 1 : s.wodBlock.version
+          } : undefined,
         };
       }
 

@@ -22,9 +22,10 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen } from 'lucide-react';
-// import { NotebookMenu } from '../notebook/NotebookMenu'; // Unused
-// import { toNotebookTag } from '../../types/notebook';
+import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle } from 'lucide-react';
+import { useTutorialStore } from '@/hooks/useTutorialStore';
+import { NotebookMenu } from '../notebook/NotebookMenu';
+import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
 import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
 import { useTheme } from '../theme/ThemeProvider';
@@ -47,7 +48,6 @@ import { getWodContent } from '../../app/wod-loader';
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TimerScreen } from '../workbench/TrackPanel';
 import { ReviewGrid } from '../review-grid';
-import { NoteActions } from '../notebook/NoteActions';
 
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
@@ -92,6 +92,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     setContent,
     setViewMode,
     saveState,
+    currentEntry: contextEntry,
   } = useWorkbench();
 
   const { provider } = useWorkbench();
@@ -99,8 +100,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Current entry state
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
 
-  // Current entry tags (for Add to Notebook button) -- Not currently used, commented out
-  // const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
+  // Current entry tags (for Add to Notebook button)
+  const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
     // Helper to synthesize template entry from static content
     const createTemplateEntry = (id: string, content: string): HistoryEntry => {
@@ -151,16 +152,22 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
       // 3. Nothing found
       setCurrentEntry(null);
-      // setCurrentEntryTags([]);
+      setCurrentEntryTags([]);
     };
 
     loadEntry();
   }, [routeId, provider]);
 
+  // Sync tags if entry changes externally
+  useEffect(() => {
+    if (currentEntry) {
+      setCurrentEntryTags(currentEntry.tags);
+    }
+  }, [currentEntry]);
+
   // Details panel state
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  /* Unused in current design - keeping for reference if NotebookMenu returns
   const handleNotebookToggleForCurrent = useCallback(async (notebookId: string, isAdding: boolean) => {
     if (!routeId || provider.mode !== 'history') return;
     const tag = toNotebookTag(notebookId);
@@ -173,7 +180,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       setCurrentEntry({ ...currentEntry, tags: newTags });
     }
   }, [routeId, provider, currentEntryTags, currentEntry]);
-  */
 
   // Update document title based on current entry or route
   useEffect(() => {
@@ -210,6 +216,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     handleNext,
     handleStartWorkoutAction,
   } = useWorkbenchSync();
+
+  const { startTutorial } = useTutorialStore();
 
   // Local UI state
   // editorInstance kept for useBlockEditor and scroll-to-block compatibility
@@ -269,17 +277,19 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // --- View Components ---
 
   const planPanel = (
-    <PlanPanel
-      initialContent={initialContent}
-      value={content}
-      sections={sections}
-      onStartWorkout={handleStartWorkoutAction}
-      setActiveBlockId={setActiveBlockId}
-      setBlocks={setBlocks}
-      setContent={setContent}
-      provider={provider}
-      sourceNoteId={routeId}
-    />
+    <div id="tutorial-editor" className="h-full">
+      <PlanPanel
+        initialContent={initialContent}
+        value={content}
+        sections={sections}
+        onStartWorkout={handleStartWorkoutAction}
+        setActiveBlockId={setActiveBlockId}
+        setBlocks={setBlocks}
+        setContent={setContent}
+        provider={provider}
+        sourceNoteId={contextEntry?.id ?? routeId}
+      />
+    </div>
   );
 
 
@@ -309,16 +319,18 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   );
 
   const reviewGridPanel = (
-    <ReviewGrid
-      runtime={runtime}
-      segments={analyticsSegments}
-      selectedSegmentIds={selectedAnalyticsIds}
-      onSelectSegment={toggleAnalyticsSegment}
-      groups={analyticsGroups}
-      rawData={analyticsData}
-      hoveredBlockKey={hoveredBlockKey}
-      onHoverBlockKey={setHoveredBlockKey}
-    />
+    <div id="tutorial-review-grid" className="h-full">
+      <ReviewGrid
+        runtime={runtime}
+        segments={analyticsSegments}
+        selectedSegmentIds={selectedAnalyticsIds}
+        onSelectSegment={toggleAnalyticsSegment}
+        groups={analyticsGroups}
+        rawData={analyticsData}
+        hoveredBlockKey={hoveredBlockKey}
+        onHoverBlockKey={setHoveredBlockKey}
+      />
+    </div>
   );
 
   const viewDescriptors = useMemo(() => {
@@ -349,7 +361,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   return (
     <>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
-        <div className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
+        <div id="tutorial-header" className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
           <div className="font-bold flex items-center gap-4">
             <div
               className={cn(
@@ -440,9 +452,22 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
             {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => startTutorial(viewMode as any)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Show Help"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Button>
+
+            {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
+
             {viewDescriptors.map(view => (
               <Button
                 key={view.id}
+                id={`tutorial-view-mode-${view.id}`}
                 variant={viewMode === view.id ? 'default' : 'ghost'}
                 size={isMobile ? 'icon' : 'sm'}
                 onClick={() => setViewMode(view.id as ViewMode)}
@@ -453,22 +478,16 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               </Button>
             ))}
 
-            <div className="h-6 w-px bg-border mx-2" />
-
-            <NoteActions
-              entry={currentEntry}
-              showLabel={currentEntry?.type === 'template'}
-              variant={currentEntry?.type === 'template' ? 'primary' : 'default'}
-              provider={provider}
-              onClone={async (targetDate?: number) => {
-                if (routeId && provider.mode === 'history') {
-                  const cloned = await provider.cloneEntry(routeId, targetDate);
-                  navigate(planPath(cloned.id));
-                }
-              }}
+            <NotebookMenu
+              entryTags={currentEntryTags}
+              onEntryToggle={handleNotebookToggleForCurrent}
+              iconOnly={true}
             />
 
+            <div className="h-6 w-px bg-border mx-2" />
+
             <button
+              id="tutorial-details"
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               className={cn(
                 "p-2 rounded-md transition-colors",
@@ -496,6 +515,12 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             entry={currentEntry}
             provider={provider}
             onEntryUpdate={(updated) => setCurrentEntry(updated)}
+            onClone={async (targetDate?: number) => {
+              if (routeId && provider.mode === 'history') {
+                const cloned = await provider.cloneEntry(routeId, targetDate);
+                navigate(planPath(cloned.id));
+              }
+            }}
           />
         </div>
       </div >

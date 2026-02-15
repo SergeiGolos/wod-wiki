@@ -13,11 +13,10 @@ import { getWodContent } from '../../app/wod-loader';
 import { toNotebookTag } from '../../types/notebook';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRef } from 'react';
-import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
+import { parseDocumentSections, matchSectionIds } from '../../markdown-editor/utils/sectionParser';
 import { parseWodBlock } from '../../markdown-editor/utils/parseWodBlock';
 import { sharedParser } from '../../parser/parserInstance';
-import type { Section as EditorSection } from '../../markdown-editor/types/section';
-
+import type { Section as EditorSection } from '../../markdown-editor/types/section'; import { indexedDBService } from '../../services/db/IndexedDBService';
 /**
  * WorkbenchContext - Manages document state and view navigation
  *
@@ -273,13 +272,62 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
 
   const [blocks, setBlocksState] = useState<WodBlock[]>([]);
-  const setBlocks = useCallback((_newBlocks: WodBlock[]) => {
-    // Blocks are now primarily derived from content internally
-    // but we keep this as a no-op to satisfy the interface.
+  const setBlocks = useCallback((newBlocks: WodBlock[]) => {
+    // Allow external updates (e.g. from SectionEditor) to reflect changes immediately
+    // before the debounced content update triggers a re-parse.
+    setBlocksState(newBlocks);
   }, []);
 
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
+
+  // --- Load route-specific result for review view ---
+  // When the URL contains a sectionId (and optionally resultId), load the
+  // matching WorkoutResult from IndexedDB and patch currentEntry.results
+  // so that WorkbenchSyncBridge renders analytics for the correct result.
+  useEffect(() => {
+    if (!currentEntry || routeView !== 'review') return;
+    if (!routeSectionId && !routeResultId) return;
+
+    let cancelled = false;
+
+    async function loadRouteResult() {
+      try {
+        let targetResult;
+
+        if (routeResultId) {
+          // Specific result requested — load by ID
+          targetResult = await indexedDBService.getResultById(routeResultId);
+        }
+
+        if (!targetResult && routeSectionId) {
+          // Load latest result for this section
+          const sectionResults = await indexedDBService.getResultsForSection(
+            currentEntry!.id, routeSectionId
+          );
+          if (sectionResults.length > 0) {
+            targetResult = sectionResults.sort(
+              (a, b) => b.completedAt - a.completedAt
+            )[0];
+          }
+        }
+
+        if (targetResult && !cancelled) {
+          // Patch currentEntry.results with the specific result data
+          setCurrentEntry(prev => {
+            if (!prev) return prev;
+            return { ...prev, results: targetResult!.data };
+          });
+        }
+      } catch (err) {
+        console.error('[WorkbenchContext] Failed to load route-specific result:', err);
+      }
+    }
+
+    loadRouteResult();
+
+    return () => { cancelled = true; };
+  }, [currentEntry?.id, routeView, routeSectionId, routeResultId]);
 
   // Derived state: Parse content into sections and blocks whenever content changes
   useEffect(() => {
@@ -290,9 +338,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     }
 
     const newSections = parseDocumentSections(content);
-    setSectionsState(newSections);
 
-    const newBlocks: WodBlock[] = newSections
+    // Stabilize IDs to avoid losing selection/runtime state
+    const stabilizedSections = sections
+      ? matchSectionIds(sections, newSections)
+      : newSections;
+
+    setSectionsState(stabilizedSections);
+
+    const newBlocks: WodBlock[] = stabilizedSections
       .filter((s: EditorSection) => s.type === 'wod' && s.wodBlock)
       .map((s: EditorSection) => {
         const block = s.wodBlock!;
@@ -498,7 +552,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       const payload = {
         title,
         rawContent: content,
-        results: result // Pass full result object
+        results: result, // Pass full result object
+        sectionId: selectedBlockId ?? undefined, // Link result to the WOD section
       };
 
       if (routeId) {
@@ -519,7 +574,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         }).catch(err => console.error('Failed to auto-save workout:', err));
       }
     }
-  }, [provider, content, setViewMode, routeId]);
+  }, [provider, content, setViewMode, routeId, selectedBlockId]);
 
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {

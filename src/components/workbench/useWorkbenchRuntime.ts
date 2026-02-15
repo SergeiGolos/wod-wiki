@@ -77,6 +77,21 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [completeWorkout]); // Minimal deps to ensure it runs on unmount with final values in closure
 
+    // Auto-complete: when the runtime stack empties (all blocks done),
+    // save output statements and navigate to review automatically.
+    useEffect(() => {
+        if (execution.status === 'completed' && execution.startTime) {
+            completeWorkout({
+                startTime: execution.startTime,
+                endTime: Date.now(),
+                duration: execution.elapsedTime,
+                metrics: [],
+                logs: runtime?.getOutputStatements() || [],
+                completed: true
+            });
+        }
+    }, [execution.status]); // Only fires on status transition to 'completed'
+
     // Initialize runtime when entering track view with selected block
     // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock
     // This hook just provides the callbacks and state

@@ -51,6 +51,7 @@ export interface WorkoutResult {
 
     scriptId: string;     // Link to specific Script version
     noteId: string;       // Link to parent Note (for easier querying)
+    sectionId?: string;   // Link to the WOD section that was executed
 
     data: WorkoutResults; // The actual results data
 

@@ -8,7 +8,7 @@
  * Includes a play button for launching workout execution.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { Section } from '../../types/section';
 import type { WodBlock } from '../../types';
 import { SECTION_LINE_HEIGHT } from '../SectionContainer';
@@ -17,6 +17,8 @@ import { Play, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddWodToNoteDropdown } from '@/components/workbench/AddWodToNoteDropdown';
 import type { IContentProvider } from '@/types/content-provider';
+import { ICodeStatement } from '@/core/models/CodeStatement';
+import { WodBlockResults } from './WodBlockResults';
 
 export interface WodBlockDisplayProps {
   section: Section;
@@ -118,17 +120,8 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
       {/* Block content */}
       <div className="px-2">
         {hasParsedStatements ? (
-          // Render parsed statements with fragment visualization
-          <div className="py-1 space-y-0.5">
-            {wodBlock!.statements!.map((stmt, i) => (
-              <StatementDisplay
-                key={i}
-                statement={stmt}
-                compact
-                isGrouped
-              />
-            ))}
-          </div>
+          // Render parsed statements with fragment visualization, including hierarchy and grouping
+          <WodStatementList statements={wodBlock!.statements!} />
         ) : hasErrors ? (
           // Show raw content + error indicator
           <div>
@@ -155,6 +148,13 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
         )}
       </div>
 
+      {/* Results segment — shows recent completions with review links */}
+      {sourceNoteId && section.id && (
+        <div className="px-2 pb-1">
+          <WodBlockResults noteId={sourceNoteId} sectionId={section.id} />
+        </div>
+      )}
+
       {/* Fence bottom indicator */}
       <div
         className="px-2 text-[10px] text-muted-foreground/40 font-mono border-t border-border/30 bg-muted/30"
@@ -165,3 +165,120 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
     </div>
   );
 };
+
+/**
+ * Internal component to handle grouped and indented statement lists
+ */
+const WodStatementList: React.FC<{ statements: ICodeStatement[] }> = ({ statements }) => {
+  const statementMap = useMemo(() => new Map<number, ICodeStatement>(statements.map(s => [s.id, s])), [statements]);
+
+  const items = useMemo(() => {
+    const result: (ICodeStatement | LinkedGroup)[] = [];
+    let currentGroup: ICodeStatement[] = [];
+
+    for (const stmt of statements) {
+      const isLink = isLinkStatement(stmt);
+
+      if (currentGroup.length === 0) {
+        currentGroup.push(stmt);
+        continue;
+      }
+
+      const previousStmt = currentGroup[currentGroup.length - 1];
+      const previousIsLink = isLinkStatement(previousStmt);
+
+      // Only group if BOTH are links
+      if (isLink && previousIsLink) {
+        currentGroup.push(stmt);
+      } else {
+        // Close previous group
+        if (currentGroup.length === 1) {
+          result.push(currentGroup[0]);
+        } else {
+          result.push({
+            id: `group-${currentGroup[0].id}`,
+            statements: [...currentGroup]
+          });
+        }
+        // Start new group with this statement
+        currentGroup = [stmt];
+      }
+    }
+
+    // Push remaining
+    if (currentGroup.length > 0) {
+      if (currentGroup.length === 1) {
+        result.push(currentGroup[0]);
+      } else {
+        result.push({
+          id: `group-${currentGroup[0].id}`,
+          statements: [...currentGroup]
+        });
+      }
+    }
+
+    return result;
+  }, [statements]);
+
+  return (
+    <div className="py-1 space-y-0.5">
+      {items.map((item) => {
+        const firstStmt = 'statements' in item ? item.statements[0] : item;
+        const depth = getDepth(firstStmt, statementMap);
+        const indentStyle = { marginLeft: `${depth * 1.5}rem` };
+
+        if ('statements' in item) {
+          const group = item as LinkedGroup;
+          return (
+            <div key={group.id} style={indentStyle}>
+              <div className="bg-card/30 rounded border border-border/30 overflow-hidden my-0.5">
+                {group.statements.map((stmt, i) => (
+                  <div key={stmt.id} className={i < group.statements.length - 1 ? "border-b border-border/20" : ""}>
+                    <StatementDisplay
+                      statement={stmt}
+                      compact
+                      isGrouped
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        } else {
+          const stmt = item as ICodeStatement;
+          return (
+            <div key={stmt.id} style={indentStyle}>
+              <StatementDisplay
+                statement={stmt}
+                compact
+                isGrouped
+              />
+            </div>
+          );
+        }
+      })}
+    </div>
+  );
+};
+
+interface LinkedGroup {
+  id: string;
+  statements: ICodeStatement[];
+}
+
+function isLinkStatement(statement: ICodeStatement): boolean {
+  return statement.fragments.some(f => f.type === 'lap' && f.value === 'compose');
+}
+
+function getDepth(stmt: ICodeStatement, allStatements: Map<number, ICodeStatement>): number {
+  let depth = 0;
+  let current = stmt;
+  while (current.parent) {
+    const parent = allStatements.get(current.parent);
+    if (!parent) break;
+    depth++;
+    current = parent;
+    if (depth > 10) break;
+  }
+  return depth;
+}

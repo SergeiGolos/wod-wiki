@@ -160,7 +160,30 @@ class IndexedDBService {
     }
 
     async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
-        return (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
+        // Try exact match first
+        let results = await (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
+
+        // Fallback: if noteId is a full UUID but results were saved with short ID (or vice versa),
+        // scan all results for suffix match
+        if (results.length === 0) {
+            const allResults = await (await this.dbPromise).getAll('results');
+            results = allResults.filter(r =>
+                r.noteId === noteId ||
+                r.noteId.endsWith('-' + noteId) ||
+                noteId.endsWith('-' + r.noteId)
+            );
+        }
+
+        return results;
+    }
+
+    async getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]> {
+        const noteResults = await this.getResultsForNote(noteId);
+        return noteResults.filter(r => r.sectionId === sectionId);
+    }
+
+    async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
+        return (await this.dbPromise).get('results', resultId);
     }
 
     // --- Section History Operations ---

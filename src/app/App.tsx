@@ -4,6 +4,7 @@ import { PlaygroundPage } from './pages/PlaygroundPage';
 import { NotebookPage } from './pages/NotebookPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { NotebookProvider } from '@/components/notebook/NotebookContext';
+import { HelpTutorial } from '@/components/ui/HelpTutorial';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { migrationService } from '@/services/db/MigrationService';
 
@@ -24,6 +25,7 @@ export const App: React.FC = () => {
                 <DebugModeProvider>
                     <HashRouter>
                         <NotebookProvider>
+                            <HelpTutorial />
                             <Routes>
                                 <Route path="/" element={<HistoryPage provider={provider} />} />
                                 <Route path="/history" element={<Navigate to="/" replace />} />

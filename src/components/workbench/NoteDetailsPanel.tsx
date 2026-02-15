@@ -12,6 +12,7 @@ import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
 import { isNotebookTag } from '@/types/notebook';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
+import { CloneDateDropdown } from '@/components/workbench/CloneDateDropdown';
 
 export interface NoteDetailsPanelProps {
     isOpen: boolean;
@@ -19,14 +20,15 @@ export interface NoteDetailsPanelProps {
     entry: HistoryEntry | null;
     provider?: IContentProvider;
     onEntryUpdate?: (updated: HistoryEntry) => void;
+    onClone?: (targetDate?: number) => void;
 }
 
 export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
     isOpen,
-    onClose,
     entry,
     provider,
     onEntryUpdate,
+    onClone,
 }) => {
     const navigate = useNavigate();
     const [sourceEntry, setSourceEntry] = useState<HistoryEntry | null>(null);
@@ -182,12 +184,6 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Note Details</h2>
-                    <button
-                        onClick={onClose}
-                        className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
                 </div>
 
                 {/* Content */}
@@ -359,12 +355,24 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
 
                     {/* Linked Notes */}
                     <div className="space-y-3">
-                        <label className="text-xs font-medium text-muted-foreground block mb-1">
-                            <span className="flex items-center gap-1.5">
-                                <GitFork className="w-3.5 h-3.5" />
-                                Linked Notes
-                            </span>
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-medium text-muted-foreground block">
+                                <span className="flex items-center gap-1.5">
+                                    <GitFork className="w-3.5 h-3.5" />
+                                    Linked Notes
+                                </span>
+                            </label>
+                            {onClone && (
+                                <CloneDateDropdown
+                                    onClone={onClone}
+                                    provider={provider}
+                                    variant="icon"
+                                    showLabel={false}
+                                    title="Clone/Use Template"
+                                    className="h-6 w-6"
+                                />
+                            )}
+                        </div>
 
                         {/* Cloned From (source) */}
                         {entry.templateId && (

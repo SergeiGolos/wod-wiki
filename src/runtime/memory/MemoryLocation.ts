@@ -29,7 +29,9 @@ export type MemoryTag =
     | 'fragment:rep-target'
     // fragment:private — internal behavior state (not shown in normal UI)
     | 'fragment:tracked'
-    | 'fragment:label';
+    | 'fragment:label'
+    // fragment:next — preview fragments for the next child to be executed
+    | 'fragment:next';
 
 /**
  * A single memory location in a block's memory list.

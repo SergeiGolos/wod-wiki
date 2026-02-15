@@ -255,7 +255,7 @@ export class IndexedDBContentProvider implements IContentProvider {
         };
     }
 
-    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type' | 'clonedIds' | 'targetDate'>>): Promise<HistoryEntry> {
+    async updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'type' | 'clonedIds' | 'targetDate'>> & { sectionId?: string }): Promise<HistoryEntry> {
         let note = await indexedDBService.getNote(id);
 
         if (!note) {
@@ -341,8 +341,9 @@ export class IndexedDBContentProvider implements IContentProvider {
             const resultData = patch.results;
             const newResult: WorkoutResult = {
                 id: uuidv4(),
-                scriptId: id, // Link to note ID as the base versioning unit now
-                noteId: id,
+                scriptId: note.id, // Link to note's canonical UUID
+                noteId: note.id,   // Use resolved UUID (not raw route param)
+                sectionId: patch.sectionId, // Link to the WOD section that was executed
                 data: resultData,
                 completedAt: resultData.endTime || now
             };

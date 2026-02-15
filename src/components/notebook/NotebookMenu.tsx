@@ -30,11 +30,14 @@ interface NotebookMenuProps {
     entryTags?: string[];
     /** Callback when toggling notebook membership for the current entry */
     onEntryToggle?: (notebookId: string, isAdding: boolean) => void;
+    /** Whether to show only the icon without the "Notebook" label */
+    iconOnly?: boolean;
 }
 
 export const NotebookMenu: React.FC<NotebookMenuProps> = ({
     entryTags,
     onEntryToggle,
+    iconOnly = false,
 }) => {
     const {
         notebooks,
@@ -60,12 +63,12 @@ export const NotebookMenu: React.FC<NotebookMenuProps> = ({
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size={iconOnly ? "icon" : "sm"}
                         className="text-muted-foreground hover:text-foreground"
                         aria-label="Switch notebook"
                     >
                         <BookOpen className="h-4 w-4" />
-                        <span className="ml-1.5">Notebook</span>
+                        {!iconOnly && <span className="ml-1.5">Notebook</span>}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-64">

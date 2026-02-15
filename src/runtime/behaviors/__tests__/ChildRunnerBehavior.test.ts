@@ -43,9 +43,10 @@ describe('ChildRunnerBehavior', () => {
 
             const actions = behavior.onMount(ctx);
 
-            expect(actions.length).toBe(1);
+            expect(actions.length).toBe(2);
             expect(actions[0].type).toBe('compile-child-block');
             expect(actions[0].payload).toEqual({ statementIds: [1, 2] });
+            expect(actions[1].type).toBe('update-next-preview');
         });
 
         it('should return no actions for empty childGroups on mount', () => {
@@ -78,12 +79,13 @@ describe('ChildRunnerBehavior', () => {
 
             const actions = behavior.onNext(ctx);
 
-            expect(actions.length).toBe(1);
+            expect(actions.length).toBe(2);
             expect(actions[0].type).toBe('compile-child-block');
             expect(actions[0].payload).toEqual({ statementIds: [2] });
+            expect(actions[1].type).toBe('update-next-preview');
         });
 
-        it('should return no actions when all children dispatched', () => {
+        it('should return clear preview when all children dispatched', () => {
             const behavior = new ChildRunnerBehavior({ childGroups: [[1]] });
             const ctx = createMockContext();
 
@@ -91,8 +93,9 @@ describe('ChildRunnerBehavior', () => {
 
             const actions = behavior.onNext(ctx);
 
-            // No more children to dispatch
-            expect(actions).toEqual([]);
+            // No more children to dispatch — only a clear-preview action
+            expect(actions.length).toBe(1);
+            expect(actions[0].type).toBe('update-next-preview');
         });
 
         it('should dispatch children in order', () => {
@@ -109,8 +112,9 @@ describe('ChildRunnerBehavior', () => {
             const actions2 = behavior.onNext(ctx); // pushes [30]
             expect(actions2[0].payload).toEqual({ statementIds: [30] });
 
-            const actions3 = behavior.onNext(ctx); // no more
-            expect(actions3).toEqual([]);
+            const actions3 = behavior.onNext(ctx); // no more — only clear-preview
+            expect(actions3.length).toBe(1);
+            expect(actions3[0].type).toBe('update-next-preview');
         });
     });
 
@@ -196,7 +200,7 @@ describe('ChildRunnerBehavior', () => {
 
             // After reset, onNext should push first child again
             const actions = behavior.onNext(ctx);
-            expect(actions.length).toBe(1);
+            expect(actions.length).toBe(2);
             expect(actions[0].payload).toEqual({ statementIds: [1] });
         });
     });

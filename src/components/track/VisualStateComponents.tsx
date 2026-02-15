@@ -3,15 +3,16 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, ListTree, ArrowRight, Timer, Eye, ArrowUpCircle, Lock, Table2 } from 'lucide-react';
+import { Clock, CheckCircle2, ListTree, Timer, Eye, ArrowUpCircle, Lock, Table2 } from 'lucide-react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
 import { ICodeFragment } from '@/core/models/CodeFragment';
-import { FragmentVisibility, VISIBILITY_ICONS, VISIBILITY_LABELS } from '@/runtime/memory/FragmentVisibility';
+import { FragmentVisibility, VISIBILITY_LABELS } from '@/runtime/memory/FragmentVisibility';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import { BlockDebugDialog } from './BlockDebugDialog';
+import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 
 // ============================================================================
 // History View
@@ -349,65 +350,10 @@ export const RuntimeStackView: React.FC<{
 
 export const LookaheadView: React.FC<{
     runtime: IScriptRuntime;
-}> = ({ runtime }) => {
-    const activeBlock = runtime.stack.current;
-    const script = runtime.script;
+}> = ({ }) => {
+    const preview = useNextPreview();
 
-    if (!activeBlock || !script) return null;
-
-    // Helper to find next sibling in script hierarchy
-    const findNext = (block: IRuntimeBlock): { label: string, type?: string } | null => {
-        // 1. Get current source ID
-        const sourceId = block.sourceIds?.[0];
-        if (sourceId === undefined) return null;
-
-        // 2. Find statement and parent
-        const statement = script.getId(sourceId);
-        if (!statement || !statement.parent) return null;
-
-        const parentStatement = script.getId(statement.parent);
-        if (!parentStatement) return null;
-
-        // 3. Find index in parent's children
-        // children is number[][] (groups)
-        const groupIndex = parentStatement.children.findIndex((group: number[]) => group.includes(sourceId));
-
-        // 4. Check for next sibling
-        if (groupIndex !== -1 && groupIndex < parentStatement.children.length - 1) {
-            const nextGroup = parentStatement.children[groupIndex + 1];
-            const nextId = nextGroup[0];
-            const nextStatement = script.getId(nextId);
-
-            // Resolve label
-            const labelFragment = nextStatement?.fragments.find((f: any) => f.fragmentType === 'label');
-
-            const rawMeta = (nextStatement?.meta as any)?.raw;
-
-            // Simple label fallback
-            let label = (labelFragment?.value as string) ?? rawMeta ?? "Next Block";
-
-            // Clean up raw text if needed (remove leading hashtags etc if raw is used)
-            if (!labelFragment?.value && rawMeta) {
-                label = rawMeta.substring(0, 30) + (rawMeta.length > 30 ? "..." : "");
-            }
-
-            return { label, type: 'block' };
-        }
-
-        // 5. If no sibling, recurse up? (Simplification: just return null to indicate end of this section)
-        // Ideally we would look at the parent's next sibling, but that might be too far ahead visually.
-        // Let's try one level up for better context.
-        // Get the runtime block that corresponds to the parent statement?
-        // This is tricky because we only have the *script* parent ID, not the runtime block.
-        // However, we can check if the Runtime Parent (stack[len-2]) matches the Script Parent.
-        // For now, let's just say "End of [Parent Label]" check.
-
-        return null;
-    };
-
-    const nextStep = findNext(activeBlock);
-
-    if (!nextStep) {
+    if (!preview) {
         return (
             <div className="flex items-center gap-3 text-sm p-3 border border-dashed rounded-lg text-muted-foreground bg-muted/10">
                 <CheckCircle2 className="h-4 w-4" />
@@ -418,17 +364,16 @@ export const LookaheadView: React.FC<{
 
     return (
         <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 text-sm p-3 bg-card/50 rounded-lg border border-border/60 hover:bg-card/80 transition-colors">
-                <div className="bg-primary/10 p-1.5 rounded-md text-primary shrink-0">
-                    <ArrowRight className="h-4 w-4" />
-                </div>
-                <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">
-                        Up Next
-                    </span>
-                    <span className="font-medium truncate text-foreground pr-2">
-                        {nextStep.label}
-                    </span>
+            <div className={cn(
+                "rounded-md border text-sm transition-all",
+                "bg-card/50 border-border/60 hover:bg-card/80"
+            )}>
+                {/* Fragment rows — rendered like a workout block card */}
+                <div className="flex flex-col gap-0.5 p-3">
+                    <FragmentSourceRow
+                        fragments={preview.fragments}
+                        size="compact"
+                    />
                 </div>
             </div>
         </div>

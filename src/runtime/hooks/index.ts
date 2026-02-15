@@ -67,6 +67,7 @@
 // Stack hooks (preferred for stack access)
 export { useStackSnapshot, useSnapshotBlocks, useSnapshotCurrentBlock } from './useStackSnapshot';
 export { useOutputStatements } from './useOutputStatements';
+export { useNextPreview, type NextPreview } from './useNextPreview';
 
 // Stack-driven display hooks (preferred for Clock UI)
 export {

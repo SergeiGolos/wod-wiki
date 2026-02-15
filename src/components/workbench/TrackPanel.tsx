@@ -106,13 +106,13 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       <div className="flex h-full overflow-hidden">
         {/* Left Column: Session / Visual State */}
         {!isCompact && (
-          <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
+          <div id="tutorial-track-visual" className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
             <VisualStatePanel />
           </div>
         )}
 
         {/* Right Column: Timer & Controls (Clock) */}
-        <div className={cn(
+        <div id="tutorial-track-clock" className={cn(
           "flex flex-col bg-background transition-all duration-300",
           isCompact ? "w-full" : "w-1/2"
         )}>

@@ -45,6 +45,7 @@ const PROMOTE_TAGS: ReadonlySet<MemoryTag> = new Set<MemoryTag>([
 const PRIVATE_TAGS: ReadonlySet<MemoryTag> = new Set<MemoryTag>([
     'fragment:tracked',
     'fragment:label',
+    'fragment:next',
 ]);
 
 /**

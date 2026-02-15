@@ -3,6 +3,7 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { PushBlockAction } from '../actions/stack/PushBlockAction';
+import { UpdateNextPreviewAction } from '../actions/stack/UpdateNextPreviewAction';
 
 export interface ChildRunnerConfig {
     /** Child statement ID groups to execute */
@@ -75,10 +76,14 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
 
     constructor(private config: ChildRunnerConfig) { }
 
-    onMount(_ctx: IBehaviorContext): IRuntimeAction[] {
+    onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         // When skipOnMount is true, defer first child push to onNext().
         // This allows WaitingToStartInjectorBehavior to push first.
         if (this.config.skipOnMount) {
+            // Even when skipping mount, set the next preview to the first child
+            if (this.config.childGroups.length > 0) {
+                return [this.createNextPreview(ctx, this.config.childGroups[0])];
+            }
             return [];
         }
 
@@ -86,7 +91,11 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         if (this.config.childGroups.length > 0) {
             const firstGroup = this.config.childGroups[0];
             this.childIndex = 1; // Next to push
-            return [new CompileChildBlockAction(firstGroup)];
+            const actions: IRuntimeAction[] = [new CompileChildBlockAction(firstGroup)];
+            // Set next preview to the upcoming child (index 1), or clear if none
+            const upcomingGroup = this.config.childGroups[1];
+            actions.push(this.createNextPreview(ctx, upcomingGroup));
+            return actions;
         }
         return [];
     }
@@ -97,7 +106,7 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
         // Don't push more children if the parent block is already completed
         // (e.g., timer expired on an AMRAP, round cap reached externally).
         if (ctx.block.isComplete) {
-            return [];
+            return [this.createNextPreview(ctx)];
         }
         
         // Push next child if available
@@ -105,11 +114,15 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
             const nextGroup = this.config.childGroups[this.childIndex];
             this.childIndex++;
             this._dispatchedOnLastNext = true;
-            return [new CompileChildBlockAction(nextGroup)];
+            const actions: IRuntimeAction[] = [new CompileChildBlockAction(nextGroup)];
+            // Set next preview to the upcoming child after this one, or clear if none
+            const upcomingGroup = this.config.childGroups[this.childIndex];
+            actions.push(this.createNextPreview(ctx, upcomingGroup));
+            return actions;
         }
 
-        // No more children - parent will handle completion
-        return [];
+        // No more children — clear the next preview
+        return [this.createNextPreview(ctx)];
     }
 
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
@@ -158,5 +171,17 @@ export class ChildRunnerBehavior implements IRuntimeBehavior {
      */
     prepareForNextCycle(): void {
         this._dispatchedOnLastNext = false;
+    }
+
+    /**
+     * Create an UpdateNextPreviewAction for the block's `fragment:next` memory.
+     * If `nextGroup` is provided, the action will populate fragments from those
+     * statement IDs. If omitted or undefined, the preview is cleared.
+     */
+    private createNextPreview(ctx: IBehaviorContext, nextGroup?: number[]): UpdateNextPreviewAction {
+        return new UpdateNextPreviewAction(
+            ctx.block.key.toString(),
+            nextGroup ?? []
+        );
     }
 }
