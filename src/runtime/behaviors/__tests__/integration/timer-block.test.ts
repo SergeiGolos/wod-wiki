@@ -116,18 +116,25 @@ describe('Timer Block Integration', () => {
             expect(runtime.completionReason).toBe('timer-expired');
         });
 
-        it('should not emit completion output on unmount (results in fragment:result)', () => {
+        it('should emit completion output with timer results on unmount', () => {
             const behaviors = createCountdownBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             runtime.clock.advance(7500);
             unmountBehaviors(behaviors, ctx);
 
-            // Segment output emitted on mount; no completion on unmount
+            // Segment output emitted on mount; completion on unmount with timing
             const segments = runtime.outputs.filter(o => o.type === 'segment');
             expect(segments.length).toBeGreaterThanOrEqual(1);
             const completionOutputs = runtime.outputs.filter(o => o.type === 'completion');
-            expect(completionOutputs.length).toBe(0);
+            expect(completionOutputs.length).toBe(1);
+
+            // Completion output should contain elapsed and spans fragments
+            const completion = completionOutputs[0];
+            const hasElapsed = (completion.fragments as any[]).some(f => f.fragmentType === 'elapsed');
+            const hasSpans = (completion.fragments as any[]).some(f => f.fragmentType === 'spans');
+            expect(hasElapsed).toBe(true);
+            expect(hasSpans).toBe(true);
         });
     });
 

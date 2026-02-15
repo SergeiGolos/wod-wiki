@@ -158,6 +158,10 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
  * Convert Segment[] into GridRow[], pivoting fragments into cells.
  * User overrides are merged into the cell data.
  */
+interface SegmentWithContext extends Segment {
+  context?: Record<string, unknown>;
+}
+
 function segmentsToRows(
   segments: Segment[],
   userOverrides: Map<string, ICodeFragment[]>,
@@ -188,24 +192,33 @@ function segmentsToRows(
       );
     }
 
+    const outputType = ((seg as SegmentWithContext).context?.outputType as string) ?? seg.type;
+
+    // Default elapsed from duration (seconds -> ms)
+    let elapsed = seg.duration * 1000;
+
+    // For milestone outputs, check if an explicit ElapsedFragment exists
+    // Round milestones emit an ElapsedFragment with the current timer value
+    if (outputType === 'milestone') {
+      const elapsedFrag = seg.fragments?.find((f) => f.fragmentType === FragmentType.Elapsed);
+      if (elapsedFrag && typeof elapsedFrag.value === 'number') {
+        elapsed = elapsedFrag.value;
+      }
+    }
+
     return {
       id: seg.id,
       index: idx + 1,
       sourceBlockKey: blockKey ?? `segment-${seg.id}`,
       sourceStatementId: (seg as SegmentWithContext).context?.sourceStatementId as number | undefined,
-      outputType: (((seg as SegmentWithContext).context?.outputType as string) ?? seg.type) as GridRow['outputType'],
+      outputType: outputType as GridRow['outputType'],
       stackLevel: seg.depth,
-      elapsed: seg.duration * 1000, // Segment stores duration in seconds
+      elapsed, // Segment stores duration in seconds
       total: (seg.endTime - seg.startTime) * 1000,
       completionReason: (seg as SegmentWithContext).context?.completionReason as string | undefined,
       cells,
     } satisfies GridRow;
   });
-}
-
-/** Minimal typing for the SegmentWithMetadata context field */
-interface SegmentWithContext extends Segment {
-  context?: Record<string, unknown>;
 }
 
 /**

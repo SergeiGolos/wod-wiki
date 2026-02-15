@@ -139,17 +139,23 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         expect(runtime.completionReason).toBe('user-advance');
     });
 
-    // Step 9: SegmentOutputBehavior emits segment on mount only (no completion output)
-    it('should not emit completion output on unmount', () => {
+    // Step 9: SegmentOutputBehavior emits completion output on unmount with timing
+    it('should emit completion output with elapsed and spans on unmount', () => {
         const behaviors = createExerciseBehaviors();
         const ctx = mountBehaviors(behaviors, runtime, block);
 
         runtime.clock.advance(45000);
         unmountBehaviors(behaviors, ctx);
 
-        // Completion outputs are no longer emitted — results live in fragment:result memory
+        // Completion output now emitted with elapsed/total/spans fragments
         const completions = findOutputs(runtime, 'completion');
-        expect(completions.length).toBe(0);
+        expect(completions.length).toBe(1);
+
+        const completion = completions[0];
+        const hasElapsed = (completion.fragments as any[]).some(f => f.fragmentType === 'elapsed');
+        const hasSpans = (completion.fragments as any[]).some(f => f.fragmentType === 'spans');
+        expect(hasElapsed).toBe(true);
+        expect(hasSpans).toBe(true);
     });
 
     // Step 10: SoundCueBehavior unmount emits completion-beep

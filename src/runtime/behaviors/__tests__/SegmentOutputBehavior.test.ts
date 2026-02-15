@@ -20,6 +20,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         subscribe: vi.fn(),
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
+        pushMemory: vi.fn(),
         markComplete: vi.fn(),
         getMemory: vi.fn((type: string) => memoryStore.get(type)),
         setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
@@ -86,13 +87,59 @@ describe('SegmentOutputBehavior', () => {
     });
 
     describe('onUnmount', () => {
-        it('should not emit any output on unmount', () => {
+        it('should emit completion output on unmount', () => {
             const behavior = new SegmentOutputBehavior();
             const ctx = createMockContext();
 
             behavior.onUnmount(ctx);
 
-            expect(ctx.emitOutput).not.toHaveBeenCalled();
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'completion',
+                expect.any(Array),
+                expect.objectContaining({ label: 'Default Label' })
+            );
+        });
+
+        it('should include elapsed and spans fragments for non-timer blocks', () => {
+            const behavior = new SegmentOutputBehavior();
+            const ctx = createMockContext();
+
+            behavior.onUnmount(ctx);
+
+            const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
+            const hasElapsed = emittedFragments.some((f: any) => f.fragmentType === 'elapsed');
+            const hasSpans = emittedFragments.some((f: any) => f.fragmentType === 'spans');
+            const hasTotal = emittedFragments.some((f: any) => f.fragmentType === 'total');
+            const hasSystemTime = emittedFragments.some((f: any) => f.fragmentType === 'system-time');
+            expect(hasElapsed).toBe(true);
+            expect(hasSpans).toBe(true);
+            expect(hasTotal).toBe(true);
+            expect(hasSystemTime).toBe(true);
+        });
+
+        it('should create degenerate span for non-timer blocks', () => {
+            const behavior = new SegmentOutputBehavior();
+            const ctx = createMockContext();
+
+            behavior.onUnmount(ctx);
+
+            const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
+            const spansFrag = emittedFragments.find((f: any) => f.fragmentType === 'spans');
+            expect(spansFrag).toBeDefined();
+            expect(spansFrag.spans.length).toBe(1);
+            expect(spansFrag.spans[0].started).toBe(spansFrag.spans[0].ended);
+        });
+
+        it('should write to fragment:result memory', () => {
+            const behavior = new SegmentOutputBehavior();
+            const ctx = createMockContext();
+
+            behavior.onUnmount(ctx);
+
+            expect(ctx.pushMemory).toHaveBeenCalledWith(
+                'fragment:result',
+                expect.any(Array)
+            );
         });
 
         it('should return no actions on unmount', () => {
@@ -105,17 +152,20 @@ describe('SegmentOutputBehavior', () => {
         });
     });
 
-    describe('segment-only output lifecycle', () => {
-        it('should emit segment on mount only — no completion on unmount', () => {
+    describe('segment + completion output lifecycle', () => {
+        it('should emit segment on mount and completion on unmount', () => {
             const behavior = new SegmentOutputBehavior({ label: 'Workout' });
             const ctx = createMockContext();
 
             behavior.onMount(ctx);
             behavior.onUnmount(ctx);
 
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
+            expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'segment', expect.any(Array), expect.objectContaining({ label: 'Workout' })
+            );
+            expect(ctx.emitOutput).toHaveBeenCalledWith(
+                'completion', expect.any(Array), expect.objectContaining({ label: 'Workout' })
             );
         });
     });

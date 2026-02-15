@@ -145,7 +145,7 @@ describe('Loop Block Integration', () => {
             expect(milestones.length).toBeGreaterThanOrEqual(1);
         });
 
-        it('should not emit completion output on unmount (results in fragment:result)', () => {
+        it('should emit completion output with spans on unmount', () => {
             const behaviors = createLoopBehaviors(2);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -153,9 +153,13 @@ describe('Loop Block Integration', () => {
             advanceBehaviors(behaviors, ctx); // Round 3 > 2, complete
             unmountBehaviors(behaviors, ctx);
 
-            // Completion outputs are no longer emitted — results live in fragment:result memory
+            // Completion output now emitted with elapsed/total/spans fragments
             const completions = findOutputs(runtime, 'completion');
-            expect(completions.length).toBe(0);
+            expect(completions.length).toBe(1);
+
+            const completion = completions[0];
+            const hasSpans = (completion.fragments as any[]).some(f => f.fragmentType === 'spans');
+            expect(hasSpans).toBe(true);
         });
 
         it('should record history on unmount', () => {

@@ -2,25 +2,28 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { ICodeFragment } from '../../core/models/CodeFragment';
+import { TimerState } from '../memory/MemoryTypes';
+import { TimeSpan } from '../models/TimeSpan';
+import { calculateElapsed } from '../time/calculateElapsed';
+import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
+import { TotalFragment } from '../compiler/fragments/TotalFragment';
+import { SpansFragment } from '../compiler/fragments/SpansFragment';
+import { SystemTimeFragment } from '../compiler/fragments/SystemTimeFragment';
 
 /**
- * SegmentOutputBehavior emits a 'segment' output on mount to announce
- * that a block has started executing.
+ * SegmentOutputBehavior emits output statements at block lifecycle boundaries.
  * 
  * ## Aspect: Output
  * 
- * This behavior is the segment output emitter. It does NOT emit completion
- * outputs — block results are captured via `fragment:result` memory by
- * other behaviors (e.g., TimerOutputBehavior) and read by consumers
- * (e.g., HistoryRecordBehavior) directly from block memory.
+ * **On mount:** Emits a `segment` output announcing block execution started.
+ * Merges `fragment:display` (parser-prescribed identity) with runtime state
+ * fragments (round, timer).
  * 
- * On mount it merges:
- *   1. `fragment:display` — parser-prescribed fragments (the block's identity)
- *   2. Runtime state (round, timer) — container state identity
- * 
- * Blocks that only want milestones (no segment tracking) simply don't
- * include `SegmentOutputBehavior` — they use `RoundOutputBehavior` or
- * `HistoryRecordBehavior` alone.
+ * **On unmount:** Emits a `completion` output with final timing results.
+ * Computes elapsed/total from timer spans and includes ElapsedFragment,
+ * TotalFragment, SpansFragment, and SystemTimeFragment. For non-timer
+ * blocks, creates a degenerate span (start === end) so every block has
+ * at least one span registered.
  */
 export class SegmentOutputBehavior implements IRuntimeBehavior {
     private readonly label?: string;
@@ -85,10 +88,64 @@ export class SegmentOutputBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
-        // No completion output emitted.
-        // Block results live in `fragment:result` memory and are
-        // consumed directly by interested behaviors / consumers.
+    onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
+        const now = ctx.clock.now;
+        const nowMs = now.getTime();
+        const blockKey = ctx.block.key.toString();
+
+        // Collect display fragments for the completion output
+        const displayFragments = this.getFragments(ctx);
+        const stateFragments = this.getRuntimeStateFragments(ctx);
+
+        // Merge display + state, deduplicating
+        const displayTypes = new Set(displayFragments.map(f => `${f.fragmentType}:${f.type}`));
+        const uniqueStateFragments = stateFragments.filter(
+            f => !displayTypes.has(`${f.fragmentType}:${f.type}`)
+        );
+        const fragments: ICodeFragment[] = [...displayFragments, ...uniqueStateFragments];
+
+        // Read timer state — TimerTickBehavior.onUnmount() has already
+        // closed the last span by this point (behaviors execute in order).
+        const timer = ctx.getMemory('timer') as TimerState | undefined;
+
+        if (timer && timer.spans && timer.spans.length > 0) {
+            // Timer block: compute elapsed/total from closed spans
+            const elapsed = calculateElapsed(timer, nowMs);
+            fragments.push(new ElapsedFragment(elapsed, blockKey, now));
+
+            const firstStart = timer.spans[0].started;
+            const lastSpan = timer.spans[timer.spans.length - 1];
+            const lastEnd = lastSpan.ended ?? nowMs;
+            const total = Math.max(0, lastEnd - firstStart);
+            fragments.push(new TotalFragment(total, blockKey, now));
+
+            fragments.push(new SpansFragment([...timer.spans], blockKey, now));
+        } else {
+            // Non-timer block: create a degenerate span (start === end)
+            // so every block has at least one span registered.
+            const degenerateSpan = new TimeSpan(nowMs, nowMs);
+            fragments.push(new ElapsedFragment(0, blockKey, now));
+            fragments.push(new TotalFragment(0, blockKey, now));
+            fragments.push(new SpansFragment([degenerateSpan], blockKey, now));
+        }
+
+        // System time for audit trail (uses real Date.now(), not the mock clock)
+        fragments.push(new SystemTimeFragment(new Date(), blockKey));
+
+        // Also write to fragment:result memory for other consumers
+        ctx.pushMemory('fragment:result', fragments.filter(f =>
+            f.fragmentType === 'elapsed' ||
+            f.fragmentType === 'total' ||
+            f.fragmentType === 'spans' ||
+            f.fragmentType === 'system-time'
+        ));
+
+        // Emit completion output with all fragments
+        ctx.emitOutput('completion', fragments, {
+            label: this.label ?? ctx.block.label,
+            completionReason: ctx.block.completionReason
+        });
+
         return [];
     }
 
