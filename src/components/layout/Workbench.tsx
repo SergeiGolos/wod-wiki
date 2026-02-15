@@ -22,16 +22,14 @@ import { CommandProvider, useCommandPalette } from '../../components/command-pal
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
 import { editor as monacoEditor } from 'monaco-editor';
-import { Github, Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen } from 'lucide-react';
+import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen } from 'lucide-react';
 // import { NotebookMenu } from '../notebook/NotebookMenu'; // Unused
 // import { toNotebookTag } from '../../types/notebook';
 import { Button } from '@/components/ui/button';
 import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
-import { ThemeToggle } from '../theme/ThemeToggle';
 import { AudioProvider } from '../audio/AudioContext';
-import { AudioToggle } from '../audio/AudioToggle';
-import { DebugModeProvider, DebugButton } from './DebugModeContext';
+import { DebugModeProvider } from './DebugModeContext';
 import { CommitGraph } from '../ui/CommitGraph';
 import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
 import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
@@ -410,10 +408,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               </div>
             )}
             {!isMobile && (
-              <DebugButton />
-            )}
-
-            {!isMobile && (
               <div className="relative mx-2 w-full max-w-[200px] hidden md:block">
                 <Button
                   variant="outline"
@@ -475,20 +469,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 }
               }}
             />
-
-            <AudioToggle />
-            <ThemeToggle />
-
-            {!isMobile && (
-              <a
-                href="https://github.com/SergeiGolos/wod-wiki"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Github className="h-5 w-5" />
-              </a>
-            )}
 
             <button
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}

@@ -390,8 +390,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     const isCorrectNoteLoaded = !routeId || currentEntry?.id === routeId || currentEntry?.id.endsWith(routeId);
     if (!isCorrectNoteLoaded) return;
 
-    // No section ID → show preview panel (no redirect)
-    if (!routeSectionId) return;
+    // No section ID or already on not-found path → show preview panel (no redirect)
+    if (!routeSectionId || routeSectionId === 'notfound') return;
 
     // Case 2: Link is broken (ID not found in current blocks)
     const hasExact = blocks.some(b => b.id === selectedBlockId);
@@ -418,8 +418,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       }
 
       // If hash matching also fails, the link is truly broken
-      console.log(`[WorkbenchContext] Block NOT found for ID: ${selectedBlockId}. Redirecting to Track selection with notFound.`);
-      navigate(`${trackPath(routeId || '')}?notFound=true`, { replace: true });
+      console.log(`[WorkbenchContext] Block NOT found for ID: ${selectedBlockId}. Redirecting to Track selection with notfound route.`);
+      navigate(trackPath(routeId || '', 'notfound'), { replace: true });
     }
   }, [blocks, selectedBlockId, routeId, navigate, viewMode, routeSectionId, currentEntry?.id]);
 

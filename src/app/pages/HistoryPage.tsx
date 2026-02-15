@@ -10,9 +10,8 @@ import type { IContentProvider } from '@/types/content-provider';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
 import { ThemeProvider } from '@/components/theme/ThemeProvider';
-import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { CommitGraph } from '@/components/ui/CommitGraph';
-import { Search, Github } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CommandProvider, useCommandPalette } from '@/components/command-palette/CommandContext';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
@@ -20,6 +19,10 @@ import { WodNavigationStrategy } from '@/components/command-palette/strategies/W
 import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
+import { HistoryDetailsPanel } from '@/components/workbench/HistoryDetailsPanel';
+import { AudioProvider } from '@/components/audio/AudioContext';
+import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { PanelRightOpen } from 'lucide-react';
 
 import type { PanelSpan } from '@/components/layout/panel-system/types';
 // import { NotebookMenu } from '@/components/notebook/NotebookMenu';
@@ -58,6 +61,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     const { activeNotebookId, activeNotebook, setActiveNotebook, notebooks, createNotebook } = useNotebooks();
     const { collections, activeCollectionId, activeCollection, activeCollectionItems, setActiveCollection } = useWodCollections();
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
     // Clear history selection when collection changes
     useEffect(() => {
@@ -386,9 +390,6 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         activeNotebookId={activeNotebookId}
                         onNotebookSelect={setActiveNotebook}
                         onCreateNotebook={() => setShowCreateNotebook(true)}
-                        collections={collections}
-                        activeCollectionId={activeCollectionId}
-                        onCollectionSelect={setActiveCollection}
                         onResetFilters={() => {
                             setActiveNotebook(null);
                             setActiveCollection(null);
@@ -528,34 +529,43 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         <Search className="h-4 w-4" />
                     </Button>
 
+                    <button
+                        onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+                        className={cn(
+                            "p-2 rounded-md transition-colors",
+                            isDetailsOpen
+                                ? "bg-muted text-foreground"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        )}
+                        title="Toggle Settings"
+                    >
+                        <PanelRightOpen className="h-5 w-5" />
+                    </button>
+
                     <div className="h-6 w-px bg-border mx-2" />
 
                     <NewPostButton
                         onCreate={createEntryInNotebook}
                         className="hidden md:flex"
                     />
-
-                    <ThemeToggle />
-                    {!isMobile && (
-                        <a
-                            href="https://github.com/SergeiGolos/wod-wiki"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <Github className="h-5 w-5" />
-                        </a>
-                    )}
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden relative">
                 <PanelGrid
                     panels={historyView.panels}
                     layoutState={layoutState}
 
                     className="h-full"
+                />
+                <HistoryDetailsPanel
+                    isOpen={isDetailsOpen}
+                    onClose={() => setIsDetailsOpen(false)}
+                    collections={collections}
+                    activeCollectionId={activeCollectionId}
+                    onCollectionSelect={setActiveCollection}
+                    onNotebookClear={() => setActiveNotebook(null)}
                 />
             </div>
 
@@ -578,9 +588,13 @@ export const HistoryPage: React.FC<{ provider?: IContentProvider }> = ({ provide
     const activeProvider = useMemo(() => provider || new LocalStorageContentProvider(), [provider]);
     return (
         <ThemeProvider defaultTheme="system" storageKey="wod-wiki-theme">
-            <CommandProvider>
-                <HistoryContent provider={activeProvider} />
-            </CommandProvider>
+            <AudioProvider>
+                <DebugModeProvider>
+                    <CommandProvider>
+                        <HistoryContent provider={activeProvider} />
+                    </CommandProvider>
+                </DebugModeProvider>
+            </AudioProvider>
         </ThemeProvider>
     );
 };

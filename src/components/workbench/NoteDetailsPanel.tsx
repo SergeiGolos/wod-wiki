@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { X, Calendar, Clock, Tag, Trash2, Link as LinkIcon, GitFork, ExternalLink, ArrowRightLeft, Plus, BookOpen, Check } from 'lucide-react';
+import { X, Calendar, Clock, Tag, Trash2, Link as LinkIcon, GitFork, ExternalLink, ArrowRightLeft, Plus, BookOpen, Check, Sun, Moon, Volume2, VolumeX, Bug, Github, Settings } from 'lucide-react';
+import { useTheme } from '@/components/theme/ThemeProvider';
+import { useAudio } from '@/components/audio/AudioContext';
+import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
@@ -195,29 +198,21 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                     </div>
 
                     {/* Dates */}
-                    <div className="space-y-3">
-                        <div>
-                            <label className="text-xs font-medium text-muted-foreground block mb-1">Created</label>
-                            <div className="flex items-center gap-2 text-sm">
-                                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span>{formatDate(entry.createdAt)}</span>
-                            </div>
-                        </div>
-
+                    <div className="space-y-4">
                         {/* Target Date — with Move button + calendar popup */}
                         <div className="relative">
-                            <label className="text-xs font-medium text-muted-foreground block mb-1">Target Date</label>
+                            <label className="text-xs font-semibold text-foreground/70 uppercase tracking-tight block mb-1">Target Date</label>
                             <div className="flex items-center gap-2 text-sm">
-                                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="flex-1">{formatDay(entry.targetDate)}</span>
+                                <Calendar className="w-4 h-4 text-primary" />
+                                <span className="flex-1 font-medium text-base">{formatDay(entry.targetDate)}</span>
                                 {canWrite && (
                                     <button
                                         onClick={() => setIsCalendarOpen(!isCalendarOpen)}
                                         className={cn(
-                                            "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors",
+                                            "inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors shadow-sm",
                                             isCalendarOpen
-                                                ? "bg-primary/20 text-primary"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                                ? "bg-primary text-primary-foreground"
+                                                : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted font-medium"
                                         )}
                                         title="Move to different date"
                                     >
@@ -240,11 +235,21 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                             )}
                         </div>
 
-                        <div>
-                            <label className="text-xs font-medium text-muted-foreground block mb-1">Last Updated</label>
-                            <div className="flex items-center gap-2 text-sm">
-                                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span>{formatDate(entry.updatedAt)}</span>
+                        <div className="grid grid-cols-1 gap-2 border-t border-border/50 pt-3">
+                            <div>
+                                <label className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider block mb-0.5">Created</label>
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                    <Clock className="w-3 h-3 opacity-70" />
+                                    <span>{formatDate(entry.createdAt)}</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider block mb-0.5">Last Updated</label>
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                    <Clock className="w-3 h-3 opacity-70" />
+                                    <span>{formatDate(entry.updatedAt)}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -412,6 +417,9 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                         )}
                     </div>
 
+                    {/* Preferences */}
+                    <PreferencesSection />
+
                 </div>
 
                 {/* Footer Actions */}
@@ -424,6 +432,87 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                         Delete Note
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// ──────────────────────────────────────────────────────────────
+// Preferences Section — relocated from the toolbar
+// ──────────────────────────────────────────────────────────────
+
+const PreferencesSection: React.FC = () => {
+    const { setTheme, theme } = useTheme();
+    const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
+    const { isDebugMode, toggleDebugMode } = useDebugMode();
+
+    const toggleTheme = () => {
+        if (theme === 'dark') setTheme('light');
+        else if (theme === 'light') setTheme('dark');
+        else {
+            const sys = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            setTheme(sys === 'dark' ? 'light' : 'dark');
+        }
+    };
+
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    return (
+        <div>
+            <div className="flex items-center gap-1.5 mb-1">
+                <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                <label className="text-xs font-medium text-muted-foreground">Preferences</label>
+            </div>
+            <div className="space-y-0.5">
+                <button
+                    onClick={toggleTheme}
+                    className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
+                >
+                    {isDark
+                        ? <Moon className="w-4 h-4 shrink-0" />
+                        : <Sun className="w-4 h-4 shrink-0" />
+                    }
+                    <span className="flex-1">Theme</span>
+                    <span className="text-xs text-muted-foreground capitalize">{theme}</span>
+                </button>
+
+                <button
+                    onClick={toggleAudio}
+                    className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
+                >
+                    {isAudioEnabled
+                        ? <Volume2 className="w-4 h-4 shrink-0" />
+                        : <VolumeX className="w-4 h-4 shrink-0" />
+                    }
+                    <span className="flex-1">Sound</span>
+                    <span className="text-xs text-muted-foreground">{isAudioEnabled ? 'On' : 'Off'}</span>
+                </button>
+
+                <button
+                    onClick={toggleDebugMode}
+                    className={cn(
+                        "flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm transition-colors text-left",
+                        isDebugMode
+                            ? "text-foreground bg-muted"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                >
+                    <Bug className="w-4 h-4 shrink-0" />
+                    <span className="flex-1">Debug Mode</span>
+                    {isDebugMode && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
+                    <span className="text-xs text-muted-foreground">{isDebugMode ? 'On' : 'Off'}</span>
+                </button>
+
+                <a
+                    href="https://github.com/SergeiGolos/wod-wiki"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-left"
+                >
+                    <Github className="w-4 h-4 shrink-0" />
+                    <span className="flex-1">GitHub</span>
+                    <ExternalLink className="w-3 h-3 shrink-0 opacity-50" />
+                </a>
             </div>
         </div>
     );

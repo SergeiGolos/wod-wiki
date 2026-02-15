@@ -3,7 +3,7 @@ import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { VisualStatePanel } from '../track/VisualStatePanel';
-import { useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
@@ -81,8 +81,8 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   previewFilter = ['wod'],
 }) => {
   const { isCompact } = usePanelSize();
-  const location = useLocation();
-  const isNotFound = new URLSearchParams(location.search).get('notFound') === 'true';
+  const { sectionId } = useParams<{ sectionId?: string }>();
+  const isNotFound = sectionId === 'notfound';
 
   // Timer/Clock component
   const timerDisplay = (
@@ -104,7 +104,14 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
       <div className="flex h-full overflow-hidden">
-        {/* Left Column: Timer & Controls (formerly Right) */}
+        {/* Left Column: Session / Visual State */}
+        {!isCompact && (
+          <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
+            <VisualStatePanel />
+          </div>
+        )}
+
+        {/* Right Column: Timer & Controls (Clock) */}
         <div className={cn(
           "flex flex-col bg-background transition-all duration-300",
           isCompact ? "w-full" : "w-1/2"
@@ -113,13 +120,6 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
             {timerDisplay}
           </div>
         </div>
-
-        {/* Right Column: Visual State / Session Screen (formerly Left) */}
-        {!isCompact && (
-          <div className="flex-1 min-w-0 bg-secondary/10 border-l border-border">
-            <VisualStatePanel />
-          </div>
-        )}
       </div>
     </ScriptRuntimeProvider>
   ) : (

@@ -134,7 +134,7 @@ const StackBlockItem: React.FC<{
                 ...block.getFragmentMemoryByVisibility('display'),
                 ...block.getFragmentMemoryByVisibility('promote'),
                 ...block.getFragmentMemoryByVisibility('private'),
-              ]
+            ]
             : block.getFragmentMemoryByVisibility('display');
 
         const unsubscribes = allLocs.map(loc =>
@@ -177,62 +177,62 @@ const StackBlockItem: React.FC<{
                 isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
             )}
         >
-                <div className={cn(
-                    "rounded-md border text-sm transition-all",
-                    isLeaf
-                        ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
-                        : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
-                )}>
-                    {/* Block header row */}
-                    <div className="flex items-center justify-between gap-3 p-3">
-                        <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className={cn(
-                                    "font-semibold tracking-tight",
-                                    isLeaf ? "text-foreground" : "text-muted-foreground"
-                                )}>
-                                    {block.label}
+            <div className={cn(
+                "rounded-md border text-sm transition-all",
+                isLeaf
+                    ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
+                    : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
+            )}>
+                {/* Block header row */}
+                <div className="flex items-center justify-between gap-3 p-3">
+                    <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2">
+                            <span className={cn(
+                                "font-semibold tracking-tight",
+                                isLeaf ? "text-foreground" : "text-muted-foreground"
+                            )}>
+                                {block.label}
+                            </span>
+                            {block.blockType && debug && (
+                                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
+                                    {block.blockType}
                                 </span>
-                                {block.blockType && (
-                                    <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
-                                        {block.blockType}
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* Block key — debug only */}
-                            {debug && (
-                                <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px] mt-0.5">
-                                    {block.key.toString()}
-                                </div>
                             )}
                         </div>
 
-                        {hasTime && (
-                            <div className={cn(
-                                "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
-                                isRunning
-                                    ? "bg-primary/10 text-primary animate-pulse"
-                                    : "bg-muted text-muted-foreground"
-                            )}>
-                                <Timer className="h-3 w-3" />
-                                {formatTimeMMSS(elapsed)}
+                        {/* Block key — debug only */}
+                        {debug && (
+                            <div className="text-[10px] font-mono text-muted-foreground/60 truncate max-w-[200px] mt-0.5">
+                                {block.key.toString()}
                             </div>
                         )}
                     </div>
 
-                    {/* Fragment rows — inside the card */}
-                    {hasFragments && (
-                        <div className="flex flex-col gap-1 px-3 pb-2">
-                            {/* Display tier — always shown */}
-                            {renderFragmentSection(displayRows, 'display', debug)}
-
-                            {/* Promote & private — debug mode only */}
-                            {debug && renderFragmentSection(promoteRows, 'promote', true)}
-                            {debug && renderFragmentSection(privateRows, 'private', true)}
+                    {hasTime && (
+                        <div className={cn(
+                            "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
+                            isRunning
+                                ? "bg-primary/10 text-primary animate-pulse"
+                                : "bg-muted text-muted-foreground"
+                        )}>
+                            <Timer className="h-3 w-3" />
+                            {formatTimeMMSS(elapsed)}
                         </div>
                     )}
                 </div>
+
+                {/* Fragment rows — inside the card */}
+                {hasFragments && (
+                    <div className="flex flex-col gap-1 px-3 pb-2">
+                        {/* Display tier — always shown */}
+                        {renderFragmentSection(displayRows, 'display', debug)}
+
+                        {/* Promote & private — debug mode only */}
+                        {debug && renderFragmentSection(promoteRows, 'promote', true)}
+                        {debug && renderFragmentSection(privateRows, 'private', true)}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
