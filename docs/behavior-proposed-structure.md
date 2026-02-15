@@ -65,6 +65,8 @@ Seven primary aspects plus universal invariants. Each aspect has **one** behavio
 
 **Events consumed:** `tick` (bubble), `timer:pause` (active), `timer:resume` (active).
 
+> no need to consume timer tick even here..  end timer behvavior cares about that not this one. 
+
 **Events emitted:** None — timer is read-only state. Completion is a separate aspect.
 
 ```
@@ -80,10 +82,11 @@ Config: { direction: 'up' | 'down', durationMs?: number, label?: string, role?: 
 | Behavior | Lifecycle Hooks | Responsibility |
 |---|---|---|
 | `ReEntryBehavior` | `onMount`, `onNext` | Initializes round counter in memory. Advances on `onNext()` when children signal completion (via memory, not behavior reference). Optionally bounded. |
+> reentery doesn't repace therounds, rounds is a higher level version that deals with fragmetns, thus track the numer of time on puth and next are called.. 
 
 **Key change:** Merge `RoundInitBehavior` + `RoundAdvanceBehavior` + `ReentryCounterBehavior` into one `ReEntryBehavior`. The re-entry count IS the round count — they were the same concept split across three classes.
 
-**Memory written:** `round` tag — `{ current: number, total?: number }`.
+**Memory written:** `round` tag — `{ current: number, total?: number }`.   
 
 **Advancement rule:** Advances when `children:status` memory tag shows all children completed (or immediately for leaf blocks). This replaces the `getBehavior(ChildRunnerBehavior)` coupling — uses shared memory instead.
 
@@ -106,17 +109,18 @@ Config: { totalRounds?: number, startRound?: number }
 | `TimerEndingBehavior` | `onMount`, `onUnmount` | Subscribes to `tick` events. When countdown reaches zero, marks block complete and emits `timer:complete`. Two distinct sub-types via config — **not** a boolean toggle. |
 
 **Modes (via config, not boolean):**
+> emom is actually bounded rounds value that sets the 60 seconds timer for children to inherit
 
-| Mode | On Timer Expiry | Effect |
-|---|---|---|
-| `'complete-block'` | Marks block complete, defers pop until children finish | Used by AMRAP |
+| Mode               | On Timer Expiry                                              | Effect                |
+| ------------------ | ------------------------------------------------------------ | --------------------- |
+| `'complete-block'` | Marks block complete, defers pop until children finish       | Used by AMRAP         |
 | `'reset-interval'` | Resets timer spans, clears children, does NOT complete block | Used by EMOM/Interval |
 
 **Key change:** `TimerCompletionBehavior`'s dual mode is preserved but made explicit via a union config type rather than a `completesBlock` boolean. The "pop on next" and "pop on event" leaf-block exits are separate — they aren't timer endings, they're **user-advance exits** handled by child selection or a simple `LeafExitBehavior`.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
-| `LeafExitBehavior` | `onNext` | Simple: marks complete and returns `PopBlockAction` on `next()`. Replaces `PopOnNextBehavior` for leaf blocks. |
+| Behavior           | Lifecycle Hooks | Responsibility                                                                                                 |
+| ------------------ | --------------- | -------------------------------------------------------------------------------------------------------------- |
+| `LeafExitBehavior` | `onNext`        | Simple: marks complete and returns `PopBlockAction` on `next()`. Replaces `PopOnNextBehavior` for leaf blocks. |
 
 **Memory read:** `timer` tag.
 
@@ -134,9 +138,9 @@ Config: { mode: 'complete-block' | 'reset-interval' }
 
 > Determines when a block completes based on round count exhaustion.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
-| `RoundsEndBehavior` | `onNext` | Checks `round` memory: if `current > total`, marks block complete and returns `PopBlockAction`. For unbounded rounds, never fires. |
+| Behavior            | Lifecycle Hooks | Responsibility                                                                                                                     |
+| ------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `RoundsEndBehavior` | `onNext`        | Checks `round` memory: if `current > total`, marks block complete and returns `PopBlockAction`. For unbounded rounds, never fires. |
 
 **Key change:** `RoundCompletionBehavior` + `SessionCompletionBehavior` merge into one `RoundsEndBehavior`. Session completion was just "rounds end where total = 1" — same logic.
 
@@ -156,8 +160,10 @@ Config: none — reads round memory directly
 
 > Manages which child block is active. Compiles, pushes, loops, and injects rest blocks.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
+> these should be based on the MOD of the number of children and the reentry (ofset by any extra reentry points that i tmight have (root is a special case))
+
+| Behavior                 | Lifecycle Hooks                  | Responsibility                                                                                                                                                                       |
+| ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ChildSelectionBehavior` | `onMount`, `onNext`, `onUnmount` | Unified child management. Compiles child groups via JIT, pushes next child on `onNext()`, loops when configured, injects rest blocks between children when timer has remaining time. |
 
 **Key change:** Merge `ChildRunnerBehavior` + `ChildLoopBehavior` + `RestBlockBehavior` into one `ChildSelectionBehavior`. The ordering fragility (Rest → Loop → Runner) existed because they were three behaviors sharing mutable state via `getBehavior()`. As one behavior, the internal state machine is explicit and self-contained.
@@ -188,8 +194,8 @@ Config: {
 
 > Promotes fragment values from parent to children so the JIT compiler can inject inherited metrics.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
+| Behavior                    | Lifecycle Hooks     | Responsibility                                                                                                                                                              |
+| --------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `FragmentPromotionBehavior` | `onMount`, `onNext` | Reads a configured fragment type from block memory and writes it to `fragment:promote` visibility. Supports dynamic rep schemes (array of values indexed by current round). |
 
 **Key change:** Merge `PromoteFragmentBehavior` + `RepSchemeBehavior` into one `FragmentPromotionBehavior`. Rep schemes are just "promote a rep fragment that changes per round" — a specialization of fragment promotion, not a separate concept.
@@ -212,24 +218,24 @@ Config: {
 
 > Formats the block's display label based on its type and configured data. Ensures the UI shows contextually correct labels like "AMRAP 20:00", "EMOM 10 × 1:00", "Round 2 of 5", etc.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
+| Behavior           | Lifecycle Hooks     | Responsibility                                                                                                                                                               |
+| ------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `LabelingBehavior` | `onMount`, `onNext` | Initializes `display` memory with formatted label fragments. Updates on `onNext()` when round state changes. Replaces both `DisplayInitBehavior` and `RoundDisplayBehavior`. |
 
 **Key change:** `DisplayInitBehavior` created static labels. `RoundDisplayBehavior` mutated those labels by reaching into display memory. The new `LabelingBehavior` owns all label formatting in one place and re-renders the full label on each state change.
 
 **Label formatting by block type:**
 
-| Block Type | Label Format | Data Sources |
-|---|---|---|
-| AMRAP | `"AMRAP {duration}"` | Timer memory |
-| EMOM | `"EMOM {rounds} × {interval}"` | Round + Timer memory |
-| For Time | `"For Time"` or `"{rounds} Rounds For Time"` | Round memory |
-| Tabata | `"Tabata: {exercise}"` | Effort fragments |
-| Generic Loop | `"Round {current} of {total}"` | Round memory |
-| Effort/Leaf | `"{reps} {exercise}"` or `"{exercise}"` | Display fragments |
-| Timer | `"{duration} {exercise}"` | Timer memory + effort |
-| Session | `"Workout"` | Static |
+| Block Type   | Label Format                                 | Data Sources          |
+| ------------ | -------------------------------------------- | --------------------- |
+| AMRAP        | `"AMRAP {duration}"`                         | Timer memory          |
+| EMOM         | `"EMOM {rounds} × {interval}"`               | Round + Timer memory  |
+| For Time     | `"For Time"` or `"{rounds} Rounds For Time"` | Round memory          |
+| Tabata       | `"Tabata: {exercise}"`                       | Effort fragments      |
+| Generic Loop | `"Round {current} of {total}"`               | Round memory          |
+| Effort/Leaf  | `"{reps} {exercise}"` or `"{exercise}"`      | Display fragments     |
+| Timer        | `"{duration} {exercise}"`                    | Timer memory + effort |
+| Session      | `"Workout"`                                  | Static                |
 
 **Memory written:** `display` tag — array of `ICodeFragment` with roles: `label`, `subtitle`, `round`, `action`.
 
@@ -251,11 +257,11 @@ Config: {
 
 > Emits output records on lifecycle boundaries. Updates fragments on the block before it is popped.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
-| `ReportOutputBehavior` | `onMount`, `onUnmount` | On mount: emits `segment` output with display fragments. On unmount: computes final values (elapsed time from spans, round count, etc.) and writes result fragments to `fragment:result` memory. Emits `completion` output. Replaces `SegmentOutputBehavior` + `TimerOutputBehavior`. |
-| `HistoryRecordBehavior` | `onUnmount` | Emits `history:record` event with execution summary. *(Keep as-is — simple, single-purpose.)* |
-| `SoundCueBehavior` | `onMount`, `onUnmount` | Emits `milestone` outputs with `SoundFragment` at lifecycle points and countdown ticks. *(Keep as-is — distinct concern.)* |
+| Behavior                | Lifecycle Hooks        | Responsibility                                                                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ReportOutputBehavior`  | `onMount`, `onUnmount` | On mount: emits `segment` output with display fragments. On unmount: computes final values (elapsed time from spans, round count, etc.) and writes result fragments to `fragment:result` memory. Emits `completion` output. Replaces `SegmentOutputBehavior` + `TimerOutputBehavior`. |
+| `HistoryRecordBehavior` | `onUnmount`            | Emits `history:record` event with execution summary. *(Keep as-is — simple, single-purpose.)*                                                                                                                                                                                         |
+| `SoundCueBehavior`      | `onMount`, `onUnmount` | Emits `milestone` outputs with `SoundFragment` at lifecycle points and countdown ticks. *(Keep as-is — distinct concern.)*                                                                                                                                                            |
 
 **Key change:** `SegmentOutputBehavior` and `TimerOutputBehavior` merge into `ReportOutputBehavior`. They were two halves of the same job: "describe what this block did." The mount-time segment and unmount-time result are both output records for the same block.
 

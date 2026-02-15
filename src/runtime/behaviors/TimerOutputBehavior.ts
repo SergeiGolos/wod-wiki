@@ -68,10 +68,6 @@ export class TimerOutputBehavior implements IRuntimeBehavior {
         // This is independent of the IRuntimeClock which may be frozen/faked
         fragments.push(new SystemTimeFragment(new Date(), blockKey));
 
-        // Write to fragment:result memory so SegmentOutputBehavior can
-        // include these in the single completion output.
-        ctx.pushMemory('fragment:result', fragments);
-
         return [];
     }
 

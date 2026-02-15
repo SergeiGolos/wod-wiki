@@ -35,10 +35,8 @@ import { SpansFragment } from '../compiler/fragments/SpansFragment';
  */
 export class RoundOutputBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Emit initial round milestone on mount (S4).
-        // This announces the starting round state (e.g., "Round 1 of 3")
-        // so the output stream has a milestone for the first round,
-        // matching subsequent round-advance milestones from onNext.
+        // Restore: Emit initial round milestone on mount.
+        // This ensures Round 1 milestone appears as a "header" for the first round.
         const round = ctx.getMemory('round') as RoundState | undefined;
 
         if (round) {
@@ -54,15 +52,21 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
         const round = ctx.getMemory('round') as RoundState | undefined;
         if (!round) return [];
 
-        // For container blocks with children, only emit a milestone when
-        // all children have completed (i.e., at a round boundary).
-        // This prevents duplicate milestones on intermediate child
-        // completions within the same round.
-        // Mirrors the same guard used by RoundAdvanceBehavior.
         const block = ctx.block as IRuntimeBlock;
         if (typeof block.getBehavior === 'function') {
             const childRunner = block.getBehavior(ChildRunnerBehavior);
-            if (childRunner && !childRunner.allChildrenCompleted) {
+
+            if (childRunner) {
+                // For container blocks, only emit milestones as "headers" for the next round
+                // after all current children have finished.
+                if (!childRunner.allChildrenCompleted) {
+                    return [];
+                }
+            }
+
+            // Check for "ghost" milestones: if RoundAdvance has pushed round.current
+            // beyond totalRounds, don't emit a milestone for a round that won't happen.
+            if (round.total !== undefined && round.current > round.total) {
                 return [];
             }
         }
