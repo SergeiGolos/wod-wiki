@@ -51,7 +51,6 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
           height="100%"
           editable={!readOnly}
           showLineNumbers={true}
-          provider={provider}
           sourceNoteId={sourceNoteId}
         />
       </div>

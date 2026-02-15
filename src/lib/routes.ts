@@ -30,8 +30,8 @@ export interface PlanRouteParams extends NoteRouteParams {
 /** Track view — targets a specific wod section */
 export interface TrackRouteParams extends NoteRouteParams {
   view: 'track';
-  /** The wod section id within the note to execute */
-  sectionId: string;
+  /** The wod section id within the note to execute (optional for selection mode) */
+  sectionId?: string;
 }
 
 /** Review view — progressive filtering */
@@ -74,24 +74,24 @@ export type WodRouteParams =
 /** Route patterns registered in App.tsx */
 export const ROUTE_PATTERNS = {
   /** /note/:noteId → redirect to plan */
-  noteRoot:         '/note/:noteId',
+  noteRoot: '/note/:noteId',
   /** /note/:noteId/plan */
-  plan:             '/note/:noteId/plan',
+  plan: '/note/:noteId/plan',
   /** /note/:noteId/track (no section selected yet) */
-  trackBase:        '/note/:noteId/track',
+  trackBase: '/note/:noteId/track',
   /** /note/:noteId/track/:sectionId */
-  track:            '/note/:noteId/track/:sectionId',
+  track: '/note/:noteId/track/:sectionId',
   /** /note/:noteId/review */
-  reviewAll:        '/note/:noteId/review',
+  reviewAll: '/note/:noteId/review',
   /** /note/:noteId/review/:sectionId */
-  reviewSection:    '/note/:noteId/review/:sectionId',
+  reviewSection: '/note/:noteId/review/:sectionId',
   /** /note/:noteId/review/:sectionId/:resultId */
-  reviewResult:     '/note/:noteId/review/:sectionId/:resultId',
+  reviewResult: '/note/:noteId/review/:sectionId/:resultId',
 
   // Playground equivalents (static / non-persisted)
-  playgroundRoot:   '/playground',
-  playgroundPlan:   '/playground/plan',
-  playgroundTrack:  '/playground/track/:sectionId',
+  playgroundRoot: '/playground',
+  playgroundPlan: '/playground/plan',
+  playgroundTrack: '/playground/track/:sectionId',
   playgroundReview: '/playground/review',
 } as const;
 
@@ -180,8 +180,10 @@ export function parseRouteParams(raw: RawRouteParams): WodRouteParams | null {
       return { noteId, view: 'plan' };
 
     case 'track':
-      if (!sectionId) return null; // track requires a section
-      return { noteId, view: 'track', sectionId };
+      if (sectionId) {
+        return { noteId, view: 'track', sectionId };
+      }
+      return { noteId, view: 'track' } as any; // Allow track without sectionId for selection mode
 
     case 'review':
       if (sectionId && resultId) {

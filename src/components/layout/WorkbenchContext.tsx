@@ -13,6 +13,10 @@ import { getWodContent } from '../../app/wod-loader';
 import { toNotebookTag } from '../../types/notebook';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRef } from 'react';
+import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
+import { parseWodBlock } from '../../markdown-editor/utils/parseWodBlock';
+import { sharedParser } from '../../parser/parserInstance';
+import type { Section as EditorSection } from '../../markdown-editor/types/section';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -214,6 +218,12 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // Sync content when ID changes or propInitialContent changes
   useEffect(() => {
     const loadContent = async () => {
+      // Clear current note state while loading to avoid stale comparisons
+      setContent('');
+      setBlocksState([]);
+      setSectionsState(null);
+      setCurrentEntry(null);
+
       if (routeId) {
         if (provider.mode === 'history') {
           try {
@@ -261,9 +271,49 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     loadContent();
   }, [routeId, propInitialContent, provider, historySelectionHook.openEntry, initialActiveEntryId]);
 
-  const [blocks, setBlocks] = useState<WodBlock[]>([]);
+
+  const [blocks, setBlocksState] = useState<WodBlock[]>([]);
+  const setBlocks = useCallback((_newBlocks: WodBlock[]) => {
+    // Blocks are now primarily derived from content internally
+    // but we keep this as a no-op to satisfy the interface.
+  }, []);
+
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
+
+  // Derived state: Parse content into sections and blocks whenever content changes
+  useEffect(() => {
+    if (!content) {
+      setSectionsState([]);
+      setBlocksState([]);
+      return;
+    }
+
+    const newSections = parseDocumentSections(content);
+    setSectionsState(newSections);
+
+    const newBlocks: WodBlock[] = newSections
+      .filter((s: EditorSection) => s.type === 'wod' && s.wodBlock)
+      .map((s: EditorSection) => {
+        const block = s.wodBlock!;
+        if (!block.statements || block.statements.length === 0) {
+          try {
+            const result = parseWodBlock(block.content, sharedParser);
+            return {
+              ...block,
+              statements: result.statements,
+              errors: result.errors,
+              state: (result.success ? 'parsed' : 'error') as any,
+            };
+          } catch (e) {
+            console.error('[WorkbenchContext] Block parse error:', e);
+          }
+        }
+        return block;
+      });
+
+    setBlocksState(newBlocks);
+  }, [content]);
 
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -335,6 +385,11 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     // Wait for blocks to be available before making a decision
     if (blocks.length === 0 || viewMode !== 'track') return;
 
+    // Wait for the correct note to be loaded to avoid false notFound redirects
+    // when switching URLs but holding old note content.
+    const isCorrectNoteLoaded = !routeId || currentEntry?.id === routeId || currentEntry?.id.endsWith(routeId);
+    if (!isCorrectNoteLoaded) return;
+
     // No section ID → show preview panel (no redirect)
     if (!routeSectionId) return;
 
@@ -363,10 +418,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       }
 
       // If hash matching also fails, the link is truly broken
-      console.log(`[WorkbenchContext] Block NOT found for ID: ${selectedBlockId}. Redirecting to Plan.`);
-      navigate(planPath(routeId || ''));
+      console.log(`[WorkbenchContext] Block NOT found for ID: ${selectedBlockId}. Redirecting to Track selection with notFound.`);
+      navigate(`${trackPath(routeId || '')}?notFound=true`, { replace: true });
     }
-  }, [blocks, selectedBlockId, routeId, navigate, viewMode, routeSectionId]);
+  }, [blocks, selectedBlockId, routeId, navigate, viewMode, routeSectionId, currentEntry?.id]);
 
   // Derive strip mode from content mode + selection state
   const stripMode: StripMode = useMemo(() => {

@@ -267,6 +267,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           initialCursorPosition={pendingCursorPosition ?? undefined}
           onBoundaryReached={(boundary) => handleBoundaryReached(section.id, boundary)}
           onDeactivate={deactivateSection}
+          onStartWorkout={onStartWorkout}
         />
       );
     }

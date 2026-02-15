@@ -373,9 +373,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 letterSpacing={1.6}
               />
             </div>
-            {!isMobile && (
-              <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground uppercase">
-                {viewMode}
+            {!isMobile && currentEntry && (
+              <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground">
+                {new Date(currentEntry.targetDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
             )}
           </div>

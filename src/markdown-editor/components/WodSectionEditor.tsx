@@ -26,7 +26,9 @@ import { WodWikiSyntaxInitializer } from '@/editor/WodWikiSyntaxInitializer';
 import { SemantcTokenEngine } from '@/editor/SemantcTokenEngine';
 import { SuggestionEngine } from '@/editor/SuggestionEngine';
 import { DefaultSuggestionService } from '@/editor/SuggestionService';
+import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { WodBlock } from '../types';
 
 /** Token definitions for semantic highlighting and inlay hints */
 const tokens = [
@@ -54,6 +56,8 @@ export interface WodSectionEditorProps {
   onBoundaryReached?: (boundary: 'top' | 'bottom') => void;
   /** Called when section should deactivate */
   onDeactivate?: () => void;
+  /** Called when user clicks the Run button */
+  onStartWorkout?: (wodBlock: WodBlock) => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -99,6 +103,7 @@ export const WodSectionEditor: React.FC<WodSectionEditorProps> = ({
   initialCursorPosition,
   onBoundaryReached,
   onDeactivate,
+  onStartWorkout,
   className,
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -316,6 +321,22 @@ export const WodSectionEditor: React.FC<WodSectionEditorProps> = ({
       >
         <span>wod</span>
         <div className="flex-1" />
+        {onStartWorkout && section.wodBlock && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartWorkout(section.wodBlock!);
+            }}
+            className={cn(
+              'flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm',
+              'bg-primary text-primary-foreground hover:bg-primary/90'
+            )}
+            title="Run this workout"
+          >
+            <Play className="h-3 w-3 fill-current" />
+            <span>Run</span>
+          </button>
+        )}
         <span className={cn(
           'text-[9px] px-1.5 py-0.5 rounded',
           liveErrors.length > 0

@@ -3,7 +3,7 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, ListTree, ArrowRight, CornerDownRight, Timer, Eye, ArrowUpCircle, Lock } from 'lucide-react';
+import { Clock, CheckCircle2, ListTree, ArrowRight, Timer, Eye, ArrowUpCircle, Lock } from 'lucide-react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
@@ -161,9 +161,7 @@ const StackBlockItem: React.FC<{
                     <FragmentSourceRow
                         key={`${visibility}-${rowIdx}`}
                         fragments={row}
-                        status={isLeaf ? 'active' : 'pending'}
                         size="compact"
-                        className="bg-transparent border-none p-0 min-h-0"
                     />
                 ))}
             </div>
@@ -175,23 +173,12 @@ const StackBlockItem: React.FC<{
     return (
         <div
             className={cn(
-                "relative flex flex-col gap-1 w-full",
+                "relative w-full",
                 isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
             )}
-            style={{ marginLeft: `${index * 0.5}rem` }}
         >
-            <div className="flex items-start group">
-                {/* Connector Icon */}
-                <div className="mr-2 mt-2.5 z-10 relative shrink-0">
-                    {isRoot ? (
-                        <div className="h-2 w-2 rounded-full bg-primary/20 ring-2 ring-primary/10" />
-                    ) : (
-                        <CornerDownRight className="h-4 w-4 text-muted-foreground/40" />
-                    )}
-                </div>
-
                 <div className={cn(
-                    "flex-1 rounded-md border text-sm transition-all",
+                    "rounded-md border text-sm transition-all",
                     isLeaf
                         ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
                         : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
@@ -246,7 +233,6 @@ const StackBlockItem: React.FC<{
                         </div>
                     )}
                 </div>
-            </div>
         </div>
     );
 };
@@ -302,12 +288,7 @@ export const RuntimeStackView: React.FC<{
     const visibleBlocks = [...blocks].reverse();
 
     return (
-        <div className="flex flex-col gap-1 relative pl-2">
-            {/* Connecting line for hierarchy */}
-            {visibleBlocks.length > 1 && (
-                <div className="absolute left-[1.65rem] top-4 bottom-4 w-px bg-border/50" style={{ zIndex: 0 }} />
-            )}
-
+        <div className="flex flex-col gap-1 relative">
             {visibleBlocks.map((block, index) => {
                 const isLeaf = index === visibleBlocks.length - 1; // Last item is the active leaf
                 const isRoot = index === 0; // First item is root
@@ -329,10 +310,7 @@ export const RuntimeStackView: React.FC<{
                         />
 
                         {/* Interleaved History: Children of this block */}
-                        {/* Rendered BELOW the block, indented to match child level */}
-                        <div style={{ marginLeft: `${(index + 1) * 0.5}rem` }}>
-                            {renderHistorySummary(childLevel)}
-                        </div>
+                        {renderHistorySummary(childLevel)}
                     </React.Fragment>
                 );
             })}

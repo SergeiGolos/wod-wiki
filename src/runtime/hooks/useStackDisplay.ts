@@ -81,12 +81,12 @@ export function useStackTimers(): StackTimerEntry[] {
  * Determines which timer should be displayed as the primary (big) timer.
  *
  * Pin Resolution Strategy:
- * 1. Scan stack bottom-to-top for the LOWEST block with role === 'primary'
- * 2. If no pinned timer exists, use the leaf (top-of-stack) timer
- *
- * This allows a parent block (e.g., `For Time` or `AMRAP 20:00`) to pin its
- * timer as the main display, while child blocks (rounds, efforts) execute
- * beneath it without stealing the primary display.
+ * 1. If the top-of-stack block is a Rest block, its timer is ALWAYS primary.
+ *    Rest countdowns should be front-and-center so users see time remaining.
+ * 2. Otherwise, find the LOWEST (root-closest) block with role === 'primary'.
+ *    This lets parent blocks (AMRAP, EMOM) keep their timer pinned while
+ *    child exercises execute beneath them.
+ * 3. If no pinned timer exists, use the leaf (top-of-stack) timer.
  *
  * @returns The primary timer entry, or undefined if no timers on stack
  */
@@ -96,16 +96,19 @@ export function usePrimaryTimer(): StackTimerEntry | undefined {
     return useMemo(() => {
         if (timers.length === 0) return undefined;
 
-        // Precedence:
-        // 1. Pinned timer closest to the leaf (lowest on stack / last in array)
-        // 2. Leaf timer (top of stack / last in array)
+        const leaf = timers[timers.length - 1];
 
-        // Find the lowest (deepest / last in stack) pinned timer
-        const pinned = [...timers].reverse().find(t => t.isPinned);
+        // Rest blocks always become the pinned timer when pushed.
+        // Their countdown should override any parent's pinned timer.
+        if (leaf.block.blockType === 'Rest') return leaf;
+
+        // Find the lowest (root-closest / first in array) pinned timer.
+        // Parent blocks pin their timer so it stays visible while children execute.
+        const pinned = timers.find(t => t.isPinned);
         if (pinned) return pinned;
 
         // Fallback: leaf timer (top of stack = last in array)
-        return timers[timers.length - 1];
+        return leaf;
     }, [timers]);
 }
 

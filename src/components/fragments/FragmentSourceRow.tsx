@@ -106,59 +106,12 @@ function formatDuration(ms: number): string {
     return `${seconds}s`;
 }
 
-/**
- * Get status indicator color classes
- */
-function getStatusClasses(status: FragmentSourceStatus): string {
-    switch (status) {
-        case 'active':
-            return 'border-l-green-500 bg-green-500/5';
-        case 'completed':
-            return 'border-l-blue-500/50';
-        case 'failed':
-            return 'border-l-red-500 bg-red-500/5';
-        case 'skipped':
-            return 'border-l-gray-400/50';
-        case 'pending':
-        default:
-            return 'border-l-transparent';
-    }
-}
 
-/**
- * Status indicator dot
- */
-function StatusDot({ status, size }: { status: FragmentSourceStatus; size: VisualizerSize }) {
-    const colorMap: Record<FragmentSourceStatus, string> = {
-        active: 'bg-green-500 animate-pulse',
-        completed: 'bg-blue-500',
-        failed: 'bg-red-500',
-        skipped: 'bg-gray-400',
-        pending: 'bg-gray-300'
-    };
-
-    const sizeClasses: Record<VisualizerSize, string> = {
-        compact: 'w-1.5 h-1.5',
-        normal: 'w-2 h-2',
-        focused: 'w-2.5 h-2.5'
-    };
-
-    return (
-        <span
-            className={cn(
-                'inline-block rounded-full flex-shrink-0 transition-all',
-                colorMap[status],
-                sizeClasses[size]
-            )}
-            title={status}
-        />
-    );
-}
 
 export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
     source,
     fragments: fragmentsProp,
-    status = 'pending',
+    status: _status = 'pending',
     depth = 0,
     size = 'normal',
     filter,
@@ -220,19 +173,13 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
         <div
             className={cn(
                 // Base styles
-                'flex items-center gap-2 border-l-2 transition-all px-2',
-                // Status-based left border color
-                getStatusClasses(status),
+                'flex items-center gap-2 transition-all px-2',
                 // Header styling
                 isHeader && 'font-semibold bg-muted/30',
                 // Interactive states
                 onClick && 'cursor-pointer hover:bg-muted/50',
-                isSelected && 'bg-primary/10 border-l-primary',
+                isSelected && 'bg-primary/10',
                 isHighlighted && 'bg-muted/40',
-                // Active item glow
-                status === 'active' && 'ring-1 ring-green-500/30',
-                // Completed item fade
-                (status === 'completed' || status === 'failed' || status === 'skipped') && 'opacity-80',
                 // Custom className
                 className
             )}
@@ -249,9 +196,6 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
             role={onClick ? 'button' : undefined}
             tabIndex={onClick ? 0 : undefined}
         >
-            {/* Status indicator dot */}
-            <StatusDot status={status} size={size} />
-
             {/* Main content: fragments (multi-group or single line) */}
             <div className="flex-1 min-w-0">
                 {fragmentGroups && fragmentGroups.length > 1 ? (

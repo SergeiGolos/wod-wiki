@@ -3,6 +3,7 @@ import { TimerIndexPanel } from '../layout/TimerIndexPanel';
 import { TimerDisplay } from '../workout/TimerDisplay';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { VisualStatePanel } from '../track/VisualStatePanel';
+import { useLocation } from 'react-router-dom';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
@@ -80,9 +81,10 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   previewFilter = ['wod'],
 }) => {
   const { isCompact } = usePanelSize();
+  const location = useLocation();
+  const isNotFound = new URLSearchParams(location.search).get('notFound') === 'true';
 
-  // No runtime -> Show preview panel for block selection
-  // If selectedBlock is present, show timer (legacy behavior?)
+  // Timer/Clock component
   const timerDisplay = (
     <TimerDisplay
       elapsedMs={execution.elapsedTime}
@@ -99,18 +101,10 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
     />
   );
 
-
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
       <div className="flex h-full overflow-hidden">
-        {/* Left Column: Visual State */}
-        {!isCompact && (
-          <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
-            <VisualStatePanel />
-          </div>
-        )}
-
-        {/* Right Column: Timer & Controls */}
+        {/* Left Column: Timer & Controls (formerly Right) */}
         <div className={cn(
           "flex flex-col bg-background transition-all duration-300",
           isCompact ? "w-full" : "w-1/2"
@@ -119,37 +113,68 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
             {timerDisplay}
           </div>
         </div>
+
+        {/* Right Column: Visual State / Session Screen (formerly Left) */}
+        {!isCompact && (
+          <div className="flex-1 min-w-0 bg-secondary/10 border-l border-border">
+            <VisualStatePanel />
+          </div>
+        )}
       </div>
     </ScriptRuntimeProvider>
   ) : (
-    // No runtime — show workout preview panel for block selection
-    // If selectedBlock is present, show timer (legacy behavior? or maybe just for transition)
-    selectedBlock ? timerDisplay : (
-      <div className="flex h-full overflow-hidden">
-        {/* Left Column: Placeholder / Visual State equivalent */}
-        {!isCompact && (
-          <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border flex items-center justify-center text-muted-foreground">
-            <div className="text-center p-6 disabled-state-panel">
-              <h3 className="text-lg font-semibold mb-2">Select a Session</h3>
-              <p className="text-sm opacity-80">Choose a workout block to begin.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Right Column: Workout Preview */}
-        <div className={cn(
-          "flex flex-col bg-background transition-all duration-300 overflow-hidden",
-          isCompact ? "w-full" : "w-1/2"
-        )}>
-          <WorkoutPreviewPanel
-            content={content || ''}
-            filter={previewFilter}
-            onStartWorkout={onStartWorkout}
-            onBlocksChange={setBlocks}
-          />
-        </div>
+    // No runtime — show layout for selection or error
+    <div className="flex h-full overflow-hidden">
+      {/* Left Column: Workout Preview (formerly Right) */}
+      <div className={cn(
+        "flex flex-col bg-background transition-all duration-300 overflow-hidden",
+        isCompact ? "w-full" : "w-1/2"
+      )}>
+        <WorkoutPreviewPanel
+          content={content || ''}
+          filter={previewFilter}
+          onStartWorkout={onStartWorkout}
+          onBlocksChange={setBlocks}
+        />
       </div>
-    )
+
+      {/* Right Column: Session Panel (Empty/Placeholder) (formerly Left) */}
+      {!isCompact && (
+        <div className="flex-1 min-w-0 bg-secondary/10 border-l border-border flex items-center justify-center text-muted-foreground">
+          <div className="text-center p-8 max-w-sm">
+            {isNotFound ? (
+              <>
+                <div className="h-12 w-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4">
+                  <span className="text-xl font-bold">!</span>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">WOD Not Found</h3>
+                <p className="text-sm opacity-80 mb-6">
+                  The workout segment you're looking for doesn't exist in this note or has been moved.
+                </p>
+                <div className="p-4 bg-muted/50 rounded-lg border border-dashed border-border">
+                  <p className="text-xs uppercase tracking-wider font-bold mb-2 opacity-50">Suggestion</p>
+                  <p className="text-sm italic">
+                    Select a valid WOD script from the preview on the left to begin.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold mb-2">Select a Session</h3>
+                <p className="text-sm opacity-80 mb-6">
+                  Choose a workout block from your note to begin tracking.
+                </p>
+                <div className="p-4 bg-muted/50 rounded-lg border border-dashed border-border">
+                  <p className="text-sm italic">
+                    Click "Run" on any WOD script to start the timer and visualizer.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 
   return screenContent;

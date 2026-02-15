@@ -1,6 +1,6 @@
 import React from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
-import { Dumbbell, Edit2, Trash2 } from 'lucide-react';
+import { Dumbbell, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
@@ -108,7 +108,6 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
     onAddToPlan,
     onClone,
     onEdit,
-    onDelete,
     title,
     provider,
 }) => {
@@ -155,11 +154,6 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                             <Button variant="outline" size="sm" onClick={onEdit} className="gap-2">
                                 <Edit2 className="h-4 w-4" />
                                 Edit Note
-                            </Button>
-                        )}
-                        {onDelete && (
-                            <Button variant="ghost" size="sm" onClick={onDelete} className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
                     </div>
