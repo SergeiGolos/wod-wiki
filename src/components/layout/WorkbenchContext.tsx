@@ -329,17 +329,14 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     }
   }, [routeSectionId, selectedBlockId, viewMode]);
 
-  // Handle broken links or empty Track view -> redirect to Plan
+  // Handle broken links on Track view -> redirect to Plan only for genuinely broken links
+  // (Case 1 removed: Track without sectionId now shows the WorkoutPreviewPanel)
   useEffect(() => {
     // Wait for blocks to be available before making a decision
     if (blocks.length === 0 || viewMode !== 'track') return;
 
-    // Case 1: Track view entered without a section ID
-    if (!routeSectionId) {
-      console.log('[WorkbenchContext] Track view entered without section ID. Redirecting to Plan.');
-      navigate(planPath(routeId || ''));
-      return;
-    }
+    // No section ID → show preview panel (no redirect)
+    if (!routeSectionId) return;
 
     // Case 2: Link is broken (ID not found in current blocks)
     const hasExact = blocks.some(b => b.id === selectedBlockId);

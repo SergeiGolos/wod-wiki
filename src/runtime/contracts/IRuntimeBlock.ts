@@ -83,7 +83,8 @@ export interface IRuntimeBlock {
 
     /**
      * Human-readable label for the block.
-     * Used for logging, UI display, and execution history.
+     * Computed from the block's Label fragment in fragment:display memory.
+     * Falls back to blockType or 'Block' if no Label fragment exists.
      * e.g., "Round 1 of 3", "21 Reps", "For Time"
      */
     readonly label: string;

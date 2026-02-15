@@ -306,6 +306,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       activeSegmentIds={activeSegmentIds}
       activeStatementIds={activeStatementIds}
       hoveredBlockKey={hoveredBlockKey}
+      content={content}
+      onStartWorkout={handleStartWorkoutAction}
     />
   );
 

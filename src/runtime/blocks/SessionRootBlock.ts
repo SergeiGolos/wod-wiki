@@ -72,7 +72,7 @@ export class SessionRootBlock extends RuntimeBlock {
         runtime: IScriptRuntime,
         config: SessionRootConfig
     ) {
-        const sessionLabel = config.label ?? 'Workout';
+        const sessionLabel = config.label ?? 'Session';
         const blockKey = new BlockKey('session-root');
         const context = new BlockContext(runtime, blockKey.toString(), 'Session');
         const sourceIds = config.childGroups.flat();
@@ -97,7 +97,7 @@ export class SessionRootBlock extends RuntimeBlock {
     static buildBehaviors(config: SessionRootConfig, runtime: IScriptRuntime): IRuntimeBehavior[] {
         const behaviors: IRuntimeBehavior[] = [];
         const totalRounds = config.totalRounds ?? 1;
-        const sessionLabel = config.label ?? 'Workout';
+        const sessionLabel = config.label ?? 'Session';
 
         // =====================================================================
         // Output Aspect - Segment tracking
@@ -110,7 +110,7 @@ export class SessionRootBlock extends RuntimeBlock {
         behaviors.push(new TimerInitBehavior({
             direction: 'up',
             label: sessionLabel,
-            role: 'primary'
+            role: 'auto'
         }));
         behaviors.push(new TimerTickBehavior());
         behaviors.push(new TimerPauseBehavior());

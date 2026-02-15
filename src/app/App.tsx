@@ -36,6 +36,7 @@ export const App: React.FC = () => {
                     {/* Playground (static / non-persisted) */}
                     <Route path="/playground" element={<Navigate to="/playground/plan" replace />} />
                     <Route path="/playground/plan" element={<PlaygroundPage />} />
+                    <Route path="/playground/track" element={<PlaygroundPage />} />
                     <Route path="/playground/track/:sectionId" element={<PlaygroundPage />} />
                     <Route path="/playground/review" element={<PlaygroundPage />} />
                     <Route path="/playground/:view" element={<PlaygroundPage />} />

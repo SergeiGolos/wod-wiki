@@ -16,7 +16,11 @@ export function fragmentsToLabel(fragments: ICodeFragment[] | ICodeFragment[][])
     const first = fragments[0];
     const flat = Array.isArray(first) ? (fragments as ICodeFragment[][]).flat() : (fragments as ICodeFragment[]);
 
-    // Try to find an Effort or Action fragment first
+    // Highest priority: explicit Label fragment
+    const labelFragment = flat.find(f => f.fragmentType === FragmentType.Label);
+    if (labelFragment) return labelFragment.image || labelFragment.value?.toString() || 'Block';
+
+    // Try to find an Effort or Action fragment next
     const primary = flat.find(f => f.fragmentType === FragmentType.Effort || f.fragmentType === FragmentType.Action);
     if (primary) return primary.image || primary.value?.toString() || 'Block';
 

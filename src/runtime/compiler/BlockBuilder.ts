@@ -4,7 +4,7 @@ import { BlockKey } from "../../core/models/BlockKey";
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
-import { ICodeFragment } from "../../core/models/CodeFragment";
+import { ICodeFragment, FragmentType } from "../../core/models/CodeFragment";
 import { MemoryLocation } from "../memory/MemoryLocation";
 import {
     ReentryCounterBehavior,
@@ -214,8 +214,8 @@ export class BlockBuilder {
             Array.from(this.behaviors.values()),
             this.context,
             this.key,
-            this.blockType,
-            this.label
+            this.blockType
+            // label is NOT passed here — it's pushed as a Label fragment below
         );
 
         // Push fragment memory preserving group structure from strategies
@@ -224,6 +224,17 @@ export class BlockBuilder {
             for (const group of this.fragments) {
                 block.pushMemory(new MemoryLocation('fragment:display', group));
             }
+        }
+
+        // Push label as a Label fragment in dedicated memory location
+        if (this.label) {
+            block.pushMemory(new MemoryLocation('fragment:label', [{
+                fragmentType: FragmentType.Label,
+                type: 'label',
+                image: this.label,
+                origin: 'compiler',
+                value: this.label,
+            } as ICodeFragment]));
         }
 
         return block;

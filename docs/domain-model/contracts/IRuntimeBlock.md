@@ -8,7 +8,7 @@
 interface IRuntimeBlock {
   readonly key: BlockKey;
   readonly blockType: string;
-  readonly label: string;
+  readonly label: string;  // Computed from FragmentType.Label fragment in memory
   readonly fragments: ICodeFragment[][];
   readonly sourceIds: number[];
   

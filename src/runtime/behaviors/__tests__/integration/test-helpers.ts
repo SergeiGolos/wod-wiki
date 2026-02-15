@@ -12,7 +12,7 @@ import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';
 import { MemoryType, MemoryTypeMap, TimerState, RoundState, DisplayState } from '../../../memory/MemoryTypes';
 import { TimeSpan } from '../../../models/TimeSpan';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../../memory/MemoryLocation';
-import { ICodeFragment } from '../../../../core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
 
 /**
  * Mock clock for deterministic time control in tests.
@@ -71,7 +71,8 @@ export function createMockRuntime(startTime: number = 0): MockRuntime {
 export interface MockBlock {
     key: { toString: () => string };
     blockType: string;
-    label: string;
+    /** Computed label derived from fragment:label memory. */
+    readonly label: string;
     fragments: unknown[][];
     memory: Map<MemoryType, unknown>;
     /** List-based memory locations (new API) */
@@ -95,7 +96,16 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
     const block: MockBlock = {
         key: { toString: () => config.key?.toString() ?? 'test-block' },
         blockType: config.blockType ?? 'Test',
-        label: config.label ?? 'Test Block',
+        get label(): string {
+            for (const loc of memoryLocations) {
+                for (const frag of loc.fragments) {
+                    if (frag.fragmentType === FragmentType.Label) {
+                        return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
+                    }
+                }
+            }
+            return block.blockType || 'Block';
+        },
         fragments: config.fragments ?? [],
         memory: config.memory ?? new Map(),
         _memoryLocations: memoryLocations,
@@ -112,6 +122,18 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
             return undefined;
         }
     };
+
+    // Store label as a Label fragment in memory list
+    const labelText = config.label ?? config.blockType ?? 'Test Block';
+    if (labelText) {
+        memoryLocations.push(new MemoryLocation('fragment:label', [{
+            fragmentType: FragmentType.Label,
+            type: 'label',
+            image: labelText,
+            origin: 'config',
+            value: labelText
+        } as ICodeFragment]));
+    }
 
     return block;
 }

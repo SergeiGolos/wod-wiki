@@ -7,6 +7,9 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
+import { WorkoutPreviewPanel } from './WorkoutPreviewPanel';
+import type { SectionType } from '../../markdown-editor/types/section';
+import type { WodBlock } from '../../markdown-editor/types';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
@@ -25,6 +28,15 @@ export interface TrackPanelProps {
   onPause: () => void;
   onStop: () => void;
   onNext: () => void;
+  /** Raw markdown content for the preview panel */
+  content?: string;
+  /** Called when user clicks Run on a WOD block in the preview */
+  onStartWorkout?: (block: WodBlock) => void;
+  /**
+   * Optional section-type filter for the preview panel.
+   * Defaults to `['wod']` to show only runnable blocks.
+   */
+  previewFilter?: SectionType[];
 }
 
 export const SessionHistory: React.FC<Pick<TrackPanelProps, 'runtime' | 'activeSegmentIds' | 'activeStatementIds' | 'hoveredBlockKey' | 'execution'>> = ({
@@ -59,7 +71,10 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   onNext,
   activeSegmentIds,
   activeStatementIds,
-  hoveredBlockKey
+  hoveredBlockKey,
+  content,
+  onStartWorkout,
+  previewFilter = ['wod'],
 }) => {
   const { isCompact } = usePanelSize();
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -103,7 +118,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   );
 
 
-  const content = runtime ? (
+  const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
       <div className="flex h-full overflow-hidden">
         {/* Left Column: Timer & Controls (flex-1 or fixed width?) */}
@@ -126,13 +141,15 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       </div>
     </ScriptRuntimeProvider>
   ) : (
-    // ... (selection state remains same)
+    // No runtime — show workout preview panel for block selection
     selectedBlock ? timerDisplay : (
-      <div className="h-full w-full bg-background flex items-center justify-center text-muted-foreground italic">
-        Redirecting to Plan...
-      </div>
+      <WorkoutPreviewPanel
+        content={content || ''}
+        filter={previewFilter}
+        onStartWorkout={onStartWorkout}
+      />
     )
   );
 
-  return content;
+  return screenContent;
 };

@@ -10,7 +10,7 @@ import { vi, expect } from 'bun:test';
 import { IRuntimeBlock, IRuntimeBehavior } from '../contracts';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { MemoryTypeMap, TimerState, MemoryType, RoundState } from '../memory/MemoryTypes';
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 
 
@@ -71,7 +71,8 @@ export function createMockRuntime(startTime: number = 0): MockRuntime {
 export interface MockBlock {
     key: { toString: () => string };
     blockType: string;
-    label: string;
+    /** Computed label derived from fragment:label memory. */
+    readonly label: string;
     fragments: unknown[][];
     memory: Map<MemoryType, unknown>;
     /** List-based memory storage for new API */
@@ -99,7 +100,16 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
     const block: MockBlock = {
         key: { toString: () => config.key?.toString() ?? 'test-block' },
         blockType: config.blockType ?? 'Test',
-        label: config.label ?? 'Test Block',
+        get label(): string {
+            for (const loc of memoryList) {
+                for (const frag of loc.fragments) {
+                    if (frag.fragmentType === FragmentType.Label) {
+                        return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
+                    }
+                }
+            }
+            return block.blockType || 'Block';
+        },
         fragments: config.fragments ?? [],
         memory: memoryMap,
         _memoryList: memoryList,
@@ -155,6 +165,19 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
             }
         },
     };
+
+    // Store label as a Label fragment in memory list
+    const labelText = config.label ?? config.blockType ?? 'Test Block';
+    if (labelText) {
+        memoryList.push(new MemoryLocation('fragment:label', [{
+            fragmentType: FragmentType.Label,
+            type: 'label',
+            image: labelText,
+            origin: 'config',
+            value: labelText
+        } as ICodeFragment]));
+    }
+
     return block;
 }
 

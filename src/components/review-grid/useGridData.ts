@@ -64,18 +64,68 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
   const preset = useMemo(() => getPreset(presetId), [presetId]);
 
+  // 1. Identify which fragment types actually exist in the data
+  //    (We check both runtime segments AND user overrides)
+  const activeFragmentTypes = useMemo(() => {
+    const types = new Set<FragmentType>();
+
+    // Check runtime segments
+    for (const seg of segments) {
+      if (seg.fragments) {
+        for (const f of seg.fragments) {
+          types.add(f.fragmentType);
+        }
+      }
+    }
+
+    // Check user overrides
+    for (const fragments of userOutputOverrides.values()) {
+      for (const f of fragments) {
+        types.add(f.fragmentType);
+      }
+    }
+
+    return types;
+  }, [segments, userOutputOverrides]);
+
   // Build column definitions
   const columns = useMemo(
     () => {
       const cols = buildAllColumns(preset, isDebugMode);
-      if (graphTaggedColumns) {
-        return cols.map((col) =>
-          graphTaggedColumns.has(col.id) ? { ...col, isGraphed: true } : col,
-        );
-      }
-      return cols;
+
+      // Filter: Only keep fragment columns that have data
+      const activeCols = cols.filter((col) => {
+        // Always keep structural columns (no fragmentType)
+        if (!col.fragmentType) return true;
+
+        // Strict debug check: 'system' columns are hidden unless in debug mode
+        if (col.fragmentType === FragmentType.System && !isDebugMode) {
+          return false;
+        }
+
+        // Only keep fragment columns if that type exists in the data
+        return activeFragmentTypes.has(col.fragmentType);
+      });
+
+      // Map: Force visibility for active fragment columns (auto-select)
+      // and apply graph tags
+      return activeCols.map((col) => {
+        let newCol = { ...col };
+
+        // If it's an active fragment column, ensure it's visible by default
+        if (col.fragmentType && activeFragmentTypes.has(col.fragmentType)) {
+          newCol.visible = true;
+        }
+
+        // Apply graph tags
+        if (graphTaggedColumns && graphTaggedColumns.has(col.id)) {
+          newCol.isGraphed = true;
+        }
+
+        return newCol;
+      });
     },
-    [preset, isDebugMode, graphTaggedColumns],
+    [preset, isDebugMode, graphTaggedColumns, activeFragmentTypes],
   );
 
   // Merge filter: preset filters + user overrides

@@ -184,10 +184,72 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   // The focused block is the primary timer's block
   const focusedBlockId = primaryTimer ? primaryTimer.block.key.toString() : undefined;
 
+  // 3. Label & Time Logic for Display
+  const { mainLabel, subLabel, activeTimerEntry, activeElapsed } = useMemo(() => {
+    // Determine the Leaf Item (lowest child on stack)
+    const leafItem = stackItems?.find(i => i.isLeaf);
+    const leafLabel = leafItem?.label;
+
+    // Find the timer corresponding to the leaf block
+    const leafTimer = leafItem ? allTimers.find(t => t.block.key.toString() === leafItem.block.key.toString()) : undefined;
+    const leafElapsed = leafTimer ? calculateDuration(leafTimer.timer.spans, now) : 0;
+
+    // If we have a Pinned Primary Timer
+    if (primaryTimer && primaryTimer.isPinned) {
+      const isLeafTimer = primaryTimer.block.key.toString() === leafItem?.block.key.toString();
+      const pinnedElapsed = calculateDuration(primaryTimer.timer.spans, now);
+
+      return {
+        mainLabel: primaryTimer.timer.label,
+        // Only show sub-label (leaf) if it's different from the pinned timer
+        subLabel: isLeafTimer ? undefined : leafLabel,
+        activeTimerEntry: primaryTimer,
+        activeElapsed: pinnedElapsed
+      };
+    }
+
+    // No pinned timer (Primary is auto/fallback) -> Show the Leaf Label & Time
+    // If the leaf has a timer, use it. Otherwise fall back to primary (likely session)
+    return {
+      mainLabel: leafLabel || primaryTimer?.timer.label || "Timer",
+      subLabel: undefined,
+      activeTimerEntry: leafTimer || primaryTimer,
+      activeElapsed: leafTimer ? leafElapsed : primaryElapsedMs /* fallback to session if leaf has no timer */
+    };
+  }, [primaryTimer, stackItems, allTimers, now, primaryElapsedMs]);
+
+  // Override the label/values in the primaryTimerEntry sent to the view
+  const displayTimerEntry = useMemo(() => {
+    // If we have an override from Step 3 (activeTimerEntry), use it
+    if (activeTimerEntry) {
+      const blockKey = activeTimerEntry.block.key.toString();
+      return {
+        id: `timer-${blockKey}`,
+        ownerId: blockKey,
+        timerMemoryId: '',
+        label: mainLabel,
+        format: activeTimerEntry.timer.direction,
+        durationMs: activeTimerEntry.timer.durationMs,
+        role: activeTimerEntry.isPinned ? 'primary' as const : 'auto' as const,
+        accumulatedMs: activeElapsed
+      };
+    }
+
+    // Otherwise fallback to the existing primaryTimerEntry (likely session or leaf from hook)
+    // but update label and elapsed
+    if (!primaryTimerEntry) return undefined;
+
+    return {
+      ...primaryTimerEntry,
+      label: mainLabel,
+      accumulatedMs: activeElapsed
+    };
+  }, [primaryTimerEntry, activeTimerEntry, mainLabel, activeElapsed]);
+
   return (
     <TimerStackView
-      // Use our calculated elapsed time instead of props.elapsedMs
-      elapsedMs={primaryElapsedMs}
+      // Use our calculated elapsed time from the active selection
+      elapsedMs={activeElapsed}
       // Pass other props
       hasActiveBlock={props.hasActiveBlock}
       onStart={props.onStart}
@@ -221,7 +283,8 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
       // If any timer is running, the display should look alive
       isRunning={isAnyTimerRunning}
 
-      primaryTimer={primaryTimerEntry}
+      primaryTimer={displayTimerEntry}
+      subLabel={subLabel}
       secondaryTimers={secondaryTimerEntries}
       stackItems={stackItems}
       compact={props.compact}

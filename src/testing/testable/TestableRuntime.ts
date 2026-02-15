@@ -1,9 +1,11 @@
 import { BlockKey, IMemoryReference, IRuntimeBlock, ICodeFragment, IScriptRuntime, WodScript, JitCompiler, IScript, CodeStatement } from "@/core";
+import { FragmentType } from "@/core/models/CodeFragment";
 import { IBlockContext, RuntimeError } from "@/core-entry";
 import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, TypedMemoryReference } from "@/runtime/contracts";
 import { IOutputStatement } from "@/core/models/OutputStatement";
 import { ITestSetupAction } from "../setup";
 import { MemoryOperation, StackOperation } from "./TestableBlock";
+import { MemoryLocation } from "@/runtime/memory/MemoryLocation";
 
 
 // Re-export for backward compatibility
@@ -146,10 +148,25 @@ class StubBlock implements IRuntimeBlock {
   readonly key: BlockKey;
   readonly sourceIds: number[] = [];
   readonly blockType?: string;
-  readonly label: string;
   readonly context: IBlockContext;
   readonly fragments?: ICodeFragment[][];
   private _isComplete = false;
+  private _memory: import('@/runtime/memory/MemoryLocation').IMemoryLocation[] = [];
+
+  /**
+   * Computed label derived from the block's Label fragment in memory.
+   * Falls back to blockType → 'Block'.
+   */
+  get label(): string {
+    for (const loc of this._memory) {
+      for (const frag of loc.fragments) {
+        if ((frag as any).fragmentType === FragmentType.Label) {
+          return frag.image || (frag.value as any)?.toString() || this.blockType || 'Block';
+        }
+      }
+    }
+    return this.blockType || 'Block';
+  }
 
   get isComplete(): boolean {
     return this._isComplete;
@@ -162,8 +179,19 @@ class StubBlock implements IRuntimeBlock {
   constructor(config: InitialStackEntry) {
     this.key = new StubBlockKey(config.key);
     this.blockType = config.blockType ?? 'stub';
-    this.label = config.label ?? config.key;
     this.context = new StubBlockContext(config.key);
+
+    // Store label as a Label fragment in memory
+    const labelText = config.label ?? config.key;
+    if (labelText) {
+      this._memory.push(new MemoryLocation('fragment:label', [{
+        fragmentType: FragmentType.Label,
+        type: 'label',
+        image: labelText,
+        origin: 'config',
+        value: labelText
+      } as ICodeFragment]));
+    }
   }
 
   mount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
@@ -171,9 +199,9 @@ class StubBlock implements IRuntimeBlock {
   unmount(): import("@/runtime/contracts").IRuntimeAction[] { return []; }
   dispose(): void { }
   getBehavior<T>(_type: any): T | undefined { return undefined; }
-  pushMemory(_location: import("@/runtime/memory/MemoryLocation").IMemoryLocation): void { }
-  getMemoryByTag(_tag: import("@/runtime/memory/MemoryLocation").MemoryTag): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return []; }
-  getAllMemory(): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return []; }
+  pushMemory(location: import("@/runtime/memory/MemoryLocation").IMemoryLocation): void { this._memory.push(location); }
+  getMemoryByTag(tag: import("@/runtime/memory/MemoryLocation").MemoryTag): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return this._memory.filter(loc => loc.tag === tag); }
+  getAllMemory(): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] { return [...this._memory]; }
   hasMemory(): boolean { return false; }
   getMemory<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T): any { return undefined; }
   setMemoryValue<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T, _value: any): void { }

@@ -77,7 +77,7 @@ Each block on the stack exposes:
 | ----------- | --------------- | --------------------------------------------------------------------- |
 | `key`       | `BlockKey`      | Unique ID displayed as truncated hash                                 |
 | `blockType` | `string`        | Badge label (`session-root`, `Rounds`, `effort`, etc.)                |
-| `label`     | `string`        | Primary display text (`"Workout"`, `"3 Rounds"`, `"Thrusters 95 lb"`) |
+| `label`     | `string` (computed) | Derived from `FragmentType.Label` fragment in block memory. E.g. `"Workout"`, `"3 Rounds"`, `"Thrusters 95 lb"`. Falls back to `blockType`. |
 | `sourceIds` | `number[]`      | Links back to parsed script statements                                |
 | `context`   | `IBlockContext` | Memory allocation scope                                               |
 
@@ -138,13 +138,14 @@ The `StackBlockItem` component subscribes to `fragment:display` memory locations
 
 #### Other memory types (used by block internals, not directly by the panel)
 
-| Tag | Shape | Purpose |
-|-----|-------|---------|
-| `'round'` | `RoundState` `{ current, total }` | Loop iteration counter |
-| `'completion'` | `CompletionState` `{ isComplete, reason }` | Block completion tracking |
-| `'display'` | `DisplayState` `{ mode, label, subtitle }` | UI labels for timer display |
-| `'controls'` | `ButtonsState` `{ buttons: ButtonConfig[] }` | Action buttons |
-| `'fragment'` | `FragmentState` `{ groups }` | Raw compiled fragments |
+| Tag              | Shape                                        | Purpose                     |
+| ---------------- | -------------------------------------------- | --------------------------- |
+| `'fragment:label'` | `ICodeFragment` with `FragmentType.Label`  | Block display label (computed via `block.label` getter) |
+| `'round'`        | `RoundState` `{ current, total }`            | Loop iteration counter      |
+| `'completion'`   | `CompletionState` `{ isComplete, reason }`   | Block completion tracking   |
+| `'display'`      | `DisplayState` `{ mode, label, subtitle }`   | UI labels for timer display |
+| `'controls'`     | `ButtonsState` `{ buttons: ButtonConfig[] }` | Action buttons              |
+| `'fragment'`     | `FragmentState` `{ groups }`                 | Raw compiled fragments      |
 
 ---
 
@@ -403,7 +404,7 @@ WOD Script
 CodeStatement ──→ Strategy.match() ──→ BlockBuilder
   (fragments,       │                     │
    children,        │                     ├── setBlockType()
-   meta)            │                     ├── setLabel()
+                    │                     ├── setLabel() → stored as fragment:label
                     │                     ├── addBehavior(...)
                     │                     ├── setFragments(...)
                     │                     └── build() ──→ IRuntimeBlock

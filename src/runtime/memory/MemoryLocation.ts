@@ -11,7 +11,8 @@ export type MemoryTag =
     | 'display'
     | 'controls'
     | 'fragment'
-    | 'fragment:display';
+    | 'fragment:display'
+    | 'fragment:label';
 
 /**
  * A single memory location in a block's memory list.

@@ -40,13 +40,9 @@ export class HistoryStrategy implements IRuntimeBlockStrategy {
         ) as RoundsFragment | undefined;
 
         // Determine block type for history context
-        let _label = "Block";
-        if (timerFragment) {
-            _label = timerFragment.direction === 'down' ? 'Timer' : 'For Time';
-        }
-        if (roundsFragment) {
-            _label = "Rounds";
-        }
+        // (label derivation moved to fragment-based system)
+        // These checks are retained for reference but no longer assign a local label.
+        // The block's label is now derived from its Label fragment.
 
         // Add history recording behavior
         builder.addBehavior(new HistoryRecordBehavior());

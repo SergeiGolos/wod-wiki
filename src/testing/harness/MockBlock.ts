@@ -197,10 +197,24 @@ export class MockBlock implements IRuntimeBlock {
   readonly key: BlockKey;
   readonly sourceIds: number[];
   readonly blockType: string;
-  readonly label: string;
   readonly context: IBlockContext;
   readonly fragments: ICodeFragment[][];
   executionTiming: BlockLifecycleOptions = {};
+
+  /**
+   * Computed label derived from the block's Label fragment in memory.
+   * Falls back to blockType → 'Block'.
+   */
+  get label(): string {
+    for (const loc of this._memory) {
+      for (const frag of loc.fragments) {
+        if (frag.fragmentType === FragmentType.Label) {
+          return frag.image || frag.value?.toString() || this.blockType || 'Block';
+        }
+      }
+    }
+    return this.blockType || 'Block';
+  }
 
   /** Mutable state accessible in tests and condition functions */
   public state: Record<string, any>;
@@ -247,8 +261,19 @@ export class MockBlock implements IRuntimeBlock {
 
     this.key = new MockBlockKey(resolvedConfig.id ?? `mock-${Math.random().toString(36).slice(2)}`);
     this.blockType = resolvedConfig.blockType ?? 'MockBlock';
-    this.label = resolvedConfig.label ?? this.blockType;
     this.sourceIds = resolvedConfig.sourceIds ?? [];
+
+    // Store label as a Label fragment in memory (matching RuntimeBlock pattern)
+    const labelText = resolvedConfig.label ?? this.blockType;
+    if (labelText) {
+      this._memory.push(new MemoryLocation('fragment:label', [{
+        fragmentType: FragmentType.Label,
+        type: 'label',
+        image: labelText,
+        origin: 'config',
+        value: labelText
+      } as ICodeFragment]));
+    }
     this.fragments = resolvedConfig.fragments ?? [];
     this.context = new MockBlockContext(this.key.toString());
     this.state = resolvedConfig.state ?? {};

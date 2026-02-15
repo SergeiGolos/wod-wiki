@@ -32,12 +32,27 @@ export class RuntimeBlock implements IRuntimeBlock {
     protected readonly behaviors: IRuntimeBehavior[] = [];
     public readonly key: BlockKey;
     public readonly blockType?: string;
-    public readonly label: string;
     public readonly context: IBlockContext;
     public readonly sourceIds: number[];
 
     // List-based memory storage
     private _memory: IMemoryLocation[] = [];
+
+    /**
+     * Computed label derived from the block's Label fragment.
+     * Priority: Label fragment in memory → blockType → 'Block'
+     */
+    get label(): string {
+        // Check all memory locations for a Label fragment
+        for (const loc of this._memory) {
+            for (const frag of loc.fragments) {
+                if (frag.fragmentType === FragmentType.Label) {
+                    return frag.image || frag.value?.toString() || this.blockType || 'Block';
+                }
+            }
+        }
+        return this.blockType || 'Block';
+    }
 
     // Behavior context (created on mount)
     protected _behaviorContext?: BehaviorContext;
@@ -72,13 +87,22 @@ export class RuntimeBlock implements IRuntimeBlock {
         if (typeof contextOrBlockType === 'string' || contextOrBlockType === undefined) {
             this.key = blockKey ?? new BlockKey();
             this.blockType = contextOrBlockType as string | undefined;
-            this.label = label || (contextOrBlockType as string) || 'Block';
             this.context = new BlockContext(runtime, this.key.toString());
         } else {
             this.key = blockKey ?? new BlockKey();
             this.context = contextOrBlockType;
             this.blockType = blockTypeParam;
-            this.label = label || blockTypeParam || 'Block';
+        }
+
+        // Store label as a Label fragment in memory (only if explicitly provided)
+        if (label) {
+            this._memory.push(new MemoryLocation('fragment:label', [{
+                fragmentType: FragmentType.Label,
+                type: 'label',
+                image: label,
+                origin: 'compiler',
+                value: label,
+            } as ICodeFragment]));
         }
     }
 

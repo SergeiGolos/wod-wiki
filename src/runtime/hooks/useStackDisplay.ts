@@ -96,8 +96,12 @@ export function usePrimaryTimer(): StackTimerEntry | undefined {
     return useMemo(() => {
         if (timers.length === 0) return undefined;
 
-        // Find the lowest (first from bottom) pinned timer
-        const pinned = timers.find(t => t.isPinned);
+        // Precedence:
+        // 1. Pinned timer closest to the leaf (lowest on stack / last in array)
+        // 2. Leaf timer (top of stack / last in array)
+
+        // Find the lowest (deepest / last in stack) pinned timer
+        const pinned = [...timers].reverse().find(t => t.isPinned);
         if (pinned) return pinned;
 
         // Fallback: leaf timer (top of stack = last in array)

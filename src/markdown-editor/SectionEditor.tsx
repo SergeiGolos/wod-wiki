@@ -9,9 +9,9 @@
  * Content changes flow back through useSectionDocument.
  */
 
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import type { WodBlock } from './types';
-import type { Section, WodDialect } from './types/section';
+import type { Section, SectionType, WodDialect } from './types/section';
 import { useSectionDocument } from './hooks/useSectionDocument';
 import { SectionContainer } from './components/SectionContainer';
 import { MarkdownDisplay, WodBlockDisplay } from './components/section-renderers';
@@ -56,6 +56,12 @@ export interface SectionEditorProps {
   provider?: IContentProvider;
   /** ID of the note being edited/viewed (for link tracking) */
   sourceNoteId?: string;
+  /**
+   * Optional list of section types to display.
+   * When set, only sections whose `type` is in this array are rendered.
+   * Sections not matching the filter are completely hidden.
+   */
+  filter?: SectionType[];
 }
 
 /** Read-only dispatcher — selects renderer by section type */
@@ -105,6 +111,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
   mode = 'preview',
   provider,
   sourceNoteId,
+  filter,
 }) => {
   const {
     sections,
@@ -290,20 +297,27 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
     convertToWod,
   ]);
 
+  // Apply filter if provided (e.g. only 'wod' sections on Track view)
+  const visibleSections = useMemo(() => {
+    const live = sections.filter(s => !s.deleted);
+    if (!filter || filter.length === 0) return live;
+    return live.filter(s => filter.includes(s.type));
+  }, [sections, filter]);
+
   return (
     <div
       className={`section-editor overflow-auto custom-scrollbar cursor-default ${className}`}
       style={{ height, width }}
     >
       <div className="py-2">
-        {sections.length === 0 ? (
+        {visibleSections.length === 0 ? (
           <div className="px-4 py-8 text-sm text-muted-foreground text-center italic">
-            Empty document. Click below to add your first segment.
+            {filter ? 'No matching sections found.' : 'Empty document. Click below to add your first segment.'}
           </div>
         ) : (
           <>
 
-            {sections.filter(s => !s.deleted).map((section) => {
+            {visibleSections.map((section) => {
               const isActive = section.id === activeSectionId;
               return (
                 <React.Fragment key={section.id}>

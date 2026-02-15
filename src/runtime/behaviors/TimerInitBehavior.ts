@@ -13,7 +13,7 @@ export interface TimerInitConfig {
     /** Human-readable label */
     label?: string;
     /** Timer role for display priority */
-    role?: 'primary' | 'secondary' | 'hidden';
+    role?: 'primary' | 'secondary' | 'hidden' | 'auto';
 }
 
 /**
