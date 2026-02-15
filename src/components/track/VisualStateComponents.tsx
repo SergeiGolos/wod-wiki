@@ -3,13 +3,15 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, ListTree, ArrowRight, Timer, Eye, ArrowUpCircle, Lock } from 'lucide-react';
+import { Clock, CheckCircle2, ListTree, ArrowRight, Timer, Eye, ArrowUpCircle, Lock, Table2 } from 'lucide-react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
 import { ICodeFragment } from '@/core/models/CodeFragment';
 import { FragmentVisibility, VISIBILITY_ICONS, VISIBILITY_LABELS } from '@/runtime/memory/FragmentVisibility';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
+import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
+import { BlockDebugDialog } from './BlockDebugDialog';
 
 // ============================================================================
 // History View
@@ -104,10 +106,12 @@ const StackBlockItem: React.FC<{
     // Consume debug context directly as fallback if prop not passed
     const { isDebugMode } = useDebugMode();
     const debug = debugProp ?? isDebugMode;
+    const runtime = useScriptRuntime();
     const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
     const [displayRows, setDisplayRows] = useState<ICodeFragment[][]>([]);
     const [promoteRows, setPromoteRows] = useState<ICodeFragment[][]>([]);
     const [privateRows, setPrivateRows] = useState<ICodeFragment[][]>([]);
+    const [debugDialogOpen, setDebugDialogOpen] = useState(false);
 
     // Subscribe to fragment memory by visibility tier
     useEffect(() => {
@@ -219,6 +223,17 @@ const StackBlockItem: React.FC<{
                             {formatTimeMMSS(elapsed)}
                         </div>
                     )}
+
+                    {/* Debug inspect button */}
+                    {debug && (
+                        <button
+                            onClick={() => setDebugDialogOpen(true)}
+                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                            title="Inspect block"
+                        >
+                            <Table2 className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Fragment rows — inside the card */}
@@ -233,6 +248,16 @@ const StackBlockItem: React.FC<{
                     </div>
                 )}
             </div>
+
+            {/* Debug dialog */}
+            {debug && (
+                <BlockDebugDialog
+                    open={debugDialogOpen}
+                    onOpenChange={setDebugDialogOpen}
+                    block={block}
+                    runtime={runtime}
+                />
+            )}
         </div>
     );
 };

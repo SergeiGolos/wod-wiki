@@ -169,6 +169,12 @@ export interface IRuntimeBlock {
      */
     getBehavior<T extends IRuntimeBehavior>(behaviorType: new (...args: any[]) => T): T | undefined;
 
+    /**
+     * Read-only list of all behaviors attached to this block.
+     * Useful for debug/inspection UIs.
+     */
+    readonly behaviors: readonly IRuntimeBehavior[];
+
     // ============================================================================
     // List-Based Memory API
     // ============================================================================

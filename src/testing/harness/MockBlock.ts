@@ -253,7 +253,7 @@ export class MockBlock implements IRuntimeBlock {
 
   constructor(
     idOrConfig: string | MockBlockConfig,
-    private readonly behaviors: IRuntimeBehavior[] = [],
+    public readonly behaviors: IRuntimeBehavior[] = [],
     config?: MockBlockConfig
   ) {
     const resolvedConfig: MockBlockConfig = typeof idOrConfig === 'string'

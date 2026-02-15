@@ -529,6 +529,13 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         <Search className="h-4 w-4" />
                     </Button>
 
+                    <div className="h-6 w-px bg-border mx-2" />
+
+                    <NewPostButton
+                        onCreate={createEntryInNotebook}
+                        className="hidden md:flex"
+                    />
+
                     <button
                         onClick={() => setIsDetailsOpen(!isDetailsOpen)}
                         className={cn(
@@ -541,13 +548,6 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     >
                         <PanelRightOpen className="h-5 w-5" />
                     </button>
-
-                    <div className="h-6 w-px bg-border mx-2" />
-
-                    <NewPostButton
-                        onCreate={createEntryInNotebook}
-                        className="hidden md:flex"
-                    />
                 </div>
             </div>
 

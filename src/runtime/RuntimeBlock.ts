@@ -30,7 +30,7 @@ import { IRuntimeClock } from './contracts/IRuntimeClock';
  * 5. dispose() is called for cleanup - behaviors receive onDispose(ctx)
  */
 export class RuntimeBlock implements IRuntimeBlock {
-    protected readonly behaviors: IRuntimeBehavior[] = [];
+    public readonly behaviors: IRuntimeBehavior[] = [];
     public readonly key: BlockKey;
     public readonly blockType?: string;
     public readonly context: IBlockContext;
