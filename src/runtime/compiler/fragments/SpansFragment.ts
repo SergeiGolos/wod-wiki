@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { TimeSpan } from "../../models/TimeSpan";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * SpansFragment tracks the raw start/stop timestamps from the runtime clock.
@@ -23,6 +24,7 @@ export class SpansFragment implements ICodeFragment {
   readonly type: string = "spans";
   readonly fragmentType = FragmentType.Spans;
   readonly origin: FragmentOrigin = 'runtime';
+  readonly behavior: MetricBehavior = MetricBehavior.Recorded;
 
   /**
    * @param spans Array of TimeSpan objects recording clock start/stop events

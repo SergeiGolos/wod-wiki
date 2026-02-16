@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * DurationFragment represents a planned time duration set by a block definition.
@@ -41,6 +42,7 @@ export class DurationFragment implements ICodeFragment {
       this.original = undefined;
       this.value = undefined;
       this.origin = 'runtime';
+      this.behavior = MetricBehavior.Hint;
     } else {
       const digits = this.image
         .split(":")
@@ -74,6 +76,7 @@ export class DurationFragment implements ICodeFragment {
 
       this.value = this.original;
       this.origin = 'parser';
+      this.behavior = MetricBehavior.Defined;
     }
   }
 
@@ -84,6 +87,7 @@ export class DurationFragment implements ICodeFragment {
   readonly original: number | undefined;
   readonly type: string = "duration";
   readonly fragmentType = FragmentType.Duration;
+  readonly behavior: MetricBehavior;
 
   /**
    * Determines the intended timer direction based on value and modifiers.

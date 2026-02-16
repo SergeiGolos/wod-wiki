@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { formatDuration } from "../../time/calculateElapsed";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * ElapsedFragment represents the total **active** time across all spans.
@@ -23,6 +24,7 @@ export class ElapsedFragment implements ICodeFragment {
   readonly type: string = "elapsed";
   readonly fragmentType = FragmentType.Elapsed;
   readonly origin: FragmentOrigin = 'collected';
+  readonly behavior: MetricBehavior = MetricBehavior.Calculated;
 
   /**
    * @param value Elapsed time in milliseconds

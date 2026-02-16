@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * Trigger types for when a sound should play.
@@ -26,6 +27,8 @@ export class SoundFragment implements ICodeFragment {
     readonly origin: FragmentOrigin;
     readonly value: SoundFragmentValue;
     readonly image: string;
+    readonly meta?: CodeMetadata;
+    readonly behavior: MetricBehavior = MetricBehavior.Recorded;
 
     constructor(
         /** Sound identifier or URL */
@@ -51,6 +54,8 @@ export class SoundFragment implements ICodeFragment {
         this.image = options.atSecond !== undefined 
             ? `${sound}@${options.atSecond}s` 
             : sound;
+        // Preserve source metadata if provided
+        this.meta = options.meta;
     }
 }
 

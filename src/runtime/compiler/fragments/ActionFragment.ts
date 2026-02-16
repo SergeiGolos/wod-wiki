@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export interface ActionFragmentOptions {
   /** Original text inside the action fence (after the colon) */
@@ -18,6 +19,7 @@ export class ActionFragment implements ICodeFragment {
   readonly isPinned: boolean;
   readonly sourceLine?: number;
   readonly origin: FragmentOrigin = 'parser';
+  readonly behavior: MetricBehavior = MetricBehavior.Defined;
 
   constructor(action: string, public meta?: CodeMetadata, options: ActionFragmentOptions = {}) {
     // Preserve backward compatibility: "action" arg is the normalized name when options not provided

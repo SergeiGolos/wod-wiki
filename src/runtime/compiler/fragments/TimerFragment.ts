@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export class TimerFragment implements ICodeFragment {
   readonly value: number | undefined;
@@ -27,6 +28,7 @@ export class TimerFragment implements ICodeFragment {
       this.original = undefined;
       this.value = undefined;
       this.origin = 'runtime';
+      this.behavior = MetricBehavior.Hint;
     } else {
       const digits = this.image
         .split(":")
@@ -60,6 +62,7 @@ export class TimerFragment implements ICodeFragment {
 
       this.value = this.original;
       this.origin = 'parser';
+      this.behavior = MetricBehavior.Defined;
     }
   }
 
@@ -68,8 +71,9 @@ export class TimerFragment implements ICodeFragment {
   readonly minutes: number;
   readonly seconds: number;
   readonly original: number | undefined; // in ms
-  readonly type: string = "duration";
+  readonly type: string = "timer";
   readonly fragmentType = FragmentType.Timer;
+  readonly behavior: MetricBehavior;
 
   /**
    * Determines the intended timer direction based on value and modifiers.

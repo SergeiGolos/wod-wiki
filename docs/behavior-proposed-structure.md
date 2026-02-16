@@ -55,15 +55,18 @@ Seven primary aspects plus universal invariants. Each aspect has **one** behavio
 
 > Owns all time tracking: initialization, ticking, pausing, span management.
 
-| Behavior | Lifecycle Hooks | Responsibility |
-|---|---|---|
+| Behavior        | Lifecycle Hooks                  | Responsibility                                                                                                                                                    |
+| --------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `TimerBehavior` | `onMount`, `onNext`, `onUnmount` | Single unified timer. Initializes spans, subscribes to `tick` events, handles pause/resume. Configurable: direction (`up`/`down`), `durationMs`, `label`, `role`. |
-
+- on mount start a timer,
+- on next end and start a span
+- on pop push the ellapsed and total fragments to be saved as output statements
+  
 **Key change:** Merge `TimerInitBehavior` + `TimerTickBehavior` + `TimerPauseBehavior` into one `TimerBehavior`. A timer is one thing — tracking time. Splitting init from tick created unnecessary state coordination.
 
 **Memory written:** `timer` tag — `TimeSpan[]`, direction, durationMs.
 
-**Events consumed:** `tick` (bubble), `timer:pause` (active), `timer:resume` (active).
+**Events consumed:**  `timer:pause` (active), `timer:resume` (active).
 
 > no need to consume timer tick even here..  end timer behvavior cares about that not this one. 
 
@@ -82,7 +85,7 @@ Config: { direction: 'up' | 'down', durationMs?: number, label?: string, role?: 
 | Behavior | Lifecycle Hooks | Responsibility |
 |---|---|---|
 | `ReEntryBehavior` | `onMount`, `onNext` | Initializes round counter in memory. Advances on `onNext()` when children signal completion (via memory, not behavior reference). Optionally bounded. |
-> reentery doesn't repace therounds, rounds is a higher level version that deals with fragmetns, thus track the numer of time on puth and next are called.. 
+> reentery doesn't repace the  rounds, rounds is a higher level version that deals with fragmetns, thus track the numer of time on puth and next are called.. 
 
 **Key change:** Merge `RoundInitBehavior` + `RoundAdvanceBehavior` + `ReentryCounterBehavior` into one `ReEntryBehavior`. The re-entry count IS the round count — they were the same concept split across three classes.
 

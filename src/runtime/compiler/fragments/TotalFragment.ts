@@ -1,5 +1,6 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { formatDuration } from "../../time/calculateElapsed";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * TotalFragment represents the wall-clock bracket from the first span
@@ -24,6 +25,7 @@ export class TotalFragment implements ICodeFragment {
   readonly type: string = "total";
   readonly fragmentType = FragmentType.Total;
   readonly origin: FragmentOrigin = 'collected';
+  readonly behavior: MetricBehavior = MetricBehavior.Calculated;
 
   /**
    * @param value Total wall-clock time in milliseconds

@@ -1,4 +1,5 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * SystemTimeFragment captures the actual wall-clock time from `Date.now()`
@@ -23,6 +24,7 @@ export class SystemTimeFragment implements ICodeFragment {
   readonly type: string = "system-time";
   readonly fragmentType = FragmentType.SystemTime;
   readonly origin: FragmentOrigin = 'runtime';
+  readonly behavior: MetricBehavior = MetricBehavior.Recorded;
 
   /**
    * @param value The real system time as a Date object

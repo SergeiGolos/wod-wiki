@@ -1,10 +1,12 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
+import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export class IncrementFragment implements ICodeFragment {
   readonly value: number;
   readonly increment: number;
   readonly origin: FragmentOrigin = 'parser';
+  readonly behavior: MetricBehavior = MetricBehavior.Hint;
 
   constructor(public image: string, public meta?: CodeMetadata) {
     this.increment = image == "^" ? 1 : -1;
