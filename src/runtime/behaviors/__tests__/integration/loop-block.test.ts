@@ -24,8 +24,7 @@ import {
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
-import { RoundOutputBehavior } from '../../RoundOutputBehavior';
-import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
+import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { RoundState } from '../../../memory/MemoryTypes';
@@ -45,8 +44,7 @@ describe('Loop Block Integration', () => {
             new RoundsEndBehavior(),
             new RoundDisplayBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'Rounds' }),
-            new RoundOutputBehavior(),
-            new SegmentOutputBehavior()
+            new ReportOutputBehavior()
         ];
 
         it('should initialize at round 1', () => {
@@ -115,8 +113,7 @@ describe('Loop Block Integration', () => {
         const createLoopBehaviors = (totalRounds: number = 3) => [
             new ReEntryBehavior({ totalRounds, startRound: 1 }),
             new RoundsEndBehavior(),
-            new RoundOutputBehavior(),
-            new SegmentOutputBehavior(),
+            new ReportOutputBehavior(),
             new HistoryRecordBehavior()
         ];
 

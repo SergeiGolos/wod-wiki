@@ -26,7 +26,7 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
-import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
+import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
@@ -48,7 +48,7 @@ describe('Timer Block Integration', () => {
             new TimerTickBehavior(),
             new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
             new DisplayInitBehavior({ mode: 'countdown', label: 'Countdown' }),
-            new SegmentOutputBehavior({ label: 'Countdown' })
+            new ReportOutputBehavior({ label: 'Countdown' })
         ];
 
         it('should initialize timer state on mount', () => {
@@ -144,7 +144,7 @@ describe('Timer Block Integration', () => {
             new TimerTickBehavior(),
             new LeafExitBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'For Time' }),
-            new SegmentOutputBehavior({ label: 'For Time' })
+            new ReportOutputBehavior({ label: 'For Time' })
         ];
 
         it('should track elapsed time without auto-expiring', () => {

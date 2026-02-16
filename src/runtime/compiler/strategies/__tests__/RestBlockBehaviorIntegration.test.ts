@@ -21,7 +21,7 @@ import {
     ChildSelectionBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior
+    ReportOutputBehavior
 } from '../../../behaviors';
 
 /**
@@ -157,7 +157,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block!.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block!.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
     });
@@ -256,7 +256,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block!.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block!.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
     });

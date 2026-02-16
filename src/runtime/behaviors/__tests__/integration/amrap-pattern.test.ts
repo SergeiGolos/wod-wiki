@@ -27,7 +27,7 @@ import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
-import { RoundOutputBehavior } from '../../RoundOutputBehavior';
+import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
@@ -60,7 +60,7 @@ describe('AMRAP Pattern Integration', () => {
         new RoundDisplayBehavior(),
 
         // Output aspect
-        new RoundOutputBehavior(),
+        new ReportOutputBehavior(),
         new HistoryRecordBehavior(),
 
         // Sound cues

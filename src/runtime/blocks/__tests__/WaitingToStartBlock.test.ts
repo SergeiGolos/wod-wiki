@@ -3,7 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { WaitingToStartBlock } from '../WaitingToStartBlock';
 import {
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     LeafExitBehavior,
     DisplayInitBehavior,
     ButtonBehavior
@@ -25,7 +25,7 @@ describe('WaitingToStartBlock', () => {
         it('should include all required behaviors', () => {
             const block = new WaitingToStartBlock(harness.runtime);
 
-            expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
             expect(block.getBehavior(LeafExitBehavior)).toBeDefined();

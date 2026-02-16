@@ -13,10 +13,9 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     DisplayInitBehavior,
     RoundDisplayBehavior,
-    RoundOutputBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
-    SegmentOutputBehavior
+    ReportOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -113,8 +112,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new RoundDisplayBehavior());
 
         // Output Aspect
-        builder.addBehavior(new RoundOutputBehavior());
-        builder.addBehavior(new SegmentOutputBehavior({ label }));
+        builder.addBehavior(new ReportOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
 
         // Sound Cues

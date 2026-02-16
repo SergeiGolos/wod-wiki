@@ -24,7 +24,7 @@ export interface StartSessionOptions {
  * this action uses the Phase 1 SessionRootStrategy to create a
  * SessionRootBlock with proper behavior composition:
  *
- * - SegmentOutputBehavior (emits segment/completion outputs)
+ * - ReportOutputBehavior (emits segment/completion outputs)
  * - TimerInitBehavior (countup for total elapsed time)
  * - ChildRunnerBehavior (sequences WaitingToStart + children)
  * - HistoryRecordBehavior (records session on unmount)

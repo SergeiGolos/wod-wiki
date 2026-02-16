@@ -11,7 +11,7 @@ import {
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     WaitingToStartInjectorBehavior
 } from '../../behaviors';
 
@@ -37,7 +37,7 @@ describe('SessionRootBlock', () => {
             const block = new SessionRootBlock(harness.runtime, config);
 
             // Core behaviors present
-            expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();

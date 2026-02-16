@@ -25,7 +25,7 @@ import {
     MockBlock
 } from './test-helpers';
 
-import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
+import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
@@ -51,7 +51,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
     let block: MockBlock;
 
     const createExerciseBehaviors = () => [
-        new SegmentOutputBehavior({ label: 'Clean & Jerk' }),
+        new ReportOutputBehavior({ label: 'Clean & Jerk' }),
         new SoundCueBehavior({
             cues: [
                 { sound: 'start-beep', trigger: 'mount' },
@@ -139,7 +139,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         expect(runtime.completionReason).toBe('user-advance');
     });
 
-    // Step 9: SegmentOutputBehavior emits completion output on unmount with timing
+    // Step 9: ReportOutputBehavior emits completion output on unmount with timing
     it('should emit completion output with elapsed and spans on unmount', () => {
         const behaviors = createExerciseBehaviors();
         const ctx = mountBehaviors(behaviors, runtime, block);
@@ -190,13 +190,13 @@ describe('For-Time-Single: Session Lifecycle', () => {
     // Create blocks with the behaviors from the for-time-single spec
     const createWaitingBlock = () =>
         new HarnessMockBlock('waiting-to-start', [
-            new SegmentOutputBehavior({ label: 'Ready to Start' }),
+            new ReportOutputBehavior({ label: 'Ready to Start' }),
             new LeafExitBehavior()
         ], { blockType: 'Waiting', label: 'Ready to Start' });
 
     const createExerciseBlock = () =>
         new HarnessMockBlock('clean-and-jerk', [
-            new SegmentOutputBehavior({ label: 'Clean & Jerk' }),
+            new ReportOutputBehavior({ label: 'Clean & Jerk' }),
             new SoundCueBehavior({
                 cues: [
                     { sound: 'start-beep', trigger: 'mount' },
@@ -210,7 +210,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
 
     const createSessionRoot = () =>
         new HarnessMockBlock('session-root', [
-            new SegmentOutputBehavior({ label: 'Grace' }),
+            new ReportOutputBehavior({ label: 'Grace' }),
             new HistoryRecordBehavior(),
             new ChildSelectionBehavior({ childGroups: [[0], [1]] })
         ], { blockType: 'SessionRoot', label: 'Grace' });

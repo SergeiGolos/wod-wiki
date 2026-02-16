@@ -60,7 +60,7 @@ export class PopBlockAction implements IRuntimeAction {
             RuntimeLogger.logPop(popped, (popped as any).completionReason);
         }
 
-        // Output statements are emitted by block behaviors (e.g., SegmentOutputBehavior)
+        // Output statements are emitted by block behaviors (e.g., ReportOutputBehavior)
         // during onUnmount. PopBlockAction does NOT emit its own
         // output to avoid duplicate 'completion' entries.
 

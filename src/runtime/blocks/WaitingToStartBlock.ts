@@ -8,7 +8,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 
 // Aspect-based behaviors
 import {
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     LeafExitBehavior,
     DisplayInitBehavior,
     ButtonBehavior
@@ -30,7 +30,7 @@ import {
  *
  * ## Behavior Chain
  *
- * - SegmentOutputBehavior (output on mount/unmount)
+ * - ReportOutputBehavior (output on mount/unmount)
  * - DisplayInitBehavior (show "Ready to Start")
  * - ButtonBehavior (show "Start" button)
  * - LeafExitBehavior (pop on user advance)
@@ -61,7 +61,7 @@ export class WaitingToStartBlock extends RuntimeBlock {
         // =====================================================================
         // Output Aspect - Segment tracking
         // =====================================================================
-        behaviors.push(new SegmentOutputBehavior({ label: 'Ready to Start' }));
+        behaviors.push(new ReportOutputBehavior({ label: 'Ready to Start' }));
 
         // =====================================================================
         // Display Aspect

@@ -11,7 +11,7 @@ import { NextAction } from './NextAction';
  * so the full lifecycle runs:
  *
  * 1. PopBlockAction checks isComplete → marks 'forced-pop' if not yet complete
- * 2. Unmount fires → SegmentOutputBehavior emits 'completion' with fragments
+ * 2. Unmount fires → ReportOutputBehavior emits 'completion' with fragments
  * 3. Block is disposed and cleaned up
  *
  * After all children are cleared, a NextAction is queued so the parent

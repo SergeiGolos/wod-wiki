@@ -24,16 +24,12 @@ export { TimerEndingBehavior } from './TimerEndingBehavior';
 export type { TimerEndingConfig, TimerEndingMode } from './TimerEndingBehavior';
 export { TimerPauseBehavior } from './TimerPauseBehavior';
 
-// TimerOutputBehavior is deprecated — elapsed computation is now
-// consolidated into SegmentOutputBehavior (S5/S6/S10 resolution).
-
 // ============================================================================
 // Iteration Aspect
 // ============================================================================
 export { ReEntryBehavior } from './ReEntryBehavior';
 export type { ReEntryConfig } from './ReEntryBehavior';
 export { RoundsEndBehavior } from './RoundsEndBehavior';
-export { RoundOutputBehavior } from './RoundOutputBehavior';
 export { RoundDisplayBehavior } from './RoundDisplayBehavior';
 export { RepSchemeBehavior } from './RepSchemeBehavior';
 export type { RepSchemeConfig } from './RepSchemeBehavior';
@@ -64,11 +60,11 @@ export type { ChildSelectionConfig, ChildSelectionLoopCondition } from './ChildS
 // ============================================================================
 // Output Aspect
 // ============================================================================
-export { SegmentOutputBehavior } from './SegmentOutputBehavior';
+export { ReportOutputBehavior } from './ReportOutputBehavior';
+export type { ReportOutputConfig } from './ReportOutputBehavior';
 export { HistoryRecordBehavior } from './HistoryRecordBehavior';
 export { SoundCueBehavior } from './SoundCueBehavior';
 export type { SoundCue, SoundCueConfig } from './SoundCueBehavior';
-// RoundOutputBehavior is also an output behavior
 
 // ============================================================================
 // Controls Aspect

@@ -16,7 +16,7 @@ import { WaitingToStartBlock } from '../../blocks/WaitingToStartBlock';
  * ## Responsibilities
  *
  * 1. Create a WaitingToStartBlock with proper behavior composition:
- *    - SegmentOutputBehavior (emit "Ready to Start" on mount)
+ *    - ReportOutputBehavior (emit segment/completion outputs)
  *    - DisplayInitBehavior (show idle display)
  *    - ButtonBehavior (show "Start Workout" button)
  *    - LeafExitBehavior (pop on user advance)

@@ -147,7 +147,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                                 provider={provider}
                                 variant="button"
                                 showLabel={true}
-                                label="Use Template"
+                                label={entry?.type === 'template' ? "Use Template" : "Clone"}
                             />
                         )}
                         {onEdit && (

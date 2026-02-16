@@ -24,7 +24,7 @@ import { SessionRootBlock, SessionRootConfig } from '../../blocks/SessionRootBlo
  * ## Relationship to WorkoutRootStrategy
  *
  * SessionRootStrategy creates a SessionRootBlock (the new Phase 1 block
- * with SegmentOutputBehavior, HistoryRecordBehavior, etc.). It is intended
+ * with ReportOutputBehavior, HistoryRecordBehavior, etc.). It is intended
  * to eventually replace WorkoutRootStrategy as the primary root builder.
  *
  * @see SessionRootBlock

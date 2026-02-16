@@ -19,7 +19,7 @@ import { RestBlock, RestBlockConfig } from '../../../blocks/RestBlock';
  *    or configured rest duration)
  * 2. Create a RestBlock with countdown timer set to the given duration
  * 3. Ensure proper behavior composition:
- *    - SegmentOutputBehavior (emit "Rest" segment)
+ *    - ReportOutputBehavior (emit segment/completion outputs)
  *    - TimerInitBehavior (countdown timer)
  *    - TimerTickBehavior (drive countdown)
  *    - TimerEndingBehavior (auto-complete when timer expires)

@@ -14,7 +14,7 @@ import {
     DisplayInitBehavior,
     LeafExitBehavior,
     SoundCueBehavior,
-    SegmentOutputBehavior
+    ReportOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -126,6 +126,6 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         // Output Aspect
         // =====================================================================
-        builder.addBehavior(new SegmentOutputBehavior({ label }));
+        builder.addBehavior(new ReportOutputBehavior({ label }));
     }
 }

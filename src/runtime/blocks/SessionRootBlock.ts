@@ -16,7 +16,7 @@ import {
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior
+    ReportOutputBehavior
 } from '../behaviors';
 import { WaitingToStartInjectorBehavior } from '../behaviors/WaitingToStartInjectorBehavior';
 
@@ -46,7 +46,7 @@ export interface SessionRootConfig {
  *
  * ## Behavior Chain Order
  *
- * - SegmentOutputBehavior (output on mount/unmount)
+ * - ReportOutputBehavior (output on mount/unmount)
  * - TimerBehavior (elapsed workout timer)
  * - ReEntryBehavior (if multi-round)
  * - RoundsEndBehavior
@@ -94,7 +94,7 @@ export class SessionRootBlock extends RuntimeBlock {
         // =====================================================================
         // Output Aspect - Segment tracking
         // =====================================================================
-        behaviors.push(new SegmentOutputBehavior({ label: sessionLabel }));
+        behaviors.push(new ReportOutputBehavior({ label: sessionLabel }));
 
         // =====================================================================
         // Time Aspect - Track total session elapsed time

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { WaitingToStartStrategy } from '../WaitingToStartStrategy';
 import {
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     LeafExitBehavior,
     DisplayInitBehavior,
     ButtonBehavior
@@ -56,10 +56,10 @@ describe('WaitingToStartStrategy', () => {
             expect(block.label).toBe('Ready to Start');
         });
 
-        it('should include SegmentOutputBehavior', () => {
+        it('should include ReportOutputBehavior', () => {
             const block = strategy.build(harness.runtime);
 
-            expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
         });
 
         it('should include LeafExitBehavior', () => {

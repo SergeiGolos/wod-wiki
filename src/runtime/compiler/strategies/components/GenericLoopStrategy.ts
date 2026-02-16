@@ -12,11 +12,10 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     ReEntryBehavior,
     RoundDisplayBehavior,
-    RoundOutputBehavior,
     RepSchemeBehavior,
     DisplayInitBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     PromoteFragmentBehavior
 } from "../../../behaviors";
 
@@ -115,8 +114,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         // Output Aspect
         // =====================================================================
-        builder.addBehavior(new RoundOutputBehavior());
-        builder.addBehavior(new SegmentOutputBehavior({ label }));
+        builder.addBehavior(new ReportOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
 
         // Promotion Aspect - Share internal state with children

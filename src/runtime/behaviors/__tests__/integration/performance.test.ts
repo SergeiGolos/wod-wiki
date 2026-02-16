@@ -24,11 +24,10 @@ import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
-import { RoundOutputBehavior } from '../../RoundOutputBehavior';
+import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
-import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 
 describe('Performance Integration', () => {
     let runtime: MockRuntime;
@@ -70,8 +69,7 @@ describe('Performance Integration', () => {
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'countdown' }),
-                new RoundOutputBehavior(),
-                new SegmentOutputBehavior(),
+                new ReportOutputBehavior(),
                 new HistoryRecordBehavior(),
                 new SoundCueBehavior({ cues: [] })
             ];
@@ -141,7 +139,7 @@ describe('Performance Integration', () => {
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'clock' }),
-                new RoundOutputBehavior()
+                new ReportOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -157,7 +155,7 @@ describe('Performance Integration', () => {
         it('should handle rapid advance without memory bloat', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: undefined }),
-                new RoundOutputBehavior()
+                new ReportOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -167,9 +165,9 @@ describe('Performance Integration', () => {
             }
 
             // Check output count is reasonable (not growing unbounded)
-            // 1 milestone on mount + 1 milestone per advance (no events from RoundAdvanceBehavior)
+            // 1 segment + 1 milestone on mount + 1 milestone per advance
             expect(runtime.events.length).toBe(0); // No internal events emitted
-            expect(runtime.outputs.length).toBe(10001);
+            expect(runtime.outputs.length).toBe(10002);
         });
     });
 
@@ -225,8 +223,7 @@ describe('Performance Integration', () => {
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new HistoryRecordBehavior(),
-                new SegmentOutputBehavior(),
-                new RoundOutputBehavior()
+                new ReportOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 

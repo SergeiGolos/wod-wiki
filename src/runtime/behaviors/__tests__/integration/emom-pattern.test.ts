@@ -26,7 +26,7 @@ import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
-import { RoundOutputBehavior } from '../../RoundOutputBehavior';
+import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { TimerState, RoundState } from '../../../memory/MemoryTypes';
 
@@ -58,7 +58,7 @@ describe('EMOM Pattern Integration', () => {
         new RoundDisplayBehavior(),
 
         // Output aspect
-        new RoundOutputBehavior()
+        new ReportOutputBehavior()
     ];
 
     beforeEach(() => {

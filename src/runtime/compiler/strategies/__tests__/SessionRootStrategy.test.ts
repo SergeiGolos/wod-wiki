@@ -11,7 +11,7 @@ import {
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior
+    ReportOutputBehavior
 } from '../../../behaviors';
 
 describe('SessionRootStrategy', () => {
@@ -91,7 +91,7 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.build(harness.runtime, config);
 
-            expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();

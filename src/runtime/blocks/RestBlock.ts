@@ -8,7 +8,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 
 // Aspect-based behaviors
 import {
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     TimerBehavior,
     TimerEndingBehavior,
     LeafExitBehavior,
@@ -41,7 +41,7 @@ export interface RestBlockConfig {
  *
  * ## Behavior Chain
  *
- * - SegmentOutputBehavior (output on mount/unmount)
+ * - ReportOutputBehavior (output on mount/unmount)
  * - TimerBehavior (countdown timer + pause/resume state)
  * - TimerEndingBehavior (auto-complete when timer expires)
  * - DisplayInitBehavior (show rest countdown)
@@ -82,7 +82,7 @@ export class RestBlock extends RuntimeBlock {
         // =====================================================================
         // Output Aspect - Segment tracking
         // =====================================================================
-        behaviors.push(new SegmentOutputBehavior({ label: restLabel }));
+        behaviors.push(new ReportOutputBehavior({ label: restLabel }));
 
         // =====================================================================
         // Time Aspect - Countdown timer

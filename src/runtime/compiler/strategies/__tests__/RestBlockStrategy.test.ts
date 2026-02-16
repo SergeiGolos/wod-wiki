@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { RestBlockStrategy } from '../components/RestBlockStrategy';
 import {
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     TimerBehavior,
     TimerEndingBehavior,
     DisplayInitBehavior,
@@ -79,10 +79,10 @@ describe('RestBlockStrategy', () => {
             expect(block.label).toBe('Rest');
         });
 
-        it('should include SegmentOutputBehavior', () => {
+        it('should include ReportOutputBehavior', () => {
             const block = strategy.build(harness.runtime, { durationMs: 30000 });
 
-            expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
         });
 
         it('should include TimerBehavior (countdown)', () => {

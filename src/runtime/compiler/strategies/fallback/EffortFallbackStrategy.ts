@@ -8,7 +8,7 @@ import { BlockKey } from "@/core/models/BlockKey";
 
 // Specific behaviors not covered by aspect composers
 import { LeafExitBehavior } from "../../../behaviors/LeafExitBehavior";
-import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
+import { ReportOutputBehavior } from "../../../behaviors/ReportOutputBehavior";
 
 /**
  * Helper to extract optional content from code statement.
@@ -103,6 +103,6 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new LeafExitBehavior({ onNext: true }));
 
         // Output Aspect: emit elapsed time and segment/completion outputs
-        builder.addBehavior(new SegmentOutputBehavior({ label }));
+        builder.addBehavior(new ReportOutputBehavior({ label }));
     }
 }

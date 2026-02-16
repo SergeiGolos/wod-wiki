@@ -3,7 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { RestBlock, RestBlockConfig } from '../RestBlock';
 import {
-    SegmentOutputBehavior,
+    ReportOutputBehavior,
     TimerBehavior,
     TimerEndingBehavior,
     DisplayInitBehavior,
@@ -27,7 +27,7 @@ describe('RestBlock', () => {
             const config: RestBlockConfig = { durationMs: 60000 };
             const block = new RestBlock(harness.runtime, config);
 
-            expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
+            expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
