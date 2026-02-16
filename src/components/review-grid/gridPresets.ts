@@ -243,33 +243,26 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
     if (sysCol) order.push({ ...sysCol, visible: true });
   }
 
-  // 3/5. Effort / Text / Label (Primary Descriptors)
-  // We'll treat Effort and Text as primary.
+  // 3/5. Effort (Primary Descriptor) - ALWAYS next to timestamps
   const effortCol = getFragmentCol(FragmentType.Effort);
   if (effortCol) order.push(effortCol);
 
+  // 4/6. Text (Secondary Descriptor)
   const textCol = getFragmentCol(FragmentType.Text);
   if (textCol) order.push(textCol);
 
-  // 4/6. Elapsed
-  order.push(getFixed(FIXED_COLUMN_IDS.ELAPSED));
-
-  // 5/7. Total
-  order.push(getFixed(FIXED_COLUMN_IDS.TOTAL));
-
-  // 6/8. Duration
-  order.push(getFixed(FIXED_COLUMN_IDS.DURATION));
-
-  // 7/9. Remaining Metrics (Timer, Rep, Rounds, Distance, etc.)
-  // Filter out columns we've already added or explicitly excluded
+  // 5/7. All other Fragments (Data)
+  // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
   const addedIds = new Set(order.map(c => c.id));
   const remainingFragments = fragmentCols.filter(c => !addedIds.has(c.id));
-
   order.push(...remainingFragments);
 
-  // Debug extras (Stack Level, Completion Reason) - append at end? or mixed in?
-  // User said "Notes at the end" for debug, but we put Text early. 
-  // Let's add the other debug fixed columns at the end.
+  // 6/8. Meta Stats (Elapsed, Total, Duration) - Moved to end "after a certain point"
+  order.push(getFixed(FIXED_COLUMN_IDS.ELAPSED));
+  order.push(getFixed(FIXED_COLUMN_IDS.TOTAL));
+  order.push(getFixed(FIXED_COLUMN_IDS.DURATION));
+
+  // 7/9. Debug extras
   if (isDebugMode) {
     order.push({ ...getFixed(FIXED_COLUMN_IDS.STACK_LEVEL), visible: true });
     order.push({ ...getFixed(FIXED_COLUMN_IDS.COMPLETION_REASON), visible: true });

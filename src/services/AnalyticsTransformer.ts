@@ -93,20 +93,23 @@ export class AnalyticsTransformer {
       // Transfer raw spans from OutputStatement for grid display.
       // Spans are TimeSpan objects with `started`/`ended` in epoch ms;
       // convert to seconds for the Segment interface.
-      const spans = output.spans.length > 0
-        ? output.spans.map(s => ({
-          started: s.started / 1000,
-          ended: s.ended !== undefined ? s.ended / 1000 : undefined,
-        }))
-        : undefined;
+      // IF output.spans is empty (e.g. instant events, or simple blocks without internal timers),
+      // we fallback to using the main timeSpan as the single span.
+      // This ensures the grid always has something to visualize for "Time" or "Spans".
+      const rawSpans = output.spans.length > 0
+        ? output.spans
+        : [output.timeSpan];
+
+      const spans = rawSpans.map(s => ({
+        started: s.started / 1000,
+        ended: s.ended !== undefined ? s.ended / 1000 : undefined,
+      }));
 
       // Compute relative spans (offset from workout start) for display
-      const relativeSpans = output.spans.length > 0
-        ? output.spans.map(s => ({
-          started: (s.started - startTime) / 1000,
-          ended: s.ended !== undefined ? (s.ended - startTime) / 1000 : undefined,
-        }))
-        : undefined;
+      const relativeSpans = rawSpans.map(s => ({
+        started: (s.started - startTime) / 1000,
+        ended: s.ended !== undefined ? (s.ended - startTime) / 1000 : undefined,
+      }));
 
       return {
         id: output.id,

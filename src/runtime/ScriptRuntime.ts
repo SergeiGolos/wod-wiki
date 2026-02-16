@@ -431,8 +431,16 @@ export class ScriptRuntime implements IScriptRuntime {
         const fallbackEndMs = this.clock.now.getTime();
         const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
 
+        // Use the actual execution timing for the main timeSpan (Push -> Pop)
+        // This ensures the "envelope" of the segment is correct relative to the timeline
+        const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
+
+        // Extract internal timer spans if available (e.g. for pause-aware duration)
+        // If no internal spans, we DO NOT default to the envelope here yet; 
+        // we leave it to the Transformer or specific logic to decide if "whole block" counts as a span.
+        // However, for "Segment" types, usually we want at least one span. 
+        // Let's stick to extraction only here to avoid duplicating the envelope if not needed.
         const spans = this.extractSpansFromResultFragments(fragments);
-        const timeSpan = this.buildSegmentTimeSpan(fragments, spans, fallbackStartMs, fallbackEndMs);
 
         const output = new OutputStatement({
             outputType: 'segment',
@@ -478,33 +486,7 @@ export class ScriptRuntime implements IScriptRuntime {
             .filter((span): span is TimeSpan => span !== undefined);
     }
 
-    private buildSegmentTimeSpan(
-        fragments: ICodeFragment[],
-        spans: TimeSpan[],
-        fallbackStartMs: number,
-        fallbackEndMs: number
-    ): TimeSpan {
-        if (spans.length > 0) {
-            const firstStart = spans[0].started;
-            const lastSpan = spans[spans.length - 1];
-            const lastEnd = lastSpan.ended ?? fallbackEndMs;
-            return new TimeSpan(firstStart, Math.max(firstStart, lastEnd));
-        }
 
-        const totalFragment = fragments.find(
-            fragment => fragment.fragmentType === FragmentType.Total || fragment.type === 'total'
-        );
-        const totalMs = typeof totalFragment?.value === 'number'
-            ? Math.max(0, totalFragment.value)
-            : undefined;
-
-        if (totalMs !== undefined) {
-            const started = Math.max(0, fallbackEndMs - totalMs);
-            return new TimeSpan(started, fallbackEndMs);
-        }
-
-        return new TimeSpan(fallbackStartMs, Math.max(fallbackStartMs, fallbackEndMs));
-    }
 
     private emitLoadOutput(): void {
         const now = this.clock.now;

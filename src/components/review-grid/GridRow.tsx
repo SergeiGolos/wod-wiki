@@ -217,9 +217,19 @@ function formatSpans(spans?: { started: number; ended?: number }[], durationMs: 
 
   // Span range
   const start = formatDuration(spans[0].started);
-  const end = spans[spans.length - 1].ended !== undefined
-    ? formatDuration(spans[spans.length - 1].ended!)
-    : '...';
+  const endSpan = spans[spans.length - 1];
+
+  // If undefined end (open block), just show start (no "...")
+  if (endSpan.ended === undefined) {
+    return start;
+  }
+
+  const end = formatDuration(endSpan.ended);
+
+  // If instantaneous (or very close), just show one time
+  if (start === end) {
+    return start;
+  }
 
   return `${start} — ${end}`;
 }
