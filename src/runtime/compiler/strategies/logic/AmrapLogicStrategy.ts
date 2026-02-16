@@ -88,7 +88,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         builder.asRepeater({
             totalRounds: undefined,  // Unbounded - run until timer expires
             startRound: 1,
-            addCompletion: false  // No RoundCompletionBehavior - timer controls completion
+            addCompletion: false  // No RoundsEndBehavior - timer controls completion
         });
 
         // =====================================================================

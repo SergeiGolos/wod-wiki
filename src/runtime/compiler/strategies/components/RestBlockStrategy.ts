@@ -22,7 +22,7 @@ import { RestBlock, RestBlockConfig } from '../../../blocks/RestBlock';
  *    - SegmentOutputBehavior (emit "Rest" segment)
  *    - TimerInitBehavior (countdown timer)
  *    - TimerTickBehavior (drive countdown)
- *    - TimerCompletionBehavior (auto-complete when timer expires)
+ *    - TimerEndingBehavior (auto-complete when timer expires)
  *    - DisplayInitBehavior (show rest countdown display)
  *    - SoundCueBehavior (rest-over beep + countdown beeps)
  *

@@ -24,11 +24,11 @@ import {
 
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
+import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
-import { PopOnNextBehavior } from '../../PopOnNextBehavior';
+import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
@@ -46,7 +46,7 @@ describe('Timer Block Integration', () => {
         const createCountdownBehaviors = (durationMs: number = 10000) => [
             new TimerInitBehavior({ direction: 'down', durationMs, label: 'Countdown' }),
             new TimerTickBehavior(),
-            new TimerCompletionBehavior(),
+            new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
             new DisplayInitBehavior({ mode: 'countdown', label: 'Countdown' }),
             new SegmentOutputBehavior({ label: 'Countdown' })
         ];
@@ -142,7 +142,7 @@ describe('Timer Block Integration', () => {
         const createCountupBehaviors = () => [
             new TimerInitBehavior({ direction: 'up', label: 'For Time' }),
             new TimerTickBehavior(),
-            new PopOnNextBehavior(),
+            new LeafExitBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'For Time' }),
             new SegmentOutputBehavior({ label: 'For Time' })
         ];
@@ -181,7 +181,7 @@ describe('Timer Block Integration', () => {
             new TimerInitBehavior({ direction: 'down', durationMs, label: 'Pausable' }),
             new TimerTickBehavior(),
             new TimerPauseBehavior(),
-            new TimerCompletionBehavior()
+            new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
         ];
 
         it('should close span on pause (timer:pause event)', () => {
@@ -241,7 +241,7 @@ describe('Timer Block Integration', () => {
         const createSoundBehaviors = () => [
             new TimerInitBehavior({ direction: 'down', durationMs: 5000, label: 'Sound Test' }),
             new TimerTickBehavior(),
-            new TimerCompletionBehavior(),
+            new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
             new SoundCueBehavior({
                 cues: [
                     { sound: 'start-beep', trigger: 'mount' },

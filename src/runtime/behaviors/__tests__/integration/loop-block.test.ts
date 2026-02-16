@@ -22,7 +22,7 @@ import {
 } from './test-helpers';
 
 import { ReEntryBehavior } from '../../ReEntryBehavior';
-import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
+import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
@@ -42,7 +42,7 @@ describe('Loop Block Integration', () => {
     describe('Round Tracking', () => {
         const createLoopBehaviors = (totalRounds: number = 5) => [
             new ReEntryBehavior({ totalRounds, startRound: 1 }),
-            new RoundCompletionBehavior(),
+            new RoundsEndBehavior(),
             new RoundDisplayBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'Rounds' }),
             new RoundOutputBehavior(),
@@ -79,13 +79,13 @@ describe('Loop Block Integration', () => {
             advanceBehaviors(behaviors, ctx); // Round 3
             advanceBehaviors(behaviors, ctx); // Round 4 > total 3 -> complete
 
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
         });
 
         it('should not complete for unbounded rounds', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),
-                new RoundCompletionBehavior(), // Should not trigger without total
+                new RoundsEndBehavior(), // Should not trigger without total
                 new RoundDisplayBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -114,7 +114,7 @@ describe('Loop Block Integration', () => {
     describe('Output Emission', () => {
         const createLoopBehaviors = (totalRounds: number = 3) => [
             new ReEntryBehavior({ totalRounds, startRound: 1 }),
-            new RoundCompletionBehavior(),
+            new RoundsEndBehavior(),
             new RoundOutputBehavior(),
             new SegmentOutputBehavior(),
             new HistoryRecordBehavior()
@@ -216,7 +216,7 @@ describe('Loop Block Integration', () => {
         it('should handle start round other than 1', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: 5, startRound: 3 }),
-                new RoundCompletionBehavior()
+                new RoundsEndBehavior()
             ];
 
             mountBehaviors(behaviors, runtime, block);
@@ -228,14 +228,14 @@ describe('Loop Block Integration', () => {
         it('should complete immediately if startRound > totalRounds', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: 2, startRound: 3 }),
-                new RoundCompletionBehavior()
+                new RoundsEndBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             // First next() should complete since 3 > 2
             advanceBehaviors(behaviors, ctx);
 
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
         });
     });
 });

@@ -22,9 +22,9 @@ import {
 
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
+import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
-import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
+import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
@@ -47,11 +47,11 @@ describe('EMOM Pattern Integration', () => {
         // Time aspect
         new TimerInitBehavior({ direction: 'down', durationMs: intervalMs, label: 'Interval' }),
         new TimerTickBehavior(),
-        new TimerCompletionBehavior(), // Timer expiry should trigger round advance
+        new TimerEndingBehavior({ ending: { mode: 'complete-block' } }), // Timer expiry should trigger round advance
 
         // Iteration aspect
         new ReEntryBehavior({ totalRounds, startRound: 1 }),
-        new RoundCompletionBehavior(), // Round completion ends the workout
+        new RoundsEndBehavior(), // Round completion ends the workout
 
         // Display aspect
         new DisplayInitBehavior({ mode: 'countdown', label: 'EMOM' }),
@@ -99,7 +99,7 @@ describe('EMOM Pattern Integration', () => {
             advanceBehaviors(behaviors, ctx); // Round 3
             advanceBehaviors(behaviors, ctx); // Round 4 > 3 -> complete
 
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
         });
     });
 
@@ -181,7 +181,7 @@ describe('EMOM Pattern Integration', () => {
             // First advance should complete
             advanceBehaviors(behaviors, ctx);
 
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
         });
 
         it('should handle very short intervals', () => {
@@ -193,7 +193,7 @@ describe('EMOM Pattern Integration', () => {
             advanceBehaviors(behaviors, ctx);
 
             // Should complete after 3 advances
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
         });
 
         it('should work with odd round counts', () => {

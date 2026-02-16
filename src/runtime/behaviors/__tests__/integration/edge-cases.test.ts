@@ -19,13 +19,12 @@ import {
 
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
+import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
-import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
+import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
-import { PopOnNextBehavior } from '../../PopOnNextBehavior';
-import { PopOnEventBehavior } from '../../PopOnEventBehavior';
+import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { TimerState, RoundState } from '../../../memory/MemoryTypes';
 
 describe('Edge Cases Integration', () => {
@@ -39,7 +38,7 @@ describe('Edge Cases Integration', () => {
 
     describe('Empty/Minimal Blocks', () => {
         it('should handle block with only PopOnNext', () => {
-            const behaviors = [new PopOnNextBehavior()];
+            const behaviors = [new LeafExitBehavior()];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             advanceBehaviors(behaviors, ctx);
@@ -62,8 +61,7 @@ describe('Edge Cases Integration', () => {
     describe('Multiple Completion Sources', () => {
         it('should complete on first trigger (PopOnNext)', () => {
             const behaviors = [
-                new PopOnNextBehavior(),
-                new PopOnEventBehavior(['custom:complete'])
+                new LeafExitBehavior({ onNext: true, onEvents: ['custom:complete'] })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -75,8 +73,7 @@ describe('Edge Cases Integration', () => {
 
         it('should complete on first trigger (PopOnEvent)', () => {
             const behaviors = [
-                new PopOnNextBehavior(),
-                new PopOnEventBehavior(['custom:complete'])
+                new LeafExitBehavior({ onNext: true, onEvents: ['custom:complete'] })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -90,9 +87,9 @@ describe('Edge Cases Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'down', durationMs: 5000 }),
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior(),
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
                 new ReEntryBehavior({ totalRounds: 10 }),
-                new RoundCompletionBehavior()
+                new RoundsEndBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -110,9 +107,9 @@ describe('Edge Cases Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'down', durationMs: 60000 }),
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior(),
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
                 new ReEntryBehavior({ totalRounds: 2 }),
-                new RoundCompletionBehavior()
+                new RoundsEndBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -120,7 +117,7 @@ describe('Edge Cases Integration', () => {
             advanceBehaviors(behaviors, ctx); // Round 2
             advanceBehaviors(behaviors, ctx); // Round 3 > 2 -> complete
 
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
         });
     });
 
@@ -128,7 +125,7 @@ describe('Edge Cases Integration', () => {
         it('should handle rapid successive next() calls', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: 100 }),
-                new RoundCompletionBehavior()
+                new RoundsEndBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -144,7 +141,7 @@ describe('Edge Cases Integration', () => {
         it('should handle next() after completion', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: 2 }),
-                new RoundCompletionBehavior()
+                new RoundsEndBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -156,7 +153,7 @@ describe('Edge Cases Integration', () => {
             advanceBehaviors(behaviors, ctx);
 
             // Should still be complete
-            expect(runtime.completionReason).toBe('rounds-complete');
+            expect(runtime.completionReason).toBe('rounds-exhausted');
 
             // Round may continue incrementing (behavior doesn't check isComplete)
             const round = block.memory.get('round') as RoundState;
@@ -169,7 +166,7 @@ describe('Edge Cases Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'down', durationMs: 0 }),
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior()
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -183,7 +180,7 @@ describe('Edge Cases Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'down', durationMs: 3600000 }), // 1 hour
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior()
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -300,7 +297,7 @@ describe('Edge Cases Integration', () => {
         it('should handle multiple behaviors subscribing to same event', () => {
             const behaviors = [
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior()
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 

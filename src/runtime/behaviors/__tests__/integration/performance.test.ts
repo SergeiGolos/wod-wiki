@@ -19,10 +19,10 @@ import {
 
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
+import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
-import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
+import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
@@ -65,7 +65,7 @@ describe('Performance Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'down', durationMs: 600000 }),
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior(),
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
                 new TimerPauseBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundDisplayBehavior(),
@@ -119,7 +119,7 @@ describe('Performance Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'down', durationMs: 600000 }),
                 new TimerTickBehavior(),
-                new TimerCompletionBehavior(),
+                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'countdown' })
             ];
@@ -258,7 +258,7 @@ describe('Performance Integration', () => {
                         new TimerInitBehavior({ direction: 'up' }),
                         new TimerTickBehavior(),
                         new ReEntryBehavior({ totalRounds: 5 }),
-                        new RoundCompletionBehavior()
+                        new RoundsEndBehavior()
                     ];
                     const ctx = mountBehaviors(behaviors, testRuntime, testBlock);
                     blocks.push({ block: testBlock, runtime: testRuntime, ctx, behaviors });

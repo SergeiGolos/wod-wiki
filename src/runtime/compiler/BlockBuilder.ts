@@ -74,7 +74,7 @@ export class BlockBuilder {
     /**
      * Remove a behavior by its constructor type.
      * Used by enhancement strategies to remove conflicting behaviors
-     * added by earlier strategies (e.g., removing PopOnNextBehavior
+    * added by earlier strategies (e.g., removing LeafExitBehavior
      * when ChildRunnerBehavior takes over completion management).
      */
     removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {

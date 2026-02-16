@@ -29,7 +29,7 @@ import { SegmentOutputBehavior } from '../../SegmentOutputBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { PopOnNextBehavior } from '../../PopOnNextBehavior';
+import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { ChildRunnerBehavior } from '../../ChildRunnerBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
@@ -60,7 +60,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         }),
         new TimerInitBehavior({ direction: 'up', label: 'For Time', role: 'secondary' }),
         new TimerTickBehavior(),
-        new PopOnNextBehavior()
+        new LeafExitBehavior()
     ];
 
     beforeEach(() => {
@@ -129,7 +129,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         expect(elapsed).toBe(30000);
     });
 
-    // Step 8: PopOnNextBehavior marks complete as user-advance
+    // Step 8: LeafExitBehavior marks complete as user-advance
     it('should mark complete as user-advance on next', () => {
         const behaviors = createExerciseBehaviors();
         const ctx = mountBehaviors(behaviors, runtime, block);
@@ -191,7 +191,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
     const createWaitingBlock = () =>
         new HarnessMockBlock('waiting-to-start', [
             new SegmentOutputBehavior({ label: 'Ready to Start' }),
-            new PopOnNextBehavior()
+            new LeafExitBehavior()
         ], { blockType: 'Waiting', label: 'Ready to Start' });
 
     const createExerciseBlock = () =>
@@ -205,7 +205,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
             }),
             new TimerInitBehavior({ direction: 'up', label: 'For Time', role: 'secondary' }),
             new TimerTickBehavior(),
-            new PopOnNextBehavior()
+            new LeafExitBehavior()
         ], { blockType: 'Exercise', label: 'Clean & Jerk' });
 
     const createSessionRoot = () =>

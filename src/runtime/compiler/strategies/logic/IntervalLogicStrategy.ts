@@ -99,7 +99,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         builder.asRepeater({
             totalRounds,
             startRound: 1,
-            addCompletion: true  // RoundCompletionBehavior marks block complete
+            addCompletion: true  // RoundsEndBehavior marks block complete
         });
 
         // =====================================================================

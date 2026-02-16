@@ -19,7 +19,7 @@ import { WaitingToStartBlock } from '../../blocks/WaitingToStartBlock';
  *    - SegmentOutputBehavior (emit "Ready to Start" on mount)
  *    - DisplayInitBehavior (show idle display)
  *    - ButtonBehavior (show "Start Workout" button)
- *    - PopOnNextBehavior (pop on user advance)
+ *    - LeafExitBehavior (pop on user advance)
  * 2. No children — this is a leaf idle block
  *
  * ## Relationship to IdleBlockStrategy

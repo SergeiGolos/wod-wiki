@@ -5,7 +5,7 @@ import { IEvent } from '../contracts/events/IEvent';
  * 
  * Behaviors subscribe to `'tick'` to receive periodic updates:
  * - `TimerTickBehavior` — updates timer elapsed time
- * - `TimerCompletionBehavior` — checks if countdown has expired
+ * - `TimerEndingBehavior` — checks if countdown has expired
  * - `SoundCueBehavior` — triggers countdown audio cues
  * 
  * Production entry point: `runtime.handle(new TickEvent())`

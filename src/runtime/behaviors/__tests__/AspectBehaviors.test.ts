@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { TimerBehavior } from '../TimerBehavior';
-import { TimerCompletionBehavior } from '../TimerCompletionBehavior';
+import { TimerEndingBehavior } from '../TimerEndingBehavior';
 import { ReEntryBehavior } from '../ReEntryBehavior';
-import { RoundCompletionBehavior } from '../RoundCompletionBehavior';
+import { RoundsEndBehavior } from '../RoundsEndBehavior';
 import { DisplayInitBehavior } from '../DisplayInitBehavior';
-import { PopOnEventBehavior } from '../PopOnEventBehavior';
+import { LeafExitBehavior } from '../LeafExitBehavior';
 import { ButtonBehavior } from '../ButtonBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
@@ -95,10 +95,10 @@ describe('Time Aspect Behaviors', () => {
         });
     });
 
-    describe('TimerCompletionBehavior', () => {
+    describe('TimerEndingBehavior', () => {
         it('should subscribe to tick events', () => {
             const ctx = createMockContext();
-            const behavior = new TimerCompletionBehavior();
+            const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
 
             behavior.onMount(ctx);
 
@@ -168,17 +168,17 @@ describe('Iteration Aspect Behaviors', () => {
         });
     });
 
-    describe('RoundCompletionBehavior', () => {
+    describe('RoundsEndBehavior', () => {
         it('should mark complete when rounds exceeded', () => {
             const ctx = createMockContext();
             // Set up round memory with current > total
             const reEntry = new ReEntryBehavior({ totalRounds: 3, startRound: 4 });
             reEntry.onMount(ctx);
 
-            const behavior = new RoundCompletionBehavior();
+            const behavior = new RoundsEndBehavior();
             behavior.onNext(ctx);
 
-            expect(ctx.markComplete).toHaveBeenCalledWith('rounds-complete');
+            expect(ctx.markComplete).toHaveBeenCalledWith('rounds-exhausted');
         });
 
         it('should not mark complete when rounds remaining', () => {
@@ -186,7 +186,7 @@ describe('Iteration Aspect Behaviors', () => {
             const reEntry = new ReEntryBehavior({ totalRounds: 3, startRound: 2 });
             reEntry.onMount(ctx);
 
-            const behavior = new RoundCompletionBehavior();
+            const behavior = new RoundsEndBehavior();
             behavior.onNext(ctx);
 
             expect(ctx.markComplete).not.toHaveBeenCalled();
@@ -228,10 +228,10 @@ describe('Display Aspect Behaviors', () => {
 });
 
 describe('Completion Aspect Behaviors', () => {
-    describe('PopOnEventBehavior', () => {
+    describe('LeafExitBehavior', () => {
         it('should subscribe to specified event types', () => {
             const ctx = createMockContext();
-            const behavior = new PopOnEventBehavior(['timer:complete', 'user:skip']);
+            const behavior = new LeafExitBehavior({ onNext: false, onEvents: ['timer:complete', 'user:skip'] });
 
             behavior.onMount(ctx);
 
