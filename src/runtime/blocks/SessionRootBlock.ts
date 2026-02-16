@@ -67,12 +67,12 @@ export class SessionRootBlock extends RuntimeBlock {
         const sessionLabel = config.label ?? 'Session';
         const blockKey = new BlockKey('session-root');
         const context = new BlockContext(runtime, blockKey.toString(), 'Session');
-        const sourceIds = config.childGroups.flat();
+
         const behaviors = SessionRootBlock.buildBehaviors(config, runtime);
 
         super(
             runtime,
-            sourceIds,
+            [], // sourceIds - Root blocks are containers, they don't inherit identity from children
             behaviors,
             context,
             blockKey,

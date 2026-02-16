@@ -164,17 +164,20 @@ describe('ReportOutputBehavior', () => {
         expect(milestoneCalls).toHaveLength(0);
     });
 
-    it('emits milestone on next when children are completed', () => {
+    it('emits milestone on next when round advances', () => {
         const behavior = new ReportOutputBehavior();
+        // Mount with round 1 to initialize lastEmittedRound
+        const mountCtx = createMockContext({
+            memory: {
+                round: { current: 1, total: 5 } as RoundState,
+            },
+        });
+        behavior.onMount(mountCtx);
+
+        // Simulate round advancing to 2 (done by ChildSelectionBehavior)
         const ctx = createMockContext({
             memory: {
                 round: { current: 2, total: 5 } as RoundState,
-                'children:status': {
-                    childIndex: 3,
-                    totalChildren: 3,
-                    allExecuted: true,
-                    allCompleted: true,
-                },
             },
         });
 
@@ -189,17 +192,20 @@ describe('ReportOutputBehavior', () => {
         );
     });
 
-    it('does not emit milestone on next when children are still in progress', () => {
+    it('does not emit milestone on next when round has not changed', () => {
         const behavior = new ReportOutputBehavior();
+        // Mount emits milestone for round 2 and sets lastEmittedRound
+        const mountCtx = createMockContext({
+            memory: {
+                round: { current: 2, total: 5 } as RoundState,
+            },
+        });
+        behavior.onMount(mountCtx);
+
+        // onNext with same round should not emit again
         const ctx = createMockContext({
             memory: {
                 round: { current: 2, total: 5 } as RoundState,
-                'children:status': {
-                    childIndex: 1,
-                    totalChildren: 3,
-                    allExecuted: false,
-                    allCompleted: false,
-                },
             },
         });
 

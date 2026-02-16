@@ -1,8 +1,7 @@
 import React from 'react';
-import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Bug, Github, ExternalLink } from 'lucide-react';
+import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Github, ExternalLink } from 'lucide-react';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAudio } from '@/components/audio/AudioContext';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { cn } from '@/lib/utils';
 import type { WodCollection } from '@/app/wod-collections';
 
@@ -87,7 +86,6 @@ export const HistoryDetailsPanel: React.FC<HistoryDetailsPanelProps> = ({
 const PreferencesSection: React.FC = () => {
     const { setTheme, theme } = useTheme();
     const { isEnabled: isAudioEnabled, toggleAudio } = useAudio();
-    const { isDebugMode, toggleDebugMode } = useDebugMode();
 
     const toggleTheme = () => {
         if (theme === 'dark') setTheme('light');
@@ -131,20 +129,7 @@ const PreferencesSection: React.FC = () => {
                     <span className="text-xs text-muted-foreground">{isAudioEnabled ? 'On' : 'Off'}</span>
                 </button>
 
-                <button
-                    onClick={toggleDebugMode}
-                    className={cn(
-                        "flex items-center gap-3 w-full px-2 py-2 rounded-md text-sm transition-colors text-left",
-                        isDebugMode
-                            ? "text-foreground bg-muted"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                >
-                    <Bug className="w-4 h-4 shrink-0" />
-                    <span className="flex-1">Debug Mode</span>
-                    {isDebugMode && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />}
-                    <span className="text-xs text-muted-foreground">{isDebugMode ? 'On' : 'Off'}</span>
-                </button>
+
             </div>
         </div>
     );

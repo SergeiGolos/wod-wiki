@@ -29,7 +29,7 @@ export interface GridRow {
   /** Absolute running time desde workout start in ms */
   readonly elapsed: number;
   /** Active duration of this segment in ms */
-  readonly duration: number;
+  readonly duration?: number;
   /** Total wall-clock time in ms (including pauses) */
   readonly total: number;
   /** Raw spans for display */
@@ -80,6 +80,8 @@ export interface GridColumn {
   isGraphed: boolean;
   /** Column visibility */
   visible: boolean;
+  /** Optional metadata for custom rendering or behavior */
+  readonly meta?: Record<string, any>;
 }
 
 // ─── Sorting ───────────────────────────────────────────────────

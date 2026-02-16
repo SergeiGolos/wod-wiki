@@ -67,9 +67,13 @@ export class AnalyticsTransformer {
       return [];
     }
 
-    // Find the earliest start time from all outputs
-    const startTime = workoutStartTime ?? Math.min(
-      ...outputs.map(o => o.timeSpan.started)
+    // Find the earliest start time from all outputs (ignoring NaNs)
+    const validStartTimes = outputs
+      .map(o => o.timeSpan.started)
+      .filter(t => !isNaN(t));
+
+    const startTime = workoutStartTime ?? (
+      validStartTimes.length > 0 ? Math.min(...validStartTimes) : 0
     );
 
     return outputs.map(output => {

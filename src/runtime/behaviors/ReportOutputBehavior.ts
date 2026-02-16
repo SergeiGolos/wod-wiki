@@ -2,7 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { ICodeFragment } from '../../core/models/CodeFragment';
-import { RoundState, TimerState, ChildrenStatusState } from '../memory/MemoryTypes';
+import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
@@ -19,6 +19,8 @@ export interface ReportOutputConfig {
 }
 
 export class ReportOutputBehavior implements IRuntimeBehavior {
+    private lastEmittedRound?: number;
+
     constructor(private readonly config: ReportOutputConfig = {}) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
@@ -36,6 +38,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const round = ctx.getMemory('round') as RoundState | undefined;
         const shouldEmitMilestones = this.config.emitMilestones ?? !!round;
         if (shouldEmitMilestones && round && (round.total === undefined || round.total > 1)) {
+            this.lastEmittedRound = round.current;
             ctx.emitOutput('milestone', this.buildMilestoneFragments(ctx, round), {
                 label: this.formatRoundLabel(round),
             });
@@ -51,15 +54,20 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        const childStatus = ctx.getMemory('children:status') as ChildrenStatusState | undefined;
-        if (childStatus && !childStatus.allCompleted) {
-            return [];
-        }
-
         if (round.total !== undefined && round.current > round.total) {
             return [];
         }
 
+        // Only emit milestone when the round has actually changed.
+        // ChildSelectionBehavior advances the round and dispatches new
+        // children in the same onNext cycle, so children:status.allCompleted
+        // is always false at this point. Tracking the last emitted round
+        // avoids duplicate milestones without depending on child status.
+        if (this.lastEmittedRound !== undefined && round.current === this.lastEmittedRound) {
+            return [];
+        }
+
+        this.lastEmittedRound = round.current;
         ctx.emitOutput('milestone', this.buildMilestoneFragments(ctx, round), {
             label: this.formatRoundLabel(round),
         });

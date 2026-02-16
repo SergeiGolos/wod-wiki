@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import type { FragmentType } from '@/core/models/CodeFragment';
+import { FragmentType } from '@/core/models/CodeFragment';
 import type { GridRow as GridRowData, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
 import { GridCell } from './GridCell';
@@ -66,6 +66,11 @@ export const GridRow: React.FC<GridRowProps> = ({
               cell={col.fragmentType ? row.cells.get(col.fragmentType) : undefined}
               fragmentType={col.fragmentType}
               blockKey={row.sourceBlockKey}
+              indent={
+                (col.fragmentType === FragmentType.System || col.fragmentType === FragmentType.Effort)
+                  ? row.stackLevel
+                  : 0
+              }
               onDoubleClick={onCellDoubleClick}
             />
           )}
@@ -145,7 +150,7 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
     case FIXED_COLUMN_IDS.TIMESTAMP:
       return (
         <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-24 whitespace-nowrap">
-          {formatTimestamp(row.spans?.[0]?.started)}
+          {formatTimestamp(row.spans?.[0]?.started, !col.meta?.hideMs)}
         </td>
       );
 
@@ -188,7 +193,8 @@ function outputTypeBadgeClass(type: string): string {
 /**
  * Format milliseconds into M:SS or H:MM:SS.
  */
-function formatDuration(ms: number): string {
+function formatDuration(ms?: number): string {
+  if (ms === undefined || isNaN(ms)) return '';
   if (ms <= 0) return '0:00';
   const totalSeconds = Math.round(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -234,12 +240,13 @@ function formatSpans(spans?: { started: number; ended?: number }[], durationMs: 
   return `${start} — ${end}`;
 }
 
-function formatTimestamp(timestamp?: number): string {
+function formatTimestamp(timestamp?: number, withMs: boolean = true): string {
   if (timestamp === undefined) return '';
   const date = new Date(timestamp);
   const h = date.getHours().toString().padStart(2, '0');
   const m = date.getMinutes().toString().padStart(2, '0');
   const s = date.getSeconds().toString().padStart(2, '0');
+  if (!withMs) return `${h}:${m}:${s}`;
   const ms = date.getMilliseconds().toString().padStart(3, '0');
   return `${h}:${m}:${s}.${ms}`;
 }

@@ -8,6 +8,7 @@ import { useCommandPalette } from '@/components/command-palette/CommandContext';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { NewPostButton } from '@/components/history/NewPostButton';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
+import { DebugButton } from '@/components/layout/DebugModeContext';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -146,6 +147,8 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
                     <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="text-muted-foreground hover:text-foreground">
                         <Search className="h-4 w-4" />
                     </Button>
+
+                    <DebugButton />
 
                     <Button variant="ghost" size="icon" onClick={() => startTutorial('history')} className="text-muted-foreground hover:text-foreground">
                         <HelpCircle className="h-5 w-5" />

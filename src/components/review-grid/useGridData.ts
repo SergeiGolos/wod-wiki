@@ -104,12 +104,15 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
         }
 
         // Only keep fragment columns if that type exists in the data
+        // EXCEPTION: User explicitly requested Effort to always be visible
+        if (col.fragmentType === FragmentType.Effort) return true;
+
         return activeFragmentTypes.has(col.fragmentType);
       });
 
       // Map: Force visibility for active fragment columns (auto-select)
       // and apply graph tags
-      return activeCols.map((col) => {
+      const mappedCols = activeCols.map((col) => {
         let newCol = { ...col };
 
         // If it's an active fragment column, ensure it's visible by default
@@ -124,6 +127,25 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
         return newCol;
       });
+
+      // 3. Identify and add "orphan" columns
+      // (Fragment types present in data but not in ALL_FRAGMENT_COLUMNS)
+      const knownTypes = new Set(mappedCols.map(c => c.fragmentType).filter(Boolean));
+
+      const orphanTypes = Array.from(activeFragmentTypes).filter(ft => !knownTypes.has(ft));
+
+      const orphanCols: GridColumn[] = orphanTypes.map(ft => ({
+        id: ft,
+        fragmentType: ft,
+        label: ft.charAt(0).toUpperCase() + ft.slice(1),
+        sortable: true,
+        filterable: true,
+        graphable: false, // Assume false for unknown types
+        isGraphed: false,
+        visible: true, // Always show orphans if they have data
+      }));
+
+      return [...mappedCols, ...orphanCols];
     },
     [preset, isDebugMode, graphTaggedColumns, activeFragmentTypes],
   );
@@ -196,7 +218,7 @@ function segmentsToRows(
     const isMilestone = outputType === 'milestone';
 
     // Segment active time (pause-aware)
-    const duration = (seg.duration ?? 0) * 1000;
+    const duration = (typeof seg.duration === 'number' && !isNaN(seg.duration)) ? seg.duration * 1000 : undefined;
 
     // Absolute running time from workout start to end of segment
     // seg.endTime is relative to workoutStartTime (in seconds)
@@ -226,8 +248,14 @@ function segmentsToRows(
       elapsed,
       duration,
       total: ((seg.endTime ?? 0) - (seg.startTime ?? 0)) * 1000,
-      spans: seg.spans,
-      relativeSpans: seg.relativeSpans,
+      spans: seg.spans?.map(s => ({
+        started: s.started * 1000,
+        ended: s.ended !== undefined ? s.ended * 1000 : undefined
+      })),
+      relativeSpans: seg.relativeSpans?.map(s => ({
+        started: s.started * 1000,
+        ended: s.ended !== undefined ? s.ended * 1000 : undefined
+      })),
       completionReason: (seg as SegmentWithContext).context?.completionReason as string | undefined,
       cells,
     } satisfies GridRow;
@@ -383,7 +411,7 @@ function getSortValue(row: GridRow, col: GridColumn): string | number {
     case 'elapsed':
       return row.elapsed;
     case 'duration':
-      return row.duration;
+      return row.duration ?? -1;
     case 'total':
       return row.total;
     case 'spans':
@@ -457,7 +485,8 @@ function fragmentToText(frag: ICodeFragment): string {
 /**
  * Format milliseconds into a human-readable duration (M:SS or H:MM:SS).
  */
-function formatDuration(ms: number): string {
+function formatDuration(ms?: number): string {
+  if (ms === undefined || isNaN(ms)) return '';
   if (ms <= 0) return '0:00';
   const totalSeconds = Math.round(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);

@@ -177,6 +177,8 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
     readonly fragments: ICodeFragment[];
+    readonly elapsed: number;
+    readonly total: number;
     readonly completionReason?: string;
     readonly parent?: number;
     readonly children: number[][];
@@ -199,77 +201,18 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
         this.isLeaf = this.children.length === 0;
         this.hints = options.hints;
 
-        // Output statements don't have source code metadata, but we need to satisfy the interface
-        this.meta = {
-            line: 0,
-            columnStart: 0,
-            columnEnd: 0,
-            startOffset: 0,
-            endOffset: 0,
-            length: 0,
-            raw: ''
-        };
+        this.elapsed = this.calculateElapsed();
+        this.total = this.calculateTotal();
     }
 
-    // ── IFragmentSource ─────────────────────────────────────────────
-
-    getDisplayFragments(filter?: FragmentFilter): ICodeFragment[] {
-        return resolveFragmentPrecedence([...this.fragments], filter);
-    }
-
-    getFragment(type: FragmentType): ICodeFragment | undefined {
-        const all = this.getAllFragmentsByType(type);
-        return all.length > 0 ? all[0] : undefined;
-    }
-
-    getAllFragmentsByType(type: FragmentType): ICodeFragment[] {
-        const ofType = this.fragments.filter(f => f.fragmentType === type);
-        if (ofType.length === 0) return [];
-
-        // Sort by precedence (highest first = lowest rank number first)
-        return [...ofType].sort((a, b) => {
-            const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
-            const rankB = ORIGIN_PRECEDENCE[b.origin ?? 'parser'] ?? 3;
-            return rankA - rankB;
-        });
-    }
-
-    /**
-     * Check if a fragment of a given type exists.
-     */
-    hasFragment(type: FragmentType): boolean {
-        return this.fragments.some(f => f.fragmentType === type);
-    }
-
-    get rawFragments(): ICodeFragment[] {
-        return [...this.fragments];
-    }
-
-    // ── Time Semantics ──────────────────────────────────────────────
-
-    /**
-     * Pause-aware elapsed time in milliseconds.
-     * 
-     * When `spans` are available, this is the sum of each span's duration
-     * (excluding paused gaps between spans). When no spans exist, falls
-     * back to `timeSpan.duration` (wall-clock interval).
-     * 
-     * A timestamp (span with start === end) contributes 0ms to elapsed.
-     */
-    get elapsed(): number {
+    private calculateElapsed(): number {
         if (this.spans.length === 0) {
             return this.timeSpan.duration;
         }
         return this.spans.reduce((sum, span) => sum + span.duration, 0);
     }
 
-    /**
-     * Total wall-clock time from start of first span to end of last span.
-     * 
-     * Includes any paused time between spans. When no spans exist, falls
-     * back to `timeSpan.duration`.
-     */
-    get total(): number {
+    private calculateTotal(): number {
         if (this.spans.length === 0) {
             return this.timeSpan.duration;
         }

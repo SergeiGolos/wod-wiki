@@ -38,6 +38,7 @@ import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
 import { useWorkbenchSync } from './useWorkbenchSync';
+import { DebugButton } from '@/components/layout/DebugModeContext';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
@@ -451,6 +452,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             )}
 
             {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
+
+            <DebugButton />
 
             <Button
               variant="ghost"

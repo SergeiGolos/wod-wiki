@@ -3,7 +3,6 @@ import { IRuntimeBehavior } from '../../contracts/IRuntimeBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
-import { RuntimeBlock } from '../../RuntimeBlock';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
@@ -96,7 +95,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
         const context = new BlockContext(runtime, blockKey.toString(), 'Workout');
 
         // Flatten childGroups for sourceIds
-        const sourceIds = config.childGroups.flat();
+
 
         // Use BlockBuilder with aspect composers
         const builder = new BlockBuilder(runtime);
@@ -105,7 +104,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
             .setKey(blockKey)
             .setBlockType('Root')
             .setLabel('Workout')
-            .setSourceIds(sourceIds);
+            .setSourceIds([]); // sourceIds - Root blocks are containers, they don't inherit identity from children
 
         this.composeBehaviors(builder, config);
 
@@ -182,8 +181,7 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
      * @deprecated Use composeBehaviors with BlockBuilder instead
      */
     buildBehaviors(config: WorkoutRootConfig): IRuntimeBehavior[] {
-        const behaviors: IRuntimeBehavior[] = [];
-        const totalRounds = config.totalRounds ?? 1;
+
 
         // This method is kept for backwards compatibility but should be avoided
         // Use the build() method which uses BlockBuilder with aspect composers

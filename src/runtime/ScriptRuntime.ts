@@ -419,11 +419,30 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private emitSegmentOutputFromResultMemory(block: IRuntimeBlock, stackDepth: number): void {
         const resultLocs = block.getMemoryByTag('fragment:result');
-        if (resultLocs.length === 0) {
-            return;
+        let resultFragments: ICodeFragment[] = [];
+
+        if (resultLocs.length > 0) {
+            resultFragments = resultLocs[0].fragments ?? [];
         }
 
-        const fragments = resultLocs[0].fragments ?? [];
+        // 1. Get source fragments if available
+        let sourceFragments: ICodeFragment[] = [];
+        if (block.sourceIds && block.sourceIds.length > 0) {
+            const stmtId = block.sourceIds[0];
+            const stmt = this.script.statements.find(s => s.id === stmtId);
+            if (stmt && stmt.fragments) {
+                sourceFragments = stmt.fragments;
+            }
+        }
+
+        // 2. Merge: Runtime results override source definitions (for same type)
+        // We filter out source fragments that have a matching type in the results
+        // to prevent double-counting metrics (e.g. parser says 400m, runtime says 400m -> sum 800m is wrong)
+        const resultTypes = new Set(resultFragments.map(f => f.fragmentType));
+        const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.fragmentType));
+
+        const fragments = [...effectiveSourceFragments, ...resultFragments];
+
         if (fragments.length === 0) {
             return;
         }
@@ -473,11 +492,11 @@ export class ScriptRuntime implements IScriptRuntime {
         return rawSpans
             .map(raw => {
                 const rawObj = raw as { started?: unknown; ended?: unknown };
-                if (typeof rawObj.started !== 'number') {
+                if (typeof rawObj.started !== 'number' || isNaN(rawObj.started)) {
                     return undefined;
                 }
 
-                if (typeof rawObj.ended === 'number') {
+                if (typeof rawObj.ended === 'number' && !isNaN(rawObj.ended)) {
                     return new TimeSpan(rawObj.started, rawObj.ended);
                 }
 
@@ -488,29 +507,50 @@ export class ScriptRuntime implements IScriptRuntime {
 
 
 
+
     private emitLoadOutput(): void {
         const now = this.clock.now;
 
         // Emit a load output each statement in the script
         for (const stmt of this.script.statements) {
-            const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset);
-            const fragments: ICodeFragment[] = [
-                {
-                    fragmentType: FragmentType.Label,
-                    type: 'load',
-                    image: rawText || 'Statement',
-                    value: rawText,
-                    origin: 'runtime',
-                    timestamp: now
+            const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset + 1);
+
+            // Start with the parsed fragments from the statement
+            const fragments: ICodeFragment[] = stmt.fragments ? [...stmt.fragments] : [];
+
+            // Add a Label fragment for the raw text if one doesn't exist? 
+            // Or just always add it as the "Source" representation?
+            // The existing code created a valid 'Label' fragment. Let's keep it but maybe ensuring it doesn't duplicate if 'Text' exists?
+            // For 'load', having the raw text as a Label is useful for the "Name" column.
+
+            fragments.push({
+                fragmentType: FragmentType.Label,
+                type: 'load',
+                image: rawText || 'Statement',
+                value: rawText,
+                origin: 'runtime',
+                timestamp: now
+            });
+
+            // Calculate logical depth by traversing parents
+            let logicalDepth = 0;
+            let currentParentId = stmt.parent;
+            while (currentParentId !== undefined) {
+                const parent = this.script.getId(currentParentId);
+                if (parent) {
+                    logicalDepth++;
+                    currentParentId = parent.parent;
+                } else {
+                    break;
                 }
-            ];
+            }
 
             const output = new OutputStatement({
                 outputType: 'load',
                 timeSpan: new TimeSpan(now.getTime(), now.getTime()),
                 sourceBlockKey: 'root',
                 sourceStatementId: stmt.id,
-                stackLevel: 0,
+                stackLevel: logicalDepth,
                 fragments
             });
 

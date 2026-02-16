@@ -28,7 +28,14 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
   FragmentType.Group,
   FragmentType.Text,
   FragmentType.Sound,
+  FragmentType.Label,
+  FragmentType.CurrentRound,
   FragmentType.System,
+  FragmentType.SystemTime,
+  FragmentType.Duration,
+  FragmentType.Spans,
+  FragmentType.Elapsed,
+  FragmentType.Total,
 ];
 
 /**
@@ -49,13 +56,13 @@ const DEFAULT_VISIBLE_COLUMNS: FragmentType[] = [
 
 /**
  * Default preset — normal user view.
- * Hides milestone, label, and system output types.
+ * Hides milestone, label, event, and system output types.
  */
 export const DEFAULT_PRESET: GridViewPreset = {
   id: 'default',
   label: 'Default',
   filters: {
-    outputTypes: ['segment', 'milestone', 'event', 'group'],
+    outputTypes: ['segment', 'milestone', 'group'],
   },
   visibleColumns: DEFAULT_VISIBLE_COLUMNS,
   isDefault: true,
@@ -94,8 +101,8 @@ export function getPreset(id: string): GridViewPreset {
  */
 export const FIXED_COLUMNS: GridColumn[] = [
   {
-    id: FIXED_COLUMN_IDS.INDEX,
-    label: '#',
+    id: FIXED_COLUMN_IDS.TIMESTAMP,
+    label: 'Timestamp',
     sortable: true,
     filterable: false,
     graphable: false,
@@ -104,7 +111,16 @@ export const FIXED_COLUMNS: GridColumn[] = [
   },
   {
     id: FIXED_COLUMN_IDS.SPANS,
-    label: 'Spans',
+    label: 'Time',
+    sortable: true,
+    filterable: false,
+    graphable: false,
+    isGraphed: false,
+    visible: true,
+  },
+  {
+    id: FIXED_COLUMN_IDS.INDEX,
+    label: '#',
     sortable: true,
     filterable: false,
     graphable: false,
@@ -156,24 +172,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     isGraphed: false,
     visible: true,
   },
-  {
-    id: FIXED_COLUMN_IDS.SPANS, // Renamed label to Time
-    label: 'Time',
-    sortable: true,
-    filterable: false,
-    graphable: false,
-    isGraphed: false,
-    visible: true,
-  },
-  {
-    id: FIXED_COLUMN_IDS.TIMESTAMP,
-    label: 'Timestamp',
-    sortable: true,
-    filterable: false,
-    graphable: false,
-    isGraphed: false,
-    visible: false, // debug-only
-  },
+
   {
     id: FIXED_COLUMN_IDS.TOTAL,
     label: 'Total',
@@ -231,13 +230,18 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
   // 1. Index (#)
   order.push(getFixed(FIXED_COLUMN_IDS.INDEX));
 
-  // 2. Time (Spans)
+  // 2. Timestamp
+  const timestampCol = getFixed(FIXED_COLUMN_IDS.TIMESTAMP);
+  order.push({
+    ...timestampCol,
+    visible: true,
+    meta: { hideMs: !isDebugMode }
+  });
+
+  // 3. Time (Spans)
   order.push(getFixed(FIXED_COLUMN_IDS.SPANS));
 
   if (isDebugMode) {
-    // 3. System Timestamp (Debug Only)
-    order.push({ ...getFixed(FIXED_COLUMN_IDS.TIMESTAMP), visible: true });
-
     // 4. System Fragment (Debug Only)
     const sysCol = getFragmentCol(FragmentType.System);
     if (sysCol) order.push({ ...sysCol, visible: true });
@@ -264,7 +268,7 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
 
   // 7/9. Debug extras
   if (isDebugMode) {
-    order.push({ ...getFixed(FIXED_COLUMN_IDS.STACK_LEVEL), visible: true });
+    // order.push({ ...getFixed(FIXED_COLUMN_IDS.STACK_LEVEL), visible: true });
     order.push({ ...getFixed(FIXED_COLUMN_IDS.COMPLETION_REASON), visible: true });
   }
 
