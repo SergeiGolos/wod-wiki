@@ -11,8 +11,7 @@ import { BlockBuilder } from '../BlockBuilder';
 
 // Specific behaviors not covered by aspect composers
 import {
-    DisplayInitBehavior,
-    RoundDisplayBehavior,
+    LabelingBehavior,
     ButtonBehavior,
     HistoryRecordBehavior
 } from '../../behaviors';
@@ -151,14 +150,10 @@ export class WorkoutRootStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Display Aspect
-        builder.addBehavior(new DisplayInitBehavior({
+        builder.addBehavior(new LabelingBehavior({
             mode: 'clock',
             label: 'Workout'
         }));
-
-        if (totalRounds > 1) {
-            builder.addBehavior(new RoundDisplayBehavior());
-        }
 
         // Controls Aspect - Workout control buttons
         const buttons = config.executionButtons ?? [

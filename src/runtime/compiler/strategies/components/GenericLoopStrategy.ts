@@ -11,12 +11,10 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 // Specific behaviors not covered by aspect composers
 import {
     ReEntryBehavior,
-    RoundDisplayBehavior,
-    RepSchemeBehavior,
-    DisplayInitBehavior,
+    FragmentPromotionBehavior,
+    LabelingBehavior,
     HistoryRecordBehavior,
-    ReportOutputBehavior,
-    PromoteFragmentBehavior
+    ReportOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -97,19 +95,13 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             addCompletion: true  // Complete when all rounds done
         });
 
-        // Rep Scheme Aspect — round-robin promote reps to children
-        if (repScheme && repScheme.length > 0) {
-            builder.addBehavior(new RepSchemeBehavior({ repScheme }));
-        }
-
         // =====================================================================
         // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
-        builder.addBehavior(new DisplayInitBehavior({
+        builder.addBehavior(new LabelingBehavior({
             mode: 'clock',
             label
         }));
-        builder.addBehavior(new RoundDisplayBehavior());
 
         // =====================================================================
         // Output Aspect
@@ -119,11 +111,14 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
         // Promotion Aspect - Share internal state with children
         // Use execution origin to override parser-based text fragments
-        builder.addBehavior(new PromoteFragmentBehavior({
-            fragmentType: FragmentType.CurrentRound,
-            enableDynamicUpdates: true,
-            origin: 'execution',
-            sourceTag: 'round'
+        builder.addBehavior(new FragmentPromotionBehavior({
+            repScheme,
+            promotions: [{
+                fragmentType: FragmentType.CurrentRound,
+                enableDynamicUpdates: true,
+                origin: 'execution',
+                sourceTag: 'round'
+            }]
         }));
     }
 }

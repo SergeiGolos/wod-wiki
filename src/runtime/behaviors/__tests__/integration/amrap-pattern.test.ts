@@ -26,9 +26,8 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
-import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
-import { DisplayInitBehavior } from '../../DisplayInitBehavior';
+import { LabelingBehavior } from '../../LabelingBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerState, RoundState } from '../../../memory/MemoryTypes';
@@ -56,8 +55,7 @@ describe('AMRAP Pattern Integration', () => {
         // NOTE: No RoundCompletionBehavior - timer controls completion
 
         // Display aspect
-        new DisplayInitBehavior({ mode: 'countdown', label: 'AMRAP' }),
-        new RoundDisplayBehavior(),
+        new LabelingBehavior({ mode: 'countdown', label: 'AMRAP' }),
 
         // Output aspect
         new ReportOutputBehavior(),

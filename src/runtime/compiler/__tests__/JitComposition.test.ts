@@ -20,7 +20,7 @@ import {
     ReEntryBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
-    RepSchemeBehavior
+    FragmentPromotionBehavior
 } from "../../behaviors";
 
 describe("JIT Composition", () => {
@@ -138,7 +138,7 @@ describe("JIT Composition", () => {
         expect(block?.getBehavior(SoundCueBehavior)).toBeDefined();
     });
 
-    it("should auto-detect rep scheme from RepFragments and add RepSchemeBehavior", () => {
+    it("should auto-detect rep scheme from RepFragments and add FragmentPromotionBehavior", () => {
         // (21-15-9) — parser creates RoundsFragment(3) + 3 RepFragments
         const meta = new CodeMetadata(0, 0, 0, 0);
         const statement = new CodeStatement();
@@ -159,8 +159,8 @@ describe("JIT Composition", () => {
         expect(block.blockType).toBe("Rounds");
         expect(block.label).toBe("21-15-9");
 
-        // RepSchemeBehavior should be attached with round-robin rep scheme
-        const repBehavior = block.getBehavior(RepSchemeBehavior);
+        // FragmentPromotionBehavior should be attached with round-robin rep scheme
+        const repBehavior = block.getBehavior(FragmentPromotionBehavior);
         expect(repBehavior).toBeDefined();
         expect(repBehavior!.repScheme).toEqual([21, 15, 9]);
         expect(repBehavior!.getRepsForRound(1)).toBe(21);
@@ -170,7 +170,7 @@ describe("JIT Composition", () => {
         expect(repBehavior!.getRepsForRound(4)).toBe(21);
     });
 
-    it("should not add RepSchemeBehavior when no RepFragments present", () => {
+    it("should not add FragmentPromotionBehavior rep scheme when no RepFragments present", () => {
         // (3 rounds) — only RoundsFragment, no RepFragments
         const meta = new CodeMetadata(0, 0, 0, 0);
         const statement = new CodeStatement();
@@ -188,8 +188,8 @@ describe("JIT Composition", () => {
         expect(block.blockType).toBe("Rounds");
         expect(block.label).toBe("3 Rounds");
 
-        // No RepSchemeBehavior when no rep fragments
-        const repBehavior = block.getBehavior(RepSchemeBehavior);
-        expect(repBehavior).toBeUndefined();
+        const repBehavior = block.getBehavior(FragmentPromotionBehavior);
+        expect(repBehavior).toBeDefined();
+        expect(repBehavior!.repScheme).toEqual([]);
     });
 });

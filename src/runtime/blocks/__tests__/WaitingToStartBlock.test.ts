@@ -5,7 +5,7 @@ import { WaitingToStartBlock } from '../WaitingToStartBlock';
 import {
     ReportOutputBehavior,
     LeafExitBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior
 } from '../../behaviors';
 
@@ -26,7 +26,7 @@ describe('WaitingToStartBlock', () => {
             const block = new WaitingToStartBlock(harness.runtime);
 
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
+            expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
             expect(block.getBehavior(LeafExitBehavior)).toBeDefined();
         });

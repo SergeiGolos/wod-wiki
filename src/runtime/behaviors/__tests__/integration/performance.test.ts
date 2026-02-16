@@ -23,9 +23,8 @@ import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
-import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
-import { DisplayInitBehavior } from '../../DisplayInitBehavior';
+import { LabelingBehavior } from '../../LabelingBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 
@@ -50,7 +49,7 @@ describe('Performance Integration', () => {
     describe('Mount Performance', () => {
         it('should mount simple behavior in < 5ms', () => {
             const behaviors = [
-                new DisplayInitBehavior({ mode: 'clock' })
+                new LabelingBehavior({ mode: 'clock' })
             ];
 
             const time = measureTime(() => {
@@ -67,8 +66,7 @@ describe('Performance Integration', () => {
                 new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
                 new TimerPauseBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
-                new RoundDisplayBehavior(),
-                new DisplayInitBehavior({ mode: 'countdown' }),
+                new LabelingBehavior({ mode: 'countdown' }),
                 new ReportOutputBehavior(),
                 new HistoryRecordBehavior(),
                 new SoundCueBehavior({ cues: [] })
@@ -88,7 +86,7 @@ describe('Performance Integration', () => {
                     mountBehaviors([
                         new TimerInitBehavior({ direction: 'up' }),
                         new ReEntryBehavior({ totalRounds: 5 }),
-                        new DisplayInitBehavior({ mode: 'clock' })
+                        new LabelingBehavior({ mode: 'clock' })
                     ], createMockRuntime(), testBlock);
                 }
             });
@@ -102,7 +100,7 @@ describe('Performance Integration', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'up' }),
                 new TimerTickBehavior(),
-                new DisplayInitBehavior({ mode: 'clock' })
+                new LabelingBehavior({ mode: 'clock' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -118,8 +116,7 @@ describe('Performance Integration', () => {
                 new TimerInitBehavior({ direction: 'down', durationMs: 600000 }),
                 new TimerTickBehavior(),
                 new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
-                new RoundDisplayBehavior(),
-                new DisplayInitBehavior({ mode: 'countdown' })
+                new LabelingBehavior({ mode: 'countdown' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -137,8 +134,7 @@ describe('Performance Integration', () => {
         it('should process 1000 advances in < 100ms', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: undefined }),
-                new RoundDisplayBehavior(),
-                new DisplayInitBehavior({ mode: 'clock' }),
+                new LabelingBehavior({ mode: 'clock' }),
                 new ReportOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -195,8 +191,7 @@ describe('Performance Integration', () => {
                 new TimerTickBehavior(),
                 new TimerPauseBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
-                new RoundDisplayBehavior(),
-                new DisplayInitBehavior({ mode: 'clock' })
+                new LabelingBehavior({ mode: 'clock' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -221,7 +216,7 @@ describe('Performance Integration', () => {
                 new TimerTickBehavior(),
                 new TimerPauseBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
-                new DisplayInitBehavior({ mode: 'clock' }),
+                new LabelingBehavior({ mode: 'clock' }),
                 new HistoryRecordBehavior(),
                 new ReportOutputBehavior()
             ];

@@ -11,7 +11,7 @@ import { BlockBuilder } from '../BlockBuilder';
 // Specific behaviors not covered by aspect composers
 import {
     LeafExitBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior
 } from '../../behaviors';
 
@@ -111,7 +111,7 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
         }
 
         // Display Aspect
-        builder.addBehavior(new DisplayInitBehavior({
+        builder.addBehavior(new LabelingBehavior({
             mode: config.displayMode || 'clock',
             label: config.label
         }));

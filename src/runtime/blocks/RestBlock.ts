@@ -12,7 +12,7 @@ import {
     TimerBehavior,
     TimerEndingBehavior,
     LeafExitBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     SoundCueBehavior
 } from '../behaviors';
 
@@ -44,7 +44,7 @@ export interface RestBlockConfig {
  * - ReportOutputBehavior (output on mount/unmount)
  * - TimerBehavior (countdown timer + pause/resume state)
  * - TimerEndingBehavior (auto-complete when timer expires)
- * - DisplayInitBehavior (show rest countdown)
+ * - LabelingBehavior (show rest countdown)
  * - SoundCueBehavior (beep on unmount for rest-over signal)
  */
 export class RestBlock extends RuntimeBlock {
@@ -108,7 +108,7 @@ export class RestBlock extends RuntimeBlock {
         // =====================================================================
         // Display Aspect
         // =====================================================================
-        behaviors.push(new DisplayInitBehavior({
+        behaviors.push(new LabelingBehavior({
             mode: 'timer',
             label: restLabel
         }));

@@ -260,20 +260,20 @@ describe('BlockBuilder Aspect Composers', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
-            const { DisplayInitBehavior } = require('../DisplayInitBehavior');
+            const { LabelingBehavior } = require('../LabelingBehavior');
 
             builder
                 .setContext(context)
                 .setKey(key)
                 .asTimer({ direction: 'up' })
-                .addBehavior(new DisplayInitBehavior({ mode: 'clock' }));
+                .addBehavior(new LabelingBehavior({ mode: 'clock' }));
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
             // Should have timer aspect behaviors AND the manually added behavior
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof DisplayInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof LabelingBehavior)).toBe(true);
         });
     });
 });

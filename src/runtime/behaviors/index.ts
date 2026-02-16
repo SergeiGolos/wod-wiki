@@ -30,11 +30,8 @@ export { TimerPauseBehavior } from './TimerPauseBehavior';
 export { ReEntryBehavior } from './ReEntryBehavior';
 export type { ReEntryConfig } from './ReEntryBehavior';
 export { RoundsEndBehavior } from './RoundsEndBehavior';
-export { RoundDisplayBehavior } from './RoundDisplayBehavior';
-export { RepSchemeBehavior } from './RepSchemeBehavior';
-export type { RepSchemeConfig } from './RepSchemeBehavior';
-export { PromoteFragmentBehavior } from './PromoteFragmentBehavior';
-export type { PromoteFragmentConfig } from './PromoteFragmentBehavior';
+export { FragmentPromotionBehavior } from './FragmentPromotionBehavior';
+export type { FragmentPromotionConfig, PromotionRule } from './FragmentPromotionBehavior';
 
 // ============================================================================
 // Completion Aspect
@@ -47,9 +44,8 @@ export { CompletedBlockPopBehavior } from './CompletedBlockPopBehavior';
 // ============================================================================
 // Display Aspect
 // ============================================================================
-export { DisplayInitBehavior } from './DisplayInitBehavior';
-export type { DisplayInitConfig } from './DisplayInitBehavior';
-// RoundDisplayBehavior is also a display behavior (exported under Iteration)
+export { LabelingBehavior } from './LabelingBehavior';
+export type { LabelingConfig } from './LabelingBehavior';
 
 // ============================================================================
 // Children Aspect

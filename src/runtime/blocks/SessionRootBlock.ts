@@ -11,9 +11,8 @@ import {
     TimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    RoundDisplayBehavior,
     ChildSelectionBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
     ReportOutputBehavior
@@ -50,12 +49,12 @@ export interface SessionRootConfig {
  * - TimerBehavior (elapsed workout timer)
  * - ReEntryBehavior (if multi-round)
  * - RoundsEndBehavior
- * - RoundDisplayBehavior (if multi-round)
+ * - LabelingBehavior (includes round display when round memory is present)
  * - ChildSelectionBehavior (looping when multi-round)
  * - WaitingToStartInjectorBehavior (pushes WaitingToStart gate on mount)
  * - ChildSelectionBehavior (pushes children in sequence, skipOnMount)
  * - RoundsEndBehavior (single-round sessions pop when children are done)
- * - DisplayInitBehavior
+ * - LabelingBehavior
  * - ButtonBehavior
  * - HistoryRecordBehavior (records session on unmount)
  */
@@ -113,10 +112,6 @@ export class SessionRootBlock extends RuntimeBlock {
             startRound: 1
         }));
 
-        if (totalRounds > 1) {
-            behaviors.push(new RoundDisplayBehavior());
-        }
-
         // =====================================================================
         // Gate Aspect - WaitingToStart idle gate
         // Pushes a WaitingToStartBlock on mount. User must click "Start"
@@ -144,7 +139,7 @@ export class SessionRootBlock extends RuntimeBlock {
         // =====================================================================
         // Display Aspect
         // =====================================================================
-        behaviors.push(new DisplayInitBehavior({
+        behaviors.push(new LabelingBehavior({
             mode: 'clock',
             label: sessionLabel
         }));

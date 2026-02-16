@@ -23,7 +23,7 @@ import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
-import { DisplayInitBehavior } from '../../DisplayInitBehavior';
+import { LabelingBehavior } from '../../LabelingBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { TimerState, RoundState } from '../../../memory/MemoryTypes';
 
@@ -48,7 +48,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle block with only display', () => {
             const behaviors = [
-                new DisplayInitBehavior({ mode: 'clock', label: 'Display Only' })
+                new LabelingBehavior({ mode: 'clock', label: 'Display Only' })
             ];
 
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -307,7 +307,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle events with no subscribers', () => {
             const behaviors = [
-                new DisplayInitBehavior({ mode: 'clock' })
+                new LabelingBehavior({ mode: 'clock' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 

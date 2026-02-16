@@ -3,7 +3,7 @@ import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
 import { MemoryLocation, IMemoryLocation } from '../../memory/MemoryLocation';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { PromoteFragmentBehavior } from '../PromoteFragmentBehavior';
+import { FragmentPromotionBehavior } from '../FragmentPromotionBehavior';
 
 // --- Test Context Setup ---
 
@@ -56,7 +56,7 @@ function createMockContext(overrides: any = {}): IBehaviorContext & { memoryStor
 
 describe('Round Promotion', () => {
 
-    describe('PromoteFragmentBehavior', () => {
+    describe('FragmentPromotionBehavior', () => {
         it('should promote fragment from source tag to "fragment:promote"', () => {
             const ctx = createMockContext();
 
@@ -69,9 +69,11 @@ describe('Round Promotion', () => {
             } as any;
             ctx.pushMemory('round', [roundFragment]);
 
-            const behavior = new PromoteFragmentBehavior({
-                fragmentType: FragmentType.CurrentRound,
-                sourceTag: 'round'
+            const behavior = new FragmentPromotionBehavior({
+                promotions: [{
+                    fragmentType: FragmentType.CurrentRound,
+                    sourceTag: 'round'
+                }]
             });
 
             behavior.onMount(ctx);
@@ -98,10 +100,12 @@ describe('Round Promotion', () => {
                 type: 'current-round'
             } as any]);
 
-            const behavior = new PromoteFragmentBehavior({
-                fragmentType: FragmentType.CurrentRound,
-                sourceTag: 'round',
-                enableDynamicUpdates: true
+            const behavior = new FragmentPromotionBehavior({
+                promotions: [{
+                    fragmentType: FragmentType.CurrentRound,
+                    sourceTag: 'round',
+                    enableDynamicUpdates: true
+                }]
             });
 
             behavior.onMount(ctx);

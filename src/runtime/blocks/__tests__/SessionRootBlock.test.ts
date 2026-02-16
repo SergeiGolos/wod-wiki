@@ -6,9 +6,8 @@ import {
     TimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    RoundDisplayBehavior,
     ChildSelectionBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
     ReportOutputBehavior,
@@ -40,7 +39,7 @@ describe('SessionRootBlock', () => {
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
-            expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
+            expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
             expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
@@ -55,7 +54,6 @@ describe('SessionRootBlock', () => {
 
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
@@ -69,7 +67,6 @@ describe('SessionRootBlock', () => {
 
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
@@ -207,8 +204,8 @@ describe('SessionRootBlock', () => {
                 totalRounds: 3
             }, harness.runtime);
 
-            // Expected: Segment + Timer + ReEntry + RoundDisplay + WaitingToStartInjector + ChildSelection + RoundsEnd + Display + Controls + History
-            expect(behaviors.length).toBe(10);
+            // Expected: same as single-round composition (Labeling handles optional round display)
+            expect(behaviors.length).toBe(9);
         });
     });
 });

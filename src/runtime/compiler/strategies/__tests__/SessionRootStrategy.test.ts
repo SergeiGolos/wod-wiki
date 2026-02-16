@@ -6,9 +6,8 @@ import {
     TimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    RoundDisplayBehavior,
     ChildSelectionBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
     ReportOutputBehavior
@@ -94,7 +93,7 @@ describe('SessionRootStrategy', () => {
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
-            expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
+            expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
             expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
@@ -109,7 +108,6 @@ describe('SessionRootStrategy', () => {
 
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
@@ -123,7 +121,6 @@ describe('SessionRootStrategy', () => {
 
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 

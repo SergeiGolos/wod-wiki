@@ -10,7 +10,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 import {
     ReportOutputBehavior,
     LeafExitBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior
 } from '../behaviors';
 
@@ -31,7 +31,7 @@ import {
  * ## Behavior Chain
  *
  * - ReportOutputBehavior (output on mount/unmount)
- * - DisplayInitBehavior (show "Ready to Start")
+ * - LabelingBehavior (show "Ready to Start")
  * - ButtonBehavior (show "Start" button)
  * - LeafExitBehavior (pop on user advance)
  */
@@ -66,7 +66,7 @@ export class WaitingToStartBlock extends RuntimeBlock {
         // =====================================================================
         // Display Aspect
         // =====================================================================
-        behaviors.push(new DisplayInitBehavior({
+        behaviors.push(new LabelingBehavior({
             mode: 'clock',
             label: 'Ready to Start'
         }));

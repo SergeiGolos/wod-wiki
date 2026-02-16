@@ -5,11 +5,11 @@
  * typically used in rep scheme workouts (e.g., 21-15-9).
  * 
  * @example Implementations
- * - RepSchemeBehavior: Maps rounds to rep counts from a scheme array
+ * - FragmentPromotionBehavior: Maps rounds to rep counts from a scheme array
  * 
  * @example Usage
  * ```typescript
- * const repSource = block.getBehavior<IRepSource>(RepSchemeBehavior);
+ * const repSource = block.getBehavior<IRepSource>(FragmentPromotionBehavior);
  * const targetReps = repSource?.getRepsForRound(currentRound) ?? 10;
  * ```
  */

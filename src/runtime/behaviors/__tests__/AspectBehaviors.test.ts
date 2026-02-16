@@ -3,7 +3,7 @@ import { TimerBehavior } from '../TimerBehavior';
 import { TimerEndingBehavior } from '../TimerEndingBehavior';
 import { ReEntryBehavior } from '../ReEntryBehavior';
 import { RoundsEndBehavior } from '../RoundsEndBehavior';
-import { DisplayInitBehavior } from '../DisplayInitBehavior';
+import { LabelingBehavior } from '../LabelingBehavior';
 import { LeafExitBehavior } from '../LeafExitBehavior';
 import { ButtonBehavior } from '../ButtonBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
@@ -195,10 +195,10 @@ describe('Iteration Aspect Behaviors', () => {
 });
 
 describe('Display Aspect Behaviors', () => {
-    describe('DisplayInitBehavior', () => {
+    describe('LabelingBehavior', () => {
         it('should initialize display state', () => {
             const ctx = createMockContext();
-            const behavior = new DisplayInitBehavior({
+            const behavior = new LabelingBehavior({
                 mode: 'countdown',
                 label: 'Rest'
             });
@@ -214,7 +214,7 @@ describe('Display Aspect Behaviors', () => {
 
         it('should use block label as default', () => {
             const ctx = createMockContext();
-            const behavior = new DisplayInitBehavior();
+            const behavior = new LabelingBehavior();
 
             behavior.onMount(ctx);
 

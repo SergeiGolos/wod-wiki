@@ -13,7 +13,7 @@ import {
     TimerEndingBehavior,
     LeafExitBehavior,
     CompletedBlockPopBehavior,
-    PromoteFragmentBehavior
+    FragmentPromotionBehavior
 } from "../../../behaviors";
 
 /**
@@ -108,11 +108,13 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
             // Promote current round fragment to children (e.g. for display)
             // Explicitly target 'round' tag to get the runtime value, avoiding
             // ambiguity with other fragments (like total rounds or parser hints)
-            builder.addBehavior(new PromoteFragmentBehavior({
-                fragmentType: FragmentType.CurrentRound,
-                origin: 'execution',
-                enableDynamicUpdates: true,
-                sourceTag: 'round'
+            builder.addBehavior(new FragmentPromotionBehavior({
+                promotions: [{
+                    fragmentType: FragmentType.CurrentRound,
+                    origin: 'execution',
+                    enableDynamicUpdates: true,
+                    sourceTag: 'round'
+                }]
             }));
         }
     }

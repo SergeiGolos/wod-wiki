@@ -23,7 +23,7 @@ import { RestBlock, RestBlockConfig } from '../../../blocks/RestBlock';
  *    - TimerInitBehavior (countdown timer)
  *    - TimerTickBehavior (drive countdown)
  *    - TimerEndingBehavior (auto-complete when timer expires)
- *    - DisplayInitBehavior (show rest countdown display)
+ *    - LabelingBehavior (show rest countdown display)
  *    - SoundCueBehavior (rest-over beep + countdown beeps)
  *
  * ## Usage Patterns

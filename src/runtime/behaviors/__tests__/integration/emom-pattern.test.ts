@@ -25,9 +25,8 @@ import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
-import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
-import { DisplayInitBehavior } from '../../DisplayInitBehavior';
+import { LabelingBehavior } from '../../LabelingBehavior';
 import { TimerState, RoundState } from '../../../memory/MemoryTypes';
 
 describe('EMOM Pattern Integration', () => {
@@ -54,8 +53,7 @@ describe('EMOM Pattern Integration', () => {
         new RoundsEndBehavior(), // Round completion ends the workout
 
         // Display aspect
-        new DisplayInitBehavior({ mode: 'countdown', label: 'EMOM' }),
-        new RoundDisplayBehavior(),
+        new LabelingBehavior({ mode: 'countdown', label: 'EMOM' }),
 
         // Output aspect
         new ReportOutputBehavior()

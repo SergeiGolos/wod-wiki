@@ -5,9 +5,8 @@ import {
     TimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    RoundDisplayBehavior,
+    LabelingBehavior,
     ChildSelectionBehavior,
-    DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
     CompletionTimestampBehavior
@@ -52,7 +51,7 @@ describe('WorkoutRootStrategy', () => {
 
             // Check required behavior types are present (new aspect-based behaviors)
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof DisplayInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof LabelingBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ButtonBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof HistoryRecordBehavior)).toBe(true);
@@ -71,7 +70,6 @@ describe('WorkoutRootStrategy', () => {
             const behaviors = (block as any).behaviors;
 
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(false);
-            expect(behaviors.some((b: any) => b instanceof RoundDisplayBehavior)).toBe(false);
             expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(false);
         });
 
@@ -85,7 +83,6 @@ describe('WorkoutRootStrategy', () => {
             const behaviors = (block as any).behaviors;
 
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundDisplayBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
         });
 

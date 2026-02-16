@@ -4,7 +4,7 @@ import { WaitingToStartStrategy } from '../WaitingToStartStrategy';
 import {
     ReportOutputBehavior,
     LeafExitBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     ButtonBehavior
 } from '../../../behaviors';
 
@@ -68,10 +68,10 @@ describe('WaitingToStartStrategy', () => {
             expect(block.getBehavior(LeafExitBehavior)).toBeDefined();
         });
 
-        it('should include DisplayInitBehavior', () => {
+        it('should include LabelingBehavior', () => {
             const block = strategy.build(harness.runtime);
 
-            expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
+            expect(block.getBehavior(LabelingBehavior)).toBeDefined();
         });
 
         it('should include ButtonBehavior', () => {

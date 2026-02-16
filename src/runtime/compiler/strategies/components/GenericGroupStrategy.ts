@@ -12,7 +12,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     TimerBehavior,
     ReEntryBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     HistoryRecordBehavior
 } from "../../../behaviors";
 
@@ -56,7 +56,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         // Display Aspect
         // =====================================================================
-        builder.addBehavior(new DisplayInitBehavior({
+        builder.addBehavior(new LabelingBehavior({
             mode: 'clock',
             label
         }));

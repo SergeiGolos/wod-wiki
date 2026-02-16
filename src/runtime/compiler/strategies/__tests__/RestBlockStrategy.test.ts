@@ -5,7 +5,7 @@ import {
     ReportOutputBehavior,
     TimerBehavior,
     TimerEndingBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     SoundCueBehavior
 } from '../../../behaviors';
 
@@ -97,10 +97,10 @@ describe('RestBlockStrategy', () => {
             expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
         });
 
-        it('should include DisplayInitBehavior', () => {
+        it('should include LabelingBehavior', () => {
             const block = strategy.build(harness.runtime, { durationMs: 30000 });
 
-            expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
+            expect(block.getBehavior(LabelingBehavior)).toBeDefined();
         });
 
         it('should include SoundCueBehavior', () => {

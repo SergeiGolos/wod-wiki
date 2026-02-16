@@ -6,7 +6,7 @@ import {
     ReportOutputBehavior,
     TimerBehavior,
     TimerEndingBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     SoundCueBehavior
 } from '../../behaviors';
 
@@ -30,7 +30,7 @@ describe('RestBlock', () => {
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
-            expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
+            expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
         });
 

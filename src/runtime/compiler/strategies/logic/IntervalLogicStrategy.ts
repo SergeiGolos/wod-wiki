@@ -11,8 +11,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 
 // Specific behaviors not covered by aspect composers
 import {
-    DisplayInitBehavior,
-    RoundDisplayBehavior,
+    LabelingBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
     ReportOutputBehavior
@@ -105,11 +104,10 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Display Aspect
-        builder.addBehavior(new DisplayInitBehavior({
+        builder.addBehavior(new LabelingBehavior({
             mode: 'countdown',
             label
         }));
-        builder.addBehavior(new RoundDisplayBehavior());
 
         // Output Aspect
         builder.addBehavior(new ReportOutputBehavior({ label }));

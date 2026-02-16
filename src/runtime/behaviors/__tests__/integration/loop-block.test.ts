@@ -23,9 +23,8 @@ import {
 
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
-import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
-import { DisplayInitBehavior } from '../../DisplayInitBehavior';
+import { LabelingBehavior } from '../../LabelingBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { RoundState } from '../../../memory/MemoryTypes';
 
@@ -42,8 +41,7 @@ describe('Loop Block Integration', () => {
         const createLoopBehaviors = (totalRounds: number = 5) => [
             new ReEntryBehavior({ totalRounds, startRound: 1 }),
             new RoundsEndBehavior(),
-            new RoundDisplayBehavior(),
-            new DisplayInitBehavior({ mode: 'clock', label: 'Rounds' }),
+            new LabelingBehavior({ mode: 'clock', label: 'Rounds' }),
             new ReportOutputBehavior()
         ];
 
@@ -84,7 +82,7 @@ describe('Loop Block Integration', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),
                 new RoundsEndBehavior(), // Should not trigger without total
-                new RoundDisplayBehavior()
+                new LabelingBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -173,8 +171,7 @@ describe('Loop Block Integration', () => {
         it('should initialize display with correct label', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: 5 }),
-                new DisplayInitBehavior({ mode: 'clock', label: 'Test' }),
-                new RoundDisplayBehavior()
+                new LabelingBehavior({ mode: 'clock', label: 'Test' })
             ];
 
             mountBehaviors(behaviors, runtime, block);
@@ -185,8 +182,7 @@ describe('Loop Block Integration', () => {
         it('should set initial roundDisplay on mount', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: 5, startRound: 1 }),
-                new DisplayInitBehavior({ mode: 'clock' }),
-                new RoundDisplayBehavior()
+                new LabelingBehavior({ mode: 'clock' })
             ];
 
             mountBehaviors(behaviors, runtime, block);
@@ -197,8 +193,7 @@ describe('Loop Block Integration', () => {
         it('should handle unbounded rounds in display', () => {
             const behaviors = [
                 new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),
-                new DisplayInitBehavior({ mode: 'clock' }),
-                new RoundDisplayBehavior()
+                new LabelingBehavior({ mode: 'clock' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 

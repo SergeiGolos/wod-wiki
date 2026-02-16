@@ -27,7 +27,7 @@ import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerEndingBehavior } from '../../TimerEndingBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
-import { DisplayInitBehavior } from '../../DisplayInitBehavior';
+import { LabelingBehavior } from '../../LabelingBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
@@ -47,7 +47,7 @@ describe('Timer Block Integration', () => {
             new TimerInitBehavior({ direction: 'down', durationMs, label: 'Countdown' }),
             new TimerTickBehavior(),
             new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
-            new DisplayInitBehavior({ mode: 'countdown', label: 'Countdown' }),
+            new LabelingBehavior({ mode: 'countdown', label: 'Countdown' }),
             new ReportOutputBehavior({ label: 'Countdown' })
         ];
 
@@ -143,7 +143,7 @@ describe('Timer Block Integration', () => {
             new TimerInitBehavior({ direction: 'up', label: 'For Time' }),
             new TimerTickBehavior(),
             new LeafExitBehavior(),
-            new DisplayInitBehavior({ mode: 'clock', label: 'For Time' }),
+            new LabelingBehavior({ mode: 'clock', label: 'For Time' }),
             new ReportOutputBehavior({ label: 'For Time' })
         ];
 

@@ -11,7 +11,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 // Specific behaviors not covered by aspect composers
 import {
     TimerBehavior,
-    DisplayInitBehavior,
+    LabelingBehavior,
     LeafExitBehavior,
     SoundCueBehavior,
     ReportOutputBehavior
@@ -118,7 +118,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
         // Display Aspect
         // =====================================================================
-        builder.addBehavior(new DisplayInitBehavior({
+        builder.addBehavior(new LabelingBehavior({
             mode: durationMs ? 'countdown' : 'clock',
             label
         }));

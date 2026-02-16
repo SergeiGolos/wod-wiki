@@ -8,7 +8,7 @@ import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
 import { TimerBehavior } from '../behaviors/TimerBehavior';
-import { DisplayInitBehavior } from '../behaviors/DisplayInitBehavior';
+import { LabelingBehavior } from '../behaviors/LabelingBehavior';
 
 
 /**
@@ -107,7 +107,7 @@ export class EffortBlock extends RuntimeBlock {
 
     // Initialize behaviors in order
     // Display aspect
-    this.behaviors.push(new DisplayInitBehavior({
+    this.behaviors.push(new LabelingBehavior({
       mode: 'clock',
       label: `${config.targetReps} ${config.exerciseName}`,
       actionDisplay: config.exerciseName
