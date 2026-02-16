@@ -15,8 +15,7 @@ import {
     RoundOutputBehavior,
     HistoryRecordBehavior,
     SoundCueBehavior,
-    SegmentOutputBehavior,
-    RestBlockBehavior
+    SegmentOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -106,13 +105,6 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         builder.addBehavior(new RoundOutputBehavior());
         builder.addBehavior(new SegmentOutputBehavior({ label }));
         builder.addBehavior(new HistoryRecordBehavior());
-
-        // Rest Insertion Aspect - Auto-generate rest blocks
-        // RestBlockBehavior must be added BEFORE ChildLoopBehavior and
-        // ChildRunnerBehavior (which are added by ChildrenStrategy at priority 50)
-        builder.addBehavior(new RestBlockBehavior({
-            label: 'Rest'
-        }));
 
         // Sound Cues
         builder.addBehavior(new SoundCueBehavior({

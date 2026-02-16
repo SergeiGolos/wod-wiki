@@ -6,7 +6,7 @@ import {
     ReEntryBehavior,
     RoundsEndBehavior,
     RoundDisplayBehavior,
-    ChildRunnerBehavior,
+    ChildSelectionBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
@@ -54,7 +54,7 @@ describe('WorkoutRootStrategy', () => {
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof DisplayInitBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ButtonBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof HistoryRecordBehavior)).toBe(true);
 
             // Check universal invariants are present

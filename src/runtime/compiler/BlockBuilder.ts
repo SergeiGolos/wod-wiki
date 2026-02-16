@@ -12,8 +12,9 @@ import {
     TimerEndingBehavior,
     ReEntryBehavior, ReEntryConfig,
     RoundsEndBehavior,
-    ChildRunnerBehavior, ChildRunnerConfig,
-    ChildLoopBehavior, ChildLoopConfig
+    ChildSelectionBehavior,
+    ChildSelectionConfig,
+    ChildSelectionLoopCondition
 } from "../behaviors";
 
 export interface TimerCompletionConfig {
@@ -75,7 +76,7 @@ export class BlockBuilder {
      * Remove a behavior by its constructor type.
      * Used by enhancement strategies to remove conflicting behaviors
     * added by earlier strategies (e.g., removing LeafExitBehavior
-     * when ChildRunnerBehavior takes over completion management).
+    * when child-selection behavior takes over completion management).
      */
     removeBehavior<T extends IRuntimeBehavior>(type: new (...args: any[]) => T): BlockBuilder {
         this.behaviors.delete(type);
@@ -175,26 +176,25 @@ export class BlockBuilder {
     }
 
     /**
-     * Container Aspect Composer - Adds all child-management behaviors as a unit.
-     * Configures child runner and optional child looping.
-     *
-     * IMPORTANT: Order matters! ChildLoopBehavior must run BEFORE ChildRunnerBehavior
-     * so it can reset the child index before ChildRunner checks it.
+     * Container Aspect Composer - Adds child selection behavior as a unit.
+     * Configures child dispatch, optional looping, and optional rest injection.
      *
      * @param config Container configuration
      * @returns This builder for chaining
      */
-    asContainer(config: ChildRunnerConfig & { addLoop?: boolean; loopConfig?: ChildLoopConfig }): BlockBuilder {
-        // Optional loop behavior MUST be added FIRST
-        // This behavior must run before ChildRunnerBehavior so it can
-        // reset the child index before ChildRunner checks it
-        if (config.addLoop && config.loopConfig) {
-            this.addBehavior(new ChildLoopBehavior(config.loopConfig));
+    asContainer(
+        config: ChildSelectionConfig & {
+            addLoop?: boolean;
+            loopConfig?: { condition?: ChildSelectionLoopCondition };
         }
-
-        // Children Aspect behaviors (added AFTER ChildLoopBehavior)
-        this.addBehavior(new ChildRunnerBehavior({
-            childGroups: config.childGroups
+    ): BlockBuilder {
+        this.addBehavior(new ChildSelectionBehavior({
+            childGroups: config.childGroups,
+            loop: config.addLoop
+                ? { condition: config.loopConfig?.condition ?? 'timer-active' }
+                : false,
+            injectRest: config.injectRest,
+            skipOnMount: config.skipOnMount,
         }));
 
         return this;

@@ -3,7 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
 import {
     TimerBehavior,
-    ChildRunnerBehavior,
+    ChildSelectionBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior
@@ -29,7 +29,7 @@ describe('RootBlock Behavior Composition', () => {
 
         // Expectations: All core behaviors present
         expect(rootBlock.getBehavior(TimerBehavior)).toBeDefined();
-        expect(rootBlock.getBehavior(ChildRunnerBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(ChildSelectionBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(DisplayInitBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ButtonBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(HistoryRecordBehavior)).toBeDefined();
@@ -46,15 +46,15 @@ describe('RootBlock Behavior Composition', () => {
         expect(rootBlock.blockType).toBe('Root');
     });
 
-    it('should configure ChildRunnerBehavior with correct childGroups', () => {
+    it('should configure ChildSelectionBehavior with correct childGroups', () => {
         // Scenario: Multiple child groups
         const childGroups = [[1, 2], [3], [4, 5]];
         const rootBlock = workoutRootStrategy.build(harness.runtime, {
             childGroups
         });
 
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior);
-        expect(childRunner).toBeDefined();
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior);
+        expect(childSelection).toBeDefined();
 
         // Verify sourceIds include all statements
         expect(rootBlock.sourceIds).toEqual([1, 2, 3, 4, 5]);
@@ -84,7 +84,7 @@ describe('RootBlock Behavior Composition', () => {
 
         expect(rootBlock).toBeDefined();
         expect(rootBlock.sourceIds).toEqual([]);
-        expect(rootBlock.getBehavior(ChildRunnerBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(ChildSelectionBehavior)).toBeDefined();
     });
 
     it('should set correct block type and label', () => {

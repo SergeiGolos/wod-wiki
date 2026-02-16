@@ -1,9 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { ChildRunnerBehavior } from './ChildRunnerBehavior';
-import { RoundState, TimerState } from '../memory/MemoryTypes';
+import { RoundState, TimerState, ChildrenStatusState } from '../memory/MemoryTypes';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
@@ -30,9 +28,8 @@ import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment
  * ## Deduplication
  * 
  * For container blocks with children, milestones only emit when
- * `ChildRunnerBehavior.allChildrenCompleted` is true — i.e., at round
- * boundaries, not on intermediate child completions. This mirrors the
- * same guard used by `RoundAdvanceBehavior`.
+ * `children:status.allCompleted` is true — i.e., at round boundaries,
+ * not on intermediate child completions.
  */
 export class RoundOutputBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
@@ -54,23 +51,15 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
         // Skip milestones for 1-round blocks
         if (!round || (round.total !== undefined && round.total <= 1)) return [];
 
-        const block = ctx.block as IRuntimeBlock;
-        if (typeof block.getBehavior === 'function') {
-            const childRunner = block.getBehavior(ChildRunnerBehavior);
+        const childStatus = ctx.getMemory('children:status') as ChildrenStatusState | undefined;
+        if (childStatus && !childStatus.allCompleted) {
+            return [];
+        }
 
-            if (childRunner) {
-                // For container blocks, only emit milestones as "headers" for the next round
-                // after all current children have finished.
-                if (!childRunner.allChildrenCompleted) {
-                    return [];
-                }
-            }
-
-            // Check for "ghost" milestones: if RoundAdvance has pushed round.current
-            // beyond totalRounds, don't emit a milestone for a round that won't happen.
-            if (round.total !== undefined && round.current > round.total) {
-                return [];
-            }
+        // Check for "ghost" milestones: if ReEntry has pushed round.current
+        // beyond totalRounds, don't emit a milestone for a round that won't happen.
+        if (round.total !== undefined && round.current > round.total) {
+            return [];
         }
 
         const label = this.formatRoundLabel(round);

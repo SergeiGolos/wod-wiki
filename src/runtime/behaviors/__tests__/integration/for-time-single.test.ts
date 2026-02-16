@@ -31,7 +31,7 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
-import { ChildRunnerBehavior } from '../../ChildRunnerBehavior';
+import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
 import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 
@@ -212,7 +212,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         new HarnessMockBlock('session-root', [
             new SegmentOutputBehavior({ label: 'Grace' }),
             new HistoryRecordBehavior(),
-            new ChildRunnerBehavior({ childGroups: [[0], [1]] })
+            new ChildSelectionBehavior({ childGroups: [[0], [1]] })
         ], { blockType: 'SessionRoot', label: 'Grace' });
 
     beforeEach(() => {

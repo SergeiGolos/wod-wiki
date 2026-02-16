@@ -3,8 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
 import {
-    TimerInitBehavior,
-    ChildRunnerBehavior,
+    ChildSelectionBehavior,
     HistoryRecordBehavior
 } from '@/runtime/behaviors';
 import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
@@ -97,7 +96,7 @@ describe('RootBlock Lifecycle', () => {
 
         harness.clearRecordings();
 
-        // Pop child-1 → NextAction → root.next() → ChildRunner pushes child-2
+        // Pop child-1 → NextAction → root.next() → ChildSelection pushes child-2
         harness.executeAction(new PopBlockAction());
 
         // Expectations: ChildRunner pushes next child
@@ -237,11 +236,12 @@ describe('RootBlock Lifecycle', () => {
         // First next returns nothing (only 1 child, already pushed on mount)
         const nextActions = rootBlock.next(harness.runtime);
 
-        // Expectations: No actions (all children already pushed)
-        expect(nextActions.length).toBe(0);
+        // Expectations: ChildSelection clears next preview when no children remain
+        expect(nextActions.length).toBe(1);
+        expect(nextActions[0].type).toBe('update-next-preview');
         
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
     });
 
     it('should allow multiple unmount calls safely', () => {

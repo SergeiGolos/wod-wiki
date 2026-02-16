@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
-import { ChildRunnerBehavior } from '@/runtime/behaviors';
+import { ChildSelectionBehavior } from '@/runtime/behaviors';
 import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
 import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 
@@ -59,8 +59,8 @@ describe('RootBlock Integration: Complete Workout', () => {
         harness.executeAction(new PopBlockAction());
 
         // Expectations
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
         expect(rootBlock.getMemory('timer')).toBeDefined();
         expect(harness.mockJit.compileCalls).toHaveLength(2);
         
@@ -174,8 +174,8 @@ describe('RootBlock Integration: Complete Workout', () => {
         // Expectations: All 5 blocks compiled
         expect(harness.mockJit.compileCalls).toHaveLength(5);
         
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
     });
 
     it('should handle empty workout gracefully', () => {
@@ -309,8 +309,8 @@ describe('RootBlock Integration: Complete Workout', () => {
         harness.executeAction(new PopBlockAction());
 
         // Pre-unmount state
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
 
         // Unmount
         rootBlock.unmount(harness.runtime);
@@ -363,8 +363,8 @@ describe('RootBlock Integration: Complete Workout', () => {
         // Expectations: All sections handled
         expect(harness.mockJit.compileCalls).toHaveLength(3);
         
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
         
         harness.dispose();
     });

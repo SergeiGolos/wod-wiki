@@ -7,8 +7,7 @@ import {
     ReEntryBehavior,
     RoundsEndBehavior,
     RoundDisplayBehavior,
-    ChildRunnerBehavior,
-    ChildLoopBehavior,
+    ChildSelectionBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
@@ -40,7 +39,7 @@ describe('SessionRootBlock', () => {
             // Core behaviors present
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildRunnerBehavior)).toBeDefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
             expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
@@ -57,7 +56,7 @@ describe('SessionRootBlock', () => {
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
-            expect(block.getBehavior(ChildLoopBehavior)).toBeUndefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should include round behaviors for multi-round session', () => {
@@ -71,7 +70,7 @@ describe('SessionRootBlock', () => {
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildLoopBehavior)).toBeDefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should set correct block type and label', () => {
@@ -106,7 +105,7 @@ describe('SessionRootBlock', () => {
             });
 
             expect(block.sourceIds).toEqual([]);
-            expect(block.getBehavior(ChildRunnerBehavior)).toBeDefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should default totalRounds to 1', () => {
@@ -198,7 +197,7 @@ describe('SessionRootBlock', () => {
                 totalRounds: 1
             }, harness.runtime);
 
-            // Expected: Segment(1) + Timer(1) + ReEntry(1) + WaitingToStartInjector(1) + Children(1) + RoundsEnd(1) + Display(1) + Controls(1) + History(1) = 9
+            // Expected: Segment + Timer + ReEntry + WaitingToStartInjector + ChildSelection + RoundsEnd + Display + Controls + History
             expect(behaviors.length).toBe(9);
         });
 
@@ -208,8 +207,8 @@ describe('SessionRootBlock', () => {
                 totalRounds: 3
             }, harness.runtime);
 
-            // Expected: Segment(1) + Timer(1) + ReEntry(1) + RoundsEnd(1) + RoundDisplay(1) + ChildLoop(1) + WaitingToStartInjector(1) + Children(1) + Display(1) + Controls(1) + History(1) = 11
-            expect(behaviors.length).toBe(11);
+            // Expected: Segment + Timer + ReEntry + RoundDisplay + WaitingToStartInjector + ChildSelection + RoundsEnd + Display + Controls + History
+            expect(behaviors.length).toBe(10);
         });
     });
 });

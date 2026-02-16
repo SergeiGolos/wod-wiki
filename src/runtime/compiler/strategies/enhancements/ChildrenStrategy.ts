@@ -6,8 +6,7 @@ import { FragmentType } from "@/core/models/CodeFragment";
 
 // Specific behaviors not covered by aspect composers
 import {
-    ChildRunnerBehavior,
-    ChildLoopBehavior,
+    ChildSelectionBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
     TimerBehavior,
@@ -35,7 +34,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], _runtime: IScriptRuntime): void {
         // Skip if children already handled
-        if (builder.hasBehavior(ChildRunnerBehavior)) {
+        if (builder.hasBehavior(ChildSelectionBehavior)) {
             return;
         }
 
@@ -55,9 +54,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         const hasCountdownCompletion = builder.hasBehavior(TimerEndingBehavior);
 
         // Remove LeafExitBehavior if present — children manage advancement,
-        // not simple leaf exit. GenericTimerStrategy adds LeafExitBehavior
-        // for countup timers, but when children exist, ChildRunnerBehavior
-        // and RoundsEndBehavior handle completion instead.
+        // not simple leaf exit.
         if (builder.hasBehavior(LeafExitBehavior)) {
             builder.removeBehavior(LeafExitBehavior);
         }
@@ -66,14 +63,16 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // ASPECT COMPOSERS - High-level composition
         // =====================================================================
 
-        // Container Aspect - Child execution with optional looping
-        // For timer-based OR multi-round blocks, add loop behavior
+        // Container Aspect - Child execution with optional looping/rest
         const shouldAddLoop = (hasCountdownCompletion || hasRoundsFromStrategy);
+        const loopCondition = hasRoundsFromStrategy ? 'rounds-remaining' : 'timer-active';
+        const shouldInjectRest = hasCountdownCompletion;
 
         builder.asContainer({
             childGroups,
             addLoop: shouldAddLoop,
-            loopConfig: shouldAddLoop ? { childGroups } : undefined
+            loopConfig: shouldAddLoop ? { condition: loopCondition } : undefined,
+            injectRest: shouldInjectRest,
         });
 
         // =====================================================================

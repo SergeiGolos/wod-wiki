@@ -12,12 +12,11 @@ import {
     ReEntryBehavior,
     RoundsEndBehavior,
     RoundDisplayBehavior,
-    ChildRunnerBehavior,
+    ChildSelectionBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
-    SegmentOutputBehavior,
-    ChildLoopBehavior
+    SegmentOutputBehavior
 } from '../behaviors';
 import { WaitingToStartInjectorBehavior } from '../behaviors/WaitingToStartInjectorBehavior';
 
@@ -52,9 +51,9 @@ export interface SessionRootConfig {
  * - ReEntryBehavior (if multi-round)
  * - RoundsEndBehavior
  * - RoundDisplayBehavior (if multi-round)
- * - ChildLoopBehavior (if multi-round)
+ * - ChildSelectionBehavior (looping when multi-round)
  * - WaitingToStartInjectorBehavior (pushes WaitingToStart gate on mount)
- * - ChildRunnerBehavior (pushes children in sequence, skipOnMount)
+ * - ChildSelectionBehavior (pushes children in sequence, skipOnMount)
  * - RoundsEndBehavior (single-round sessions pop when children are done)
  * - DisplayInitBehavior
  * - ButtonBehavior
@@ -116,26 +115,24 @@ export class SessionRootBlock extends RuntimeBlock {
 
         if (totalRounds > 1) {
             behaviors.push(new RoundDisplayBehavior());
-            behaviors.push(new ChildLoopBehavior({
-                childGroups: config.childGroups
-            }));
         }
 
         // =====================================================================
         // Gate Aspect - WaitingToStart idle gate
         // Pushes a WaitingToStartBlock on mount. User must click "Start"
-        // before ChildRunnerBehavior begins pushing workout children.
+        // before ChildSelectionBehavior begins pushing workout children.
         // =====================================================================
         behaviors.push(new WaitingToStartInjectorBehavior(runtime));
 
         // =====================================================================
         // Children Aspect - Execute child blocks
         // skipOnMount: true because WaitingToStartInjectorBehavior handles
-        // the first mount push. ChildRunner begins on the first onNext()
+        // the first mount push. Child selection begins on the first onNext()
         // (triggered when WaitingToStart pops).
         // =====================================================================
-        behaviors.push(new ChildRunnerBehavior({
+        behaviors.push(new ChildSelectionBehavior({
             childGroups: config.childGroups,
+            loop: totalRounds > 1 ? { condition: 'rounds-remaining' } : false,
             skipOnMount: true
         }));
 

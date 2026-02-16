@@ -7,39 +7,29 @@ import { ListOfNotes } from '@/components/workbench/ListOfNotes';
 import { NotePreview } from '@/components/workbench/NotePreview';
 import { AnalyzePanel } from '@/components/workbench/AnalyzePanel';
 import type { IContentProvider } from '@/types/content-provider';
-import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
-import { CommitGraph } from '@/components/ui/CommitGraph';
-import { Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { CommandProvider, useCommandPalette } from '@/components/command-palette/CommandContext';
-import { CommandPalette } from '@/components/command-palette/CommandPalette';
+import { useCommandPalette } from '@/components/command-palette/CommandContext';
 import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';
 import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import { HistoryDetailsPanel } from '@/components/workbench/HistoryDetailsPanel';
-import { PanelRightOpen, HelpCircle } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
-
 import type { PanelSpan } from '@/components/layout/panel-system/types';
-// import { NotebookMenu } from '@/components/notebook/NotebookMenu';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { CreateNotebookDialog } from '@/components/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
 import { planPath, trackPath } from '@/lib/routes';
-import { useWodCollections } from '@/hooks/useWodCollections';
 import { NewPostButton } from '@/components/history/NewPostButton';
 import { createNoteFromMarkdown } from '@/services/ExportImportService';
+import { HistoryLayout } from '@/components/history/HistoryLayout';
 
-
-
-interface HistoryContentProps {
+interface NotebooksContentProps {
     provider: IContentProvider;
 }
 
-const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
+const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Parse initial calendar date from URL 'month' param
@@ -49,24 +39,17 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             const [y, m] = monthParam.split('-').map(Number);
             return new Date(y, m - 1, 1);
         }
-        return undefined; // useHistorySelection defaults to new Date()
-    }, []); // Empty dependency array to only run once on mount
+        return undefined;
+    }, []);
 
     const historySelection = useHistorySelection(null, initialCalendarDate);
     const navigate = useNavigate();
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
     const [isMobile, setIsMobile] = useState(false);
-    const { setIsOpen, setStrategy } = useCommandPalette();
-    const { activeNotebookId, activeNotebook, setActiveNotebook, notebooks, createNotebook } = useNotebooks();
-    const { collections, activeCollectionId, activeCollection, activeCollectionItems, setActiveCollection } = useWodCollections();
+    const { setStrategy } = useCommandPalette();
+    const { activeNotebookId, setActiveNotebook, notebooks, createNotebook } = useNotebooks();
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const { startTutorial } = useTutorialStore();
-
-    // Clear history selection when collection changes
-    useEffect(() => {
-        historySelection.clearSelection();
-    }, [activeCollectionId]);
 
     // Filter State
     type FilterMode = 'month' | 'list' | 'range';
@@ -111,11 +94,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         if (notebookParam !== activeNotebookId) {
             setActiveNotebook(notebookParam || null);
         }
-        const collectionParam = searchParams.get('collection');
-        if (collectionParam !== activeCollectionId) {
-            setActiveCollection(collectionParam || null);
-        }
-    }, [searchParams, setActiveNotebook, setActiveCollection]);
+    }, [searchParams, setActiveNotebook]);
 
     // Sync URL with Filter State
     useEffect(() => {
@@ -126,13 +105,6 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             params.set('notebook', toShortId(activeNotebookId));
         } else {
             params.delete('notebook');
-        }
-
-        // Collection
-        if (activeCollectionId) {
-            params.set('collection', activeCollectionId);
-        } else {
-            params.delete('collection');
         }
 
         // Dates
@@ -148,20 +120,13 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             // 'month' mode (default)
             params.delete('dates');
             params.delete('range');
-
-            // Sync calendar month to URL
-            // Format: YYYY-MM
             const d = historySelection.calendarDate;
             const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-
-            // Optional: Don't set if it's current month? 
-            // User said: "going back and forth between month... doesn't update the filter in the URL".
-            // Implies they want it updated.
             params.set('month', monthStr);
         }
 
         setSearchParams(params, { replace: true });
-    }, [activeNotebookId, activeCollectionId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
+    }, [activeNotebookId, filterMode, customDates, dateRange, historySelection.calendarDate, setSearchParams]);
 
     // Calendar Date Selection Handler
     const handleDateSelect = useCallback((date: Date, modifiers: { shiftKey: boolean; ctrlKey: boolean }) => {
@@ -169,7 +134,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         setLastClickedDate(date);
 
         if (modifiers.shiftKey && lastClickedDate) {
-            // Range selection (Shift+Click)
+            // Range selection
             const d1 = lastClickedDate < date ? lastClickedDate : date;
             const d2 = lastClickedDate < date ? date : lastClickedDate;
 
@@ -178,12 +143,11 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 end: d2.toISOString().split('T')[0]
             });
             setFilterMode('range');
-            setActiveCollection(null);
             return;
         }
 
         if (modifiers.ctrlKey) {
-            // Toggle selection (Ctrl+Click) -> 'list' mode
+            // Toggle selection
             setCustomDates(prev => {
                 const next = new Set(filterMode === 'list' ? prev : []);
                 if (next.has(dateKey)) {
@@ -194,55 +158,29 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                 return next;
             });
             setFilterMode('list');
-            setActiveCollection(null);
             return;
         }
 
-        // Simple Click -> Select Single Date ('list' mode of 1)
+        // Simple Click
         setCustomDates(new Set([dateKey]));
         setFilterMode('list');
-        setActiveCollection(null);
-    }, [lastClickedDate, filterMode, setActiveCollection]);
+    }, [lastClickedDate, filterMode]);
 
-    // Handle Month Change -> Reset to Month Mode
+    // Handle Month Change
     const handleCalendarDateChange = useCallback((date: Date) => {
         historySelection.setCalendarDate(date);
         setFilterMode('month');
-        // Clear specific selections when changing month to view that whole month
         setCustomDates(new Set());
         setDateRange(null);
-        setActiveCollection(null);
-    }, [historySelection, setActiveCollection]);
+    }, [historySelection]);
 
     // Load entries
     useEffect(() => {
         provider.getEntries().then(setHistoryEntries);
     }, []);
 
-    // Convert collection items to HistoryEntry[] for unified list rendering
-    const collectionEntries = useMemo((): HistoryEntry[] => {
-        if (!activeCollectionId) return [];
-        return activeCollectionItems.map(item => ({
-            id: `collection:${activeCollectionId}:${item.id}`,
-            title: item.name,
-            createdAt: 0,
-            updatedAt: 0,
-            targetDate: 0,
-            rawContent: item.content,
-            tags: [`collection:${activeCollectionId}`],
-            type: 'template',
-            notes: '',
-            schemaVersion: 1,
-        }));
-    }, [activeCollectionId, activeCollectionItems]);
-
     // Filter Logic
     const filteredEntries = useMemo(() => {
-        // When a collection is active, show collection entries (no date/notebook filtering)
-        if (activeCollectionId) {
-            return collectionEntries;
-        }
-
         let entries = historyEntries;
 
         // 1. Notebook Filter
@@ -272,14 +210,12 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         }
 
         return entries;
-    }, [historyEntries, activeNotebookId, activeCollectionId, collectionEntries, filterMode, dateRange, customDates, historySelection.calendarDate]);
+    }, [historyEntries, activeNotebookId, filterMode, dateRange, customDates, historySelection.calendarDate]);
 
-    // Compute Selected Dates for Calendar Visuals
+    // Visuals
     const visualSelectedDates = useMemo(() => {
-        if (filterMode === 'month') return undefined; // No highlight logic "if whole month... don't show selection"
-
+        if (filterMode === 'month') return undefined;
         if (filterMode === 'list') return customDates;
-
         if (filterMode === 'range' && dateRange) {
             const set = new Set<string>();
             const current = new Date(dateRange.start);
@@ -304,6 +240,8 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         await createNewEntry(targetDate);
         const entries = await provider.getEntries();
         setHistoryEntries(entries);
+        // If created in month view, ensure we are in month view or switch to it if handy?
+        // Existing behavior seemed fine.
     }, [createNewEntry, provider]);
 
     const handleImportMarkdown = useCallback(async (markdown: string) => {
@@ -312,8 +250,6 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
             const newEntry = await provider.saveEntry(noteData);
             const entries = await provider.getEntries();
             setHistoryEntries(entries);
-
-            // Navigate to the new entry
             navigate(planPath(toShortId(newEntry.id)));
         } catch (error) {
             console.error('Failed to import markdown:', error);
@@ -323,18 +259,9 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
 
 
     const selectedEntries = useMemo(() => {
-        // Search both real history entries and synthetic collection entries
-        const allEntries = activeCollectionId ? collectionEntries : historyEntries;
-        return allEntries.filter(e => historySelection.selectedIds.has(e.id));
-    }, [historyEntries, collectionEntries, activeCollectionId, historySelection.selectedIds]);
+        return historyEntries.filter(e => historySelection.selectedIds.has(e.id));
+    }, [historyEntries, historySelection.selectedIds]);
 
-    const notebookLabel = activeCollection
-        ? activeCollection.name
-        : activeNotebook
-            ? activeNotebook.name
-            : 'All Workouts';
-
-    // Handle notebook tag toggling on entries
     const handleNotebookToggle = useCallback(async (entryId: string, notebookId: string, isAdding: boolean) => {
         const entry = historyEntries.find(e => e.id === entryId);
         if (!entry) return;
@@ -350,29 +277,12 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     const handleClone = useCallback(async (entryId: string, targetDate?: number) => {
         if (!provider.capabilities.canWrite) return;
         try {
-            // Handle virtual collection entries
-            if (entryId.startsWith('collection:')) {
-                const entry = collectionEntries.find(e => e.id === entryId);
-                if (entry) {
-                    // Create a new entry from the collection item
-                    const newEntry = await provider.saveEntry({
-                        title: entry.title,
-                        rawContent: entry.rawContent,
-                        targetDate: targetDate || Date.now(),
-                        tags: [], // Start fresh without tags
-                        notes: '',
-                    });
-                    navigate(planPath(toShortId(newEntry.id)));
-                    return;
-                }
-            }
-
             const cloned = await provider.cloneEntry(entryId, targetDate);
             navigate(planPath(toShortId(cloned.id)));
         } catch (err) {
             console.error('Failed to clone entry:', err);
         }
-    }, [provider, navigate, collectionEntries]);
+    }, [provider, navigate]);
 
     const handleDelete = useCallback(async (entryId: string) => {
         if (!provider.capabilities.canDelete) return;
@@ -386,7 +296,7 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
         }
     }, [provider, historySelection]);
 
-    // Combined Main Panel (Filter + List)
+    // Panels
     const mainPanel = (
         <div className="flex h-full divide-x divide-border">
             {/* Filter Sidebar */}
@@ -407,7 +317,6 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                         onCreateNotebook={() => setShowCreateNotebook(true)}
                         onResetFilters={() => {
                             setActiveNotebook(null);
-                            setActiveCollection(null);
                             setFilterMode('month');
                             setCustomDates(new Set());
                             setDateRange(null);
@@ -427,8 +336,8 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     onToggleEntry={(id, modifiers) => historySelection.handleSelection(id, modifiers || { ctrlKey: false, shiftKey: false }, filteredEntries.map(e => e.id))}
                     activeEntryId={historySelection.activeEntryId}
                     enriched={false}
-                    onNotebookToggle={activeCollectionId ? undefined : handleNotebookToggle}
-                    onEdit={activeCollectionId ? undefined : (id) => navigate(planPath(toShortId(id)))}
+                    onNotebookToggle={handleNotebookToggle}
+                    onEdit={(id) => navigate(planPath(toShortId(id)))}
                     onClone={handleClone}
                     provider={provider}
                     className="h-full overflow-y-auto"
@@ -438,65 +347,41 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     );
 
     const previewPanel = useMemo(() => {
-        // Case 1: No explicit selection -> Analyze ALL visible (filtered) entries (default view)
-        // (skip analytics for collection items since they have no real dates/results)
         if (selectedEntries.length === 0) {
             if (filteredEntries.length === 0) return null;
-            if (activeCollectionId) return null;
             return <AnalyzePanel selectedEntries={filteredEntries} />;
         }
 
-        // Case 2: Multi-selection -> Analyze SELECTED entries
-        if (selectedEntries.length >= 2 && !activeCollectionId) {
+        if (selectedEntries.length >= 2) {
             return <AnalyzePanel selectedEntries={selectedEntries} />;
         }
 
-        // Case 3: Single selection -> Preview
         const entryToShow = selectedEntries[0];
         if (!entryToShow) return null;
-
-        const isCollectionEntry = entryToShow.id.startsWith('collection:');
 
         return (
             <NotePreview
                 entry={entryToShow}
                 onStartWorkout={async (blockId) => {
-                    if (isCollectionEntry) return;
-
-                    if (entryToShow.type === 'template') {
-                        // Template: Clone -> Copy block if needed? -> Track
-                        // For now, clone whole entry -> navigate to Track
-                        if (provider.capabilities.canWrite) {
-                            const cloned = await provider.cloneEntry(entryToShow.id);
-                            navigate(trackPath(toShortId(cloned.id), blockId));
-                        }
-                    } else {
-                        // Regular note: Navigate to Track
-                        navigate(trackPath(toShortId(entryToShow.id), blockId));
-                    }
+                    navigate(trackPath(toShortId(entryToShow.id), blockId));
                 }}
                 onAddToPlan={async () => {
-                    if (isCollectionEntry || !provider.capabilities.canWrite) return;
-                    // Template "+": Clone -> Plan
+                    if (!provider.capabilities.canWrite) return;
                     const cloned = await provider.cloneEntry(entryToShow.id);
                     navigate(planPath(toShortId(cloned.id)));
                 }}
-                onClone={entryToShow.type === 'template' ? (targetDate?: number) => handleClone(entryToShow.id, targetDate) : undefined}
-                onEdit={entryToShow.type !== 'template' && !isCollectionEntry ? () => navigate(planPath(toShortId(entryToShow.id))) : undefined}
-                onDelete={provider.capabilities.canDelete && !entryToShow.results && entryToShow.type !== 'template' ? () => handleDelete(entryToShow.id) : undefined}
+                onClone={(targetDate?: number) => handleClone(entryToShow.id, targetDate)}
+                onEdit={() => navigate(planPath(toShortId(entryToShow.id)))}
+                onDelete={provider.capabilities.canDelete && !entryToShow.results ? () => handleDelete(entryToShow.id) : undefined}
                 provider={provider}
             />
         );
-    }, [selectedEntries, filteredEntries, navigate, activeCollectionId, handleDelete]);
+    }, [selectedEntries, filteredEntries, navigate, handleDelete]);
 
-    // Used updated viewDescriptors which expects (mainPanel, previewPanel)
-    const historyView = createHistoryView(
-        mainPanel,
-        previewPanel
-    );
+    const historyView = createHistoryView(mainPanel, previewPanel);
 
     const layoutState = {
-        viewId: 'history',
+        viewId: 'notebooks',
         panelSpans: historyView.panels.reduce((acc, p) => {
             acc[p.id] = p.defaultSpan as PanelSpan;
             return acc;
@@ -505,99 +390,34 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
     };
 
     return (
-        <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
-            {/* Header */}
-            <div id="tutorial-header" className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
-                <div className="font-bold flex items-center gap-4">
-                    <div
-                        className={cn(
-                            'h-10 flex items-center cursor-pointer hover:opacity-80 transition-opacity',
-                            isMobile ? 'w-[150px]' : 'w-[300px]'
-                        )}
-                        onClick={() => navigate('/')}
-                    >
-                        <CommitGraph
-                            text={isMobile ? 'WOD.WIKI' : 'WOD.WIKI++'}
-                            rows={16}
-                            cols={isMobile ? 60 : 90}
-                            gap={1}
-                            padding={0}
-                            fontScale={0.8}
-                            fontWeight={200}
-                            letterSpacing={1.6}
-                        />
-                    </div>
-                    {!isMobile && (
-                        <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground uppercase">
-                            {notebookLabel}
-                        </span>
-                    )}
+        <HistoryLayout
+            isMobile={isMobile}
+            onOpenDetails={() => setIsDetailsOpen(!isDetailsOpen)}
+            isDetailsOpen={isDetailsOpen}
+            headerExtras={
+                <div id="tutorial-new-workout" className="hidden md:flex">
+                    <NewPostButton
+                        onCreate={createEntryInNotebook}
+                        onImportMarkdown={handleImportMarkdown}
+                    />
                 </div>
+            }
+        >
+            <PanelGrid
+                panels={historyView.panels}
+                layoutState={layoutState}
+                className="h-full"
+            />
+            <HistoryDetailsPanel
+                isOpen={isDetailsOpen}
+                onClose={() => setIsDetailsOpen(false)}
+                // Collections not relevant here
+                collections={[]}
+                activeCollectionId={null}
+                onCollectionSelect={() => { }}
+                onNotebookClear={() => setActiveNotebook(null)}
+            />
 
-                <div className="flex gap-2 items-center">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsOpen(true)}
-                        className="text-muted-foreground hover:text-foreground"
-                    >
-                        <Search className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => startTutorial('history')}
-                        className="text-muted-foreground hover:text-foreground"
-                        title="Show Help"
-                    >
-                        <HelpCircle className="h-5 w-5" />
-                    </Button>
-
-                    <div className="h-6 w-px bg-border mx-2" />
-
-                    <div id="tutorial-new-workout" className="hidden md:flex">
-                        <NewPostButton
-                            onCreate={createEntryInNotebook}
-                            onImportMarkdown={handleImportMarkdown}
-                        />
-                    </div>
-
-                    <button
-                        id="tutorial-details"
-                        onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                        className={cn(
-                            "p-2 rounded-md transition-colors",
-                            isDetailsOpen
-                                ? "bg-muted text-foreground"
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        )}
-                        title="Toggle Settings"
-                    >
-                        <PanelRightOpen className="h-5 w-5" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 min-h-0 overflow-hidden relative">
-                <PanelGrid
-                    panels={historyView.panels}
-                    layoutState={layoutState}
-
-                    className="h-full"
-                />
-                <HistoryDetailsPanel
-                    isOpen={isDetailsOpen}
-                    onClose={() => setIsDetailsOpen(false)}
-                    collections={collections}
-                    activeCollectionId={activeCollectionId}
-                    onCollectionSelect={setActiveCollection}
-                    onNotebookClear={() => setActiveNotebook(null)}
-                />
-            </div>
-
-            <CommandPalette />
             <CreateNotebookDialog
                 open={showCreateNotebook}
                 onOpenChange={setShowCreateNotebook}
@@ -606,19 +426,12 @@ const HistoryContent: React.FC<HistoryContentProps> = ({ provider }) => {
                     setShowCreateNotebook(false);
                 }}
             />
-        </div>
+        </HistoryLayout>
     );
 };
 
-export const HistoryPage: React.FC<{ provider?: IContentProvider }> = ({ provider }) => {
-    // Default to LocalStorageContentProvider for now if not provided (backward compat during refactor)
-    // In next step, App.tsx will provide IndexedDBContentProvider
-    const activeProvider = useMemo(() => provider || new LocalStorageContentProvider(), [provider]);
+export const NotebooksPage: React.FC<{ provider: IContentProvider }> = ({ provider }) => {
     return (
-        <CommandProvider>
-            <HistoryContent provider={activeProvider} />
-        </CommandProvider>
+        <NotebooksContent provider={provider} />
     );
 };
-
-export default HistoryPage;

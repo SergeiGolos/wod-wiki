@@ -58,12 +58,8 @@ export type { DisplayInitConfig } from './DisplayInitBehavior';
 // ============================================================================
 // Children Aspect
 // ============================================================================
-export { ChildRunnerBehavior } from './ChildRunnerBehavior';
-export type { ChildRunnerConfig } from './ChildRunnerBehavior';
-export { ChildLoopBehavior } from './ChildLoopBehavior';
-export type { ChildLoopConfig } from './ChildLoopBehavior';
-export { RestBlockBehavior } from './RestBlockBehavior';
-export type { RestBlockBehaviorConfig } from './RestBlockBehavior';
+export { ChildSelectionBehavior } from './ChildSelectionBehavior';
+export type { ChildSelectionConfig, ChildSelectionLoopCondition } from './ChildSelectionBehavior';
 
 // ============================================================================
 // Output Aspect

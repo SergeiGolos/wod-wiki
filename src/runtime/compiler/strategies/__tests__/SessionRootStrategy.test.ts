@@ -7,8 +7,7 @@ import {
     ReEntryBehavior,
     RoundsEndBehavior,
     RoundDisplayBehavior,
-    ChildRunnerBehavior,
-    ChildLoopBehavior,
+    ChildSelectionBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
@@ -94,7 +93,7 @@ describe('SessionRootStrategy', () => {
 
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildRunnerBehavior)).toBeDefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
             expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
@@ -111,7 +110,7 @@ describe('SessionRootStrategy', () => {
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
-            expect(block.getBehavior(ChildLoopBehavior)).toBeUndefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should include round behaviors for multi-round session', () => {
@@ -125,7 +124,7 @@ describe('SessionRootStrategy', () => {
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildLoopBehavior)).toBeDefined();
+            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should flatten child groups for source IDs', () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
-import { ChildRunnerBehavior } from '@/runtime/behaviors';
+import { ChildSelectionBehavior } from '@/runtime/behaviors';
 import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
 import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
 
@@ -50,7 +50,7 @@ describe('RootBlock Child Execution', () => {
 
         // Create root block and push via PushBlockAction
         // ExecutionContext processes the full chain:
-        // PushBlockAction → mount → ChildRunnerBehavior → CompileChildBlockAction → PushBlockAction(child)
+        // PushBlockAction → mount → ChildSelectionBehavior → CompileChildBlockAction → PushBlockAction(child)
         const rootBlock = workoutRootStrategy.build(harness.runtime, {
             childGroups
         });
@@ -103,7 +103,7 @@ describe('RootBlock Child Execution', () => {
 
         // Simulate child-1 completing by popping it
         // PopBlockAction pops child-1 → returns [NextAction] for parent root
-        // NextAction calls root.next() → ChildRunnerBehavior pushes child-2
+        // NextAction calls root.next() → ChildSelectionBehavior pushes child-2
         harness.executeAction(new PopBlockAction());
 
         // Expectations: Second child compiled and pushed
@@ -165,8 +165,8 @@ describe('RootBlock Child Execution', () => {
         harness.executeAction(new PopBlockAction());
 
         // Expectations: All children executed
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
         
         harness.dispose();
     });
@@ -191,8 +191,8 @@ describe('RootBlock Child Execution', () => {
         // Pop child-1 → root.next() → no more children
         harness.executeAction(new PopBlockAction());
         
-        const childRunner = rootBlock.getBehavior(ChildRunnerBehavior)!;
-        expect(childRunner.allChildrenExecuted).toBe(true);
+        const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
+        expect(childSelection.allChildrenExecuted).toBe(true);
         
         harness.dispose();
     });

@@ -8,8 +8,7 @@ import {
     TimerEndingBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    ChildRunnerBehavior,
-    ChildLoopBehavior,
+    ChildSelectionBehavior,
     CompletionTimestampBehavior
 } from '../index';
 
@@ -172,10 +171,7 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have ChildRunner
-            expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
-            // Should NOT have ChildLoop by default
-            expect(behaviors.some((b: any) => b instanceof ChildLoopBehavior)).toBe(false);
+            expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
         });
 
         it('should add loop behavior when addLoop is true', () => {
@@ -189,15 +185,13 @@ describe('BlockBuilder Aspect Composers', () => {
                 .asContainer({
                     childGroups: [[1, 2]],
                     addLoop: true,
-                    loopConfig: {}  // Provide loopConfig when addLoop is true
+                    loopConfig: { condition: 'timer-active' }
                 });
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have both ChildRunner and ChildLoop
-            expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof ChildLoopBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
         });
     });
 
@@ -251,7 +245,7 @@ describe('BlockBuilder Aspect Composers', () => {
                 .setKey(key)
                 .asTimer({ direction: 'down', durationMs: 300000 })
                 .asRepeater({ totalRounds: undefined })
-                .asContainer({ childGroups: [[1, 2]], addLoop: true, loopConfig: {} });
+                .asContainer({ childGroups: [[1, 2]], addLoop: true, loopConfig: { condition: 'timer-active' } });
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
@@ -259,8 +253,7 @@ describe('BlockBuilder Aspect Composers', () => {
             // Should have all three aspects
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof ChildLoopBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
         });
 
         it('should allow manual behavior addition alongside aspect composers', () => {

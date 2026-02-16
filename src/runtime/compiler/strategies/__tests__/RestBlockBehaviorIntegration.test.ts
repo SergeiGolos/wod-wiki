@@ -18,21 +18,19 @@ import {
     TimerEndingBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    ChildRunnerBehavior,
-    ChildLoopBehavior,
-    RestBlockBehavior,
+    ChildSelectionBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
     SegmentOutputBehavior
 } from '../../../behaviors';
 
 /**
- * Tests for Phase 3 strategy updates:
- * - AMRAP should include RestBlockBehavior
- * - EMOM should include RestBlockBehavior
+ * Tests for child selection/rest integration:
+ * - AMRAP should include ChildSelectionBehavior with looping/rest injection
+ * - EMOM should include ChildSelectionBehavior with looping/rest injection
  * - Behavior chain order is correct
  */
-describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
+describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
     let runtime: IScriptRuntime;
     let compiler: JitCompiler;
 
@@ -61,7 +59,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
         compiler = new JitCompiler();
     });
 
-    describe('AMRAP with RestBlockBehavior', () => {
+    describe('AMRAP with ChildSelectionBehavior', () => {
         beforeEach(() => {
             compiler.registerStrategy(new AmrapLogicStrategy());     // Priority 90
             compiler.registerStrategy(new GenericTimerStrategy());    // Priority 50
@@ -71,7 +69,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
             compiler.registerStrategy(new HistoryStrategy());         // Priority 20
         });
 
-        it('should include RestBlockBehavior in compiled AMRAP block', () => {
+        it('should include ChildSelectionBehavior in compiled AMRAP block', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(600000, true), // 10 min countdown
@@ -84,10 +82,10 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             expect(block).toBeDefined();
             expect(block!.blockType).toBe('AMRAP');
-            expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
+            expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
-        it('should have RestBlockBehavior alongside timer behaviors', () => {
+        it('should have ChildSelectionBehavior alongside timer behaviors', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(1200000, true), // 20 min
@@ -100,10 +98,10 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             expect(block!.getBehavior(TimerBehavior)).toBeDefined();
             expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
-            expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
+            expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
-        it('should have RestBlockBehavior alongside child behaviors', () => {
+        it('should have child selection behavior for container execution', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(600000, true),
@@ -114,9 +112,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
-            expect(block!.getBehavior(ChildRunnerBehavior)).toBeDefined();
-            expect(block!.getBehavior(ChildLoopBehavior)).toBeDefined();
+            expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should have unbounded rounds (AMRAP pattern)', () => {
@@ -166,7 +162,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
         });
     });
 
-    describe('EMOM with RestBlockBehavior', () => {
+    describe('EMOM with ChildSelectionBehavior', () => {
         beforeEach(() => {
             compiler.registerStrategy(new IntervalLogicStrategy()); // Priority 90
             compiler.registerStrategy(new GenericTimerStrategy());   // Priority 50
@@ -176,7 +172,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
             compiler.registerStrategy(new HistoryStrategy());        // Priority 20
         });
 
-        it('should include RestBlockBehavior in compiled EMOM block', () => {
+        it('should include ChildSelectionBehavior in compiled EMOM block', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(60000), // 1 min interval
@@ -189,10 +185,10 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             expect(block).toBeDefined();
             expect(block!.blockType).toBe('EMOM');
-            expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
+            expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
-        it('should have RestBlockBehavior alongside timer behaviors', () => {
+        it('should have ChildSelectionBehavior alongside timer behaviors', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(60000),
@@ -205,7 +201,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             expect(block!.getBehavior(TimerBehavior)).toBeDefined();
             expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
-            expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
+            expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should have bounded rounds (EMOM pattern)', () => {
@@ -234,7 +230,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(ChildRunnerBehavior)).toBeDefined();
+            expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
         it('should include sound cues', () => {
