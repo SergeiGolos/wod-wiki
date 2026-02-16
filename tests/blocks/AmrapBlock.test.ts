@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior, RoundInitBehavior, RoundAdvanceBehavior, TimerCompletionBehavior } from '@/runtime/behaviors';
+import { TimerInitBehavior, TimerTickBehavior, ReEntryBehavior, TimerCompletionBehavior } from '@/runtime/behaviors';
 
 describe('AmrapBlock', () => {
   let harness: BehaviorTestHarness;
@@ -19,10 +19,9 @@ describe('AmrapBlock', () => {
     const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 10000 });
     const timerTick = new TimerTickBehavior();
     const timerCompletion = new TimerCompletionBehavior();
-    const roundInit = new RoundInitBehavior({ totalRounds: undefined }); // Unbounded
-    const roundAdvance = new RoundAdvanceBehavior();
+    const reEntry = new ReEntryBehavior({ totalRounds: undefined }); // Unbounded
 
-    const block = new MockBlock('amrap-test', [timerInit, timerTick, timerCompletion, roundInit, roundAdvance], { blockType: 'AMRAP' });
+    const block = new MockBlock('amrap-test', [timerInit, timerTick, timerCompletion, reEntry], { blockType: 'AMRAP' });
 
     harness.push(block);
     harness.mount();
@@ -38,10 +37,9 @@ describe('AmrapBlock', () => {
   it('should allow infinite rounds until timer completes', () => {
     const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 10000 });
     const timerTick = new TimerTickBehavior();
-    const roundInit = new RoundInitBehavior({ totalRounds: undefined }); // Unbounded
-    const roundAdvance = new RoundAdvanceBehavior();
+    const reEntry = new ReEntryBehavior({ totalRounds: undefined }); // Unbounded
 
-    const block = new MockBlock('amrap-test', [timerInit, timerTick, roundInit, roundAdvance], { blockType: 'AMRAP' });
+    const block = new MockBlock('amrap-test', [timerInit, timerTick, reEntry], { blockType: 'AMRAP' });
 
     harness.push(block);
     harness.mount();

@@ -6,12 +6,10 @@ import { BlockKey } from '../../../core/models/BlockKey';
 import {
     TimerBehavior,
     TimerCompletionBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     ChildRunnerBehavior,
     ChildLoopBehavior,
-    ReentryCounterBehavior,
     CompletionTimestampBehavior
 } from '../index';
 
@@ -111,9 +109,8 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have RoundInit, RoundAdvance, RoundCompletion
-            expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundAdvanceBehavior)).toBe(true);
+            // Should have ReEntry and RoundCompletion
+            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(true);
         });
 
@@ -135,9 +132,8 @@ describe('BlockBuilder Aspect Composers', () => {
 
             // Should NOT have RoundCompletion
             expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(false);
-            // Should still have RoundInit and RoundAdvance
-            expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundAdvanceBehavior)).toBe(true);
+            // Should still have ReEntry
+            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
         });
 
         it('should respect addCompletion flag explicitly', () => {
@@ -220,8 +216,7 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have ReentryCounter and CompletionTimestamp
-            expect(behaviors.some((b: any) => b instanceof ReentryCounterBehavior)).toBe(true);
+            // Should have CompletionTimestamp
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
         });
 
@@ -240,10 +235,9 @@ describe('BlockBuilder Aspect Composers', () => {
             const behaviors = (block as any).behaviors;
 
             // Should have universal behaviors PLUS aspect behaviors
-            expect(behaviors.some((b: any) => b instanceof ReentryCounterBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
         });
     });
 
@@ -265,7 +259,7 @@ describe('BlockBuilder Aspect Composers', () => {
 
             // Should have all three aspects
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildLoopBehavior)).toBe(true);
         });

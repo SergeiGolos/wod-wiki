@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { RoundInitBehavior, RoundAdvanceBehavior, RoundCompletionBehavior } from '@/runtime/behaviors';
+import { ReEntryBehavior, RoundCompletionBehavior } from '@/runtime/behaviors';
 
 describe('RoundsBlock', () => {
   let harness: BehaviorTestHarness;
@@ -17,13 +17,11 @@ describe('RoundsBlock', () => {
 
   it('should initialize round state on mount', () => {
     const totalRounds = 3;
-    const roundInit = new RoundInitBehavior({ totalRounds, startRound: 1 });
-    const roundAdvance = new RoundAdvanceBehavior();
+    const reEntry = new ReEntryBehavior({ totalRounds, startRound: 1 });
     const roundCompletion = new RoundCompletionBehavior();
 
     const block = new MockBlock('rounds-test', [
-      roundInit,
-      roundAdvance,
+      reEntry,
       roundCompletion
     ], { blockType: 'Rounds' });
 
@@ -36,13 +34,11 @@ describe('RoundsBlock', () => {
 
   it('should advance rounds and eventually complete', () => {
     const totalRounds = 3;
-    const roundInit = new RoundInitBehavior({ totalRounds, startRound: 1 });
-    const roundAdvance = new RoundAdvanceBehavior();
+    const reEntry = new ReEntryBehavior({ totalRounds, startRound: 1 });
     const roundCompletion = new RoundCompletionBehavior();
 
     const block = new MockBlock('rounds-test', [
-      roundInit,
-      roundAdvance,
+      reEntry,
       roundCompletion
     ], { blockType: 'Rounds' });
 

@@ -10,7 +10,6 @@
 // ============================================================================
 // Universal Invariants - Automatically added to ALL blocks
 // ============================================================================
-export { ReentryCounterBehavior } from './ReentryCounterBehavior';
 export { CompletionTimestampBehavior } from './CompletionTimestampBehavior';
 
 // ============================================================================
@@ -31,9 +30,8 @@ export { TimerPauseBehavior } from './TimerPauseBehavior';
 // ============================================================================
 // Iteration Aspect
 // ============================================================================
-export { RoundInitBehavior } from './RoundInitBehavior';
-export type { RoundInitConfig } from './RoundInitBehavior';
-export { RoundAdvanceBehavior } from './RoundAdvanceBehavior';
+export { ReEntryBehavior } from './ReEntryBehavior';
+export type { ReEntryConfig } from './ReEntryBehavior';
 export { RoundCompletionBehavior } from './RoundCompletionBehavior';
 export { RoundOutputBehavior } from './RoundOutputBehavior';
 export { RoundDisplayBehavior } from './RoundDisplayBehavior';

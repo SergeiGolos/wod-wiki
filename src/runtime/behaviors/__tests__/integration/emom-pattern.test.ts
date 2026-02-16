@@ -23,8 +23,7 @@ import {
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
-import { RoundInitBehavior } from '../../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
+import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
@@ -51,8 +50,7 @@ describe('EMOM Pattern Integration', () => {
         new TimerCompletionBehavior(), // Timer expiry should trigger round advance
 
         // Iteration aspect
-        new RoundInitBehavior({ totalRounds, startRound: 1 }),
-        new RoundAdvanceBehavior(),
+        new ReEntryBehavior({ totalRounds, startRound: 1 }),
         new RoundCompletionBehavior(), // Round completion ends the workout
 
         // Display aspect

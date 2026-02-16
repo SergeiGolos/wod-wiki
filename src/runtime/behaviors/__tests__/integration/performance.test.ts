@@ -21,8 +21,7 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
-import { RoundInitBehavior } from '../../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
+import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
@@ -68,8 +67,7 @@ describe('Performance Integration', () => {
                 new TimerTickBehavior(),
                 new TimerCompletionBehavior(),
                 new TimerPauseBehavior(),
-                new RoundInitBehavior({ totalRounds: undefined }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'countdown' }),
                 new RoundOutputBehavior(),
@@ -91,7 +89,7 @@ describe('Performance Integration', () => {
                     const testBlock = createMockBlock({ label: `Block ${i}` });
                     mountBehaviors([
                         new TimerInitBehavior({ direction: 'up' }),
-                        new RoundInitBehavior({ totalRounds: 5 }),
+                        new ReEntryBehavior({ totalRounds: 5 }),
                         new DisplayInitBehavior({ mode: 'clock' })
                     ], createMockRuntime(), testBlock);
                 }
@@ -140,8 +138,7 @@ describe('Performance Integration', () => {
     describe('Advance Performance', () => {
         it('should process 1000 advances in < 100ms', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: undefined }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new RoundOutputBehavior()
@@ -159,8 +156,7 @@ describe('Performance Integration', () => {
 
         it('should handle rapid advance without memory bloat', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: undefined }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -200,8 +196,7 @@ describe('Performance Integration', () => {
                 new TimerInitBehavior({ direction: 'up' }),
                 new TimerTickBehavior(),
                 new TimerPauseBehavior(),
-                new RoundInitBehavior({ totalRounds: undefined }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined }),
                 new RoundDisplayBehavior(),
                 new DisplayInitBehavior({ mode: 'clock' })
             ];
@@ -227,8 +222,7 @@ describe('Performance Integration', () => {
                 new TimerInitBehavior({ direction: 'up' }),
                 new TimerTickBehavior(),
                 new TimerPauseBehavior(),
-                new RoundInitBehavior({ totalRounds: undefined }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined }),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new HistoryRecordBehavior(),
                 new SegmentOutputBehavior(),
@@ -263,8 +257,7 @@ describe('Performance Integration', () => {
                     const behaviors = [
                         new TimerInitBehavior({ direction: 'up' }),
                         new TimerTickBehavior(),
-                        new RoundInitBehavior({ totalRounds: 5 }),
-                        new RoundAdvanceBehavior(),
+                        new ReEntryBehavior({ totalRounds: 5 }),
                         new RoundCompletionBehavior()
                     ];
                     const ctx = mountBehaviors(behaviors, testRuntime, testBlock);

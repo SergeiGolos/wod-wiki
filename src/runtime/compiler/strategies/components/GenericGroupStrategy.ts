@@ -7,11 +7,11 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 
 // New aspect-based behaviors
-// TimerInitBehavior and RoundInitBehavior are imported for type-checking purposes only
+// TimerBehavior and ReEntryBehavior are imported for type-checking purposes only
 // to detect if higher-priority strategies have already set the block identity
 import {
     TimerBehavior,
-    RoundInitBehavior,
+    ReEntryBehavior,
     DisplayInitBehavior,
     HistoryRecordBehavior
 } from "../../../behaviors";
@@ -33,7 +33,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // If we have Timer or Loop behaviors, the identity is already set (Timer/Rounds/AMRAP/EMOM).
         if (builder.hasBehavior(TimerBehavior) ||
-            builder.hasBehavior(RoundInitBehavior)) {
+            builder.hasBehavior(ReEntryBehavior)) {
             return;
         }
 

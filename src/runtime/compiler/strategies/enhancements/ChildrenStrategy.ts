@@ -8,8 +8,7 @@ import { FragmentType } from "@/core/models/CodeFragment";
 import {
     ChildRunnerBehavior,
     ChildLoopBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     TimerBehavior,
     TimerCompletionBehavior,
@@ -50,7 +49,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         const hasTimer = builder.hasBehavior(TimerBehavior);
         // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
-        const hasRoundsFromStrategy = builder.hasBehavior(RoundInitBehavior);
+        const hasRoundsFromStrategy = builder.hasBehavior(ReEntryBehavior);
         // Check if a countdown timer controls completion (AMRAP pattern)
         // TimerCompletionBehavior is only added for countdown timers with a duration
         const hasCountdownCompletion = builder.hasBehavior(TimerCompletionBehavior);
@@ -90,22 +89,20 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         }
 
         // Add default round handling if not already present
-        if (!builder.hasBehavior(RoundInitBehavior)) {
+        if (!builder.hasBehavior(ReEntryBehavior)) {
             if (hasCountdownCompletion) {
                 // Countdown timer (AMRAP pattern): unbounded rounds, timer controls completion
-                builder.addBehavior(new RoundInitBehavior({
+                builder.addBehavior(new ReEntryBehavior({
                     totalRounds: undefined, // Unbounded
                     startRound: 1
                 }));
-                builder.addBehavior(new RoundAdvanceBehavior());
                 // No RoundCompletionBehavior - timer controls completion
             } else {
                 // Single pass through children (no timer, or countup "for time" timer)
-                builder.addBehavior(new RoundInitBehavior({
+                builder.addBehavior(new ReEntryBehavior({
                     totalRounds: 1,
                     startRound: 1
                 }));
-                builder.addBehavior(new RoundAdvanceBehavior());
                 builder.addBehavior(new RoundCompletionBehavior());
             }
 

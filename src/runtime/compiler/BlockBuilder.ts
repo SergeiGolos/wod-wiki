@@ -7,12 +7,10 @@ import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "../../core/models/CodeFragment";
 import { MemoryLocation } from "../memory/MemoryLocation";
 import {
-    ReentryCounterBehavior,
     CompletionTimestampBehavior,
     TimerBehavior, TimerConfig,
     TimerCompletionBehavior, TimerCompletionConfig,
-    RoundInitBehavior, RoundInitConfig,
-    RoundAdvanceBehavior,
+    ReEntryBehavior, ReEntryConfig,
     RoundCompletionBehavior,
     ChildRunnerBehavior, ChildRunnerConfig,
     ChildLoopBehavior, ChildLoopConfig
@@ -153,13 +151,12 @@ export class BlockBuilder {
      * @param config Round configuration
      * @returns This builder for chaining
      */
-    asRepeater(config: RoundInitConfig & { addCompletion?: boolean }): BlockBuilder {
+    asRepeater(config: ReEntryConfig & { addCompletion?: boolean }): BlockBuilder {
         // Iteration Aspect behaviors
-        this.addBehavior(new RoundInitBehavior({
+        this.addBehavior(new ReEntryBehavior({
             totalRounds: config.totalRounds,
             startRound: config.startRound ?? 1
         }));
-        this.addBehavior(new RoundAdvanceBehavior());
 
         // Optional completion behavior - only add if totalRounds is bounded
         if (config.addCompletion !== false && config.totalRounds !== undefined) {
@@ -201,7 +198,6 @@ export class BlockBuilder {
 
         // Add Universal Invariants - automatically added to ALL blocks
         // These behaviors are added implicitly and don't require strategy opt-in
-        this.addBehaviorIfMissing(new ReentryCounterBehavior());
         this.addBehaviorIfMissing(new CompletionTimestampBehavior());
 
         const block = new RuntimeBlock(

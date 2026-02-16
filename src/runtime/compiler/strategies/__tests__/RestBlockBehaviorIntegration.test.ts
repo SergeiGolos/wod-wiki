@@ -16,8 +16,7 @@ import { CodeMetadata } from '@/core/models/CodeMetadata';
 import {
     TimerBehavior,
     TimerCompletionBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     ChildRunnerBehavior,
     ChildLoopBehavior,
@@ -131,8 +130,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(RoundInitBehavior)).toBeDefined();
-            expect(block!.getBehavior(RoundAdvanceBehavior)).toBeDefined();
+            expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
             // AMRAP should NOT have RoundCompletionBehavior (unbounded)
             // Note: ChildrenStrategy may add it for unbounded rounds or not
             // depending on hasCountdownCompletion
@@ -221,8 +219,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(RoundInitBehavior)).toBeDefined();
-            expect(block!.getBehavior(RoundAdvanceBehavior)).toBeDefined();
+            expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block!.getBehavior(RoundCompletionBehavior)).toBeDefined();
         });
 

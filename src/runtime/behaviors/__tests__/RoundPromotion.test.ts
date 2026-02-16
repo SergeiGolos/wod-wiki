@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { RoundInitBehavior } from '../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../RoundAdvanceBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
 import { MemoryLocation, IMemoryLocation } from '../../memory/MemoryLocation';
-import { ChildRunnerBehavior } from '../ChildRunnerBehavior';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import { PromoteFragmentBehavior } from '../PromoteFragmentBehavior';
 
@@ -45,13 +42,6 @@ function createMockContext(overrides: any = {}): IBehaviorContext & { memoryStor
         getAllMemory: vi.fn(() => Array.from(memoryStore.values()).flat()),
         getBehavior: vi.fn(), // Placeholder
     };
-
-    if (overrides.childRunner) {
-        mockBlock.getBehavior.mockImplementation((type) => {
-            if (type === ChildRunnerBehavior) return overrides.childRunner;
-            return undefined;
-        });
-    }
 
     return {
         block: mockBlock as unknown as IRuntimeBlock,

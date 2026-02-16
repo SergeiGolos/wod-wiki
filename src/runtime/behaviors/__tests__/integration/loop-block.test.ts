@@ -21,8 +21,7 @@ import {
     MockBlock
 } from './test-helpers';
 
-import { RoundInitBehavior } from '../../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
+import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
@@ -42,8 +41,7 @@ describe('Loop Block Integration', () => {
 
     describe('Round Tracking', () => {
         const createLoopBehaviors = (totalRounds: number = 5) => [
-            new RoundInitBehavior({ totalRounds, startRound: 1 }),
-            new RoundAdvanceBehavior(),
+            new ReEntryBehavior({ totalRounds, startRound: 1 }),
             new RoundCompletionBehavior(),
             new RoundDisplayBehavior(),
             new DisplayInitBehavior({ mode: 'clock', label: 'Rounds' }),
@@ -86,8 +84,7 @@ describe('Loop Block Integration', () => {
 
         it('should not complete for unbounded rounds', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: undefined, startRound: 1 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),
                 new RoundCompletionBehavior(), // Should not trigger without total
                 new RoundDisplayBehavior()
             ];
@@ -116,8 +113,7 @@ describe('Loop Block Integration', () => {
 
     describe('Output Emission', () => {
         const createLoopBehaviors = (totalRounds: number = 3) => [
-            new RoundInitBehavior({ totalRounds, startRound: 1 }),
-            new RoundAdvanceBehavior(),
+            new ReEntryBehavior({ totalRounds, startRound: 1 }),
             new RoundCompletionBehavior(),
             new RoundOutputBehavior(),
             new SegmentOutputBehavior(),
@@ -179,7 +175,7 @@ describe('Loop Block Integration', () => {
     describe('Display State', () => {
         it('should initialize display with correct label', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 5 }),
+                new ReEntryBehavior({ totalRounds: 5 }),
                 new DisplayInitBehavior({ mode: 'clock', label: 'Test' }),
                 new RoundDisplayBehavior()
             ];
@@ -191,7 +187,7 @@ describe('Loop Block Integration', () => {
 
         it('should set initial roundDisplay on mount', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 5, startRound: 1 }),
+                new ReEntryBehavior({ totalRounds: 5, startRound: 1 }),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new RoundDisplayBehavior()
             ];
@@ -203,8 +199,7 @@ describe('Loop Block Integration', () => {
 
         it('should handle unbounded rounds in display', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: undefined, startRound: 1 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),
                 new DisplayInitBehavior({ mode: 'clock' }),
                 new RoundDisplayBehavior()
             ];
@@ -220,8 +215,7 @@ describe('Loop Block Integration', () => {
     describe('Edge Cases', () => {
         it('should handle start round other than 1', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 5, startRound: 3 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: 5, startRound: 3 }),
                 new RoundCompletionBehavior()
             ];
 
@@ -233,8 +227,7 @@ describe('Loop Block Integration', () => {
 
         it('should complete immediately if startRound > totalRounds', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 2, startRound: 3 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: 2, startRound: 3 }),
                 new RoundCompletionBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);

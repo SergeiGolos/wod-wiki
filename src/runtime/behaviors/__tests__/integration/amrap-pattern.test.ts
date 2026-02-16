@@ -25,8 +25,7 @@ import {
 import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
-import { RoundInitBehavior } from '../../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
+import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundDisplayBehavior } from '../../RoundDisplayBehavior';
 import { RoundOutputBehavior } from '../../RoundOutputBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
@@ -53,8 +52,7 @@ describe('AMRAP Pattern Integration', () => {
         new TimerCompletionBehavior(),
 
         // Iteration aspect (unbounded - no completion!)
-        new RoundInitBehavior({ totalRounds: undefined, startRound: 1 }),
-        new RoundAdvanceBehavior(),
+        new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),
         // NOTE: No RoundCompletionBehavior - timer controls completion
 
         // Display aspect

@@ -21,8 +21,7 @@ import { TimerInitBehavior } from '../../TimerInitBehavior';
 import { TimerTickBehavior } from '../../TimerTickBehavior';
 import { TimerCompletionBehavior } from '../../TimerCompletionBehavior';
 import { TimerPauseBehavior } from '../../TimerPauseBehavior';
-import { RoundInitBehavior } from '../../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../../RoundAdvanceBehavior';
+import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundCompletionBehavior } from '../../RoundCompletionBehavior';
 import { DisplayInitBehavior } from '../../DisplayInitBehavior';
 import { PopOnNextBehavior } from '../../PopOnNextBehavior';
@@ -92,8 +91,7 @@ describe('Edge Cases Integration', () => {
                 new TimerInitBehavior({ direction: 'down', durationMs: 5000 }),
                 new TimerTickBehavior(),
                 new TimerCompletionBehavior(),
-                new RoundInitBehavior({ totalRounds: 10 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: 10 }),
                 new RoundCompletionBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -113,8 +111,7 @@ describe('Edge Cases Integration', () => {
                 new TimerInitBehavior({ direction: 'down', durationMs: 60000 }),
                 new TimerTickBehavior(),
                 new TimerCompletionBehavior(),
-                new RoundInitBehavior({ totalRounds: 2 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: 2 }),
                 new RoundCompletionBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -130,8 +127,7 @@ describe('Edge Cases Integration', () => {
     describe('Rapid User Actions', () => {
         it('should handle rapid successive next() calls', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 100 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: 100 }),
                 new RoundCompletionBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -147,8 +143,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle next() after completion', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 2 }),
-                new RoundAdvanceBehavior(),
+                new ReEntryBehavior({ totalRounds: 2 }),
                 new RoundCompletionBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -223,8 +218,7 @@ describe('Edge Cases Integration', () => {
     describe('Round Edge Cases', () => {
         it('should handle very high round counts', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 10000 }),
-                new RoundAdvanceBehavior()
+                new ReEntryBehavior({ totalRounds: 10000 })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -239,8 +233,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle startRound of 0', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 5, startRound: 0 }),
-                new RoundAdvanceBehavior()
+                new ReEntryBehavior({ totalRounds: 5, startRound: 0 })
             ];
 
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -251,8 +244,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle negative startRound (defensive)', () => {
             const behaviors = [
-                new RoundInitBehavior({ totalRounds: 5, startRound: -1 }),
-                new RoundAdvanceBehavior()
+                new ReEntryBehavior({ totalRounds: 5, startRound: -1 })
             ];
 
             mountBehaviors(behaviors, runtime, block);
@@ -266,7 +258,7 @@ describe('Edge Cases Integration', () => {
         it('should preserve memory across mount/unmount cycle', () => {
             const behaviors = [
                 new TimerInitBehavior({ direction: 'up', label: 'Preserved' }),
-                new RoundInitBehavior({ totalRounds: 5 })
+                new ReEntryBehavior({ totalRounds: 5 })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -284,17 +276,16 @@ describe('Edge Cases Integration', () => {
 
         it('should handle remount with existing memory', () => {
             const behaviors1 = [
-                new RoundInitBehavior({ totalRounds: 5, startRound: 1 }),
-                new RoundAdvanceBehavior()
+                new ReEntryBehavior({ totalRounds: 5, startRound: 1 })
             ];
             const ctx1 = mountBehaviors(behaviors1, runtime, block);
 
             advanceBehaviors(behaviors1, ctx1);
             advanceBehaviors(behaviors1, ctx1);
 
-            // Now remount - RoundInitBehavior may overwrite
+            // Now remount - ReEntryBehavior may overwrite
             const behaviors2 = [
-                new RoundInitBehavior({ totalRounds: 5, startRound: 1 })
+                new ReEntryBehavior({ totalRounds: 5, startRound: 1 })
             ];
             mountBehaviors(behaviors2, runtime, block);
 

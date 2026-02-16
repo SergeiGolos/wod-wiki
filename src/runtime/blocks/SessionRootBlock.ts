@@ -9,8 +9,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 // Aspect-based behaviors
 import {
     TimerBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
@@ -51,8 +50,7 @@ export interface SessionRootConfig {
  *
  * - SegmentOutputBehavior (output on mount/unmount)
  * - TimerBehavior (elapsed workout timer)
- * - RoundInitBehavior (if multi-round)
- * - RoundAdvanceBehavior (if multi-round)
+ * - ReEntryBehavior (if multi-round)
  * - RoundCompletionBehavior (if multi-round)
  * - RoundDisplayBehavior (if multi-round)
  * - ChildLoopBehavior (if multi-round)
@@ -113,11 +111,10 @@ export class SessionRootBlock extends RuntimeBlock {
         // Iteration Aspect - If multi-round workout
         // =====================================================================
         if (totalRounds > 1) {
-            behaviors.push(new RoundInitBehavior({
+            behaviors.push(new ReEntryBehavior({
                 totalRounds,
                 startRound: 1
             }));
-            behaviors.push(new RoundAdvanceBehavior());
             behaviors.push(new RoundCompletionBehavior());
             behaviors.push(new RoundDisplayBehavior());
             behaviors.push(new ChildLoopBehavior({

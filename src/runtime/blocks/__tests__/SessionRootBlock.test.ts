@@ -4,8 +4,7 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { SessionRootBlock, SessionRootConfig } from '../SessionRootBlock';
 import {
     TimerBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
@@ -56,8 +55,7 @@ describe('SessionRootBlock', () => {
 
             const block = new SessionRootBlock(harness.runtime, config);
 
-            expect(block.getBehavior(RoundInitBehavior)).toBeUndefined();
-            expect(block.getBehavior(RoundAdvanceBehavior)).toBeUndefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeUndefined();
             expect(block.getBehavior(RoundCompletionBehavior)).toBeUndefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
             expect(block.getBehavior(ChildLoopBehavior)).toBeUndefined();
@@ -71,8 +69,7 @@ describe('SessionRootBlock', () => {
 
             const block = new SessionRootBlock(harness.runtime, config);
 
-            expect(block.getBehavior(RoundInitBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundAdvanceBehavior)).toBeDefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundCompletionBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
             expect(block.getBehavior(ChildLoopBehavior)).toBeDefined();
@@ -84,7 +81,7 @@ describe('SessionRootBlock', () => {
             });
 
             expect(block.blockType).toBe('SessionRoot');
-            expect(block.label).toBe('Workout');
+            expect(block.label).toBe('Session');
         });
 
         it('should use custom label when provided', () => {
@@ -119,7 +116,7 @@ describe('SessionRootBlock', () => {
             });
 
             // No round behaviors = single round default
-            expect(block.getBehavior(RoundInitBehavior)).toBeUndefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeUndefined();
         });
     });
 
@@ -213,8 +210,8 @@ describe('SessionRootBlock', () => {
                 totalRounds: 3
             }, harness.runtime);
 
-            // Expected: Segment(1) + Timer(1) + Round(4) + ChildLoop(1) + WaitingToStartInjector(1) + Children(1) + Display(1) + Controls(1) + History(1) = 12
-            expect(behaviors.length).toBe(12);
+            // Expected: Segment(1) + Timer(1) + Round(3) + ChildLoop(1) + WaitingToStartInjector(1) + Children(1) + Display(1) + Controls(1) + History(1) = 11
+            expect(behaviors.length).toBe(11);
         });
     });
 });

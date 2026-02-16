@@ -17,7 +17,7 @@ import { CodeMetadata } from "@/core/models/CodeMetadata";
 // Import new aspect-based behaviors for tests
 import { 
     TimerBehavior,
-    RoundInitBehavior,
+    ReEntryBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
     RepSchemeBehavior
@@ -80,11 +80,11 @@ describe("JIT Composition", () => {
         expect(block.label).toContain("10 min");
 
         // Check Behaviors - now using aspect-based behaviors
-        // AMRAP should have TimerBehavior (direction: 'up') and RoundInitBehavior (unbounded)
+        // AMRAP should have TimerBehavior (direction: 'up') and ReEntryBehavior (unbounded)
         const timer = block.getBehavior(TimerBehavior);
         expect(timer).toBeDefined();
 
-        const round = block.getBehavior(RoundInitBehavior);
+        const round = block.getBehavior(ReEntryBehavior);
         expect(round).toBeDefined();
 
         // Should have HistoryRecordBehavior

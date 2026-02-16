@@ -3,15 +3,13 @@ import { WorkoutRootStrategy, WorkoutRootConfig } from '../WorkoutRootStrategy';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import {
     TimerBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
     HistoryRecordBehavior,
-    ReentryCounterBehavior,
     CompletionTimestampBehavior
 } from '../../../behaviors';
 
@@ -60,7 +58,6 @@ describe('WorkoutRootStrategy', () => {
             expect(behaviors.some((b: any) => b instanceof HistoryRecordBehavior)).toBe(true);
 
             // Check universal invariants are present
-            expect(behaviors.some((b: any) => b instanceof ReentryCounterBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
         });
 
@@ -73,9 +70,8 @@ describe('WorkoutRootStrategy', () => {
             const block = strategy.build(mockRuntime, config);
             const behaviors = (block as any).behaviors;
 
-            expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(false);
+            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(false);
             expect(behaviors.some((b: any) => b instanceof RoundDisplayBehavior)).toBe(false);
-            expect(behaviors.some((b: any) => b instanceof RoundAdvanceBehavior)).toBe(false);
             expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(false);
         });
 
@@ -88,9 +84,8 @@ describe('WorkoutRootStrategy', () => {
             const block = strategy.build(mockRuntime, config);
             const behaviors = (block as any).behaviors;
 
-            expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundDisplayBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundAdvanceBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(true);
         });
 
@@ -103,8 +98,8 @@ describe('WorkoutRootStrategy', () => {
             const block = strategy.build(mockRuntime, config);
             const behaviors = (block as any).behaviors;
 
-            // Expected: Timer (1) + Children (1) + Display (1) + Controls (1) + History (1) + Universal (2) = 7
-            expect(behaviors.length).toBe(7);
+            // Expected: Timer (1) + Children (1) + Display (1) + Controls (1) + History (1) + Universal (1) = 6
+            expect(behaviors.length).toBe(6);
         });
     });
 

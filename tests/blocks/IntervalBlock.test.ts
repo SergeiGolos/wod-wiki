@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior, RoundInitBehavior, RoundAdvanceBehavior } from '@/runtime/behaviors';
+import { TimerInitBehavior, TimerTickBehavior, ReEntryBehavior } from '@/runtime/behaviors';
 
 describe('IntervalBlock', () => {
   let harness: BehaviorTestHarness;
@@ -18,10 +18,9 @@ describe('IntervalBlock', () => {
   it('should initialize interval timer and rounds on mount (EMOM behavior)', () => {
     const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 60000 });
     const timerTick = new TimerTickBehavior();
-    const roundInit = new RoundInitBehavior({ totalRounds: 10 });
-    const roundAdvance = new RoundAdvanceBehavior();
+    const reEntry = new ReEntryBehavior({ totalRounds: 10 });
 
-    const block = new MockBlock('interval-test', [timerInit, timerTick, roundInit, roundAdvance], { blockType: 'Interval' });
+    const block = new MockBlock('interval-test', [timerInit, timerTick, reEntry], { blockType: 'Interval' });
 
     harness.push(block);
     harness.mount();

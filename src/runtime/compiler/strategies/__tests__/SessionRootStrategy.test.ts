@@ -4,8 +4,7 @@ import { SessionRootStrategy } from '../SessionRootStrategy';
 import { SessionRootConfig } from '../../../blocks/SessionRootBlock';
 import {
     TimerBehavior,
-    RoundInitBehavior,
-    RoundAdvanceBehavior,
+    ReEntryBehavior,
     RoundCompletionBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
@@ -75,14 +74,14 @@ describe('SessionRootStrategy', () => {
             expect(block.label).toBe('Morning WOD');
         });
 
-        it('should default label to "Workout"', () => {
+        it('should default label to "Session"', () => {
             const config: SessionRootConfig = {
                 childGroups: [[1]]
             };
 
             const block = strategy.build(harness.runtime, config);
 
-            expect(block.label).toBe('Workout');
+            expect(block.label).toBe('Session');
         });
 
         it('should include all required behaviors for single-round session', () => {
@@ -109,8 +108,7 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.build(harness.runtime, config);
 
-            expect(block.getBehavior(RoundInitBehavior)).toBeUndefined();
-            expect(block.getBehavior(RoundAdvanceBehavior)).toBeUndefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeUndefined();
             expect(block.getBehavior(RoundCompletionBehavior)).toBeUndefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
             expect(block.getBehavior(ChildLoopBehavior)).toBeUndefined();
@@ -124,8 +122,7 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.build(harness.runtime, config);
 
-            expect(block.getBehavior(RoundInitBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundAdvanceBehavior)).toBeDefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundCompletionBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
             expect(block.getBehavior(ChildLoopBehavior)).toBeDefined();
@@ -189,7 +186,7 @@ describe('SessionRootStrategy', () => {
             });
 
             // Multi-round should have round behaviors
-            expect(block.getBehavior(RoundInitBehavior)).toBeDefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
             expect(block.getBehavior(RoundCompletionBehavior)).toBeDefined();
         });
 
@@ -200,7 +197,7 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.buildFromStatements(harness.runtime, statements);
 
-            expect(block.getBehavior(RoundInitBehavior)).toBeUndefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeUndefined();
         });
     });
 

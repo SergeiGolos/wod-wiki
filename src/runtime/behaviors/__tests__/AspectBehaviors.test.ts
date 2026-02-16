@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { TimerBehavior } from '../TimerBehavior';
 import { TimerCompletionBehavior } from '../TimerCompletionBehavior';
-import { RoundInitBehavior } from '../RoundInitBehavior';
-import { RoundAdvanceBehavior } from '../RoundAdvanceBehavior';
+import { ReEntryBehavior } from '../ReEntryBehavior';
 import { RoundCompletionBehavior } from '../RoundCompletionBehavior';
 import { DisplayInitBehavior } from '../DisplayInitBehavior';
 import { PopOnEventBehavior } from '../PopOnEventBehavior';
@@ -109,10 +108,10 @@ describe('Time Aspect Behaviors', () => {
 });
 
 describe('Iteration Aspect Behaviors', () => {
-    describe('RoundInitBehavior', () => {
+    describe('ReEntryBehavior', () => {
         it('should initialize round state with defaults', () => {
             const ctx = createMockContext();
-            const behavior = new RoundInitBehavior();
+            const behavior = new ReEntryBehavior();
 
             behavior.onMount(ctx);
 
@@ -125,7 +124,7 @@ describe('Iteration Aspect Behaviors', () => {
 
         it('should initialize with custom config', () => {
             const ctx = createMockContext();
-            const behavior = new RoundInitBehavior({
+            const behavior = new ReEntryBehavior({
                 totalRounds: 5,
                 startRound: 2
             });
@@ -140,14 +139,13 @@ describe('Iteration Aspect Behaviors', () => {
         });
     });
 
-    describe('RoundAdvanceBehavior', () => {
+    describe('ReEntryBehavior onNext', () => {
         it('should advance round on next', () => {
             const ctx = createMockContext();
             // Set up round memory via pushMemory
-            const roundInit = new RoundInitBehavior({ totalRounds: 5, startRound: 2 });
-            roundInit.onMount(ctx);
+            const behavior = new ReEntryBehavior({ totalRounds: 5, startRound: 2 });
+            behavior.onMount(ctx);
 
-            const behavior = new RoundAdvanceBehavior();
             behavior.onNext(ctx);
 
             expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
@@ -157,10 +155,9 @@ describe('Iteration Aspect Behaviors', () => {
 
         it('should update round memory (no event emission)', () => {
             const ctx = createMockContext();
-            const roundInit = new RoundInitBehavior({ totalRounds: 3, startRound: 1 });
-            roundInit.onMount(ctx);
+            const behavior = new ReEntryBehavior({ totalRounds: 3, startRound: 1 });
+            behavior.onMount(ctx);
 
-            const behavior = new RoundAdvanceBehavior();
             behavior.onNext(ctx);
 
             // Round advancement is signaled by memory update, no event
@@ -175,8 +172,8 @@ describe('Iteration Aspect Behaviors', () => {
         it('should mark complete when rounds exceeded', () => {
             const ctx = createMockContext();
             // Set up round memory with current > total
-            const roundInit = new RoundInitBehavior({ totalRounds: 3, startRound: 4 });
-            roundInit.onMount(ctx);
+            const reEntry = new ReEntryBehavior({ totalRounds: 3, startRound: 4 });
+            reEntry.onMount(ctx);
 
             const behavior = new RoundCompletionBehavior();
             behavior.onNext(ctx);
@@ -186,8 +183,8 @@ describe('Iteration Aspect Behaviors', () => {
 
         it('should not mark complete when rounds remaining', () => {
             const ctx = createMockContext();
-            const roundInit = new RoundInitBehavior({ totalRounds: 3, startRound: 2 });
-            roundInit.onMount(ctx);
+            const reEntry = new ReEntryBehavior({ totalRounds: 3, startRound: 2 });
+            reEntry.onMount(ctx);
 
             const behavior = new RoundCompletionBehavior();
             behavior.onNext(ctx);
