@@ -22,12 +22,12 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     constructor(private readonly config: ReportOutputConfig = {}) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const displayFragments = this.collectDisplayFragments(ctx);
-        const stateFragments = this.collectStateFragments(ctx);
-        const mergedFragments = this.mergeFragments(displayFragments, stateFragments);
-
-        const shouldEmitSegment = this.config.emitSegmentOnMount ?? true;
+        const shouldEmitSegment = this.config.emitSegmentOnMount ?? false;
         if (shouldEmitSegment) {
+            const displayFragments = this.collectDisplayFragments(ctx);
+            const stateFragments = this.collectStateFragments(ctx);
+            const mergedFragments = this.mergeFragments(displayFragments, stateFragments);
+
             ctx.emitOutput('segment', mergedFragments, {
                 label: this.formatLabel(ctx),
             });

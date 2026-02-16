@@ -18,6 +18,7 @@ import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
 import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
 import { TimeSpan } from './models/TimeSpan';
+import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -75,6 +76,10 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Bridge stack events to StackSnapshot observers and emit system outputs
         this._stackSubscriptionUnsub = this.stack.subscribe((event) => {
+            if (event.type === 'pop') {
+                this.emitSegmentOutputFromResultMemory(event.block, event.depth);
+            }
+
             // Emit system output for push/pop events
             if (event.type === 'push' || event.type === 'pop') {
                 this.emitSystemOutput(event);
@@ -397,6 +402,95 @@ export class ScriptRuntime implements IScriptRuntime {
         });
 
         this.addOutput(output);
+    }
+
+    private emitSegmentOutputFromResultMemory(block: IRuntimeBlock, stackDepth: number): void {
+        const resultLocs = block.getMemoryByTag('fragment:result');
+        if (resultLocs.length === 0) {
+            return;
+        }
+
+        const fragments = resultLocs[0].fragments ?? [];
+        if (fragments.length === 0) {
+            return;
+        }
+
+        const fallbackEndMs = this.clock.now.getTime();
+        const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
+
+        const spans = this.extractSpansFromResultFragments(fragments);
+        const timeSpan = this.buildSegmentTimeSpan(fragments, spans, fallbackStartMs, fallbackEndMs);
+
+        const output = new OutputStatement({
+            outputType: 'segment',
+            timeSpan,
+            spans: spans.length > 0 ? spans : undefined,
+            sourceBlockKey: block.key.toString(),
+            sourceStatementId: block.sourceIds?.[0],
+            stackLevel: stackDepth,
+            fragments,
+        });
+
+        this.addOutput(output);
+    }
+
+    private extractSpansFromResultFragments(fragments: ICodeFragment[]): TimeSpan[] {
+        const spansFragment = fragments.find(
+            fragment => fragment.fragmentType === FragmentType.Spans || fragment.type === 'spans'
+        ) as (ICodeFragment & { spans?: unknown }) | undefined;
+
+        if (!spansFragment) {
+            return [];
+        }
+
+        const rawSpans = Array.isArray(spansFragment.value)
+            ? spansFragment.value
+            : Array.isArray(spansFragment.spans)
+                ? spansFragment.spans
+                : [];
+
+        return rawSpans
+            .map(raw => {
+                const rawObj = raw as { started?: unknown; ended?: unknown };
+                if (typeof rawObj.started !== 'number') {
+                    return undefined;
+                }
+
+                if (typeof rawObj.ended === 'number') {
+                    return new TimeSpan(rawObj.started, rawObj.ended);
+                }
+
+                return new TimeSpan(rawObj.started);
+            })
+            .filter((span): span is TimeSpan => span !== undefined);
+    }
+
+    private buildSegmentTimeSpan(
+        fragments: ICodeFragment[],
+        spans: TimeSpan[],
+        fallbackStartMs: number,
+        fallbackEndMs: number
+    ): TimeSpan {
+        if (spans.length > 0) {
+            const firstStart = spans[0].started;
+            const lastSpan = spans[spans.length - 1];
+            const lastEnd = lastSpan.ended ?? fallbackEndMs;
+            return new TimeSpan(firstStart, Math.max(firstStart, lastEnd));
+        }
+
+        const totalFragment = fragments.find(
+            fragment => fragment.fragmentType === FragmentType.Total || fragment.type === 'total'
+        );
+        const totalMs = typeof totalFragment?.value === 'number'
+            ? Math.max(0, totalFragment.value)
+            : undefined;
+
+        if (totalMs !== undefined) {
+            const started = Math.max(0, fallbackEndMs - totalMs);
+            return new TimeSpan(started, fallbackEndMs);
+        }
+
+        return new TimeSpan(fallbackStartMs, Math.max(fallbackStartMs, fallbackEndMs));
     }
 }
 

@@ -50,6 +50,16 @@ function createMockContext(options: MockContextOptions = {}): IBehaviorContext {
 }
 
 describe('ReportOutputBehavior', () => {
+    it('does not emit segment output on mount by default', () => {
+        const behavior = new ReportOutputBehavior();
+        const ctx = createMockContext();
+
+        behavior.onMount(ctx);
+
+        const segmentCalls = (ctx.emitOutput as any).mock.calls.filter((call: any[]) => call[0] === 'segment');
+        expect(segmentCalls).toHaveLength(0);
+    });
+
     it('emits segment output on mount with merged display + state fragments', () => {
         const displayFragment = {
             fragmentType: FragmentType.Label,
@@ -68,7 +78,7 @@ describe('ReportOutputBehavior', () => {
             timestamp: new Date(1000),
         };
 
-        const behavior = new ReportOutputBehavior();
+        const behavior = new ReportOutputBehavior({ emitSegmentOnMount: true });
         const ctx = createMockContext({
             tagFragments: {
                 'fragment:display': [displayFragment],
@@ -109,7 +119,7 @@ describe('ReportOutputBehavior', () => {
             timestamp: new Date(1000),
         };
 
-        const behavior = new ReportOutputBehavior();
+        const behavior = new ReportOutputBehavior({ emitSegmentOnMount: true });
         const ctx = createMockContext({
             tagFragments: {
                 'fragment:display': [parserTimerFragment],

@@ -20,9 +20,11 @@ function createMockBlock(options: {
     label?: string;
     sourceIds?: number[];
     fragments?: ICodeFragment[][];
+    resultFragments?: ICodeFragment[];
 } = {}): IRuntimeBlock {
     const key = new BlockKey(options.key ?? `test-block-${Date.now()}`);
     const fragmentGroups = options.fragments;
+    const resultFragments = options.resultFragments ?? [];
 
     return {
         key,
@@ -69,6 +71,9 @@ function createMockBlock(options: {
         getMemoryByTag: vi.fn().mockImplementation((tag: string) => {
             if (tag === 'fragment' && fragmentGroups) {
                 return [{ tag: 'fragment', fragments: fragmentGroups.flat() }] as any;
+            }
+            if (tag === 'fragment:result' && resultFragments.length > 0) {
+                return [{ tag: 'fragment:result', fragments: resultFragments }] as any;
             }
             return [];
         }),
@@ -149,7 +154,8 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block1);
             runtime.popBlock();
 
-            expect(listener).toHaveBeenCalledTimes(1);
+            const callsAfterFirstPop = listener.mock.calls.length;
+            expect(callsAfterFirstPop).toBeGreaterThan(0);
 
             unsubscribe();
 
@@ -157,8 +163,8 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block2);
             runtime.popBlock();
 
-            // Still only 1 call - listener was unsubscribed
-            expect(listener).toHaveBeenCalledTimes(1);
+            // No additional calls after unsubscribe
+            expect(listener.mock.calls.length).toBe(callsAfterFirstPop);
         });
 
         it('should support multiple listeners', () => {
@@ -172,8 +178,8 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block);
             runtime.popBlock();
 
-            expect(listener1).toHaveBeenCalledTimes(1);
-            expect(listener2).toHaveBeenCalledTimes(1);
+            expect(listener1.mock.calls.length).toBeGreaterThan(0);
+            expect(listener2.mock.calls.length).toBe(listener1.mock.calls.length);
         });
     });
 
@@ -194,9 +200,10 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.popBlock();
 
             const outputs = runtime.getOutputStatements();
-            expect(outputs).toHaveLength(2);
-            expect(outputs[0].sourceStatementId).toBe(10);
-            expect(outputs[1].sourceStatementId).toBe(20);
+            const completions = outputs.filter(o => o.outputType === 'completion');
+            expect(completions).toHaveLength(2);
+            expect(completions[0].sourceStatementId).toBe(10);
+            expect(completions[1].sourceStatementId).toBe(20);
         });
 
         it('should return a copy of the internal array', () => {
@@ -213,6 +220,36 @@ describe('ScriptRuntime Output Statements', () => {
     });
 
     describe('output statement content', () => {
+        it('should emit segment output from fragment:result on pop', () => {
+            const listener = vi.fn();
+            runtime.subscribeToOutput(listener);
+
+            const resultFragments: ICodeFragment[] = [
+                {
+                    type: 'spans',
+                    fragmentType: FragmentType.Spans,
+                    image: '1 span',
+                    origin: 'runtime',
+                    value: [new TimeSpan(1000, 1600)],
+                },
+            ];
+
+            const block = createMockBlock({
+                label: 'Segment Source Block',
+                sourceIds: [77],
+                resultFragments,
+            });
+
+            runtime.pushBlock(block);
+            runtime.popBlock();
+
+            const outputs = runtime.getOutputStatements();
+            const segment = outputs.find(o => o.outputType === 'segment' && o.sourceBlockKey === block.key.toString());
+            expect(segment).toBeDefined();
+            expect(segment?.sourceStatementId).toBe(77);
+            expect(segment?.fragments.some(f => f.fragmentType === FragmentType.Spans)).toBe(true);
+        });
+
         it('should include timeSpan with start and end times', () => {
             const listener = vi.fn();
             runtime.subscribeToOutput(listener);
@@ -241,7 +278,11 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block);
             runtime.popBlock();
 
-            const output: IOutputStatement = listener.mock.calls[0][0];
+            const output = listener.mock.calls
+                .map((call: any[]) => call[0])
+                .find((entry: IOutputStatement) => entry.outputType === 'completion') as IOutputStatement | undefined;
+
+            expect(output).toBeDefined();
             expect(output.fragments).toHaveLength(1);
             expect(output.fragments[0].value).toBe('Push-ups');
         });
@@ -257,7 +298,11 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block);
             runtime.popBlock();
 
-            const output: IOutputStatement = listener.mock.calls[0][0];
+            const output = listener.mock.calls
+                .map((call: any[]) => call[0])
+                .find((entry: IOutputStatement) => entry.outputType === 'completion') as IOutputStatement | undefined;
+
+            expect(output).toBeDefined();
             expect(output.sourceStatementId).toBe(42); // First source ID
         });
 

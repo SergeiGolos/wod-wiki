@@ -68,14 +68,14 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         block = createMockBlock({ label: 'Clean & Jerk' });
     });
 
-    // Step 6: Exercise mount emits segment output
-    it('should emit segment output on mount', () => {
+    // Step 6: Segment output is emitted after pop, not on mount
+    it('should not emit segment output on mount', () => {
         const behaviors = createExerciseBehaviors();
 
         mountBehaviors(behaviors, runtime, block);
 
         const segments = findOutputs(runtime, 'segment');
-        expect(segments.length).toBeGreaterThanOrEqual(1);
+        expect(segments.length).toBe(0);
     });
 
     // Step 7: SoundCueBehavior mount trigger
