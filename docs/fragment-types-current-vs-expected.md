@@ -1,74 +1,100 @@
-# Fragment types — current vs expected
+# Fragment Types — Current vs Expected
 
-Summary
-- This document lists every fragment type, what data is currently populated by each class (`Current`), and what additional fields are expected but not populated (`Expected`).
+## Summary
 
-> Note: all fragments implement `ICodeFragment` (see `src/core/models/CodeFragment.ts`).
+This document lists every fragment type, what data is populated by each class, its `behavior` classification, and its data pipeline role.
 
-## Base interface (`ICodeFragment`) properties
+> All fragments implement `ICodeFragment` (see `src/core/models/CodeFragment.ts`).
 
-| Property | Type |
-|---|---|
-| `image` | `string?` |
-| `value` | `unknown?` |
-| `type` | `string` |
-| `fragmentType` | `FragmentType` |
-| `meta` | `CodeMetadata?` |
-| `behavior` | `MetricBehavior?` |
-| `origin` | `FragmentOrigin?` |
-| `sourceBlockKey` | `string?` |
-| `timestamp` | `Date?` |
+## Data Pipeline
 
----
+Fragments flow through a pipeline based on their origin and behavior:
 
-## Fragment table (Current vs Expected)
+| Stage | Origin | Behavior | Example |
+|-------|--------|----------|---------|
+| **Plan** | `parser` | `Defined` / `Hint` | TimerFragment, RepFragment, RoundsFragment |
+| **Compile** | `compiler` | `Defined` / `Hint` | DurationFragment |
+| **Record** | `runtime` | `Recorded` | SpansFragment, CurrentRoundFragment, SoundFragment, SystemTimeFragment |
+| **Calculate** | `collected` | `Calculated` | ElapsedFragment, TotalFragment (pushed on pop) |
 
-### Parser-origin fragments
+## Base Interface (`ICodeFragment`)
 
-| Fragment                                                                                     | `fragmentType` | `type`         | Current (populated)                                                              | Expected (missing)                                           |         |                                                             |                                                                                   |
-| -------------------------------------------------------------------------------------------- | -------------: | -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `TimerFragment`> this is duration fragment                                                   |        `Timer` | `"duration"`   | `image`, `value` (ms or `undefined`), `meta`, `origin`, parsed time parts (`days | hours                                                        | minutes | seconds`), `forceCountUp`, `original`, `direction` (getter) | `behavior` (should indicate `defined`/`collected`), `sourceBlockKey`, `timestamp` |
-| `RepFragment`                                                                                |          `Rep` | `"rep"`        | `image`, `value`/`reps`, `meta`, `origin`                                        | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `EffortFragment`                                                                             |       `Effort` | `"effort"`     | `image`/`value` (exercise string), `meta`, `origin`                              | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `DistanceFragment`                                                                           |     `Distance` | `"distance"`   | `image`, `value` (`{amount, units}`), `units`, `meta`, `origin`                  | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `ResistanceFragment`                                                                         |   `Resistance` | `"resistance"` | `image`, `value` (`{amount, units}`), `units`, `meta`, `origin`                  | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `RoundsFragment`<br><br>> thius needs to be two fragments current round and rounds fragment. |       `Rounds` | `"rounds"`     | `image`, `value`/`count`, `meta`, `origin`                                       | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `ActionFragment`                                                                             |       `Action` | `"action"`     | `raw`, `image`, `value` (`name`), `isPinned`, `sourceLine`, `meta`, `origin`     | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `IncrementFragment`                                                                          |    `Increment` | `"increment"`  | `image` (`^`/`v`), `value`/`increment`, `meta`, `origin`                         | `behavior` (should be a hint), `sourceBlockKey`, `timestamp` |         |                                                             |                                                                                   |
-| `GroupFragment`                                                                              |        `Group` | `"group"`      | `image`, `value`/`group`, `meta`, `origin`                                       | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-| `TextFragment`                                                                               |         `Text` | `"text"`       | `image`/`text`, `value` (`{text, level}`), `meta`, `origin`                      | `behavior`, `sourceBlockKey`, `timestamp`                    |         |                                                             |                                                                                   |
-
-### Compiler-origin fragments
-
-| Fragment                 | `fragmentType` | `type`                                                    | Current (populated)                                                                                                         | Expected (missing)                                                                                                                                                |
-| ------------------------ | -------------: | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DurationFragment`<br>>  |     `Duration` | `"duration"` (note: string collides with `TimerFragment`) | `image`, `value` (ms or `undefined`), `meta`, `origin`, parsed time parts, `forceCountUp`, `original`, `direction` (getter) | `behavior`, `sourceBlockKey`, `timestamp` — also **type-string collision** with `TimerFragment` (recommend using `"duration.compiler"` or rely on `fragmentType`) |
-
-### x`Runtime-origin fragments
-
-| Fragment | `fragmentType` | `type` | Current (populated) | Expected (missing) |
-|---|---:|---|---|---|
-| `SpansFragment` | `Spans` | `"spans"` | `spans` (`TimeSpan[]`), `value` (getter), `image` (getter), `isOpen` (getter), `sourceBlockKey`, `timestamp`, `origin` | `behavior` |
-| `ElapsedFragment` | `Elapsed` | `"elapsed"` | `value` (elapsed ms), `image` (formatted), `sourceBlockKey`, `timestamp`, `origin` | `behavior` |
-| `TotalFragment` | `Total` | `"total"` | `value` (ms), `image` (formatted), `sourceBlockKey`, `timestamp`, `origin` | `behavior` |
-| `SystemTimeFragment` | `SystemTime` | `"system-time"` | `value` (`Date`), `image` (ISO), `sourceBlockKey`, `origin`, `timestamp` (getter from `value`) | `behavior` (and note: `timestamp` implemented as getter — inconsistent with other runtime fragments) |
-| `SoundFragment` | `Sound` | `"sound"` | `sound`, `trigger`, `value` (`{sound, trigger, atSecond?}`), `image`, `origin` | `behavior`, `sourceBlockKey`, `timestamp`, **`meta` is accepted by constructor but not stored (BUG)** |
+| Property | Type | Notes |
+|----------|------|-------|
+| `image` | `string?` | Human-readable display text |
+| `value` | `unknown?` | Typed payload |
+| `type` | `string` | Legacy discriminator (used by Monaco providers) |
+| `fragmentType` | `FragmentType` | Canonical enum discriminator |
+| `meta` | `CodeMetadata?` | Source code location |
+| `behavior` | `MetricBehavior` | Intent classification (Defined, Hint, Recorded, Calculated) |
+| `origin` | `FragmentOrigin` | Where the fragment was created |
+| `sourceBlockKey` | `string?` | Block that owns this fragment |
+| `timestamp` | `Date?` | When created |
 
 ---
 
-## Known issues & recommendations
+## Parser-Origin Fragments
 
-- **`behavior` is never set by any fragment** — add `behavior` values (e.g. `Defined`, `Collected`, `Calculated`, `Recorded`, `Hint`) where appropriate so consumers can rely on intent. ✅
-- **`TimerFragment` / `DurationFragment` `type` collision** — avoid switching on `type` string; prefer `fragmentType` enum or update `type` string to be unique. ⚠️
-- **`SoundFragment` constructor accepts `meta` but does not assign it** — assign `this.meta = options.meta` to preserve source metadata. 🐞
-- **`SystemTimeFragment.timestamp` inconsistent** — consider storing `timestamp` as a field for parity with `ElapsedFragment`/`TotalFragment`.
+| Fragment | `fragmentType` | `type` | `behavior` | Populated Fields |
+|----------|----------------|--------|------------|------------------|
+| `TimerFragment` | `Timer` | `"duration"` | `Defined` (value set) / `Hint` (`:?` collectible) | `image`, `value` (ms), `meta`, `origin`, time parts, `forceCountUp`, `direction` |
+| `RepFragment` | `Rep` | `"rep"` | `Defined` (value set) / `Hint` (`?` collectible) | `image`, `value`/`reps`, `meta`, `origin` |
+| `EffortFragment` | `Effort` | `"effort"` | `Defined` | `image`/`value` (exercise string), `meta`, `origin` |
+| `DistanceFragment` | `Distance` | `"distance"` | `Defined` / `Hint` (collectible) | `image`, `value` (`{amount, units}`), `meta`, `origin` |
+| `ResistanceFragment` | `Resistance` | `"resistance"` | `Defined` / `Hint` (collectible) | `image`, `value` (`{amount, units}`), `meta`, `origin` |
+| `RoundsFragment` | `Rounds` | `"rounds"` | `Defined` | `image`, `value`/`count`, `meta`, `origin` |
+| `ActionFragment` | `Action` | `"action"` | `Defined` | `raw`, `image`, `value`, `isPinned`, `sourceLine`, `meta`, `origin` |
+| `IncrementFragment` | `Increment` | `"increment"` | `Hint` | `image` (`^`/`v`), `value`/`increment`, `meta`, `origin` |
+| `GroupFragment` | `Group` | `"group"` | `Defined` | `image`, `value`/`group`, `meta`, `origin` |
+| `TextFragment` | `Text` | `"text"` | `Defined` | `image`/`text`, `value` (`{text, level}`), `meta`, `origin` |
 
-## Next steps (suggested)
-1. Add `behavior` assignments in fragment constructors where semantically appropriate.  
-2. Fix `SoundFragment` to persist `meta`.  
-3. Resolve `type` string collision or update code paths to rely on `fragmentType`.  
-4. Add unit tests for fragments to assert `meta`, `behavior`, `sourceBlockKey`, and `timestamp` expectations.
+## Compiler-Origin Fragments
+
+| Fragment | `fragmentType` | `type` | `behavior` | Populated Fields |
+|----------|----------------|--------|------------|------------------|
+| `DurationFragment` | `Duration` | `"duration"` | `Defined` / `Hint` (collectible) | `image`, `value` (ms), `meta`, `origin`, time parts, `forceCountUp`, `direction` |
+
+> Note: `TimerFragment.type` and `DurationFragment.type` both use `"duration"`. This is intentional — Monaco providers match on `type: 'duration'`. Disambiguate via `fragmentType` enum (`Timer` vs `Duration`).
+
+## Runtime-Origin Fragments
+
+| Fragment | `fragmentType` | `type` | `behavior` | Populated Fields |
+|----------|----------------|--------|------------|------------------|
+| `CurrentRoundFragment` | `CurrentRound` | `"current-round"` | `Recorded` | `value` (`{current, total}`), `image`, `sourceBlockKey`, `timestamp`, `origin` |
+| `SpansFragment` | `Spans` | `"spans"` | `Recorded` | `spans` (`TimeSpan[]`), `value` (getter), `image` (getter), `sourceBlockKey`, `timestamp`, `origin` |
+| `ElapsedFragment` | `Elapsed` | `"elapsed"` | `Calculated` | `value` (elapsed ms), `image` (formatted), `sourceBlockKey`, `timestamp`, `origin` |
+| `TotalFragment` | `Total` | `"total"` | `Calculated` | `value` (ms), `image` (formatted), `sourceBlockKey`, `timestamp`, `origin` |
+| `SystemTimeFragment` | `SystemTime` | `"system-time"` | `Recorded` | `value` (`Date`), `image` (ISO), `sourceBlockKey`, `origin` |
+| `SoundFragment` | `Sound` | `"sound"` | `Recorded` | `sound`, `trigger`, `value` (`{sound, trigger, atSecond?}`), `image`, `meta`, `origin` |
 
 ---
 
-File created: `docs/fragment-types-current-vs-expected.md`
+## Round Fragment Split
+
+The round concept is now represented by **two** fragment types:
+
+| Concern | Fragment | Origin | When Created |
+|---------|----------|--------|--------------|
+| **Plan** (how many rounds total) | `RoundsFragment` | parser | Parsing `(3)`, `(21-15-9)`, `(EMOM)` |
+| **Progress** (which round is active) | `CurrentRoundFragment` | runtime | `RoundInitBehavior.onMount()`, `RoundAdvanceBehavior.onNext()` |
+
+`CurrentRoundFragment` is used by:
+- `RoundInitBehavior` — creates initial round state in memory
+- `RoundAdvanceBehavior` — updates round state on each advance
+- `RoundOutputBehavior` — includes in milestone outputs
+- `PromoteFragmentBehavior` — promotes to children (configured with `FragmentType.CurrentRound`)
+
+---
+
+## Resolved Issues
+
+- ✅ **`behavior` now set on all 17 fragment classes** — consumers can rely on intent classification
+- ✅ **`SoundFragment` now persists `meta`** — `this.meta = options.meta` added
+- ✅ **Round fragment split** — `RoundsFragment` (plan) vs `CurrentRoundFragment` (runtime progress)
+- ✅ **`PromoteFragmentBehavior` updated** — uses `FragmentType.CurrentRound` in strategy configs
+
+## Remaining Items
+
+- ⚠️ `TimerFragment`/`DurationFragment` `type` collision — both use `"duration"`. Disambiguate via `fragmentType` enum.
+- ⚠️ `SystemTimeFragment.timestamp` — implemented as getter from `value`, inconsistent with other runtime fragments that store it as a field.
+- ⚠️ Missing `sourceBlockKey`/`timestamp` on parser-origin fragments — these are typically set by the compiler or runtime, not the parser.

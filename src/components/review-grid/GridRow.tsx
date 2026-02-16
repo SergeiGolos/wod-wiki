@@ -134,7 +134,7 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
 
     case FIXED_COLUMN_IDS.SPANS:
       return (
-        <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-28">
+        <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-40 whitespace-nowrap">
           {formatSpans(row.relativeSpans, row.duration)}
         </td>
       );

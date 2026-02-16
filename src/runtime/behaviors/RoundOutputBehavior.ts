@@ -8,6 +8,7 @@ import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
 import { SpansFragment } from '../compiler/fragments/SpansFragment';
+import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
 
 /**
  * RoundOutputBehavior emits round milestone outputs that include both
@@ -102,13 +103,12 @@ export class RoundOutputBehavior implements IRuntimeBehavior {
 
         // Round fragment (always present)
         const roundLabel = this.formatRoundLabel(round);
-        fragments.push({
-            type: 'count',
-            fragmentType: FragmentType.Rounds,
-            value: round.current,
-            image: roundLabel,
-            origin: 'runtime'
-        } as ICodeFragment);
+        fragments.push(new CurrentRoundFragment(
+            round.current,
+            round.total,
+            ctx.block.key.toString(),
+            ctx.clock.now,
+        ));
 
         // Timer fragments (S8 — when timer memory exists)
         const timerFragments = this.getTimerFragments(ctx);

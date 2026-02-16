@@ -7,7 +7,6 @@ import { RuntimeBlock } from '../../RuntimeBlock';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import { RuntimeButton } from '../../models/MemoryModels';
-import { IdleConfig } from '../../behaviors/IdleInjectionBehavior';
 import { BlockBuilder } from '../BlockBuilder';
 
 // Specific behaviors not covered by aspect composers
@@ -17,6 +16,15 @@ import {
     ButtonBehavior,
     HistoryRecordBehavior
 } from '../../behaviors';
+
+export interface IdleConfig {
+    id: string;
+    label: string;
+    popOnNext: boolean;
+    popOnEvents: string[];
+    buttonLabel: string;
+    buttonAction: string;
+}
 
 /**
  * Configuration for the root workout block.

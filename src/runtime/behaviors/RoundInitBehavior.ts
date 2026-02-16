@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
 
 export interface RoundInitConfig {
     /** Total number of rounds (undefined for unbounded) */
@@ -25,18 +25,12 @@ export class RoundInitBehavior implements IRuntimeBehavior {
         const total = this.config.totalRounds;
 
         // Create round fragment
-        const roundFragment: ICodeFragment = {
-            fragmentType: FragmentType.Rounds,
-            type: 'rounds',
-            image: this.formatRounds(current, total),
-            origin: 'runtime',
-            value: {
-                current,
-                total
-            },
-            sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
-        };
+        const roundFragment = new CurrentRoundFragment(
+            current,
+            total,
+            ctx.block.key.toString(),
+            ctx.clock.now,
+        );
 
         // Push round fragment to list-based memory
         ctx.pushMemory('round', [roundFragment]);
@@ -54,15 +48,5 @@ export class RoundInitBehavior implements IRuntimeBehavior {
 
     onDispose(_ctx: IBehaviorContext): void {
         // No cleanup needed
-    }
-
-    /**
-     * Format rounds as "Round X / Y" or "Round X" for unbounded
-     */
-    private formatRounds(current: number, total: number | undefined): string {
-        if (total === undefined) {
-            return `Round ${current}`;
-        }
-        return `Round ${current} / ${total}`;
     }
 }

@@ -72,15 +72,15 @@ describe('Round Promotion', () => {
 
             // Seed a source fragment
             const roundFragment = {
-                fragmentType: FragmentType.Rounds,
+                fragmentType: FragmentType.CurrentRound,
                 value: { current: 1, total: 5 },
                 origin: 'runtime',
-                type: 'rounds'
+                type: 'current-round'
             } as any;
             ctx.pushMemory('round', [roundFragment]);
 
             const behavior = new PromoteFragmentBehavior({
-                fragmentType: FragmentType.Rounds,
+                fragmentType: FragmentType.CurrentRound,
                 sourceTag: 'round'
             });
 
@@ -92,7 +92,7 @@ describe('Round Promotion', () => {
             expect(promoted!.length).toBe(1);
 
             const promotedFrag = promoted![0].fragments[0];
-            expect(promotedFrag.fragmentType).toBe(FragmentType.Rounds);
+            expect(promotedFrag.fragmentType).toBe(FragmentType.CurrentRound);
             expect(promotedFrag.value).toEqual({ current: 1, total: 5 });
             expect(promotedFrag.origin).toBe('execution'); // Default origin
         });
@@ -102,14 +102,14 @@ describe('Round Promotion', () => {
 
             // Seed initial state
             const roundLoc = ctx.pushMemory('round', [{
-                fragmentType: FragmentType.Rounds,
+                fragmentType: FragmentType.CurrentRound,
                 value: { current: 1, total: 5 },
                 origin: 'runtime',
-                type: 'rounds'
+                type: 'current-round'
             } as any]);
 
             const behavior = new PromoteFragmentBehavior({
-                fragmentType: FragmentType.Rounds,
+                fragmentType: FragmentType.CurrentRound,
                 sourceTag: 'round',
                 enableDynamicUpdates: true
             });
@@ -118,10 +118,10 @@ describe('Round Promotion', () => {
 
             // Change source state
             roundLoc.update([{
-                fragmentType: FragmentType.Rounds,
+                fragmentType: FragmentType.CurrentRound,
                 value: { current: 2, total: 5 },
                 origin: 'runtime',
-                type: 'rounds'
+                type: 'current-round'
             } as any]);
 
             // Execute onNext

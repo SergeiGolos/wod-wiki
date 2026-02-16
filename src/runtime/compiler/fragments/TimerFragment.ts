@@ -71,7 +71,7 @@ export class TimerFragment implements ICodeFragment {
   readonly minutes: number;
   readonly seconds: number;
   readonly original: number | undefined; // in ms
-  readonly type: string = "timer";
+  readonly type: string = "duration";
   readonly fragmentType = FragmentType.Timer;
   readonly behavior: MetricBehavior;
 

@@ -113,7 +113,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
             // Explicitly target 'round' tag to get the runtime value, avoiding
             // ambiguity with other fragments (like total rounds or parser hints)
             builder.addBehavior(new PromoteFragmentBehavior({
-                fragmentType: FragmentType.Rounds,
+                fragmentType: FragmentType.CurrentRound,
                 origin: 'execution',
                 enableDynamicUpdates: true,
                 sourceTag: 'round'

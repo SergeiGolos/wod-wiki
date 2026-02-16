@@ -83,7 +83,8 @@ export class AnalyticsTransformer {
         f.fragmentType === 'effort' ||
         f.fragmentType === 'action' ||
         f.fragmentType === 'timer' ||
-        f.fragmentType === 'rounds'
+        f.fragmentType === 'rounds' ||
+        f.fragmentType === 'current-round'
       );
       const label = nameFragment?.image || output.sourceBlockKey;
       const type = nameFragment?.type || output.outputType;

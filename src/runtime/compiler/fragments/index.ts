@@ -6,6 +6,7 @@ export { TotalFragment } from './TotalFragment';
 export { SystemTimeFragment } from './SystemTimeFragment';
 export { EffortFragment } from './EffortFragment';
 export { RoundsFragment } from './RoundsFragment';
+export { CurrentRoundFragment } from './CurrentRoundFragment';
 export { RepFragment } from './RepFragment';
 export { TextFragment } from './TextFragment';
 export { DistanceFragment } from './DistanceFragment';

@@ -19,6 +19,7 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
 export type MemoryTag =
     | 'timer'
     | 'round'
+    | 'children:status'
     | 'completion'
     | 'display'
     | 'controls'

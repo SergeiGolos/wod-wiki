@@ -44,6 +44,18 @@ export interface RoundState {
     readonly total: number | undefined;
 }
 
+/** Written by ChildSelectionBehavior to children:status memory tag */
+export interface ChildrenStatusState {
+    /** Index of the next child to dispatch (0-based) */
+    readonly childIndex: number;
+    /** Total number of child groups */
+    readonly totalChildren: number;
+    /** True when all child groups have been dispatched at least once */
+    readonly allExecuted: boolean;
+    /** True when all dispatched children have completed (popped) */
+    readonly allCompleted: boolean;
+}
+
 /**
  * Fragment state stored in memory.
  * 
@@ -160,7 +172,7 @@ export interface ButtonsState {
 /**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'fragment' | 'fragment:display' | 'completion' | 'display' | 'controls';
+export type MemoryType = 'timer' | 'round' | 'children:status' | 'fragment' | 'fragment:display' | 'completion' | 'display' | 'controls';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
@@ -172,6 +184,7 @@ export type MemoryType = 'timer' | 'round' | 'fragment' | 'fragment:display' | '
 export interface MemoryTypeMap {
     timer: TimerState;
     round: RoundState;
+    'children:status': ChildrenStatusState;
     fragment: FragmentState;
     'fragment:display': FragmentDisplayState;
     completion: CompletionState;

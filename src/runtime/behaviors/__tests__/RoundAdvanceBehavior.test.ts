@@ -14,8 +14,8 @@ function createMockContext(overrides: {
 
     if (overrides.roundState) {
         const roundFragment: ICodeFragment = {
-            fragmentType: FragmentType.Rounds,
-            type: 'rounds',
+            fragmentType: FragmentType.CurrentRound,
+            type: 'current-round',
             image: `Round ${overrides.roundState.current}`,
             origin: 'runtime',
             value: overrides.roundState,

@@ -29,7 +29,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
     const parts = [];
 
     for (const f of flat) {
-      if (f.value !== undefined && f.image && f.fragmentType !== 'effort' && f.fragmentType !== 'action' && f.fragmentType !== 'rounds' && f.fragmentType !== 'timer') {
+      if (f.value !== undefined && f.image && f.fragmentType !== 'effort' && f.fragmentType !== 'action' && f.fragmentType !== 'rounds' && f.fragmentType !== 'current-round' && f.fragmentType !== 'timer') {
         parts.push(f.image);
       }
     }
@@ -68,7 +68,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
               );
 
             const label = fragmentsToLabel(output.fragments);
-            const type = output.fragments.find(f => f.fragmentType === 'rounds' || f.fragmentType === 'timer' || f.fragmentType === 'effort')?.type || 'group';
+            const type = output.fragments.find(f => f.fragmentType === 'rounds' || f.fragmentType === 'current-round' || f.fragmentType === 'timer' || f.fragmentType === 'effort')?.type || 'group';
             const isOpen = output.timeSpan && !output.timeSpan.ended;
 
             return (

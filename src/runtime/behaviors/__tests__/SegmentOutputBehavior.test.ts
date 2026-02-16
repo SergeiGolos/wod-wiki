@@ -173,9 +173,9 @@ describe('SegmentOutputBehavior', () => {
     describe('container state identity on mount (S3)', () => {
         it('should include round fragments in segment output on mount', () => {
             const roundFragment = {
-                fragmentType: FragmentType.Rounds,
-                type: 'rounds',
-                image: 'Round 1 / 3',
+                fragmentType: FragmentType.CurrentRound,
+                type: 'current-round',
+                image: 'Round 1 of 3',
                 origin: 'runtime' as const,
                 value: { current: 1, total: 3 },
                 sourceBlockKey: 'test-block',
@@ -200,8 +200,8 @@ describe('SegmentOutputBehavior', () => {
 
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
             expect(emittedFragments).toContainEqual(expect.objectContaining({
-                fragmentType: FragmentType.Rounds,
-                type: 'rounds',
+                fragmentType: FragmentType.CurrentRound,
+                type: 'current-round',
                 value: { current: 1, total: 3 },
             }));
         });
@@ -249,9 +249,9 @@ describe('SegmentOutputBehavior', () => {
                 value: undefined,
             };
             const roundFragment = {
-                fragmentType: FragmentType.Rounds,
-                type: 'rounds',
-                image: 'Round 1 / 5',
+                fragmentType: FragmentType.CurrentRound,
+                type: 'current-round',
+                image: 'Round 1 of 5',
                 origin: 'runtime' as const,
                 value: { current: 1, total: 5 },
                 sourceBlockKey: 'test-block',
@@ -288,7 +288,7 @@ describe('SegmentOutputBehavior', () => {
             const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
             expect(emittedFragments).toHaveLength(3);
             expect(emittedFragments).toContainEqual(expect.objectContaining({ type: 'label' }));
-            expect(emittedFragments).toContainEqual(expect.objectContaining({ type: 'rounds' }));
+            expect(emittedFragments).toContainEqual(expect.objectContaining({ type: 'current-round' }));
             expect(emittedFragments).toContainEqual(expect.objectContaining({ type: 'timer' }));
         });
 

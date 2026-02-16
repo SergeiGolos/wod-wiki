@@ -9,14 +9,16 @@ import { ElapsedFragment } from '@/runtime/compiler/fragments/ElapsedFragment';
 import { TotalFragment } from '@/runtime/compiler/fragments/TotalFragment';
 import { SystemTimeFragment } from '@/runtime/compiler/fragments/SystemTimeFragment';
 import { SoundFragment } from '@/runtime/compiler/fragments/SoundFragment';
+import { CurrentRoundFragment } from '@/runtime/compiler/fragments/CurrentRoundFragment';
 import { MetricBehavior } from '@/types/MetricBehavior';
+import { FragmentType } from '@/core/models/CodeFragment';
 
 const meta = { line: 1, startOffset: 0, endOffset: 1, columnStart: 0, columnEnd: 1, length: 1 } as any;
 
 describe('Fragment behavior & metadata', () => {
-  it('TimerFragment (defined) -> behavior=Defined and type=timer', () => {
+  it('TimerFragment (defined) -> behavior=Defined and type=duration', () => {
     const t = new TimerFragment('5:00', meta);
-    expect(t.type).toBe('timer');
+    expect(t.type).toBe('duration');
     expect(t.behavior).toBe(MetricBehavior.Defined);
     expect(t.origin).toBe('parser');
   });
@@ -74,5 +76,21 @@ describe('Fragment behavior & metadata', () => {
     const s = new SoundFragment('beep', 'countdown', { atSecond: 3, meta });
     expect(s.behavior).toBe(MetricBehavior.Recorded);
     expect(s.meta).toEqual(meta);
+  });
+
+  it('CurrentRoundFragment is Recorded with runtime origin', () => {
+    const cr = new CurrentRoundFragment(2, 5, 'block-1', new Date());
+    expect(cr.type).toBe('current-round');
+    expect(cr.fragmentType).toBe(FragmentType.CurrentRound);
+    expect(cr.behavior).toBe(MetricBehavior.Recorded);
+    expect(cr.origin).toBe('runtime');
+    expect(cr.value).toEqual({ current: 2, total: 5 });
+    expect(cr.image).toBe('Round 2 of 5');
+  });
+
+  it('CurrentRoundFragment handles unbounded rounds', () => {
+    const cr = new CurrentRoundFragment(3, undefined, 'block-1', new Date());
+    expect(cr.value).toEqual({ current: 3, total: undefined });
+    expect(cr.image).toBe('Round 3');
   });
 });

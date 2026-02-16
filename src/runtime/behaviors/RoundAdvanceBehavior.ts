@@ -3,7 +3,7 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { ChildRunnerBehavior } from './ChildRunnerBehavior';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
 
 /**
  * RoundAdvanceBehavior increments the round counter on next().
@@ -48,18 +48,12 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
         const newCurrent = roundValue.current + 1;
 
         // Update round fragment with new current round
-        const roundFragment: ICodeFragment = {
-            fragmentType: FragmentType.Rounds,
-            type: 'rounds',
-            image: this.formatRounds(newCurrent, roundValue.total),
-            origin: 'runtime',
-            value: {
-                current: newCurrent,
-                total: roundValue.total
-            },
-            sourceBlockKey: ctx.block.key.toString(),
-            timestamp: ctx.clock.now,
-        };
+        const roundFragment = new CurrentRoundFragment(
+            newCurrent,
+            roundValue.total,
+            ctx.block.key.toString(),
+            ctx.clock.now,
+        );
 
         ctx.updateMemory('round', [roundFragment]);
 
@@ -72,15 +66,5 @@ export class RoundAdvanceBehavior implements IRuntimeBehavior {
 
     onDispose(_ctx: IBehaviorContext): void {
         // No cleanup needed
-    }
-
-    /**
-     * Format rounds as "Round X / Y" or "Round X" for unbounded
-     */
-    private formatRounds(current: number, total: number | undefined): string {
-        if (total === undefined) {
-            return `Round ${current}`;
-        }
-        return `Round ${current} / ${total}`;
     }
 }

@@ -63,6 +63,7 @@ export enum FragmentType {
   Effort = 'effort',
   Distance = 'distance',
   Rounds = 'rounds',
+  CurrentRound = 'current-round',
   Action = 'action',
   Increment = 'increment',
   Group = 'group',

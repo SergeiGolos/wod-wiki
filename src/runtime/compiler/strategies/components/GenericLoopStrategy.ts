@@ -122,7 +122,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // Promotion Aspect - Share internal state with children
         // Use execution origin to override parser-based text fragments
         builder.addBehavior(new PromoteFragmentBehavior({
-            fragmentType: FragmentType.Rounds,
+            fragmentType: FragmentType.CurrentRound,
             enableDynamicUpdates: true,
             origin: 'execution',
             sourceTag: 'round'

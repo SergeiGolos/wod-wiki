@@ -57,9 +57,9 @@ describe('RoundOutputBehavior', () => {
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
                 [expect.objectContaining({
-                    type: 'count',
-                    fragmentType: FragmentType.Rounds,
-                    value: 1,
+                    type: 'current-round',
+                    fragmentType: FragmentType.CurrentRound,
+                    value: { current: 1, total: 3 },
                     image: 'Round 1 of 3',
                     origin: 'runtime',
                 })],
@@ -76,9 +76,9 @@ describe('RoundOutputBehavior', () => {
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
                 [expect.objectContaining({
-                    type: 'count',
-                    fragmentType: FragmentType.Rounds,
-                    value: 1,
+                    type: 'current-round',
+                    fragmentType: FragmentType.CurrentRound,
+                    value: { current: 1, total: undefined },
                     image: 'Round 1',
                     origin: 'runtime',
                 })],
@@ -115,9 +115,9 @@ describe('RoundOutputBehavior', () => {
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
                 [expect.objectContaining({
-                    type: 'count',
-                    fragmentType: FragmentType.Rounds,
-                    value: 2,
+                    type: 'current-round',
+                    fragmentType: FragmentType.CurrentRound,
+                    value: { current: 2, total: 3 },
                     image: 'Round 2 of 3',
                     origin: 'runtime',
                 })],
@@ -179,7 +179,7 @@ describe('RoundOutputBehavior', () => {
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
-                [expect.objectContaining({ value: 2, image: 'Round 2 of 3' })],
+                [expect.objectContaining({ value: { current: 2, total: 3 }, image: 'Round 2 of 3' })],
                 expect.objectContaining({ label: 'Round 2 of 3' })
             );
         });
@@ -244,7 +244,7 @@ describe('RoundOutputBehavior', () => {
             expect(ctx.emitOutput).toHaveBeenCalledTimes(1);
             expect(ctx.emitOutput).toHaveBeenCalledWith(
                 'milestone',
-                [expect.objectContaining({ value: 1, image: 'Round 1 of 3' })],
+                [expect.objectContaining({ value: { current: 1, total: 3 }, image: 'Round 1 of 3' })],
                 expect.objectContaining({ label: 'Round 1 of 3' })
             );
 
@@ -256,7 +256,7 @@ describe('RoundOutputBehavior', () => {
             expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
             expect(ctx.emitOutput).toHaveBeenLastCalledWith(
                 'milestone',
-                [expect.objectContaining({ value: 2, image: 'Round 2 of 3' })],
+                [expect.objectContaining({ value: { current: 2, total: 3 }, image: 'Round 2 of 3' })],
                 expect.objectContaining({ label: 'Round 2 of 3' })
             );
         });
@@ -283,9 +283,9 @@ describe('RoundOutputBehavior', () => {
                 'milestone',
                 expect.arrayContaining([
                     expect.objectContaining({
-                        type: 'count',
-                        fragmentType: FragmentType.Rounds,
-                        value: 1,
+                        type: 'current-round',
+                        fragmentType: FragmentType.CurrentRound,
+                        value: { current: 1, total: 10 },
                     }),
                     expect.objectContaining({
                         type: 'elapsed',
@@ -317,9 +317,9 @@ describe('RoundOutputBehavior', () => {
                 'milestone',
                 expect.arrayContaining([
                     expect.objectContaining({
-                        type: 'count',
-                        fragmentType: FragmentType.Rounds,
-                        value: 2,
+                        type: 'current-round',
+                        fragmentType: FragmentType.CurrentRound,
+                        value: { current: 2, total: 5 },
                     }),
                     expect.objectContaining({
                         type: 'elapsed',
@@ -396,7 +396,7 @@ describe('RoundOutputBehavior', () => {
 
             // Should have only the round fragment
             expect(fragments).toHaveLength(1);
-            expect(fragments[0].fragmentType).toBe(FragmentType.Rounds);
+            expect(fragments[0].fragmentType).toBe(FragmentType.CurrentRound);
         });
 
         it('should handle pause-aware elapsed in timer fragment', () => {

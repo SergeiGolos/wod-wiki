@@ -83,8 +83,6 @@ export type { ControlsConfig, ButtonConfig } from './ButtonBehavior';
 // ============================================================================
 // Lifecycle Aspect
 // ============================================================================
-export { IdleInjectionBehavior } from './IdleInjectionBehavior';
-export type { IdleConfig } from './IdleInjectionBehavior';
 export { WaitingToStartInjectorBehavior } from './WaitingToStartInjectorBehavior';
 export { SessionCompletionBehavior } from './SessionCompletionBehavior';
 
