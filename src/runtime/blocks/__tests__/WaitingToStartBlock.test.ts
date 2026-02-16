@@ -4,7 +4,7 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { WaitingToStartBlock } from '../WaitingToStartBlock';
 import {
     SegmentOutputBehavior,
-    PopOnNextBehavior,
+    LeafExitBehavior,
     DisplayInitBehavior,
     ButtonBehavior
 } from '../../behaviors';
@@ -28,7 +28,7 @@ describe('WaitingToStartBlock', () => {
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
-            expect(block.getBehavior(PopOnNextBehavior)).toBeDefined();
+            expect(block.getBehavior(LeafExitBehavior)).toBeDefined();
         });
 
         it('should set correct block type and label', () => {
@@ -110,7 +110,7 @@ describe('WaitingToStartBlock', () => {
         it('should return correct behavior count', () => {
             const behaviors = WaitingToStartBlock.buildBehaviors();
 
-            // Expected: Segment(1) + Display(1) + Button(1) + PopOnNext(1) = 4
+            // Expected: Segment(1) + Display(1) + Button(1) + LeafExit(1) = 4
             expect(behaviors.length).toBe(4);
         });
     });

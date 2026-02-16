@@ -4,7 +4,7 @@ import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import {
     TimerBehavior,
     ReEntryBehavior,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
@@ -72,7 +72,7 @@ describe('WorkoutRootStrategy', () => {
 
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(false);
             expect(behaviors.some((b: any) => b instanceof RoundDisplayBehavior)).toBe(false);
-            expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(false);
+            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(false);
         });
 
         it('should include round tracking behaviors for multi-round workout', () => {
@@ -86,7 +86,7 @@ describe('WorkoutRootStrategy', () => {
 
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundDisplayBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
         });
 
         it('should include expected behavior count for single-round workout', () => {

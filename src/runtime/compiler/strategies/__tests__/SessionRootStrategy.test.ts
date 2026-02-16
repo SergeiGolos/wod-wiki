@@ -5,7 +5,7 @@ import { SessionRootConfig } from '../../../blocks/SessionRootBlock';
 import {
     TimerBehavior,
     ReEntryBehavior,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
     ChildLoopBehavior,
@@ -108,8 +108,8 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.build(harness.runtime, config);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeUndefined();
-            expect(block.getBehavior(RoundCompletionBehavior)).toBeUndefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
+            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeUndefined();
             expect(block.getBehavior(ChildLoopBehavior)).toBeUndefined();
         });
@@ -123,7 +123,7 @@ describe('SessionRootStrategy', () => {
             const block = strategy.build(harness.runtime, config);
 
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundCompletionBehavior)).toBeDefined();
+            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
             expect(block.getBehavior(RoundDisplayBehavior)).toBeDefined();
             expect(block.getBehavior(ChildLoopBehavior)).toBeDefined();
         });
@@ -187,7 +187,7 @@ describe('SessionRootStrategy', () => {
 
             // Multi-round should have round behaviors
             expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundCompletionBehavior)).toBeDefined();
+            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
         });
 
         it('should default to single-round when no options provided', () => {
@@ -197,7 +197,7 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.buildFromStatements(harness.runtime, statements);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeUndefined();
+            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
         });
     });
 

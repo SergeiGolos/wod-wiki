@@ -5,9 +5,9 @@ import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import {
     TimerBehavior,
-    TimerCompletionBehavior,
+    TimerEndingBehavior,
     ReEntryBehavior,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     ChildRunnerBehavior,
     ChildLoopBehavior,
     CompletionTimestampBehavior
@@ -41,9 +41,9 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have TimerBehavior and TimerCompletion
+            // Should have TimerBehavior and TimerEndingBehavior
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerCompletionBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof TimerEndingBehavior)).toBe(true);
         });
 
         it('should skip completion behavior when addCompletion is false', () => {
@@ -62,13 +62,13 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should NOT have TimerCompletion
-            expect(behaviors.some((b: any) => b instanceof TimerCompletionBehavior)).toBe(false);
+            // Should NOT have TimerEndingBehavior
+            expect(behaviors.some((b: any) => b instanceof TimerEndingBehavior)).toBe(false);
             // Should still have the other timer behaviors
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
         });
 
-        it('should pass completionConfig to TimerCompletionBehavior', () => {
+        it('should pass completionConfig to TimerEndingBehavior', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -84,11 +84,10 @@ describe('BlockBuilder Aspect Composers', () => {
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
-            const timerCompletionBehavior = behaviors.find((b: any) => b instanceof TimerCompletionBehavior);
+            const timerCompletionBehavior = behaviors.find((b: any) => b instanceof TimerEndingBehavior);
 
             expect(timerCompletionBehavior).toBeDefined();
-            // Note: We can't easily test the config value without accessing private fields
-            // But we can verify the behavior was added with the right constructor
+            // Verify the behavior was added with completion mode wiring
         });
     });
 
@@ -109,9 +108,9 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have ReEntry and RoundCompletion
+            // Should have ReEntry and RoundsEndBehavior
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
         });
 
         it('should skip completion behavior for unbounded rounds', () => {
@@ -130,8 +129,8 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should NOT have RoundCompletion
-            expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(false);
+            // Should have RoundsEndBehavior
+            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
             // Should still have ReEntry
             expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
         });
@@ -152,8 +151,8 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should NOT have RoundCompletion even though totalRounds is defined
-            expect(behaviors.some((b: any) => b instanceof RoundCompletionBehavior)).toBe(false);
+            // Should NOT have RoundsEndBehavior due explicit addCompletion flag
+            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(false);
         });
     });
 

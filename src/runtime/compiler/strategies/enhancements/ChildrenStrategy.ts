@@ -9,10 +9,10 @@ import {
     ChildRunnerBehavior,
     ChildLoopBehavior,
     ReEntryBehavior,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     TimerBehavior,
-    TimerCompletionBehavior,
-    PopOnNextBehavior,
+    TimerEndingBehavior,
+    LeafExitBehavior,
     CompletedBlockPopBehavior,
     PromoteFragmentBehavior
 } from "../../../behaviors";
@@ -51,15 +51,15 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
         const hasRoundsFromStrategy = builder.hasBehavior(ReEntryBehavior);
         // Check if a countdown timer controls completion (AMRAP pattern)
-        // TimerCompletionBehavior is only added for countdown timers with a duration
-        const hasCountdownCompletion = builder.hasBehavior(TimerCompletionBehavior);
+        // TimerEndingBehavior is only added for countdown timers with a duration
+        const hasCountdownCompletion = builder.hasBehavior(TimerEndingBehavior);
 
-        // Remove PopOnNextBehavior if present — children manage advancement,
-        // not simple pop-on-next. GenericTimerStrategy adds PopOnNextBehavior
+        // Remove LeafExitBehavior if present — children manage advancement,
+        // not simple leaf exit. GenericTimerStrategy adds LeafExitBehavior
         // for countup timers, but when children exist, ChildRunnerBehavior
-        // and RoundCompletionBehavior handle completion instead.
-        if (builder.hasBehavior(PopOnNextBehavior)) {
-            builder.removeBehavior(PopOnNextBehavior);
+        // and RoundsEndBehavior handle completion instead.
+        if (builder.hasBehavior(LeafExitBehavior)) {
+            builder.removeBehavior(LeafExitBehavior);
         }
 
         // =====================================================================
@@ -96,14 +96,14 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
                     totalRounds: undefined, // Unbounded
                     startRound: 1
                 }));
-                // No RoundCompletionBehavior - timer controls completion
+                // No RoundsEndBehavior - timer controls completion
             } else {
                 // Single pass through children (no timer, or countup "for time" timer)
                 builder.addBehavior(new ReEntryBehavior({
                     totalRounds: 1,
                     startRound: 1
                 }));
-                builder.addBehavior(new RoundCompletionBehavior());
+                builder.addBehavior(new RoundsEndBehavior());
             }
 
             // Promote current round fragment to children (e.g. for display)

@@ -5,7 +5,7 @@ import { RestBlock, RestBlockConfig } from '../RestBlock';
 import {
     SegmentOutputBehavior,
     TimerBehavior,
-    TimerCompletionBehavior,
+    TimerEndingBehavior,
     DisplayInitBehavior,
     SoundCueBehavior
 } from '../../behaviors';
@@ -29,7 +29,7 @@ describe('RestBlock', () => {
 
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerCompletionBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
         });
@@ -126,7 +126,7 @@ describe('RestBlock', () => {
             harness.push(block);
             harness.mount();
 
-            // TimerCompletionBehavior should mark complete immediately for zero duration
+            // TimerEndingBehavior should mark complete immediately for zero duration
             expect(block.isComplete).toBe(true);
         });
 
@@ -144,7 +144,7 @@ describe('RestBlock', () => {
         it('should return correct behavior count', () => {
             const behaviors = RestBlock.buildBehaviors({ durationMs: 60000 });
 
-            // Expected: Segment(1) + Timer(1) + TimerCompletion(1) + PopOnNext(1) + Display(1) + Sound(1) = 6
+            // Expected: Segment(1) + Timer(1) + TimerEnding(1) + LeafExit(1) + Display(1) + Sound(1) = 6
             expect(behaviors.length).toBe(6);
         });
     });

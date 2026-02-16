@@ -15,9 +15,9 @@ import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 import {
     TimerBehavior,
-    TimerCompletionBehavior,
+    TimerEndingBehavior,
     ReEntryBehavior,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     ChildRunnerBehavior,
     ChildLoopBehavior,
     RestBlockBehavior,
@@ -99,7 +99,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
             const block = compiler.compile([statement], runtime);
 
             expect(block!.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block!.getBehavior(TimerCompletionBehavior)).toBeDefined();
+            expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
             expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
         });
 
@@ -204,7 +204,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
             const block = compiler.compile([statement], runtime);
 
             expect(block!.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block!.getBehavior(TimerCompletionBehavior)).toBeDefined();
+            expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
             expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
         });
 
@@ -220,7 +220,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
             const block = compiler.compile([statement], runtime);
 
             expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block!.getBehavior(RoundCompletionBehavior)).toBeDefined();
+            expect(block!.getBehavior(RoundsEndBehavior)).toBeDefined();
         });
 
         it('should have child behaviors when children are present', () => {

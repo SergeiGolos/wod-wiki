@@ -12,7 +12,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     TimerBehavior,
     DisplayInitBehavior,
-    PopOnNextBehavior,
+    LeafExitBehavior,
     SoundCueBehavior,
     SegmentOutputBehavior
 } from "../../../behaviors";
@@ -102,8 +102,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // Completion Aspect
         // User can still advance manually (skip or acknowledge completion).
         // For parent blocks with children, ChildrenStrategy removes
-        // PopOnNextBehavior since children manage advancement.
-        builder.addBehavior(new PopOnNextBehavior());
+        // LeafExitBehavior since children manage advancement.
+        builder.addBehavior(new LeafExitBehavior({ onNext: true }));
 
         // Sound Cues
         if (durationMs && direction === 'down') {

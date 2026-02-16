@@ -4,7 +4,7 @@ import { RestBlockStrategy } from '../components/RestBlockStrategy';
 import {
     SegmentOutputBehavior,
     TimerBehavior,
-    TimerCompletionBehavior,
+    TimerEndingBehavior,
     DisplayInitBehavior,
     SoundCueBehavior
 } from '../../../behaviors';
@@ -91,10 +91,10 @@ describe('RestBlockStrategy', () => {
             expect(block.getBehavior(TimerBehavior)).toBeDefined();
         });
 
-        it('should include TimerCompletionBehavior', () => {
+        it('should include TimerEndingBehavior', () => {
             const block = strategy.build(harness.runtime, { durationMs: 30000 });
 
-            expect(block.getBehavior(TimerCompletionBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
         });
 
         it('should include DisplayInitBehavior', () => {

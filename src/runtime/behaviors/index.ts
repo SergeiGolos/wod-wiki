@@ -20,8 +20,8 @@ export type { TimerConfig } from './TimerBehavior';
 export { TimerInitBehavior } from './TimerInitBehavior';
 export type { TimerInitConfig } from './TimerInitBehavior';
 export { TimerTickBehavior } from './TimerTickBehavior';
-export { TimerCompletionBehavior } from './TimerCompletionBehavior';
-export type { TimerCompletionConfig } from './TimerCompletionBehavior';
+export { TimerEndingBehavior } from './TimerEndingBehavior';
+export type { TimerEndingConfig, TimerEndingMode } from './TimerEndingBehavior';
 export { TimerPauseBehavior } from './TimerPauseBehavior';
 
 // TimerOutputBehavior is deprecated — elapsed computation is now
@@ -32,7 +32,7 @@ export { TimerPauseBehavior } from './TimerPauseBehavior';
 // ============================================================================
 export { ReEntryBehavior } from './ReEntryBehavior';
 export type { ReEntryConfig } from './ReEntryBehavior';
-export { RoundCompletionBehavior } from './RoundCompletionBehavior';
+export { RoundsEndBehavior } from './RoundsEndBehavior';
 export { RoundOutputBehavior } from './RoundOutputBehavior';
 export { RoundDisplayBehavior } from './RoundDisplayBehavior';
 export { RepSchemeBehavior } from './RepSchemeBehavior';
@@ -43,10 +43,10 @@ export type { PromoteFragmentConfig } from './PromoteFragmentBehavior';
 // ============================================================================
 // Completion Aspect
 // ============================================================================
-export { PopOnNextBehavior } from './PopOnNextBehavior';
-export { PopOnEventBehavior } from './PopOnEventBehavior';
+export { LeafExitBehavior } from './LeafExitBehavior';
+export type { LeafExitConfig } from './LeafExitBehavior';
 export { CompletedBlockPopBehavior } from './CompletedBlockPopBehavior';
-// TimerCompletionBehavior and RoundCompletionBehavior are also completion behaviors
+// TimerEndingBehavior and RoundsEndBehavior are also completion behaviors
 
 // ============================================================================
 // Display Aspect
@@ -84,7 +84,6 @@ export type { ControlsConfig, ButtonConfig } from './ButtonBehavior';
 // Lifecycle Aspect
 // ============================================================================
 export { WaitingToStartInjectorBehavior } from './WaitingToStartInjectorBehavior';
-export { SessionCompletionBehavior } from './SessionCompletionBehavior';
 
 // ============================================================================
 // Utility Exports (not deprecated)

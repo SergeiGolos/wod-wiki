@@ -10,7 +10,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 import {
     TimerBehavior,
     ReEntryBehavior,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     RoundDisplayBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
@@ -20,7 +20,6 @@ import {
     ChildLoopBehavior
 } from '../behaviors';
 import { WaitingToStartInjectorBehavior } from '../behaviors/WaitingToStartInjectorBehavior';
-import { SessionCompletionBehavior } from '../behaviors/SessionCompletionBehavior';
 
 /**
  * Configuration for the session root block.
@@ -51,12 +50,12 @@ export interface SessionRootConfig {
  * - SegmentOutputBehavior (output on mount/unmount)
  * - TimerBehavior (elapsed workout timer)
  * - ReEntryBehavior (if multi-round)
- * - RoundCompletionBehavior (if multi-round)
+ * - RoundsEndBehavior
  * - RoundDisplayBehavior (if multi-round)
  * - ChildLoopBehavior (if multi-round)
  * - WaitingToStartInjectorBehavior (pushes WaitingToStart gate on mount)
  * - ChildRunnerBehavior (pushes children in sequence, skipOnMount)
- * - SessionCompletionBehavior (if single-round, pops when children done)
+ * - RoundsEndBehavior (single-round sessions pop when children are done)
  * - DisplayInitBehavior
  * - ButtonBehavior
  * - HistoryRecordBehavior (records session on unmount)
@@ -110,12 +109,12 @@ export class SessionRootBlock extends RuntimeBlock {
         // =====================================================================
         // Iteration Aspect - If multi-round workout
         // =====================================================================
+        behaviors.push(new ReEntryBehavior({
+            totalRounds,
+            startRound: 1
+        }));
+
         if (totalRounds > 1) {
-            behaviors.push(new ReEntryBehavior({
-                totalRounds,
-                startRound: 1
-            }));
-            behaviors.push(new RoundCompletionBehavior());
             behaviors.push(new RoundDisplayBehavior());
             behaviors.push(new ChildLoopBehavior({
                 childGroups: config.childGroups
@@ -135,19 +134,15 @@ export class SessionRootBlock extends RuntimeBlock {
         // the first mount push. ChildRunner begins on the first onNext()
         // (triggered when WaitingToStart pops).
         // =====================================================================
-        const childRunner = new ChildRunnerBehavior({
+        behaviors.push(new ChildRunnerBehavior({
             childGroups: config.childGroups,
             skipOnMount: true
-        });
-        behaviors.push(childRunner);
+        }));
 
         // =====================================================================
-        // Completion Aspect - Auto-pop when all children done (single-round)
-        // For multi-round, RoundCompletionBehavior handles this instead.
+        // Completion Aspect - Unified rounds/session completion
         // =====================================================================
-        if (totalRounds <= 1) {
-            behaviors.push(new SessionCompletionBehavior(childRunner));
-        }
+        behaviors.push(new RoundsEndBehavior());
 
         // =====================================================================
         // Display Aspect

@@ -3,7 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { WaitingToStartStrategy } from '../WaitingToStartStrategy';
 import {
     SegmentOutputBehavior,
-    PopOnNextBehavior,
+    LeafExitBehavior,
     DisplayInitBehavior,
     ButtonBehavior
 } from '../../../behaviors';
@@ -62,10 +62,10 @@ describe('WaitingToStartStrategy', () => {
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
         });
 
-        it('should include PopOnNextBehavior', () => {
+        it('should include LeafExitBehavior', () => {
             const block = strategy.build(harness.runtime);
 
-            expect(block.getBehavior(PopOnNextBehavior)).toBeDefined();
+            expect(block.getBehavior(LeafExitBehavior)).toBeDefined();
         });
 
         it('should include DisplayInitBehavior', () => {

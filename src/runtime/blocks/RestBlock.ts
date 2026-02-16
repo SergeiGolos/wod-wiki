@@ -10,8 +10,8 @@ import { BlockKey } from '../../core/models/BlockKey';
 import {
     SegmentOutputBehavior,
     TimerBehavior,
-    TimerCompletionBehavior,
-    PopOnNextBehavior,
+    TimerEndingBehavior,
+    LeafExitBehavior,
     DisplayInitBehavior,
     SoundCueBehavior
 } from '../behaviors';
@@ -36,14 +36,14 @@ export interface RestBlockConfig {
  *
  * 1. Mount: Emits 'segment' output with rest label and duration, starts countdown timer
  * 2. Timer counts down via TimerBehavior state updates
- * 3. TimerCompletionBehavior marks complete when elapsed >= durationMs
+ * 3. TimerEndingBehavior marks complete when elapsed >= durationMs
  * 4. Unmount: Emits 'completion' output, plays rest-over sound cue
  *
  * ## Behavior Chain
  *
  * - SegmentOutputBehavior (output on mount/unmount)
  * - TimerBehavior (countdown timer + pause/resume state)
- * - TimerCompletionBehavior (auto-complete when timer expires)
+ * - TimerEndingBehavior (auto-complete when timer expires)
  * - DisplayInitBehavior (show rest countdown)
  * - SoundCueBehavior (beep on unmount for rest-over signal)
  */
@@ -93,12 +93,17 @@ export class RestBlock extends RuntimeBlock {
             label: restLabel,
             role: 'primary'
         }));
-        behaviors.push(new TimerCompletionBehavior());
+        behaviors.push(new TimerEndingBehavior({
+            ending: { mode: 'complete-block' }
+        }));
 
         // =====================================================================
         // Completion Aspect - User can skip rest or acknowledge completion
         // =====================================================================
-        behaviors.push(new PopOnNextBehavior());
+        behaviors.push(new LeafExitBehavior({
+            onNext: true,
+            onEvents: ['timer:complete']
+        }));
 
         // =====================================================================
         // Display Aspect

@@ -9,12 +9,16 @@ import { MemoryLocation } from "../memory/MemoryLocation";
 import {
     CompletionTimestampBehavior,
     TimerBehavior, TimerConfig,
-    TimerCompletionBehavior, TimerCompletionConfig,
+    TimerEndingBehavior,
     ReEntryBehavior, ReEntryConfig,
-    RoundCompletionBehavior,
+    RoundsEndBehavior,
     ChildRunnerBehavior, ChildRunnerConfig,
     ChildLoopBehavior, ChildLoopConfig
 } from "../behaviors";
+
+export interface TimerCompletionConfig {
+    completesBlock?: boolean;
+}
 
 export class BlockBuilder {
     private behaviors: Map<any, IRuntimeBehavior> = new Map();
@@ -138,7 +142,11 @@ export class BlockBuilder {
 
         // Optional completion behavior
         if (config.addCompletion !== false) {
-            this.addBehavior(new TimerCompletionBehavior(config.completionConfig));
+            this.addBehavior(new TimerEndingBehavior({
+                ending: config.completionConfig?.completesBlock === false
+                    ? { mode: 'reset-interval' }
+                    : { mode: 'complete-block' }
+            }));
         }
 
         return this;
@@ -158,9 +166,9 @@ export class BlockBuilder {
             startRound: config.startRound ?? 1
         }));
 
-        // Optional completion behavior - only add if totalRounds is bounded
-        if (config.addCompletion !== false && config.totalRounds !== undefined) {
-            this.addBehavior(new RoundCompletionBehavior());
+        // Optional completion behavior
+        if (config.addCompletion !== false) {
+            this.addBehavior(new RoundsEndBehavior());
         }
 
         return this;

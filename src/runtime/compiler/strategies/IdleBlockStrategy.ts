@@ -10,8 +10,7 @@ import { BlockBuilder } from '../BlockBuilder';
 
 // Specific behaviors not covered by aspect composers
 import {
-    PopOnNextBehavior,
-    PopOnEventBehavior,
+    LeafExitBehavior,
     DisplayInitBehavior,
     ButtonBehavior
 } from '../../behaviors';
@@ -104,12 +103,11 @@ export class IdleBlockStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Completion Aspect
-        if (config.popOnNext) {
-            builder.addBehavior(new PopOnNextBehavior());
-        }
-
-        if (config.popOnEvents && config.popOnEvents.length > 0) {
-            builder.addBehavior(new PopOnEventBehavior(config.popOnEvents));
+        if (config.popOnNext || (config.popOnEvents && config.popOnEvents.length > 0)) {
+            builder.addBehavior(new LeafExitBehavior({
+                onNext: config.popOnNext ?? false,
+                onEvents: config.popOnEvents ?? []
+            }));
         }
 
         // Display Aspect
