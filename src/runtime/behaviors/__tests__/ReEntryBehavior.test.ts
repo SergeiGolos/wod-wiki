@@ -4,11 +4,9 @@ import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
 import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
-import { ChildrenStatusState } from '../../memory/MemoryTypes';
 
 function createMockContext(overrides: {
     roundState?: { current: number; total: number | undefined };
-    childrenStatus?: ChildrenStatusState;
 } = {}): IBehaviorContext {
     const memoryLocations: IMemoryLocation[] = [];
 
@@ -40,12 +38,7 @@ function createMockContext(overrides: {
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => {
-            if (type === 'children:status') {
-                return overrides.childrenStatus;
-            }
-            return undefined;
-        }),
+        getMemory: vi.fn(),
         setMemory: vi.fn(),
         pushMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
             const loc = new MemoryLocation(tag, fragments);
@@ -106,59 +99,13 @@ describe('ReEntryBehavior', () => {
     });
 
     describe('onNext', () => {
-        it('advances on leaf blocks (missing children:status)', () => {
+        it('is a no-op (round advancement handled by ChildSelectionBehavior)', () => {
             const behavior = new ReEntryBehavior();
             const ctx = createMockContext({ roundState: { current: 1, total: 5 } });
 
-            behavior.onNext(ctx);
+            const actions = behavior.onNext(ctx);
 
-            expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
-                expect.objectContaining({ value: { current: 2, total: 5 } })
-            ]));
-        });
-
-        it('advances when children:status.allCompleted=true', () => {
-            const behavior = new ReEntryBehavior();
-            const ctx = createMockContext({
-                roundState: { current: 2, total: 5 },
-                childrenStatus: {
-                    childIndex: 3,
-                    totalChildren: 3,
-                    allExecuted: true,
-                    allCompleted: true,
-                }
-            });
-
-            behavior.onNext(ctx);
-
-            expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
-                expect.objectContaining({ value: { current: 3, total: 5 } })
-            ]));
-        });
-
-        it('does not advance when children:status.allCompleted=false', () => {
-            const behavior = new ReEntryBehavior();
-            const ctx = createMockContext({
-                roundState: { current: 2, total: 5 },
-                childrenStatus: {
-                    childIndex: 1,
-                    totalChildren: 3,
-                    allExecuted: false,
-                    allCompleted: false,
-                }
-            });
-
-            behavior.onNext(ctx);
-
-            expect(ctx.updateMemory).not.toHaveBeenCalled();
-        });
-
-        it('handles missing round memory', () => {
-            const behavior = new ReEntryBehavior();
-            const ctx = createMockContext();
-
-            behavior.onNext(ctx);
-
+            expect(actions).toEqual([]);
             expect(ctx.updateMemory).not.toHaveBeenCalled();
         });
     });

@@ -79,13 +79,10 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // Specific Behaviors - Not covered by aspect composers
         // =====================================================================
 
-        // For timer-controlled blocks (AMRAP, EMOM), add CompletedBlockPopBehavior
-        // AFTER ChildRunner. When the timer expires and all active children finish,
-        // this behavior pops the block. ChildRunner's isComplete check prevents
-        // new children from being pushed after timer expiry.
-        if (hasCountdownCompletion) {
-            builder.addBehavior(new CompletedBlockPopBehavior());
-        }
+        // Add CompletedBlockPopBehavior for all container blocks.
+        // It is a safe no-op when the block is not complete, and ensures
+        // completion pop is never dependent on timer behavior/strategy ordering.
+        builder.addBehavior(new CompletedBlockPopBehavior());
 
         // Add default round handling if not already present
         if (!builder.hasBehavior(ReEntryBehavior)) {

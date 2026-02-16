@@ -140,30 +140,15 @@ describe('Iteration Aspect Behaviors', () => {
     });
 
     describe('ReEntryBehavior onNext', () => {
-        it('should advance round on next', () => {
+        it('is a no-op (round advancement handled by ChildSelectionBehavior)', () => {
             const ctx = createMockContext();
-            // Set up round memory via pushMemory
             const behavior = new ReEntryBehavior({ totalRounds: 5, startRound: 2 });
             behavior.onMount(ctx);
 
             behavior.onNext(ctx);
 
-            expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
-                expect.objectContaining({ value: { current: 3, total: 5 } })
-            ]));
-        });
-
-        it('should update round memory (no event emission)', () => {
-            const ctx = createMockContext();
-            const behavior = new ReEntryBehavior({ totalRounds: 3, startRound: 1 });
-            behavior.onMount(ctx);
-
-            behavior.onNext(ctx);
-
-            // Round advancement is signaled by memory update, no event
-            expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
-                expect.objectContaining({ value: { current: 2, total: 3 } })
-            ]));
+            // onNext no longer advances rounds — ChildSelectionBehavior does that
+            expect(ctx.updateMemory).not.toHaveBeenCalled();
             expect(ctx.emitEvent).not.toHaveBeenCalled();
         });
     });

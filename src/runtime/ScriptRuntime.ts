@@ -107,6 +107,9 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Start the clock
         this.clock.start();
+
+        // Emit 'load' output with initial state
+        this.emitLoadOutput();
     }
 
     /**
@@ -155,6 +158,13 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
+
+        // Only emit 'event' output if it's NOT a tick event OR if it produced actions
+        // This prevents flooding the log with empty tick cycles
+        if (event.name !== 'tick' || actions.length > 0) {
+            this.emitEventOutput(event);
+        }
+
         if (actions.length === 0) return;
 
         this.doAll(actions);
@@ -279,6 +289,9 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Call before hooks
         this.options.hooks?.onBeforePush?.(block, parentBlock);
+
+        // Emit 'compiler' output for the new block
+        this.emitCompilerOutput(block);
 
         // Start tracking span
         const parentSpanId = parentBlock
@@ -491,6 +504,93 @@ export class ScriptRuntime implements IScriptRuntime {
         }
 
         return new TimeSpan(fallbackStartMs, Math.max(fallbackStartMs, fallbackEndMs));
+    }
+
+    private emitLoadOutput(): void {
+        const now = this.clock.now;
+
+        // Emit a load output each statement in the script
+        for (const stmt of this.script.statements) {
+            const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset);
+            const fragments: ICodeFragment[] = [
+                {
+                    fragmentType: FragmentType.Label,
+                    type: 'load',
+                    image: rawText || 'Statement',
+                    value: rawText,
+                    origin: 'runtime',
+                    timestamp: now
+                }
+            ];
+
+            const output = new OutputStatement({
+                outputType: 'load',
+                timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+                sourceBlockKey: 'root',
+                sourceStatementId: stmt.id,
+                stackLevel: 0,
+                fragments
+            });
+
+            this.addOutput(output);
+        }
+    }
+
+    private emitEventOutput(event: IEvent): void {
+        const now = this.clock.now;
+        const currentBlock = this.stack.current;
+        const blockKey = currentBlock?.key.toString() ?? 'root';
+
+        const fragments: ICodeFragment[] = [
+            {
+                fragmentType: FragmentType.System,
+                type: 'event',
+                image: `event: ${event.name}`,
+                value: {
+                    name: event.name,
+                    data: event.data,
+                    // source removed as it's not on IEvent
+                    blockKey
+                },
+                origin: 'runtime',
+                timestamp: now
+            }
+        ];
+
+        const output = new OutputStatement({
+            outputType: 'event',
+            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+            sourceBlockKey: blockKey,
+            stackLevel: this.stack.count,
+            fragments
+        });
+
+        this.addOutput(output);
+    }
+
+    private emitCompilerOutput(block: IRuntimeBlock): void {
+        // Emit behavior configuration/compiler info
+        const now = this.clock.now;
+        const fragments: ICodeFragment[] = [
+            {
+                fragmentType: FragmentType.Label,
+                type: 'compiler',
+                image: `Behaviors: ${block.behaviors.map(b => b.constructor.name).join(', ')}`,
+                value: block.behaviors.map(b => b.constructor.name),
+                origin: 'runtime',
+                timestamp: now
+            }
+        ];
+
+        const output = new OutputStatement({
+            outputType: 'compiler',
+            timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+            sourceBlockKey: block.key.toString(),
+            stackLevel: this.stack.count, // technically it's about to be pushed, so maybe count + 1? or current count is fine as pre-push
+            fragments
+        });
+
+        this.addOutput(output);
     }
 }
 

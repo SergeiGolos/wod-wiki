@@ -83,7 +83,10 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
   switch (col.id) {
     case FIXED_COLUMN_IDS.INDEX:
       return (
-        <td className="py-1 pl-3 pr-2 text-muted-foreground font-mono text-xs w-10 text-right">
+        <td
+          className={`py-1 pl-3 pr-2 font-mono text-xs w-10 text-right ${outputTypeBadgeClass(row.outputType)}`}
+          title={`Type: ${row.outputType}\nBlock: ${row.sourceBlockKey}`}
+        >
           {row.index}
         </td>
       );
@@ -139,6 +142,13 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
         </td>
       );
 
+    case FIXED_COLUMN_IDS.TIMESTAMP:
+      return (
+        <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-24 whitespace-nowrap">
+          {formatTimestamp(row.spans?.[0]?.started)}
+        </td>
+      );
+
     case FIXED_COLUMN_IDS.COMPLETION_REASON:
       return (
         <td className="py-1 px-2 text-muted-foreground text-xs truncate max-w-[120px]" title={row.completionReason}>
@@ -158,16 +168,18 @@ function outputTypeBadgeClass(type: string): string {
   switch (type) {
     case 'segment':
       return 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200';
-    case 'completion':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200';
     case 'milestone':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200';
-    case 'label':
-      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200';
-    case 'metric':
-      return 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200';
     case 'system':
       return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+    case 'event':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200';
+    case 'group':
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200';
+    case 'load':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200';
+    case 'compiler':
+      return 'bg-pink-100 text-pink-800 dark:bg-pink-900/50 dark:text-pink-200';
     default:
       return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
   }
@@ -196,17 +208,28 @@ function formatDuration(ms: number): string {
 function formatSpans(spans?: { started: number; ended?: number }[], durationMs: number = 0): string {
   if (!spans || spans.length === 0) return '';
 
-  // If duration is 0 and we have at least one span, show it as a timestamp
-  if (durationMs === 0 && spans.length > 0) {
-    const first = spans[0];
-    return formatDuration(first.started * 1000);
+  const format = (ms: number) => formatDuration(ms);
+
+  if (durationMs === 0) {
+    // Instantaneous event
+    return format(spans[0].started);
   }
 
-  // Otherwise show the bracket across all spans
-  const first = spans[0];
-  const last = spans[spans.length - 1];
-  const start = formatDuration(first.started * 1000);
-  const end = last.ended !== undefined ? formatDuration(last.ended * 1000) : '...';
+  // Span range
+  const start = formatDuration(spans[0].started);
+  const end = spans[spans.length - 1].ended !== undefined
+    ? formatDuration(spans[spans.length - 1].ended!)
+    : '...';
 
   return `${start} — ${end}`;
+}
+
+function formatTimestamp(timestamp?: number): string {
+  if (timestamp === undefined) return '';
+  const date = new Date(timestamp);
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  const s = date.getSeconds().toString().padStart(2, '0');
+  const ms = date.getMilliseconds().toString().padStart(3, '0');
+  return `${h}:${m}:${s}.${ms}`;
 }

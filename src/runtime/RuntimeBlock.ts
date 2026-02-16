@@ -14,6 +14,7 @@ import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
 import { OutputStatement } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
+import { PopBlockAction } from './actions/stack/PopBlockAction';
 
 /**
  * RuntimeBlock represents an executable unit in the workout runtime.
@@ -311,6 +312,14 @@ export class RuntimeBlock implements IRuntimeBlock {
                     actions.push(...result);
                 }
             }
+        }
+
+        // Auto-pop: if any behavior marked the block complete during this
+        // next() chain and no PopBlockAction was already queued, add one.
+        // This eliminates the need for every completion behavior to return
+        // its own PopBlockAction and prevents ordering-dependent misses.
+        if (this._isComplete && !actions.some(a => a.type === 'pop-block')) {
+            actions.push(new PopBlockAction());
         }
 
         // Dispose the temporary context to clean up any subscriptions

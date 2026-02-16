@@ -161,9 +161,9 @@ describe('Performance Integration', () => {
             }
 
             // Check output count is reasonable (not growing unbounded)
-            // 1 segment + 1 milestone on mount + 1 milestone per advance
+            // 1 milestone on mount + 1 milestone per advance = 10001
             expect(runtime.events.length).toBe(0); // No internal events emitted
-            expect(runtime.outputs.length).toBe(10002);
+            expect(runtime.outputs.length).toBe(10001);
         });
     });
 

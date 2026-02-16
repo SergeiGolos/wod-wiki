@@ -13,6 +13,7 @@ import {
     advanceBehaviors,
     unmountBehaviors,
     simulateTicks,
+    simulateRoundAdvance,
     calculateElapsed,
     findEvents,
     findOutputs,
@@ -99,6 +100,7 @@ describe('AMRAP Pattern Integration', () => {
 
             // Complete several rounds (user advances)
             for (let i = 0; i < 10; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 
@@ -115,7 +117,9 @@ describe('AMRAP Pattern Integration', () => {
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             // Complete a few rounds
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             // Simulate time passing beyond the cap
@@ -130,9 +134,11 @@ describe('AMRAP Pattern Integration', () => {
 
             // Advance at various time points
             runtime.clock.advance(5000);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             runtime.clock.advance(8000);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const round = block.memory.get('round') as RoundState;
@@ -172,7 +178,9 @@ describe('AMRAP Pattern Integration', () => {
             const behaviors = createAmrapBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const milestones = findOutputs(runtime, 'milestone');
@@ -190,6 +198,7 @@ describe('AMRAP Pattern Integration', () => {
 
             // Complete 4 rounds
             for (let i = 0; i < 4; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 
@@ -241,7 +250,9 @@ describe('AMRAP Pattern Integration', () => {
             const behaviors = createAmrapBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const roundDisplay = getRoundDisplay(block);

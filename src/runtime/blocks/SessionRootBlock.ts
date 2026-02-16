@@ -45,17 +45,18 @@ export interface SessionRootConfig {
  *
  * ## Behavior Chain Order
  *
- * - ReportOutputBehavior (output on mount/unmount)
+ * Behaviors are order-independent for correctness. ChildSelectionBehavior
+ * handles round advancement internally, and RuntimeBlock.next() auto-pops
+ * when any behavior marks the block complete.
+ *
  * - TimerBehavior (elapsed workout timer)
- * - ReEntryBehavior (if multi-round)
- * - RoundsEndBehavior
- * - LabelingBehavior (includes round display when round memory is present)
- * - ChildSelectionBehavior (looping when multi-round)
+ * - ChildSelectionBehavior (child dispatch + round advancement)
+ * - ReEntryBehavior (round initialization on mount)
  * - WaitingToStartInjectorBehavior (pushes WaitingToStart gate on mount)
- * - ChildSelectionBehavior (pushes children in sequence, skipOnMount)
- * - RoundsEndBehavior (single-round sessions pop when children are done)
- * - LabelingBehavior
- * - ButtonBehavior
+ * - RoundsEndBehavior (safety net for completion)
+ * - ReportOutputBehavior (output on mount/unmount)
+ * - LabelingBehavior (display)
+ * - ButtonBehavior (controls)
  * - HistoryRecordBehavior (records session on unmount)
  */
 export class SessionRootBlock extends RuntimeBlock {
@@ -91,11 +92,6 @@ export class SessionRootBlock extends RuntimeBlock {
         const sessionLabel = config.label ?? 'Session';
 
         // =====================================================================
-        // Output Aspect - Segment tracking
-        // =====================================================================
-        behaviors.push(new ReportOutputBehavior({ label: sessionLabel }));
-
-        // =====================================================================
         // Time Aspect - Track total session elapsed time
         // =====================================================================
         behaviors.push(new TimerBehavior({
@@ -105,7 +101,22 @@ export class SessionRootBlock extends RuntimeBlock {
         }));
 
         // =====================================================================
+        // Children Aspect - Execute child blocks
+        // skipOnMount: true because WaitingToStartInjectorBehavior handles
+        // the first mount push. Child selection begins on the first onNext()
+        // (triggered when WaitingToStart pops).
+        // Also handles round advancement when cycling — self-contained.
+        // =====================================================================
+        behaviors.push(new ChildSelectionBehavior({
+            childGroups: config.childGroups,
+            loop: totalRounds > 1 ? { condition: 'rounds-remaining' } : false,
+            skipOnMount: true
+        }));
+
+        // =====================================================================
         // Iteration Aspect - If multi-round workout
+        // Initializes round state on mount. Round advancement is handled
+        // by ChildSelectionBehavior — no ordering dependency.
         // =====================================================================
         behaviors.push(new ReEntryBehavior({
             totalRounds,
@@ -120,21 +131,14 @@ export class SessionRootBlock extends RuntimeBlock {
         behaviors.push(new WaitingToStartInjectorBehavior(runtime));
 
         // =====================================================================
-        // Children Aspect - Execute child blocks
-        // skipOnMount: true because WaitingToStartInjectorBehavior handles
-        // the first mount push. Child selection begins on the first onNext()
-        // (triggered when WaitingToStart pops).
-        // =====================================================================
-        behaviors.push(new ChildSelectionBehavior({
-            childGroups: config.childGroups,
-            loop: totalRounds > 1 ? { condition: 'rounds-remaining' } : false,
-            skipOnMount: true
-        }));
-
-        // =====================================================================
         // Completion Aspect - Unified rounds/session completion
         // =====================================================================
         behaviors.push(new RoundsEndBehavior());
+
+        // =====================================================================
+        // Output Aspect - Segment tracking
+        // =====================================================================
+        behaviors.push(new ReportOutputBehavior({ label: sessionLabel }));
 
         // =====================================================================
         // Display Aspect

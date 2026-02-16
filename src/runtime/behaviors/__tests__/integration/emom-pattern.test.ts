@@ -12,6 +12,7 @@ import {
     mountBehaviors,
     advanceBehaviors,
     simulateTicks,
+    simulateRoundAdvance,
     findEvents,
     findOutputs,
     MockRuntime,
@@ -83,6 +84,7 @@ describe('EMOM Pattern Integration', () => {
             const behaviors = createEmomBehaviors(60000, 5);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const round = block.memory.get('round') as RoundState;
@@ -93,8 +95,11 @@ describe('EMOM Pattern Integration', () => {
             const behaviors = createEmomBehaviors(60000, 3);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 2
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 3
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 4 > 3 -> complete
 
             expect(runtime.completionReason).toBe('rounds-exhausted');
@@ -139,7 +144,9 @@ describe('EMOM Pattern Integration', () => {
             const behaviors = createEmomBehaviors(60000, 10);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             expectRoundDisplay(block, 'Round 3 of 10');
@@ -151,7 +158,9 @@ describe('EMOM Pattern Integration', () => {
             const behaviors = createEmomBehaviors(60000, 5);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const milestones = findOutputs(runtime, 'milestone');
@@ -163,6 +172,7 @@ describe('EMOM Pattern Integration', () => {
             const behaviors = createEmomBehaviors(60000, 5);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             // Round advancement is signaled by memory update, not event
@@ -177,6 +187,7 @@ describe('EMOM Pattern Integration', () => {
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             // First advance should complete
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             expect(runtime.completionReason).toBe('rounds-exhausted');
@@ -186,8 +197,11 @@ describe('EMOM Pattern Integration', () => {
             const behaviors = createEmomBehaviors(1000, 3); // 1 second intervals
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             // Should complete after 3 advances

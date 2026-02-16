@@ -68,9 +68,9 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const displayFragments = this.collectDisplayFragments(ctx);
-        const stateFragments = this.collectStateFragments(ctx);
-        const baseFragments = this.mergeFragments(displayFragments, stateFragments);
+        // Collect fragments for result memory, but do NOT emit completion output here.
+        // The runtime handles segment emission on pop.
+        // baseFragments was only used for completion output, which is removed.
 
         const timer = ctx.getMemory('timer') as TimerState | undefined;
         const shouldComputeTimerResults = this.config.computeTimerResults ?? true;
@@ -79,11 +79,6 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             : [new SystemTimeFragment(new Date(), ctx.block.key.toString())];
 
         this.writeResultMemory(ctx, resultFragments);
-
-        ctx.emitOutput('completion', [...baseFragments, ...resultFragments], {
-            label: this.formatLabel(ctx),
-            completionReason: ctx.block.completionReason,
-        });
 
         return [];
     }

@@ -8,13 +8,14 @@ import { resolveFragmentPrecedence, ORIGIN_PRECEDENCE } from '../utils/fragmentP
  * Output statement types indicating what kind of result this represents.
  *
  * - 'segment': A timed portion of execution (e.g., a round, an effort interval)
- * - 'completion': Block finished executing normally
  * - 'milestone': A notable event during execution (e.g., halfway point, personal record)
- * - 'label': Display-only output (e.g., "Rest" indicator, phase markers)
- * - 'metric': Recorded statistic (e.g., total reps, average pace)
  * - 'system': Debug/diagnostic output from lifecycle events (push, pop, next, event-action)
+ * - 'event': Tracks external stimuli or internal triggers (e.g., 'next', 'timer')
+ * - 'group': Identified segment with children
+ * - 'load': Initial script state
+ * - 'compiler': Behavior configuration and setup
  */
-export type OutputStatementType = 'segment' | 'completion' | 'milestone' | 'label' | 'metric' | 'system';
+export type OutputStatementType = 'segment' | 'milestone' | 'system' | 'event' | 'group' | 'load' | 'compiler';
 
 /**
  * IOutputStatement extends ICodeStatement to represent runtime-generated output.

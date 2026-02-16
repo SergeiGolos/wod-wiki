@@ -136,4 +136,5 @@ export const FIXED_COLUMN_IDS = {
   TOTAL: 'total',
   SPANS: 'spans',
   COMPLETION_REASON: 'completionReason',
+  TIMESTAMP: 'timestamp',
 } as const;

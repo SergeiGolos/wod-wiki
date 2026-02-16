@@ -7,6 +7,8 @@ import { UpdateNextPreviewAction } from '../actions/stack/UpdateNextPreviewActio
 import { ChildrenStatusState, RoundState, TimerState } from '../memory/MemoryTypes';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { RestBlock } from '../blocks/RestBlock';
+import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
+import { FragmentType } from '../../core/models/CodeFragment';
 
 export type ChildSelectionLoopCondition = 'always' | 'timer-active' | 'rounds-remaining';
 
@@ -129,11 +131,19 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
         if (this.childIndex >= this.totalChildren) {
             if (!this.shouldLoop(ctx)) {
-                const actions = [this.createNextPreview(ctx)];
+                // All children done, no more loops — mark block complete.
+                // RuntimeBlock.next() auto-pop ensures the block is popped.
                 this.writeChildrenStatus(ctx);
-                return actions;
+                ctx.markComplete(
+                    this.isLoopEnabled() ? 'rounds-exhausted' : 'children-complete'
+                );
+                return [this.createNextPreview(ctx)];
             }
 
+            // Cycle complete — advance round counter directly before
+            // resetting for the next cycle. This keeps round tracking
+            // self-contained: no dependency on ReEntryBehavior ordering.
+            this.advanceRound(ctx);
             this.childIndex = 0;
 
             if (this.shouldInjectRest(ctx)) {
@@ -160,10 +170,6 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
     onDispose(_ctx: IBehaviorContext): void {
         this.restState = 'idle';
-    }
-
-    prepareForNextCycle(): void {
-        this.dispatchedOnLastNext = false;
     }
 
     get allChildrenExecuted(): boolean {
@@ -224,7 +230,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         if (round.total === undefined) {
             return true;
         }
-        return round.current <= round.total;
+        return round.current < round.total;
     }
 
     private shouldInjectRest(ctx: IBehaviorContext): boolean {
@@ -269,6 +275,44 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         };
 
         ctx.setMemory('children:status', status);
+    }
+
+    /**
+     * Advance the round counter in block memory.
+     *
+     * Called by this behavior when a complete cycle of children finishes
+     * and shouldLoop() returns true. This keeps round tracking
+     * self-contained within ChildSelectionBehavior — no dependency on
+     * ReEntryBehavior's onNext() or behavior execution ordering.
+     *
+     * Also refreshes the promoted fragment (fragment:promote) so that
+     * child blocks compiled by CompileChildBlockAction in the same
+     * onNext() cycle see the updated round value. Without this,
+     * FragmentPromotionBehavior (which may have already run earlier in
+     * the behavior chain) would leave a stale round in fragment:promote.
+     */
+    private advanceRound(ctx: IBehaviorContext): void {
+        const round = ctx.getMemory('round') as RoundState | undefined;
+        if (!round) return;
+
+        const roundFragment = new CurrentRoundFragment(
+            round.current + 1,
+            round.total,
+            ctx.block.key.toString(),
+            ctx.clock.now,
+        );
+
+        ctx.updateMemory('round', [roundFragment]);
+
+        // Refresh promoted fragment so child blocks compiled in this
+        // cycle see the updated round, regardless of behavior ordering.
+        const promoteLocations = ctx.block.getMemoryByTag('fragment:promote');
+        if (promoteLocations.length > 0) {
+            const otherFragments = promoteLocations[0].fragments.filter(
+                f => f.fragmentType !== FragmentType.CurrentRound
+            );
+            ctx.updateMemory('fragment:promote', [...otherFragments, roundFragment]);
+        }
     }
 
     private createNextPreview(ctx: IBehaviorContext, nextGroup?: number[]): UpdateNextPreviewAction {

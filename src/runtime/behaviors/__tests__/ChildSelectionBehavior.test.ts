@@ -118,6 +118,8 @@ describe('ChildSelectionBehavior', () => {
         behavior.onMount(ctx);
         const actions = behavior.onNext(ctx);
 
+        // Timer expired + loop enabled → marks complete
+        expect(ctx.markComplete).toHaveBeenCalledWith('rounds-exhausted');
         expect(actions.length).toBe(1);
         expect(actions[0].type).toBe('update-next-preview');
     });

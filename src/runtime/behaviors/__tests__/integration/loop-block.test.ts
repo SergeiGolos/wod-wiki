@@ -26,7 +26,9 @@ import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
+import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
 import { RoundState } from '../../../memory/MemoryTypes';
+import { CurrentRoundFragment } from '../../../compiler/fragments/CurrentRoundFragment';
 
 describe('Loop Block Integration', () => {
     let runtime: MockRuntime;
@@ -36,6 +38,24 @@ describe('Loop Block Integration', () => {
         runtime = createMockRuntime(0);
         block = createMockBlock({ label: 'Loop Test' });
     });
+
+    /**
+     * Helper: simulate a round advancement by updating round memory directly.
+     * In the real runtime, ChildSelectionBehavior.advanceRound() does this
+     * when a cycle of children completes. For these unit-integration tests
+     * we drive it manually.
+     */
+    function simulateRoundAdvance(ctx: IBehaviorContext) {
+        const round = ctx.getMemory('round') as RoundState | undefined;
+        if (!round) return;
+        const frag = new CurrentRoundFragment(
+            round.current + 1,
+            round.total,
+            'test-block',
+            ctx.clock.now,
+        );
+        ctx.updateMemory('round', [frag]);
+    }
 
     describe('Round Tracking', () => {
         const createLoopBehaviors = (totalRounds: number = 5) => [
@@ -60,6 +80,7 @@ describe('Loop Block Integration', () => {
             const behaviors = createLoopBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const round = block.memory.get('round') as RoundState;
@@ -71,9 +92,9 @@ describe('Loop Block Integration', () => {
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             // Advance through all rounds
-            advanceBehaviors(behaviors, ctx); // Round 2
-            advanceBehaviors(behaviors, ctx); // Round 3
-            advanceBehaviors(behaviors, ctx); // Round 4 > total 3 -> complete
+            simulateRoundAdvance(ctx); advanceBehaviors(behaviors, ctx); // Round 2
+            simulateRoundAdvance(ctx); advanceBehaviors(behaviors, ctx); // Round 3
+            simulateRoundAdvance(ctx); advanceBehaviors(behaviors, ctx); // Round 4 > total 3 -> complete
 
             expect(runtime.completionReason).toBe('rounds-exhausted');
         });
@@ -88,6 +109,7 @@ describe('Loop Block Integration', () => {
 
             // Advance many times
             for (let i = 0; i < 100; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 
@@ -101,6 +123,7 @@ describe('Loop Block Integration', () => {
             const behaviors = createLoopBehaviors(5);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 2
 
             expectRoundDisplay(block, 'Round 2 of 5');
@@ -119,6 +142,7 @@ describe('Loop Block Integration', () => {
             const behaviors = createLoopBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             // Round advancement is signaled by memory update, not event
@@ -130,6 +154,7 @@ describe('Loop Block Integration', () => {
             const behaviors = createLoopBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const milestones = findOutputs(runtime, 'milestone');
@@ -140,7 +165,9 @@ describe('Loop Block Integration', () => {
             const behaviors = createLoopBehaviors(2);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 2
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 3 > 2, complete
             unmountBehaviors(behaviors, ctx);
 
@@ -157,7 +184,9 @@ describe('Loop Block Integration', () => {
             const behaviors = createLoopBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
             unmountBehaviors(behaviors, ctx);
 
@@ -197,6 +226,7 @@ describe('Loop Block Integration', () => {
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             const roundDisplay = getRoundDisplay(block);

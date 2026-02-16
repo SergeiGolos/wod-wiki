@@ -1,4 +1,5 @@
 
+
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 
 import { ICodeFragment } from '../core/models/CodeFragment';
@@ -94,17 +95,17 @@ export class AnalyticsTransformer {
       // convert to seconds for the Segment interface.
       const spans = output.spans.length > 0
         ? output.spans.map(s => ({
-            started: s.started / 1000,
-            ended: s.ended !== undefined ? s.ended / 1000 : undefined,
-          }))
+          started: s.started / 1000,
+          ended: s.ended !== undefined ? s.ended / 1000 : undefined,
+        }))
         : undefined;
 
       // Compute relative spans (offset from workout start) for display
       const relativeSpans = output.spans.length > 0
         ? output.spans.map(s => ({
-            started: (s.started - startTime) / 1000,
-            ended: s.ended !== undefined ? (s.ended - startTime) / 1000 : undefined,
-          }))
+          started: (s.started - startTime) / 1000,
+          ended: s.ended !== undefined ? (s.ended - startTime) / 1000 : undefined,
+        }))
         : undefined;
 
       return {

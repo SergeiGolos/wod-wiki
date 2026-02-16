@@ -12,6 +12,7 @@ import {
     advanceBehaviors,
     unmountBehaviors,
     simulateTicks,
+    simulateRoundAdvance,
     dispatchEvent,
     MockRuntime,
     MockBlock
@@ -94,7 +95,9 @@ describe('Edge Cases Integration', () => {
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             // Complete only 2 rounds
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             // Then timer expires
@@ -114,7 +117,9 @@ describe('Edge Cases Integration', () => {
             const ctx = mountBehaviors(behaviors, runtime, block);
 
             // Complete rounds before timer
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 2
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 3 > 2 -> complete
 
             expect(runtime.completionReason).toBe('rounds-exhausted');
@@ -131,6 +136,7 @@ describe('Edge Cases Integration', () => {
 
             // Rapid-fire 50 advances
             for (let i = 0; i < 50; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 
@@ -145,17 +151,21 @@ describe('Edge Cases Integration', () => {
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Round 2
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx); // Complete
 
-            // Additional advances after completion
+            // Additional advances after completion (RoundsEndBehavior guards with isComplete)
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
+            simulateRoundAdvance(ctx);
             advanceBehaviors(behaviors, ctx);
 
             // Should still be complete
             expect(runtime.completionReason).toBe('rounds-exhausted');
 
-            // Round may continue incrementing (behavior doesn't check isComplete)
+            // Round continues incrementing via simulateRoundAdvance
             const round = block.memory.get('round') as RoundState;
             expect(round.current).toBeGreaterThanOrEqual(4);
         });
@@ -221,6 +231,7 @@ describe('Edge Cases Integration', () => {
 
             // Advance 1000 times
             for (let i = 0; i < 1000; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 
@@ -277,7 +288,9 @@ describe('Edge Cases Integration', () => {
             ];
             const ctx1 = mountBehaviors(behaviors1, runtime, block);
 
+            simulateRoundAdvance(ctx1);
             advanceBehaviors(behaviors1, ctx1);
+            simulateRoundAdvance(ctx1);
             advanceBehaviors(behaviors1, ctx1);
 
             // Now remount - ReEntryBehavior may overwrite

@@ -13,6 +13,8 @@ import { MemoryType, MemoryTypeMap, TimerState, RoundState, DisplayState } from 
 import { TimeSpan } from '../../../models/TimeSpan';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../../memory/MemoryLocation';
 import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
+import { CurrentRoundFragment } from '../../../compiler/fragments/CurrentRoundFragment';
+import { RoundState } from '../../../memory/MemoryTypes';
 
 /**
  * Mock clock for deterministic time control in tests.
@@ -434,4 +436,24 @@ export function expectRoundDisplay(block: MockBlock, expected: string): void {
     const roundDisplay = getRoundDisplay(block);
     expect(roundDisplay).toBeDefined();
     expect(roundDisplay).toBe(expected);
+}
+
+/**
+ * Simulates a round advancement by updating round memory directly.
+ * 
+ * In the real runtime, ChildSelectionBehavior.advanceRound() does this
+ * when a cycle of children completes. For unit-integration tests that
+ * compose behaviors without ChildSelectionBehavior, call this before
+ * advanceBehaviors() to simulate what ChildSelectionBehavior would do.
+ */
+export function simulateRoundAdvance(ctx: IBehaviorContext): void {
+    const round = ctx.getMemory('round') as RoundState | undefined;
+    if (!round) return;
+    const frag = new CurrentRoundFragment(
+        round.current + 1,
+        round.total,
+        'test-block',
+        ctx.clock.now,
+    );
+    ctx.updateMemory('round', [frag]);
 }

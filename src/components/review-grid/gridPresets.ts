@@ -55,7 +55,7 @@ export const DEFAULT_PRESET: GridViewPreset = {
   id: 'default',
   label: 'Default',
   filters: {
-    outputTypes: ['segment', 'completion', 'metric', 'milestone'],
+    outputTypes: ['segment', 'milestone', 'event', 'group'],
   },
   visibleColumns: DEFAULT_VISIBLE_COLUMNS,
   isDefault: true,
@@ -118,7 +118,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     filterable: true,
     graphable: false,
     isGraphed: false,
-    visible: true,
+    visible: false,
   },
   {
     id: FIXED_COLUMN_IDS.OUTPUT_TYPE,
@@ -127,7 +127,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     filterable: true,
     graphable: false,
     isGraphed: false,
-    visible: true,
+    visible: false,
   },
   {
     id: FIXED_COLUMN_IDS.STACK_LEVEL,
@@ -155,6 +155,24 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: true,
     isGraphed: false,
     visible: true,
+  },
+  {
+    id: FIXED_COLUMN_IDS.SPANS, // Renamed label to Time
+    label: 'Time',
+    sortable: true,
+    filterable: false,
+    graphable: false,
+    isGraphed: false,
+    visible: true,
+  },
+  {
+    id: FIXED_COLUMN_IDS.TIMESTAMP,
+    label: 'Timestamp',
+    sortable: true,
+    filterable: false,
+    graphable: false,
+    isGraphed: false,
+    visible: false, // debug-only
   },
   {
     id: FIXED_COLUMN_IDS.TOTAL,
@@ -198,15 +216,66 @@ export function buildFragmentColumns(preset: GridViewPreset): GridColumn[] {
  * In debug mode, the stackLevel and completionReason columns become visible.
  */
 export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): GridColumn[] {
-  const fixed = FIXED_COLUMNS.map((col) => {
-    if (isDebugMode && (col.id === FIXED_COLUMN_IDS.STACK_LEVEL || col.id === FIXED_COLUMN_IDS.COMPLETION_REASON)) {
-      return { ...col, visible: true };
-    }
-    return { ...col };
-  });
+  // Helpers to find columns by ID or Type
+  const getFixed = (id: string) => FIXED_COLUMNS.find(c => c.id === id)!;
+  const getFragmentCol = (type: FragmentType) => {
+    const colDef = buildFragmentColumns(preset).find(c => c.fragmentType === type);
+    return colDef;
+  }
 
-  const fragment = buildFragmentColumns(preset);
-  return [...fixed, ...fragment];
+  const fragmentCols = buildFragmentColumns(preset);
+
+  // Define strict order based on mode
+  const order: GridColumn[] = [];
+
+  // 1. Index (#)
+  order.push(getFixed(FIXED_COLUMN_IDS.INDEX));
+
+  // 2. Time (Spans)
+  order.push(getFixed(FIXED_COLUMN_IDS.SPANS));
+
+  if (isDebugMode) {
+    // 3. System Timestamp (Debug Only)
+    order.push({ ...getFixed(FIXED_COLUMN_IDS.TIMESTAMP), visible: true });
+
+    // 4. System Fragment (Debug Only)
+    const sysCol = getFragmentCol(FragmentType.System);
+    if (sysCol) order.push({ ...sysCol, visible: true });
+  }
+
+  // 3/5. Effort / Text / Label (Primary Descriptors)
+  // We'll treat Effort and Text as primary.
+  const effortCol = getFragmentCol(FragmentType.Effort);
+  if (effortCol) order.push(effortCol);
+
+  const textCol = getFragmentCol(FragmentType.Text);
+  if (textCol) order.push(textCol);
+
+  // 4/6. Elapsed
+  order.push(getFixed(FIXED_COLUMN_IDS.ELAPSED));
+
+  // 5/7. Total
+  order.push(getFixed(FIXED_COLUMN_IDS.TOTAL));
+
+  // 6/8. Duration
+  order.push(getFixed(FIXED_COLUMN_IDS.DURATION));
+
+  // 7/9. Remaining Metrics (Timer, Rep, Rounds, Distance, etc.)
+  // Filter out columns we've already added or explicitly excluded
+  const addedIds = new Set(order.map(c => c.id));
+  const remainingFragments = fragmentCols.filter(c => !addedIds.has(c.id));
+
+  order.push(...remainingFragments);
+
+  // Debug extras (Stack Level, Completion Reason) - append at end? or mixed in?
+  // User said "Notes at the end" for debug, but we put Text early. 
+  // Let's add the other debug fixed columns at the end.
+  if (isDebugMode) {
+    order.push({ ...getFixed(FIXED_COLUMN_IDS.STACK_LEVEL), visible: true });
+    order.push({ ...getFixed(FIXED_COLUMN_IDS.COMPLETION_REASON), visible: true });
+  }
+
+  return order;
 }
 
 /**

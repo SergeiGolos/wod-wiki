@@ -98,10 +98,12 @@ export class RestBlock extends RuntimeBlock {
         }));
 
         // =====================================================================
-        // Completion Aspect - User can skip rest or acknowledge completion
+        // Completion Aspect - Rest should end on timer completion.
+        // Ignore generic next events to prevent accidental fast-skipping
+        // (e.g., rapid user/input next events during EMOM).
         // =====================================================================
         behaviors.push(new LeafExitBehavior({
-            onNext: true,
+            onNext: false,
             onEvents: ['timer:complete']
         }));
 
