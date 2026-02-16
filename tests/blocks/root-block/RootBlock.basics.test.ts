@@ -2,8 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
 import {
-    TimerInitBehavior,
-    TimerPauseBehavior,
+    TimerBehavior,
     ChildRunnerBehavior,
     DisplayInitBehavior,
     ButtonBehavior,
@@ -29,8 +28,7 @@ describe('RootBlock Behavior Composition', () => {
         });
 
         // Expectations: All core behaviors present
-        expect(rootBlock.getBehavior(TimerInitBehavior)).toBeDefined();
-        expect(rootBlock.getBehavior(TimerPauseBehavior)).toBeDefined();
+        expect(rootBlock.getBehavior(TimerBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ChildRunnerBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(DisplayInitBehavior)).toBeDefined();
         expect(rootBlock.getBehavior(ButtonBehavior)).toBeDefined();

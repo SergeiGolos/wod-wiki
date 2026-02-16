@@ -10,7 +10,6 @@ import { BlockBuilder } from '../BlockBuilder';
 
 // Specific behaviors not covered by aspect composers
 import {
-    TimerInitBehavior,
     PopOnNextBehavior,
     PopOnEventBehavior,
     DisplayInitBehavior,

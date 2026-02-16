@@ -3,9 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { SessionRootStrategy } from '../SessionRootStrategy';
 import { SessionRootConfig } from '../../../blocks/SessionRootBlock';
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerPauseBehavior,
+    TimerBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
@@ -96,9 +94,7 @@ describe('SessionRootStrategy', () => {
             const block = strategy.build(harness.runtime, config);
 
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerTickBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerPauseBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildRunnerBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();

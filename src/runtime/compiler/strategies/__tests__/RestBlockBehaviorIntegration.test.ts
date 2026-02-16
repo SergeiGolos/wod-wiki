@@ -14,7 +14,7 @@ import { HistoryStrategy } from '../enhancements/HistoryStrategy';
 import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 import {
-    TimerInitBehavior,
+    TimerBehavior,
     TimerCompletionBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
@@ -99,7 +99,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(TimerInitBehavior)).toBeDefined();
+            expect(block!.getBehavior(TimerBehavior)).toBeDefined();
             expect(block!.getBehavior(TimerCompletionBehavior)).toBeDefined();
             expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
         });
@@ -205,7 +205,7 @@ describe('Phase 3: Strategy RestBlockBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(TimerInitBehavior)).toBeDefined();
+            expect(block!.getBehavior(TimerBehavior)).toBeDefined();
             expect(block!.getBehavior(TimerCompletionBehavior)).toBeDefined();
             expect(block!.getBehavior(RestBlockBehavior)).toBeDefined();
         });

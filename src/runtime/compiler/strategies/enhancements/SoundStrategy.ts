@@ -6,7 +6,7 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 // New aspect-based behaviors
 import {
     SoundCueBehavior,
-    TimerInitBehavior
+    TimerBehavior
 } from "../../../behaviors";
 import { TimerState } from "../../../memory/MemoryTypes";
 
@@ -33,10 +33,10 @@ export class SoundStrategy implements IRuntimeBlockStrategy {
         }
 
         // Check if we have a timer behavior to determine sound cues
-        const timerBehavior = builder.getBehavior(TimerInitBehavior);
+        const timerBehavior = builder.getBehavior(TimerBehavior);
 
         if (timerBehavior) {
-            // Access the config from TimerInitBehavior
+            // Access the config from TimerBehavior
             const config = (timerBehavior as any).config as { direction: TimerState['direction']; durationMs?: number } | undefined;
             const direction = config?.direction ?? 'up';
             const durationMs = config?.durationMs;

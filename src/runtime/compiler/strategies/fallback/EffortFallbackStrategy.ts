@@ -9,7 +9,6 @@ import { BlockKey } from "@/core/models/BlockKey";
 // Specific behaviors not covered by aspect composers
 import { PopOnNextBehavior } from "../../../behaviors/PopOnNextBehavior";
 import { SegmentOutputBehavior } from "../../../behaviors/SegmentOutputBehavior";
-import { TimerInitBehavior } from "../../../behaviors/TimerInitBehavior";
 
 /**
  * Helper to extract optional content from code statement.

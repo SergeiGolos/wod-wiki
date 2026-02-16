@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
-import { TimerInitBehavior, RoundInitBehavior, SoundCueBehavior } from '@/runtime/behaviors';
+import { TimerBehavior, RoundInitBehavior, SoundCueBehavior } from '@/runtime/behaviors';
 
 describe('IntervalLogicStrategy', () => {
   it('should compile "1:00 EMOM 10" to an Interval block', () => {
@@ -18,7 +18,7 @@ describe('IntervalLogicStrategy', () => {
     expect(block.label).toBe('EMOM 10');
 
     // Now uses aspect-based behaviors
-    expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
+    expect(block.getBehavior(TimerBehavior)).toBeDefined();
     expect(block.getBehavior(RoundInitBehavior)).toBeDefined();
     expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
   });

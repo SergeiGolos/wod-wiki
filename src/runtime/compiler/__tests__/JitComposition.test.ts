@@ -16,7 +16,7 @@ import { CodeMetadata } from "@/core/models/CodeMetadata";
 
 // Import new aspect-based behaviors for tests
 import { 
-    TimerInitBehavior,
+    TimerBehavior,
     RoundInitBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
@@ -80,8 +80,8 @@ describe("JIT Composition", () => {
         expect(block.label).toContain("10 min");
 
         // Check Behaviors - now using aspect-based behaviors
-        // AMRAP should have TimerInitBehavior (direction: 'up') and RoundInitBehavior (unbounded)
-        const timer = block.getBehavior(TimerInitBehavior);
+        // AMRAP should have TimerBehavior (direction: 'up') and RoundInitBehavior (unbounded)
+        const timer = block.getBehavior(TimerBehavior);
         expect(timer).toBeDefined();
 
         const round = block.getBehavior(RoundInitBehavior);
@@ -112,8 +112,8 @@ describe("JIT Composition", () => {
 
         expect(block.blockType).toBe("EMOM");
 
-        // Timer should use TimerInitBehavior
-        const timer = block.getBehavior(TimerInitBehavior);
+        // Timer should use TimerBehavior
+        const timer = block.getBehavior(TimerBehavior);
         expect(timer).toBeDefined();
 
         // Should have SoundCueBehavior (added by SoundStrategy)
@@ -134,7 +134,7 @@ describe("JIT Composition", () => {
 
         expect(block).toBeDefined();
         expect(block?.blockType).toBe("Timer");
-        expect(block?.getBehavior(TimerInitBehavior)).toBeDefined();
+        expect(block?.getBehavior(TimerBehavior)).toBeDefined();
         expect(block?.getBehavior(SoundCueBehavior)).toBeDefined();
     });
 

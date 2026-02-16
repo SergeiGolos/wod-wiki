@@ -10,7 +10,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 // TimerInitBehavior and RoundInitBehavior are imported for type-checking purposes only
 // to detect if higher-priority strategies have already set the block identity
 import {
-    TimerInitBehavior,
+    TimerBehavior,
     RoundInitBehavior,
     DisplayInitBehavior,
     HistoryRecordBehavior
@@ -32,7 +32,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // If we have Timer or Loop behaviors, the identity is already set (Timer/Rounds/AMRAP/EMOM).
-        if (builder.hasBehavior(TimerInitBehavior) ||
+        if (builder.hasBehavior(TimerBehavior) ||
             builder.hasBehavior(RoundInitBehavior)) {
             return;
         }

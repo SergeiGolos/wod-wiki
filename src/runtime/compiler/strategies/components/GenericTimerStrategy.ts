@@ -10,7 +10,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 
 // Specific behaviors not covered by aspect composers
 import {
-    TimerInitBehavior,
+    TimerBehavior,
     DisplayInitBehavior,
     PopOnNextBehavior,
     SoundCueBehavior,
@@ -38,7 +38,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // Skip if timer behaviors already added by higher-priority strategy
-        if (builder.hasBehavior(TimerInitBehavior)) {
+        if (builder.hasBehavior(TimerBehavior)) {
             return;
         }
 

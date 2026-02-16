@@ -16,6 +16,8 @@ export { CompletionTimestampBehavior } from './CompletionTimestampBehavior';
 // ============================================================================
 // Time Aspect
 // ============================================================================
+export { TimerBehavior } from './TimerBehavior';
+export type { TimerConfig } from './TimerBehavior';
 export { TimerInitBehavior } from './TimerInitBehavior';
 export type { TimerInitConfig } from './TimerInitBehavior';
 export { TimerTickBehavior } from './TimerTickBehavior';

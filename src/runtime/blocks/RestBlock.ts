@@ -9,8 +9,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 // Aspect-based behaviors
 import {
     SegmentOutputBehavior,
-    TimerInitBehavior,
-    TimerTickBehavior,
+    TimerBehavior,
     TimerCompletionBehavior,
     PopOnNextBehavior,
     DisplayInitBehavior,
@@ -36,15 +35,14 @@ export interface RestBlockConfig {
  * ## Lifecycle
  *
  * 1. Mount: Emits 'segment' output with rest label and duration, starts countdown timer
- * 2. Timer counts down automatically via TimerTickBehavior
+ * 2. Timer counts down via TimerBehavior state updates
  * 3. TimerCompletionBehavior marks complete when elapsed >= durationMs
  * 4. Unmount: Emits 'completion' output, plays rest-over sound cue
  *
  * ## Behavior Chain
  *
  * - SegmentOutputBehavior (output on mount/unmount)
- * - TimerInitBehavior (countdown timer)
- * - TimerTickBehavior (tick subscription)
+ * - TimerBehavior (countdown timer + pause/resume state)
  * - TimerCompletionBehavior (auto-complete when timer expires)
  * - DisplayInitBehavior (show rest countdown)
  * - SoundCueBehavior (beep on unmount for rest-over signal)
@@ -89,13 +87,12 @@ export class RestBlock extends RuntimeBlock {
         // =====================================================================
         // Time Aspect - Countdown timer
         // =====================================================================
-        behaviors.push(new TimerInitBehavior({
+        behaviors.push(new TimerBehavior({
             direction: 'down',
             durationMs: config.durationMs,
             label: restLabel,
             role: 'primary'
         }));
-        behaviors.push(new TimerTickBehavior());
         behaviors.push(new TimerCompletionBehavior());
 
         // =====================================================================

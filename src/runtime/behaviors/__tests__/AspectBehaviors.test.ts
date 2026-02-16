@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'bun:test';
-import { TimerInitBehavior } from '../TimerInitBehavior';
+import { TimerBehavior } from '../TimerBehavior';
 import { TimerCompletionBehavior } from '../TimerCompletionBehavior';
 import { RoundInitBehavior } from '../RoundInitBehavior';
 import { RoundAdvanceBehavior } from '../RoundAdvanceBehavior';
@@ -54,10 +54,10 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
 }
 
 describe('Time Aspect Behaviors', () => {
-    describe('TimerInitBehavior', () => {
+    describe('TimerBehavior', () => {
         it('should initialize timer state on mount', () => {
              const ctx = createMockContext();
-            const behavior = new TimerInitBehavior({
+            const behavior = new TimerBehavior({
                 direction: 'down',
                 durationMs: 30000,
                 label: 'Work Timer'
@@ -78,7 +78,7 @@ describe('Time Aspect Behaviors', () => {
 
         it('should initialize timer memory with open span (signals timer started)', () => {
             const ctx = createMockContext();
-            const behavior = new TimerInitBehavior({ direction: 'up' });
+            const behavior = new TimerBehavior({ direction: 'up' });
 
             behavior.onMount(ctx);
 
@@ -355,11 +355,11 @@ describe('Output Aspect Behaviors', () => {
         });
     });
 
-    describe('TimerPauseBehavior', () => {
+    describe('TimerBehavior pause/resume', () => {
         it('should subscribe to pause and resume events', async () => {
-            const { TimerPauseBehavior } = await import('../TimerPauseBehavior');
+            const { TimerBehavior } = await import('../TimerBehavior');
             const ctx = createMockContext();
-            const behavior = new TimerPauseBehavior();
+            const behavior = new TimerBehavior({ direction: 'up' });
 
             behavior.onMount(ctx);
 

@@ -11,7 +11,7 @@ import {
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
-    TimerInitBehavior,
+    TimerBehavior,
     TimerCompletionBehavior,
     PopOnNextBehavior,
     CompletedBlockPopBehavior,
@@ -47,7 +47,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         const childGroups = children.filter(group => group.length > 0);
 
         // Check if we have a timer (for AMRAP-style unbounded looping)
-        const hasTimer = builder.hasBehavior(TimerInitBehavior);
+        const hasTimer = builder.hasBehavior(TimerBehavior);
         // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
         const hasRoundsFromStrategy = builder.hasBehavior(RoundInitBehavior);

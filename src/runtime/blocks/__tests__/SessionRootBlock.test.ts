@@ -3,9 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { SessionRootBlock, SessionRootConfig } from '../SessionRootBlock';
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerPauseBehavior,
+    TimerBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
@@ -43,9 +41,7 @@ describe('SessionRootBlock', () => {
 
             // Core behaviors present
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerTickBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerPauseBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildRunnerBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
@@ -207,8 +203,8 @@ describe('SessionRootBlock', () => {
                 totalRounds: 1
             }, harness.runtime);
 
-            // Expected: Segment(1) + Timer(3) + WaitingToStartInjector(1) + Children(1) + SessionCompletion(1) + Display(1) + Controls(1) + History(1) = 10
-            expect(behaviors.length).toBe(10);
+            // Expected: Segment(1) + Timer(1) + WaitingToStartInjector(1) + Children(1) + SessionCompletion(1) + Display(1) + Controls(1) + History(1) = 8
+            expect(behaviors.length).toBe(8);
         });
 
         it('should return correct behavior count for multi-round', () => {
@@ -217,8 +213,8 @@ describe('SessionRootBlock', () => {
                 totalRounds: 3
             }, harness.runtime);
 
-            // Expected: Segment(1) + Timer(3) + Round(4) + ChildLoop(1) + WaitingToStartInjector(1) + Children(1) + Display(1) + Controls(1) + History(1) = 14
-            expect(behaviors.length).toBe(14);
+            // Expected: Segment(1) + Timer(1) + Round(4) + ChildLoop(1) + WaitingToStartInjector(1) + Children(1) + Display(1) + Controls(1) + History(1) = 12
+            expect(behaviors.length).toBe(12);
         });
     });
 });

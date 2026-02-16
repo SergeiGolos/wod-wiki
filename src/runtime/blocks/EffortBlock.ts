@@ -7,9 +7,8 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
-import { TimerInitBehavior } from '../behaviors/TimerInitBehavior';
+import { TimerBehavior } from '../behaviors/TimerBehavior';
 import { DisplayInitBehavior } from '../behaviors/DisplayInitBehavior';
-import { TimerPauseBehavior } from '../behaviors/TimerPauseBehavior';
 
 
 /**
@@ -115,12 +114,11 @@ export class EffortBlock extends RuntimeBlock {
     }));
     this.behaviors.push(completionBehavior);
     // Timer aspect - countup timer for segment timing
-    this.behaviors.push(new TimerInitBehavior({
+    this.behaviors.push(new TimerBehavior({
       direction: 'up',
       label: 'Segment Timer',
       role: 'secondary'
     }));
-    this.behaviors.push(new TimerPauseBehavior());
   }
 
   mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[] {

@@ -2,9 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { WorkoutRootStrategy, WorkoutRootConfig } from '../WorkoutRootStrategy';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerPauseBehavior,
+    TimerBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
@@ -55,9 +53,7 @@ describe('WorkoutRootStrategy', () => {
             const behaviors = (block as any).behaviors;
 
             // Check required behavior types are present (new aspect-based behaviors)
-            expect(behaviors.some((b: any) => b instanceof TimerInitBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerTickBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerPauseBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof DisplayInitBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ButtonBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
@@ -107,8 +103,8 @@ describe('WorkoutRootStrategy', () => {
             const block = strategy.build(mockRuntime, config);
             const behaviors = (block as any).behaviors;
 
-            // Expected: Timer (3) + Children (1) + Display (1) + Controls (1) + History (1) + Universal (2) = 9
-            expect(behaviors.length).toBe(9);
+            // Expected: Timer (1) + Children (1) + Display (1) + Controls (1) + History (1) + Universal (2) = 7
+            expect(behaviors.length).toBe(7);
         });
     });
 

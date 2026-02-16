@@ -4,8 +4,7 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { RestBlock, RestBlockConfig } from '../RestBlock';
 import {
     SegmentOutputBehavior,
-    TimerInitBehavior,
-    TimerTickBehavior,
+    TimerBehavior,
     TimerCompletionBehavior,
     DisplayInitBehavior,
     SoundCueBehavior
@@ -29,8 +28,7 @@ describe('RestBlock', () => {
             const block = new RestBlock(harness.runtime, config);
 
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerTickBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerBehavior)).toBeDefined();
             expect(block.getBehavior(TimerCompletionBehavior)).toBeDefined();
             expect(block.getBehavior(DisplayInitBehavior)).toBeDefined();
             expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
@@ -146,8 +144,8 @@ describe('RestBlock', () => {
         it('should return correct behavior count', () => {
             const behaviors = RestBlock.buildBehaviors({ durationMs: 60000 });
 
-            // Expected: Segment(1) + Timer(3) + PopOnNext(1) + Display(1) + Sound(1) = 7
-            expect(behaviors.length).toBe(7);
+            // Expected: Segment(1) + Timer(1) + TimerCompletion(1) + PopOnNext(1) + Display(1) + Sound(1) = 6
+            expect(behaviors.length).toBe(6);
         });
     });
 });

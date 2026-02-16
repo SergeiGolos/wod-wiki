@@ -4,9 +4,7 @@ import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerPauseBehavior,
+    TimerBehavior,
     TimerCompletionBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
@@ -45,10 +43,8 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have TimerInit, TimerTick, TimerPause, TimerCompletion
-            expect(behaviors.some((b: any) => b instanceof TimerInitBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerTickBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerPauseBehavior)).toBe(true);
+            // Should have TimerBehavior and TimerCompletion
+            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof TimerCompletionBehavior)).toBe(true);
         });
 
@@ -71,9 +67,7 @@ describe('BlockBuilder Aspect Composers', () => {
             // Should NOT have TimerCompletion
             expect(behaviors.some((b: any) => b instanceof TimerCompletionBehavior)).toBe(false);
             // Should still have the other timer behaviors
-            expect(behaviors.some((b: any) => b instanceof TimerInitBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerTickBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerPauseBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
         });
 
         it('should pass completionConfig to TimerCompletionBehavior', () => {
@@ -248,7 +242,7 @@ describe('BlockBuilder Aspect Composers', () => {
             // Should have universal behaviors PLUS aspect behaviors
             expect(behaviors.some((b: any) => b instanceof ReentryCounterBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
         });
     });
@@ -270,7 +264,7 @@ describe('BlockBuilder Aspect Composers', () => {
             const behaviors = (block as any).behaviors;
 
             // Should have all three aspects
-            expect(behaviors.some((b: any) => b instanceof TimerInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof RoundInitBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildRunnerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildLoopBehavior)).toBe(true);
@@ -292,7 +286,7 @@ describe('BlockBuilder Aspect Composers', () => {
             const behaviors = (block as any).behaviors;
 
             // Should have timer aspect behaviors AND the manually added behavior
-            expect(behaviors.some((b: any) => b instanceof TimerInitBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof DisplayInitBehavior)).toBe(true);
         });
     });

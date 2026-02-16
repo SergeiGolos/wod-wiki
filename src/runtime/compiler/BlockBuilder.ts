@@ -9,10 +9,8 @@ import { MemoryLocation } from "../memory/MemoryLocation";
 import {
     ReentryCounterBehavior,
     CompletionTimestampBehavior,
-    TimerInitBehavior, TimerInitConfig,
-    TimerTickBehavior,
+    TimerBehavior, TimerConfig,
     TimerCompletionBehavior, TimerCompletionConfig,
-    TimerPauseBehavior,
     RoundInitBehavior, RoundInitConfig,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
@@ -131,16 +129,14 @@ export class BlockBuilder {
      * @param config Timer configuration
      * @returns This builder for chaining
      */
-    asTimer(config: TimerInitConfig & { addCompletion?: boolean; completionConfig?: TimerCompletionConfig }): BlockBuilder {
+    asTimer(config: TimerConfig & { addCompletion?: boolean; completionConfig?: TimerCompletionConfig }): BlockBuilder {
         // Time Aspect behaviors
-        this.addBehavior(new TimerInitBehavior({
+        this.addBehavior(new TimerBehavior({
             direction: config.direction,
             durationMs: config.durationMs,
             label: config.label,
             role: config.role
         }));
-        this.addBehavior(new TimerTickBehavior());
-        this.addBehavior(new TimerPauseBehavior());
 
         // Optional completion behavior
         if (config.addCompletion !== false) {

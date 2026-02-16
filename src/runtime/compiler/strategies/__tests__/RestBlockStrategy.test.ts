@@ -3,8 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { RestBlockStrategy } from '../components/RestBlockStrategy';
 import {
     SegmentOutputBehavior,
-    TimerInitBehavior,
-    TimerTickBehavior,
+    TimerBehavior,
     TimerCompletionBehavior,
     DisplayInitBehavior,
     SoundCueBehavior
@@ -59,7 +58,7 @@ describe('RestBlockStrategy', () => {
                 durationMs: 60000
             });
 
-            const timer = block.getBehavior(TimerInitBehavior);
+            const timer = block.getBehavior(TimerBehavior);
             expect(timer).toBeDefined();
         });
 
@@ -86,16 +85,10 @@ describe('RestBlockStrategy', () => {
             expect(block.getBehavior(SegmentOutputBehavior)).toBeDefined();
         });
 
-        it('should include TimerInitBehavior (countdown)', () => {
+        it('should include TimerBehavior (countdown)', () => {
             const block = strategy.build(harness.runtime, { durationMs: 30000 });
 
-            expect(block.getBehavior(TimerInitBehavior)).toBeDefined();
-        });
-
-        it('should include TimerTickBehavior', () => {
-            const block = strategy.build(harness.runtime, { durationMs: 30000 });
-
-            expect(block.getBehavior(TimerTickBehavior)).toBeDefined();
+            expect(block.getBehavior(TimerBehavior)).toBeDefined();
         });
 
         it('should include TimerCompletionBehavior', () => {

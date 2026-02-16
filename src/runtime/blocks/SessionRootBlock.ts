@@ -8,9 +8,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 
 // Aspect-based behaviors
 import {
-    TimerInitBehavior,
-    TimerTickBehavior,
-    TimerPauseBehavior,
+    TimerBehavior,
     RoundInitBehavior,
     RoundAdvanceBehavior,
     RoundCompletionBehavior,
@@ -52,9 +50,7 @@ export interface SessionRootConfig {
  * ## Behavior Chain Order
  *
  * - SegmentOutputBehavior (output on mount/unmount)
- * - TimerInitBehavior (elapsed workout timer)
- * - TimerTickBehavior
- * - TimerPauseBehavior
+ * - TimerBehavior (elapsed workout timer)
  * - RoundInitBehavior (if multi-round)
  * - RoundAdvanceBehavior (if multi-round)
  * - RoundCompletionBehavior (if multi-round)
@@ -107,13 +103,11 @@ export class SessionRootBlock extends RuntimeBlock {
         // =====================================================================
         // Time Aspect - Track total session elapsed time
         // =====================================================================
-        behaviors.push(new TimerInitBehavior({
+        behaviors.push(new TimerBehavior({
             direction: 'up',
             label: sessionLabel,
             role: 'auto'
         }));
-        behaviors.push(new TimerTickBehavior());
-        behaviors.push(new TimerPauseBehavior());
 
         // =====================================================================
         // Iteration Aspect - If multi-round workout
