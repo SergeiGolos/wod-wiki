@@ -34,13 +34,13 @@ export class TimerBehavior implements IRuntimeBehavior {
             role,
         };
 
-        ctx.pushMemory('timer', [this.createTimerFragment(ctx, timerState)]);
+        ctx.pushMemory('time', [this.createTimerFragment(ctx, timerState)]);
 
         this.subscriptions.push(
             ctx.subscribe('timer:pause' as any, (_event, pauseCtx) => {
                 if (this.isPaused) return [];
 
-                const timer = pauseCtx.getMemory('timer') as TimerState | undefined;
+                const timer = pauseCtx.getMemory('time') as TimerState | undefined;
                 if (!timer || timer.spans.length === 0) return [];
 
                 const pausedState: TimerState = {
@@ -48,7 +48,7 @@ export class TimerBehavior implements IRuntimeBehavior {
                     spans: this.closeCurrentSpan(timer.spans, pauseCtx.clock.now.getTime()),
                 };
 
-                pauseCtx.updateMemory('timer', [this.createTimerFragment(pauseCtx, pausedState)]);
+                pauseCtx.updateMemory('time', [this.createTimerFragment(pauseCtx, pausedState)]);
                 this.isPaused = true;
                 return [];
             })
@@ -58,7 +58,7 @@ export class TimerBehavior implements IRuntimeBehavior {
             ctx.subscribe('timer:resume' as any, (_event, resumeCtx) => {
                 if (!this.isPaused) return [];
 
-                const timer = resumeCtx.getMemory('timer') as TimerState | undefined;
+                const timer = resumeCtx.getMemory('time') as TimerState | undefined;
                 if (!timer) return [];
 
                 const resumedState: TimerState = {
@@ -66,7 +66,7 @@ export class TimerBehavior implements IRuntimeBehavior {
                     spans: [...timer.spans, new TimeSpan(resumeCtx.clock.now.getTime())],
                 };
 
-                resumeCtx.updateMemory('timer', [this.createTimerFragment(resumeCtx, resumedState)]);
+                resumeCtx.updateMemory('time', [this.createTimerFragment(resumeCtx, resumedState)]);
                 this.isPaused = false;
                 return [];
             })
@@ -76,7 +76,7 @@ export class TimerBehavior implements IRuntimeBehavior {
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
         if (!timer || timer.spans.length === 0) return [];
 
         if (this.isPaused) {
@@ -89,12 +89,12 @@ export class TimerBehavior implements IRuntimeBehavior {
             spans: [...this.closeCurrentSpan(timer.spans, nowMs), new TimeSpan(nowMs)],
         };
 
-        ctx.updateMemory('timer', [this.createTimerFragment(ctx, resetState)]);
+        ctx.updateMemory('time', [this.createTimerFragment(ctx, resetState)]);
         return [];
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
         if (!timer || timer.spans.length === 0) {
             return [];
         }
@@ -106,7 +106,7 @@ export class TimerBehavior implements IRuntimeBehavior {
             spans: closedSpans,
         };
 
-        ctx.updateMemory('timer', [this.createTimerFragment(ctx, closedState)]);
+        ctx.updateMemory('time', [this.createTimerFragment(ctx, closedState)]);
 
         const elapsed = calculateElapsed(closedState, nowMs);
         const firstStart = closedSpans[0].started;
@@ -143,8 +143,8 @@ export class TimerBehavior implements IRuntimeBehavior {
 
     private createTimerFragment(ctx: IBehaviorContext, timer: TimerState): ICodeFragment {
         return {
-            fragmentType: FragmentType.Timer,
-            type: 'timer',
+            fragmentType: FragmentType.Time,
+            type: 'time',
             image: this.formatDuration(timer.durationMs),
             origin: 'runtime',
             value: timer,

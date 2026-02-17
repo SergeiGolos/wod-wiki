@@ -99,9 +99,9 @@ describe('RuntimeBlock Lifecycle', () => {
         });
 
         it('should dispose memory entries', () => {
-            const timerLoc = new MemoryLocation('timer', [{
-                fragmentType: FragmentType.Timer,
-                type: 'timer',
+            const timerLoc = new MemoryLocation('time', [{
+                fragmentType: FragmentType.Duration,
+                type: 'duration',
                 image: '',
                 origin: 'runtime',
                 value: { direction: 'up', spans: [] },
@@ -111,7 +111,7 @@ describe('RuntimeBlock Lifecycle', () => {
 
             block.unmount(runtime);
             expect(disposeSpy).toHaveBeenCalled();
-            expect(block.hasMemory('timer')).toBe(false);
+            expect(block.hasMemory('time')).toBe(false);
         });
 
         it('should handle unmount without event handler cleanup (no per-block handlers)', () => {

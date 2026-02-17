@@ -20,7 +20,7 @@ export class TimerPauseBehavior implements IRuntimeBehavior {
         ctx.subscribe('timer:pause' as any, (_event, pauseCtx) => {
             if (this.isPaused) return [];
 
-            const timer = pauseCtx.getMemory('timer') as TimerState | undefined;
+            const timer = pauseCtx.getMemory('time') as TimerState | undefined;
             if (!timer) return [];
 
             // Close current span
@@ -32,7 +32,7 @@ export class TimerPauseBehavior implements IRuntimeBehavior {
                 return span;
             });
 
-            pauseCtx.setMemory('timer', {
+            pauseCtx.setMemory('time', {
                 ...timer,
                 spans: updatedSpans
             });
@@ -47,14 +47,14 @@ export class TimerPauseBehavior implements IRuntimeBehavior {
         ctx.subscribe('timer:resume' as any, (_event, resumeCtx) => {
             if (!this.isPaused) return [];
 
-            const timer = resumeCtx.getMemory('timer') as TimerState | undefined;
+            const timer = resumeCtx.getMemory('time') as TimerState | undefined;
             if (!timer) return [];
 
             // Open new span
             const now = resumeCtx.clock.now.getTime();
             const updatedSpans = [...timer.spans, new TimeSpan(now)];
 
-            resumeCtx.setMemory('timer', {
+            resumeCtx.setMemory('time', {
                 ...timer,
                 spans: updatedSpans
             });

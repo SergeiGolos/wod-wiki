@@ -49,7 +49,7 @@ beforeEach(() => {
 describe('OutputStatement implements IFragmentSource', () => {
     it('should implement IFragmentSource interface', () => {
         const output = new OutputStatement(makeOptions([
-            frag(FragmentType.Timer, 'runtime', 45000),
+            frag(FragmentType.Duration, 'runtime', 45000),
         ]));
         // Type assertion — verifies compile-time conformance
         const source: IFragmentSource = output;
@@ -60,15 +60,15 @@ describe('OutputStatement implements IFragmentSource', () => {
     describe('getDisplayFragments', () => {
         it('should return all fragments with precedence resolution', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'parser', 600000),
-                frag(FragmentType.Timer, 'runtime', 432000),
+                frag(FragmentType.Duration, 'parser', 600000),
+                frag(FragmentType.Duration, 'runtime', 432000),
                 frag(FragmentType.Action, 'parser', 'Run'),
             ]));
             const result = output.getDisplayFragments();
 
             // Timer: runtime wins over parser. Action: only parser exists.
             expect(result).toHaveLength(2);
-            const timer = result.find(f => f.fragmentType === FragmentType.Timer);
+            const timer = result.find(f => f.fragmentType === FragmentType.Duration);
             expect(timer?.origin).toBe('runtime');
             expect(timer?.value).toBe(432000);
             const action = result.find(f => f.fragmentType === FragmentType.Action);
@@ -82,7 +82,7 @@ describe('OutputStatement implements IFragmentSource', () => {
 
         it('should apply type filter', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
                 frag(FragmentType.Rep, 'runtime'),
                 frag(FragmentType.Action, 'parser'),
             ]));
@@ -93,19 +93,19 @@ describe('OutputStatement implements IFragmentSource', () => {
 
         it('should apply excludeTypes filter', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
                 frag(FragmentType.Rep, 'runtime'),
                 frag(FragmentType.Action, 'parser'),
             ]));
-            const result = output.getDisplayFragments({ excludeTypes: [FragmentType.Timer] });
+            const result = output.getDisplayFragments({ excludeTypes: [FragmentType.Duration] });
             expect(result).toHaveLength(2);
-            expect(result.every(f => f.fragmentType !== FragmentType.Timer)).toBe(true);
+            expect(result.every(f => f.fragmentType !== FragmentType.Duration)).toBe(true);
         });
 
         it('should apply origin filter', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'parser', 'plan'),
-                frag(FragmentType.Timer, 'runtime', 'live'),
+                frag(FragmentType.Duration, 'parser', 'plan'),
+                frag(FragmentType.Duration, 'runtime', 'live'),
             ]));
             const result = output.getDisplayFragments({ origins: ['parser'] });
             expect(result).toHaveLength(1);
@@ -129,17 +129,17 @@ describe('OutputStatement implements IFragmentSource', () => {
     describe('getFragment', () => {
         it('should return highest precedence fragment for a type', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'parser', 'original'),
-                frag(FragmentType.Timer, 'runtime', 'elapsed'),
+                frag(FragmentType.Duration, 'parser', 'original'),
+                frag(FragmentType.Duration, 'runtime', 'elapsed'),
             ]));
-            const result = output.getFragment(FragmentType.Timer);
+            const result = output.getFragment(FragmentType.Duration);
             expect(result?.origin).toBe('runtime');
             expect(result?.value).toBe('elapsed');
         });
 
         it('should return undefined when no fragment of type exists', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
             ]));
             expect(output.getFragment(FragmentType.Rep)).toBeUndefined();
         });
@@ -171,7 +171,7 @@ describe('OutputStatement implements IFragmentSource', () => {
 
         it('should return empty array when type not found', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
             ]));
             expect(output.getAllFragmentsByType(FragmentType.Action)).toHaveLength(0);
         });
@@ -191,14 +191,14 @@ describe('OutputStatement implements IFragmentSource', () => {
     describe('hasFragment', () => {
         it('should return true when fragment type exists', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
             ]));
-            expect(output.hasFragment(FragmentType.Timer)).toBe(true);
+            expect(output.hasFragment(FragmentType.Duration)).toBe(true);
         });
 
         it('should return false when fragment type is absent', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
             ]));
             expect(output.hasFragment(FragmentType.Rep)).toBe(false);
         });
@@ -207,7 +207,7 @@ describe('OutputStatement implements IFragmentSource', () => {
     describe('rawFragments', () => {
         it('should return all fragments unfiltered', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
                 frag(FragmentType.Rep, 'user'),
                 frag(FragmentType.Action, 'parser'),
             ];
@@ -217,7 +217,7 @@ describe('OutputStatement implements IFragmentSource', () => {
 
         it('should return a copy, not the original array', () => {
             const output = new OutputStatement(makeOptions([
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'runtime'),
             ]));
             const raw = output.rawFragments;
             raw.push(frag(FragmentType.Rep, 'parser'));
@@ -249,8 +249,8 @@ describe('OutputStatement implements IFragmentSource', () => {
                 sourceBlockKey: 'timer-block-1',
                 stackLevel: 1,
                 fragments: [
-                    frag(FragmentType.Timer, 'parser', 600000),     // 10:00 plan
-                    frag(FragmentType.Timer, 'runtime', 443000),    // 7:23 actual
+                    frag(FragmentType.Duration, 'parser', 600000),     // 10:00 plan
+                    frag(FragmentType.Duration, 'runtime', 443000),    // 7:23 actual
                     frag(FragmentType.Action, 'parser', 'Run'),     // action unchanged
                     frag(FragmentType.Distance, 'parser', 2000),    // 2km plan
                     frag(FragmentType.Distance, 'runtime', 1850),   // 1.85km actual
@@ -260,7 +260,7 @@ describe('OutputStatement implements IFragmentSource', () => {
             const display = output.getDisplayFragments();
             expect(display).toHaveLength(3); // Timer(runtime), Action(parser), Distance(runtime)
 
-            const timer = output.getFragment(FragmentType.Timer);
+            const timer = output.getFragment(FragmentType.Duration);
             expect(timer?.value).toBe(443000); // runtime wins
 
             const action = output.getFragment(FragmentType.Action);

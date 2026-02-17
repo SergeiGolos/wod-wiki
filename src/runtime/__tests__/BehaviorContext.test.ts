@@ -27,6 +27,7 @@ function createMockBlock(label: string = 'Test Block'): IRuntimeBlock {
         dispose: vi.fn(),
         markComplete: vi.fn(),
         getBehavior: vi.fn(),
+        behaviors: [],
         hasMemory: vi.fn().mockReturnValue(false),
         getMemory: vi.fn().mockReturnValue(undefined),
         setMemoryValue: vi.fn(),
@@ -142,7 +143,7 @@ describe('BehaviorContext', () => {
     describe('emitOutput', () => {
         it('should create an output statement and add to runtime', () => {
             const fragment: ICodeFragment = {
-                fragmentType: FragmentType.Timer,
+                fragmentType: FragmentType.Duration,
                 image: '1:00',
                 origin: 'runtime',
                 type: 'test'
@@ -172,7 +173,7 @@ describe('BehaviorContext', () => {
 
         it('should tag fragments with sourceBlockKey if not provided', () => {
             const fragment: ICodeFragment = {
-                fragmentType: FragmentType.Timer,
+                fragmentType: FragmentType.Duration,
                 image: '2:00',
                 origin: 'runtime',
                 type: ''
@@ -221,7 +222,7 @@ describe('BehaviorContext', () => {
 
     describe('getMemory', () => {
         it('should return undefined when no memory exists', () => {
-            const result = ctx.getMemory('timer');
+            const result = ctx.getMemory('time');
             expect(result).toBeUndefined();
         });
 
@@ -236,7 +237,7 @@ describe('BehaviorContext', () => {
             };
             (block.getMemoryByTag as any).mockReturnValue([mockLocation]);
 
-            const result = ctx.getMemory('timer');
+            const result = ctx.getMemory('time');
             expect(result).toEqual({ elapsed: 1000 });
         });
     });

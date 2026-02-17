@@ -211,7 +211,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         }
 
         if (condition === 'timer-active') {
-            const timer = ctx.getMemory('timer') as TimerState | undefined;
+            const timer = ctx.getMemory('time') as TimerState | undefined;
             if (!timer) {
                 return false;
             }
@@ -238,7 +238,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return false;
         }
 
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return false;
         }
@@ -256,7 +256,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
     }
 
     private getRemainingCountdownMs(ctx: IBehaviorContext): number {
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return 0;
         }

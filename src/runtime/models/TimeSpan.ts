@@ -1,6 +1,15 @@
 /**
- * TimeSpan represents a discrete period of time within a larger execution span.
- * Multiple spans allow for pause/resume tracking.
+ * TimeSpan represents a discrete segment of a block's **Time** — a single
+ * start/stop recording within the spans collection.
+ *
+ * Multiple TimeSpans allow for pause/resume tracking.
+ *
+ * Note: The `.duration` getter computes the length of this individual span
+ * (end − start). This differs from the glossary term **Duration**, which
+ * refers to the parser-defined planned target. To avoid confusion, prefer
+ * the term "span length" when discussing individual span measurements.
+ *
+ * @see docs/architecture/time-terminology.md
  */
 export class TimeSpan {
     constructor(
@@ -20,8 +29,11 @@ export class TimeSpan {
     }
 
     /**
-     * Total duration of this span in milliseconds.
+     * Length of this individual span in milliseconds.
      * Uses current time if the span is still open.
+     *
+     * Note: Not to be confused with the glossary term "Duration" which
+     * refers to the parser-defined planned target (DurationFragment).
      */
     get duration(): number {
         const end = this.ended ?? Date.now();

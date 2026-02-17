@@ -25,7 +25,7 @@ export class HistoryRecordBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now.getTime();
 
         // Gather execution data
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
         const round = ctx.getMemory('round') as RoundState | undefined;
 
         const record: Record<string, unknown> = {

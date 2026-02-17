@@ -2,7 +2,7 @@
 // Contains both color mapping and icon mapping for fragment types
 
 export type FragmentType = 
-  | 'timer' 
+  | 'time' 
   | 'rep' 
   | 'effort' 
   | 'distance' 
@@ -27,7 +27,7 @@ export type FragmentColorMap = {
  * Each entry includes background, border, and text colors
  */
 export const fragmentColorMap: FragmentColorMap = {
-  timer: 'bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100',
+  time: 'bg-blue-100 border-blue-200 text-blue-800 dark:bg-blue-900/50 dark:border-blue-800 dark:text-blue-100',
   rep: 'bg-green-100 border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-100',
   effort: 'bg-yellow-100 border-yellow-200 text-yellow-800 dark:bg-yellow-900/50 dark:border-yellow-800 dark:text-yellow-100',
   distance: 'bg-teal-100 border-teal-200 text-teal-800 dark:bg-teal-900/50 dark:border-teal-800 dark:text-teal-100',
@@ -60,7 +60,7 @@ export function getFragmentColorClasses(type: string): string {
  * Icon/emoji map for each fragment type
  */
 const fragmentIconMap: Record<string, string> = {
-  'timer': '⏱️',
+  'time': '⏱️',
   'duration': '⏱️',
   'rounds': '🔄',
   'resistance': '💪',

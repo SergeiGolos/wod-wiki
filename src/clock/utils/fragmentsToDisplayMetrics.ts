@@ -100,7 +100,7 @@ function formatFragmentValue(fragment: ICodeFragment): string {
 
   // Handle different fragment types
   switch (fragment.fragmentType) {
-    case FragmentType.Timer:
+    case FragmentType.Duration:
     case FragmentType.Duration:
     case FragmentType.Elapsed:
     case FragmentType.Total:
@@ -155,7 +155,7 @@ function getFragmentUnit(fragment: ICodeFragment): string | undefined {
       return 'm';
     case FragmentType.Rounds:
       return 'rounds';
-    case FragmentType.Timer:
+    case FragmentType.Duration:
     case FragmentType.Duration:
     case FragmentType.Elapsed:
     case FragmentType.Total:

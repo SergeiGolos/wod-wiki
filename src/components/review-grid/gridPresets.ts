@@ -17,7 +17,7 @@ import { getFragmentIcon } from '@/views/runtime/fragmentColorMap';
  * Order here determines default column order in the grid.
  */
 export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
-  FragmentType.Timer,
+  FragmentType.Time,
   FragmentType.Effort,
   FragmentType.Rep,
   FragmentType.Rounds,
@@ -43,7 +43,7 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
  * Excludes System, Sound, Group which are typically noise.
  */
 const DEFAULT_VISIBLE_COLUMNS: FragmentType[] = [
-  FragmentType.Timer,
+  FragmentType.Time,
   FragmentType.Effort,
   FragmentType.Rep,
   FragmentType.Rounds,
@@ -102,7 +102,7 @@ export function getPreset(id: string): GridViewPreset {
 export const FIXED_COLUMNS: GridColumn[] = [
   {
     id: FIXED_COLUMN_IDS.TIMESTAMP,
-    label: 'Timestamp',
+    label: 'Timestamp',  // TimeStamp: system Date.now() when logged
     sortable: true,
     filterable: false,
     graphable: false,
@@ -111,7 +111,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
   },
   {
     id: FIXED_COLUMN_IDS.SPANS,
-    label: 'Time',
+    label: 'Time',  // Time: session-relative span ranges (:00 → 2:30)
     sortable: true,
     filterable: false,
     graphable: false,
@@ -156,7 +156,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
   },
   {
     id: FIXED_COLUMN_IDS.ELAPSED,
-    label: 'Elapsed',
+    label: 'Elapsed',  // Elapsed: Σ(end − start) active time only
     sortable: true,
     filterable: false,
     graphable: true,
@@ -165,7 +165,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
   },
   {
     id: FIXED_COLUMN_IDS.DURATION,
-    label: 'Duration',
+    label: 'Duration',  // Duration: parser-defined planned target
     sortable: true,
     filterable: false,
     graphable: true,
@@ -175,7 +175,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
 
   {
     id: FIXED_COLUMN_IDS.TOTAL,
-    label: 'Total',
+    label: 'Total',  // Total: wall-clock bracket including pauses
     sortable: true,
     filterable: false,
     graphable: true,
@@ -280,7 +280,7 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
  */
 function isNumericFragmentType(ft: FragmentType): boolean {
   switch (ft) {
-    case FragmentType.Timer:
+    case FragmentType.Time:
     case FragmentType.Rep:
     case FragmentType.Distance:
     case FragmentType.Rounds:

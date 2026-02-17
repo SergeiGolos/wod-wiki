@@ -2,6 +2,15 @@ import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/model
 import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
+/**
+ * @deprecated Use DurationFragment instead. TimerFragment is a legacy alias
+ * kept for backwards compatibility during the terminology migration.
+ * 
+ * This class produces a **Duration** fragment (how long to run),
+ * not runtime **Time** state (spans collection).
+ * 
+ * @see docs/architecture/time-terminology.md
+ */
 export class TimerFragment implements ICodeFragment {
   readonly value: number | undefined;
   readonly origin: FragmentOrigin;
@@ -72,7 +81,7 @@ export class TimerFragment implements ICodeFragment {
   readonly seconds: number;
   readonly original: number | undefined; // in ms
   readonly type: string = "duration";
-  readonly fragmentType = FragmentType.Timer;
+  readonly fragmentType = FragmentType.Duration;
   readonly behavior: MetricBehavior;
 
   /**

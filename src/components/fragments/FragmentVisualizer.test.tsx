@@ -11,8 +11,8 @@ describe('FragmentVisualizer Component Contract', () => {
       // This test will FAIL - component doesn't exist yet
       // When implemented, FragmentVisualizer should group fragments by fragmentType
       const mockFragments: ICodeFragment[] = [
-        { type: 'timer', fragmentType: 'timer' as FragmentType, value: '10:00' },
-        { type: 'timer', fragmentType: 'timer' as FragmentType, value: '5:00' },
+        { type: 'duration', fragmentType: 'duration' as FragmentType, value: '10:00' },
+        { type: 'duration', fragmentType: 'duration' as FragmentType, value: '5:00' },
         { type: 'rep', fragmentType: 'rep' as FragmentType, value: '10' },
         { type: 'action', fragmentType: 'action' as FragmentType, value: 'push-ups' },
       ];
@@ -49,8 +49,8 @@ describe('FragmentVisualizer Component Contract', () => {
     it('should display individual fragment values within groups', () => {
       // This test will FAIL - component doesn't exist yet
       const mockFragment: ICodeFragment = {
-        type: 'timer',
-        fragmentType: 'timer' as FragmentType,
+        type: 'duration',
+        fragmentType: 'duration' as FragmentType,
         value: '10:00',
       };
 
@@ -68,7 +68,7 @@ describe('FragmentVisualizer Component Contract', () => {
       // This test will FAIL - component doesn't exist yet
       // Should use gray color for unknown types
       const unknownType = 'unknown';
-      expect(unknownType).not.toBe('timer');
+      expect(unknownType).not.toBe('duration');
     });
   });
 

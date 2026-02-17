@@ -70,7 +70,7 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
       );
       const hasChildren = statement.children && statement.children.length > 0;
       const hasTimerOrRounds = statement.fragments.some(
-        f => f.fragmentType === FragmentType.Timer || f.fragmentType === FragmentType.Rounds
+        f => f.fragmentType === FragmentType.Duration || f.fragmentType === FragmentType.Rounds
       );
       const isHeader = hasChildren && hasTimerOrRounds;
 

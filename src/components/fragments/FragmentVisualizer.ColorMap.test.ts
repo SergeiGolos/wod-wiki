@@ -5,7 +5,7 @@ describe('Visual Fragment Colors Test Suite', () => {
   describe('fragmentColorMap constant', () => {
     it('should have color classes for all 10 fragment types', () => {
       const expectedTypes = [
-        'timer', 'rep', 'effort', 'distance', 'rounds',
+        'time', 'rep', 'effort', 'distance', 'rounds',
         'action', 'increment', 'lap', 'text', 'resistance'
       ];
 
@@ -26,7 +26,7 @@ describe('Visual Fragment Colors Test Suite', () => {
 
   describe('getFragmentColorClasses function', () => {
     it('should return correct color classes for all 10 fragment types', () => {
-      expect(getFragmentColorClasses('timer')).toContain('blue');
+      expect(getFragmentColorClasses('time')).toContain('blue');
       expect(getFragmentColorClasses('rep')).toContain('green');
       expect(getFragmentColorClasses('effort')).toContain('yellow');
       expect(getFragmentColorClasses('distance')).toContain('teal');

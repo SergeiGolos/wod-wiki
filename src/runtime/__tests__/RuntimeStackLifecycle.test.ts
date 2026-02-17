@@ -52,6 +52,7 @@ const createBlock = (
     }),
     dispose: vi.fn(() => callOrder.push(`${label}.dispose`)),
     getBehavior: vi.fn().mockReturnValue(undefined),
+    behaviors: [],
     isComplete: false,
     markComplete: vi.fn(),
   };

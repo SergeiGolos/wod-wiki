@@ -113,7 +113,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
 
     function createFragment(tag: string, value: unknown): ICodeFragment {
         return {
-            fragmentType: FragmentType.Timer,
+            fragmentType: FragmentType.Duration,
             type: tag,
             image: '',
             origin: 'runtime',
@@ -125,7 +125,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
         const block = new RuntimeBlock(runtime);
         block.pushMemory(new MemoryLocation('fragment:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('fragment:label', [createFragment('label', 'My Block')]));
-        block.pushMemory(new MemoryLocation('timer', [createFragment('timer', { direction: 'up' })]));
+        block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
 
         const display = block.getFragmentMemoryByVisibility('display');
         expect(display).toHaveLength(1);
@@ -156,7 +156,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
 
     it('should return empty array when no matching tier exists', () => {
         const block = new RuntimeBlock(runtime);
-        block.pushMemory(new MemoryLocation('timer', [createFragment('timer', { direction: 'up' })]));
+        block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
         block.pushMemory(new MemoryLocation('round', [createFragment('round', { current: 1 })]));
 
         expect(block.getFragmentMemoryByVisibility('display')).toEqual([]);

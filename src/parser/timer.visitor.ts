@@ -9,7 +9,7 @@ import { RepFragment } from "../runtime/compiler/fragments/RepFragment";
 import { ResistanceFragment } from "../runtime/compiler/fragments/ResistanceFragment";
 import { DistanceFragment } from "../runtime/compiler/fragments/DistanceFragment";
 import { RoundsFragment } from "../runtime/compiler/fragments/RoundsFragment";
-import { TimerFragment } from "../runtime/compiler/fragments/TimerFragment";
+import { DurationFragment } from "../runtime/compiler/fragments/DurationFragment";
 import { TextFragment } from "../runtime/compiler/fragments/TextFragment";
 import { MdTimerParse } from "./timer.parser";
 import { ICodeStatement, ParsedCodeStatement } from "../core/models/CodeStatement";
@@ -250,19 +250,19 @@ export class MdTimerInterpreter extends BaseCstVisitor {
     }
   }
 
-  duration(ctx: any): TimerFragment[] {
+  duration(ctx: any): DurationFragment[] {
     const forceCountUp = !!ctx.countUpModifier;
 
     // Handle collectible timer (:?)
     if (ctx.CollectibleTimer) {
       const meta = this.getMeta([ctx.CollectibleTimer[0]]);
-      return [new TimerFragment(':?', meta, forceCountUp)];
+      return [new DurationFragment(':?', meta, forceCountUp)];
     }
 
     // Handle regular timer
     const meta = this.getMeta([ctx.Timer[0]]);
     try {
-      return [new TimerFragment(ctx.Timer[0].image, meta, forceCountUp)];
+      return [new DurationFragment(ctx.Timer[0].image, meta, forceCountUp)];
     } catch (e: any) {
       this.addError(e.message, meta);
       return [];

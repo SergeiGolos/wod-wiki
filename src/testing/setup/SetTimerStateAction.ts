@@ -63,8 +63,8 @@ export class SetTimerStateAction implements ITestSetupAction {
       return;
     }
 
-    // Try 'timer:state' then 'timer'
-    const entry = block.getMemory('timer:state' as any) || block.getMemory('timer' as any);
+    // Try 'time:state' then 'time'
+    const entry = block.getMemory('time:state' as any) || block.getMemory('time' as any);
 
     if (entry) {
       const currentValue = entry.value;

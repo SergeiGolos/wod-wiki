@@ -66,6 +66,7 @@ function createMockBlock(options: {
         markComplete: vi.fn(),
 
         getBehavior: vi.fn().mockReturnValue(undefined),
+        behaviors: [],
 
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockImplementation((tag: string) => {

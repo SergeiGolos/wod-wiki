@@ -61,7 +61,7 @@ describe('RootBlock Integration: Complete Workout', () => {
         // Expectations
         const childSelection = rootBlock.getBehavior(ChildSelectionBehavior)!;
         expect(childSelection.allChildrenExecuted).toBe(true);
-        expect(rootBlock.getMemory('timer')).toBeDefined();
+        expect(rootBlock.getMemory('time')).toBeDefined();
         expect(harness.mockJit.compileCalls).toHaveLength(2);
         
         harness.dispose();
@@ -214,7 +214,7 @@ describe('RootBlock Integration: Complete Workout', () => {
         mountActions.forEach(a => a.do(harness.runtime));
 
         // Expectations: Timer initialized in memory
-        expect(rootBlock.getMemory('timer')).toBeDefined();
+        expect(rootBlock.getMemory('time')).toBeDefined();
 
         // Simulate pause
         harness.dispatchEvent({

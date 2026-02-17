@@ -138,7 +138,7 @@ describe('SessionRootBlock', () => {
             // WaitingToStart is now pushed on mount, so we check timer memory
             // on the SessionRoot block directly (second from top)
             const sessionRoot = harness.runtime.stack.blocks[harness.runtime.stack.count - 1];
-            const timerMemory = sessionRoot?.getMemory?.('timer');
+            const timerMemory = sessionRoot?.getMemory?.('time');
             // Timer memory is on the SessionRoot block, not the top of stack
             // The harness.getMemory checks the top block (WaitingToStart), which has no timer
             // Verify SessionRoot has timer by checking block directly

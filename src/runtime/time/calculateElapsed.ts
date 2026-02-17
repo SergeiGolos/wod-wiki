@@ -1,17 +1,21 @@
 import { TimerState } from '../memory/MemoryTypes';
 
 /**
- * Calculates total elapsed time from timer spans.
+ * Calculates **Elapsed** time from timer spans.
  *
- * Iterates the span list, summing (end - start) for each span.
+ * Iterates the span list, summing (end − start) for each span.
  * Open spans (no `ended`) use `now` as the end timestamp.
  *
- * This is the canonical elapsed time computation — all behaviors
- * that need pause-aware elapsed should use this function.
+ * This is the canonical Elapsed computation — all behaviors
+ * that need pause-aware active time should use this function.
  *
- * @param timer The timer state containing spans
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - **Elapsed** = Σ(end − start) per span (this function)
+ * - **Total** = lastEnd − firstStart (computed elsewhere)
+ *
+ * @param timer The timer state containing the Time spans
  * @param now Current timestamp in milliseconds for open spans
- * @returns Total elapsed time in milliseconds
+ * @returns Elapsed time in milliseconds (active only, excludes pauses)
  */
 export function calculateElapsed(timer: TimerState, now: number): number {
     let total = 0;
@@ -23,9 +27,9 @@ export function calculateElapsed(timer: TimerState, now: number): number {
 }
 
 /**
- * Formats milliseconds as mm:ss.
+ * Formats milliseconds as mm:ss for display.
  *
- * @param ms Duration in milliseconds
+ * @param ms Duration or Elapsed value in milliseconds
  * @returns Formatted string like "5:03"
  */
 export function formatDuration(ms: number): string {

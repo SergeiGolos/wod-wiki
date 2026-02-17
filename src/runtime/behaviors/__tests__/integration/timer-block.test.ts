@@ -56,7 +56,7 @@ describe('Timer Block Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            expectMemoryState(block, 'timer', {
+            expectMemoryState(block, 'time', {
                 direction: 'down',
                 durationMs: 10000,
                 label: 'Countdown'
@@ -77,7 +77,7 @@ describe('Timer Block Integration', () => {
             mountBehaviors(behaviors, runtime, block);
 
             // Timer start is signaled by timer memory with an open span
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer).toBeDefined();
             expect(timer.direction).toBe('down');
             expect(timer.durationMs).toBe(10000);
@@ -92,7 +92,7 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(5000);
             unmountBehaviors(behaviors, ctx);
 
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer.spans[0].ended).toBeDefined();
         });
 
@@ -158,7 +158,7 @@ describe('Timer Block Integration', () => {
             expect(runtime.completionReason).toBeUndefined();
 
             // Timer should still be tracking
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             const elapsed = calculateElapsed(timer, runtime.clock.timestamp);
             expect(elapsed).toBe(60000);
         });
@@ -192,7 +192,7 @@ describe('Timer Block Integration', () => {
             dispatchEvent(runtime, ctx, 'timer:pause', {});
 
             // Pause is signaled by closed span in timer memory, not event
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer.spans[0].ended).toBeDefined();
         });
 
@@ -206,7 +206,7 @@ describe('Timer Block Integration', () => {
             dispatchEvent(runtime, ctx, 'timer:resume', {});
 
             // Resume is signaled by new open span in timer memory, not event
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer.spans.length).toBe(2);
             expect(timer.spans[1].ended).toBeUndefined(); // New span is open
         });
@@ -226,7 +226,7 @@ describe('Timer Block Integration', () => {
             // Run 2 more seconds
             runtime.clock.advance(2000);
 
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             // Should have at least 2 spans (initial + after resume)
             expect(timer.spans.length).toBeGreaterThanOrEqual(2);
 

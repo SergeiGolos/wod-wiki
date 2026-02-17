@@ -3,7 +3,7 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
-import { TimerFragment } from "../../fragments/TimerFragment";
+import { DurationFragment } from "../../fragments/DurationFragment";
 import { RoundsFragment } from "../../fragments/RoundsFragment";
 
 // New aspect-based behaviors
@@ -33,8 +33,8 @@ export class HistoryStrategy implements IRuntimeBlockStrategy {
 
         const statement = statements[0];
         const timerFragment = statement.fragments.find(
-            f => f.fragmentType === FragmentType.Timer
-        ) as TimerFragment | undefined;
+            f => f.fragmentType === FragmentType.Duration
+        ) as DurationFragment | undefined;
         const roundsFragment = statement.fragments.find(
             f => f.fragmentType === FragmentType.Rounds
         ) as RoundsFragment | undefined;

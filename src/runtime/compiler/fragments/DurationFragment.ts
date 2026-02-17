@@ -3,20 +3,21 @@ import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
- * DurationFragment represents a planned time duration set by a block definition.
+ * **Duration** (Parser layer)
  *
- * This is the parser-created fragment from syntax like `5:00` or `:?` (collectible).
- * It answers: "How long should this block run?"
+ * A fragment defined by the CodeStatement representing a planned time target.
+ * Syntax like `5:00` produces 300 000 ms; `:?` means the duration is collectible
+ * (actual time will be recorded at runtime).
  *
- * - A numeric value means a specific planned duration (e.g., 300000ms for `5:00`).
- * - `undefined` (from `:?`) means the duration is collectible — the actual time
- *   will be recorded at runtime and used to score the workout.
+ * Consumed by `TimerEndingBehavior` to know how long the Elapsed should be
+ * before closing the span.
  *
- * ## Relationship to other time fragments
- * - **DurationFragment** = the plan (set by parser or compiler)
- * - **SpansFragment** = the raw clock recordings (start/stop timestamps)
- * - **ElapsedFragment** = derived: sum of active spans
- * - **TotalFragment** = derived: wall-clock bracket from first start to last end
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - **Duration** = the plan (set by parser) — this fragment
+ * - **Time / Spans** = raw clock recordings (TimeSpan[])
+ * - **Elapsed** = Σ(end − start) of each span (active time only)
+ * - **Total** = lastEnd − firstStart (wall-clock bracket, includes pauses)
+ * - **TimeStamp** = system Date.now() when a message is logged
  */
 export class DurationFragment implements ICodeFragment {
   readonly value: number | undefined;

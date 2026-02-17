@@ -12,6 +12,17 @@ import type { OutputStatementType } from '@/core/models/OutputStatement';
 
 /**
  * One row per IOutputStatement, with fragments pivoted into column-keyed cells.
+ *
+ * Canonical time data lives in `cells` keyed by `FragmentType`:
+ * - `cells.get(FragmentType.Spans)`   → **Time** (raw TimeSpan[] recordings)
+ * - `cells.get(FragmentType.Elapsed)` → **Elapsed** (Σ span durations)
+ * - `cells.get(FragmentType.Total)`   → **Total** (wall-clock bracket)
+ * - `cells.get(FragmentType.Duration)` → **Duration** (parser target)
+ *
+ * The direct properties below are **deprecated proxies** kept for backward
+ * compatibility. New renderers should read from `cells` instead.
+ *
+ * @see docs/architecture/time-terminology.md
  */
 export interface GridRow {
   /** Unique row identifier (from output statement id) */
@@ -26,19 +37,40 @@ export interface GridRow {
   readonly outputType: OutputStatementType;
   /** Stack depth when emitted */
   readonly stackLevel: number;
-  /** Absolute running time desde workout start in ms */
+
+  /**
+   * @deprecated Read from `cells.get(FragmentType.Elapsed)` instead.
+   * **Elapsed** — Σ(end − start) of each span, active time only (ms).
+   */
   readonly elapsed: number;
-  /** Active duration of this segment in ms */
+
+  /**
+   * @deprecated Read from `cells.get(FragmentType.Duration)` instead.
+   * **Duration** — planned target from the parser (ms), if any.
+   */
   readonly duration?: number;
-  /** Total wall-clock time in ms (including pauses) */
+
+  /**
+   * @deprecated Read from `cells.get(FragmentType.Total)` instead.
+   * **Total** — lastEnd − firstStart, wall-clock bracket including pauses (ms).
+   */
   readonly total: number;
-  /** Raw spans for display */
+
+  /**
+   * @deprecated Read from `cells.get(FragmentType.Spans)` instead.
+   * **Time** — raw spans for display.
+   */
   readonly spans?: { started: number; ended?: number }[];
-  /** Relative spans for display */
+
+  /**
+   * @deprecated Derive from SpansFragment value relative to workout start.
+   * **Time** — spans relative to workout start for session-relative display.
+   */
   readonly relativeSpans?: { started: number; ended?: number }[];
+
   /** Completion reason (only for 'completion' type) */
   readonly completionReason?: string;
-  /** Fragment-type → cell data */
+  /** Fragment-type → cell data (canonical source of truth) */
   readonly cells: Map<FragmentType, GridCell>;
 }
 
@@ -127,6 +159,13 @@ export interface GridViewPreset {
 
 /**
  * Identifiers for the non-fragment fixed columns.
+ *
+ * Column names follow the glossary in docs/architecture/time-terminology.md:
+ * - TIMESTAMP → **TimeStamp** (system Date.now())
+ * - SPANS     → **Time** (session-relative span ranges)
+ * - ELAPSED   → **Elapsed** (Σ span durations)
+ * - DURATION  → **Duration** (parser-defined target)
+ * - TOTAL     → **Total** (wall-clock bracket)
  */
 export const FIXED_COLUMN_IDS = {
   INDEX: '#',

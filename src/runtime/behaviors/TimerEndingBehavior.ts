@@ -23,7 +23,7 @@ export class TimerEndingBehavior implements IRuntimeBehavior {
     }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
 
         if (
             timer &&
@@ -43,7 +43,7 @@ export class TimerEndingBehavior implements IRuntimeBehavior {
         }
 
         const unsubscribe = ctx.subscribe('tick', (_event, tickCtx) => {
-            const currentTimer = tickCtx.getMemory('timer') as TimerState | undefined;
+            const currentTimer = tickCtx.getMemory('time') as TimerState | undefined;
             if (!currentTimer) return [];
             if (currentTimer.direction !== 'down' || currentTimer.durationMs === undefined) return [];
 
@@ -100,7 +100,7 @@ export class TimerEndingBehavior implements IRuntimeBehavior {
     private resetIntervalState(ctx: IBehaviorContext, timer: TimerState): void {
         const now = ctx.clock.now.getTime();
 
-        ctx.setMemory('timer', {
+        ctx.setMemory('time', {
             ...timer,
             spans: [new TimeSpan(now)]
         });

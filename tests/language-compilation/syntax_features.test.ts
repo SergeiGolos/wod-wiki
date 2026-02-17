@@ -35,7 +35,7 @@ describe('Syntax Features Regression Tests', () => {
     it('parses simple timer 20:00', () => {
       const result = parse('20:00');
       expect(result.errors).toHaveLength(0);
-      expect(result.statements[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
+      expect(result.statements[0].fragments[0].fragmentType).toBe(FragmentType.Duration);
       // 20 minutes = 1200000 ms
       expect(result.statements[0].fragments[0].value).toBe(1200000);
     });
@@ -44,7 +44,7 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse('20:00 Run');
       expect(result.errors).toHaveLength(0);
       const fragments = result.statements[0].fragments;
-      expect(fragments.some(f => f.fragmentType === FragmentType.Timer)).toBe(true);
+      expect(fragments.some(f => f.fragmentType === FragmentType.Duration)).toBe(true);
       expect(fragments.some(f => f.fragmentType === FragmentType.Effort && f.value === 'Run')).toBe(true);
     });
   });
@@ -158,7 +158,7 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse(':?');
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
-      expect(fragment.fragmentType).toBe(FragmentType.Timer);
+      expect(fragment.fragmentType).toBe(FragmentType.Duration);
       expect(fragment.value).toBeUndefined();
       expect(fragment.origin).toBe('runtime');
       expect(fragment.image).toBe(':?');
@@ -168,7 +168,7 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse(':? Run');
       expect(result.errors).toHaveLength(0);
       const fragments = result.statements[0].fragments;
-      const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Timer);
+      const timerFragment = fragments.find(f => f.fragmentType === FragmentType.Duration);
       const effortFragment = fragments.find(f => f.fragmentType === FragmentType.Effort);
       expect(timerFragment).toBeDefined();
       expect(timerFragment?.value).toBeUndefined();
@@ -209,7 +209,7 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse('20:00');
       expect(result.errors).toHaveLength(0);
       const fragment = result.statements[0].fragments[0];
-      expect(fragment.fragmentType).toBe(FragmentType.Timer);
+      expect(fragment.fragmentType).toBe(FragmentType.Duration);
       expect(fragment.value).toBe(1200000);
       expect(fragment.origin).toBe('parser');
     });

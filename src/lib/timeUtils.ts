@@ -1,8 +1,11 @@
 import { TimeSpan } from '../runtime/models/TimeSpan';
 
 /**
- * Formats a timestamp (Date or number) into HH:MM:SS format.
+ * Formats a **TimeStamp** (Date or epoch ms) into HH:MM:SS format.
  * Returns 'running' if date is undefined.
+ *
+ * @see docs/architecture/time-terminology.md — TimeStamp is the system time
+ * (Date.now()) when a message is logged.
  */
 export const formatTimestamp = (date?: Date | number): string => {
   if (!date) return 'running';
@@ -36,10 +39,12 @@ export const formatTime = (ms: number): string => {
 };
 
 /**
- * Calculates the total duration of an array of time spans.
- * @param spans Array of time spans
- * @param now Current timestamp (defaults to Date.now())
- * @returns Total duration in milliseconds
+ * Calculates **Elapsed** (sum of span durations) from an array of time spans.
+ *
+ * Equivalent to `calculateElapsed()` in `src/runtime/time/calculateElapsed.ts`.
+ * Prefer the runtime version for new code; this exists for component-layer compat.
+ *
+ * @see docs/architecture/time-terminology.md
  */
 export const calculateDuration = (spans: ReadonlyArray<TimeSpan | { started: number, ended?: number } | { start: number | Date, stop?: number | Date }>, now: number = Date.now()): number => {
   if (!spans || !Array.isArray(spans)) return 0;

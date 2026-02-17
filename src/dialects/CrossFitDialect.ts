@@ -57,7 +57,7 @@ export class CrossFitDialect implements IDialect {
     // - Children are executed within each interval
     if (!this.hasKeyword(fragments, 'EMOM')) {
       const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
-      const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+      const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Duration);
       const hasChildStatements = this.hasChildren(statement);
 
       if (hasRounds && hasTimer && hasChildStatements) {

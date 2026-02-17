@@ -3,7 +3,7 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
-import { TimerFragment } from "../../fragments/TimerFragment";
+import { DurationFragment } from "../../fragments/DurationFragment";
 import { RoundsFragment } from "../../fragments/RoundsFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
@@ -35,7 +35,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
         const fragments = statement.fragments;
-        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Timer);
+        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Duration);
         const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
 
         // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version
@@ -50,8 +50,8 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         const statement = statements[0];
         const timerFragment = statement.fragments.find(
-            f => f.fragmentType === FragmentType.Timer
-        ) as TimerFragment | undefined;
+            f => f.fragmentType === FragmentType.Duration
+        ) as DurationFragment | undefined;
         const roundsFragment = statement.fragments.find(
             f => f.fragmentType === FragmentType.Rounds
         ) as RoundsFragment | undefined;

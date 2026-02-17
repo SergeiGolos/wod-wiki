@@ -12,7 +12,7 @@ interface MockContextState {
 function createMockContext(timer?: any): { ctx: IBehaviorContext; state: MockContextState } {
     const memoryStore = new Map<string, any>();
     if (timer !== undefined) {
-        memoryStore.set('timer', timer);
+        memoryStore.set('time', timer);
     }
 
     const listeners = new Map<string, (event: any, ctx: IBehaviorContext) => any[]>();
@@ -115,7 +115,7 @@ describe('TimerEndingBehavior', () => {
         (ctx.clock as any).now = new Date(2500);
         state.listeners.get('tick')!({ name: 'tick', timestamp: new Date(2500) }, ctx);
 
-        const updatedTimer = state.memoryStore.get('timer');
+        const updatedTimer = state.memoryStore.get('time');
         expect(updatedTimer.spans.length).toBe(1);
         expect(updatedTimer.spans[0].started).toBe(2500);
     });
@@ -148,11 +148,11 @@ describe('TimerEndingBehavior', () => {
 
         (ctx.clock as any).now = new Date(1000);
         state.listeners.get('tick')!({ name: 'tick', timestamp: new Date(1000) }, ctx);
-        expect(state.memoryStore.get('timer').spans[0].started).toBe(1000);
+        expect(state.memoryStore.get('time').spans[0].started).toBe(1000);
 
         (ctx.clock as any).now = new Date(2100);
         state.listeners.get('tick')!({ name: 'tick', timestamp: new Date(2100) }, ctx);
-        expect(state.memoryStore.get('timer').spans[0].started).toBe(2100);
+        expect(state.memoryStore.get('time').spans[0].started).toBe(2100);
     });
 
     it('handles missing timer memory gracefully', () => {

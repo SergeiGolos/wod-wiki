@@ -70,7 +70,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   
   // Subscribe to block-level timer memory
   const [timerState, setTimerState] = useState<TimerState | undefined>(() => {
-    return block?.getMemory('timer')?.value;
+    return block?.getMemory('time')?.value;
   });
   
   // Subscribe to stack changes to update block reference
@@ -78,7 +78,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     const unsubscribe = runtime.stack.subscribe(() => {
       const foundBlock = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
       if (foundBlock) {
-        const entry = foundBlock.getMemory('timer');
+        const entry = foundBlock.getMemory('time');
         setTimerState(entry?.value);
       } else {
         setTimerState(undefined);
@@ -94,7 +94,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
       return;
     }
     
-    const entry = block.getMemory('timer');
+    const entry = block.getMemory('time');
     setTimerState(entry?.value);
     
     if (entry && typeof entry.subscribe === 'function') {

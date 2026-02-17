@@ -17,7 +17,7 @@ describe('Timer Fragment Parser Contract', () => {
       ['1:30:00', 5400000, 30, 0, 'down'],
     ])('should parse "%s" correctly', (input, ms, min, sec, dir) => {
       const script = parse(input);
-      const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Timer) as TimerFragment;
+      const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Duration) as TimerFragment;
 
       expect(timer).toBeDefined();
       expect(timer.value).toBe(ms);
@@ -44,7 +44,7 @@ describe('Timer Fragment Parser Contract', () => {
   describe('Placeholders', () => {
     it('should parse ":?" placeholder', () => {
       const script = parse(':?');
-      const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Timer) as TimerFragment;
+      const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Duration) as TimerFragment;
       expect(timer.origin).toBe('runtime');
     });
   });

@@ -56,7 +56,7 @@ describe('TimerBehavior', () => {
 
         behavior.onMount(ctx);
 
-        expect(ctx.pushMemory).toHaveBeenCalledWith('timer', expect.arrayContaining([
+        expect(ctx.pushMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
             expect.objectContaining({
                 value: expect.objectContaining({
                     direction: 'down',
@@ -76,7 +76,7 @@ describe('TimerBehavior', () => {
 
         behavior.onNext(ctx);
 
-        expect(ctx.updateMemory).toHaveBeenCalledWith('timer', expect.arrayContaining([
+        expect(ctx.updateMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
             expect.objectContaining({
                 value: expect.objectContaining({
                     spans: expect.arrayContaining([expect.objectContaining({ ended: expect.any(Number) })]),
@@ -92,7 +92,7 @@ describe('TimerBehavior', () => {
 
         behavior.onUnmount(ctx);
 
-        expect(ctx.updateMemory).toHaveBeenCalledWith('timer', expect.any(Array));
+        expect(ctx.updateMemory).toHaveBeenCalledWith('time', expect.any(Array));
         expect(ctx.pushMemory).toHaveBeenCalledWith('fragment:result', expect.arrayContaining([
             expect.objectContaining({ type: 'elapsed' }),
             expect.objectContaining({ type: 'total' }),

@@ -3,22 +3,25 @@ import { TimeSpan } from "../../models/TimeSpan";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
- * SpansFragment tracks the raw start/stop timestamps from the runtime clock.
+ * **Time / Spans** (Block layer)
  *
- * Each span represents a continuous period of active execution (clock running).
+ * The raw start/stop TimeSpan[] recordings that a block tracks.
+ * Each span represents a continuous period of active (unpaused) execution.
  * Multiple spans occur when the timer is paused and resumed.
+ *
+ * Displayed on the grid as session-relative time ranges (e.g., `:00 → 2:30`).
  *
  * ## Display behavior
  * - Single span with start === end → displayed as a timestamp
  * - Single span with start !== end → displayed as a time range
  * - Multiple spans → displayed as a list of time ranges
  *
- * ## Relationship to other time fragments
- * - All other time values (elapsed, total) are **derived** from spans.
- * - **ElapsedFragment** = sum of span durations (active time only)
- * - **TotalFragment** = wall-clock bracket from first start to last end
- *
- * This fragment is the source of truth for time tracking.
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - **Duration** = the plan (set by parser)
+ * - **Time / Spans** = raw clock recordings — this fragment (source of truth)
+ * - **Elapsed** = Σ(end − start) of each span (active time, derived from this)
+ * - **Total** = lastEnd − firstStart (wall-clock bracket, derived from this)
+ * - **TimeStamp** = system Date.now() when a message is logged
  */
 export class SpansFragment implements ICodeFragment {
   readonly type: string = "spans";

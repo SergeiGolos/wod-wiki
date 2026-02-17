@@ -31,6 +31,7 @@ const createMockBlock = (
         fragments: [],
         memoryMap: new Map(),
         getBehavior: vi.fn(),
+        behaviors: [],
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockReturnValue([]),
         getAllMemory: vi.fn().mockReturnValue([]),

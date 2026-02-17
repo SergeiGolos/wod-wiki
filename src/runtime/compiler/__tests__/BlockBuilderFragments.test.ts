@@ -11,8 +11,8 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
     } as any as IScriptRuntime;
 
     const timerFragment: ICodeFragment = {
-        type: 'timer',
-        fragmentType: FragmentType.Timer,
+        type: 'duration',
+        fragmentType: FragmentType.Duration,
         value: 60000,
         origin: 'parser'
     };
@@ -106,7 +106,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(locations[0].fragments).toHaveLength(3);
 
         const types = locations[0].fragments.map(f => f.fragmentType);
-        expect(types).toContain(FragmentType.Timer);
+        expect(types).toContain(FragmentType.Duration);
         expect(types).toContain(FragmentType.Action);
         expect(types).toContain(FragmentType.Rep);
     });
@@ -139,14 +139,14 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
 
     it("should preserve fragment origins across parser and runtime", () => {
         const parserTimer: ICodeFragment = {
-            type: 'timer',
-            fragmentType: FragmentType.Timer,
+            type: 'duration',
+            fragmentType: FragmentType.Duration,
             value: 600000,
             origin: 'parser'
         };
         const runtimeTimer: ICodeFragment = {
-            type: 'timer',
-            fragmentType: FragmentType.Timer,
+            type: 'duration',
+            fragmentType: FragmentType.Duration,
             value: 432000,
             origin: 'runtime'
         };

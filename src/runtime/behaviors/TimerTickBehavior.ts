@@ -35,7 +35,7 @@ export class TimerTickBehavior implements IRuntimeBehavior {
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
         // Close the current span
-        const timerLocations = ctx.block.getMemoryByTag('timer');
+        const timerLocations = ctx.block.getMemoryByTag('time');
         if (timerLocations.length > 0) {
             const timerFragments = timerLocations[0].fragments;
             if (timerFragments.length > 0) {
@@ -58,8 +58,8 @@ export class TimerTickBehavior implements IRuntimeBehavior {
 
                     // Update timer fragment with closed span
                     const timerFragment: ICodeFragment = {
-                        fragmentType: FragmentType.Timer,
-                        type: 'timer',
+                        fragmentType: FragmentType.Time,
+                        type: 'time',
                         image: this.formatDuration(timerValue.durationMs),
                         origin: 'runtime',
                         value: {
@@ -73,7 +73,7 @@ export class TimerTickBehavior implements IRuntimeBehavior {
                         timestamp: ctx.clock.now,
                     };
 
-                    ctx.updateMemory('timer', [timerFragment]);
+                    ctx.updateMemory('time', [timerFragment]);
                 }
             }
         }

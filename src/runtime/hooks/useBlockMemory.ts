@@ -19,7 +19,7 @@ import { calculateDuration } from '../../lib/timeUtils';
  * @example
  * ```tsx
  * function TimerComponent({ block }: { block: IRuntimeBlock }) {
- *   const timerState = useBlockMemory(block, 'timer');
+ *   const timerState = useBlockMemory(block, 'time');
  *   
  *   if (!timerState) return null;
  *   
@@ -67,7 +67,7 @@ export function useBlockMemory<T extends MemoryType>(
  * @returns The current TimerState or undefined
  */
 export function useTimerState(block: IRuntimeBlock | undefined): TimerState | undefined {
-    return useBlockMemory(block, 'timer');
+    return useBlockMemory(block, 'time');
 }
 
 /**

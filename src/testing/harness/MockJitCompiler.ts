@@ -122,7 +122,7 @@ export class MockJitCompiler extends JitCompiler {
    * @example
    * ```typescript
    * mockJit.whenMatches(
-   *   (stmts) => stmts.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Timer)),
+   *   (stmts) => stmts.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Duration)),
    *   new MockBlock('timer', [])
    * );
    * ```

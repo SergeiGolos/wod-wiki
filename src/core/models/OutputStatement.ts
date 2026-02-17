@@ -24,27 +24,18 @@ export type OutputStatementType = 'segment' | 'milestone' | 'system' | 'event' |
  * While ICodeStatement represents the input (what was parsed), IOutputStatement
  * represents the output (what was executed, including timing and collected data).
  * 
- * Key differences from ICodeStatement:
- * - Has execution timing (TimeSpan)
- * - Has an output type classification
- * - Fragments have runtime origins ('runtime' | 'user')
- * - Links back to the source statement that triggered it
- * 
- * @example
- * ```typescript
- * // A completion output for a timer block
- * const output: IOutputStatement = {
- *   id: 1001,
- *   outputType: 'completion',
- *   timeSpan: new TimeSpan(startTime, endTime),
- *   sourceStatementId: 5,
- *   sourceBlockKey: 'block-abc-123',
- *   fragments: [
- *     { type: 'timer-result', origin: 'runtime', value: 45000 }
- *   ],
- *   // ... inherited from ICodeStatement
- * };
- * ```
+ * ## Time terminology (docs/architecture/time-terminology.md)
+ *
+ * The canonical time data lives in the **fragments** array:
+ * - `FragmentType.Spans`   — **Time**: raw TimeSpan[] recordings the block tracks
+ * - `FragmentType.Elapsed` — **Elapsed**: Σ(end − start) per span (active time)
+ * - `FragmentType.Total`   — **Total**: lastEnd − firstStart (wall-clock bracket)
+ * - `FragmentType.Duration` — **Duration**: parser-defined planned target
+ * - `FragmentType.SystemTime` — **TimeStamp**: system Date.now() when logged
+ *
+ * The direct properties `spans`, `elapsed`, `total` are **deprecated proxies**
+ * kept for backward compatibility. Prefer `getFragment(FragmentType.Elapsed)`,
+ * etc., or use `getDisplayFragments()` for UI rendering.
  */
 export interface IOutputStatement extends ICodeStatement {
     /** The type of output this statement represents */
@@ -54,34 +45,33 @@ export interface IOutputStatement extends ICodeStatement {
     readonly timeSpan: TimeSpan;
 
     /**
-     * Raw time spans from the block's timer memory.
+     * **Time** — raw TimeSpan[] from the block's timer memory.
      * 
-     * Each span represents a continuous period of active (unpaused) execution.
-     * A "timestamp" is a degenerate span where `started === ended` (zero duration).
+     * @deprecated Access via `getFragment(FragmentType.Spans)` or
+     * `getAllFragmentsByType(FragmentType.Spans)` instead.
+     * This property is a convenience proxy over the SpansFragment.
      * 
-     * Time semantics derived from spans:
-     * - **elapsed** = sum of all span durations (pause-aware active time)
-     * - **total** = from start of first span to end of last span (wall-clock bracket)
-     * 
-     * Empty array when no timer spans are available (e.g., non-timer leaf blocks
-     * that only have wall-clock timestamps via `timeSpan`).
+     * @see docs/architecture/time-terminology.md
      */
     readonly spans: ReadonlyArray<TimeSpan>;
 
     /**
-     * Pause-aware elapsed time in milliseconds.
+     * **Elapsed** — pause-aware active time in milliseconds.
      * 
-     * Computed as the sum of all individual span durations. This excludes
-     * any paused time between spans. Falls back to `timeSpan.duration`
-     * when no spans are available.
+     * @deprecated Access via `getFragment(FragmentType.Elapsed)?.value` instead.
+     * This property is a convenience proxy computed from SpansFragment data.
+     * 
+     * @see docs/architecture/time-terminology.md
      */
     readonly elapsed: number;
 
     /**
-     * Total wall-clock time in milliseconds from start of first span
-     * to end of last span. Includes paused time between spans.
+     * **Total** — wall-clock bracket in milliseconds.
      * 
-     * Falls back to `timeSpan.duration` when no spans are available.
+     * @deprecated Access via `getFragment(FragmentType.Total)?.value` instead.
+     * This property is a convenience proxy computed from SpansFragment data.
+     * 
+     * @see docs/architecture/time-terminology.md
      */
     readonly total: number;
 
@@ -120,7 +110,12 @@ export interface IOutputStatement extends ICodeStatement {
 }
 
 /**
- * Options for creating an OutputStatement
+ * Options for creating an OutputStatement.
+ * 
+ * Time data should be provided primarily through `fragments` (SpansFragment,
+ * ElapsedFragment, TotalFragment). The `spans` option is a **deprecated**
+ * convenience — it populates the legacy `OutputStatement.spans` property
+ * and is used to compute the deprecated `.elapsed` / `.total` proxies.
  */
 export interface OutputStatementOptions {
     /** Output type classification */
@@ -130,10 +125,10 @@ export interface OutputStatementOptions {
     timeSpan: TimeSpan;
 
     /**
+     * @deprecated Pass time data via SpansFragment in `fragments` instead.
      * Raw time spans from the block's timer memory.
-     * Each span represents a continuous period of active execution.
-     * A timestamp (start === end) has zero duration.
-     * When provided, `elapsed` and `total` are computed from these spans.
+     * When provided, the deprecated `elapsed` and `total` properties are
+     * computed from these spans.
      */
     spans?: TimeSpan[];
 
@@ -165,6 +160,11 @@ export interface OutputStatementOptions {
 /**
  * Concrete implementation of IOutputStatement.
  * Created by the runtime when a block unmounts.
+ *
+ * Direct time properties (`spans`, `elapsed`, `total`) are **deprecated
+ * proxies** — canonical data lives in the `fragments` array as
+ * SpansFragment, ElapsedFragment, and TotalFragment.
+ * Use `getFragment()` / `getDisplayFragments()` for new code.
  */
 export class OutputStatement implements IOutputStatement, IFragmentSource {
     private static nextId = 1000000; // Start at a high number to avoid collision with parsed statement IDs
@@ -172,13 +172,30 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly id: number;
     readonly outputType: OutputStatementType;
     readonly timeSpan: TimeSpan;
+
+    /**
+     * @deprecated Use `getFragment(FragmentType.Spans)` instead.
+     * Convenience proxy over SpansFragment data.
+     */
     readonly spans: ReadonlyArray<TimeSpan>;
+
     readonly sourceStatementId?: number;
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
     readonly fragments: ICodeFragment[];
+
+    /**
+     * @deprecated Use `getFragment(FragmentType.Elapsed)?.value` instead.
+     * Convenience proxy computed from SpansFragment data.
+     */
     readonly elapsed: number;
+
+    /**
+     * @deprecated Use `getFragment(FragmentType.Total)?.value` instead.
+     * Convenience proxy computed from SpansFragment data.
+     */
     readonly total: number;
+
     readonly completionReason?: string;
     readonly parent?: number;
     readonly children: number[][];
@@ -203,7 +220,79 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
 
         this.elapsed = this.calculateElapsed();
         this.total = this.calculateTotal();
+
+        // Placeholder metadata — OutputStatements are runtime-generated, not parsed.
+        this.meta = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' };
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // IFragmentSource implementation
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Get display-ready fragments after precedence resolution.
+     * For each FragmentType present, returns fragments from the highest-
+     * precedence origin tier.
+     */
+    getDisplayFragments(filter?: FragmentFilter): ICodeFragment[] {
+        let frags = this.fragments;
+        if (filter?.types) {
+            const types = new Set(filter.types);
+            frags = frags.filter(f => types.has(f.fragmentType));
+        }
+        if (filter?.excludeTypes) {
+            const exclude = new Set(filter.excludeTypes);
+            frags = frags.filter(f => !exclude.has(f.fragmentType));
+        }
+        if (filter?.origins) {
+            const origins = new Set(filter.origins);
+            frags = frags.filter(f => f.origin !== undefined && origins.has(f.origin));
+        }
+        return resolveFragmentPrecedence(frags);
+    }
+
+    /**
+     * Get the highest-precedence single fragment of a given type.
+     */
+    getFragment(type: FragmentType): ICodeFragment | undefined {
+        const matches = this.fragments.filter(f => f.fragmentType === type);
+        if (matches.length === 0) return undefined;
+        const resolved = resolveFragmentPrecedence(matches);
+        return resolved[0];
+    }
+
+    /**
+     * Get ALL fragments of a given type, sorted by precedence (highest first).
+     * Unlike `getFragment()`, this returns every tier, not just the winning one.
+     */
+    getAllFragmentsByType(type: FragmentType): ICodeFragment[] {
+        const matches = this.fragments.filter(f => f.fragmentType === type);
+        // Sort by precedence rank (lowest = highest precedence = first)
+        return [...matches].sort((a, b) => {
+            const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
+            const rankB = ORIGIN_PRECEDENCE[b.origin ?? 'parser'] ?? 3;
+            return rankA - rankB;
+        });
+    }
+
+    /**
+     * Check if any fragment of this type exists.
+     */
+    hasFragment(type: FragmentType): boolean {
+        return this.fragments.some(f => f.fragmentType === type);
+    }
+
+    /**
+     * Raw, unfiltered fragments. No precedence resolution.
+     * Returns a defensive copy so mutations don't affect internal state.
+     */
+    get rawFragments(): ICodeFragment[] {
+        return [...this.fragments];
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // Deprecated proxy computation (kept for backward compat)
+    // ═══════════════════════════════════════════════════════════════
 
     private calculateElapsed(): number {
         if (this.spans.length === 0) {

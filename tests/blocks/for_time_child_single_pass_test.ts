@@ -16,10 +16,10 @@ describe('For Time Child Single Pass Test', () => {
         // But here we want to trigger GenericTimerStrategy to produce UnboundTimerBehavior.
 
         // If we use `0:00` maybe? Or just `[:For Time]`?
-        // GenericTimerStrategy matches `FragmentType.Timer`.
+        // GenericTimerStrategy matches `FragmentType.Duration`.
         // `[:For Time]` produces an Action fragment, NOT a Timer fragment usually.
 
-        // However, `GenericTimerStrategy` matches `statements[0].hasFragment(FragmentType.Timer)`.
+        // However, `GenericTimerStrategy` matches `statements[0].hasFragment(FragmentType.Duration)`.
 
         // If I write `0:00`, it parses as Timer with value 0.
         // `GenericTimerStrategy`:

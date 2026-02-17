@@ -86,7 +86,7 @@ describe('useBlockMemory', () => {
     describe('basic functionality', () => {
         it('should return undefined when block is undefined', () => {
             const { result } = renderHook(() =>
-                useBlockMemory(undefined, 'timer')
+                useBlockMemory(undefined, 'time')
             );
             expect(result.current).toBeUndefined();
         });
@@ -98,10 +98,10 @@ describe('useBlockMemory', () => {
                 label: 'Test',
                 role: 'primary'
             };
-            const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
+            const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
 
             const { result } = renderHook(() =>
-                useBlockMemory(block, 'timer')
+                useBlockMemory(block, 'time')
             );
 
             expect(result.current).toEqual(timerState);
@@ -114,10 +114,10 @@ describe('useBlockMemory', () => {
                 label: 'Test',
                 role: 'primary'
             };
-            const block = createMockBlock(new Map<string, unknown>([['timer', initialState]]));
+            const block = createMockBlock(new Map<string, unknown>([['time', initialState]]));
 
             const { result } = renderHook(() =>
-                useBlockMemory(block, 'timer')
+                useBlockMemory(block, 'time')
             );
 
             expect(result.current).toEqual(initialState);
@@ -129,7 +129,7 @@ describe('useBlockMemory', () => {
             };
 
             act(() => {
-                (block as any)._memoryEntries.get('timer')?.update(updatedState);
+                (block as any)._memoryEntries.get('time')?.update(updatedState);
             });
 
             expect(result.current).toEqual(updatedState);
@@ -142,11 +142,11 @@ describe('useBlockMemory', () => {
                 label: 'Test',
                 role: 'primary'
             };
-            const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
-            const entry = (block as any)._memoryEntries.get('timer') as MockMemoryEntry;
+            const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
+            const entry = (block as any)._memoryEntries.get('time') as MockMemoryEntry;
 
             const { unmount } = renderHook(() =>
-                useBlockMemory(block, 'timer')
+                useBlockMemory(block, 'time')
             );
 
             // Entry should have a subscriber
@@ -169,7 +169,7 @@ describe('useTimerState', () => {
             label: 'Countdown',
             role: 'primary'
         };
-        const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
+        const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
 
         const { result } = renderHook(() => useTimerState(block));
 
@@ -238,7 +238,7 @@ describe('useTimerDisplay', () => {
             label: 'Test',
             role: 'primary'
         };
-        const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
+        const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
 
         const { result } = renderHook(() => useTimerDisplay(block));
 
@@ -256,7 +256,7 @@ describe('useTimerDisplay', () => {
             label: 'Countdown',
             role: 'primary'
         };
-        const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
+        const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
 
         const { result } = renderHook(() => useTimerDisplay(block));
 
@@ -278,7 +278,7 @@ describe('useTimerDisplay', () => {
             label: 'Test',
             role: 'primary'
         };
-        const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
+        const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
 
         const { result } = renderHook(() => useTimerDisplay(block));
 
@@ -295,7 +295,7 @@ describe('useTimerDisplay', () => {
             label: 'Done',
             role: 'primary'
         };
-        const block = createMockBlock(new Map<string, unknown>([['timer', timerState]]));
+        const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
 
         const { result } = renderHook(() => useTimerDisplay(block));
 

@@ -34,6 +34,7 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
     unmount: vi.fn().mockReturnValue([]),
     dispose: vi.fn(),
     getBehavior: vi.fn().mockReturnValue(undefined),
+    behaviors: [],
   } as any;
 };
 

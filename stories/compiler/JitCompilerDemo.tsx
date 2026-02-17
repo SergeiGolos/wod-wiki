@@ -62,7 +62,7 @@ function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime }) {
   // Find the first timer block in the current stack by checking for TimerState memory
   const timerBlock = runtime?.stack?.blocks?.find((block: IRuntimeBlock) => {
     // Check if this block has TimerState memory using the new API
-    return block.hasMemory('timer');
+    return block.hasMemory('time');
   });
 
   if (!timerBlock) {

@@ -79,7 +79,7 @@ export interface OutputOptions {
  *   onMount(ctx: IBehaviorContext) {
  *     // Subscribe to tick events
  *     ctx.subscribe('tick', (event, ctx) => {
- *       const timer = ctx.getMemory('timer');
+ *       const timer = ctx.getMemory('time');
  *       if (timer?.elapsed >= timer?.duration) {
  *         ctx.markComplete('timer:complete');
  *       }
@@ -194,7 +194,7 @@ export interface IBehaviorContext {
      * 
      * // Emit completion with elapsed time
      * ctx.emitOutput('completion', [
-     *   { fragmentType: FragmentType.Timer, value: elapsed, origin: 'runtime' }
+     *   { fragmentType: FragmentType.Duration, value: elapsed, origin: 'runtime' }
      * ], { label: 'Completed' });
      * ```
      */
@@ -225,7 +225,7 @@ export interface IBehaviorContext {
      * @example
      * ```typescript
      * // Push timer fragment
-     * ctx.pushMemory('timer', [timerFragment]);
+     * ctx.pushMemory('time', [timerFragment]);
      *
      * // Push display row (fragment:display)
      * ctx.pushMemory('fragment:display', [timerFrag, actionFrag, effortFrag]);
@@ -245,7 +245,7 @@ export interface IBehaviorContext {
      * @example
      * ```typescript
      * // Update timer fragment with new elapsed time
-     * ctx.updateMemory('timer', [updatedTimerFragment]);
+     * ctx.updateMemory('time', [updatedTimerFragment]);
      * ```
      */
     updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void;

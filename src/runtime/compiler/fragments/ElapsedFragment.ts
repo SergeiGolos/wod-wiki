@@ -3,22 +3,22 @@ import { formatDuration } from "../../time/calculateElapsed";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
- * ElapsedFragment represents the total **active** time across all spans.
+ * **Elapsed** (Runtime layer)
  *
- * Computed as the sum of all span durations, including the current open
- * span (if the clock is still running). Paused gaps between spans are
- * excluded.
+ * The total running time of the block's Time spans — Σ(end − start) for each
+ * segment. Paused gaps between spans are excluded.
  *
- * This fragment is created by the runtime when collecting output statements.
+ * Created by the runtime when collecting output statements.
  *
- * ## Relationship to other time fragments
- * - **SpansFragment** = source data (raw timestamps)
- * - **ElapsedFragment** = sum of span durations (this fragment)
- * - **TotalFragment** = wall-clock bracket (includes paused gaps)
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - **Duration** = the plan (set by parser)
+ * - **Time / Spans** = raw clock recordings (source data)
+ * - **Elapsed** = sum of span durations, active time only — this fragment
+ * - **Total** = lastEnd − firstStart (wall-clock bracket, includes pauses)
  *
  * @example
- * // Two spans: [0-100ms], [200-350ms] → elapsed = 250ms
- * // (the 100ms gap between spans is excluded)
+ * // Two spans: [0-100ms], [200-350ms] → Elapsed = 250ms
+ * // (the 100ms paused gap between spans is excluded)
  */
 export class ElapsedFragment implements ICodeFragment {
   readonly type: string = "elapsed";

@@ -179,7 +179,7 @@ function getColorForColumn(col: GridColumn): string {
  * These complement the Tailwind classes in fragmentColorMap.
  */
 const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
-  [FragmentType.Timer]: '#3b82f6',      // blue
+  [FragmentType.Time]: '#3b82f6',      // blue
   [FragmentType.Rep]: '#22c55e',        // green
   [FragmentType.Effort]: '#eab308',     // yellow
   [FragmentType.Distance]: '#14b8a6',   // teal
@@ -199,7 +199,7 @@ function getUnitForColumn(col: GridColumn): string {
   }
 
   switch (col.fragmentType) {
-    case FragmentType.Timer:
+    case FragmentType.Time:
       return 'ms';
     case FragmentType.Rep:
       return 'reps';

@@ -212,7 +212,7 @@ describe('DialectRegistry', () => {
         id: 1,
         fragments: [
           { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' },
-          { fragmentType: FragmentType.Timer, value: 60000, type: 'timer' }
+          { fragmentType: FragmentType.Duration, value: 60000, type: 'duration' }
         ]
       } as any;
       

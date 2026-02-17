@@ -68,7 +68,8 @@ export interface IDuration {
  * Types of code fragments that can appear in workout scripts
  */
 export enum FragmentType {
-  Timer = 'timer',
+  Time = 'time',
+  Duration = 'duration',
   Rep = 'rep',
   Effort = 'effort',
   Distance = 'distance',
@@ -77,7 +78,11 @@ export enum FragmentType {
   Increment = 'increment',
   Lap = 'lap',
   Text = 'text',
-  Resistance = 'resistance'
+  Resistance = 'resistance',
+  Elapsed = 'elapsed',
+  Total = 'total',
+  Spans = 'spans',
+  SystemTime = 'system-time'
 }
 
 /**

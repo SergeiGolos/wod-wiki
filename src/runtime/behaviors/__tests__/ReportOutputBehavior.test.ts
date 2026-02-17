@@ -103,15 +103,15 @@ describe('ReportOutputBehavior', () => {
 
     it('deduplicates overlapping fragment types when merging display + state', () => {
         const parserTimerFragment = {
-            fragmentType: FragmentType.Timer,
-            type: 'timer',
+            fragmentType: FragmentType.Duration,
+            type: 'time',
             image: '20:00',
             origin: 'parser' as const,
             value: 1200000,
         };
         const runtimeTimerFragment = {
-            fragmentType: FragmentType.Timer,
-            type: 'timer',
+            fragmentType: FragmentType.Duration,
+            type: 'time',
             image: '20:00',
             origin: 'runtime' as const,
             value: { direction: 'down', durationMs: 1200000 },
@@ -123,14 +123,14 @@ describe('ReportOutputBehavior', () => {
         const ctx = createMockContext({
             tagFragments: {
                 'fragment:display': [parserTimerFragment],
-                timer: [runtimeTimerFragment],
+                time: [runtimeTimerFragment],
             },
         });
 
         behavior.onMount(ctx);
 
         const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-        const timerFragments = emittedFragments.filter((f: any) => f.type === 'timer');
+        const timerFragments = emittedFragments.filter((f: any) => f.type === 'time');
         expect(timerFragments).toHaveLength(1);
         expect(timerFragments[0].origin).toBe('parser');
     });
@@ -225,11 +225,11 @@ describe('ReportOutputBehavior', () => {
         };
 
         const ctx = createMockContext({
-            memory: { timer },
+            memory: { time: timer },
             tagFragments: {
-                timer: [{
-                    fragmentType: FragmentType.Timer,
-                    type: 'timer',
+                time: [{
+                    fragmentType: FragmentType.Duration,
+                    type: 'time',
                     image: '2:00',
                     origin: 'runtime',
                     value: timer,

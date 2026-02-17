@@ -2,23 +2,21 @@ import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/model
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
- * SystemTimeFragment captures the actual wall-clock time from `Date.now()`
- * at the moment of collection — as opposed to the `IRuntimeClock` time
- * which can be faked or frozen during event chain execution.
+ * **TimeStamp** (Runtime layer)
  *
- * This fragment provides a ground-truth timestamp for:
- * - Audit trails and logging
- * - Correlating runtime events with real-world time
- * - Detecting clock drift between the runtime clock and system clock
+ * The system time (Date.now()) when a message is logged.
+ * Provides a ground-truth wall-clock reference independent of the
+ * runtime clock, which can be frozen during event chain execution.
  *
  * ## When it's created
  * Created during output collection alongside ElapsedFragment and TotalFragment.
- * The `IRuntimeClock.now` may be frozen during event dispatch, so this
- * fragment gives consumers the actual system time independently.
  *
- * ## Relationship to other time fragments
- * - **SpansFragment** = clock-relative timestamps (may use frozen/faked clock)
- * - **SystemTimeFragment** = real `Date.now()` time (this fragment)
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - **Duration** = the plan (set by parser)
+ * - **Time / Spans** = clock-relative recordings (may use frozen/faked clock)
+ * - **Elapsed** = Σ(end − start), active time only
+ * - **Total** = lastEnd − firstStart (wall-clock bracket)
+ * - **TimeStamp** = real Date.now() time — this fragment
  */
 export class SystemTimeFragment implements ICodeFragment {
   readonly type: string = "system-time";

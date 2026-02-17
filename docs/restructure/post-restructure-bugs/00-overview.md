@@ -4,6 +4,40 @@ These user stories address bugs discovered after the behavior restructure (Phase
 
 > **Last audited: 2026-02-16** — see [Audit Results](#audit-results-2026-02-16) below.
 
+---
+
+## Terminology — Time-Related Concepts
+
+These terms must be used consistently across the parser, runtime, and grid view layers. Each term has a single meaning and a single owner.
+
+| Term | Definition | Layer | Usage |
+|------|-----------|-------|-------|
+| **Time** | The spans collection that a block tracks. Displayed on the grid as a range or timestamp relative to the total session time (e.g., `:00` → `2:30`). | Block | Grid columns show session-relative time ranges; `TimeSpan[]` on the block model. |
+| **Timestamp** | The system clock time (`Date.now()`) when a message is logged or an event is recorded. | Runtime | Used internally for span start/end system times; never displayed directly on the grid. |
+| **Duration** | A fragment defined by the `CodeStatement` (parsed from the workout script) that tells timer-end behaviors how long the span's elapsed time should run before closing the span. | Parser | Produced by the parser (e.g., `10:00` → `DurationFragment(600000)`); consumed by `TimerEndingBehavior` to decide when to complete. |
+| **Elapsed** | The total *running* time of a block — the sum of `(end − start)` for each segment in the block's `Time` spans, excluding paused intervals. | Runtime | Computed by `computeTimerResults()`; written to `fragment:result` memory; displayed on the grid. |
+| **Total** | The total wall-clock time that was recorded — last span's end time minus the first span's start time, *including* paused intervals. | Runtime | Computed alongside Elapsed; captures the full calendar duration from first start to final stop. |
+
+### Quick Reference
+
+```
+Parser:    "10:00 Run"  →  DurationFragment(600_000)    ← Duration
+Block:     TimeSpan[]   →  [:00, 2:30], [3:00, 5:15]    ← Time
+Runtime:   Date.now()   →  1708099200000                 ← Timestamp
+Runtime:   Σ(end−start) →  285_000 ms                    ← Elapsed  (running only)
+Runtime:   last.end − first.start → 315_000 ms           ← Total    (wall-clock)
+```
+
+### Rules
+
+1. **Never say "timer"** when you mean Duration, Elapsed, or Total — `timer` is a block type / behavior, not a metric.
+2. **Duration is parser-owned** — the runtime reads it but never computes it.
+3. **Elapsed excludes pauses; Total includes them** — do not conflate the two.
+4. **Time is block-scoped** — it is the raw span data from which Elapsed and Total are derived.
+5. **Timestamp is system-scoped** — it anchors spans to real-world clock time but is not a user-facing metric.
+
+---
+
 ## Stories
 
 | Story | Bug | Root File(s) | Severity | Status |

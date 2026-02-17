@@ -49,7 +49,7 @@ describe('CodeStatement implements IFragmentSource', () => {
     describe('getDisplayFragments', () => {
         it('should return all fragments when all are parser origin', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'parser', 60000),
+                frag(FragmentType.Duration, 'parser', 60000),
                 frag(FragmentType.Action, 'parser', 'Run'),
             ];
             const stmt = new TestCodeStatement(1, fragments);
@@ -66,8 +66,8 @@ describe('CodeStatement implements IFragmentSource', () => {
             // Simulate a scenario where CodeStatement has mixed-origin fragments
             // (unusual for parser output, but possible after merging)
             const fragments = [
-                frag(FragmentType.Timer, 'parser', 'plan-10:00'),
-                frag(FragmentType.Timer, 'runtime', 'live-07:23'),
+                frag(FragmentType.Duration, 'parser', 'plan-10:00'),
+                frag(FragmentType.Duration, 'runtime', 'live-07:23'),
                 frag(FragmentType.Action, 'parser', 'Run'),
             ];
             const stmt = new TestCodeStatement(1, fragments);
@@ -75,7 +75,7 @@ describe('CodeStatement implements IFragmentSource', () => {
 
             // Timer should resolve to runtime (higher precedence), Action stays parser
             expect(result).toHaveLength(2);
-            const timer = result.find(f => f.fragmentType === FragmentType.Timer);
+            const timer = result.find(f => f.fragmentType === FragmentType.Duration);
             expect(timer?.origin).toBe('runtime');
             expect(timer?.value).toBe('live-07:23');
             const action = result.find(f => f.fragmentType === FragmentType.Action);
@@ -84,32 +84,32 @@ describe('CodeStatement implements IFragmentSource', () => {
 
         it('should apply type filter', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'parser'),
+                frag(FragmentType.Duration, 'parser'),
                 frag(FragmentType.Rep, 'parser'),
                 frag(FragmentType.Action, 'parser'),
             ];
             const stmt = new TestCodeStatement(1, fragments);
-            const result = stmt.getDisplayFragments({ types: [FragmentType.Timer, FragmentType.Action] });
+            const result = stmt.getDisplayFragments({ types: [FragmentType.Duration, FragmentType.Action] });
             expect(result).toHaveLength(2);
             expect(result.every(f => f.fragmentType !== FragmentType.Rep)).toBe(true);
         });
 
         it('should apply excludeTypes filter', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'parser'),
+                frag(FragmentType.Duration, 'parser'),
                 frag(FragmentType.Rep, 'parser'),
                 frag(FragmentType.Action, 'parser'),
             ];
             const stmt = new TestCodeStatement(1, fragments);
-            const result = stmt.getDisplayFragments({ excludeTypes: [FragmentType.Timer] });
+            const result = stmt.getDisplayFragments({ excludeTypes: [FragmentType.Duration] });
             expect(result).toHaveLength(2);
-            expect(result.every(f => f.fragmentType !== FragmentType.Timer)).toBe(true);
+            expect(result.every(f => f.fragmentType !== FragmentType.Duration)).toBe(true);
         });
 
         it('should apply origin filter', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'parser'),
-                frag(FragmentType.Timer, 'runtime'),
+                frag(FragmentType.Duration, 'parser'),
+                frag(FragmentType.Duration, 'runtime'),
             ];
             const stmt = new TestCodeStatement(1, fragments);
             const result = stmt.getDisplayFragments({ origins: ['parser'] });
@@ -121,24 +121,24 @@ describe('CodeStatement implements IFragmentSource', () => {
     describe('getFragment', () => {
         it('should return the highest-precedence fragment for a type', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'parser', 'plan'),
-                frag(FragmentType.Timer, 'runtime', 'live'),
+                frag(FragmentType.Duration, 'parser', 'plan'),
+                frag(FragmentType.Duration, 'runtime', 'live'),
             ];
             const stmt = new TestCodeStatement(1, fragments);
-            const result = stmt.getFragment(FragmentType.Timer);
+            const result = stmt.getFragment(FragmentType.Duration);
             expect(result?.origin).toBe('runtime');
             expect(result?.value).toBe('live');
         });
 
         it('should return undefined when no fragment of type exists', () => {
-            const stmt = new TestCodeStatement(1, [frag(FragmentType.Timer, 'parser')]);
+            const stmt = new TestCodeStatement(1, [frag(FragmentType.Duration, 'parser')]);
             expect(stmt.getFragment(FragmentType.Rep)).toBeUndefined();
         });
 
         it('should return the only fragment when just one exists', () => {
-            const timer = frag(FragmentType.Timer, 'parser', 60000);
+            const timer = frag(FragmentType.Duration, 'parser', 60000);
             const stmt = new TestCodeStatement(1, [timer]);
-            expect(stmt.getFragment(FragmentType.Timer)).toEqual(timer);
+            expect(stmt.getFragment(FragmentType.Duration)).toEqual(timer);
         });
     });
 
@@ -159,7 +159,7 @@ describe('CodeStatement implements IFragmentSource', () => {
         });
 
         it('should return empty array when type not found', () => {
-            const stmt = new TestCodeStatement(1, [frag(FragmentType.Timer, 'parser')]);
+            const stmt = new TestCodeStatement(1, [frag(FragmentType.Duration, 'parser')]);
             expect(stmt.getAllFragmentsByType(FragmentType.Rep)).toHaveLength(0);
         });
 
@@ -178,12 +178,12 @@ describe('CodeStatement implements IFragmentSource', () => {
 
     describe('hasFragment (IFragmentSource)', () => {
         it('should return true when fragment type exists', () => {
-            const stmt = new TestCodeStatement(1, [frag(FragmentType.Timer, 'parser')]);
-            expect(stmt.hasFragment(FragmentType.Timer)).toBe(true);
+            const stmt = new TestCodeStatement(1, [frag(FragmentType.Duration, 'parser')]);
+            expect(stmt.hasFragment(FragmentType.Duration)).toBe(true);
         });
 
         it('should return false when fragment type is absent', () => {
-            const stmt = new TestCodeStatement(1, [frag(FragmentType.Timer, 'parser')]);
+            const stmt = new TestCodeStatement(1, [frag(FragmentType.Duration, 'parser')]);
             expect(stmt.hasFragment(FragmentType.Rep)).toBe(false);
         });
     });
@@ -191,7 +191,7 @@ describe('CodeStatement implements IFragmentSource', () => {
     describe('rawFragments', () => {
         it('should return all fragments unfiltered', () => {
             const fragments = [
-                frag(FragmentType.Timer, 'parser'),
+                frag(FragmentType.Duration, 'parser'),
                 frag(FragmentType.Rep, 'runtime'),
                 frag(FragmentType.Action, 'user'),
             ];
@@ -200,7 +200,7 @@ describe('CodeStatement implements IFragmentSource', () => {
         });
 
         it('should return a copy, not the original array', () => {
-            const fragments = [frag(FragmentType.Timer, 'parser')];
+            const fragments = [frag(FragmentType.Duration, 'parser')];
             const stmt = new TestCodeStatement(1, fragments);
             const raw = stmt.rawFragments;
             raw.push(frag(FragmentType.Rep, 'parser'));

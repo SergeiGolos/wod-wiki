@@ -23,7 +23,7 @@ describe('Unmount Lifecycle', () => {
         harness.mount();
 
         // Timer should be initialized in memory
-        const timerMemory = harness.getMemory('timer');
+        const timerMemory = harness.getMemory('time');
         expect(timerMemory).toBeDefined();
 
         // Unmount

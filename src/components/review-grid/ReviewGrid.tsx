@@ -91,7 +91,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   }>({
     isOpen: false,
     blockKey: '',
-    fragmentType: 'Timer' as FragmentType,
+    fragmentType: 'Time' as FragmentType,
     anchorRect: null,
     existingFragments: [],
   });

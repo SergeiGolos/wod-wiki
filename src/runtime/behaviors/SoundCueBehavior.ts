@@ -67,7 +67,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
             const playedSeconds = new Set<number>();
 
             ctx.subscribe('tick', (_event, tickCtx) => {
-                const timer = tickCtx.getMemory('timer') as TimerState | undefined;
+                const timer = tickCtx.getMemory('time') as TimerState | undefined;
                 if (!timer || timer.direction !== 'down' || !timer.durationMs) return [];
 
                 // Calculate remaining seconds using TimeSpan properties

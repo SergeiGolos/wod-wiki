@@ -34,7 +34,7 @@ function extractMetricsFromFragments(fragments: ICodeFragment[][]): Record<strin
     if (f.value !== undefined && typeof f.value === 'number') {
       let key = f.type;
       if (f.fragmentType === 'rep') key = 'repetitions';
-      if (f.fragmentType === 'timer') key = 'time';
+      if (f.fragmentType === 'duration') key = 'time';
       if (f.fragmentType === 'distance') key = 'distance';
       if (f.fragmentType === 'resistance') key = 'resistance';
 
@@ -87,7 +87,7 @@ export class AnalyticsTransformer {
       const nameFragment = fragments.find(f =>
         f.fragmentType === 'effort' ||
         f.fragmentType === 'action' ||
-        f.fragmentType === 'timer' ||
+        f.fragmentType === 'duration' ||
         f.fragmentType === 'rounds' ||
         f.fragmentType === 'current-round'
       );

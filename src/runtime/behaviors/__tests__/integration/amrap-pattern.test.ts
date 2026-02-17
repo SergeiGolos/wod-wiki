@@ -84,7 +84,7 @@ describe('AMRAP Pattern Integration', () => {
             mountBehaviors(behaviors, runtime, block);
 
             // Timer should be countdown
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer.direction).toBe('down');
             expect(timer.durationMs).toBe(120000);
 
@@ -157,7 +157,7 @@ describe('AMRAP Pattern Integration', () => {
             // Simulate 90 seconds
             runtime.clock.advance(90000);
 
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             const elapsed = calculateElapsed(timer, runtime.clock.timestamp);
             expect(elapsed).toBe(90000);
         });

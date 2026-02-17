@@ -28,7 +28,7 @@ describe('Text Fragment Parser Contract', () => {
 
     it('should allow text fragment alongside other fragments', () => {
         const script = parse('10:00 // cool down');
-        const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Timer);
+        const timer = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Duration);
         const text = script.statements[0].fragments.find(f => f.fragmentType === FragmentType.Text) as TextFragment;
 
         expect(timer).toBeDefined();

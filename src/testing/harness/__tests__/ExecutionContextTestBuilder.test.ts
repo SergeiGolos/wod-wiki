@@ -67,11 +67,11 @@ describe('ExecutionContextTestBuilder', () => {
       const timerBlock = new MockBlock('timer-block', []);
       
       const harness = new ExecutionContextTestBuilder()
-        .whenTextContains('timer', timerBlock)
+        .whenTextContains('duration', timerBlock)
         .build();
 
-      // Create a statement that contains 'timer' when serialized
-      const statement = { id: 1, fragments: [{ fragmentType: 'timer' }], children: [], meta: {} } as any;
+      // Create a statement that contains 'duration' when serialized
+      const statement = { id: 1, fragments: [{ fragmentType: 'duration' }], children: [], meta: {} } as any;
       const result = harness.mockJit.compile([statement], harness.runtime);
 
       expect(result).toBe(timerBlock);

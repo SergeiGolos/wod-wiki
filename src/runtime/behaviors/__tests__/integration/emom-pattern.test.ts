@@ -71,7 +71,7 @@ describe('EMOM Pattern Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer.direction).toBe('down');
             expect(timer.durationMs).toBe(60000);
 
@@ -112,7 +112,7 @@ describe('EMOM Pattern Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             expect(timer.direction).toBe('down');
             expect(timer.durationMs).toBe(30000);
         });

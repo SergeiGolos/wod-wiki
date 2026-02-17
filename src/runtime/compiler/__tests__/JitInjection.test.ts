@@ -74,7 +74,7 @@ describe("JIT Compiler Injection", () => {
 
         const fragment = injectedFragments[0]; // Injected should be first (appended to empty)
         expect(fragment).toBeDefined();
-        expect(fragment.fragmentType).toBe(FragmentType.Timer);
+        expect(fragment.fragmentType).toBe(FragmentType.Duration);
         expect((fragment as TimerFragment).image).toBe("60");
     });
 
@@ -146,7 +146,7 @@ describe("JIT Compiler Injection", () => {
         // it should have getFragment method.
 
         // Let's verify getFragment works.
-        const effectiveFragment = compiledNode.getFragment(FragmentType.Timer);
+        const effectiveFragment = compiledNode.getFragment(FragmentType.Duration);
         expect(effectiveFragment).toBeDefined();
         // Should be the one with higher precedence (compiler i.e. "60")
         expect((effectiveFragment as TimerFragment).image).toBe("60");

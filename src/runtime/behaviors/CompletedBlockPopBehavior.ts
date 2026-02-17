@@ -5,7 +5,7 @@ import { PopBlockAction } from '../actions/stack/PopBlockAction';
 
 /**
  * CompletedBlockPopBehavior pops a block on next() when it has already
- * been marked complete (e.g., by TimerCompletionBehavior).
+ * been marked complete (e.g., by TimerEndingBehavior).
  *
  * ## Aspect: Completion (deferred pop for timer-controlled blocks)
  *

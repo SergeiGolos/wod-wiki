@@ -26,7 +26,7 @@ describe('IntervalBlock', () => {
     harness.mount();
 
     // Timer should be initialized in memory (no event emission)
-    const timerMemory = harness.getMemory('timer');
+    const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.durationMs).toBe(60000);
     expect(timerMemory.direction).toBe('down');

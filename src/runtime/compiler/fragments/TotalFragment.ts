@@ -3,22 +3,23 @@ import { formatDuration } from "../../time/calculateElapsed";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
- * TotalFragment represents the wall-clock bracket from the first span
- * start to the last span end (or current time if the last span is open).
+ * **Total** (Runtime layer)
  *
- * Unlike ElapsedFragment, this **includes** paused gaps between spans.
- * It answers: "How much wall-clock time passed from when we started
- * until we finished?"
+ * The total time including pauses — last span's end minus first span's start.
+ * Represents the wall-clock bracket of the block's execution.
  *
- * This fragment is created by the runtime when collecting output statements.
+ * Unlike Elapsed, this **includes** paused gaps between spans.
  *
- * ## Relationship to other time fragments
- * - **SpansFragment** = source data (raw timestamps)
- * - **ElapsedFragment** = active time only (excludes paused gaps)
- * - **TotalFragment** = wall-clock bracket (this fragment, includes paused gaps)
+ * Created by the runtime when collecting output statements.
+ *
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - **Duration** = the plan (set by parser)
+ * - **Time / Spans** = raw clock recordings (source data)
+ * - **Elapsed** = Σ(end − start), active time only (excludes pauses)
+ * - **Total** = wall-clock bracket — this fragment (includes pauses)
  *
  * @example
- * // Two spans: [t=0 to t=100ms], [t=200 to t=350ms] → total = 350ms
+ * // Two spans: [t=0 to t=100ms], [t=200 to t=350ms] → Total = 350ms
  * // (the 100ms paused gap IS included)
  */
 export class TotalFragment implements ICodeFragment {

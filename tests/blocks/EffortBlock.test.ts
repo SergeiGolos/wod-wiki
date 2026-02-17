@@ -27,7 +27,7 @@ describe('EffortBlock (simulated with MockBlock)', () => {
     harness.mount();
 
     // Timer should be initialized in memory (no event emission)
-    const timerMemory = harness.getMemory('timer');
+    const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('up');
   });

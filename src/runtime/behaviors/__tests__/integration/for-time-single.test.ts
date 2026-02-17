@@ -97,12 +97,12 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
 
         mountBehaviors(behaviors, runtime, block);
 
-        expectMemoryState(block, 'timer', {
+        expectMemoryState(block, 'time', {
             direction: 'up',
             label: 'For Time'
         });
 
-        const timer = block.memory.get('timer') as TimerState;
+        const timer = block.memory.get('time') as TimerState;
         expect(timer.durationMs).toBeUndefined();
     });
 
@@ -124,7 +124,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         // Advance 30 seconds
         runtime.clock.advance(30000);
 
-        const timer = block.memory.get('timer') as TimerState;
+        const timer = block.memory.get('time') as TimerState;
         const elapsed = calculateElapsed(timer, runtime.clock.timestamp);
         expect(elapsed).toBe(30000);
     });

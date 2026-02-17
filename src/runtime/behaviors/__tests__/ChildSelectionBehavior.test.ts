@@ -11,7 +11,7 @@ function createMockContext(overrides: {
 } = {}): IBehaviorContext {
     const memoryStore = new Map<string, unknown>();
     if (overrides.timerState) {
-        memoryStore.set('timer', overrides.timerState);
+        memoryStore.set('time', overrides.timerState);
     }
 
     return {

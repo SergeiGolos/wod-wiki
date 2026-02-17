@@ -59,7 +59,7 @@ export class BehaviorContext implements IBehaviorContext {
             handler: (event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
                 // For event callbacks, use the dispatching runtime's live clock
                 // instead of the frozen mount-time SnapshotClock. This is critical
-                // for tick handlers that need to see current time (e.g., TimerCompletionBehavior).
+                // for tick handlers that need to see current time (e.g., TimerEndingBehavior).
                 const callbackCtx: IBehaviorContext = Object.create(self, {
                     clock: { value: _runtime.clock, enumerable: true, configurable: true }
                 });
@@ -105,7 +105,7 @@ export class BehaviorContext implements IBehaviorContext {
         // Time semantics derived from spans:
         //   elapsed = sum of all span durations (pause-aware active time)
         //   total   = start of first span to end of last span (wall-clock bracket)
-        const timerLocations = this.block.getMemoryByTag('timer');
+        const timerLocations = this.block.getMemoryByTag('time');
         let startTime = now.getTime();
         const endTime = now.getTime();
         let timerSpans: TimeSpan[] = [];

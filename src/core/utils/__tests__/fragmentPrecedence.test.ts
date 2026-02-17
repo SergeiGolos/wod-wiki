@@ -42,7 +42,7 @@ describe('ORIGIN_PRECEDENCE', () => {
 
 describe('selectBestTier', () => {
     it('returns single fragment when only one exists', () => {
-        const fragments = [frag(FragmentType.Timer, 'parser')];
+        const fragments = [frag(FragmentType.Duration, 'parser')];
         const result = selectBestTier(fragments);
         expect(result).toHaveLength(1);
         expect(result[0].origin).toBe('parser');
@@ -50,8 +50,8 @@ describe('selectBestTier', () => {
 
     it('selects highest precedence (lowest rank) tier', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'parser', 'plan'),
-            frag(FragmentType.Timer, 'runtime', 'actual'),
+            frag(FragmentType.Duration, 'parser', 'plan'),
+            frag(FragmentType.Duration, 'runtime', 'actual'),
         ];
         const result = selectBestTier(fragments);
         expect(result).toHaveLength(1);
@@ -87,11 +87,11 @@ describe('selectBestTier', () => {
 
     it('treats undefined origin as parser (tier 3)', () => {
         const noOrigin: ICodeFragment = {
-            type: 'timer',
-            fragmentType: FragmentType.Timer,
+            type: 'duration',
+            fragmentType: FragmentType.Duration,
             value: 60,
         };
-        const withOrigin = frag(FragmentType.Timer, 'compiler', 120);
+        const withOrigin = frag(FragmentType.Duration, 'compiler', 120);
         const result = selectBestTier([noOrigin, withOrigin]);
         expect(result).toHaveLength(1);
         expect(result[0].origin).toBe('compiler');
@@ -115,15 +115,15 @@ describe('selectBestTier', () => {
 describe('resolveFragmentPrecedence', () => {
     it('resolves per-type independently', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'runtime', 'elapsed'),
-            frag(FragmentType.Timer, 'parser', 'planned'),
+            frag(FragmentType.Duration, 'runtime', 'elapsed'),
+            frag(FragmentType.Duration, 'parser', 'planned'),
             frag(FragmentType.Action, 'parser', 'Thrusters'),
         ];
         const result = resolveFragmentPrecedence(fragments);
 
         expect(result).toHaveLength(2);
 
-        const timer = result.find(f => f.fragmentType === FragmentType.Timer);
+        const timer = result.find(f => f.fragmentType === FragmentType.Duration);
         expect(timer?.origin).toBe('runtime');
         expect(timer?.value).toBe('elapsed');
 
@@ -134,7 +134,7 @@ describe('resolveFragmentPrecedence', () => {
 
     it('keeps all fragments when no conflicts', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'parser', 300),
+            frag(FragmentType.Duration, 'parser', 300),
             frag(FragmentType.Rep, 'parser', 21),
             frag(FragmentType.Action, 'parser', 'Burpees'),
         ];
@@ -144,8 +144,8 @@ describe('resolveFragmentPrecedence', () => {
 
     it('filters by origin', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'runtime', 'live'),
-            frag(FragmentType.Timer, 'parser', 'plan'),
+            frag(FragmentType.Duration, 'runtime', 'live'),
+            frag(FragmentType.Duration, 'parser', 'plan'),
             frag(FragmentType.Rep, 'parser', 10),
         ];
         const result = resolveFragmentPrecedence(fragments, { origins: ['parser'] });
@@ -155,12 +155,12 @@ describe('resolveFragmentPrecedence', () => {
 
     it('filters by type', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'parser', 300),
+            frag(FragmentType.Duration, 'parser', 300),
             frag(FragmentType.Rep, 'parser', 21),
             frag(FragmentType.Action, 'parser', 'Burpees'),
         ];
         const result = resolveFragmentPrecedence(fragments, {
-            types: [FragmentType.Timer, FragmentType.Rep],
+            types: [FragmentType.Duration, FragmentType.Rep],
         });
         expect(result).toHaveLength(2);
         expect(result.some(f => f.fragmentType === FragmentType.Action)).toBe(false);
@@ -168,7 +168,7 @@ describe('resolveFragmentPrecedence', () => {
 
     it('excludes types', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'parser', 300),
+            frag(FragmentType.Duration, 'parser', 300),
             frag(FragmentType.Rep, 'parser', 21),
             frag(FragmentType.Text, 'parser', 'note'),
         ];
@@ -181,8 +181,8 @@ describe('resolveFragmentPrecedence', () => {
 
     it('combines filter and precedence', () => {
         const fragments = [
-            frag(FragmentType.Timer, 'runtime', 'elapsed'),
-            frag(FragmentType.Timer, 'parser', 'planned'),
+            frag(FragmentType.Duration, 'runtime', 'elapsed'),
+            frag(FragmentType.Duration, 'parser', 'planned'),
             frag(FragmentType.Rep, 'compiler', 15),
             frag(FragmentType.Rep, 'parser', 10),
             frag(FragmentType.Action, 'parser', 'Run'),
@@ -192,7 +192,7 @@ describe('resolveFragmentPrecedence', () => {
         });
         expect(result).toHaveLength(2);
 
-        const timer = result.find(f => f.fragmentType === FragmentType.Timer);
+        const timer = result.find(f => f.fragmentType === FragmentType.Duration);
         expect(timer?.origin).toBe('runtime');
 
         const rep = result.find(f => f.fragmentType === FragmentType.Rep);

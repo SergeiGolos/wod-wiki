@@ -26,7 +26,7 @@ export interface StackTimerEntry {
  * Hook that scans the runtime stack for all blocks with timer memory.
  * Returns timer entries ordered from bottom of stack (index 0) to top.
  *
- * Timer data is read directly from block memory via lock.getMemory('timer').
+ * Timer data is read directly from block memory via lock.getMemory('time').
  * When a block is popped from the stack, its memory subscriptions are cleaned
  * up automatically, and the stack event triggers a re-render here.
  *
@@ -41,7 +41,7 @@ export function useStackTimers(): StackTimerEntry[] {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const timerEntry = block.getMemory('timer');
+            const timerEntry = block.getMemory('time');
             if (timerEntry) {
                 const unsub = timerEntry.subscribe(() => {
                     setVersion(v => v + 1);
@@ -59,7 +59,7 @@ export function useStackTimers(): StackTimerEntry[] {
         const entries: StackTimerEntry[] = [];
 
         for (const block of blocks) {
-            const timerEntry = block.getMemory('timer');
+            const timerEntry = block.getMemory('time');
             if (!timerEntry) continue;
 
             const timer = timerEntry.value;

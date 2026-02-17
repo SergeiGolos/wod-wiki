@@ -7,19 +7,21 @@ import { TimeSpan } from '../models/TimeSpan';
 export type TimerDirection = 'up' | 'down';
 
 /**
- * Timer state stored in memory.
+ * Timer state stored in block memory.
  * 
- * Contains the raw time spans (segments) for ground-truth calculation
- * and display metadata to guide the UI representation.
+ * ## Glossary (docs/architecture/time-terminology.md)
+ * - `spans`      — **Time**: raw TimeSpan[] recordings the block tracks
+ * - `durationMs` — **Duration**: planned target from the parser (e.g., 300 000 ms for "5:00")
+ * - Derived values Elapsed and Total are computed from spans at collection time.
  */
 export interface TimerState {
     /** 
-     * Raw time segments being tracked. 
-     * Aggregate these to calculate total elapsed time.
+     * **Time** — raw time segments being tracked.
+     * Source of truth for Elapsed (Σ span durations) and Total (wall-clock bracket).
      */
     readonly spans: readonly TimeSpan[];
 
-    /** Target duration in milliseconds (for countdowns or goals) */
+    /** **Duration** — planned target in ms from the parser (for countdowns or goals). */
     readonly durationMs?: number;
 
     /** Timer direction preference */
@@ -179,7 +181,7 @@ export type MemoryType = 'timer' | 'round' | 'children:status' | 'fragment' | 'f
  * Enables compile-time type safety when accessing block memory.
  * 
  * @example
- * const timer = block.getMemory('timer'); // Returns IMemoryEntry<'timer', TimerState>
+ * const timer = block.getMemory('time'); // Returns IMemoryEntry<'timer', TimerState>
  */
 export interface MemoryTypeMap {
     timer: TimerState;

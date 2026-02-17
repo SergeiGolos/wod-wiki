@@ -216,7 +216,7 @@ describe('Edge Cases Integration', () => {
                 dispatchEvent(runtime, ctx, 'timer:resume', {});
             }
 
-            const timer = block.memory.get('timer') as TimerState;
+            const timer = block.memory.get('time') as TimerState;
             // Should have many spans
             expect(timer.spans.length).toBeGreaterThan(1);
         });
@@ -273,7 +273,7 @@ describe('Edge Cases Integration', () => {
             runtime.clock.advance(5000);
 
             // Memory exists before unmount
-            expect(block.memory.get('timer')).toBeDefined();
+            expect(block.memory.get('time')).toBeDefined();
             expect(block.memory.get('round')).toBeDefined();
 
             unmountBehaviors(behaviors, ctx);

@@ -95,7 +95,7 @@ describe('RestBlock', () => {
             harness.push(block);
             harness.mount();
 
-            const timerMemory = harness.getMemory('timer');
+            const timerMemory = harness.getMemory('time');
             expect(timerMemory).toBeDefined();
             expect(timerMemory.direction).toBe('down');
             expect(timerMemory.durationMs).toBe(60000);

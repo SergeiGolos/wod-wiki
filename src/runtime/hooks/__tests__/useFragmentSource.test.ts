@@ -41,17 +41,17 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
 
     describe("Fragment memory locations from block", () => {
         it("should return fragment:display memory locations from built block", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
+            const timerFrag = createFragment('duration', FragmentType.Duration, 60000);
             const block = buildBlock([[timerFrag]]);
 
             const locations = block.getMemoryByTag('fragment:display');
             expect(locations).toHaveLength(1);
             expect(locations[0].fragments).toHaveLength(1);
-            expect(locations[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
+            expect(locations[0].fragments[0].fragmentType).toBe(FragmentType.Duration);
         });
 
         it("should return correct fragment values", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
+            const timerFrag = createFragment('duration', FragmentType.Duration, 60000);
             const block = buildBlock([[timerFrag]]);
 
             const locations = block.getMemoryByTag('fragment:display');
@@ -59,7 +59,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
         });
 
         it("should return multiple fragments in a single location", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
+            const timerFrag = createFragment('duration', FragmentType.Duration, 60000);
             const actionFrag = createFragment('action', FragmentType.Action, 'Run');
             const repFrag = createFragment('rep', FragmentType.Rep, 21);
 
@@ -71,14 +71,14 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
         });
 
         it("should filter fragments by type", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
+            const timerFrag = createFragment('duration', FragmentType.Duration, 60000);
             const actionFrag = createFragment('action', FragmentType.Action, 'Run');
             const repFrag = createFragment('rep', FragmentType.Rep, 21);
 
             const block = buildBlock([[timerFrag, actionFrag, repFrag]]);
 
             const locations = block.getMemoryByTag('fragment:display');
-            const timersOnly = locations[0].fragments.filter(f => f.fragmentType === FragmentType.Timer);
+            const timersOnly = locations[0].fragments.filter(f => f.fragmentType === FragmentType.Duration);
             expect(timersOnly).toHaveLength(1);
             expect(timersOnly[0].value).toBe(60000);
         });
@@ -121,8 +121,8 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
         });
 
         it("should preserve both parser and runtime fragments", () => {
-            const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
-            const runtimeTimer = createFragment('timer', FragmentType.Timer, 432000, 'runtime');
+            const parserTimer = createFragment('duration', FragmentType.Duration, 600000, 'parser');
+            const runtimeTimer = createFragment('duration', FragmentType.Duration, 432000, 'runtime');
             const actionFrag = createFragment('action', FragmentType.Action, 'Run', 'parser');
 
             const block = buildBlock([[parserTimer, runtimeTimer, actionFrag]]);
@@ -158,7 +158,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
 
     describe("Reactive fragment updates", () => {
         it("should notify subscribers when fragments are updated", () => {
-            const timerFrag = createFragment('timer', FragmentType.Timer, 60000);
+            const timerFrag = createFragment('duration', FragmentType.Duration, 60000);
             const block = buildBlock([[timerFrag]]);
 
             const locations = block.getMemoryByTag('fragment:display');
@@ -179,14 +179,14 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
         });
 
         it("should provide updated fragments after update", () => {
-            const parserTimer = createFragment('timer', FragmentType.Timer, 600000, 'parser');
+            const parserTimer = createFragment('duration', FragmentType.Duration, 600000, 'parser');
             const block = buildBlock([[parserTimer]]);
 
             const locations = block.getMemoryByTag('fragment:display');
             expect(locations[0].fragments[0].origin).toBe('parser');
 
             // Simulate runtime updating the timer
-            const runtimeTimer = createFragment('timer', FragmentType.Timer, 432000, 'runtime');
+            const runtimeTimer = createFragment('duration', FragmentType.Duration, 432000, 'runtime');
             locations[0].update([runtimeTimer]);
 
             expect(locations[0].fragments).toHaveLength(1);
@@ -201,19 +201,19 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
 
     describe("Multi-group fragment locations", () => {
         it("should preserve multi-group structure as separate locations", () => {
-            const frag1 = createFragment('timer', FragmentType.Timer, 60000);
+            const frag1 = createFragment('duration', FragmentType.Duration, 60000);
             const frag2 = createFragment('action', FragmentType.Action, 'Run');
 
             const block = buildBlock([[frag1], [frag2]]);
 
             const locations = block.getMemoryByTag('fragment:display');
             expect(locations).toHaveLength(2);
-            expect(locations[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
+            expect(locations[0].fragments[0].fragmentType).toBe(FragmentType.Duration);
             expect(locations[1].fragments[0].fragmentType).toBe(FragmentType.Action);
         });
 
         it("should support building stack display entries from memory locations", () => {
-            const frag1 = createFragment('timer', FragmentType.Timer, 60000);
+            const frag1 = createFragment('duration', FragmentType.Duration, 60000);
             const frag2 = createFragment('action', FragmentType.Action, 'Run');
 
             const block1 = buildBlock([[frag1]]);
@@ -232,7 +232,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             expect(entries[1].isLeaf).toBe(true);
             expect(entries[0].depth).toBe(0);
             expect(entries[1].depth).toBe(1);
-            expect(entries[0].fragments[0].fragmentType).toBe(FragmentType.Timer);
+            expect(entries[0].fragments[0].fragmentType).toBe(FragmentType.Duration);
             expect(entries[1].fragments[0].fragmentType).toBe(FragmentType.Action);
         });
     });

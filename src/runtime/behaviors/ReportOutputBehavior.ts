@@ -15,7 +15,7 @@ export interface ReportOutputConfig {
     label?: string;
     emitSegmentOnMount?: boolean;
     emitMilestones?: boolean;
-    computeTimerResults?: boolean;
+    computeTimeResults?: boolean;
 }
 
 export class ReportOutputBehavior implements IRuntimeBehavior {
@@ -80,10 +80,10 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // The runtime handles segment emission on pop.
         // baseFragments was only used for completion output, which is removed.
 
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
-        const shouldComputeTimerResults = this.config.computeTimerResults ?? true;
-        const resultFragments = shouldComputeTimerResults
-            ? this.computeTimerResults(ctx, timer)
+        const timer = ctx.getMemory('time') as TimerState | undefined;
+        const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
+        const resultFragments = shouldComputeTimeResults
+            ? this.computeTimeResults(ctx, timer)
             : [new SystemTimeFragment(new Date(), ctx.block.key.toString())];
 
         this.writeResultMemory(ctx, resultFragments);
@@ -101,7 +101,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
 
     private collectStateFragments(ctx: IBehaviorContext): ICodeFragment[] {
         const roundFragments = ctx.block.getMemoryByTag('round').flatMap(loc => loc.fragments);
-        const timerFragments = ctx.block.getMemoryByTag('timer').flatMap(loc => loc.fragments);
+        const timerFragments = ctx.block.getMemoryByTag('time').flatMap(loc => loc.fragments);
         return [...roundFragments, ...timerFragments];
     }
 
@@ -123,7 +123,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             ),
         ];
 
-        const timer = ctx.getMemory('timer') as TimerState | undefined;
+        const timer = ctx.getMemory('time') as TimerState | undefined;
         if (timer) {
             const nowMs = ctx.clock.now.getTime();
             const elapsed = calculateElapsed(timer, nowMs);
@@ -137,7 +137,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         return fragments;
     }
 
-    private computeTimerResults(ctx: IBehaviorContext, timer: TimerState | undefined): ICodeFragment[] {
+    private computeTimeResults(ctx: IBehaviorContext, timer: TimerState | undefined): ICodeFragment[] {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();

@@ -79,7 +79,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
       }
 
       const isHeader = fragments.some(f =>
-        f.fragmentType === FragmentType.Timer ||
+        f.fragmentType === FragmentType.Duration ||
         f.fragmentType === FragmentType.Rounds ||
         HEADER_TYPES.has(f.type.toLowerCase())
       );

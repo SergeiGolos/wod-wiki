@@ -95,7 +95,7 @@ describe('AnalyticsTransformer', () => {
           outputType: 'segment',
           started: startTime,
           ended: startTime + 1200000,
-          fragments: [{ type: 'amrap', fragmentType: FragmentType.Timer, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
+          fragments: [{ type: 'amrap', fragmentType: FragmentType.Duration, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
           hints: ['amrap', 'time_bound']
         });
 

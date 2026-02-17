@@ -3,7 +3,7 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
-import { TimerFragment } from "../../fragments/TimerFragment";
+import { DurationFragment } from "../../fragments/DurationFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
@@ -32,7 +32,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
         const statement = statements[0];
-        const hasTimer = statement.hasFragment(FragmentType.Timer);
+        const hasTimer = statement.hasFragment(FragmentType.Duration);
 
         // Check for AMRAP keyword or rounds with timer
         const hasRounds = statement.hasFragment(FragmentType.Rounds);
@@ -48,8 +48,8 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         const statement = statements[0];
         const timerFragment = statement.fragments.find(
-            f => f.fragmentType === FragmentType.Timer
-        ) as TimerFragment | undefined;
+            f => f.fragmentType === FragmentType.Duration
+        ) as DurationFragment | undefined;
         const durationMs = timerFragment?.value || 0;
 
         // Block metadata

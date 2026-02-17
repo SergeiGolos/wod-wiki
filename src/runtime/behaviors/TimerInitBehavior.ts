@@ -33,8 +33,8 @@ export class TimerInitBehavior implements IRuntimeBehavior {
 
         // Create timer fragment
         const timerFragment: ICodeFragment = {
-            fragmentType: FragmentType.Timer,
-            type: 'timer',
+            fragmentType: FragmentType.Time,
+            type: 'time',
             image: this.formatDuration(this.config.durationMs),
             origin: 'runtime',
             value: {
@@ -49,7 +49,7 @@ export class TimerInitBehavior implements IRuntimeBehavior {
         };
 
         // Push timer fragment to list-based memory
-        ctx.pushMemory('timer', [timerFragment]);
+        ctx.pushMemory('time', [timerFragment]);
 
         return [];
     }

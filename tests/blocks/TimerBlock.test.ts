@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { TimerInitBehavior, TimerTickBehavior, TimerCompletionBehavior } from '@/runtime/behaviors';
+import { TimerInitBehavior, TimerTickBehavior, TimerEndingBehavior } from '@/runtime/behaviors';
 
 describe('TimerBlock', () => {
   let harness: BehaviorTestHarness;
@@ -24,7 +24,7 @@ describe('TimerBlock', () => {
     harness.mount();
 
     // Timer state should be initialized in memory with open span (signals timer started)
-    const timerMemory = harness.getMemory('timer');
+    const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('up');
     expect(timerMemory.spans.length).toBe(1);
@@ -34,14 +34,14 @@ describe('TimerBlock', () => {
   it('should initialize countdown timer with durationMs', () => {
     const timerInit = new TimerInitBehavior({ direction: 'down', durationMs: 10000 });
     const timerTick = new TimerTickBehavior();
-    const timerCompletion = new TimerCompletionBehavior();
+    const timerCompletion = new TimerEndingBehavior();
     const block = new MockBlock('timer-down', [timerInit, timerTick, timerCompletion], { blockType: 'Timer' });
 
     harness.push(block);
     harness.mount();
 
     // Verify timer memory contains correct data (no event emission)
-    const timerMemory = harness.getMemory('timer');
+    const timerMemory = harness.getMemory('time');
     expect(timerMemory).toBeDefined();
     expect(timerMemory.direction).toBe('down');
     expect(timerMemory.durationMs).toBe(10000);

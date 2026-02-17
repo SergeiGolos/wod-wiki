@@ -25,13 +25,13 @@ describe('Mount Lifecycle', () => {
         harness.push(block);
 
         // Check timer memory NOT set yet
-        expect(harness.getMemory('timer')).toBeUndefined();
+        expect(harness.getMemory('time')).toBeUndefined();
 
         // Mount
         harness.mount();
 
         // After mount - timer memory should be set with open span
-        const timerMemory = harness.getMemory('timer');
+        const timerMemory = harness.getMemory('time');
         expect(timerMemory).toBeDefined();
         expect(timerMemory.direction).toBe('up');
         expect(timerMemory.spans.length).toBe(1);

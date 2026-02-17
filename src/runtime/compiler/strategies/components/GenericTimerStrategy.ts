@@ -3,7 +3,7 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
-import { TimerFragment } from "../../fragments/TimerFragment";
+import { DurationFragment } from "../../fragments/DurationFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
@@ -30,9 +30,9 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
 
-        // Match if timer fragment exists, ignoring runtime-generated ones
+        // Match if duration fragment exists, ignoring runtime-generated ones
         return statements[0].fragments.some(
-            f => f.fragmentType === FragmentType.Timer && f.origin !== 'runtime'
+            f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
         );
     }
 
@@ -44,8 +44,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         const statement = statements[0];
         const timerFragment = statement.fragments.find(
-            f => f.fragmentType === FragmentType.Timer && f.origin !== 'runtime'
-        ) as TimerFragment | undefined;
+            f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
+        ) as DurationFragment | undefined;
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
