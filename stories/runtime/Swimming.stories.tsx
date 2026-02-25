@@ -18,7 +18,8 @@ const meta: Meta<typeof Workbench> = {
   title: 'Examples/Swimming',
   component: Workbench,
   args: {
-    provider: mockProvider
+    provider: mockProvider,
+    hidePlanUnlessDebug: true
   },
   parameters: {
     layout: 'fullscreen',

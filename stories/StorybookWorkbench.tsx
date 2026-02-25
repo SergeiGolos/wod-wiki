@@ -4,7 +4,7 @@ import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchCo
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
-import { DebugButton } from '@/components/layout/DebugModeContext';
+import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
 
@@ -17,6 +17,7 @@ const runtimeFactory = new RuntimeFactory(globalCompiler);
 
 const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
   initialContent,
+  hidePlanUnlessDebug = false,
 }) => {
   const {
     content,
@@ -28,6 +29,8 @@ const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
     setContent,
     provider,
   } = useWorkbench();
+
+  const { isDebugMode } = useDebugMode();
 
   const {
     runtime,
@@ -54,6 +57,8 @@ const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
     setHoveredBlockKey(blockKey);
   }, [setHoveredBlockKey]);
 
+  const showPlan = !hidePlanUnlessDebug || isDebugMode;
+
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Simplified Header with Debug Toggle only */}
@@ -66,23 +71,25 @@ const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
 
       {/* Scrollable Container with all three views shown at once */}
       <div className="flex-1 overflow-y-auto p-6 space-y-12 bg-muted/20">
-        
+
         {/* Plan View */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold px-1">Plan</h2>
-          <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[600px]">
-            <PlanPanel
-              initialContent={initialContent}
-              value={content}
-              sections={sections}
-              onStartWorkout={handleStartWorkoutAction}
-              setActiveBlockId={setActiveBlockId}
-              setBlocks={setBlocks}
-              setContent={setContent}
-              provider={provider}
-            />
-          </div>
-        </section>
+        {showPlan && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold px-1">Plan</h2>
+            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[600px]">
+              <PlanPanel
+                initialContent={initialContent}
+                value={content}
+                sections={sections}
+                onStartWorkout={handleStartWorkoutAction}
+                setActiveBlockId={setActiveBlockId}
+                setBlocks={setBlocks}
+                setContent={setContent}
+                provider={provider}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Track View */}
         <section className="flex flex-col gap-2">

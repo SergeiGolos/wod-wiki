@@ -1,5 +1,6 @@
 import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
+import { expect, within } from '@storybook/test';
 
 const meta: Meta<typeof Workbench> = {
   title: 'Playground',
@@ -35,6 +36,10 @@ const meta: Meta<typeof Workbench> = {
       control: 'select',
       options: ['plan', 'track', 'review'],
       description: 'Initial view mode for the workbench',
+    },
+    hidePlanUnlessDebug: {
+      control: 'boolean',
+      description: 'Whether to hide the Plan panel unless in debug mode'
     }
   }
 };
@@ -67,6 +72,19 @@ Add your workout notes here.
 `,
     showToolbar: false,
     readonly: false,
-    theme: 'wod-light'
+    theme: 'wod-light',
+    hidePlanUnlessDebug: false
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    
+    // Check if the workbench is rendered by looking for the header title
+    await expect(canvas.getByText(/STORYBOOK WORKBENCH/i)).toBeInTheDocument();
+    
+    // Check if the Plan section is visible
+    await expect(canvas.getByRole('heading', { name: /Plan/i })).toBeInTheDocument();
+    
+    // Check if some content from initialContent is present in the editor area
+    await expect(canvas.getByText(/My Workout Log/i)).toBeInTheDocument();
   }
 };

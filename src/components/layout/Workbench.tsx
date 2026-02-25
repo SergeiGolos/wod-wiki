@@ -38,7 +38,7 @@ import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
 import { useWorkbenchSync } from './useWorkbenchSync';
-import { DebugButton } from '@/components/layout/DebugModeContext';
+import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
@@ -60,18 +60,21 @@ export interface WorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'o
   mode?: ContentProviderMode;
   provider?: IContentProvider;
   commandStrategy?: any; // CommandStrategy
+  hidePlanUnlessDebug?: boolean;
 }
 
 // --- Main Workbench Content ---
 const WorkbenchContent: React.FC<WorkbenchProps> = ({
   initialContent,
   theme: propTheme,
+  hidePlanUnlessDebug = false,
   ...editorProps
 }) => {
   const navigate = useNavigate();
   const { noteId: routeId } = useParams<{ noteId: string }>();
   const { theme, setTheme } = useTheme();
   const { setIsOpen, setStrategy } = useCommandPalette();
+  const { isDebugMode } = useDebugMode();
 
   // Register initial strategy if provided
   useEffect(() => {
@@ -242,6 +245,14 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [propTheme, theme, setTheme]);
 
+  // Handle plan panel visibility constraints
+  useEffect(() => {
+    const showPlan = !hidePlanUnlessDebug || isDebugMode;
+    if (!showPlan && viewMode === 'plan') {
+      setViewMode('track');
+    }
+  }, [hidePlanUnlessDebug, isDebugMode, viewMode, setViewMode]);
+
   // Block editor hooks
   const { editStatement: _editStatement, deleteStatement: _deleteStatement } = useBlockEditor({
     editor: editorInstance,
@@ -335,11 +346,13 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   );
 
   const viewDescriptors = useMemo(() => {
+    const showPlan = !hidePlanUnlessDebug || isDebugMode;
+
     const all = [
-      createPlanView(planPanel),
+      showPlan && createPlanView(planPanel),
       createTrackView(trackPrimaryPanel, null),
       createReviewView(reviewGridPanel),
-    ];
+    ].filter(Boolean) as any[];
 
     // Branch: If we are viewing a template, only show Plan (View)
     if (currentEntry?.type === 'template') {
@@ -356,8 +369,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     planPanel,
     trackPrimaryPanel,
     reviewGridPanel,
-    currentEntry?.type
+    currentEntry?.type,
+    hidePlanUnlessDebug,
+    isDebugMode,
   ]);
+
 
   return (
     <>

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
+import { expect, userEvent, within } from '@storybook/test';
 
 import abcMarkdown from '../../wod/kettlebell/abc.md?raw';
 import abcSingleBellMarkdown from '../../wod/kettlebell/abc-single-bell.md?raw';
@@ -11,7 +12,8 @@ const meta: Meta<typeof Workbench> = {
     showToolbar: false,
     showContextOverlay: false,
     readonly: true,
-    theme: 'vs'
+    theme: 'vs',
+    hidePlanUnlessDebug: true
   },
   parameters: {
     layout: 'fullscreen',
@@ -37,5 +39,12 @@ const createStory = (content: string, source: string): Story => ({
   }
 });
 
-export const ABC = createStory(abcMarkdown, 'wod/abc.md');
+export const ABC: Story = {
+  ...createStory(abcMarkdown, 'wod/abc.md'),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Basic check to see if it runs
+    await expect(canvas.getByRole('heading', { name: /Track/i, level: 2 })).toBeInTheDocument();
+  }
+};
 export const ABCSingleBell = createStory(abcSingleBellMarkdown, 'wod/abc-single-bell.md');
