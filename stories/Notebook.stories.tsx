@@ -1,12 +1,12 @@
-import { Workbench } from '@/components/layout/Workbench';
+import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
 import { LocalStorageContentProvider } from '@/services/content/LocalStorageContentProvider';
 import type { Meta, StoryObj } from '@storybook/react';
 
 // Import raw markdown content
-import franMarkdown from '../wod/fran.md?raw';
-import cindyMarkdown from '../wod/cindy.md?raw';
-import annieMarkdown from '../wod/annie.md?raw';
-import simpleAndSinisterMarkdown from '../wod/simple-and-sinister.md?raw';
+import franMarkdown from '../wod/crossfit-girls/fran.md?raw';
+import cindyMarkdown from '../wod/crossfit-girls/cindy.md?raw';
+import annieMarkdown from '../wod/crossfit-girls/annie.md?raw';
+import simpleAndSinisterMarkdown from '../wod/01-simple-and-sinister.md?raw';
 
 // Singleton — same instance across hot reloads
 const notebookProvider = new LocalStorageContentProvider();

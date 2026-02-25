@@ -441,9 +441,13 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     } else if (selectedBlockId && viewMode !== 'plan') {
       // Clear selection when navigating away from a specific track/review section
       // (but keep it in plan mode as it might represent the cursor-focused block)
-      setSelectedBlockId(null);
+      
+      // Only clear if the pathname explicitly ends with /track or /review (no ID segment).
+      if (pathname.match(/\/(track|review)\/?$/)) {
+        setSelectedBlockId(null);
+      }
     }
-  }, [routeSectionId, selectedBlockId, viewMode]);
+  }, [routeSectionId, selectedBlockId, viewMode, pathname]);
 
   // Handle broken links on Track view -> redirect to Plan only for genuinely broken links
   // (Case 1 removed: Track without sectionId now shows the WorkoutPreviewPanel)
@@ -527,9 +531,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     } else if (pathname.startsWith('/playground')) {
       navigate(`/playground/${newMode}`);
     } else {
-      // Fallback if no ID but trying to go to a workout view? 
-      // This happens for seeded playground etc.
-      console.warn('[WorkbenchContext] Navigation attempted to workout view without ID or playground context');
+      // Fallback if no ID but trying to go to a workout view (e.g. Storybook)
+      navigate(`/${newMode}`);
     }
   }, [resolvedMode, navigate, routeId, routeSectionId, routeResultId, pathname]);
 
@@ -545,9 +548,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     } else if (pathname.startsWith('/playground')) {
       navigate(`/playground/track/${block.id}`);
     } else {
-      setViewMode('track');
+      // Fallback for Storybook/Embedded
+      navigate(`/track/${block.id}`);
     }
-  }, [routeId, navigate, pathname, setViewMode]);
+  }, [routeId, navigate, pathname]);
 
   const completeWorkout = useCallback((result: WorkoutResults) => {
     const resultId = uuidv4(); // Generate deterministic ID for this result
@@ -593,10 +597,17 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       navigate(reviewPath(routeId, selectedBlockId ?? undefined, resultId), {
         state: { result }
       });
+    } else if (pathname.startsWith('/playground')) {
+      navigate(`/playground/review/${selectedBlockId ?? ''}`);
     } else {
-      setViewMode('review');
+      // Fallback for Storybook/Embedded
+      if (selectedBlockId) {
+        navigate(`/review/${selectedBlockId}/${resultId}`, { state: { result } });
+      } else {
+        navigate(`/review`, { state: { result } });
+      }
     }
-  }, [provider, content, routeId, selectedBlockId, navigate, setViewMode]);
+  }, [provider, content, routeId, selectedBlockId, navigate, pathname]);
 
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {

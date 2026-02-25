@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Workbench } from '../../src/components/layout/Workbench';
+import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
 
-import abcMarkdown from '../../wod/abc.md?raw';
-import abcSingleBellMarkdown from '../../wod/abc-single-bell.md?raw';
+import abcMarkdown from '../../wod/kettlebell/abc.md?raw';
+import abcSingleBellMarkdown from '../../wod/kettlebell/abc-single-bell.md?raw';
 
 const meta: Meta<typeof Workbench> = {
   title: 'Examples/DanJon',

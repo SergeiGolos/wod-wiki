@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Workbench } from '../../src/components/layout/Workbench';
-import { StorybookHost } from '../StorybookHost';
+import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
 import { MockContentProvider } from '../../src/services/content/MockContentProvider';
 import { createMockEntry } from '../../src/services/content/fixtures';
 
@@ -18,13 +17,6 @@ const mockProvider = new MockContentProvider([
 const meta: Meta<typeof Workbench> = {
   title: 'Examples/Swimming',
   component: Workbench,
-  decorators: [
-    (Story) => (
-      <StorybookHost initialEntries={['/note/swimming-1/plan']}>
-        <Story />
-      </StorybookHost>
-    ),
-  ],
   args: {
     provider: mockProvider
   },

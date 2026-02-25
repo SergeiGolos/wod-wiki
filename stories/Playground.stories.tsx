@@ -1,4 +1,4 @@
-import { Workbench } from '@/components/layout/Workbench';
+import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof Workbench> = {

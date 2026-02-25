@@ -1,22 +1,22 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Workbench } from '../../src/components/layout/Workbench';
+import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
 import React from 'react';
 
-import annieMarkdown from '../../wod/annie.md?raw';
-import barbaraMarkdown from '../../wod/barbara.md?raw';
-import chelseaMarkdown from '../../wod/chelsea.md?raw';
-import cindyMarkdown from '../../wod/cindy.md?raw';
-import dianeMarkdown from '../../wod/diane.md?raw';
-import elizabethMarkdown from '../../wod/elizabeth.md?raw';
-import franMarkdown from '../../wod/fran.md?raw';
-import graceMarkdown from '../../wod/grace.md?raw';
-import helenMarkdown from '../../wod/helen.md?raw';
-import isabelMarkdown from '../../wod/isabel.md?raw';
-import jackieMarkdown from '../../wod/jackie.md?raw';
-import karenMarkdown from '../../wod/karen.md?raw';
-import lindaMarkdown from '../../wod/linda.md?raw';
-import maryMarkdown from '../../wod/mary.md?raw';
-import nancyMarkdown from '../../wod/nancy.md?raw';
+import annieMarkdown from '../../wod/crossfit-girls/annie.md?raw';
+import barbaraMarkdown from '../../wod/crossfit-girls/barbara.md?raw';
+import chelseaMarkdown from '../../wod/crossfit-girls/chelsea.md?raw';
+import cindyMarkdown from '../../wod/crossfit-girls/cindy.md?raw';
+import dianeMarkdown from '../../wod/crossfit-girls/diane.md?raw';
+import elizabethMarkdown from '../../wod/crossfit-girls/elizabeth.md?raw';
+import franMarkdown from '../../wod/crossfit-girls/fran.md?raw';
+import graceMarkdown from '../../wod/crossfit-girls/grace.md?raw';
+import helenMarkdown from '../../wod/crossfit-girls/helen.md?raw';
+import isabelMarkdown from '../../wod/crossfit-girls/isabel.md?raw';
+import jackieMarkdown from '../../wod/crossfit-girls/jackie.md?raw';
+import karenMarkdown from '../../wod/crossfit-girls/karen.md?raw';
+import lindaMarkdown from '../../wod/crossfit-girls/linda.md?raw';
+import maryMarkdown from '../../wod/crossfit-girls/mary.md?raw';
+import nancyMarkdown from '../../wod/crossfit-girls/nancy.md?raw';
 
 const meta: Meta<typeof Workbench> = {
   title: 'Examples/Crossfit',

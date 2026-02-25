@@ -23,7 +23,15 @@ const config = {
 
   "framework": {
     "name": "@storybook/react-vite",
-    "options": {}
+    "options": {
+      "builder": {
+        "viteConfigPath": "vite.config.ts"
+      }
+    }
+  },
+
+  "typescript": {
+    "reactDocgen": false,
   },
 
   "viteFinal": (config) => {

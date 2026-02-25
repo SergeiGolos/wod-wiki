@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Workbench } from '../../src/components/layout/Workbench';
+import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
 
-import simpleAndSinisterMarkdown from '../../wod/simple-and-sinister.md?raw';
-import kbAxeHeavyMarkdown from '../../wod/kb-axe-heavy.md?raw';
-import kbAxeLiteMarkdown from '../../wod/kb-axe-lite.md?raw';
+import simpleAndSinisterMarkdown from '../../wod/kettlebell/simple-and-sinister.md?raw';
+import kbAxeHeavyMarkdown from '../../wod/kettlebell/kb-axe-heavy.md?raw';
+import kbAxeLiteMarkdown from '../../wod/kettlebell/kb-axe-lite.md?raw';
 
 const meta: Meta<typeof Workbench> = {
   title: 'Examples/StrongFirst',
