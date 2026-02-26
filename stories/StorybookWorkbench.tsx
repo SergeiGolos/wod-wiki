@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
@@ -7,6 +7,9 @@ import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
+import { FileText, Activity, BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 import { PlanPanel } from '@/components/workbench/PlanPanel';
 import { TimerScreen } from '@/components/workbench/TrackPanel';
@@ -15,9 +18,17 @@ import { WorkbenchProps } from '@/components/layout/Workbench';
 
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
-const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
+interface StorybookWorkbenchProps extends WorkbenchProps {
+  initialShowPlan?: boolean;
+  initialShowTrack?: boolean;
+  initialShowReview?: boolean;
+}
+
+const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
   initialContent,
-  hidePlanUnlessDebug = false,
+  initialShowPlan = true,
+  initialShowTrack = true,
+  initialShowReview = true,
 }) => {
   const {
     content,
@@ -29,6 +40,10 @@ const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
     setContent,
     provider,
   } = useWorkbench();
+
+  const [showPlan, setShowPlan] = useState(initialShowPlan);
+  const [showTrack, setShowTrack] = useState(initialShowTrack);
+  const [showReview, setShowReview] = useState(initialShowReview);
 
   const { isDebugMode } = useDebugMode();
 
@@ -57,25 +72,58 @@ const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
     setHoveredBlockKey(blockKey);
   }, [setHoveredBlockKey]);
 
-  const showPlan = !hidePlanUnlessDebug || isDebugMode;
-
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
-      {/* Simplified Header with Debug Toggle only */}
+      {/* Header with Panel Toggles and Debug */}
       <div className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
         <div className="font-bold tracking-widest text-sm">STORYBOOK WORKBENCH</div>
         <div className="flex gap-2 items-center">
+          <div className="flex bg-muted p-1 rounded-lg mr-2">
+            <Button
+              variant={showPlan ? "default" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowPlan(!showPlan)}
+              title="Toggle Plan Panel"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={showTrack ? "default" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowTrack(!showTrack)}
+              title="Toggle Track Panel"
+            >
+              <Activity className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={showReview ? "default" : "ghost"}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowReview(!showReview)}
+              title="Toggle Review Panel"
+            >
+              <BarChart3 className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="h-6 w-px bg-border mx-1" />
           <DebugButton />
         </div>
       </div>
 
-      {/* Scrollable Container with all three views shown at once */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-12 bg-muted/20">
+      {/* Scrollable Container with toggled views */}
+      <div className={cn(
+        "flex-1 overflow-y-auto p-4 space-y-6 bg-muted/10",
+        (!showPlan && !showTrack && !showReview) && "flex items-center justify-center text-muted-foreground italic"
+      )}>
+        {!showPlan && !showTrack && !showReview && (
+          <div>No panels selected. Toggle panels in the header.</div>
+        )}
 
         {/* Plan View */}
         {showPlan && (
-          <section className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold px-1">Plan</h2>
+          <section className="flex flex-col">
             <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[600px]">
               <PlanPanel
                 initialContent={initialContent}
@@ -92,56 +140,58 @@ const StorybookWorkbenchContent: React.FC<WorkbenchProps> = ({
         )}
 
         {/* Track View */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold px-1">Track</h2>
-          <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[700px]">
-            <TimerScreen
-              runtime={runtime}
-              execution={execution}
-              selectedBlock={selectedBlock}
-              documentItems={documentItems}
-              activeBlockId={activeBlockId || undefined}
-              onBlockHover={handleBlockHover}
-              onBlockClick={() => {}}
-              onSelectBlock={selectBlock}
-              onSetActiveBlockId={setActiveBlockId}
-              onStart={handleStart}
-              onPause={handlePause}
-              onStop={handleStop}
-              onNext={handleNext}
-              activeSegmentIds={activeSegmentIds}
-              activeStatementIds={activeStatementIds}
-              hoveredBlockKey={hoveredBlockKey}
-              content={content}
-              onStartWorkout={handleStartWorkoutAction}
-              setBlocks={setBlocks}
-            />
-          </div>
-        </section>
+        {showTrack && (
+          <section className="flex flex-col">
+            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[700px]">
+              <TimerScreen
+                runtime={runtime}
+                execution={execution}
+                selectedBlock={selectedBlock}
+                documentItems={documentItems}
+                activeBlockId={activeBlockId || undefined}
+                onBlockHover={handleBlockHover}
+                onBlockClick={() => { }}
+                onSelectBlock={selectBlock}
+                onSetActiveBlockId={setActiveBlockId}
+                onStart={handleStart}
+                onPause={handlePause}
+                onStop={handleStop}
+                onNext={handleNext}
+                activeSegmentIds={activeSegmentIds}
+                activeStatementIds={activeStatementIds}
+                hoveredBlockKey={hoveredBlockKey}
+                content={content}
+                onStartWorkout={handleStartWorkoutAction}
+                setBlocks={setBlocks}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Review View */}
-        <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold px-1">Review</h2>
-          <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[500px]">
-            <ReviewGrid
-              runtime={runtime}
-              segments={analyticsSegments}
-              selectedSegmentIds={selectedAnalyticsIds}
-              onSelectSegment={toggleAnalyticsSegment}
-              groups={analyticsGroups}
-              rawData={analyticsData}
-              hoveredBlockKey={hoveredBlockKey}
-              onHoverBlockKey={setHoveredBlockKey}
-            />
-          </div>
-        </section>
+        {showReview && (
+          <section className="flex flex-col">
+            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[500px]">
+              <ReviewGrid
+                runtime={runtime}
+                segments={analyticsSegments}
+                selectedSegmentIds={selectedAnalyticsIds}
+                onSelectSegment={toggleAnalyticsSegment}
+                groups={analyticsGroups}
+                rawData={analyticsData}
+                hoveredBlockKey={hoveredBlockKey}
+                onHoverBlockKey={setHoveredBlockKey}
+              />
+            </div>
+          </section>
+        )}
 
       </div>
     </div>
   );
 };
 
-export const StorybookWorkbench: React.FC<WorkbenchProps> = (props) => {
+export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => {
   return (
     <CommandProvider>
       <WorkbenchProvider

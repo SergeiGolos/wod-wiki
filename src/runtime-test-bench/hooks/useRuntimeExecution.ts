@@ -90,7 +90,10 @@ export const useRuntimeExecution = (
 
       // Check if runtime is complete (stack is empty after root block finishes)
       if (runtime.stack.count === 0) {
-        stop();
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         setStatus('completed');
       }
     } catch (error) {
@@ -155,9 +158,22 @@ export const useRuntimeExecution = (
   }, [runtime]);
 
   /**
-   * Stops execution and resets state
+   * Stops continuous execution without clearing metrics.
+   * Preserves elapsedTime and startTime for completion reporting.
    */
   const stop = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setStatus('idle');
+  }, []);
+
+  /**
+   * Resets execution state and clears all metrics.
+   * Used for "replay" functionality or starting fresh.
+   */
+  const reset = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -167,24 +183,12 @@ export const useRuntimeExecution = (
     setStatus('idle');
     setStartTime(null);
     startTimeRef.current = null;
-  }, []);
-
-  /**
-   * Resets execution state without stopping
-   * Used for "replay" functionality
-   */
-  const reset = useCallback(() => {
-    stop();
-    setElapsedTime(0);
-    setStepCount(0);
-    setStartTime(null);
-    startTimeRef.current = null;
 
     // Reset runtime if available
     if (runtime) {
       // TODO: Add runtime.reset() method when available
     }
-  }, [runtime, stop]);
+  }, [runtime]);
 
   /**
    * Executes a single step manually
@@ -233,8 +237,8 @@ export const useRuntimeExecution = (
    * Reset state when runtime changes
    */
   useEffect(() => {
-    stop();
-  }, [runtime, stop]);
+    reset();
+  }, [runtime, reset]);
 
   return {
     status,

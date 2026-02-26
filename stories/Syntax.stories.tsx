@@ -12,6 +12,14 @@ const meta: Meta<typeof Workbench> = {
       }
     }
   },
+  args: {
+    showToolbar: true,
+    readonly: true,
+    theme: 'wod-light',
+    initialShowPlan: true,
+    initialShowTrack: true,
+    initialShowReview: true
+  },
   argTypes: {
     initialContent: { control: 'text' },
     theme: {
