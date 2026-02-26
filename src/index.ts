@@ -5,7 +5,7 @@
  * 
  * For tree-shakeable imports, use subpath imports:
  * - 'wod-wiki/core' - Parser and runtime engine
- * - 'wod-wiki/editor' - Monaco editor components
+ * - 'wod-wiki/editor' - CodeMirror editor components
  * - 'wod-wiki/clock' - Timer and clock components
  * - 'wod-wiki/types' - TypeScript type definitions
  * 

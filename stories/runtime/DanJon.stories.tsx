@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
-import { expect, userEvent, within, waitFor } from '@storybook/test';
+import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import abcMarkdown from '../../wod/kettlebell/abc.md?raw';
 import abcSingleBellMarkdown from '../../wod/kettlebell/abc-single-bell.md?raw';

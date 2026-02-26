@@ -1,6 +1,3 @@
-/* Import WOD Card Design Tokens */
-@import './editor/inline-cards/styles/wod-card-tokens.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

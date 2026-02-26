@@ -1,36 +1,22 @@
-/**
- * MarkdownEditor - Full-page Monaco editor with markdown support and WOD blocks
- * 
- * This component provides a Monaco-based markdown editor with:
- * - WOD block detection and visualization
- * - Rich markdown rendering via cards
- * - Heading section folding
- * - Command palette integration
- * - Theme synchronization
- */
-
-import React, { useRef, useState, useMemo, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
-import { editor as monacoEditor } from 'monaco-editor';
-import type { Monaco } from '@monaco-editor/react';
-import { ChevronDown, List } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { EditorView } from '@codemirror/view';
 
 // WOD block hooks
-import { useWodBlocks } from './hooks/useWodBlocks';
-import { useContextOverlay } from './hooks/useContextOverlay';
-import { useWodDecorations } from './hooks/useWodDecorations';
 import { useParseAllBlocks } from './hooks/useParseAllBlocks';
-import { useSmartIncrement } from './hooks/useSmartIncrement';
-import { useMarkdownEditorSetup } from './hooks/useMarkdownEditorSetup';
+import { findBlockAtLine } from './utils/blockDetection';
 
 // Components
-import { WodBlockManager } from './components/WodBlockManager';
-
-// Monaco loader configuration
-import './utils/monacoLoader';
+import { CodeMirrorEditor } from '../components/Editor/CodeMirrorEditor';
 
 // Theme hook
-import { useMonacoTheme } from '@/hooks/editor/useMonacoTheme';
+import { useEditorTheme } from '@/hooks/editor/useEditorTheme';
+
+// Phase 3: State Management
+import { useWorkoutStore } from '../components/layout/WorkoutStore';
+import { useEditorStateSync } from '../editor/useEditorState';
+
+import { CommandProvider, useCommandPalette } from '../components/command-palette/CommandContext';
+import { CommandPalette } from '../components/command-palette/CommandPalette';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */
@@ -48,9 +34,6 @@ export interface MarkdownEditorProps {
   /** Whether to show markdown toolbar */
   showToolbar?: boolean;
 
-  /** Whether to show context overlay */
-  showContextOverlay?: boolean;
-
   /** Whether editor is read-only */
   readonly?: boolean;
 
@@ -65,12 +48,6 @@ export interface MarkdownEditorProps {
 
   /** Width of editor (default: 100%) */
   width?: string | number;
-
-  /** Optional Monaco options override */
-  editorOptions?: monacoEditor.IStandaloneEditorConstructionOptions;
-
-  /** Callback when editor is mounted */
-  onMount?: (editor: monacoEditor.IStandaloneCodeEditor, monaco: Monaco) => void;
 
   /** Callback when blocks change */
   onBlocksChange?: (blocks: any[]) => void;
@@ -88,12 +65,8 @@ export interface MarkdownEditorProps {
   onStartWorkout?: (block: any) => void;
 }
 
-import { CommandProvider, useRegisterCommand, useCommandPalette } from '../components/command-palette/CommandContext';
-import { CommandPalette } from '../components/command-palette/CommandPalette';
-
-
 /**
- * Main markdown editor component wrapping Monaco
+ * Main markdown editor component wrapping CodeMirror
  */
 export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   initialContent = '',
@@ -101,163 +74,63 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
   onContentChange,
   onTitleChange,
   showToolbar = false,
-  showContextOverlay = true,
   readonly = false,
   theme = 'vs',
   className = '',
   height = '100vh',
   width = '100%',
-  editorOptions = {},
-  onMount,
   onBlocksChange,
   onActiveBlockChange,
   onCursorPositionChange,
-  highlightedLine,
   onStartWorkout
 }) => {
   const [content, setContent] = useState(value !== undefined ? value : initialContent);
-  const { setIsOpen } = useCommandPalette();
+  const { theme: activeTheme } = useEditorTheme(theme);
+  const [editorView, setEditorView] = useState<EditorView | null>(null);
 
-  // Sync value prop to local state (for controlled mode)
+  const { blocks, setBlocks, updateBlock, activeBlockId, setActiveBlockId } = useWorkoutStore();
+
+  // Sync value prop to local state
   useEffect(() => {
     if (value !== undefined) {
-      if (value !== content) console.log('[MarkdownEditor] Value prop updated:', value.substring(0, 50) + '...', 'Length:', value.length);
       setContent(value);
     }
   }, [value]);
 
-  // Use the WOD blocks hook
-  const { blocks, activeBlock, updateBlock } = useWodBlocks(null, content);
+  // Phase 3: Sync Zustand store with CodeMirror EditorState
+  useEditorStateSync(editorView);
 
-  // Keep a ref to blocks for the setup hook
-  const blocksRef = useRef(blocks);
-  useEffect(() => {
-    blocksRef.current = blocks;
-  }, [blocks]);
+  const handleBlocksChange = useCallback((newBlocks: any[]) => {
+    setBlocks(newBlocks);
+    if (onBlocksChange) onBlocksChange(newBlocks);
+  }, [onBlocksChange, setBlocks]);
 
-  // Use the setup hook for Monaco initialization
-  const {
-    editorInstance,
-    monacoInstance,
-    isAllFolded,
-    handleEditorWillMount,
-    handleEditorDidMount,
-    handleToggleFoldAll,
-    cleanup
-  } = useMarkdownEditorSetup({
-    theme,
-    readonly,
-    onCursorPositionChange,
-    onMount,
-    onStartWorkout,
-    setCommandPaletteOpen: setIsOpen,
-    blocksRef
-  });
-
-  // Update WOD blocks hook with editor instance once available
-  const { blocks: editorBlocks, activeBlock: editorActiveBlock, updateBlock: editorUpdateBlock } = useWodBlocks(editorInstance, content);
-
-  // Use editor-aware blocks when editor is available
-  const currentBlocks = editorInstance ? editorBlocks : blocks;
-  const currentActiveBlock = editorInstance ? editorActiveBlock : activeBlock;
-  const currentUpdateBlock = editorInstance ? editorUpdateBlock : updateBlock;
-
-  // Update blocksRef when blocks change
-  useEffect(() => {
-    blocksRef.current = currentBlocks;
-  }, [currentBlocks]);
-
-  // Use smart increment hook
-  useSmartIncrement({ editor: editorInstance, enabled: !readonly });
-
-  // Use shared theme hook
-  useMonacoTheme(editorInstance, theme);
-
-  // Register default commands
-  const saveCommand = useMemo(() => ({
-    id: 'editor.save',
-    label: 'Save',
-    action: () => {
-      // Save command triggered
-    },
-    shortcut: ['Meta', 'S'],
-    group: 'Editor',
-    context: 'editor'
-  }), []);
-  useRegisterCommand(saveCommand);
-
-  const formatCommand = useMemo(() => ({
-    id: 'editor.format',
-    label: 'Format Document',
-    action: () => {
-      editorInstance?.getAction('editor.action.formatDocument')?.run();
-    },
-    shortcut: ['Shift', 'Alt', 'F'],
-    group: 'Editor',
-    context: 'editor'
-  }), [editorInstance]);
-  useRegisterCommand(formatCommand);
+  const handleCursorPositionChange = useCallback((line: number, col: number) => {
+    if (onCursorPositionChange) onCursorPositionChange(line, col);
+    
+    // Find active block based on cursor
+    const block = findBlockAtLine(blocks, line - 1);
+    setActiveBlockId(block?.id || null);
+  }, [blocks, onCursorPositionChange, setActiveBlockId]);
 
   // Parse ALL blocks for inlay hints
-  useParseAllBlocks(currentBlocks, currentUpdateBlock);
-
-  // Use context overlay for active block
-  useContextOverlay(editorInstance, currentActiveBlock, showContextOverlay);
-
-  // Notify parent of block changes
-  useEffect(() => {
-    if (onBlocksChange) {
-      onBlocksChange(currentBlocks);
-    }
-  }, [currentBlocks, onBlocksChange]);
+  useParseAllBlocks(blocks, updateBlock);
 
   // Notify parent of active block changes
   useEffect(() => {
+    const activeBlock = blocks.find(b => b.id === activeBlockId) || null;
     if (onActiveBlockChange) {
-      onActiveBlockChange(currentActiveBlock);
+      onActiveBlockChange(activeBlock);
     }
-  }, [currentActiveBlock, onActiveBlockChange]);
+  }, [activeBlockId, blocks, onActiveBlockChange]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return cleanup;
-  }, [cleanup]);
-
-  // Use WOD decorations (inlay hints & semantic tokens & highlighting)
-  useWodDecorations(editorInstance, monacoInstance, currentBlocks, currentActiveBlock, {
-    enabled: true,
-    languageId: 'markdown',
-    highlightedLine
-  });
-
-  const handleEditorChange = (value: string | undefined) => {
-    const newContent = value || '';
+  const handleEditorChange = (newContent: string) => {
     setContent(newContent);
-
-    if (onContentChange) {
-      onContentChange(newContent);
-    }
-
+    if (onContentChange) onContentChange(newContent);
     if (onTitleChange) {
       const firstLine = newContent.split('\n')[0];
       onTitleChange(firstLine);
     }
-  };
-
-  // Default Monaco options
-  const defaultOptions: monacoEditor.IStandaloneEditorConstructionOptions = {
-    readOnly: readonly,
-    minimap: { enabled: false },
-    lineNumbers: 'off',
-    wordWrap: 'on',
-    fontSize: 14,
-    lineHeight: 22,
-    padding: { top: 16, bottom: 16 },
-    scrollBeyondLastLine: false,
-    automaticLayout: true,
-    inlayHints: { enabled: 'on' },
-    folding: false,
-    ...editorOptions
   };
 
   return (
@@ -266,49 +139,26 @@ export const MarkdownEditorBase: React.FC<MarkdownEditorProps> = ({
         <div className="markdown-toolbar border-b border-border bg-muted/50 p-2 flex items-center justify-between">
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <span>Markdown Editor</span>
-            {currentBlocks.length > 0 && (
+            {blocks.length > 0 && (
               <span className="text-blue-600">
-                ({currentBlocks.length} WOD block{currentBlocks.length !== 1 ? 's' : ''} detected)
+                ({blocks.length} WOD block{blocks.length !== 1 ? 's' : ''} detected)
               </span>
             )}
           </div>
-          <button
-            onClick={handleToggleFoldAll}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            title={isAllFolded ? 'Expand all sections' : 'Collapse all sections (Index View)'}
-          >
-            {isAllFolded ? (
-              <>
-                <ChevronDown className="h-3.5 w-3.5" />
-                <span>Expand All</span>
-              </>
-            ) : (
-              <>
-                <List className="h-3.5 w-3.5" />
-                <span>Index View</span>
-              </>
-            )}
-          </button>
         </div>
       )}
-      <Editor
-        height={showToolbar ? 'calc(100% - 48px)' : '100%'}
-        defaultLanguage="markdown"
-        defaultValue={initialContent}
-        value={value}
-        theme={theme}
-        options={defaultOptions}
-        beforeMount={handleEditorWillMount}
-        onMount={handleEditorDidMount}
-        onChange={handleEditorChange}
-      />
-      {/* WodBlockManager adds visual decorations */}
-      <WodBlockManager
-        editor={editorInstance}
-        monaco={monacoInstance}
-        blocks={currentBlocks}
-        activeBlock={currentActiveBlock}
-      />
+      <div className="flex-1 overflow-hidden" style={{ height: showToolbar ? 'calc(100% - 48px)' : '100%' }}>
+        <CodeMirrorEditor
+          value={content}
+          theme={activeTheme}
+          readonly={readonly}
+          onChange={handleEditorChange}
+          onCursorPositionChange={handleCursorPositionChange}
+          onBlocksChange={handleBlocksChange}
+          onStartWorkout={onStartWorkout}
+          onViewCreated={setEditorView}
+        />
+      </div>
     </div>
   );
 };

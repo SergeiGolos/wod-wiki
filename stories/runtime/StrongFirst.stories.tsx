@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { StorybookWorkbench as Workbench } from '../StorybookWorkbench';
-import { expect, userEvent, within, waitFor } from '@storybook/test';
+import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import simpleAndSinisterMarkdown from '../../wod/kettlebell/simple-and-sinister.md?raw';
 import kbAxeHeavyMarkdown from '../../wod/kettlebell/kb-axe-heavy.md?raw';
