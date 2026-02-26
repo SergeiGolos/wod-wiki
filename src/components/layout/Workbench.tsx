@@ -20,8 +20,6 @@ import { planPath } from '@/lib/routes';
 import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
-import { useBlockEditor } from '../../markdown-editor/hooks/useBlockEditor';
-import { editor as monacoEditor } from 'monaco-editor';
 import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { NotebookMenu } from '../notebook/NotebookMenu';
@@ -224,9 +222,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   const { startTutorial } = useTutorialStore();
 
   // Local UI state
-  // editorInstance kept for useBlockEditor and scroll-to-block compatibility
-  // (will be null since PlanPanel no longer provides a Monaco instance)
-  const [editorInstance] = useState<monacoEditor.IStandaloneCodeEditor | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -253,12 +248,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [hidePlanUnlessDebug, isDebugMode, viewMode, setViewMode]);
 
-  // Block editor hooks
-  const { editStatement: _editStatement, deleteStatement: _deleteStatement } = useBlockEditor({
-    editor: editorInstance,
-    block: selectedBlock
-  });
-
   const handleBlockHover = useCallback((blockKey: string | null) => {
     setHoveredBlockKey(blockKey);
   }, [setHoveredBlockKey]);
@@ -269,22 +258,19 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   // Handle SCROLL_TO_BLOCK requests
   useEffect(() => {
-    if (!editorInstance) return;
-
     const cleanup = workbenchEventBus.onScrollToBlock(({ blockId }) => {
       // Find line from documentItems
       const item = documentItems.find(i => i.id === blockId);
       if (item) {
         const line = item.startLine;
-        editorInstance.revealLineInCenter(line);
-        editorInstance.setPosition({ lineNumber: line, column: 1 });
+        // Scroll logic will be handled by PlanPanel or via event bus in the future
         setHighlightedLine(line);
         setTimeout(() => setHighlightedLine(null), 2000);
       }
     });
 
     return () => { cleanup(); };
-  }, [editorInstance, documentItems, setHighlightedLine]);
+  }, [documentItems, setHighlightedLine]);
 
   // --- View Components ---
 

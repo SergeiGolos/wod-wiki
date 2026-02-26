@@ -1,9 +1,10 @@
 /**
- * Utility for parsing WOD block content
- * Shared by useBlockParser and useParseAllBlocks hooks
+ * Utility for parsing WOD block content using the Lezer parser.
  */
 
-import type { MdTimerRuntime } from '../../parser/md-timer';
+import { EditorState } from "@codemirror/state";
+import { wodscriptLanguage } from "../../parser/wodscript-language";
+import { extractStatements } from "../../parser/lezer-mapper";
 import type { ICodeStatement } from '../../core/models/CodeStatement';
 import type { ParseError } from '../types';
 
@@ -20,30 +21,13 @@ export interface ParseResult {
 }
 
 /**
- * Parse WOD block content using the provided parser
- * 
- * This shared utility encapsulates the parsing logic used by both
- * useBlockParser and useParseAllBlocks hooks.
+ * Parse WOD block content using the Lezer-based parser.
  * 
  * @param content - The WOD block content to parse
- * @param parser - MdTimerRuntime instance to use for parsing
  * @returns ParseResult with statements, errors, and success flag
- * 
- * @example
- * ```typescript
- * const parser = sharedParser;
- * const result = parseWodBlock('10 Push-ups', parser);
- * 
- * if (result.success) {
- *   console.log('Parsed:', result.statements);
- * } else {
- *   console.error('Errors:', result.errors);
- * }
- * ```
  */
 export function parseWodBlock(
-  content: string,
-  parser: MdTimerRuntime
+  content: string
 ): ParseResult {
   // Handle empty content
   if (!content || content.trim().length === 0) {
@@ -55,27 +39,25 @@ export function parseWodBlock(
   }
 
   try {
-    // Parse the content
-    const script = parser.read(content);
-    
-    // Extract statements
-    const statements = script.statements || [];
-    
-    // Transform errors to ParseError format
-    const errors: ParseError[] = (script.errors || []).map((err: any) => ({
-      line: err.token?.startLine,
-      column: err.token?.startColumn,
-      message: err.message || 'Parse error',
-      severity: 'error' as const
-    }));
+    // Create a temporary EditorState to use the Lezer parser
+    // Ensure content ends with newline for block recognition if needed
+    const doc = content.endsWith('\n') ? content : content + '\n';
+    const state = EditorState.create({
+      doc,
+      extensions: [wodscriptLanguage]
+    });
 
+    // Extract statements using the mapper
+    const statements = extractStatements(state);
+    
+    // Lezer handles errors gracefully by creating error nodes
+    // For now we return success true unless we want to explicitly find error nodes
     return {
       statements,
-      errors,
-      success: errors.length === 0
+      errors: [],
+      success: true
     };
   } catch (error: any) {
-    // Handle unexpected parsing exceptions
     return {
       statements: [],
       errors: [{

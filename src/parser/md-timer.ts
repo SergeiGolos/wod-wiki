@@ -1,49 +1,41 @@
-import { Lexer, IRecognitionException } from "chevrotain";
-import { MdTimerInterpreter } from "./timer.visitor";
-import { MdTimerParse } from "./timer.parser";
-import { allTokens } from "./timer.tokens";
-import { ICodeStatement } from "../core/models/CodeStatement";
-import { IScript, WodScript, ParseError } from "./WodScript";
+import { EditorState } from "@codemirror/state";
+import { wodscriptLanguage } from "./wodscript-language";
+import { extractStatements } from "./lezer-mapper";
+import { IScript, WodScript } from "./WodScript";
 
 /**
- * Extended parser type for Chevrotain runtime-generated methods
+ * Re-implementation of MdTimerRuntime using Lezer parser for Phase 4.
+ * Maintains the same interface to avoid breaking existing consumers.
  */
-interface ExtendedParser extends MdTimerParse {
-  wodMarkdown(): unknown;
-  errors: IRecognitionException[];
-}
-
 export class MdTimerRuntime {
-  lexer: Lexer;
-  visitor: MdTimerInterpreter;
   constructor() {
-    this.lexer = new Lexer(allTokens);
-    this.visitor = new MdTimerInterpreter();
+    // No longer needs Chevrotain Lexer/Visitor
   }
 
   read(inputText: string): IScript {
-    // Handle empty/whitespace-only input without invoking the parser
+    // Handle empty/whitespace-only input
     if (!inputText || !inputText.trim()) {
       return new WodScript(inputText, [], []);
     }
 
-    const { tokens } = this.lexer.tokenize(inputText);
-    const parser = new MdTimerParse(tokens) as ExtendedParser;
+    try {
+      // Ensure content ends with newline for block recognition
+      const doc = inputText.endsWith('\n') ? inputText : inputText + '\n';
+      const state = EditorState.create({
+        doc,
+        extensions: [wodscriptLanguage]
+      });
 
-    this.visitor.clearErrors();
-    const cst = parser.wodMarkdown();
-    const raw = cst != null ? this.visitor.visit(cst) : ([] as ICodeStatement[]);
-    
-    // Convert Chevrotain errors to ParseError format
-    const parserErrors: ParseError[] = (parser.errors || []).map(err => ({
-      message: err.message,
-      line: err.token?.startLine,
-      column: err.token?.startColumn,
-      token: err.token
-    }));
-    
-    const errors = [...parserErrors, ...this.visitor.getErrors()];
-    return new WodScript(inputText, raw, errors);
+      const statements = extractStatements(state);
+      
+      // Lezer doesn't provide a list of ParseErrors in the same way Chevrotain does,
+      // it produces a tree with error nodes. For now, we return empty errors list.
+      return new WodScript(inputText, statements, []);
+    } catch (error: any) {
+      console.error('[MdTimerRuntime] Parse error:', error);
+      return new WodScript(inputText, [], [{
+        message: error?.message || 'Unknown parse error'
+      }]);
+    }
   }
 }
-

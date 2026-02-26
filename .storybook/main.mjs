@@ -60,14 +60,10 @@ const config = {
     config.publicDir = false;
 
     // Pre-bundle heavy dependencies to reduce HTTP requests during dev
-    // Monaco Editor alone has 100+ modules that would otherwise be loaded separately
     config.optimizeDeps = config.optimizeDeps || {};
     config.optimizeDeps.include = [
       ...(config.optimizeDeps.include || []),
-      'monaco-editor',
-      '@monaco-editor/react',
       'recharts',
-      'chevrotain',
       '@headlessui/react',
       'lucide-react',
       'cmdk',

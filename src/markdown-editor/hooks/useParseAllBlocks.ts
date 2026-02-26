@@ -5,7 +5,6 @@
 
 import { useEffect, useRef } from 'react';
 import { WodBlock } from '../types';
-import { sharedParser } from '../../parser/parserInstance';
 import { parseWodBlock } from '../utils/parseWodBlock';
 
 /**
@@ -15,7 +14,6 @@ export function useParseAllBlocks(
   blocks: WodBlock[],
   updateBlock: (id: string, updates: Partial<WodBlock>) => void
 ) {
-  const parserRef = useRef(sharedParser);
   const parsedBlocksRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -32,7 +30,7 @@ export function useParseAllBlocks(
       }
 
       try {
-        const result = parseWodBlock(block.content, parserRef.current);
+        const result = parseWodBlock(block.content);
 
         // Update block with parsed data
         updateBlock(block.id, {

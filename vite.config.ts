@@ -39,7 +39,7 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       // Externalize peer dependencies
-      external: ['react', 'react-dom', 'react/jsx-runtime', 'monaco-editor', '@monaco-editor/react',
+      external: ['react', 'react-dom', 'react/jsx-runtime',
       // Also externalize all node_modules for tree-shaking
       /^@?[a-z]/],
       output: {

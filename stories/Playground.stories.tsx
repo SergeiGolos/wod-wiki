@@ -1,6 +1,6 @@
 import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
-import { expect, within } from '@storybook/test';
+import { expect, within } from 'storybook/test';
 
 const meta: Meta<typeof Workbench> = {
   title: 'Playground',
@@ -73,7 +73,10 @@ Add your workout notes here.
     showToolbar: false,
     readonly: false,
     theme: 'wod-light',
-    hidePlanUnlessDebug: false
+    hidePlanUnlessDebug: false,
+    initialShowPlan: true,
+    initialShowTrack: true,
+    initialShowReview: true
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -81,8 +84,9 @@ Add your workout notes here.
     // Check if the workbench is rendered by looking for the header title
     await expect(canvas.getByText(/STORYBOOK WORKBENCH/i)).toBeInTheDocument();
     
-    // Check if the Plan section is visible
-    await expect(canvas.getByRole('heading', { name: /Plan/i })).toBeInTheDocument();
+    // Check if the Plan panel is present via its class
+    const planPanel = canvasElement.querySelector('.group\\/plan-panel');
+    expect(planPanel).toBeInTheDocument();
     
     // Check if some content from initialContent is present in the editor area
     await expect(canvas.getByText(/My Workout Log/i)).toBeInTheDocument();

@@ -26,7 +26,10 @@ const meta: Meta<typeof Workbench> = {
     showContextOverlay: false,
     readonly: true,
     theme: 'wod-light',
-    hidePlanUnlessDebug: true
+    hidePlanUnlessDebug: true,
+    initialShowPlan: false,
+    initialShowTrack: true,
+    initialShowReview: true
   },
   parameters: {
     layout: 'fullscreen',
