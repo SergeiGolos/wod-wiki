@@ -5,6 +5,7 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { FragmentType } from "@/core/models/CodeFragment";
 
 // New aspect-based behaviors
 // TimerBehavior and ReEntryBehavior are imported for type-checking purposes only
@@ -27,7 +28,14 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     priority = 50; // Same as GenericTimer/GenericLoop; runs before ChildrenStrategy (same priority, registered earlier)
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
-        return statements && statements.length > 0 && statements[0].children && statements[0].children.length > 0;
+        if (!statements || statements.length === 0) return false;
+        
+        // Match if ANY statement has children but NO statement has timer/rounds
+        const hasChildren = statements.some(s => s.children && s.children.length > 0);
+        const hasTimer = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'));
+        const hasRounds = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime'));
+        
+        return hasChildren && !hasTimer && !hasRounds;
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -38,19 +46,26 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         }
 
         // If we are here, it has children but no timer/loop. It is a simple Group.
-        const statement = statements[0];
+        const firstStatement = statements[0];
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
-        const label = statement.content || "Group";
+        const context = new BlockContext(runtime, blockKey.toString(), firstStatement.exerciseId || '');
+        
+        const label = statements
+            .map(s => s.content || "Group")
+            .filter((val, index, self) => self.indexOf(val) === index) // Unique
+            .join(" + ");
 
         builder.setContext(context)
                .setKey(blockKey)
                .setBlockType("Group")
                .setLabel(label)
-               .setSourceIds(statement.id ? [statement.id] : []);
+               .setSourceIds(statements.map(s => s.id));
 
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(statement.fragments || [], "Group");
+        const fragmentGroups = statements.flatMap(s => 
+            distributor.distribute(s.fragments || [], "Group")
+        ).filter(group => group.length > 0);
+        
         builder.setFragments(fragmentGroups);
 
         // =====================================================================

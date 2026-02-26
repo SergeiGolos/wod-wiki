@@ -31,30 +31,30 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        const statement = statements[0];
-        const hasTimer = statement.hasFragment(FragmentType.Duration);
-
-        // Check for AMRAP keyword or rounds with timer
-        const hasRounds = statement.hasFragment(FragmentType.Rounds);
-        const hasRoundsKeyword = statement.fragments.some(
+        
+        // Match if ANY statement has timer and ANY statement has rounds/amrap keyword
+        const hasTimer = statements.some(s => s.hasFragment(FragmentType.Duration));
+        const hasRounds = statements.some(s => s.hasFragment(FragmentType.Rounds));
+        const hasRoundsKeyword = statements.some(s => s.fragments.some(
             f => (f.fragmentType === FragmentType.Effort || f.fragmentType === FragmentType.Action)
                 && typeof f.value === 'string'
                 && (f.value.toLowerCase() === 'rounds' || f.value.toLowerCase() === 'amrap')
-        );
+        ));
 
         return hasTimer && (hasRounds || hasRoundsKeyword);
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        const statement = statements[0];
-        const timerFragment = statement.fragments.find(
+        const firstStatementWithTimer = statements.find(s => s.hasFragment(FragmentType.Duration)) || statements[0];
+        
+        const timerFragment = firstStatementWithTimer.fragments.find(
             f => f.fragmentType === FragmentType.Duration
         ) as DurationFragment | undefined;
         const durationMs = timerFragment?.value || 0;
 
         // Block metadata
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithTimer.exerciseId || '');
         const label = `AMRAP ${Math.round(durationMs / 60000)} min`;
 
         builder
@@ -62,10 +62,13 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
             .setKey(blockKey)
             .setBlockType("AMRAP")
             .setLabel(label)
-            .setSourceIds(statement.id ? [statement.id] : []);
+            .setSourceIds(statements.map(s => s.id));
 
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(statement.fragments || [], "AMRAP");
+        const fragmentGroups = statements.flatMap(s => 
+            distributor.distribute(s.fragments || [], "AMRAP")
+        ).filter(group => group.length > 0);
+        
         builder.setFragments(fragmentGroups);
 
         // =====================================================================

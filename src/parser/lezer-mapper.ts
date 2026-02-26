@@ -181,7 +181,7 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
   for (const block of blocks) {
     const flatChildren = parentChildMap.get(block.id) || [];
     block.children = groupChildrenByGroupFragments(flatChildren, blocks);
-    block.isLeaf = block.fragments.some(f => f.fragmentType === FragmentType.Group);
+    block.isLeaf = block.children.length === 0;
   }
 
   return blocks;
@@ -255,26 +255,17 @@ function groupChildrenByGroupFragments(childIds: number[], allBlocks: ICodeState
 
   const blocksById = new Map(allBlocks.map(b => [b.id, b]));
   const groups: number[][] = [];
-  let currentGroup: number[] = [];
 
   for (const childId of childIds) {
     const childBlock = blocksById.get(childId);
     const groupFragment = childBlock?.fragments.find(f => f.fragmentType === FragmentType.Group) as GroupFragment;
     const type = groupFragment?.group || 'repeat';
 
-    if (type === 'compose') {
-      currentGroup.push(childId);
+    if (type === 'compose' && groups.length > 0) {
+      groups[groups.length - 1].push(childId);
     } else {
-      if (currentGroup.length > 0) {
-        groups.push([...currentGroup]);
-        currentGroup = [];
-      }
       groups.push([childId]);
     }
-  }
-
-  if (currentGroup.length > 0) {
-    groups.push([...currentGroup]);
   }
 
   return groups;

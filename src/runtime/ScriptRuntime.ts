@@ -428,11 +428,11 @@ export class ScriptRuntime implements IScriptRuntime {
         // 1. Get source fragments if available
         let sourceFragments: ICodeFragment[] = [];
         if (block.sourceIds && block.sourceIds.length > 0) {
-            const stmtId = block.sourceIds[0];
-            const stmt = this.script.statements.find(s => s.id === stmtId);
-            if (stmt && stmt.fragments) {
-                sourceFragments = stmt.fragments;
-            }
+            // Collect fragments from ALL source statements in the group
+            sourceFragments = block.sourceIds.flatMap(stmtId => {
+                const stmt = this.script.statements.find(s => s.id === stmtId);
+                return stmt && stmt.fragments ? stmt.fragments : [];
+            });
         }
 
         // 2. Merge: Runtime results override source definitions (for same type)
@@ -466,7 +466,7 @@ export class ScriptRuntime implements IScriptRuntime {
             timeSpan,
             spans: spans.length > 0 ? spans : undefined,
             sourceBlockKey: block.key.toString(),
-            sourceStatementId: block.sourceIds?.[0],
+            sourceStatementId: block.sourceIds?.[0], // Still keep the lead statement as primary ID
             stackLevel: stackDepth,
             fragments,
         });

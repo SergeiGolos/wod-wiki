@@ -30,10 +30,10 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
 
-        // Match if duration fragment exists, ignoring runtime-generated ones
-        return statements[0].fragments.some(
+        // Match if duration fragment exists in ANY statement, ignoring runtime-generated ones
+        return statements.some(s => s.fragments.some(
             f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
-        );
+        ));
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -42,8 +42,11 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             return;
         }
 
-        const statement = statements[0];
-        const timerFragment = statement.fragments.find(
+        const firstStatementWithTimer = statements.find(s => s.fragments.some(
+            f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
+        )) || statements[0];
+        
+        const timerFragment = firstStatementWithTimer.fragments.find(
             f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
         ) as DurationFragment | undefined;
 
@@ -53,21 +56,23 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         // Block metadata
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), statement.exerciseId || '');
+        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithTimer.exerciseId || '');
 
         builder
             .setContext(context)
             .setKey(blockKey)
             .setBlockType("Timer")
             .setLabel(label)
-            .setSourceIds(statement.id ? [statement.id] : []);
-
-        // Filter out runtime-generated fragments
-        const cleanFragments = (statement.fragments || [])
-            .filter(f => f.origin !== 'runtime');
+            .setSourceIds(statements.map(s => s.id));
 
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(cleanFragments, "Timer");
+        const fragmentGroups = statements.flatMap(s => 
+            distributor.distribute(
+                (s.fragments || []).filter(f => f.origin !== 'runtime'), 
+                "Timer"
+            )
+        ).filter(group => group.length > 0);
+        
         builder.setFragments(fragmentGroups);
 
         // =====================================================================

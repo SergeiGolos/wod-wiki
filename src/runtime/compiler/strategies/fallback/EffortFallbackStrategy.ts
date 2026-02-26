@@ -11,15 +11,19 @@ import { LeafExitBehavior } from "../../../behaviors/LeafExitBehavior";
 import { ReportOutputBehavior } from "../../../behaviors/ReportOutputBehavior";
 
 /**
- * Helper to extract optional content from code statement.
+ * Helper to extract optional content from code statements.
  */
-function getContent(statement: ICodeStatement, defaultContent: string): string {
-    const stmt = statement as ICodeStatement & { content?: string };
-    if (stmt.content) return stmt.content;
+function getContent(statements: ICodeStatement[], defaultContent: string): string {
+    const contents = statements
+        .map(s => (s as any).content || "")
+        .filter(c => c.length > 0);
+
+    if (contents.length > 0) return contents.join(" + ");
 
     // Fallback: Construct content from fragments
-    if (statement.fragments && statement.fragments.length > 0) {
-        return statement.fragments
+    const allFragments = statements.flatMap(s => s.fragments || []);
+    if (allFragments.length > 0) {
+        return allFragments
             .filter(f => f.origin !== 'runtime' && f.image)
             .map(f => f.image)
             .join(' ');
@@ -48,26 +52,22 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        const statement = statements[0];
-        // Ignore runtime-generated fragments when checking for match
-        const hasTimer = statement.fragments.some(f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime');
-        const hasRounds = statement.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime');
-        // Exclude blocks with children — those are parent blocks handled by
-        // GenericGroupStrategy + ChildrenStrategy, not simple leaf efforts
-        const hasChildren = statement.children && statement.children.length > 0;
+        
+        // Check if ANY statement has timer, rounds, or children
+        const hasTimer = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'));
+        const hasRounds = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime'));
+        const hasChildren = statements.some(s => s.children && s.children.length > 0);
+        
         return !hasTimer && !hasRounds && !hasChildren;
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        const statement = statements[0];
-        const label = getContent(statement, 'Effort');
+        const label = getContent(statements, 'Effort');
 
         // Create block context
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString());
-
-        // Filter out runtime-generated fragments
-        const userFragments = statement.fragments.filter(f => f.origin !== 'runtime');
+        const firstStatement = statements[0];
+        const context = new BlockContext(runtime, blockKey.toString(), firstStatement.exerciseId || '');
 
         // Configure block
         builder
@@ -77,9 +77,14 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             .setBlockType('effort')
             .setLabel(label);
 
+        // Filter out runtime-generated fragments from all statements
+        const fragmentsPerStatement = statements.map(s => 
+            s.fragments.filter(f => f.origin !== 'runtime')
+        ).filter(group => group.length > 0);
+
         // Set fragments to ensure fragment:display memory is allocated
-        if (userFragments.length > 0) {
-            builder.setFragments([userFragments]);
+        if (fragmentsPerStatement.length > 0) {
+            builder.setFragments(fragmentsPerStatement);
         }
 
         // =====================================================================

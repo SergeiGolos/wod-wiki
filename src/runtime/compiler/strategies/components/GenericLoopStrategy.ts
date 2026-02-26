@@ -29,7 +29,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        return statements[0].fragments.some(f => f.fragmentType === FragmentType.Rounds);
+        return statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Rounds));
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -38,8 +38,11 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             return;
         }
 
-        const statement = statements[0];
-        const roundsFragment = statement.fragments.find(
+        const firstStatementWithRounds = statements.find(s => s.fragments.some(
+            f => f.fragmentType === FragmentType.Rounds
+        )) || statements[0];
+
+        const roundsFragment = firstStatementWithRounds.fragments.find(
             f => f.fragmentType === FragmentType.Rounds
         ) as RoundsFragment | undefined;
 
@@ -53,12 +56,12 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             totalRounds = roundsFragment.value;
         }
 
-        // Collect individual RepFragments from the statement to build a rep scheme.
+        // Collect individual RepFragments from ALL statements to build a rep scheme.
         // The parser creates separate RepFragment instances (e.g., 21-15-9 becomes
         // three RepFragments with values 21, 15, 9) alongside a RoundsFragment.
-        const repFragments = statement.fragments
-            .filter(f => f.fragmentType === FragmentType.Rep && typeof f.value === 'number')
-            .map(f => f.value as number);
+        const repFragments = statements.flatMap(s => 
+            s.fragments.filter(f => f.fragmentType === FragmentType.Rep && typeof f.value === 'number')
+        ).map(f => f.value as number);
 
         if (repFragments.length > 0) {
             repScheme = repFragments;
@@ -70,7 +73,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
         // Block metadata
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), (statement as any).exerciseId || '');
+        const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithRounds.exerciseId || '');
         const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
 
         builder
@@ -78,10 +81,13 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             .setKey(blockKey)
             .setBlockType("Rounds")
             .setLabel(label)
-            .setSourceIds(statement.id ? [statement.id] : []);
+            .setSourceIds(statements.map(s => s.id));
 
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(statement.fragments || [], "Rounds");
+        const fragmentGroups = statements.flatMap(s => 
+            distributor.distribute(s.fragments || [], "Rounds")
+        ).filter(group => group.length > 0);
+        
         builder.setFragments(fragmentGroups);
 
         // =====================================================================

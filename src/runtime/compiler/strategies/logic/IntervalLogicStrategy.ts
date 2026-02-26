@@ -33,26 +33,30 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        const statement = statements[0];
-        const fragments = statement.fragments;
-        const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Duration);
-        const isInterval = statement.hints?.has('behavior.repeating_interval') ?? false;
+        
+        // Match if ANY statement has timer and (hint or EMOM keyword)
+        const hasTimer = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Duration));
+        const isInterval = statements.some(s => s.hints?.has('behavior.repeating_interval') ?? false);
 
         // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version
-        const hasEmomAction = fragments.some(
+        const hasEmomAction = statements.some(s => s.fragments.some(
             f => (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort)
                 && typeof f.value === 'string'
                 && f.value.toLowerCase() === 'emom'
-        );
+        ));
         return hasTimer && (isInterval || hasEmomAction);
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        const statement = statements[0];
-        const timerFragment = statement.fragments.find(
+        const firstStatementWithTimer = statements.find(s => s.fragments.some(
+            f => f.fragmentType === FragmentType.Duration
+        )) || statements[0];
+
+        const timerFragment = firstStatementWithTimer.fragments.find(
             f => f.fragmentType === FragmentType.Duration
         ) as DurationFragment | undefined;
-        const roundsFragment = statement.fragments.find(
+
+        const roundsFragment = statements.flatMap(s => s.fragments).find(
             f => f.fragmentType === FragmentType.Rounds
         ) as RoundsFragment | undefined;
 
@@ -63,7 +67,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
         // Block metadata
         const blockKey = new BlockKey();
-        const context = new BlockContext(runtime, blockKey.toString(), (statement as any).exerciseId || '');
+        const context = new BlockContext(runtime, blockKey.toString(), (firstStatementWithTimer as any).exerciseId || '');
         const label = `EMOM ${totalRounds}`;
 
         builder
@@ -71,10 +75,13 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             .setKey(blockKey)
             .setBlockType("EMOM")
             .setLabel(label)
-            .setSourceIds(statement.id ? [statement.id] : []);
+            .setSourceIds(statements.map(s => s.id));
 
         const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = distributor.distribute(statement.fragments || [], "EMOM");
+        const fragmentGroups = statements.flatMap(s => 
+            distributor.distribute(s.fragments || [], "EMOM")
+        ).filter(group => group.length > 0);
+        
         builder.setFragments(fragmentGroups);
 
         // =====================================================================
