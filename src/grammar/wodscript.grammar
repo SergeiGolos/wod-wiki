@@ -1,0 +1,91 @@
+@precedence {
+  property,
+  lap,
+  quantity,
+  effort,
+  fragment,
+  block
+}
+
+@top Program { (Property | Block | newline)* }
+
+Property { (Identifier colon (String | Number | Identifier)) !property }
+
+Block { ((Lap !lap)? (Fragment !fragment)+ newline) !block }
+
+Lap { minus !lap | plus !lap }
+
+Fragment {
+  Duration |
+  Rounds |
+  Action |
+  Text |
+  Quantity |
+  Effort
+}
+
+AtSign { atSign }
+Question { question }
+DistanceUnit { distanceUnit }
+WeightUnit { weightUnit }
+Trend { trend }
+CollectibleTimer { collectibleTimer }
+
+Quantity {
+  (AtSign)? ( (Question | Number) (DistanceUnit | WeightUnit)? !quantity | (DistanceUnit | WeightUnit) )
+}
+
+Duration { (Trend)? (CollectibleTimer | Timer) }
+
+Action { actionOpen colon (Identifier | allowedSymbol | minus)+ actionClose }
+
+Rounds { groupOpen (Identifier | Sequence)+ groupClose }
+
+Sequence { Number (minus Number)* }
+
+Text { textComment }
+
+Effort { (Identifier | allowedSymbol | minus)+ !effort }
+
+@tokens {
+  Number { $[0-9]* "." $[0-9]+ | $[0-9]+ }
+  Timer { (":" $[0-9]+) | ($[0-9]+ ":")+ $[0-9]+ }
+  collectibleTimer { ":?" }
+  distanceUnit { ("m" | "ft" | "mile" | "km" | "miles") }
+  weightUnit { ("kg" | "lb" | "bw") }
+  Identifier { $[a-zA-Z] $[a-zA-Z0-9]* }
+  String { '"' (![\\\n\r] | "\\" _) * '"' }
+  textComment { "//" ![\n\r]* }
+  allowedSymbol { $[\\/.,@!$%^*=&]+ }
+  minus { "-" }
+  plus { "+" }
+  trend { "^" }
+  colon { ":" }
+  atSign { "@" }
+  question { "?" }
+  actionOpen { "[" }
+  actionClose { "]" }
+  groupOpen { "(" }
+  groupClose { ")" }
+  newline { $[ \t]* ("\n" | "\r\n") }
+  whitespace { $[ \t]+ }
+  @precedence { 
+    textComment, 
+    collectibleTimer, 
+    Timer, 
+    weightUnit, 
+    distanceUnit, 
+    atSign,
+    trend,
+    colon,
+    allowedSymbol,
+    Identifier, 
+    minus, 
+    plus, 
+    Number,
+    newline,
+    whitespace
+  }
+}
+
+@skip { whitespace }

@@ -34,7 +34,12 @@
     "dev:app": "bun x vite --config vite.app.config.ts"
   },
   "dependencies": {
+    "@codemirror/language": "^6.12.2",
+    "@codemirror/state": "^6.5.4",
     "@headlessui/react": "^2.2.9",
+    "@lezer/common": "^1.5.1",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/lr": "^1.4.8",
     "@monaco-editor/react": "^4.6.0 || ^4.7.0",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -75,6 +80,7 @@
     "@rollup/rollup-win32-x64-msvc": "^4.43.0"
   },
   "devDependencies": {
+    "@lezer/generator": "^1.8.0",
     "@playwright/test": "^1.57.0",
     "@storybook/addon-a11y": "^10.2.12",
     "@storybook/addon-docs": "^10.2.12",
