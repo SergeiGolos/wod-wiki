@@ -5,6 +5,9 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { MemoryTag } from '../memory/MemoryLocation';
 import { RoundState } from '../memory/MemoryTypes';
+import { IFragmentPromoter } from '../contracts/behaviors/IFragmentPromoter';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 
 export interface PromotionRule {
     fragmentType: FragmentType;
@@ -18,7 +21,7 @@ export interface FragmentPromotionConfig {
     repScheme?: number[];
 }
 
-export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource {
+export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, IFragmentPromoter {
     private readonly _repScheme: readonly number[];
     private _lastPromotedRound: number | undefined;
 
@@ -42,6 +45,51 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource {
         }
 
         return this.getRepsForRound(this._lastPromotedRound);
+    }
+
+    /**
+     * Compiler-time promotion handler.
+     *
+     * Queries current state from parent block memory and returns the
+     * correct fragments to be injected into child blocks during JIT
+     * compilation. This ensures inheritance works even when a round
+     * advances and children are compiled in the same runtime tick.
+     */
+    getPromotedFragments(runtime: IScriptRuntime, parentBlock: IRuntimeBlock): ICodeFragment[] {
+        const fragments: ICodeFragment[] = [];
+
+        // 1. Dynamic rep scheme promotion
+        if (this._repScheme.length > 0) {
+            const roundState = parentBlock.getMemory('round')?.value as RoundState | undefined;
+            const round = roundState?.current ?? 1;
+            const reps = this.getRepsForRound(round);
+            
+            if (reps !== undefined) {
+                fragments.push({
+                    fragmentType: FragmentType.Rep,
+                    type: 'rep',
+                    image: reps.toString(),
+                    origin: 'execution',
+                    value: reps,
+                    sourceBlockKey: parentBlock.key.toString(),
+                    timestamp: runtime.clock.now,
+                });
+            }
+        }
+
+        // 2. Generic promotion rules
+        // For each rule, find the source fragment in parent memory and promote it
+        for (const rule of this.config.promotions) {
+            const sourceFragment = this.findSourceFragmentInBlock(parentBlock, rule);
+            if (sourceFragment) {
+                fragments.push({
+                    ...sourceFragment,
+                    origin: rule.origin ?? 'execution'
+                });
+            }
+        }
+
+        return fragments;
     }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
@@ -98,7 +146,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource {
             fragmentType: FragmentType.Rep,
             type: 'rep',
             image: reps.toString(),
-            origin: 'runtime',
+            origin: 'execution',
             value: reps,
             sourceBlockKey: ctx.block.key.toString(),
             timestamp: ctx.clock.now,
@@ -113,7 +161,11 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource {
     }
 
     private findSourceFragment(ctx: IBehaviorContext, rule: PromotionRule): ICodeFragment | undefined {
-        const memory = ctx.block.getAllMemory();
+        return this.findSourceFragmentInBlock(ctx.block, rule);
+    }
+
+    private findSourceFragmentInBlock(block: IRuntimeBlock, rule: PromotionRule): ICodeFragment | undefined {
+        const memory = block.getAllMemory();
 
         for (const location of memory) {
             if (location.tag === 'fragment:promote' || location.tag === 'fragment:rep-target') continue;

@@ -284,12 +284,6 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
      * and shouldLoop() returns true. This keeps round tracking
      * self-contained within ChildSelectionBehavior — no dependency on
      * ReEntryBehavior's onNext() or behavior execution ordering.
-     *
-     * Also refreshes the promoted fragment (fragment:promote) so that
-     * child blocks compiled by CompileChildBlockAction in the same
-     * onNext() cycle see the updated round value. Without this,
-     * FragmentPromotionBehavior (which may have already run earlier in
-     * the behavior chain) would leave a stale round in fragment:promote.
      */
     private advanceRound(ctx: IBehaviorContext): void {
         const round = ctx.getMemory('round') as RoundState | undefined;
@@ -303,16 +297,6 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         );
 
         ctx.updateMemory('round', [roundFragment]);
-
-        // Refresh promoted fragment so child blocks compiled in this
-        // cycle see the updated round, regardless of behavior ordering.
-        const promoteLocations = ctx.block.getMemoryByTag('fragment:promote');
-        if (promoteLocations.length > 0) {
-            const otherFragments = promoteLocations[0].fragments.filter(
-                f => f.fragmentType !== FragmentType.CurrentRound
-            );
-            ctx.updateMemory('fragment:promote', [...otherFragments, roundFragment]);
-        }
     }
 
     private createNextPreview(ctx: IBehaviorContext, nextGroup?: number[]): UpdateNextPreviewAction {
