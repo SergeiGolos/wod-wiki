@@ -15,6 +15,9 @@ import { getFragmentIcon } from '@/views/runtime/fragmentColorMap';
 /**
  * All available fragment-type columns.
  * Order here determines default column order in the grid.
+ *
+ * NOTE: Elapsed, Total, Duration, and Spans are EXCLUDED here because
+ * they are handled as FIXED_COLUMNS with special rendering and ordering.
  */
 export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
   FragmentType.Time,
@@ -32,10 +35,6 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
   FragmentType.CurrentRound,
   FragmentType.System,
   FragmentType.SystemTime,
-  FragmentType.Duration,
-  FragmentType.Spans,
-  FragmentType.Elapsed,
-  FragmentType.Total,
 ];
 
 /**
@@ -108,6 +107,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: false,
     isGraphed: false,
     visible: true,
+    fragmentType: FragmentType.SystemTime,
   },
   {
     id: FIXED_COLUMN_IDS.SPANS,
@@ -117,6 +117,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: false,
     isGraphed: false,
     visible: true,
+    fragmentType: FragmentType.Spans,
   },
   {
     id: FIXED_COLUMN_IDS.INDEX,
@@ -162,6 +163,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: true,
     isGraphed: false,
     visible: true,
+    fragmentType: FragmentType.Elapsed,
   },
   {
     id: FIXED_COLUMN_IDS.DURATION,
@@ -171,6 +173,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: true,
     isGraphed: false,
     visible: true,
+    fragmentType: FragmentType.Duration,
   },
 
   {
@@ -181,6 +184,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: true,
     isGraphed: false,
     visible: true,
+    fragmentType: FragmentType.Total,
   },
   {
     id: FIXED_COLUMN_IDS.COMPLETION_REASON,
@@ -218,58 +222,59 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
   // Helpers to find columns by ID or Type
   const getFixed = (id: string) => FIXED_COLUMNS.find(c => c.id === id)!;
   const getFragmentCol = (type: FragmentType) => {
-    const colDef = buildFragmentColumns(preset).find(c => c.fragmentType === type);
-    return colDef;
+    return buildFragmentColumns(preset).find(c => c.fragmentType === type);
   }
 
   const fragmentCols = buildFragmentColumns(preset);
 
   // Define strict order based on mode
   const order: GridColumn[] = [];
+  const addedIds = new Set<string>();
+
+  const add = (col: GridColumn | undefined) => {
+    if (!col || addedIds.has(col.id)) return;
+    order.push(col);
+    addedIds.add(col.id);
+  };
 
   // 1. Index (#)
-  order.push(getFixed(FIXED_COLUMN_IDS.INDEX));
+  add(getFixed(FIXED_COLUMN_IDS.INDEX));
 
   // 2. Timestamp
   const timestampCol = getFixed(FIXED_COLUMN_IDS.TIMESTAMP);
-  order.push({
+  add({
     ...timestampCol,
     visible: true,
     meta: { hideMs: !isDebugMode }
   });
 
   // 3. Time (Spans)
-  order.push(getFixed(FIXED_COLUMN_IDS.SPANS));
+  add(getFixed(FIXED_COLUMN_IDS.SPANS));
 
   if (isDebugMode) {
     // 4. System Fragment (Debug Only)
     const sysCol = getFragmentCol(FragmentType.System);
-    if (sysCol) order.push({ ...sysCol, visible: true });
+    add(sysCol ? { ...sysCol, visible: true } : undefined);
   }
 
   // 3/5. Effort (Primary Descriptor) - ALWAYS next to timestamps
-  const effortCol = getFragmentCol(FragmentType.Effort);
-  if (effortCol) order.push(effortCol);
+  add(getFragmentCol(FragmentType.Effort));
 
   // 4/6. Text (Secondary Descriptor)
-  const textCol = getFragmentCol(FragmentType.Text);
-  if (textCol) order.push(textCol);
+  add(getFragmentCol(FragmentType.Text));
 
   // 5/7. All other Fragments (Data)
   // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
-  const addedIds = new Set(order.map(c => c.id));
-  const remainingFragments = fragmentCols.filter(c => !addedIds.has(c.id));
-  order.push(...remainingFragments);
+  fragmentCols.forEach(col => add(col));
 
   // 6/8. Meta Stats (Elapsed, Total, Duration) - Moved to end "after a certain point"
-  order.push(getFixed(FIXED_COLUMN_IDS.ELAPSED));
-  order.push(getFixed(FIXED_COLUMN_IDS.TOTAL));
-  order.push(getFixed(FIXED_COLUMN_IDS.DURATION));
+  add(getFixed(FIXED_COLUMN_IDS.ELAPSED));
+  add(getFixed(FIXED_COLUMN_IDS.TOTAL));
+  add(getFixed(FIXED_COLUMN_IDS.DURATION));
 
   // 7/9. Debug extras
   if (isDebugMode) {
-    // order.push({ ...getFixed(FIXED_COLUMN_IDS.STACK_LEVEL), visible: true });
-    order.push({ ...getFixed(FIXED_COLUMN_IDS.COMPLETION_REASON), visible: true });
+    add({ ...getFixed(FIXED_COLUMN_IDS.COMPLETION_REASON), visible: true });
   }
 
   return order;

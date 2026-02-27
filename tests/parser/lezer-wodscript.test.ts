@@ -107,4 +107,35 @@ describe('Lezer WodScript Parser', () => {
     // Check nesting of 10 KB Swings ?kg
     expect(statements[2].parent).toBe(statements[1].id);
   });
+
+  it('should populate fragmentMeta with source locations', () => {
+    const code = `21 95lb Thrusters\n`;
+    const statements = parse(code);
+    
+    expect(statements.length).toBe(1);
+    const s = statements[0];
+    expect(s.fragments.length).toBe(3);
+    
+    expect(s.fragmentMeta).toBeDefined();
+    expect(s.fragmentMeta.size).toBe(3);
+    
+    const repFrag = s.fragments[0];
+    const weightFrag = s.fragments[1];
+    const effortFrag = s.fragments[2];
+    
+    const repMeta = s.fragmentMeta.get(repFrag);
+    expect(repMeta).toBeDefined();
+    expect(repMeta?.raw).toBe("21");
+    expect(repMeta?.startOffset).toBe(0);
+    expect(repMeta?.endOffset).toBe(2);
+    
+    const weightMeta = s.fragmentMeta.get(weightFrag);
+    expect(weightMeta).toBeDefined();
+    expect(weightMeta?.raw).toBe("95lb");
+    expect(weightMeta?.startOffset).toBe(3);
+    
+    const effortMeta = s.fragmentMeta.get(effortFrag);
+    expect(effortMeta).toBeDefined();
+    expect(effortMeta?.raw).toBe("Thrusters");
+  });
 });

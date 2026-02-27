@@ -21,7 +21,7 @@ describe('WaitingToStartStrategy', () => {
         });
 
         it('should return false even with valid statements', () => {
-            const statements = [{ id: 1, fragments: [], children: [], meta: {} }] as any[];
+            const statements = [{ id: 1, fragments: [], children: [], meta: {}, fragmentMeta: new Map() }] as any[];
             expect(strategy.match(statements, {} as any)).toBe(false);
         });
     });

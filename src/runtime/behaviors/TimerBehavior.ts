@@ -4,9 +4,6 @@ import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerDirection, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { calculateElapsed } from '../time/calculateElapsed';
-import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
-import { TotalFragment } from '../compiler/fragments/TotalFragment';
 
 export interface TimerConfig {
     direction: TimerDirection;
@@ -108,16 +105,6 @@ export class TimerBehavior implements IRuntimeBehavior {
 
         ctx.updateMemory('time', [this.createTimerFragment(ctx, closedState)]);
 
-        const elapsed = calculateElapsed(closedState, nowMs);
-        const firstStart = closedSpans[0].started;
-        const lastEnd = closedSpans[closedSpans.length - 1].ended ?? nowMs;
-        const total = Math.max(0, lastEnd - firstStart);
-
-        this.appendResultFragments(ctx, [
-            new ElapsedFragment(elapsed, ctx.block.key.toString(), ctx.clock.now),
-            new TotalFragment(total, ctx.block.key.toString(), ctx.clock.now),
-        ]);
-
         return [];
     }
 
@@ -151,17 +138,6 @@ export class TimerBehavior implements IRuntimeBehavior {
             sourceBlockKey: ctx.block.key.toString(),
             timestamp: ctx.clock.now,
         };
-    }
-
-    private appendResultFragments(ctx: IBehaviorContext, nextFragments: ICodeFragment[]): void {
-        const resultLocs = ctx.block.getMemoryByTag('fragment:result');
-        if (resultLocs.length > 0) {
-            const existing = resultLocs[0].fragments;
-            ctx.updateMemory('fragment:result', [...existing, ...nextFragments]);
-            return;
-        }
-
-        ctx.pushMemory('fragment:result', nextFragments);
     }
 
     private formatDuration(durationMs: number | undefined): string {

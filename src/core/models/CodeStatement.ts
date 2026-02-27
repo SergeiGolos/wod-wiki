@@ -10,6 +10,7 @@ export interface ICodeStatement {
   fragments: ICodeFragment[];
   isLeaf?: boolean;
   meta: CodeMetadata;
+  fragmentMeta: Map<ICodeFragment, CodeMetadata>;
 
   // Semantic hints from dialect processing
   hints?: Set<string>;
@@ -21,6 +22,7 @@ export abstract class CodeStatement implements ICodeStatement, IFragmentSource {
   abstract children: number[][];
   abstract meta: CodeMetadata;
   abstract fragments: ICodeFragment[];
+  abstract fragmentMeta: Map<ICodeFragment, CodeMetadata>;
   abstract isLeaf?: boolean;
 
   // ── IFragmentSource ─────────────────────────────────────────────
@@ -61,12 +63,17 @@ export class ParsedCodeStatement extends CodeStatement {
   children: number[][] = [];
   meta: CodeMetadata = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' } as any;
   fragments: ICodeFragment[] = [];
+  fragmentMeta: Map<ICodeFragment, CodeMetadata> = new Map();
   isLeaf?: boolean;
   hints?: Set<string>;
 
   constructor(init?: Partial<ParsedCodeStatement>) {
     super();
     Object.assign(this, init);
+    // Ensure fragmentMeta is initialized if not provided in init
+    if (!this.fragmentMeta) {
+      this.fragmentMeta = new Map();
+    }
   }
 }
 

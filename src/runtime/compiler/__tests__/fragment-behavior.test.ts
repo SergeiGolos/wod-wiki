@@ -13,44 +13,42 @@ import { CurrentRoundFragment } from '@/runtime/compiler/fragments/CurrentRoundF
 import { MetricBehavior } from '@/types/MetricBehavior';
 import { FragmentType } from '@/core/models/CodeFragment';
 
-const meta = { line: 1, startOffset: 0, endOffset: 1, columnStart: 0, columnEnd: 1, length: 1 } as any;
-
 describe('Fragment behavior & metadata', () => {
   it('TimerFragment (defined) -> behavior=Defined and type=duration', () => {
-    const t = new TimerFragment('5:00', meta);
+    const t = new TimerFragment('5:00');
     expect(t.type).toBe('duration');
     expect(t.behavior).toBe(MetricBehavior.Defined);
     expect(t.origin).toBe('parser');
   });
 
   it('TimerFragment (collectible :?) -> behavior=Hint and origin=runtime', () => {
-    const t = new TimerFragment(':?', meta);
+    const t = new TimerFragment(':?');
     expect(t.value).toBeUndefined();
     expect(t.behavior).toBe(MetricBehavior.Hint);
     expect(t.origin).toBe('runtime');
   });
 
   it('DurationFragment sets behavior=Defined for parser durations', () => {
-    const d = new DurationFragment('2:00', meta);
+    const d = new DurationFragment('2:00');
     expect(d.behavior).toBe(MetricBehavior.Defined);
     expect(d.origin).toBe('parser');
   });
 
   it('RepFragment defined vs collectible behavior', () => {
-    const r1 = new RepFragment(10, meta);
-    const r2 = new RepFragment(undefined, meta);
+    const r1 = new RepFragment(10);
+    const r2 = new RepFragment(undefined);
     expect(r1.behavior).toBe(MetricBehavior.Defined);
     expect(r2.behavior).toBe(MetricBehavior.Hint);
   });
 
   it('Distance/Resistance collectible -> Hint; defined -> Defined', () => {
-    const d1 = new DistanceFragment(400, 'm', meta);
-    const d2 = new DistanceFragment(undefined, 'm', meta);
+    const d1 = new DistanceFragment(400, 'm');
+    const d2 = new DistanceFragment(undefined, 'm');
     expect(d1.behavior).toBe(MetricBehavior.Defined);
     expect(d2.behavior).toBe(MetricBehavior.Hint);
 
-    const w1 = new ResistanceFragment(135, 'lb', meta);
-    const w2 = new ResistanceFragment(undefined, 'lb', meta);
+    const w1 = new ResistanceFragment(135, 'lb');
+    const w2 = new ResistanceFragment(undefined, 'lb');
     expect(w1.behavior).toBe(MetricBehavior.Defined);
     expect(w2.behavior).toBe(MetricBehavior.Hint);
   });
@@ -72,10 +70,9 @@ describe('Fragment behavior & metadata', () => {
     expect(st.behavior).toBe(MetricBehavior.Recorded);
   });
 
-  it('SoundFragment persists meta and is Recorded', () => {
-    const s = new SoundFragment('beep', 'countdown', { atSecond: 3, meta });
+  it('SoundFragment is Recorded', () => {
+    const s = new SoundFragment('beep', 'countdown', { atSecond: 3 });
     expect(s.behavior).toBe(MetricBehavior.Recorded);
-    expect(s.meta).toEqual(meta);
   });
 
   it('CurrentRoundFragment is Recorded with runtime origin', () => {

@@ -1,5 +1,4 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
-import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
@@ -27,7 +26,6 @@ export class SoundFragment implements ICodeFragment {
     readonly origin: FragmentOrigin;
     readonly value: SoundFragmentValue;
     readonly image: string;
-    readonly meta?: CodeMetadata;
     readonly behavior: MetricBehavior = MetricBehavior.Recorded;
 
     constructor(
@@ -41,8 +39,6 @@ export class SoundFragment implements ICodeFragment {
             atSecond?: number;
             /** Origin of this fragment */
             origin?: FragmentOrigin;
-            /** Source metadata */
-            meta?: CodeMetadata;
         } = {}
     ) {
         this.origin = options.origin ?? 'runtime';
@@ -54,8 +50,6 @@ export class SoundFragment implements ICodeFragment {
         this.image = options.atSecond !== undefined 
             ? `${sound}@${options.atSecond}s` 
             : sound;
-        // Preserve source metadata if provided
-        this.meta = options.meta;
     }
 }
 

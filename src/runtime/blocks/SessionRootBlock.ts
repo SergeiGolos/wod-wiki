@@ -72,7 +72,7 @@ export class SessionRootBlock extends RuntimeBlock {
 
         super(
             runtime,
-            [], // sourceIds - Root blocks are containers, they don't inherit identity from children
+            config.childGroups.flat(), // sourceIds - Flatten child groups to provide identity
             behaviors,
             context,
             blockKey,

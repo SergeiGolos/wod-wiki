@@ -33,7 +33,7 @@ import { EmitSystemOutputAction } from './actions/stack/EmitSystemOutputAction';
  * 4. Context is discarded — all actions in the turn shared the same frozen timestamp
  */
 export class ExecutionContext implements IScriptRuntime {
-    private _stack: IRuntimeAction[] = [];
+    private _workList: IRuntimeAction[] = [];
     private _iteration = 0;
     private readonly _maxIterations: number;
     private readonly _snapshotClock: SnapshotClock;
@@ -81,29 +81,25 @@ export class ExecutionContext implements IScriptRuntime {
     }
 
     /**
-     * Pushes an action onto the execution stack to be processed in this turn.
-     * Actions pushed during another action's execution will be processed next (LIFO).
+     * Pushes an action onto the execution work list to be processed in this turn.
+     * Actions pushed during another action's execution will be appended to the end
+     * of the list (FIFO side-effect queuing).
      */
     do(action: IRuntimeAction): void {
-        this._stack.push(action);
+        this._workList.push(action);
     }
 
     /**
-     * Pushes multiple actions onto the stack in the correct order for LIFO processing.
-     * The first action in the array will execute first.
-     * 
-     * Internally pushes in reverse order so the first action lands on top of the stack.
+     * Pushes multiple actions onto the work list.
+     * They will be executed in the order provided (FIFO).
      */
     doAll(actions: IRuntimeAction[]): void {
         if (actions.length === 0) return;
-        for (let i = actions.length - 1; i >= 0; i--) {
-            this._stack.push(actions[i]);
-        }
+        this._workList.push(...actions);
     }
 
     /**
-     * Dispatches an event and pushes all resulting actions onto the stack.
-     * Uses doAll() to handle LIFO ordering internally.
+     * Dispatches an event and pushes all resulting actions onto the work list.
      */
     handle(event: IEvent): void {
         const actions = this.eventBus.dispatch(event, this);
@@ -124,7 +120,7 @@ export class ExecutionContext implements IScriptRuntime {
 
     /**
      * Pushes a block onto the runtime stack.
-     * Pushes the PushBlockAction onto this execution context's action stack.
+     * Pushes the PushBlockAction onto this execution context's action work list.
      */
     pushBlock(block: import('./contracts/IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         this.do(new PushBlockAction(block, lifecycle));
@@ -132,52 +128,47 @@ export class ExecutionContext implements IScriptRuntime {
 
     /**
      * Pops the current block from the runtime stack.
-     * Pushes the PopBlockAction onto this execution context's action stack.
+     * Pushes the PopBlockAction onto this execution context's action work list.
      */
     popBlock(lifecycle?: import('./contracts/IRuntimeBlock').BlockLifecycleOptions): void {
         this.do(new PopBlockAction(lifecycle));
     }
 
     /**
-     * Executes an initial action and then all subsequent actions on the stack until empty.
+     * Executes an initial action and then all subsequent actions on the work list until empty.
      * 
-     * Uses LIFO (stack) ordering: when an action returns child actions, those children
-     * are pushed onto the stack and execute before any remaining sibling actions.
-     * This ensures depth-first processing of block lifecycle chains
-     * (pop → parent.next() → push child).
+     * Uses an 'Ordered Stack' model:
+     * 1. **Queued actions (do)** are appended to the back (FIFO).
+     * 2. **Returned actions (children)** are prepended to the front (Depth-First).
+     * 3. **Execution** always takes from the front.
      * 
-     * Actions can produce child actions in two ways:
-     * 1. **Return them** from `do()` (preferred) — ExecutionContext pushes them automatically
-     * 2. **Call `runtime.do()`** (legacy) — directly pushes onto the stack
-     * 
-     * Both approaches work simultaneously, enabling incremental migration.
+     * This ensures that nested operations (e.g., a pop that triggers a parent.next())
+     * complete their full depth before processing continues at the sibling level,
+     * while explicitly queued side-effects run in the order they were triggered.
      * 
      * @throws Error if max iterations reached
      */
     execute(initialAction: IRuntimeAction): void {
-        this._stack.push(initialAction);
+        this._workList.push(initialAction);
 
-        while (this._stack.length > 0) {
+        while (this._workList.length > 0) {
             if (this._iteration >= this._maxIterations) {
                 const errorMsg = `[ExecutionContext] Max iterations reached (${this._maxIterations}). Aborting to prevent infinite loop.`;
                 console.error(errorMsg);
                 throw new Error(errorMsg);
             }
 
-            // LIFO: pop from the top of the stack (last-in, first-out)
-            const action = this._stack.pop()!;
+            // Always take from the front
+            const action = this._workList.shift()!;
             this._iteration++;
 
             // Execute the action using THIS context as the runtime.
-            // Actions can return child actions OR call runtime.do() (both work).
             const childActions = action.do(this);
 
-            // If the action returned child actions, push them onto the stack
-            // in reverse order for correct LIFO execution (first returned = first executed)
+            // If the action returned child actions, prepend them to the front
+            // of the work list to maintain depth-first processing.
             if (childActions && childActions.length > 0) {
-                for (let i = childActions.length - 1; i >= 0; i--) {
-                    this._stack.push(childActions[i]);
-                }
+                this._workList.unshift(...childActions);
             }
         }
     }

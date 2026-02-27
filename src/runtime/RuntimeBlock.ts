@@ -345,17 +345,27 @@ export class RuntimeBlock implements IRuntimeBlock {
 
         const actions: IRuntimeAction[] = [];
 
+        // Create a fresh context for this unmount() call with the appropriate clock
+        // This ensures all behaviors in this unmount() chain see the same frozen time
+        const unmountContext = new BehaviorContext(
+            this,
+            clock,
+            this._behaviorContext?.stackLevel ?? 0,
+            runtime
+        );
+
         // Call behavior onUnmount hooks
-        if (this._behaviorContext) {
-            for (const behavior of this.behaviors) {
-                if (behavior.onUnmount) {
-                    const result = behavior.onUnmount(this._behaviorContext);
-                    if (result) {
-                        actions.push(...result);
-                    }
+        for (const behavior of this.behaviors) {
+            if (behavior.onUnmount) {
+                const result = behavior.onUnmount(unmountContext);
+                if (result) {
+                    actions.push(...result);
                 }
             }
         }
+
+        // Dispose temporary context
+        unmountContext.dispose();
 
         // Emit unmount event and capture any resulting actions
         const unmountEventActions = runtime.eventBus.dispatch({
@@ -366,12 +376,6 @@ export class RuntimeBlock implements IRuntimeBlock {
         if (unmountEventActions.length > 0) {
             actions.push(...unmountEventActions);
         }
-
-        // Dispose list-based memory locations
-        for (const location of this._memory) {
-            location.dispose();
-        }
-        this._memory = [];
 
         // Unregister event handlers
         for (const unsub of this._eventUnsubscribers) {
@@ -414,6 +418,12 @@ export class RuntimeBlock implements IRuntimeBlock {
         if (!this._behaviorContext && ctx) {
             ctx.dispose();
         }
+
+        // Dispose list-based memory locations
+        for (const location of this._memory) {
+            location.dispose();
+        }
+        this._memory = [];
     }
 
     // ============================================================================

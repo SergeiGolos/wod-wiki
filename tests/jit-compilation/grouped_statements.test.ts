@@ -7,27 +7,27 @@ import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/comp
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 import { createMockClock } from '../../src/runtime/RuntimeClock';
+import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
+import { RuntimeStack } from '../../src/runtime/RuntimeStack';
+import { EventBus } from '../../src/runtime/events/EventBus';
 
 describe('Grouped Statements Compilation', () => {
     const parser = new MdTimerRuntime();
-    const compiler = new JitCompiler([
+    const strategies = [
         new GenericGroupStrategy(),
         new EffortFallbackStrategy(),
         new ChildrenStrategy()
-    ]);
+    ];
+    const compiler = new JitCompiler(strategies);
 
-    const mockRuntime: IScriptRuntime = {
-        jit: compiler,
-        clock: createMockClock(),
-        stack: {
-            current: undefined,
-            push: () => {},
-            pop: () => undefined,
-            depth: 0,
-        },
-        getOutputStatements: () => [],
-        addOutput: () => {},
-    } as any;
+    const createRuntime = (script: string) => {
+        const wod = parser.read(script);
+        return new ScriptRuntime(wod, compiler, {
+            stack: new RuntimeStack(),
+            clock: createMockClock(),
+            eventBus: new EventBus()
+        });
+    };
 
     it('compiles grouped statements (+) into a single block with fragments from all statements', () => {
         const script = `
@@ -35,7 +35,8 @@ describe('Grouped Statements Compilation', () => {
   - 10 Burpees
   + 10 Pushups
 `.trim();
-        const result = parser.read(script);
+        const runtime = createRuntime(script);
+        const result = runtime.script;
         
         // Find the parent block
         const parentStatement = result.statements.find(s => s.children.length > 0);
@@ -49,7 +50,7 @@ describe('Grouped Statements Compilation', () => {
         const childStatements = childIds.map(id => result.getId(id)!);
 
         // Compile the group
-        const block = compiler.compile(childStatements as any, mockRuntime);
+        const block = compiler.compile(childStatements as any, runtime);
         expect(block).toBeDefined();
 
         // Check source IDs in block
@@ -66,5 +67,46 @@ describe('Grouped Statements Compilation', () => {
         // Should contain fragments from BOTH statements
         expect(reps).toHaveLength(2);
         expect(efforts).toHaveLength(2);
+    });
+
+    it('emits split proportional outputs for grouped statements', () => {
+        const script = `
+- 10 Burpees
++ 20 Pushups
+`.trim();
+        const runtime = createRuntime(script);
+        
+        // Advance through WaitingToStart if it exists, or just get the first block
+        // In this simple script, JitCompiler will be called to compile the group
+        const groupStatements = runtime.script.statements.filter(s => s.id > 0);
+        const block = compiler.compile(groupStatements, runtime);
+        expect(block).toBeDefined();
+
+        // Simulate execution
+        runtime.pushBlock(block!);
+        runtime.clock.advance(60000); // 60 seconds elapsed
+        runtime.popBlock();
+
+        const outputs = runtime.getOutputStatements().filter(o => o.outputType === 'segment');
+        
+        // Should have 2 segment outputs (one for Burpees, one for Pushups)
+        expect(outputs).toHaveLength(2);
+
+        const burpees = outputs[0];
+        const pushups = outputs[1];
+
+        // Burpees: 10 reps, Pushups: 20 reps. Total 30 reps.
+        // Burpees ratio: 1/3 (20s), Pushups ratio: 2/3 (40s)
+        
+        const burpeesElapsed = burpees.fragments.find(f => f.fragmentType === FragmentType.Elapsed)?.value;
+        const pushupsElapsed = pushups.fragments.find(f => f.fragmentType === FragmentType.Elapsed)?.value;
+
+        expect(burpeesElapsed).toBe(20000);
+        expect(pushupsElapsed).toBe(40000);
+
+        // Check virtual spans are sequential
+        expect(burpees.spans[0].duration).toBe(20000);
+        expect(pushups.spans[0].duration).toBe(40000);
+        expect(pushups.spans[0].started).toBe(burpees.spans[0].ended);
     });
 });

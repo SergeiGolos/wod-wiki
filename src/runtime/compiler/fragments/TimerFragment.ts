@@ -1,5 +1,4 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
-import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
@@ -19,12 +18,10 @@ export class TimerFragment implements ICodeFragment {
    * Creates a new TimerFragment.
    * 
    * @param image The timer string (e.g., "5:00", "1:30:00") or ":?" for collectible
-   * @param meta Code metadata for source location
    * @param forceCountUp If true, timer counts up even with explicit duration (^ modifier)
    */
   constructor(
     public image: string,
-    public meta: CodeMetadata,
     public readonly forceCountUp: boolean = false
   ) {
     // Check if this is a collectible timer (:?)

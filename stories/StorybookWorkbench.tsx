@@ -7,7 +7,7 @@ import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
-import { FileText, Activity, BarChart3 } from 'lucide-react';
+import { FileText, Activity, BarChart3, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -72,6 +72,58 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     setHoveredBlockKey(blockKey);
   }, [setHoveredBlockKey]);
 
+  const handleExport = useCallback(() => {
+    // Collect serializable runtime state
+    const exportState = {
+      timestamp: new Date().toISOString(),
+      content,
+      documentItems,
+      selectedBlockId: activeBlockId,
+      execution: {
+        status: execution.status,
+        elapsedTime: execution.elapsedTime,
+        stepCount: execution.stepCount,
+        startTime: execution.startTime,
+      },
+      analytics: {
+        data: analyticsData,
+        segments: analyticsSegments,
+        groups: analyticsGroups,
+      },
+      // If runtime exists, export more detailed info
+      outputs: runtime ? runtime.getOutputStatements() : [],
+    };
+
+    // Serialize with handling for Set/Map/circular types
+    const blob = new Blob([
+      JSON.stringify(exportState, (key, value) => {
+        if (value instanceof Set) return Array.from(value);
+        if (value instanceof Map) return Object.fromEntries(value);
+        // Handle potentially large or circular objects (like runtime itself)
+        if (key === 'runtime') return undefined; 
+        return value;
+      }, 2)
+    ], { type: 'application/json' });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `runtime-state-${new Date().getTime()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [
+    content,
+    documentItems,
+    activeBlockId,
+    execution,
+    analyticsData,
+    analyticsSegments,
+    analyticsGroups,
+    runtime
+  ]);
+
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Header with Panel Toggles and Debug */}
@@ -108,6 +160,15 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
             </Button>
           </div>
           <div className="h-6 w-px bg-border mx-1" />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleExport}
+            title="Export Runtime State"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
           <DebugButton />
         </div>
       </div>

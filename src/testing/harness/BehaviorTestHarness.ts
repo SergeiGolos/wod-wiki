@@ -87,10 +87,7 @@ export class BehaviorTestHarness {
 
       doAll(actions: IRuntimeAction[]) {
         if (!actions) return;
-        // Push in reverse order for LIFO (stack)
-        for (let i = actions.length - 1; i >= 0; i--) {
-          self._actionStack.push(actions[i]);
-        }
+        self._actionStack.push(...actions);
       },
 
       handle(event: IEvent) {
@@ -210,7 +207,7 @@ export class BehaviorTestHarness {
     this._recordActions(actions, 'mount');
 
     // Use the safe iteration-limited execution
-    this._actionStack.push(...actions);
+    this._mockRuntime.doAll(actions);
     this._executeActionStack();
 
     return actions;
@@ -227,7 +224,7 @@ export class BehaviorTestHarness {
     this._recordActions(actions, 'next');
 
     // Use the safe iteration-limited execution
-    this._actionStack.push(...actions);
+    this._mockRuntime.doAll(actions);
     this._executeActionStack();
 
     return actions;
@@ -249,7 +246,7 @@ export class BehaviorTestHarness {
     this._recordActions(actions, 'unmount');
 
     // Use the safe iteration-limited execution
-    this._actionStack.push(...actions);
+    this._mockRuntime.doAll(actions);
     this._executeActionStack();
 
     this._stack.pop();
@@ -294,6 +291,9 @@ export class BehaviorTestHarness {
 
     // Dispatch through runtime.handle() — mirrors production entry point
     this._mockRuntime.handle(event);
+
+    // Ensure actions resulting from the event are processed
+    this._executeActionStack();
 
     return [];
   }
@@ -479,12 +479,17 @@ export class BehaviorTestHarness {
         throw new Error(errorMsg);
       }
 
-      // LIFO: Pop from top
-      const action = this._actionStack.pop()!;
+      // Ordered Stack: Take from the front
+      const action = this._actionStack.shift()!;
       this._iteration++;
 
-      // Execute action - it may push more actions onto this._actionStack via runtime.do()
-      action.do(this._mockRuntime);
+      // Execute action - it may push more actions onto this._actionStack via runtime.do() (appended)
+      const childActions = action.do(this._mockRuntime);
+
+      // Prepend returned child actions to maintain depth-first lifecycle
+      if (childActions && childActions.length > 0) {
+        this._actionStack.unshift(...childActions);
+      }
     }
   }
 

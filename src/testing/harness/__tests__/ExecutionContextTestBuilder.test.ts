@@ -85,8 +85,8 @@ describe('ExecutionContextTestBuilder', () => {
         .whenStatementIds([1, 2], block)
         .build();
 
-      const statement1 = { id: 1, fragments: [], children: [], meta: {} } as any;
-      const statement2 = { id: 2, fragments: [], children: [], meta: {} } as any;
+      const statement1 = { id: 1, fragments: [], children: [], meta: {}, fragmentMeta: new Map() } as any;
+      const statement2 = { id: 2, fragments: [], children: [], meta: {}, fragmentMeta: new Map() } as any;
       
       const result = harness.mockJit.compile([statement1, statement2], harness.runtime);
 

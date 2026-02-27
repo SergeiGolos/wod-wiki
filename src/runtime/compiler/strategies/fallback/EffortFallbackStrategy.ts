@@ -77,6 +77,14 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             .setBlockType('effort')
             .setLabel(label);
 
+        // Timer Aspect: Simple countup timer for tracking elapsed time
+        builder.asTimer({
+            direction: 'up',
+            label,
+            role: 'secondary', // Secondary because it's not a primary goal timer
+            addCompletion: false // Manual advance only
+        });
+
         // Filter out runtime-generated fragments from all statements
         const fragmentsPerStatement = statements.map(s => 
             s.fragments.filter(f => f.origin !== 'runtime')

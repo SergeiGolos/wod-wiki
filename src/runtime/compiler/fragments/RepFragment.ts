@@ -1,5 +1,4 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
-import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export class RepFragment implements ICodeFragment {
@@ -7,7 +6,7 @@ export class RepFragment implements ICodeFragment {
   readonly image: string;
   readonly origin: FragmentOrigin;
 
-  constructor(public reps?: number, public meta?: CodeMetadata) {
+  constructor(public reps?: number) {
     if (reps !== undefined) {
       if (reps < 0) {
         throw new Error(`Rep count cannot be negative: ${reps}`);

@@ -419,59 +419,51 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private emitSegmentOutputFromResultMemory(block: IRuntimeBlock, stackDepth: number): void {
         const resultLocs = block.getMemoryByTag('fragment:result');
-        let resultFragments: ICodeFragment[] = [];
+        const displayLocs = block.getMemoryByTag('fragment:display');
 
-        if (resultLocs.length > 0) {
-            resultFragments = resultLocs[0].fragments ?? [];
-        }
-
-        // 1. Get source fragments if available
-        let sourceFragments: ICodeFragment[] = [];
-        if (block.sourceIds && block.sourceIds.length > 0) {
-            // Collect fragments from ALL source statements in the group
-            sourceFragments = block.sourceIds.flatMap(stmtId => {
-                const stmt = this.script.statements.find(s => s.id === stmtId);
-                return stmt && stmt.fragments ? stmt.fragments : [];
-            });
-        }
-
-        // 2. Merge: Runtime results override source definitions (for same type)
-        // We filter out source fragments that have a matching type in the results
-        // to prevent double-counting metrics (e.g. parser says 400m, runtime says 400m -> sum 800m is wrong)
-        const resultTypes = new Set(resultFragments.map(f => f.fragmentType));
-        const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.fragmentType));
-
-        const fragments = [...effectiveSourceFragments, ...resultFragments];
-
-        if (fragments.length === 0) {
+        if (resultLocs.length === 0) {
             return;
         }
 
-        const fallbackEndMs = this.clock.now.getTime();
-        const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
+        // If we have multiple result groups, emit one segment for each
+        for (let i = 0; i < resultLocs.length; i++) {
+            const resultFragments = resultLocs[i].fragments ?? [];
+            
+            // Match with corresponding display fragments if available
+            // (Assumes 1:1 pairing from ReportOutputBehavior)
+            const sourceFragments = displayLocs[i]?.fragments ?? [];
 
-        // Use the actual execution timing for the main timeSpan (Push -> Pop)
-        // This ensures the "envelope" of the segment is correct relative to the timeline
-        const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
+            // 2. Merge: Runtime results override source definitions (for same type)
+            const resultTypes = new Set(resultFragments.map(f => f.fragmentType));
+            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.fragmentType));
 
-        // Extract internal timer spans if available (e.g. for pause-aware duration)
-        // If no internal spans, we DO NOT default to the envelope here yet; 
-        // we leave it to the Transformer or specific logic to decide if "whole block" counts as a span.
-        // However, for "Segment" types, usually we want at least one span. 
-        // Let's stick to extraction only here to avoid duplicating the envelope if not needed.
-        const spans = this.extractSpansFromResultFragments(fragments);
+            const fragments = [...effectiveSourceFragments, ...resultFragments];
 
-        const output = new OutputStatement({
-            outputType: 'segment',
-            timeSpan,
-            spans: spans.length > 0 ? spans : undefined,
-            sourceBlockKey: block.key.toString(),
-            sourceStatementId: block.sourceIds?.[0], // Still keep the lead statement as primary ID
-            stackLevel: stackDepth,
-            fragments,
-        });
+            if (fragments.length === 0) {
+                continue;
+            }
 
-        this.addOutput(output);
+            const fallbackEndMs = this.clock.now.getTime();
+            const fallbackStartMs = block.executionTiming?.startTime?.getTime() ?? fallbackEndMs;
+
+            // Use the actual execution timing for the main timeSpan (Push -> Pop)
+            const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
+
+            // Extract internal timer spans if available
+            const spans = this.extractSpansFromResultFragments(fragments);
+
+            const output = new OutputStatement({
+                outputType: 'segment',
+                timeSpan,
+                spans: spans.length > 0 ? spans : undefined,
+                sourceBlockKey: block.key.toString(),
+                sourceStatementId: block.sourceIds?.[i] ?? block.sourceIds?.[0],
+                stackLevel: stackDepth,
+                fragments,
+            });
+
+            this.addOutput(output);
+        }
     }
 
     private extractSpansFromResultFragments(fragments: ICodeFragment[]): TimeSpan[] {

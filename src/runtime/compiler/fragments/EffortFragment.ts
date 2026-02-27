@@ -1,5 +1,4 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
-import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export class EffortFragment implements ICodeFragment {
@@ -8,7 +7,7 @@ export class EffortFragment implements ICodeFragment {
   readonly origin: FragmentOrigin = 'parser';
   readonly behavior: MetricBehavior = MetricBehavior.Defined;
 
-  constructor(public effort: string, public meta?: CodeMetadata) {
+  constructor(public effort: string) {
     this.value = effort;
     this.image = effort;
   }

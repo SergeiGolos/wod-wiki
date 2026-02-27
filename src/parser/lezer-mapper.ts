@@ -30,7 +30,7 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
     enter(node) {
       if (node.name === "Block") {
         const statement = new ParsedCodeStatement();
-        const fragments: any[] = [];
+        const fragmentPairs: { fragment: any, meta: CodeMetadata }[] = [];
         
         let cursor = node.node.cursor();
         if (cursor.firstChild()) {
@@ -50,7 +50,7 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
             switch (child.type.id) {
               case terms.Lap: {
                 const type: GroupType = text === "+" ? 'compose' : 'round';
-                fragments.push(new GroupFragment(type, text, meta));
+                fragmentPairs.push({ fragment: new GroupFragment(type, text), meta });
                 break;
               }
               case terms.Fragment: {
@@ -75,7 +75,7 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                     const timerNode = fragmentNode.getChild(terms.Timer) || fragmentNode.getChild(terms.CollectibleTimer);
                     if (timerNode) {
                       const timerText = source.slice(timerNode.from, timerNode.to);
-                      fragments.push(new DurationFragment(timerText, fragMeta, forceCountUp));
+                      fragmentPairs.push({ fragment: new DurationFragment(timerText, forceCountUp), meta: fragMeta });
                     }
                     break;
                   }
@@ -84,17 +84,17 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                     if (sequence) {
                       const numbers = source.slice(sequence.from, sequence.to).split('-').map(n => parseInt(n.trim()));
                       if (numbers.length === 1) {
-                        fragments.push(new RoundsFragment(numbers[0], fragMeta));
+                        fragmentPairs.push({ fragment: new RoundsFragment(numbers[0]), meta: fragMeta });
                       } else {
-                        fragments.push(new RoundsFragment(numbers.length, fragMeta));
+                        fragmentPairs.push({ fragment: new RoundsFragment(numbers.length), meta: fragMeta });
                         for (const n of numbers) {
-                          fragments.push(new RepFragment(n, fragMeta));
+                          fragmentPairs.push({ fragment: new RepFragment(n), meta: fragMeta });
                         }
                       }
                     } else {
                       const label = fragmentNode.getChild(terms.Identifier);
                       if (label) {
-                        fragments.push(new RoundsFragment(source.slice(label.from, label.to), fragMeta));
+                        fragmentPairs.push({ fragment: new RoundsFragment(source.slice(label.from, label.to)), meta: fragMeta });
                       }
                     }
                     break;
@@ -102,12 +102,12 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                   case terms.Action: {
                     // Extract name from [:Name]
                     const actionText = fragText.substring(2, fragText.length - 1).trim();
-                    fragments.push(new ActionFragment(actionText, fragMeta, { raw: actionText }));
+                    fragmentPairs.push({ fragment: new ActionFragment(actionText, { raw: actionText }), meta: fragMeta });
                     break;
                   }
                   case terms.Text: {
                     const content = fragText.substring(2).trim();
-                    fragments.push(new TextFragment(content, undefined, fragMeta));
+                    fragmentPairs.push({ fragment: new TextFragment(content, undefined), meta: fragMeta });
                     break;
                   }
                   case terms.Quantity: {
@@ -115,23 +115,22 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                     const hasWeight = !!fragmentNode.getChild(terms.WeightUnit);
                     const hasDistance = !!fragmentNode.getChild(terms.DistanceUnit);
                     const numNode = fragmentNode.getChild(terms.Number);
-                    const question = fragmentNode.getChild(terms.Question);
                     
                     const value = numNode ? parseFloat(source.slice(numNode.from, numNode.to)) : undefined;
                     const unitNode = fragmentNode.getChild(terms.WeightUnit) || fragmentNode.getChild(terms.DistanceUnit);
                     const unit = unitNode ? source.slice(unitNode.from, unitNode.to) : "";
 
                     if (hasWeight || hasAtSign) {
-                      fragments.push(new ResistanceFragment(value, unit, fragMeta));
+                      fragmentPairs.push({ fragment: new ResistanceFragment(value, unit), meta: fragMeta });
                     } else if (hasDistance) {
-                      fragments.push(new DistanceFragment(value, unit, fragMeta));
+                      fragmentPairs.push({ fragment: new DistanceFragment(value, unit), meta: fragMeta });
                     } else {
-                      fragments.push(new RepFragment(value, fragMeta));
+                      fragmentPairs.push({ fragment: new RepFragment(value), meta: fragMeta });
                     }
                     break;
                   }
                   case terms.Effort: {
-                    fragments.push(new EffortFragment(fragText, fragMeta));
+                    fragmentPairs.push({ fragment: new EffortFragment(fragText), meta: fragMeta });
                     break;
                   }
                 }
@@ -141,7 +140,10 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
           } while (cursor.nextSibling());
         }
 
-        statement.fragments = mergeFragments(fragments);
+        const mergedPairs = mergeFragments(fragmentPairs);
+        statement.fragments = mergedPairs.map(p => p.fragment);
+        statement.fragmentMeta = new Map(mergedPairs.map(p => [p.fragment, p.meta]));
+        
         statement.meta = {
           line: state.doc.lineAt(node.from).number,
           startOffset: node.from,
@@ -191,17 +193,17 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
  * Merges adjacent fragments that should have been parsed as a single fragment.
  * Handles overlaps like Rep + ResistanceUnit -> Resistance.
  */
-function mergeFragments(fragments: any[]): any[] {
-  if (fragments.length < 2) return fragments;
+function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragment: any, meta: CodeMetadata }[] {
+  if (pairs.length < 2) return pairs;
 
-  const result: any[] = [];
-  let current = fragments[0];
+  const result: { fragment: any, meta: CodeMetadata }[] = [];
+  let current = pairs[0];
 
-  for (let i = 1; i < fragments.length; i++) {
-    const next = fragments[i];
+  for (let i = 1; i < pairs.length; i++) {
+    const next = pairs[i];
 
     // Merge adjacent Effort fragments
-    if (current instanceof EffortFragment && next instanceof EffortFragment) {
+    if (current.fragment instanceof EffortFragment && next.fragment instanceof EffortFragment) {
       // If they are separated only by whitespace or nothing
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) { // allow one space
@@ -212,13 +214,16 @@ function mergeFragments(fragments: any[]): any[] {
           length: next.meta.endOffset - current.meta.startOffset,
           raw: current.meta.raw + (gap === 1 ? " " : "") + next.meta.raw
         };
-        current = new EffortFragment(current.effort + (gap === 1 ? " " : "") + next.effort, mergedMeta);
+        current = { 
+            fragment: new EffortFragment(current.fragment.effort + (gap === 1 ? " " : "") + next.fragment.effort), 
+            meta: mergedMeta 
+        };
         continue;
       }
     }
 
     // Merge Rep + ResistanceUnit or DistanceUnit
-    if (current instanceof RepFragment && (next instanceof ResistanceFragment || next instanceof DistanceFragment)) {
+    if (current.fragment instanceof RepFragment && (next.fragment instanceof ResistanceFragment || next.fragment instanceof DistanceFragment)) {
       if (next.meta.startOffset === current.meta.endOffset) {
          const mergedMeta: CodeMetadata = {
           ...current.meta,
@@ -227,12 +232,18 @@ function mergeFragments(fragments: any[]): any[] {
           length: next.meta.endOffset - current.meta.startOffset,
           raw: current.meta.raw + next.meta.raw
         };
-        if (next instanceof ResistanceFragment && next.value.amount === undefined) {
-          current = new ResistanceFragment(current.reps, next.units, mergedMeta);
+        if (next.fragment instanceof ResistanceFragment && next.fragment.value.amount === undefined) {
+          current = { 
+              fragment: new ResistanceFragment(current.fragment.reps, next.fragment.units), 
+              meta: mergedMeta 
+          };
           continue;
         }
-        if (next instanceof DistanceFragment && next.value.amount === undefined) {
-          current = new DistanceFragment(current.reps, next.units, mergedMeta);
+        if (next.fragment instanceof DistanceFragment && next.fragment.value.amount === undefined) {
+          current = { 
+              fragment: new DistanceFragment(current.fragment.reps, next.fragment.units), 
+              meta: mergedMeta 
+          };
           continue;
         }
       }

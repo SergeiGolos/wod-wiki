@@ -1,5 +1,4 @@
 import { ICodeFragment, FragmentType, FragmentOrigin } from "../../../core/models/CodeFragment";
-import { CodeMetadata } from "../../../core/models/CodeMetadata";
 import { MetricBehavior } from "../../../types/MetricBehavior";
 
 
@@ -8,7 +7,7 @@ export class DistanceFragment implements ICodeFragment {
   readonly image: string;
   readonly origin: FragmentOrigin;
 
-  constructor(value: number | undefined, public units: string, public meta?: CodeMetadata) {
+  constructor(value: number | undefined, public units: string) {
     this.value = { amount: value, units: units };
     this.image = value !== undefined ? `${value} ${units}` : `? ${units}`;
     // If value is undefined, this is a collectible fragment from user input

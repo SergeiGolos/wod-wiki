@@ -108,13 +108,14 @@ export function wodDecorations(options: WodDecorationsOptions = {}): Extension {
         if (!isActive && block.statements) {
              for (const stmt of block.statements) {
                  for (const frag of stmt.fragments) {
-                     if (frag.meta) {
-                         // stmt.fragments[0].meta.line is 1-based relative to block content line 1
+                     const meta = stmt.fragmentMeta?.get(frag);
+                     if (meta) {
+                         // meta.line is 1-based relative to block content line 1
                          // block content line 1 is doc line block.startLine + 2
-                         const absLineNo = block.startLine + 1 + frag.meta.line;
+                         const absLineNo = block.startLine + 1 + meta.line;
                          if (absLineNo <= view.state.doc.lines) {
                             const absLine = view.state.doc.line(absLineNo);
-                            const pos = absLine.from + frag.meta.columnStart;
+                            const pos = absLine.from + meta.columnStart;
                             const emoji = getEmojiForFragment(frag.fragmentType);
                             if (emoji) {
                                 builder.add(pos, pos, Decoration.widget({

@@ -1,5 +1,6 @@
 import { ICodeStatement } from './CodeStatement';
 import { ICodeFragment, FragmentType } from './CodeFragment';
+import { CodeMetadata } from './CodeMetadata';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { IFragmentSource, FragmentFilter } from '../contracts/IFragmentSource';
 import { resolveFragmentPrecedence, ORIGIN_PRECEDENCE } from '../utils/fragmentPrecedence';
@@ -94,6 +95,9 @@ export interface IOutputStatement extends ICodeStatement {
      */
     readonly fragments: ICodeFragment[];
 
+    /** Metadata mapping for fragments. Each fragment can have an optional associated meta object. */
+    readonly fragmentMeta: Map<ICodeFragment, CodeMetadata>;
+
     /**
      * The reason this block completed, if applicable.
      * 
@@ -144,6 +148,9 @@ export interface OutputStatementOptions {
     /** Runtime-collected fragments */
     fragments?: ICodeFragment[];
 
+    /** Map of fragment to metadata */
+    fragmentMeta?: Map<ICodeFragment, CodeMetadata>;
+
     /** Reason the block completed (e.g., 'user-advance', 'forced-pop') */
     completionReason?: string;
 
@@ -183,6 +190,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
     readonly fragments: ICodeFragment[];
+    readonly fragmentMeta: Map<ICodeFragment, CodeMetadata>;
 
     /**
      * @deprecated Use `getFragment(FragmentType.Elapsed)?.value` instead.
@@ -201,7 +209,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly children: number[][];
     readonly isLeaf: boolean;
     readonly hints?: Set<string>;
-    readonly meta: { line: number; columnStart: number; columnEnd: number; startOffset: number; endOffset: number; length: number; raw: string };
+    readonly meta: CodeMetadata;
 
     constructor(options: OutputStatementOptions) {
         this.id = OutputStatement.nextId++;
@@ -212,6 +220,7 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
         this.sourceStatementId = options.sourceStatementId;
         this.stackLevel = options.stackLevel;
         this.fragments = options.fragments ?? [];
+        this.fragmentMeta = options.fragmentMeta ?? new Map();
         this.completionReason = options.completionReason;
         this.parent = options.parent;
         this.children = options.children ?? [];

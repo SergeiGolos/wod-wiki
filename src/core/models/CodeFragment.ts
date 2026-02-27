@@ -31,7 +31,6 @@ export interface ICodeFragment {
   readonly image?: string;
   readonly value?: unknown;
   readonly type: string; // Retained for now, will be replaced by fragmentType
-  readonly meta?: CodeMetadata;
   readonly fragmentType: FragmentType;
   /** Behavioral grouping describing the intent of the fragment. */
   readonly behavior?: MetricBehavior;
