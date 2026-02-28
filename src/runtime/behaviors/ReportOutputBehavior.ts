@@ -85,6 +85,12 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 // Split results proportionally across groups
                 const resultGroups = this.computeSplitTimeResults(ctx, timer, displayGroups.map(loc => loc.fragments));
                 this.writeResultGroups(ctx, resultGroups);
+
+                for (const group of resultGroups) {
+                    ctx.emitOutput('completion', group, {
+                        label: this.formatLabel(ctx),
+                    });
+                }
                 return [];
             }
         }
@@ -95,6 +101,11 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             : [new SystemTimeFragment(new Date(), ctx.block.key.toString())];
 
         this.writeResultMemory(ctx, resultFragments);
+
+        ctx.emitOutput('completion', resultFragments, {
+            label: this.formatLabel(ctx),
+        });
+
         return [];
     }
 

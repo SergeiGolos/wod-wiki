@@ -123,6 +123,9 @@ interface WorkbenchSyncActions {
     handleNext: () => void;
     handleStartWorkoutAction: (block: WodBlock) => void;
   }) => void;
+
+  /** Resets the entire store to its initial state */
+  resetStore: () => void;
 }
 
 // ─── Combined store type ───────────────────────────────────────
@@ -222,4 +225,37 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   // Bridge hydration — pushes React hook values into the store
   _hydrateRuntime: (payload) => set(payload),
+
+  // Reset the store to its initial state
+  resetStore: () => set({
+    runtime: null,
+    execution: noopExecution,
+    initializeRuntime: () => { },
+    disposeRuntime: () => { },
+    handleStart: () => { },
+    handlePause: () => { },
+    handleStop: () => { },
+    handleNext: () => { },
+    handleStartWorkoutAction: () => { },
+
+    activeSegmentIds: new Set(),
+    activeStatementIds: new Set(),
+
+    analyticsData: [],
+    analyticsSegments: [],
+    analyticsGroups: [],
+    selectedAnalyticsIds: new Set(),
+    lastSelectedAnalyticsId: null,
+
+    userOutputOverrides: new Map(),
+    gridViewPreset: 'default',
+
+    hoveredBlockKey: null,
+
+    documentItems: [],
+    selectedBlock: null,
+
+    cursorLine: 1,
+    highlightedLine: null,
+  }),
 }));

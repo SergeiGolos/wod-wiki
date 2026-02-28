@@ -12,9 +12,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 import {
     ReEntryBehavior,
     FragmentPromotionBehavior,
-    LabelingBehavior,
-    HistoryRecordBehavior,
-    ReportOutputBehavior
+    LabelingBehavior
 } from "../../../behaviors";
 
 /**
@@ -102,18 +100,12 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         });
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
+        // Display Aspect
         // =====================================================================
         builder.addBehavior(new LabelingBehavior({
             mode: 'clock',
             label
         }));
-
-        // =====================================================================
-        // Output Aspect
-        // =====================================================================
-        builder.addBehavior(new ReportOutputBehavior({ label }));
-        builder.addBehavior(new HistoryRecordBehavior());
 
         // Promotion Aspect - Share internal state with children
         // Use execution origin to override parser-based text fragments

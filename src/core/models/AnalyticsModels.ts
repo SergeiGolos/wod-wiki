@@ -28,15 +28,18 @@ export interface Segment {
   type: string;
   startTime: number;
   endTime: number;
+  /** Duration (Intent) - Parser-defined planned target in seconds */
   duration: number;
+  /** Elapsed (Active) - pause-aware active time in seconds */
+  elapsed: number;
+  /** Total (Wall-clock) - total time from first start to last end in seconds */
+  total: number;
   parentId: number | null;
   depth: number;
   metrics: Record<string, number>; // Dynamic metrics map (e.g., 'power': 200, 'heart_rate': 150)
   lane: number;
-  /** Raw time spans from the output statement */
+  /** Raw time spans from the output statement (seconds relative to workout start) */
   spans?: { started: number; ended?: number }[];
-  /** Relative time spans (offset from workout start) */
-  relativeSpans?: { started: number; ended?: number }[];
   /** Optional fragments carried from runtime spans for visualization */
   fragments?: import('./CodeFragment').ICodeFragment[];
 }

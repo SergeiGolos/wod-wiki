@@ -11,9 +11,7 @@ import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedF
 // Specific behaviors not covered by aspect composers
 import {
     LabelingBehavior,
-    HistoryRecordBehavior,
-    SoundCueBehavior,
-    ReportOutputBehavior
+    SoundCueBehavior
 } from "../../../behaviors";
 
 /**
@@ -92,18 +90,12 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         });
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
-        // =====================================================================
-
         // Display Aspect
+        // =====================================================================
         builder.addBehavior(new LabelingBehavior({
             mode: 'countdown',
             label
         }));
-
-        // Output Aspect
-        builder.addBehavior(new ReportOutputBehavior({ label }));
-        builder.addBehavior(new HistoryRecordBehavior());
 
         // Sound Cues
         builder.addBehavior(new SoundCueBehavior({

@@ -9,6 +9,7 @@ import { GenericTimerStrategy } from '../../runtime/compiler/strategies/componen
 import { GenericLoopStrategy } from '../../runtime/compiler/strategies/components/GenericLoopStrategy';
 import { SoundStrategy } from '../../runtime/compiler/strategies/enhancements/SoundStrategy';
 import { HistoryStrategy } from '../../runtime/compiler/strategies/enhancements/HistoryStrategy';
+import { ReportOutputStrategy } from '../../runtime/compiler/strategies/enhancements/ReportOutputStrategy';
 import { ChildrenStrategy } from '../../runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { GenericGroupStrategy } from '../../runtime/compiler/strategies/components/GenericGroupStrategy';
 import { EffortFallbackStrategy } from '../../runtime/compiler/strategies/fallback/EffortFallbackStrategy';
@@ -64,6 +65,7 @@ export const globalCompiler = (() => {
   // Enhancements
   compiler.registerStrategy(new SoundStrategy());
   compiler.registerStrategy(new HistoryStrategy());
+  compiler.registerStrategy(new ReportOutputStrategy());
   compiler.registerStrategy(new ChildrenStrategy());
 
   // Fallback

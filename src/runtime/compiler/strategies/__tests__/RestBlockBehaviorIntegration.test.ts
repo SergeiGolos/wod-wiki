@@ -11,6 +11,7 @@ import { GenericLoopStrategy } from '../components/GenericLoopStrategy';
 import { ChildrenStrategy } from '../enhancements/ChildrenStrategy';
 import { SoundStrategy } from '../enhancements/SoundStrategy';
 import { HistoryStrategy } from '../enhancements/HistoryStrategy';
+import { ReportOutputStrategy } from '../enhancements/ReportOutputStrategy';
 import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 import {
@@ -67,6 +68,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             compiler.registerStrategy(new ChildrenStrategy());        // Priority 50
             compiler.registerStrategy(new SoundStrategy());           // Priority 20
             compiler.registerStrategy(new HistoryStrategy());         // Priority 20
+            compiler.registerStrategy(new ReportOutputStrategy());    // Priority 15
         });
 
         it('should include ChildSelectionBehavior in compiled AMRAP block', () => {
@@ -170,6 +172,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             compiler.registerStrategy(new ChildrenStrategy());       // Priority 50
             compiler.registerStrategy(new SoundStrategy());          // Priority 20
             compiler.registerStrategy(new HistoryStrategy());        // Priority 20
+            compiler.registerStrategy(new ReportOutputStrategy());   // Priority 15
         });
 
         it('should include ChildSelectionBehavior in compiled EMOM block', () => {

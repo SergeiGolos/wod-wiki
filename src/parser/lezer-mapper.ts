@@ -224,22 +224,23 @@ function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragm
 
     // Merge Rep + ResistanceUnit or DistanceUnit
     if (current.fragment instanceof RepFragment && (next.fragment instanceof ResistanceFragment || next.fragment instanceof DistanceFragment)) {
-      if (next.meta.startOffset === current.meta.endOffset) {
+      const gap = next.meta.startOffset - current.meta.endOffset;
+      if (gap <= 1) { // allow one space
          const mergedMeta: CodeMetadata = {
           ...current.meta,
           endOffset: next.meta.endOffset,
           columnEnd: next.meta.columnEnd,
           length: next.meta.endOffset - current.meta.startOffset,
-          raw: current.meta.raw + next.meta.raw
+          raw: current.meta.raw + (gap === 1 ? " " : "") + next.meta.raw
         };
-        if (next.fragment instanceof ResistanceFragment && next.fragment.value.amount === undefined) {
+        if (next.fragment instanceof ResistanceFragment && (next.fragment.value as any).amount === undefined) {
           current = { 
               fragment: new ResistanceFragment(current.fragment.reps, next.fragment.units), 
               meta: mergedMeta 
           };
           continue;
         }
-        if (next.fragment instanceof DistanceFragment && next.fragment.value.amount === undefined) {
+        if (next.fragment instanceof DistanceFragment && (next.fragment.value as any).amount === undefined) {
           current = { 
               fragment: new DistanceFragment(current.fragment.reps, next.fragment.units), 
               meta: mergedMeta 

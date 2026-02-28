@@ -22,6 +22,7 @@ export * from './components/RestBlockStrategy';
 export * from './enhancements/ChildrenStrategy';
 export * from './enhancements/SoundStrategy';
 export * from './enhancements/HistoryStrategy';
+export * from './enhancements/ReportOutputStrategy';
 
 // Fallback strategies (Priority 0)
 export * from './fallback/EffortFallbackStrategy';

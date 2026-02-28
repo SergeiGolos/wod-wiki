@@ -13,8 +13,7 @@ import {
     TimerBehavior,
     LabelingBehavior,
     LeafExitBehavior,
-    SoundCueBehavior,
-    ReportOutputBehavior
+    SoundCueBehavior
 } from "../../../behaviors";
 
 /**
@@ -127,10 +126,5 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             mode: durationMs ? 'countdown' : 'clock',
             label
         }));
-
-        // =====================================================================
-        // Output Aspect
-        // =====================================================================
-        builder.addBehavior(new ReportOutputBehavior({ label }));
     }
 }

@@ -13,6 +13,7 @@ import {
     advanceBehaviors,
     unmountBehaviors,
     simulateTicks,
+    simulateRoundAdvance,
     MockRuntime,
     MockBlock
 } from './test-helpers';
@@ -157,6 +158,7 @@ describe('Performance Integration', () => {
 
             // Advance many times
             for (let i = 0; i < 10000; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 

@@ -48,7 +48,7 @@ describe('Timer Block Integration', () => {
             new TimerTickBehavior(),
             new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
             new LabelingBehavior({ mode: 'countdown', label: 'Countdown' }),
-            new ReportOutputBehavior({ label: 'Countdown' })
+            new ReportOutputBehavior({ label: 'Countdown', emitSegmentOnMount: true })
         ];
 
         it('should initialize timer state on mount', () => {

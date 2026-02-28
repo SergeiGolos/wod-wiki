@@ -12,6 +12,9 @@ import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
 import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
+import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
+import { HistoryStrategy } from '../../src/runtime/compiler/strategies/enhancements/HistoryStrategy';
+import { ReportOutputStrategy } from '../../src/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
 import { WorkoutRootStrategy } from '../../src/runtime/compiler/strategies/WorkoutRootStrategy';
 import { ScriptRuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
@@ -618,6 +621,9 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     jitCompiler.registerStrategy(new GenericLoopStrategy());     // Rounds/loops
     jitCompiler.registerStrategy(new GenericTimerStrategy());    // Timers
     jitCompiler.registerStrategy(new GenericGroupStrategy());    // Groups
+    jitCompiler.registerStrategy(new ChildrenStrategy());        // Children/Selection
+    jitCompiler.registerStrategy(new HistoryStrategy());         // History
+    jitCompiler.registerStrategy(new ReportOutputStrategy());    // Output (Milestones/Segments)
     jitCompiler.registerStrategy(new IdleBlockStrategy());       // Fallback
 
     console.log(`📝 Registered strategies with JIT compiler: GenericLoop → GenericTimer → GenericGroup → Idle`);

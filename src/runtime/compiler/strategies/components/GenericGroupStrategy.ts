@@ -14,7 +14,6 @@ import {
     TimerBehavior,
     ReEntryBehavior,
     LabelingBehavior,
-    HistoryRecordBehavior
 } from "../../../behaviors";
 
 /**
@@ -75,10 +74,5 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
             mode: 'clock',
             label
         }));
-
-        // =====================================================================
-        // Output Aspect
-        // =====================================================================
-        builder.addBehavior(new HistoryRecordBehavior());
     }
 }

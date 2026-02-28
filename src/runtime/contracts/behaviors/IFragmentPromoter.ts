@@ -33,15 +33,3 @@ export function isFragmentPromoter(behavior: unknown): behavior is IFragmentProm
         typeof (behavior as IFragmentPromoter).getPromotedFragments === 'function'
     );
 }
-
-/**
- * Type guard for IFragmentPromoter
- */
-export function isFragmentPromoter(behavior: unknown): behavior is IFragmentPromoter {
-    return (
-        typeof behavior === 'object' &&
-        behavior !== null &&
-        'getPromotedFragments' in behavior &&
-        typeof (behavior as IFragmentPromoter).getPromotedFragments === 'function'
-    );
-}

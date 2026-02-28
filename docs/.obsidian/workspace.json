@@ -11,10 +11,14 @@
             "id": "9aedeaa1c014a43e",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "SEGMENT_TIME_CALCULATION.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "SEGMENT_TIME_CALCULATION"
             }
           }
         ]
@@ -178,6 +182,13 @@
   },
   "active": "9aedeaa1c014a43e",
   "lastOpenFiles": [
+    "restructure/04-implementation-roadmap.md",
+    "SEGMENT_TIME_CALCULATION.md",
+    "restructure/05-ui-impact-and-rendering.md",
+    "restructure/03-analytics-projection.md",
+    "restructure/02-processor-registry.md",
+    "restructure/01-fragment-state-model.md",
+    "restructure/00-vision-and-principles.md",
     "code-mirror/phase-4-migration-cleanup.md",
     "code-mirror/phase-3-state-compartments.md",
     "code-mirror/phase-2-editor-component.md",
