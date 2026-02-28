@@ -14,15 +14,17 @@ export { CompletionTimestampBehavior } from './CompletionTimestampBehavior';
 
 // ============================================================================
 // Time Aspect
+// Each of the three behaviors covers the complete timer lifecycle.
+// Strategies assign exactly ONE directly rather than composing the old quartet.
 // ============================================================================
-export { TimerBehavior } from './TimerBehavior';
-export type { TimerConfig } from './TimerBehavior';
-export { TimerInitBehavior } from './TimerInitBehavior';
-export type { TimerInitConfig } from './TimerInitBehavior';
-export { TimerTickBehavior } from './TimerTickBehavior';
-export { TimerEndingBehavior } from './TimerEndingBehavior';
-export type { TimerEndingConfig, TimerEndingMode } from './TimerEndingBehavior';
-export { TimerPauseBehavior } from './TimerPauseBehavior';
+/** Span-only tracking — no tick, no display, no completion signal */
+export { SpanTrackingBehavior } from './SpanTrackingBehavior';
+/** Count-up timer with pause/resume — no fixed duration */
+export { CountupTimerBehavior } from './CountupTimerBehavior';
+export type { CountupTimerConfig } from './CountupTimerBehavior';
+/** Count-down timer with tick monitoring, pause/resume, and expiry handling */
+export { CountdownTimerBehavior } from './CountdownTimerBehavior';
+export type { CountdownTimerConfig, CountdownMode } from './CountdownTimerBehavior';
 
 // ============================================================================
 // Iteration Aspect
@@ -39,7 +41,7 @@ export type { FragmentPromotionConfig, PromotionRule } from './FragmentPromotion
 export { LeafExitBehavior } from './LeafExitBehavior';
 export type { LeafExitConfig } from './LeafExitBehavior';
 export { CompletedBlockPopBehavior } from './CompletedBlockPopBehavior';
-// TimerEndingBehavior and RoundsEndBehavior are also completion behaviors
+// RoundsEndBehavior is also a completion behavior
 
 // ============================================================================
 // Display Aspect

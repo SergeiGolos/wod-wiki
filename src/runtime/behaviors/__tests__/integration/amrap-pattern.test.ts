@@ -23,9 +23,7 @@ import {
     getRoundDisplay
 } from './test-helpers';
 
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerEndingBehavior } from '../../TimerEndingBehavior';
+import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
@@ -47,9 +45,7 @@ describe('AMRAP Pattern Integration', () => {
      */
     const createAmrapBehaviors = (durationMs: number = 60000) => [
         // Time aspect
-        new TimerInitBehavior({ direction: 'down', durationMs, label: 'AMRAP' }),
-        new TimerTickBehavior(),
-        new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
+        new CountdownTimerBehavior({ durationMs, label: 'AMRAP', mode: 'complete-block' }),
 
         // Iteration aspect (unbounded - no completion!)
         new ReEntryBehavior({ totalRounds: undefined, startRound: 1 }),

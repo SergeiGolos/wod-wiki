@@ -5,31 +5,10 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { FragmentType } from "@/core/models/CodeFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import { LeafExitBehavior } from "../../../behaviors/LeafExitBehavior";
-
-/**
- * Helper to extract optional content from code statements.
- */
-function getContent(statements: ICodeStatement[], defaultContent: string): string {
-    const contents = statements
-        .map(s => (s as any).content || "")
-        .filter(c => c.length > 0);
-
-    if (contents.length > 0) return contents.join(" + ");
-
-    // Fallback: Construct content from fragments
-    const allFragments = statements.flatMap(s => s.fragments || []);
-    if (allFragments.length > 0) {
-        return allFragments
-            .filter(f => f.origin !== 'runtime' && f.image)
-            .map(f => f.image)
-            .join(' ');
-    }
-
-    return defaultContent;
-}
 
 /**
  * EffortFallbackStrategy handles simple leaf effort blocks (e.g., "10 Push-ups").
@@ -61,7 +40,7 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        const label = getContent(statements, 'Effort');
+        const label = LabelComposer.build(statements, { defaultLabel: 'Effort' });
 
         // Create block context
         const blockKey = new BlockKey();

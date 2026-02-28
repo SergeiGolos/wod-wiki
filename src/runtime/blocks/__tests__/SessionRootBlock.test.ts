@@ -3,7 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { SessionRootBlock, SessionRootConfig } from '../SessionRootBlock';
 import {
-    TimerBehavior,
+    CountupTimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
     ChildSelectionBehavior,
@@ -37,7 +37,7 @@ describe('SessionRootBlock', () => {
 
             // Core behaviors present
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerBehavior)).toBeDefined();
+            expect(block.getBehavior(CountupTimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();

@@ -37,7 +37,17 @@ function extractMetricsFromFragments(fragments: ICodeFragment[][]): Record<strin
       if (f.fragmentType === 'distance') key = 'distance';
       if (f.fragmentType === 'resistance') key = 'resistance';
 
-      metrics[key] = (metrics[key] || 0) + f.value;
+      let val = f.value;
+      // Convert time-based metrics (except elapsed/total which are handled separately)
+      // from milliseconds to seconds for consistency in the analytics data points.
+      if (f.fragmentType === 'duration' || f.type === 'duration') {
+        // Duration (intent) is now handled as a top-level segment property,
+        // we don't want it in the dynamic metrics map to avoid double-counting
+        // or unit confusion in the performance graphs.
+        continue;
+      }
+
+      metrics[key] = (metrics[key] || 0) + val;
     }
   }
   return metrics;
@@ -81,7 +91,7 @@ export class AnalyticsTransformer {
 
       // Intent: parser-defined duration (if any)
       const durationFrag = fragments.find(f => f.fragmentType === 'duration');
-      const intentDuration = (durationFrag?.value as number || 0) / 1000;
+      const intentDuration = durationFrag?.value !== undefined ? (durationFrag.value as number) / 1000 : undefined;
 
       // Real Time: pause-aware elapsed time and wall-clock total
       // These are stored as properties on OutputStatement class or plain objects
@@ -120,6 +130,7 @@ export class AnalyticsTransformer {
         type: type,
         startTime: (startTimeMs - startTime) / 1000,
         endTime: (endTimeMs - startTime) / 1000,
+        absoluteStartTime: startTimeMs,
         duration: intentDuration,
         elapsed,
         total,
@@ -157,6 +168,7 @@ export class AnalyticsTransformer {
       'resistance': { id: 'resistance', label: 'Resistance', unit: 'kg', color: '#f59e0b', dataKey: 'resistance', icon: 'Dumbbell' },
       'repetitions': { id: 'repetitions', label: 'Reps', unit: 'reps', color: '#6366f1', dataKey: 'repetitions', icon: 'Hash' },
       'calories': { id: 'calories', label: 'Calories', unit: 'cal', color: '#f97316', dataKey: 'calories', icon: 'Flame' },
+      'duration': { id: 'duration', label: 'Duration', unit: 's', color: '#0ea5e9', dataKey: 'duration', icon: 'Timer' },
       'elapsed': { id: 'elapsed', label: 'Elapsed', unit: 's', color: '#14b8a6', dataKey: 'elapsed', icon: 'Clock' },
       'total': { id: 'total', label: 'Total', unit: 's', color: '#f43f5e', dataKey: 'total', icon: 'Timer' },
     };

@@ -16,7 +16,7 @@ import { CodeMetadata } from "@/core/models/CodeMetadata";
 
 // Import new aspect-based behaviors for tests
 import { 
-    TimerBehavior,
+    CountdownTimerBehavior,
     ReEntryBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
@@ -37,20 +37,18 @@ describe("JIT Composition", () => {
     // Mock Fragments for testing since we don't want to rely on parsing logic in unit test
     class MockTimerFragment extends TimerFragment {
         constructor(ms: number, forceUp: boolean = false) {
-             const meta = new CodeMetadata(0, 0, 0, 0);
-             // Create a dummy image
-             super("0:00", meta, forceUp);
-             // Override values
-             (this as any).value = ms;
-             (this as any).original = ms;
-             (this as any).forceCountUp = forceUp;
+             // Compute a proper image string so LabelComposer can read it
+             const totalSecs = Math.floor(ms / 1000);
+             const mins = Math.floor(totalSecs / 60);
+             const secs = totalSecs % 60;
+             const image = `${mins}:${secs.toString().padStart(2, '0')}`;
+             super(image, forceUp);
         }
     }
 
     class MockRoundsFragment extends RoundsFragment {
          constructor(val: number) {
-             super("0", new CodeMetadata(0, 0, 0, 0));
-             (this as any).value = val;
+             super(val);
          }
     }
 
@@ -59,7 +57,6 @@ describe("JIT Composition", () => {
         const statement = new CodeStatement();
         statement.fragments = [
             new MockTimerFragment(600000, true), // AMRAP implies 'up'
-            new MockRoundsFragment(1) // Placeholder
         ];
         statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
         statement.children = [new CodeStatement()]; // Add children to trigger ChildrenStrategy
@@ -77,11 +74,12 @@ describe("JIT Composition", () => {
         if (!block) return;
 
         expect(block.blockType).toBe("AMRAP");
-        expect(block.label).toContain("10 min");
+        // LabelComposer uses the timer fragment image ("10:00") as the primary metric
+        expect(block.label).toContain("10:00");
 
         // Check Behaviors - now using aspect-based behaviors
-        // AMRAP should have TimerBehavior (direction: 'up') and ReEntryBehavior (unbounded)
-        const timer = block.getBehavior(TimerBehavior);
+        // AMRAP should have CountdownTimerBehavior (direction: 'down') and ReEntryBehavior (unbounded)
+        const timer = block.getBehavior(CountdownTimerBehavior);
         expect(timer).toBeDefined();
 
         const round = block.getBehavior(ReEntryBehavior);
@@ -112,8 +110,8 @@ describe("JIT Composition", () => {
 
         expect(block.blockType).toBe("EMOM");
 
-        // Timer should use TimerBehavior
-        const timer = block.getBehavior(TimerBehavior);
+        // Timer should use CountdownTimerBehavior
+        const timer = block.getBehavior(CountdownTimerBehavior);
         expect(timer).toBeDefined();
 
         // Should have SoundCueBehavior (added by SoundStrategy)
@@ -134,7 +132,7 @@ describe("JIT Composition", () => {
 
         expect(block).toBeDefined();
         expect(block?.blockType).toBe("Timer");
-        expect(block?.getBehavior(TimerBehavior)).toBeDefined();
+        expect(block?.getBehavior(CountdownTimerBehavior)).toBeDefined();
         expect(block?.getBehavior(SoundCueBehavior)).toBeDefined();
     });
 
@@ -157,7 +155,8 @@ describe("JIT Composition", () => {
         if (!block) return;
 
         expect(block.blockType).toBe("Rounds");
-        expect(block.label).toBe("21-15-9");
+        // LabelComposer: Rounds image "3" as metric + rep images "21 15 9" as identity
+        expect(block.label).toBe("3 21 15 9");
 
         // FragmentPromotionBehavior should be attached with round-robin rep scheme
         const repBehavior = block.getBehavior(FragmentPromotionBehavior);
@@ -186,7 +185,8 @@ describe("JIT Composition", () => {
         if (!block) return;
 
         expect(block.blockType).toBe("Rounds");
-        expect(block.label).toBe("3 Rounds");
+        // LabelComposer uses the RoundsFragment image ("3") as the primary metric
+        expect(block.label).toBe("3");
 
         const repBehavior = block.getBehavior(FragmentPromotionBehavior);
         expect(repBehavior).toBeDefined();

@@ -6,9 +6,9 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 // New aspect-based behaviors
 import {
     SoundCueBehavior,
-    TimerBehavior
+    CountdownTimerBehavior,
+    CountupTimerBehavior
 } from "../../../behaviors";
-import { TimerState } from "../../../memory/MemoryTypes";
 
 /**
  * SoundStrategy adds sound cues to timer-based blocks.
@@ -32,31 +32,25 @@ export class SoundStrategy implements IRuntimeBlockStrategy {
             return;
         }
 
-        // Check if we have a timer behavior to determine sound cues
-        const timerBehavior = builder.getBehavior(TimerBehavior);
+        // Countdown timer: add 3-2-1 beeps and completion cue
+        const countdown = builder.getBehavior(CountdownTimerBehavior);
+        if (countdown) {
+            builder.addBehavior(new SoundCueBehavior({
+                cues: [
+                    { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] },
+                    { sound: 'timer-complete', trigger: 'complete' }
+                ]
+            }));
+            return;
+        }
 
-        if (timerBehavior) {
-            // Access the config from TimerBehavior
-            const config = (timerBehavior as any).config as { direction: TimerState['direction']; durationMs?: number } | undefined;
-            const direction = config?.direction ?? 'up';
-            const durationMs = config?.durationMs;
-
-            if (direction === 'down' && durationMs && durationMs > 0) {
-                // Countdown timer - add countdown beeps
-                builder.addBehavior(new SoundCueBehavior({
-                    cues: [
-                        { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] },
-                        { sound: 'timer-complete', trigger: 'complete' }
-                    ]
-                }));
-            } else if (direction === 'up') {
-                // Countup timer - add milestone sounds
-                builder.addBehavior(new SoundCueBehavior({
-                    cues: [
-                        { sound: 'start-beep', trigger: 'mount' }
-                    ]
-                }));
-            }
+        // Countup timer: start beep only
+        if (builder.hasBehavior(CountupTimerBehavior)) {
+            builder.addBehavior(new SoundCueBehavior({
+                cues: [
+                    { sound: 'start-beep', trigger: 'mount' }
+                ]
+            }));
         }
     }
 }

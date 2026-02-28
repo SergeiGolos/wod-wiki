@@ -9,8 +9,7 @@ import {
     ChildSelectionBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
-    TimerBehavior,
-    TimerEndingBehavior,
+    CountdownTimerBehavior,
     LeafExitBehavior,
     CompletedBlockPopBehavior,
     FragmentPromotionBehavior
@@ -44,14 +43,14 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // Filter out empty groups
         const childGroups = children.filter(group => group.length > 0);
 
-        // Check if we have a timer (for AMRAP-style unbounded looping)
-        const hasTimer = builder.hasBehavior(TimerBehavior);
+        // Check if any timer is present (for AMRAP-style unbounded looping)
+        const hasTimer = builder.hasTimerBehavior();
         // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
         const hasRoundsFromStrategy = builder.hasBehavior(ReEntryBehavior);
         // Check if a countdown timer controls completion (AMRAP pattern)
-        // TimerEndingBehavior is only added for countdown timers with a duration
-        const hasCountdownCompletion = builder.hasBehavior(TimerEndingBehavior);
+        // CountdownTimerBehavior is the singular countdown timer — no separate ending behavior needed
+        const hasCountdownCompletion = builder.hasBehavior(CountdownTimerBehavior);
 
         // Remove LeafExitBehavior if present — children manage advancement,
         // not simple leaf exit.
@@ -101,18 +100,6 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
                 }));
                 builder.addBehavior(new RoundsEndBehavior());
             }
-
-            // Promote current round fragment to children (e.g. for display)
-            // Explicitly target 'round' tag to get the runtime value, avoiding
-            // ambiguity with other fragments (like total rounds or parser hints)
-            builder.addBehavior(new FragmentPromotionBehavior({
-                promotions: [{
-                    fragmentType: FragmentType.CurrentRound,
-                    origin: 'execution',
-                    enableDynamicUpdates: true,
-                    sourceTag: 'round'
-                }]
-            }));
         }
     }
 }

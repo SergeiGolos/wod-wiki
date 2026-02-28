@@ -38,8 +38,10 @@ export interface GridRow {
   /** Stack depth when emitted */
   readonly stackLevel: number;
 
+  /** **TimeStamp** (Wall-clock) — system Date.now() when started (milliseconds) */
+  readonly absoluteStartTime?: number;
   /** **Duration** (Intent) — planned target from the parser (seconds) */
-  readonly duration: number;
+  readonly duration?: number;
   /** **Spans** (Raw) — raw spans relative to workout start (seconds) */
   readonly spans: { started: number; ended?: number }[];
   /** **Elapsed** (Active) — pause-aware active time (seconds) */

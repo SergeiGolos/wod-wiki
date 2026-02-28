@@ -28,8 +28,10 @@ export interface Segment {
   type: string;
   startTime: number;
   endTime: number;
+  /** Wall-clock start time in milliseconds since epoch */
+  absoluteStartTime?: number;
   /** Duration (Intent) - Parser-defined planned target in seconds */
-  duration: number;
+  duration?: number;
   /** Elapsed (Active) - pause-aware active time in seconds */
   elapsed: number;
   /** Total (Wall-clock) - total time from first start to last end in seconds */

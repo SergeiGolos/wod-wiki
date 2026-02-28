@@ -15,8 +15,7 @@ import { ReportOutputStrategy } from '../enhancements/ReportOutputStrategy';
 import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 import {
-    TimerBehavior,
-    TimerEndingBehavior,
+    CountdownTimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
     ChildSelectionBehavior,
@@ -98,8 +97,8 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
             expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
@@ -202,8 +201,8 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
             expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 

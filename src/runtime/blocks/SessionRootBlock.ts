@@ -8,7 +8,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 
 // Aspect-based behaviors
 import {
-    TimerBehavior,
+    CountupTimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
     ChildSelectionBehavior,
@@ -49,7 +49,7 @@ export interface SessionRootConfig {
  * handles round advancement internally, and RuntimeBlock.next() auto-pops
  * when any behavior marks the block complete.
  *
- * - TimerBehavior (elapsed workout timer)
+ * - CountupTimerBehavior (elapsed workout timer)
  * - ChildSelectionBehavior (child dispatch + round advancement)
  * - ReEntryBehavior (round initialization on mount)
  * - WaitingToStartInjectorBehavior (pushes WaitingToStart gate on mount)
@@ -91,11 +91,10 @@ export class SessionRootBlock extends RuntimeBlock {
         const totalRounds = config.totalRounds ?? 1;
         const sessionLabel = config.label ?? 'Session';
 
-        // =====================================================================
+        // ====================================================================
         // Time Aspect - Track total session elapsed time
-        // =====================================================================
-        behaviors.push(new TimerBehavior({
-            direction: 'up',
+        // ====================================================================
+        behaviors.push(new CountupTimerBehavior({
             label: sessionLabel,
             role: 'auto'
         }));

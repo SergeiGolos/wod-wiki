@@ -27,8 +27,7 @@ import {
 
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
+import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
 import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
@@ -58,8 +57,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
                 { sound: 'completion-beep', trigger: 'complete' }
             ]
         }),
-        new TimerInitBehavior({ direction: 'up', label: 'For Time', role: 'secondary' }),
-        new TimerTickBehavior(),
+        new CountupTimerBehavior({ label: 'For Time', role: 'secondary' }),
         new LeafExitBehavior()
     ];
 
@@ -203,8 +201,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
                     { sound: 'completion-beep', trigger: 'complete' }
                 ]
             }),
-            new TimerInitBehavior({ direction: 'up', label: 'For Time', role: 'secondary' }),
-            new TimerTickBehavior(),
+            new CountupTimerBehavior({ label: 'For Time', role: 'secondary' }),
             new LeafExitBehavior()
         ], { blockType: 'Exercise', label: 'Clean & Jerk' });
 

@@ -8,8 +8,9 @@ import { ICodeFragment, FragmentType } from "../../core/models/CodeFragment";
 import { MemoryLocation } from "../memory/MemoryLocation";
 import {
     CompletionTimestampBehavior,
-    TimerBehavior, TimerConfig,
-    TimerEndingBehavior,
+    CountupTimerBehavior,
+    CountdownTimerBehavior, CountdownMode,
+    SpanTrackingBehavior,
     ReEntryBehavior, ReEntryConfig,
     RoundsEndBehavior,
     ChildSelectionBehavior,
@@ -17,9 +18,20 @@ import {
     ChildSelectionLoopCondition
 } from "../behaviors";
 
+/** Legacy timer config shape — kept for call-site backward compatibility */
+export interface TimerConfig {
+    direction: 'up' | 'down';
+    durationMs?: number;
+    label?: string;
+    role?: 'primary' | 'secondary' | 'hidden' | 'auto';
+}
+
 export interface TimerCompletionConfig {
     completesBlock?: boolean;
 }
+
+/** @internal re-exported for backward compat */ 
+export type { CountdownMode };
 
 export class BlockBuilder {
     private behaviors: Map<any, IRuntimeBehavior> = new Map();
@@ -126,31 +138,46 @@ export class BlockBuilder {
     // ============================================================================
 
     /**
-     * Timer Aspect Composer - Adds all timer-related behaviors as a unit.
-     * Configures countdown/countup timer with tick, pause, and optional completion.
+     * Timer Aspect Composer — assigns exactly ONE self-contained timer behavior.
+     *
+     * - `direction: 'down'` + `durationMs` → `CountdownTimerBehavior`
+     *   (subscribes to tick, fires timer:complete, handles pause/resume)
+     * - `direction: 'up'` or no duration → `CountupTimerBehavior`
+     *   (tracks elapsed via spans, handles pause/resume, no completion signal)
      *
      * @param config Timer configuration
      * @returns This builder for chaining
      */
     asTimer(config: TimerConfig & { addCompletion?: boolean; completionConfig?: TimerCompletionConfig }): BlockBuilder {
-        // Time Aspect behaviors
-        this.addBehavior(new TimerBehavior({
-            direction: config.direction,
-            durationMs: config.durationMs,
-            label: config.label,
-            role: config.role
-        }));
-
-        // Optional completion behavior
-        if (config.addCompletion !== false) {
-            this.addBehavior(new TimerEndingBehavior({
-                ending: config.completionConfig?.completesBlock === false
-                    ? { mode: 'reset-interval' }
-                    : { mode: 'complete-block' }
+        if (config.direction === 'down' && config.durationMs) {
+            const mode: CountdownMode = config.completionConfig?.completesBlock === false
+                ? 'reset-interval'
+                : 'complete-block';
+            this.addBehavior(new CountdownTimerBehavior({
+                durationMs: config.durationMs,
+                label: config.label,
+                role: config.role,
+                mode
+            }));
+        } else {
+            this.addBehavior(new CountupTimerBehavior({
+                label: config.label,
+                role: config.role
             }));
         }
-
         return this;
+    }
+
+    /**
+     * Returns true if any timer behavior (countdown, countup, or span-only) is present.
+     * Use this guard in strategies that must skip their timer logic when timer is already set.
+     */
+    hasTimerBehavior(): boolean {
+        return (
+            this.behaviors.has(CountdownTimerBehavior) ||
+            this.behaviors.has(CountupTimerBehavior) ||
+            this.behaviors.has(SpanTrackingBehavior)
+        );
     }
 
     /**

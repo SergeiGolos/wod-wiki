@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'bun:test';
-import { TimerBehavior } from '../TimerBehavior';
-import { TimerEndingBehavior } from '../TimerEndingBehavior';
+import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
+import { CountupTimerBehavior } from '../CountupTimerBehavior';
 import { ReEntryBehavior } from '../ReEntryBehavior';
 import { RoundsEndBehavior } from '../RoundsEndBehavior';
 import { LabelingBehavior } from '../LabelingBehavior';
@@ -53,18 +53,17 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
 }
 
 describe('Time Aspect Behaviors', () => {
-    describe('TimerBehavior', () => {
+    describe('CountdownTimerBehavior', () => {
         it('should initialize timer state on mount', () => {
              const ctx = createMockContext();
-            const behavior = new TimerBehavior({
-                direction: 'down',
+            const behavior = new CountdownTimerBehavior({
                 durationMs: 30000,
                 label: 'Work Timer'
             });
 
             behavior.onMount(ctx);
 
-            expect(ctx.pushMemory).toHaveBeenCalledWith('timer', expect.arrayContaining([
+            expect(ctx.pushMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
                 expect.objectContaining({
                     value: expect.objectContaining({
                         direction: 'down',
@@ -77,12 +76,12 @@ describe('Time Aspect Behaviors', () => {
 
         it('should initialize timer memory with open span (signals timer started)', () => {
             const ctx = createMockContext();
-            const behavior = new TimerBehavior({ direction: 'up' });
+            const behavior = new CountupTimerBehavior();
 
             behavior.onMount(ctx);
 
             // Timer start is signaled by timer memory with an open span
-            expect(ctx.pushMemory).toHaveBeenCalledWith('timer', expect.arrayContaining([
+            expect(ctx.pushMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
                 expect.objectContaining({
                     value: expect.objectContaining({
                         direction: 'up',
@@ -95,10 +94,10 @@ describe('Time Aspect Behaviors', () => {
         });
     });
 
-    describe('TimerEndingBehavior', () => {
+    describe('CountdownTimerBehavior completion', () => {
         it('should subscribe to tick events', () => {
             const ctx = createMockContext();
-            const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
+            const behavior = new CountdownTimerBehavior({ durationMs: 30000, mode: 'complete-block' });
 
             behavior.onMount(ctx);
 
@@ -337,11 +336,11 @@ describe('Output Aspect Behaviors', () => {
         });
     });
 
-    describe('TimerBehavior pause/resume', () => {
+    describe('CountupTimerBehavior pause/resume', () => {
         it('should subscribe to pause and resume events', async () => {
-            const { TimerBehavior } = await import('../TimerBehavior');
+            const { CountupTimerBehavior: CB } = await import('../CountupTimerBehavior');
             const ctx = createMockContext();
-            const behavior = new TimerBehavior({ direction: 'up' });
+            const behavior = new CB();
 
             behavior.onMount(ctx);
 

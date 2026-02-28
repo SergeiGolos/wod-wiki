@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { WorkoutRootStrategy, WorkoutRootConfig } from '../WorkoutRootStrategy';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import {
-    TimerBehavior,
+    CountupTimerBehavior,
     ReEntryBehavior,
     RoundsEndBehavior,
     LabelingBehavior,
@@ -50,7 +50,7 @@ describe('WorkoutRootStrategy', () => {
             const behaviors = (block as any).behaviors;
 
             // Check required behavior types are present (new aspect-based behaviors)
-            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof CountupTimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof LabelingBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ButtonBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);

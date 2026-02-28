@@ -10,7 +10,6 @@ const meta: Meta<typeof Workbench> = {
   component: Workbench,
   args: {
     showToolbar: false,
-    showContextOverlay: false,
     readonly: true,
     theme: 'vs',
     hidePlanUnlessDebug: true,

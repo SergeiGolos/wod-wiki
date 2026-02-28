@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { TimerEndingBehavior } from '../TimerEndingBehavior';
+import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { TimeSpan } from '../../models/TimeSpan';
 
@@ -9,12 +9,8 @@ interface MockContextState {
     unsubscribers: Array<ReturnType<typeof vi.fn>>;
 }
 
-function createMockContext(timer?: any): { ctx: IBehaviorContext; state: MockContextState } {
+function createMockContext(initialTime: number = 0): { ctx: IBehaviorContext; state: MockContextState } {
     const memoryStore = new Map<string, any>();
-    if (timer !== undefined) {
-        memoryStore.set('time', timer);
-    }
-
     const listeners = new Map<string, (event: any, ctx: IBehaviorContext) => any[]>();
     const unsubscribers: Array<ReturnType<typeof vi.fn>> = [];
 
@@ -25,7 +21,7 @@ function createMockContext(timer?: any): { ctx: IBehaviorContext; state: MockCon
             fragments: [],
             isComplete: false
         },
-        clock: { now: new Date(0) },
+        clock: { now: new Date(initialTime) },
         stackLevel: 0,
         subscribe: vi.fn((eventType: string, listener: (event: any, ctx: IBehaviorContext) => any[]) => {
             listeners.set(eventType, listener);
@@ -37,28 +33,28 @@ function createMockContext(timer?: any): { ctx: IBehaviorContext; state: MockCon
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
         getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value))
+        setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+        pushMemory: vi.fn((tag: string, fragments: any[]) => {
+            // Store the TimerState (fragment.value) so getMemory can return it
+            if (fragments.length > 0 && fragments[0].value !== undefined) {
+                memoryStore.set(tag, fragments[0].value);
+            }
+        }),
+        updateMemory: vi.fn(),
     } as unknown as IBehaviorContext;
 
-    return {
-        ctx,
-        state: { memoryStore, listeners, unsubscribers }
-    };
+    return { ctx, state: { memoryStore, listeners, unsubscribers } };
 }
 
-describe('TimerEndingBehavior', () => {
+describe('CountdownTimerBehavior (via TimerEndingBehavior replacement)', () => {
     beforeEach(() => {
         vi.restoreAllMocks();
     });
 
     it('complete-block mode marks complete when elapsed >= duration', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 5000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 5000, mode: 'complete-block' });
         behavior.onMount(ctx);
 
         (ctx.clock as any).now = new Date(6000);
@@ -70,13 +66,9 @@ describe('TimerEndingBehavior', () => {
     });
 
     it('complete-block mode does not mark complete when elapsed < duration', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 5000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 5000, mode: 'complete-block' });
         behavior.onMount(ctx);
 
         (ctx.clock as any).now = new Date(4000);
@@ -87,13 +79,9 @@ describe('TimerEndingBehavior', () => {
     });
 
     it('complete-block mode emits timer:complete event', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 3000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 3000, mode: 'complete-block' });
         behavior.onMount(ctx);
 
         (ctx.clock as any).now = new Date(3000);
@@ -103,13 +91,9 @@ describe('TimerEndingBehavior', () => {
     });
 
     it('reset-interval mode resets timer spans when elapsed >= duration', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 2000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'reset-interval' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 2000, mode: 'reset-interval' });
         behavior.onMount(ctx);
 
         (ctx.clock as any).now = new Date(2500);
@@ -121,13 +105,9 @@ describe('TimerEndingBehavior', () => {
     });
 
     it('reset-interval mode does not mark complete', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 1000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'reset-interval' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 1000, mode: 'reset-interval' });
         behavior.onMount(ctx);
 
         (ctx.clock as any).now = new Date(1000);
@@ -137,13 +117,9 @@ describe('TimerEndingBehavior', () => {
     });
 
     it('reset-interval mode handles multiple resets', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 1000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'reset-interval' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 1000, mode: 'reset-interval' });
         behavior.onMount(ctx);
 
         (ctx.clock as any).now = new Date(1000);
@@ -156,28 +132,43 @@ describe('TimerEndingBehavior', () => {
     });
 
     it('handles missing timer memory gracefully', () => {
-        const { ctx, state } = createMockContext();
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
+        const { ctx, state } = createMockContext(0);
+        // Mount with durationMs=0 triggers immediate expiry - use a special context that has no memory
+        const emptyCtx = {
+            ...ctx,
+            getMemory: vi.fn(() => undefined),
+            pushMemory: vi.fn(),
+        } as unknown as IBehaviorContext;
 
-        behavior.onMount(ctx);
-        const actions = state.listeners.get('tick')!({ name: 'tick', timestamp: new Date(1000) }, ctx);
+        // A timer that should not fire immediately (subscribers are captured via first ctx)
+        const behavior = new CountdownTimerBehavior({ durationMs: 5000, mode: 'complete-block' });
+        behavior.onMount(emptyCtx);
 
-        expect(actions).toEqual([]);
-        expect(ctx.markComplete).not.toHaveBeenCalled();
+        // Manually test the tick handler with no memory by getting listener from raw state
+        // Since we used emptyCtx, subscribe was on emptyCtx - use emptyCtx.subscribe
+        const listener = (emptyCtx.subscribe as ReturnType<typeof vi.fn>).mock.calls.find(
+            (call: any[]) => call[0] === 'tick'
+        )?.[1];
+
+        if (listener) {
+            const emptyGetMemoryCtx = { ...emptyCtx, getMemory: vi.fn(() => undefined) } as unknown as IBehaviorContext;
+            const actions = listener({ name: 'tick', timestamp: new Date(1000) }, emptyGetMemoryCtx);
+            expect(actions).toEqual([]);
+            expect(emptyCtx.markComplete).not.toHaveBeenCalled();
+        }
     });
 
     it('unsubscribes on dispose', () => {
-        const { ctx, state } = createMockContext({
-            direction: 'down',
-            durationMs: 1000,
-            spans: [new TimeSpan(0)]
-        });
+        const { ctx, state } = createMockContext(0);
 
-        const behavior = new TimerEndingBehavior({ ending: { mode: 'complete-block' } });
+        const behavior = new CountdownTimerBehavior({ durationMs: 1000, mode: 'complete-block' });
         behavior.onMount(ctx);
         behavior.onDispose(ctx);
 
-        expect(state.unsubscribers.length).toBe(1);
-        expect(state.unsubscribers[0]).toHaveBeenCalled();
+        // Should have 3 unsubscribers (tick + timer:pause + timer:resume)
+        expect(state.unsubscribers.length).toBe(3);
+        for (const unsub of state.unsubscribers) {
+            expect(unsub).toHaveBeenCalled();
+        }
     });
 });

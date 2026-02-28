@@ -21,9 +21,7 @@ import {
     expectRoundDisplay
 } from './test-helpers';
 
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerEndingBehavior } from '../../TimerEndingBehavior';
+import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
@@ -45,9 +43,7 @@ describe('EMOM Pattern Integration', () => {
      */
     const createEmomBehaviors = (intervalMs: number = 60000, totalRounds: number = 10) => [
         // Time aspect
-        new TimerInitBehavior({ direction: 'down', durationMs: intervalMs, label: 'Interval' }),
-        new TimerTickBehavior(),
-        new TimerEndingBehavior({ ending: { mode: 'complete-block' } }), // Timer expiry should trigger round advance
+        new CountdownTimerBehavior({ durationMs: intervalMs, label: 'Interval', mode: 'complete-block' }), // Timer expiry triggers round advance
 
         // Iteration aspect
         new ReEntryBehavior({ totalRounds, startRound: 1 }),

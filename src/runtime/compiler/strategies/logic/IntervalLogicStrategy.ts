@@ -8,6 +8,7 @@ import { RoundsFragment } from "../../fragments/RoundsFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
@@ -66,7 +67,11 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), (firstStatementWithTimer as any).exerciseId || '');
-        const label = `EMOM ${totalRounds}`;
+        
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: `EMOM ${totalRounds}`
+        });
 
         builder
             .setContext(context)

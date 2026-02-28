@@ -7,10 +7,11 @@ import { DurationFragment } from "../../fragments/DurationFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
-    TimerBehavior,
+    CountdownTimerBehavior,
     LabelingBehavior,
     LeafExitBehavior,
     SoundCueBehavior
@@ -36,8 +37,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // Skip if timer behaviors already added by higher-priority strategy
-        if (builder.hasBehavior(TimerBehavior)) {
+        // Skip if a timer behavior was already added by a higher-priority strategy
+        if (builder.hasTimerBehavior()) {
             return;
         }
 
@@ -51,7 +52,11 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
-        const label = direction === 'down' ? 'Countdown' : 'For Time';
+        
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: direction === 'down' ? 'Countdown' : 'For Time'
+        });
 
         // Block metadata
         const blockKey = new BlockKey();

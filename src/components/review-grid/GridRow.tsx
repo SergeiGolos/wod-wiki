@@ -11,6 +11,7 @@ import { FragmentType } from '@/core/models/CodeFragment';
 import type { GridRow as GridRowData, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
 import { GridCell } from './GridCell';
+import { formatSecondsMMSS } from '@/lib/formatTime';
 
 interface GridRowProps {
   /** The row data to render */
@@ -122,35 +123,28 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
     case FIXED_COLUMN_IDS.ELAPSED:
       return (
         <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
-          {formatDuration(row.elapsed)}
-        </td>
-      );
-
-    case FIXED_COLUMN_IDS.DURATION:
-      return (
-        <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
-          {formatDuration(row.duration)}
+          {formatSecondsMMSS(row.elapsed)}
         </td>
       );
 
     case FIXED_COLUMN_IDS.TOTAL:
       return (
         <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
-          {formatDuration(row.total)}
+          {formatSecondsMMSS(row.total)}
         </td>
       );
 
     case FIXED_COLUMN_IDS.SPANS:
       return (
         <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-40 whitespace-nowrap">
-          {formatSpans(row.relativeSpans, row.duration)}
+          {formatSpans(row.spans, row.duration)}
         </td>
       );
 
     case FIXED_COLUMN_IDS.TIMESTAMP:
       return (
         <td className="py-1 px-2 text-muted-foreground font-mono text-[10px] text-center w-24 whitespace-nowrap">
-          {formatTimestamp(row.spans?.[0]?.started, !col.meta?.hideMs)}
+          {formatTimestamp(row.absoluteStartTime, !col.meta?.hideMs)}
         </td>
       );
 
@@ -191,38 +185,21 @@ function outputTypeBadgeClass(type: string): string {
 }
 
 /**
- * Format milliseconds into M:SS or H:MM:SS.
- */
-function formatDuration(ms?: number): string {
-  if (ms === undefined || isNaN(ms)) return '';
-  if (ms <= 0) return '0:00';
-  const totalSeconds = Math.round(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
-
-/**
  * Format spans into a human-readable string.
  * "start - finish" across spans, or just "timestamp" if duration is 0.
  */
-function formatSpans(spans?: { started: number; ended?: number }[], durationMs: number = 0): string {
+function formatSpans(spans?: { started: number; ended?: number }[], durationSeconds: number = 0): string {
   if (!spans || spans.length === 0) return '';
 
-  const format = (ms: number) => formatDuration(ms);
+  const format = (s: number) => formatSecondsMMSS(s);
 
-  if (durationMs === 0) {
+  if (durationSeconds === 0) {
     // Instantaneous event
     return format(spans[0].started);
   }
 
   // Span range
-  const start = formatDuration(spans[0].started);
+  const start = format(spans[0].started);
   const endSpan = spans[spans.length - 1];
 
   // If undefined end (open block), just show start (no "...")
@@ -230,7 +207,7 @@ function formatSpans(spans?: { started: number; ended?: number }[], durationMs: 
     return start;
   }
 
-  const end = formatDuration(endSpan.ended);
+  const end = format(endSpan.ended);
 
   // If instantaneous (or very close), just show one time
   if (start === end) {
@@ -240,9 +217,9 @@ function formatSpans(spans?: { started: number; ended?: number }[], durationMs: 
   return `${start} — ${end}`;
 }
 
-function formatTimestamp(timestamp?: number, withMs: boolean = true): string {
-  if (timestamp === undefined) return '';
-  const date = new Date(timestamp);
+function formatTimestamp(timestampMs?: number, withMs: boolean = true): string {
+  if (timestampMs === undefined || timestampMs === 0) return '';
+  const date = new Date(timestampMs);
   const h = date.getHours().toString().padStart(2, '0');
   const m = date.getMinutes().toString().padStart(2, '0');
   const s = date.getSeconds().toString().padStart(2, '0');

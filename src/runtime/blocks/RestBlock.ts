@@ -9,8 +9,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 // Aspect-based behaviors
 import {
     ReportOutputBehavior,
-    TimerBehavior,
-    TimerEndingBehavior,
+    CountdownTimerBehavior,
     LeafExitBehavior,
     LabelingBehavior,
     SoundCueBehavior
@@ -35,15 +34,14 @@ export interface RestBlockConfig {
  * ## Lifecycle
  *
  * 1. Mount: Emits 'segment' output with rest label and duration, starts countdown timer
- * 2. Timer counts down via TimerBehavior state updates
- * 3. TimerEndingBehavior marks complete when elapsed >= durationMs
+ * 2. Timer counts down via CountdownTimerBehavior span tracking
+ * 3. CountdownTimerBehavior marks complete when elapsed >= durationMs
  * 4. Unmount: Emits 'completion' output, plays rest-over sound cue
  *
  * ## Behavior Chain
  *
  * - ReportOutputBehavior (output on mount/unmount)
- * - TimerBehavior (countdown timer + pause/resume state)
- * - TimerEndingBehavior (auto-complete when timer expires)
+ * - CountdownTimerBehavior (countdown timer + pause/resume + auto-complete)
  * - LabelingBehavior (show rest countdown)
  * - SoundCueBehavior (beep on unmount for rest-over signal)
  */
@@ -84,17 +82,14 @@ export class RestBlock extends RuntimeBlock {
         // =====================================================================
         behaviors.push(new ReportOutputBehavior({ label: restLabel }));
 
-        // =====================================================================
-        // Time Aspect - Countdown timer
-        // =====================================================================
-        behaviors.push(new TimerBehavior({
-            direction: 'down',
+        // ====================================================================
+        // Time Aspect - Countdown timer (self-contained lifecycle)
+        // ====================================================================
+        behaviors.push(new CountdownTimerBehavior({
             durationMs: config.durationMs,
             label: restLabel,
-            role: 'primary'
-        }));
-        behaviors.push(new TimerEndingBehavior({
-            ending: { mode: 'complete-block' }
+            role: 'primary',
+            mode: 'complete-block'
         }));
 
         // =====================================================================

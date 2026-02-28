@@ -22,6 +22,7 @@ import type {
   GridSortConfig,
 } from './types';
 import { getPreset, buildAllColumns } from './gridPresets';
+import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
 
 // ─── Public Hook ───────────────────────────────────────────────
 
@@ -69,11 +70,23 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
   const activeFragmentTypes = useMemo(() => {
     const types = new Set<FragmentType>();
 
+    const addType = (ft: FragmentType) => {
+      // Redirection: Label, Text, and CurrentRound are now part of Effort column
+      if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
+        types.add(FragmentType.Effort);
+        return;
+      }
+      // Noise suppression: Sound is hidden
+      if (ft === FragmentType.Sound) return;
+      
+      types.add(ft);
+    };
+
     // Check runtime segments
     for (const seg of segments) {
       if (seg.fragments) {
         for (const f of seg.fragments) {
-          types.add(f.fragmentType);
+          addType(f.fragmentType);
         }
       }
     }
@@ -81,7 +94,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     // Check user overrides
     for (const fragments of userOutputOverrides.values()) {
       for (const f of fragments) {
-        types.add(f.fragmentType);
+        addType(f.fragmentType);
       }
     }
 
@@ -223,6 +236,7 @@ function segmentsToRows(
       sourceStatementId: (seg as SegmentWithContext).context?.sourceStatementId as number | undefined,
       outputType: outputType as GridRow['outputType'],
       stackLevel: seg.depth,
+      absoluteStartTime: seg.absoluteStartTime,
       duration: seg.duration,
       elapsed: seg.elapsed,
       total: seg.total,
@@ -246,12 +260,25 @@ function extractBlockKey(seg: Segment): string | undefined {
 
 /**
  * Group a single fragment into the cells map.
+ * EXCEPTION: Label fragments are merged into the Effort cell to compose them
+ * in one column. Sound fragments are ignored.
  */
 function groupFragmentIntoCell(
   cells: Map<FragmentType, GridCell>,
   frag: ICodeFragment,
 ): void {
-  const ft = frag.fragmentType;
+  let ft = frag.fragmentType;
+
+  // Composed columns: Combine Label, Text, and CurrentRound into Effort
+  if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
+    ft = FragmentType.Effort;
+  }
+
+  // Hide noise: Sounds are no longer displayed in the grid
+  if (ft === FragmentType.Sound) {
+    return;
+  }
+
   const existing = cells.get(ft);
   if (existing) {
     // Mutably append — safe because we've just allocated these arrays
@@ -382,7 +409,7 @@ function getSortValue(row: GridRow, col: GridColumn): string | number {
     case 'elapsed':
       return row.elapsed;
     case 'duration':
-      return row.duration;
+      return row.duration ?? Infinity;
     case 'total':
       return row.total;
     case 'spans':
@@ -424,11 +451,11 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
     case 'stackLevel':
       return String(row.stackLevel);
     case 'elapsed':
-      return formatDuration(row.elapsed * 1000);
+      return formatDuration(row.elapsed);
     case 'duration':
-      return formatDuration(row.duration * 1000);
+      return formatDuration(row.duration);
     case 'total':
-      return formatDuration(row.total * 1000);
+      return formatDuration(row.total);
     case 'spans':
       return formatSpans(row.spans, row.duration);
     case 'completionReason':
@@ -449,45 +476,53 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
  */
 function fragmentToText(frag: ICodeFragment): string {
   if (frag.image) return frag.image;
-  if (frag.value !== undefined && frag.value !== null) return String(frag.value);
+  if (frag.value !== undefined && frag.value !== null) {
+    if (typeof frag.value === 'object') {
+      const val = frag.value as any;
+      if ('text' in val) return val.text;
+      if ('current' in val) return `Round ${val.current}`;
+      
+      return JSON.stringify(frag.value);
+    }
+    return String(frag.value);
+  }
   return frag.type;
 }
 
 /**
- * Format milliseconds into a human-readable duration (M:SS or H:MM:SS).
+ * Format duration (in seconds) into a human-readable duration (M:SS or H:MM:SS).
  */
-function formatDuration(ms?: number): string {
-  if (ms === undefined || isNaN(ms)) return '';
-  if (ms <= 0) return '0:00';
-  const totalSeconds = Math.round(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+function formatDuration(seconds?: number): string {
+  if (seconds === undefined || seconds === null || isNaN(seconds) || seconds <= 0) {
+    return '';
   }
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  
+  if (seconds >= 3600) {
+    return formatSecondsHHMMSS(seconds);
+  }
+  return formatSecondsMMSS(seconds);
 }
 
 /**
  * Format spans into a human-readable string.
  * "start - finish" across spans, or just "timestamp" if duration is 0.
  */
-function formatSpans(spans?: { started: number; ended?: number }[], duration: number = 0): string {
+function formatSpans(spans?: { started: number; ended?: number }[], durationSeconds: number = 0): string {
   if (!spans || spans.length === 0) return '';
 
-  // If duration is 0 and we have at least one span, show it as a timestamp
-  if (duration === 0 && spans.length > 0) {
+  const format = (s: number) => formatDuration(s);
+
+  // If duration is 0 and we have at least one span, show it as a relative time
+  if (durationSeconds === 0 && spans.length > 0) {
     const first = spans[0];
-    return formatDuration(first.started * 1000);
+    return format(first.started);
   }
 
   // Otherwise show the bracket across all spans
   const first = spans[0];
   const last = spans[spans.length - 1];
-  const start = formatDuration(first.started * 1000);
-  const end = last.ended !== undefined ? formatDuration(last.ended * 1000) : '...';
+  const start = format(first.started);
+  const end = last.ended !== undefined ? format(last.ended) : '...';
 
   return `${start} — ${end}`;
 }

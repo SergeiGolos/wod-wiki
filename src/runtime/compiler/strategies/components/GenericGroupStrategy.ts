@@ -6,12 +6,15 @@ import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
 import { FragmentType } from "@/core/models/CodeFragment";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // New aspect-based behaviors
-// TimerBehavior and ReEntryBehavior are imported for type-checking purposes only
-// to detect if higher-priority strategies have already set the block identity
+// CountdownTimerBehavior / CountupTimerBehavior and ReEntryBehavior are imported
+// for type-checking only to detect if a higher-priority strategy already set the
+// block identity.
 import {
-    TimerBehavior,
+    CountdownTimerBehavior,
+    CountupTimerBehavior,
     ReEntryBehavior,
     LabelingBehavior,
 } from "../../../behaviors";
@@ -38,9 +41,8 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // If we have Timer or Loop behaviors, the identity is already set (Timer/Rounds/AMRAP/EMOM).
-        if (builder.hasBehavior(TimerBehavior) ||
-            builder.hasBehavior(ReEntryBehavior)) {
+        // If we have a timer or loop behavior, the identity is already set (Timer/Rounds/AMRAP/EMOM).
+        if (builder.hasTimerBehavior() || builder.hasBehavior(ReEntryBehavior)) {
             return;
         }
 
@@ -49,10 +51,10 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), firstStatement.exerciseId || '');
         
-        const label = statements
-            .map(s => s.content || "Group")
-            .filter((val, index, self) => self.indexOf(val) === index) // Unique
-            .join(" + ");
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: "Group"
+        });
 
         builder.setContext(context)
                .setKey(blockKey)

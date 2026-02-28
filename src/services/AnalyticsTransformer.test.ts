@@ -75,7 +75,7 @@ describe('AnalyticsTransformer', () => {
 
       expect(result.segments).toHaveLength(1);
       expect(result.segments[0].name).toBe('Warmup');
-      expect(result.segments[0].duration).toBe(60);
+      expect(result.segments[0].elapsed).toBe(60);
     });
   });
 
@@ -107,12 +107,12 @@ describe('AnalyticsTransformer', () => {
         expect(segments[0].tags).toContain('time_bound');
       });
 
-      it('should transfer spans and relativeSpans from output to segment', () => {
+      it('should transfer spans and absoluteStartTime from output to segment', () => {
         const workoutStart = 1000000;
         const spanStart = 1002000; // 2s after workout start
         const spanEnd = 1005000;   // 5s after workout start
         const output = createMockOutput({
-          started: workoutStart,
+          started: spanStart,
           ended: spanEnd,
           sourceBlockKey: 'timed-block',
           fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Run', image: 'Run' }],
@@ -126,20 +126,17 @@ describe('AnalyticsTransformer', () => {
         expect(segments).toHaveLength(1);
         const seg = segments[0];
 
-        // spans should be in seconds (epoch-based / 1000)
+        // absoluteStartTime should be preserved in ms
+        expect(seg.absoluteStartTime).toBe(spanStart);
+
+        // spans should be in seconds relative to workout start
         expect(seg.spans).toBeDefined();
         expect(seg.spans!.length).toBe(1);
-        expect(seg.spans![0].started).toBe(spanStart / 1000);
-        expect(seg.spans![0].ended).toBe(spanEnd / 1000);
+        expect(seg.spans![0].started).toBe((spanStart - workoutStart) / 1000); // 2s
+        expect(seg.spans![0].ended).toBe((spanEnd - workoutStart) / 1000);     // 5s
 
-        // relativeSpans should be offset from workout start
-        expect(seg.relativeSpans).toBeDefined();
-        expect(seg.relativeSpans!.length).toBe(1);
-        expect(seg.relativeSpans![0].started).toBe((spanStart - workoutStart) / 1000); // 2s
-        expect(seg.relativeSpans![0].ended).toBe((spanEnd - workoutStart) / 1000);     // 5s
-
-        // Duration should reflect pause-aware elapsed (3s)
-        expect(seg.duration).toBe(3);
+        // Elapsed should reflect pause-aware active time (3s)
+        expect(seg.elapsed).toBe(3);
       });
 
       it('should include sourceBlockKey and completionReason in context', () => {
@@ -171,6 +168,7 @@ describe('AnalyticsTransformer', () => {
 
         const segments = transformer.fromOutputStatements([output]);
         expect(segments[0].name).toBe('test-block');
+        expect(segments[0].duration).toBeUndefined();
       });
     });
 

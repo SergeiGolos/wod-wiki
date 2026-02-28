@@ -7,6 +7,7 @@ import { RoundsFragment } from "../../fragments/RoundsFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
@@ -69,10 +70,14 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             }
         }
 
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: repScheme ? repScheme.join('-') : `${totalRounds} Rounds`
+        });
+
         // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithRounds.exerciseId || '');
-        const label = repScheme ? repScheme.join('-') : `${totalRounds} Rounds`;
 
         builder
             .setContext(context)
@@ -111,12 +116,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // Use execution origin to override parser-based text fragments
         builder.addBehavior(new FragmentPromotionBehavior({
             repScheme,
-            promotions: [{
-                fragmentType: FragmentType.CurrentRound,
-                enableDynamicUpdates: true,
-                origin: 'execution',
-                sourceTag: 'round'
-            }]
+            promotions: []
         }));
     }
 }
