@@ -6,7 +6,6 @@ export type { IRuntimeBehavior } from './IRuntimeBehavior';
 export type { IRuntimeMemory, MemorySearchCriteria, Nullable } from './IRuntimeMemory';
 export type { IRuntimeStack, Unsubscribe, StackSnapshot, StackObserver, StackEvent, StackListener } from './IRuntimeStack';
 export type { IRuntimeClock } from './IRuntimeClock';
-export type { IRuntimeBlockStrategy } from './IRuntimeBlockStrategy';
 export type { IRuntimeOptions, RuntimeStackOptions, RuntimeStackHooks, RuntimeStackLogger, RuntimeStackWrapper, RuntimeStackTracker, DebugLogEvent, DebugLogEventType, BlockWrapperFactory } from './IRuntimeOptions';
 export type { IBlockContext } from './IBlockContext';
 export type { IMemoryReference, TypedMemoryReference } from './IMemoryReference';

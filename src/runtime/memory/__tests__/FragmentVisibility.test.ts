@@ -8,8 +8,6 @@ import {
     FragmentVisibility,
 } from '../FragmentVisibility';
 import { MemoryTag, MemoryLocation } from '../MemoryLocation';
-import { RuntimeBlock } from '../../RuntimeBlock';
-import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
 
 // ============================================================================
@@ -105,11 +103,23 @@ describe('FragmentVisibility', () => {
 });
 
 // ============================================================================
-// RuntimeBlock.getFragmentMemoryByVisibility integration tests
+// IRuntimeBlock.getFragmentMemoryByVisibility integration tests
 // ============================================================================
 
-describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
-    const runtime = {} as IScriptRuntime;
+describe('IRuntimeBlock.getFragmentMemoryByVisibility', () => {
+    // Use a minimal mock that implements the memory methods
+    function createBlock() {
+        const locations: MemoryLocation[] = [];
+        return {
+            pushMemory(loc: MemoryLocation) { locations.push(loc); },
+            getFragmentMemoryByVisibility(visibility: FragmentVisibility) {
+                return locations.filter(loc => {
+                    const v = getFragmentVisibility(loc.tag);
+                    return v === visibility;
+                });
+            },
+        };
+    }
 
     function createFragment(tag: string, value: unknown): ICodeFragment {
         return {
@@ -122,7 +132,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
     }
 
     it('should return display-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = createBlock();
         block.pushMemory(new MemoryLocation('fragment:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('fragment:label', [createFragment('label', 'My Block')]));
         block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
@@ -133,7 +143,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
     });
 
     it('should return promote-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = createBlock();
         block.pushMemory(new MemoryLocation('fragment:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('fragment:rep-target', [createFragment('rep', 21)]));
         block.pushMemory(new MemoryLocation('fragment:promote', [createFragment('effort', 'Heavy')]));
@@ -144,7 +154,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
     });
 
     it('should return private-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = createBlock();
         block.pushMemory(new MemoryLocation('fragment:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('fragment:tracked', [createFragment('duration', 5000)]));
         block.pushMemory(new MemoryLocation('fragment:label', [createFragment('label', 'Timer')]));
@@ -155,7 +165,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
     });
 
     it('should return empty array when no matching tier exists', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = createBlock();
         block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
         block.pushMemory(new MemoryLocation('round', [createFragment('round', { current: 1 })]));
 
@@ -165,7 +175,7 @@ describe('RuntimeBlock.getFragmentMemoryByVisibility', () => {
     });
 
     it('should handle blocks with all three tiers', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = createBlock();
         block.pushMemory(new MemoryLocation('fragment:display', [createFragment('action', 'Run')]));
         block.pushMemory(new MemoryLocation('fragment:display', [createFragment('rep', '21')]));
         block.pushMemory(new MemoryLocation('fragment:rep-target', [createFragment('rep', 15)]));

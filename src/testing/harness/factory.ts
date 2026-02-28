@@ -2,7 +2,6 @@ import { ExecutionContextTestBuilder } from './ExecutionContextTestBuilder';
 import { ExecutionContextTestHarness } from './ExecutionContextTestHarness';
 import { MockBlock } from './MockBlock';
 import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
 import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 
 /**
@@ -95,7 +94,7 @@ export function createBehaviorTestHarness(
  * ```
  */
 export function createCompilationTestHarness(
-  strategies: IRuntimeBlockStrategy[],
+  strategies: unknown[],
   config: { clockTime?: Date } = {}
 ): ExecutionContextTestHarness {
   return new ExecutionContextTestBuilder()

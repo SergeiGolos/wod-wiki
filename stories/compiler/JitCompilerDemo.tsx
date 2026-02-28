@@ -8,14 +8,7 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
 import { FragmentVisualizer } from '../../src/components/fragments';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
-import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
-import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
-import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
-import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
-import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { HistoryStrategy } from '../../src/runtime/compiler/strategies/enhancements/HistoryStrategy';
-import { ReportOutputStrategy } from '../../src/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
-import { WorkoutRootStrategy } from '../../src/runtime/compiler/strategies/WorkoutRootStrategy';
+import { WorkoutRootBlock } from '../../src/runtime/typed-blocks/WorkoutRootBlock';
 import { ScriptRuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
@@ -614,19 +607,10 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     const mdRuntime = new MdTimerRuntime();
     const wodScript = mdRuntime.read(scriptText) as WodScript;    
     
-    // Create JIT compiler and register strategies using new architecture
+    // Create JIT compiler — TypedBlockFactory handles all block creation
     const jitCompiler = new JitCompiler([]);
 
-    // Register strategies in precedence order
-    jitCompiler.registerStrategy(new GenericLoopStrategy());     // Rounds/loops
-    jitCompiler.registerStrategy(new GenericTimerStrategy());    // Timers
-    jitCompiler.registerStrategy(new GenericGroupStrategy());    // Groups
-    jitCompiler.registerStrategy(new ChildrenStrategy());        // Children/Selection
-    jitCompiler.registerStrategy(new HistoryStrategy());         // History
-    jitCompiler.registerStrategy(new ReportOutputStrategy());    // Output (Milestones/Segments)
-    jitCompiler.registerStrategy(new IdleBlockStrategy());       // Fallback
-
-    console.log(`📝 Registered strategies with JIT compiler: GenericLoop → GenericTimer → GenericGroup → Idle`);
+    console.log(`📝 JIT compiler ready with TypedBlockFactory`);
     
     // Create runtime dependencies (memory is no longer a dependency - blocks own their memory)
     const dependencies = {
@@ -641,13 +625,11 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     console.log(`🌱 Initializing with ${wodScript.statements.length} statements`);
     
     if (wodScript.statements.length > 0) {
-      // Create root block using WorkoutRootStrategy
-      // This properly wraps all statements with lifecycle behaviors
+      // Create root block using WorkoutRootBlock (typed block)
       const statementIds = wodScript.statements.map(s => s.id);
       const childGroups = statementIds.map(id => [id]);
       
-      const rootStrategy = new WorkoutRootStrategy();
-      const rootBlock = rootStrategy.build(runtime, {
+      const rootBlock = new WorkoutRootBlock(runtime, {
         childGroups: childGroups,
         totalRounds: 1
       });
@@ -658,8 +640,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
       console.log(`  ✅ Root block pushed to stack, depth: ${runtime.stack.blocks.length}`);
     } else {
       console.warn(`  ⚠️ No statements to compile - creating empty root block`);
-      const rootStrategy = new WorkoutRootStrategy();
-      const rootBlock = rootStrategy.build(runtime, {
+      const rootBlock = new WorkoutRootBlock(runtime, {
         childGroups: [],
         totalRounds: 1
       });

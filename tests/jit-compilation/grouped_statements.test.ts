@@ -1,9 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
-import { EffortFallbackStrategy } from '../../src/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
 import { FragmentType } from '../../src/core/models/CodeFragment';
 import { createMockClock } from '../../src/runtime/RuntimeClock';
@@ -13,12 +10,7 @@ import { EventBus } from '../../src/runtime/events/EventBus';
 
 describe('Grouped Statements Compilation', () => {
     const parser = new MdTimerRuntime();
-    const strategies = [
-        new GenericGroupStrategy(),
-        new EffortFallbackStrategy(),
-        new ChildrenStrategy()
-    ];
-    const compiler = new JitCompiler(strategies);
+    const compiler = new JitCompiler();
 
     const createRuntime = (script: string) => {
         const wod = parser.read(script);

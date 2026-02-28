@@ -27,7 +27,6 @@ export type { IEventHandler } from '@/runtime/contracts/events';
 export type { RuntimeStack } from '@/runtime/RuntimeStack';
 export type { JitCompiler } from '@/runtime/compiler';
 export type { ScriptRuntime } from '@/runtime/ScriptRuntime';
-export type { RuntimeBlock } from '@/runtime/RuntimeBlock';
 export type { RuntimeMemory } from '@/runtime/RuntimeMemory';
 export type { BlockContext } from '@/runtime/BlockContext';
 
@@ -36,7 +35,6 @@ export type { IScriptRuntime as ScriptRuntimeInterface } from '@/runtime/contrac
 export type { IRuntimeBlock as RuntimeBlockInterface } from '@/runtime/contracts';
 export type { IRuntimeAction as RuntimeActionInterface } from '@/runtime/contracts';
 export type { IRuntimeMemory as RuntimeMemoryInterface } from '@/runtime/contracts';
-export type { IRuntimeBlockStrategy as RuntimeBlockStrategyInterface } from '@/runtime/contracts';
 
 // Re-export from core for convenience
 export type { ICodeStatement } from './core';

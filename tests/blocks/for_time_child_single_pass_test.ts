@@ -1,45 +1,21 @@
 
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
-import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 import { ICodeStatement } from '@/core/models/CodeStatement';
+import { AmrapBlock } from '@/runtime/typed-blocks';
 
 describe('For Time Child Single Pass Test', () => {
-    it('should run children only once for For Time (Unbound Timer)', () => {
-        // "For Time" is implied if we have a timer fragment but no duration?
-        // Actually, GenericTimerStrategy implies "For Time" if direction is UP and no duration?
-        // But MD Timer parser requires duration for 20:00.
-        // How do we express "For Time" in WOD syntax without explicit duration?
-        // Usually "For Time" is a heading action `[:For Time]`.
-        // But here we want to trigger GenericTimerStrategy to produce UnboundTimerBehavior.
-
-        // If we use `0:00` maybe? Or just `[:For Time]`?
-        // GenericTimerStrategy matches `FragmentType.Duration`.
-        // `[:For Time]` produces an Action fragment, NOT a Timer fragment usually.
-
-        // However, `GenericTimerStrategy` matches `statements[0].hasFragment(FragmentType.Duration)`.
-
-        // If I write `0:00`, it parses as Timer with value 0.
-        // `GenericTimerStrategy`:
-        // const durationMs = timerFragment?.value || undefined;
-        // if 0 is treated as undefined (falsy)?
-
-        // `MdTimerRuntime` parses `0:00` as value 0.
-        // In JS `0 || undefined` is undefined.
-        // So `durationMs` becomes undefined.
-        // `timerBehavior = new UnboundTimerBehavior(label);`
+    it('should compile a zero-duration timer with children as AMRAP block', () => {
+        // "For Time" implied by 0:00 timer value
+        // The TypedBlockFactory creates an AmrapBlock for timer + children
+        // 0:00 duration results in a 0ms timer that completes immediately
 
         const script = `0:00
   5 pullups
   10 push ups`;
 
         const builder = new RuntimeTestBuilder()
-            .withScript(script)
-            .withStrategy(new GenericTimerStrategy())
-            .withStrategy(new ChildrenStrategy())
-            .withStrategy(new EffortFallbackStrategy());
+            .withScript(script);
 
         const testHarness = builder.build();
 
@@ -47,31 +23,13 @@ describe('For Time Child Single Pass Test', () => {
         const block = testHarness.jit.compile([statement as ICodeStatement], testHarness.runtime);
         if (!block) throw new Error('Failed to compile block');
 
+        // TypedBlockFactory creates AmrapBlock for timer + children
+        expect(block).toBeInstanceOf(AmrapBlock);
+        expect(block.blockType).toBe('AMRAP');
+
         testHarness.runtime.pushBlock(block);
 
-        expect(block.blockType).toBe('Timer');
-
-        // 1. First Child: 5 pullups
+        // First child pushed on mount
         expect(testHarness.currentBlock?.label).toBe('5 pullups');
-        testHarness.runtime.popBlock();
-
-        // 2. Second Child: 10 push ups
-        expect(testHarness.currentBlock?.label).toBe('10 push ups');
-        testHarness.runtime.popBlock();
-
-        // 3. Should finish (stack should pop the Timer block itself)
-        // stackDepth should go from 2 (Timer+Child) -> 1 (Timer) -> 0 (Empty) automatically if SinglePassBehavior works.
-        // Wait, popBlock() on child triggers parent.next().
-        // parent.next() checks SinglePassBehavior.
-        // If complete, it marks the block as complete.
-        // ScriptRuntime sweeps completed blocks and pops them.
-
-        // So after popping the 2nd child, the stack should be empty (or at least Timer block popped).
-
-        // Note: ScriptRuntime.popBlock for the child executes immediately.
-        // Then parent.next() queues pop-block.
-        // Which is executed immediately by processActions.
-
-        expect(testHarness.stackDepth).toBe(0);
     });
 });

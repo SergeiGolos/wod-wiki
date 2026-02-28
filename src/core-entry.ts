@@ -29,7 +29,6 @@ export { ScriptRuntime } from './runtime/ScriptRuntime';
 export { JitCompiler } from './runtime/compiler/JitCompiler';
 export { RuntimeStack } from './runtime/RuntimeStack';
 export { RuntimeMemory } from './runtime/RuntimeMemory';
-export { RuntimeBlock } from './runtime/RuntimeBlock';
 export { BlockContext } from './runtime/BlockContext';
 
 // Runtime interfaces
@@ -37,7 +36,6 @@ export type { IScriptRuntime } from './runtime/contracts/IScriptRuntime';
 export type { IRuntimeBlock } from './runtime/contracts/IRuntimeBlock';
 export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
 export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
-export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
 export type { IMemoryReference, TypedMemoryReference } from './runtime/contracts/IMemoryReference';
 export type { IEvent } from './runtime/contracts/events/IEvent';
 export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
@@ -48,17 +46,8 @@ export type { IBlockContext } from './runtime/contracts/IBlockContext';
 export * from './runtime/actions/stack/PushBlockAction';
 export * from './runtime/actions/ErrorAction';
 
-// Runtime behaviors - export new aspect-based behaviors
-export * from './runtime/behaviors';
-
-// Runtime blocks
-export * from './runtime/blocks/EffortBlock';
-export * from './runtime/blocks/SessionRootBlock';
-export * from './runtime/blocks/WaitingToStartBlock';
-export * from './runtime/blocks/RestBlock';
-
-// Strategies
-export * from './runtime/compiler/strategies';
+// Typed blocks
+export * from './runtime/typed-blocks';
 
 // Fragments
 export * from './runtime/compiler/fragments/TimerFragment';

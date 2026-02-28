@@ -7,7 +7,7 @@
 
 import { TypedMemoryReference } from './runtime';
 import type { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import type { RuntimeBlock } from '@/runtime/RuntimeBlock';
+import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { TimeSpan } from '@/runtime/models/TimeSpan';
 
 /**
@@ -100,7 +100,7 @@ export interface TimerHarnessResult {
   blockKey: string;
 
   /** Timer block instance */
-  block: RuntimeBlock;
+  block: IRuntimeBlock;
 
   /** Memory references for timer state */
   memoryRefs: {

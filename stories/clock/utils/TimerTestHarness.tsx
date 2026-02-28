@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { ScriptRuntimeProvider } from '../../../src/runtime/context/RuntimeContext';
 import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
-import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
-import { TimerInitBehavior, TimerTickBehavior } from '../../../src/runtime/behaviors';
+import { TimerLeafBlock } from '../../../src/runtime/typed-blocks/TimerLeafBlock';
 import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
 import { WodScript } from '../../../src/parser/WodScript';
 import { TimerState } from '../../../src/runtime/memory/MemoryTypes';
@@ -74,28 +73,29 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
     return createTestRuntime();
   }, []);
   
-  // Create block with new behavior-based timer system
+  // Create block with typed block system
   const { block, blockKey, timerState } = useMemo(() => {
-    console.log('[TimerTestHarness] Creating block with new behavior system');
+    console.log('[TimerTestHarness] Creating block with typed block system');
 
-    // Use new aspect-based behaviors
-    const behaviors = [
-      new TimerInitBehavior({
-        direction: 'up',
-        durationMs: durationMs,
-        label: 'Timer'
-      }),
-      new TimerTickBehavior()
-    ];
+    // Create a TimerLeafBlock for the clock display
+    const newBlock = new TimerLeafBlock(runtime, {
+      durationMs: durationMs,
+      label: 'Timer',
+      allowSkip: true,
+    });
 
-    const newBlock = new RuntimeBlock(runtime, [1], behaviors, 'Timer');
-
-    // Mount block to trigger behavior initialization
+    // Mount block to trigger timer initialization
     newBlock.mount(runtime);
 
-    // Get timer state from the block's typed memory
-    const timerEntry = newBlock.getMemory('time');
-    let currentState = timerEntry?.value;
+    // Build timer state from the block's timer capability
+    const timer = newBlock.timer;
+    let currentState: TimerState | undefined = {
+      direction: 'up',
+      durationMs: durationMs,
+      label: 'Timer',
+      role: 'primary',
+      spans: [...timer.spans],
+    };
 
     console.log('[TimerTestHarness] Initial timer state:', {
       blockKey: newBlock.key.toString(),
@@ -123,25 +123,19 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
         spansCount: spans.length
       });
 
-      // Update timer state with configured spans
-      newBlock.setMemoryValue('time', {
+      currentState = {
         ...currentState,
         spans
-      });
-
-      // Refresh current state reference
-      currentState = newBlock.getMemory('time')?.value;
+      };
 
       console.log('[TimerTestHarness] Timer state configured:', {
         spans: currentState?.spans?.length,
         direction: currentState?.direction
       });
-    } else {
-      console.warn('[TimerTestHarness] Could not find timer state - behaviors may not have initialized');
     }
 
     return {
-      block: newBlock,
+      block: newBlock as IRuntimeBlock,
       blockKey: newBlock.key.toString(),
       timerState: currentState
     };

@@ -1,5 +1,4 @@
 import { JitCompiler } from '@/runtime/compiler';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { sharedParser } from '@/parser/parserInstance';
@@ -37,7 +36,7 @@ export class RuntimeTestHarness {
 
   constructor(
     scriptText: string,
-    strategies: IRuntimeBlockStrategy[] = [],
+    strategies: unknown[] = [],
     clockTime: Date = new Date()
   ) {
     // 1. Parser (use shared singleton)
@@ -83,7 +82,7 @@ export class RuntimeTestHarness {
 
 export class RuntimeTestBuilder {
   private scriptText = '';
-  private strategies: IRuntimeBlockStrategy[] = [];
+  private strategies: unknown[] = [];
   private clockTime = new Date();
 
   withScript(text: string): this {
@@ -91,7 +90,7 @@ export class RuntimeTestBuilder {
     return this;
   }
 
-  withStrategy(strategy: IRuntimeBlockStrategy): this {
+  withStrategy(strategy: unknown): this {
     this.strategies.push(strategy);
     return this;
   }

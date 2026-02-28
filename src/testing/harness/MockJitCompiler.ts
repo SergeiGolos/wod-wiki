@@ -1,7 +1,6 @@
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
 import { DialectRegistry } from '@/services/DialectRegistry';
 import type { CodeStatement } from '@/core/models/CodeStatement';
 
@@ -63,7 +62,7 @@ export class MockJitCompiler extends JitCompiler {
   private _matchers: BlockMatcher[] = [];
   private _defaultBlock?: IRuntimeBlock;
 
-  constructor(strategies: IRuntimeBlockStrategy[] = [], dialectRegistry?: DialectRegistry) {
+  constructor(strategies: unknown[] = [], dialectRegistry?: DialectRegistry) {
     super(strategies, dialectRegistry);
   }
 

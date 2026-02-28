@@ -1,7 +1,7 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
-import { WorkoutRootStrategy, WorkoutRootConfig } from '../../compiler/strategies/WorkoutRootStrategy';
+import { WorkoutRootBlock, WorkoutRootBlockConfig } from '../../typed-blocks/WorkoutRootBlock';
 import { PushBlockAction } from './PushBlockAction';
 
 /**
@@ -13,7 +13,7 @@ export interface StartWorkoutOptions {
     /** Optional lifecycle options for the root block */
     lifecycle?: BlockLifecycleOptions;
     /** Custom root config overrides */
-    rootConfig?: Partial<WorkoutRootConfig>;
+    rootConfig?: Partial<WorkoutRootBlockConfig>;
 }
 
 /**
@@ -66,15 +66,14 @@ export class StartWorkoutAction implements IRuntimeAction {
         const childGroups = statementIds.map(id => [id]);
 
         // Build root block configuration
-        const rootConfig: WorkoutRootConfig = {
+        const rootConfig: WorkoutRootBlockConfig = {
             childGroups,
             totalRounds: this.options.totalRounds ?? 1,
             ...this.options.rootConfig
         };
 
-        // Create root block using WorkoutRootStrategy
-        const rootStrategy = new WorkoutRootStrategy();
-        const rootBlock = rootStrategy.build(runtime, rootConfig);
+        // Create root block directly as a typed block
+        const rootBlock = new WorkoutRootBlock(runtime, rootConfig);
 
         // Build lifecycle options with start time
         const lifecycle: BlockLifecycleOptions = {

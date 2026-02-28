@@ -1,27 +1,27 @@
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
-import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
-import { BlockBuilder } from "./BlockBuilder";
 import { isFragmentPromoter } from "../contracts/behaviors/IFragmentPromoter";
+import { TypedBlockFactory } from "./TypedBlockFactory";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks.
- * Coordinates strategy application to build composed RuntimeBlocks.
+ *
+ * Uses TypedBlockFactory to compile CodeStatements into typed blocks.
+ * All block types (Timer, EMOM, AMRAP, Group, Effort, etc.) are
+ * handled by the factory's fragment-based detection.
  */
 export class JitCompiler {
   private dialectRegistry: DialectRegistry;
+  private factory: TypedBlockFactory;
 
   constructor(
-    private strategies: IRuntimeBlockStrategy[] = [],
+    _strategies?: unknown[],
     dialectRegistry?: DialectRegistry
   ) {
     this.dialectRegistry = dialectRegistry || new DialectRegistry();
-  }
-
-  registerStrategy(strategy: IRuntimeBlockStrategy): void {
-    this.strategies.push(strategy);
+    this.factory = new TypedBlockFactory();
   }
 
   getDialectRegistry(): DialectRegistry {
@@ -78,27 +78,7 @@ export class JitCompiler {
 
     this.dialectRegistry.processAll(effectiveNodes);
 
-    // Filter matching strategies and sort by priority (Desc)
-    const matchingStrategies = this.strategies
-      .filter(s => s.match(effectiveNodes, runtime))
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
-    if (matchingStrategies.length === 0) {
-      return undefined;
-    }
-
-    // Composition Flow
-    const builder = new BlockBuilder(runtime);
-
-    for (const strategy of matchingStrategies) {
-      strategy.apply(builder, effectiveNodes, runtime);
-    }
-
-    try {
-      return builder.build();
-    } catch (e) {
-      console.error("Failed to build block from composition:", e);
-      return undefined;
-    }
+    // TypedBlockFactory handles all block type detection and creation
+    return this.factory.create(effectiveNodes, runtime);
   }
 }

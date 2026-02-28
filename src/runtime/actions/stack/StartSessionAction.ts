@@ -1,8 +1,7 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
-import { SessionRootStrategy } from '../../compiler/strategies/SessionRootStrategy';
-import { SessionRootConfig } from '../../blocks/SessionRootBlock';
+import { WorkoutRootBlock, WorkoutRootBlockConfig } from '../../typed-blocks/WorkoutRootBlock';
 import { PushBlockAction } from './PushBlockAction';
 
 /**
@@ -73,15 +72,17 @@ export class StartSessionAction implements IRuntimeAction {
         const childGroups = topLevelStatements.map(s => [s.id]);
 
         // Build session root configuration
-        const config: SessionRootConfig = {
+        const config: WorkoutRootBlockConfig = {
             childGroups,
             label: this.options.label,
             totalRounds: this.options.totalRounds,
+            showGate: true,
+            gateLabel: 'Ready',
+            gateButtonLabel: 'Start Workout',
         };
 
-        // Create session root block
-        const strategy = new SessionRootStrategy();
-        const rootBlock = strategy.build(runtime, config);
+        // Create session root block as typed WorkoutRootBlock with gate
+        const rootBlock = new WorkoutRootBlock(runtime, config);
 
         // Build lifecycle options with start time
         const lifecycle: BlockLifecycleOptions = {

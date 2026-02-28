@@ -1,5 +1,4 @@
 import { JitCompiler } from '@/runtime/compiler';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { sharedParser } from '@/parser/parserInstance';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
@@ -61,7 +60,7 @@ export class WorkoutTestHarness {
 
   constructor(
     scriptText: string,
-    strategies: IRuntimeBlockStrategy[] = [],
+    strategies: unknown[] = [],
     private _clockTime: Date = new Date(),
     dialectRegistry?: DialectRegistry
   ) {
@@ -273,7 +272,7 @@ export class WorkoutTestHarness {
  */
 export class WorkoutTestBuilder {
   private _scriptText = '';
-  private _strategies: IRuntimeBlockStrategy[] = [];
+  private _strategies: unknown[] = [];
   private _clockTime = new Date('2024-01-01T12:00:00Z');
   private _dialectRegistry?: DialectRegistry;
 
@@ -282,12 +281,12 @@ export class WorkoutTestBuilder {
     return this;
   }
 
-  withStrategy(strategy: IRuntimeBlockStrategy): this {
+  withStrategy(strategy: unknown): this {
     this._strategies.push(strategy);
     return this;
   }
 
-  withStrategies(strategies: IRuntimeBlockStrategy[]): this {
+  withStrategies(strategies: unknown[]): this {
     this._strategies.push(...strategies);
     return this;
   }

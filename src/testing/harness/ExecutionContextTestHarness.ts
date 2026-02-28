@@ -6,7 +6,6 @@ import { EventBus } from '@/runtime/events/EventBus';
 import { WodScript } from '@/parser/WodScript';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
 import { IEvent } from '@/runtime/contracts/events/IEvent';
-import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
@@ -80,7 +79,7 @@ export interface HarnessConfig {
   /** Max ExecutionContext iterations before throwing. Default: 20 */
   maxDepth?: number;
   /** JIT strategies to register with MockJitCompiler */
-  strategies?: IRuntimeBlockStrategy[];
+  strategies?: unknown[];
   /** Mock statements to populate the script. Useful for testing child execution. */
   statements?: MockStatement[];
 }

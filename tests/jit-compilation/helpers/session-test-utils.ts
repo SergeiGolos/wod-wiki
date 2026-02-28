@@ -2,8 +2,11 @@
  * Session Test Utilities
  *
  * Shared helpers for Phase 4 output statement integration tests.
- * Creates a full ScriptRuntime + JitCompiler pipeline with all strategies,
+ * Creates a full ScriptRuntime + JitCompiler pipeline,
  * then starts a session via SessionRootStrategy.
+ * 
+ * Note: The TypedBlockFactory (built into JitCompiler) handles all block
+ * creation directly from statement fragments. No strategy registration needed.
  */
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
@@ -16,43 +19,12 @@ import { StartSessionAction, StartSessionOptions } from '@/runtime/actions/stack
 import { NextAction } from '@/runtime/actions/stack/NextAction';
 import { OutputTracingHarness, TracedOutput } from '../../harness/OutputTracingHarness';
 
-// All composable strategies for the JIT pipeline
-import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
-import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
-import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
-import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
-import { GenericGroupStrategy } from '@/runtime/compiler/strategies/components/GenericGroupStrategy';
-import { SoundStrategy } from '@/runtime/compiler/strategies/enhancements/SoundStrategy';
-import { HistoryStrategy } from '@/runtime/compiler/strategies/enhancements/HistoryStrategy';
-import { ReportOutputStrategy } from '@/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
-import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
-
 /**
- * Creates a JitCompiler with all production strategies registered.
+ * Creates a JitCompiler. The TypedBlockFactory handles all JIT compilation
+ * directly — no strategy registration needed.
  */
 export function createFullCompiler(): JitCompiler {
-    const compiler = new JitCompiler();
-
-    // Logic strategies (Priority 90)
-    compiler.registerStrategy(new AmrapLogicStrategy());
-    compiler.registerStrategy(new IntervalLogicStrategy());
-
-    // Component strategies (Priority 50)
-    compiler.registerStrategy(new GenericTimerStrategy());
-    compiler.registerStrategy(new GenericLoopStrategy());
-    compiler.registerStrategy(new GenericGroupStrategy());
-
-    // Enhancement strategies (Priority 15-50)
-    compiler.registerStrategy(new SoundStrategy());
-    compiler.registerStrategy(new HistoryStrategy());
-    compiler.registerStrategy(new ReportOutputStrategy());
-    compiler.registerStrategy(new ChildrenStrategy());
-
-    // Fallback strategies (Priority 0)
-    compiler.registerStrategy(new EffortFallbackStrategy());
-
-    return compiler;
+    return new JitCompiler();
 }
 
 /**

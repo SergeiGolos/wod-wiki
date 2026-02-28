@@ -3,8 +3,7 @@ import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
 import { formatTimestamp, formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { RuntimeBlock } from '../../runtime/RuntimeBlock';
-import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../runtime/behaviors';
+import { TimerLeafBlock } from '../../runtime/typed-blocks/TimerLeafBlock';
 import { JitCompiler } from '../../runtime/compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
@@ -77,29 +76,29 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
     });
   }, []);
 
-  // Create block with new behavior-based timer system
+  // Create block with typed block system
   const { block, blockKey, timerState } = useMemo(() => {
     const direction = timerType === 'countdown' ? 'down' : 'up';
 
-    // Use new aspect-based behaviors
-    const behaviors = [
-      new TimerInitBehavior({
-        direction,
-        durationMs: timerType === 'countdown' ? durationMs : undefined,
-        label: 'Timer'
-      }),
-      new TimerTickBehavior(),
-      new TimerPauseBehavior()
-    ];
+    // Create a TimerLeafBlock for the clock display
+    const newBlock = new TimerLeafBlock(runtime, {
+      durationMs: timerType === 'countdown' ? durationMs : undefined,
+      label: 'Timer',
+      allowSkip: true,
+    });
 
-    const newBlock = new RuntimeBlock(runtime, [1], behaviors, 'Timer');
-
-    // Mount block to trigger behavior initialization
+    // Mount block to trigger timer initialization
     newBlock.mount(runtime);
 
-    // Get timer state from the block's typed memory
-    const timerEntry = newBlock.getMemory('time');
-    let currentState = timerEntry?.value;
+    // Build timer state from the block's timer capability
+    const timer = newBlock.timer;
+    let currentState: TimerState | undefined = {
+      direction,
+      durationMs: timerType === 'countdown' ? durationMs : undefined,
+      label: 'Timer',
+      role: 'primary',
+      spans: [...timer.spans],
+    };
 
     // Configure timer state based on props
     if (currentState) {
@@ -117,18 +116,14 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
         spans = [new TimeSpan(now - durationMs, now)];
       }
 
-      // Update timer state with configured spans
-      newBlock.setMemoryValue('timer', {
+      currentState = {
         ...currentState,
         spans
-      });
-
-      // Refresh current state
-      currentState = newBlock.getMemory('time')?.value;
+      };
     }
 
     return {
-      block: newBlock,
+      block: newBlock as IRuntimeBlock,
       blockKey: newBlock.key.toString(),
       timerState: currentState
     };
@@ -181,18 +176,10 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
   }, [runtime, blockKey]);
 
   const handleReset = useCallback(() => {
-    // Reset clears all spans and starts fresh
-    if (block.hasMemory('time')) {
-      const current = block.getMemory('time')?.value;
-      if (current) {
-        block.setMemoryValue('time', {
-          ...current,
-          spans: []
-        });
-      }
-    }
+    // Reset handled via timer:reset event or direct timer manipulation
+    // Since block is created fresh in useMemo, just trigger recalc
     setRecalcTrigger(prev => prev + 1);
-  }, [block]);
+  }, []);
 
   const recalculateElapsed = useCallback(() => {
     setRecalcTrigger(prev => prev + 1);

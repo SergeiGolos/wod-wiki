@@ -1,10 +1,8 @@
 
 import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
-import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
-import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
-import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 import { ICodeStatement } from '@/core/models/CodeStatement';
+import { AmrapBlock } from '@/runtime/typed-blocks';
 
 describe('Timer Child Rotation Test', () => {
     it('should rotate children during timer execution', () => {
@@ -14,10 +12,7 @@ describe('Timer Child Rotation Test', () => {
   15 squats`;
 
         const builder = new RuntimeTestBuilder()
-            .withScript(script)
-            .withStrategy(new GenericTimerStrategy())
-            .withStrategy(new ChildrenStrategy())
-            .withStrategy(new EffortFallbackStrategy());
+            .withScript(script);
 
         const testHarness = builder.build();
 
@@ -25,9 +20,11 @@ describe('Timer Child Rotation Test', () => {
         const block = testHarness.jit.compile([statement as ICodeStatement], testHarness.runtime);
         if (!block) throw new Error('Failed to compile block');
 
-        testHarness.runtime.pushBlock(block);
+        // TypedBlockFactory creates an AmrapBlock for timer + children
+        expect(block).toBeInstanceOf(AmrapBlock);
+        expect(block.blockType).toBe('AMRAP');
 
-        expect(block.blockType).toBe('Timer');
+        testHarness.runtime.pushBlock(block);
 
         // 1. First Child: 5 pullups
         expect(testHarness.stackDepth).toBe(2);
