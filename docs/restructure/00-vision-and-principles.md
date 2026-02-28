@@ -28,3 +28,15 @@ In the current system, "Behaviors" are the primary actors that manage hidden sta
 - **No Manual Mapping**: We no longer map `ParserFragment` -> `BehaviorConfig` -> `MemoryLocation` -> `AnalyticsFragment`. The fragment *is* the config, the state, and the result.
 - **Traceability**: To debug a block, you just inspect its fragment bucket. There is no hidden behavior state.
 - **Flexibility**: Supporting a new sport (e.g., Yoga) just means defining a new `PoseFragment` and a `PoseProcessor`. The Analytics Engine automatically "sees" the new data.
+
+## Related Documents
+
+| Document | Purpose |
+| :--- | :--- |
+| [01 — Fragment State Model](01-fragment-state-model.md) | Plan, Record, and Analysis fragment lifecycle |
+| [02 — Processor Registry](02-processor-registry.md) | Stateless processors replacing behaviors for cross-cutting concerns |
+| [03 — Analytics Projection](03-analytics-projection.md) | Reactive output generation from fragment state |
+| [04 — Implementation Roadmap](04-implementation-roadmap.md) | Phased migration plan with behavior-by-behavior migration map |
+| [05 — UI Impact & Rendering](05-ui-impact-and-rendering.md) | Fragment-driven UI rendering |
+| [06 — Current Implementation Analysis](06-current-implementation-analysis.md) | Complete inventory of 18 behaviors, 7 execution archetypes, and 12 gaps |
+| [07 — Approach Comparison](07-approach-comparison.md) | Three architectures compared: Behavior Composition, Fragment Processors, Typed Blocks |

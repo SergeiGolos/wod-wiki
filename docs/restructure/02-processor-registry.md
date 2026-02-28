@@ -57,6 +57,29 @@ class YogaDialect {
 - **Fewer Lines of Code**: We eliminate the "middle-man" of Behavior classes and Strategy overhead.
 - **No God Class**: The `Runtime` just loops through the active processors and calls them.
 
+## 5. Processor Scope Clarification
+
+> **Important**: Processors handle **cross-cutting concerns** that apply to any block type. They do NOT replace the core execution logic (completion policy, child dispatch, timer lifecycle) — that responsibility belongs to **Typed Block** subclasses. See [07-approach-comparison.md](07-approach-comparison.md) for the hybrid architecture.
+
+### Cross-Cutting Processors (Run Against Any Block Type)
+
+| Processor | Replaces | Purpose |
+| :--- | :--- | :--- |
+| `AnalyticsProjector` | `ReportOutputBehavior` | Projects fragment bucket → OutputStatements at push/pop/change |
+| `HistoryProcessor` | `HistoryRecordBehavior` | Emits history records on block pop |
+| `SoundProcessor` | `SoundCueBehavior` | Emits sound fragments at lifecycle points |
+| `DisplayProcessor` | `LabelingBehavior` | Writes display/label fragments from plan + block type |
+| `ControlsProcessor` | `ButtonBehavior` | Writes action button fragments from block type |
+
+### NOT Processors (Owned by Typed Blocks)
+
+| Concern | Why Not a Processor | Owner |
+| :--- | :--- | :--- |
+| Timer state (spans, pause/resume) | Tightly coupled to block lifecycle | `TimerMixin` on typed blocks |
+| Completion policy | Different per archetype | Each typed block subclass |
+| Child dispatch | Cursor-based, loop-conditional | `ContainerBlock` base class |
+| Round tracking | Bound to completion + child dispatch | `ContainerBlock` constructor |
+
 ## The Execution Loop
 
 ```typescript
