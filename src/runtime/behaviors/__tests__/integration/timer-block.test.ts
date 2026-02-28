@@ -256,8 +256,8 @@ describe('Timer Block Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            // Sound cues emit milestone outputs, not events
-            const milestones = findOutputs(runtime, 'milestone');
+            // Sound cues emit system outputs (not milestone) - excluded from review logs
+            const milestones = findOutputs(runtime, 'system');
             const soundOutputs = milestones.filter(m => 
                 (m.fragments as any[]).some(f => f.sound === 'start-beep')
             );
@@ -272,8 +272,8 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(2000);
             simulateTicks(runtime, ctx, 3, 1000);
 
-            // Sound cues emit milestone outputs, not events
-            const milestones = findOutputs(runtime, 'milestone');
+            // Sound cues emit system outputs (not milestone) - excluded from review logs
+            const milestones = findOutputs(runtime, 'system');
             const countdownSounds = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.sound === 'countdown-beep')
             );
@@ -287,8 +287,8 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(6000);
             unmountBehaviors(behaviors, ctx);
 
-            // Sound cues emit milestone outputs, not events
-            const milestones = findOutputs(runtime, 'milestone');
+            // Sound cues emit system outputs (not milestone) - excluded from review logs
+            const milestones = findOutputs(runtime, 'system');
             const completeSounds = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.sound === 'complete-chime')
             );

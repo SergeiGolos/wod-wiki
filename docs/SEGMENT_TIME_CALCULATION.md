@@ -6,13 +6,13 @@ This document defines how time-related fields are calculated within the analytic
 
 We track three primary sources of time data:
 
-*   **Duration** (Parser-Defined): The planned target defined in the script (e.g., "5:00"). Set during parsing at the `CodeStatement` level. It can be a fixed time or a variable to be resolved.
+*   **Duration** (Parser-Defined): The planned target defined in the script (e.g., "5:00"). Set during parsing at the `CodeStatement` level. It carries the **intent** of the workout to the engine.
 *   **Spans** (Runtime-Tracked): The raw `TimeSpan[]` (start/stop) recordings from the running clock. These are recorded by runtime elements or can be back-filled during analytics via user input.
 *   **SystemTime** (Timestamp): Real-world system time (`Date.now()`) recorded as a metric. Ground-truth wall-clock reference independent of the runtime clock.
 
 ## 2. Calculated Metrics (Derived)
 
-`Elapsed` and `Total` are calculated from the core `Spans` when needed for display or analysis: or can be defined by user input after.
+`Elapsed` and `Total` are calculated from the core `Spans` when needed for display or analysis:
 
 | Metric      | Unit | Calculation Logic                                                           |
 | :---------- | :--- | :-------------------------------------------------------------------------- |
@@ -21,16 +21,16 @@ We track three primary sources of time data:
 
 ## 3. Analytics Segment Mapping
 
-The `AnalyticsTransformer` maps these fragments into the `Segment` structure:
+The `AnalyticsTransformer` maps these fragments into the `Segment` structure, focusing on the 4 core types:
 
-| Segment Field   | Calculation Logic                                                    |
-| :-------------- | :------------------------------------------------------------------- |
-| `startTime`     | `(Absolute Start - Workout Global Start) / 1000` (Seconds)           |
-| `endTime`       | `(Absolute End - Workout Global Start) / 1000` (Seconds)             |
-| `duration`      | Map of `Elapsed / 1000` (Pause-aware active time in Seconds)         |
-| `spans`         | Absolute Unix timestamps (Seconds) converted from `Spans` fragments. |
-| `relativeSpans` | Seconds offset from workout start for each span.                     |
-| `metrics.time`  | Extracted from `Duration` fragments (planned target).                |
+| Segment Field | Type | Description |
+| :--- | :--- | :--- |
+| `duration` | Intent | Parser-defined planned target (Seconds). Extracted from `Duration` fragments. |
+| `spans` | Raw | Absolute Unix timestamps (Seconds) converted from `Spans` fragments, made **workout-relative**. |
+| `elapsed` | Active | Pause-aware active time (Seconds). Calculated from `Spans` during output. |
+| `total` | Wall-clock | Total time from first start to last end (Seconds). Calculated from `Spans` during output. |
+
+The deprecated `relativeSpans` and `metrics.time` have been removed to focus on these core tracked elements.
 
 ---
 
@@ -50,6 +50,6 @@ The recording and assignment of these times are triggered by specific events:
 *   **Trigger:** When a block is completed and removed from the runtime stack.
 *   **Effect:** 
     1.  Finalizes the `endTime` and the final span in `Spans`.
-    2.  Calculates final `duration` (Elapsed).
+    2.  Calculates final `elapsed` and `total` from `Spans`.
     3.  Captures the `SystemTime` (timestamp).
     4.  Sets the `completionReason`.

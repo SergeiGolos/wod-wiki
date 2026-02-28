@@ -79,13 +79,13 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
     });
 
     // Step 7: SoundCueBehavior mount trigger
-    it('should emit start-beep milestone on mount', () => {
+    it('should emit start-beep system output on mount', () => {
         const behaviors = createExerciseBehaviors();
 
         mountBehaviors(behaviors, runtime, block);
 
-        const milestones = findOutputs(runtime, 'milestone');
-        const startBeeps = milestones.filter(m =>
+        const systemOutputs = findOutputs(runtime, 'system');
+        const startBeeps = systemOutputs.filter(m =>
             (m.fragments as any[]).some(f => f.sound === 'start-beep')
         );
         expect(startBeeps.length).toBeGreaterThanOrEqual(1);
@@ -159,15 +159,15 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
     });
 
     // Step 10: SoundCueBehavior unmount emits completion-beep
-    it('should emit completion-beep milestone on unmount', () => {
+    it('should emit completion-beep system output on unmount', () => {
         const behaviors = createExerciseBehaviors();
         const ctx = mountBehaviors(behaviors, runtime, block);
 
         runtime.clock.advance(45000);
         unmountBehaviors(behaviors, ctx);
 
-        const milestones = findOutputs(runtime, 'milestone');
-        const completeBeeps = milestones.filter(m =>
+        const systemOutputs = findOutputs(runtime, 'system');
+        const completeBeeps = systemOutputs.filter(m =>
             (m.fragments as any[]).some(f => f.sound === 'completion-beep')
         );
         expect(completeBeeps.length).toBeGreaterThanOrEqual(1);

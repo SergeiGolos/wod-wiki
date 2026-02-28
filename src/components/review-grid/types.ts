@@ -38,35 +38,14 @@ export interface GridRow {
   /** Stack depth when emitted */
   readonly stackLevel: number;
 
-  /**
-   * @deprecated Read from `cells.get(FragmentType.Elapsed)` instead.
-   * **Elapsed** — Σ(end − start) of each span, active time only (ms).
-   */
+  /** **Duration** (Intent) — planned target from the parser (seconds) */
+  readonly duration: number;
+  /** **Spans** (Raw) — raw spans relative to workout start (seconds) */
+  readonly spans: { started: number; ended?: number }[];
+  /** **Elapsed** (Active) — pause-aware active time (seconds) */
   readonly elapsed: number;
-
-  /**
-   * @deprecated Read from `cells.get(FragmentType.Duration)` instead.
-   * **Duration** — planned target from the parser (ms), if any.
-   */
-  readonly duration?: number;
-
-  /**
-   * @deprecated Read from `cells.get(FragmentType.Total)` instead.
-   * **Total** — lastEnd − firstStart, wall-clock bracket including pauses (ms).
-   */
+  /** **Total** (Wall-clock) — total time from first start to last end (seconds) */
   readonly total: number;
-
-  /**
-   * @deprecated Read from `cells.get(FragmentType.Spans)` instead.
-   * **Time** — raw spans for display.
-   */
-  readonly spans?: { started: number; ended?: number }[];
-
-  /**
-   * @deprecated Derive from SpansFragment value relative to workout start.
-   * **Time** — spans relative to workout start for session-relative display.
-   */
-  readonly relativeSpans?: { started: number; ended?: number }[];
 
   /** Completion reason (only for 'completion' type) */
   readonly completionReason?: string;

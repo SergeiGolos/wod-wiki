@@ -1,5 +1,4 @@
 import { MetricBehavior } from "../../types/MetricBehavior";
-import { CodeMetadata } from "./CodeMetadata";
 
 /**
  * Origin of a fragment - where it was created and its current state.
@@ -103,3 +102,16 @@ export enum FragmentType {
   Total = 'total',
 
   Rep = 'rep',
+  Effort = 'effort',
+  Distance = 'distance',
+  Rounds = 'rounds',
+  CurrentRound = 'current-round',
+  Action = 'action',
+  Increment = 'increment',
+  Group = 'group',
+  Text = 'text',
+  Resistance = 'resistance',
+  Sound = 'sound',
+  System = 'system',
+  Label = 'label',
+}

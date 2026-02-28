@@ -217,8 +217,8 @@ describe('AMRAP Pattern Integration', () => {
             const behaviors = createAmrapBehaviors(5000);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
-            // Mount should trigger start sound output
-            let milestones = findOutputs(runtime, 'milestone');
+            // Mount should trigger start sound output (system type - not shown in review logs)
+            let milestones = findOutputs(runtime, 'system');
             let startSounds = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.sound === 'start')
             );
@@ -229,7 +229,7 @@ describe('AMRAP Pattern Integration', () => {
             unmountBehaviors(behaviors, ctx);
 
             // Unmount should trigger complete sound output
-            milestones = findOutputs(runtime, 'milestone');
+            milestones = findOutputs(runtime, 'system');
             let completeSounds = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.sound === 'complete')
             );

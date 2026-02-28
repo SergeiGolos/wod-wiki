@@ -25,7 +25,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
 
 describe('SoundCueBehavior', () => {
     describe('mount trigger', () => {
-        it('should emit milestone output for mount trigger sounds', () => {
+        it('should emit system output for mount trigger sounds', () => {
             const behavior = new SoundCueBehavior({
                 cues: [{ sound: 'start-beep', trigger: 'mount' }]
             });
@@ -34,7 +34,7 @@ describe('SoundCueBehavior', () => {
             behavior.onMount(ctx);
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'milestone',
+                'system',
                 expect.arrayContaining([
                     expect.objectContaining({
                         sound: 'start-beep',
@@ -103,7 +103,7 @@ describe('SoundCueBehavior', () => {
     });
 
     describe('unmount/complete trigger', () => {
-        it('should emit milestone output for complete trigger on unmount', () => {
+        it('should emit system output for complete trigger on unmount', () => {
             const behavior = new SoundCueBehavior({
                 cues: [{ sound: 'complete-chime', trigger: 'complete' }]
             });
@@ -112,7 +112,7 @@ describe('SoundCueBehavior', () => {
             behavior.onUnmount(ctx);
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'milestone',
+                'system',
                 expect.arrayContaining([
                     expect.objectContaining({
                         sound: 'complete-chime',
@@ -123,7 +123,7 @@ describe('SoundCueBehavior', () => {
             );
         });
 
-        it('should emit milestone output for unmount trigger on unmount', () => {
+        it('should emit system output for unmount trigger on unmount', () => {
             const behavior = new SoundCueBehavior({
                 cues: [{ sound: 'unmount-beep', trigger: 'unmount' }]
             });
@@ -132,7 +132,7 @@ describe('SoundCueBehavior', () => {
             behavior.onUnmount(ctx);
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'milestone',
+                'system',
                 expect.arrayContaining([
                     expect.objectContaining({
                         sound: 'unmount-beep',
@@ -193,7 +193,7 @@ describe('SoundCueBehavior', () => {
             behavior.onUnmount(ctx);
 
             expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'milestone',
+                'system',
                 expect.arrayContaining([
                     expect.objectContaining({
                         sound: 'rest-over',

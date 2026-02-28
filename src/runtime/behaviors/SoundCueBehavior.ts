@@ -24,14 +24,16 @@ export interface SoundCueConfig {
  * 
  * ## Aspect: Output (Audio)
  * 
- * Emits 'milestone' outputs with SoundFragment that audio systems can observe.
+ * Emits 'system' outputs with SoundFragment that audio systems can observe.
+ * Sound outputs are tracked as system events so they do not appear in the
+ * user-facing review/logs page — only in the debug view.
  * This follows the principle that behaviors emit outputs, not events.
  * 
  * ## Output Contract
  * 
- * - **Mount**: Emits milestone output for 'mount' trigger sounds
- * - **Tick**: Emits milestone output for 'countdown' trigger sounds at specified seconds
- * - **Unmount**: Emits milestone output for 'unmount' and 'complete' trigger sounds
+ * - **Mount**: Emits system output for 'mount' trigger sounds
+ * - **Tick**: Emits system output for 'countdown' trigger sounds at specified seconds
+ * - **Unmount**: Emits system output for 'unmount' and 'complete' trigger sounds
  * 
  * ## Audio System Integration
  * 
@@ -51,10 +53,10 @@ export class SoundCueBehavior implements IRuntimeBehavior {
     constructor(private config: SoundCueConfig) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Emit mount sound outputs
+        // Emit mount sound outputs as system events (not shown in review logs)
         for (const cue of this.config.cues) {
             if (cue.trigger === 'mount') {
-                ctx.emitOutput('milestone', [
+                ctx.emitOutput('system', [
                     new SoundFragment(cue.sound, 'mount')
                 ], { label: `Sound: ${cue.sound}` });
             }
@@ -84,7 +86,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
                 for (const cue of countdownCues) {
                     if (cue.atSeconds?.includes(remainingSeconds) && !playedSeconds.has(remainingSeconds)) {
                         playedSeconds.add(remainingSeconds);
-                        tickCtx.emitOutput('milestone', [
+                        tickCtx.emitOutput('system', [
                             new SoundFragment(cue.sound, 'countdown', { atSecond: remainingSeconds })
                         ], { label: `Countdown: ${remainingSeconds}s` });
                     }
@@ -102,10 +104,10 @@ export class SoundCueBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Emit unmount/complete sound outputs
+        // Emit unmount/complete sound outputs as system events (not shown in review logs)
         for (const cue of this.config.cues) {
             if (cue.trigger === 'unmount' || cue.trigger === 'complete') {
-                ctx.emitOutput('milestone', [
+                ctx.emitOutput('system', [
                     new SoundFragment(cue.sound, cue.trigger)
                 ], { label: `Sound: ${cue.sound}` });
             }

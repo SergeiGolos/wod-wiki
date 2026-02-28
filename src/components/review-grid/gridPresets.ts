@@ -20,7 +20,6 @@ import { getFragmentIcon } from '@/views/runtime/fragmentColorMap';
  * they are handled as FIXED_COLUMNS with special rendering and ordering.
  */
 export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
-  FragmentType.Time,
   FragmentType.Effort,
   FragmentType.Rep,
   FragmentType.Rounds,
@@ -34,7 +33,6 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
   FragmentType.Label,
   FragmentType.CurrentRound,
   FragmentType.System,
-  FragmentType.SystemTime,
 ];
 
 /**
@@ -42,7 +40,6 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
  * Excludes System, Sound, Group which are typically noise.
  */
 const DEFAULT_VISIBLE_COLUMNS: FragmentType[] = [
-  FragmentType.Time,
   FragmentType.Effort,
   FragmentType.Rep,
   FragmentType.Rounds,
@@ -285,7 +282,10 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
  */
 function isNumericFragmentType(ft: FragmentType): boolean {
   switch (ft) {
-    case FragmentType.Time:
+    case FragmentType.Spans:
+    case FragmentType.Elapsed:
+    case FragmentType.Duration:
+    case FragmentType.Total:
     case FragmentType.Rep:
     case FragmentType.Distance:
     case FragmentType.Rounds:
