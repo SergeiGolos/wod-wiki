@@ -63,7 +63,7 @@ describe('ReEntryBehavior', () => {
             behavior.onMount(ctx);
 
             const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
-            expect(round?.value).toEqual({ current: 1, total: 5 });
+            expect(round?.value).toBe(1);
         });
 
         it('supports custom startRound', () => {
@@ -73,7 +73,7 @@ describe('ReEntryBehavior', () => {
             behavior.onMount(ctx);
 
             const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
-            expect(round?.value).toEqual({ current: 3, total: 7 });
+            expect(round?.value).toBe(3);
         });
 
         it('supports unbounded rounds', () => {
@@ -83,7 +83,7 @@ describe('ReEntryBehavior', () => {
             behavior.onMount(ctx);
 
             const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
-            expect(round?.value).toEqual({ current: 1, total: undefined });
+            expect(round?.value).toBe(1);
         });
 
         it('creates CurrentRoundFragment with sourceBlockKey and timestamp', () => {

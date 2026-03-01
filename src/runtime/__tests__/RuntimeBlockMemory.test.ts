@@ -3,6 +3,7 @@ import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
 
 describe('RuntimeBlock Memory Methods', () => {
     const runtime = {} as IScriptRuntime;
@@ -116,9 +117,8 @@ describe('RuntimeBlock Memory Methods', () => {
         it('should preserve type safety across multiple memory types', () => {
             const block = createBlock();
             const timerState = { direction: 'up', spans: [], label: 'Test' };
-            const roundState = { current: 1, total: 5 };
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', timerState)]));
-            block.pushMemory(new MemoryLocation('round', [createFragment('round', roundState)]));
+            block.pushMemory(new MemoryLocation('round', [new CurrentRoundFragment(1, 5, 'block', new Date())]));
 
             const timer = block.getMemory('time');
             const round = block.getMemory('round');

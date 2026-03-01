@@ -159,6 +159,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
+        const round = ctx.getMemory('round') as RoundState | undefined;
 
         if (timer && timer.spans.length > 0) {
             const elapsed = calculateElapsed(timer, nowMs);
@@ -167,21 +168,29 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const lastEnd = lastSpan.ended ?? nowMs;
             const total = Math.max(0, lastEnd - firstStart);
 
-            return [
+            const fragments: ICodeFragment[] = [
                 new ElapsedFragment(elapsed, blockKey, now),
                 new TotalFragment(total, blockKey, now),
                 new SpansFragment([...timer.spans], blockKey, now),
                 new SystemTimeFragment(new Date(), blockKey),
             ];
+            if (round) {
+                fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+            }
+            return fragments;
         }
 
         const degenerateSpan = new TimeSpan(nowMs, nowMs);
-        return [
+        const fragments: ICodeFragment[] = [
             new ElapsedFragment(0, blockKey, now),
             new TotalFragment(0, blockKey, now),
             new SpansFragment([degenerateSpan], blockKey, now),
             new SystemTimeFragment(new Date(), blockKey),
         ];
+        if (round) {
+            fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+        }
+        return fragments;
     }
 
     private computeSplitTimeResults(
@@ -192,14 +201,21 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
+        const round = ctx.getMemory('round') as RoundState | undefined;
 
         if (!timer || timer.spans.length === 0) {
-            return groups.map(() => [
-                new ElapsedFragment(0, blockKey, now),
-                new TotalFragment(0, blockKey, now),
-                new SpansFragment([new TimeSpan(nowMs, nowMs)], blockKey, now),
-                new SystemTimeFragment(new Date(), blockKey),
-            ]);
+            return groups.map(() => {
+                const groupFragments: ICodeFragment[] = [
+                    new ElapsedFragment(0, blockKey, now),
+                    new TotalFragment(0, blockKey, now),
+                    new SpansFragment([new TimeSpan(nowMs, nowMs)], blockKey, now),
+                    new SystemTimeFragment(new Date(), blockKey),
+                ];
+                if (round) {
+                    groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+                }
+                return groupFragments;
+            });
         }
 
         const totalElapsed = calculateElapsed(timer, nowMs);
@@ -229,12 +245,16 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const groupEnd = groupStart + groupTotal;
             currentOffsetMs += groupTotal;
 
-            return [
+            const groupFragments: ICodeFragment[] = [
                 new ElapsedFragment(groupElapsed, blockKey, now),
                 new TotalFragment(groupTotal, blockKey, now),
                 new SpansFragment([new TimeSpan(groupStart, groupEnd)], blockKey, now),
                 new SystemTimeFragment(new Date(), blockKey),
             ];
+            if (round) {
+                groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+            }
+            return groupFragments;
         });
     }
 

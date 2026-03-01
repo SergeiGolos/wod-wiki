@@ -11,17 +11,14 @@
             "id": "4a5f4b86da0fbe68",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "markdown",
               "state": {
-                "file": "Behavior Map.canvas",
-                "viewState": {
-                  "x": 2677.475893868414,
-                  "y": -361.35887610056,
-                  "zoom": -0.666666636475861
-                }
+                "file": "RUNTIME_INTEGRATION_TESTING.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-layout-dashboard",
-              "title": "Behavior Map"
+              "icon": "lucide-file",
+              "title": "RUNTIME_INTEGRATION_TESTING"
             }
           }
         ]
@@ -81,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 223.50558853149414
   },
   "right": {
     "id": "c1fb46b8873a0f9a",
@@ -216,14 +213,15 @@
         "x": 0,
         "y": 0,
         "width": 600,
-        "height": 600,
+        "height": 841,
         "maximize": false,
         "zoom": 1
       }
     ]
   },
-  "active": "9aedeaa1c014a43e",
+  "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
+    "FRAGMENT_CROSSWALK.md",
     "Behavior Map.canvas",
     "BEHAVIORAL_ARCHITECTURE.md",
     "RUNTIME_INTEGRATION_TESTING.md",
@@ -233,7 +231,6 @@
     "SEGMENT_TIME_CALCULATION.md",
     "restructure/07-approach-comparison.md",
     "restructure/06-current-implementation-analysis.md",
-    "FRAGMENT_CROSSWALK.md",
     "restructure/04-implementation-roadmap.md",
     "restructure/05-ui-impact-and-rendering.md",
     "restructure/03-analytics-projection.md",

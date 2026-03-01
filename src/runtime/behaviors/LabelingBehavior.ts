@@ -79,7 +79,7 @@ export class LabelingBehavior implements IRuntimeBehavior {
         const roundLocation = ctx.block.getMemoryByTag('round')[0];
         if (!roundLocation || roundLocation.fragments.length === 0) return undefined;
 
-        const roundValue = roundLocation.fragments[0].value as { current?: number; total?: number } | undefined;
+        const roundValue = roundLocation.fragments[0] as { current?: number; total?: number };
         if (!roundValue || typeof roundValue.current !== 'number') return undefined;
 
         const roundLabel = this.formatRound(roundValue.current, roundValue.total);

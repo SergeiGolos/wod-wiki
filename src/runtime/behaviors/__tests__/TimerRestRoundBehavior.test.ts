@@ -60,7 +60,7 @@ describe('CountdownTimerBehavior - Round Increment', () => {
         expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
             expect.objectContaining({
                 fragmentType: FragmentType.CurrentRound,
-                value: { current: 2, total: 3 }
+                value: 2
             })
         ]));
     });

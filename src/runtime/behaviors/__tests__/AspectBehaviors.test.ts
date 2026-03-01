@@ -32,6 +32,14 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         getMemory: vi.fn((type: string) => {
             const locs = memoryLocations.filter(l => l.tag === type);
             if (locs.length > 0 && locs[0].fragments.length > 0) {
+                // Special case: synthesize RoundState for 'round' memory
+                if (type === 'round') {
+                    const frag = locs[0].fragments[0] as unknown as { current?: number; total?: number };
+                    if (frag?.current !== undefined) {
+                        return { current: frag.current, total: frag.total };
+                    }
+                    return undefined;
+                }
                 return locs[0].fragments[0].value;
             }
             return undefined;
@@ -116,7 +124,9 @@ describe('Iteration Aspect Behaviors', () => {
 
             expect(ctx.pushMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
                 expect.objectContaining({
-                    value: { current: 1, total: undefined }
+                    value: 1,
+                    current: 1,
+                    total: undefined,
                 })
             ]));
         });
@@ -132,7 +142,9 @@ describe('Iteration Aspect Behaviors', () => {
 
             expect(ctx.pushMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
                 expect.objectContaining({
-                    value: { current: 2, total: 5 }
+                    value: 2,
+                    current: 2,
+                    total: 5,
                 })
             ]));
         });

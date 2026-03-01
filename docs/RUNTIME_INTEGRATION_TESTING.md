@@ -26,8 +26,8 @@ This harness creates a full pipeline with all strategies (AMRAP, Interval, Loop,
 **File:** `tests/harness/OutputTracingHarness.ts`
 
 The `OutputTracingHarness` subscribes to the engine's output and records every `IOutputStatement`. It provides powerful assertion helpers:
-- `assertSequence(expected)`: Validates the exact sequence of outputs (segments, completions, milestones).
-- `assertPairedOutputs()`: Ensures every `segment` (start) has a matching `completion` (end) from the same block.
+- `assertSequence(expected)`: Validates the exact sequence of outputs. **Note**: The engine emits many `system` and `milestone` outputs; for simple tests, consider filtering `tracer.segments` instead.
+- `assertPairedOutputs()`: Returns an array of error strings for every `segment` (start) that lacks a matching `completion` (end). Assert that this array is empty: `expect(tracer.assertPairedOutputs()).toEqual([])`.
 - `fromBlock(blockKey)`: Filters outputs by their source block.
 
 ## What to Validate in Runtime Tests
@@ -48,22 +48,27 @@ The `OutputTracingHarness` subscribes to the engine's output and records every `
 
 ### Output Tracing Example
 ```typescript
-it('should emit correct output sequence for Fran', () => {
-    const ctx = createSessionContext('(21-15-9)
-Thrusters
-Pullups');
+it('should emit correct output sequence for Grace', () => {
+    const ctx = createSessionContext('30 Clean & Jerk 135lb');
     startSession(ctx);
-    userNext(ctx); // Start
+    userNext(ctx); // Dismiss WaitingToStart → Start Exercise
 
-    // Assert the first exercise started
-    ctx.tracer.assertSequence([
-        { outputType: 'segment', stackLevel: 2, hasFragmentType: FragmentType.Effort }
-    ]);
+    // Assert the exercise segment was emitted (emitted on completion/pop)
+    userNext(ctx); // Complete Exercise
+    
+    // Filter to segments to ignore system/milestone noise
+    const segments = ctx.tracer.segments;
+    expect(segments.length).toBeGreaterThanOrEqual(3); // Root, Waiting, Exercise
+    
+    // Exercise segment (stackLevel 1 as a child of SessionRoot)
+    const exerciseSegment = segments.find(s => s.stackLevel === 1 && s.hasFragmentType === FragmentType.Rep);
+    expect(exerciseSegment).toBeDefined();
 });
 ```
 
 ## Best Practices
 - **Use Mock Clocks**: Never use real timers. Deterministic testing requires `advanceClock()`.
-- **Trace Outputs**: Use the `tracer` to verify that the engine is communicating the correct information to its subscribers.
-- **Isolate Scenarios**: Create a test file for each major workout pattern (AMRAP, EMOM, Rep Scheme, etc.).
+- **Trace Outputs**: Use the `tracer` to verify that the engine is communicating the correct information.
+- **Ignore Noise**: Use `tracer.segments` or `tracer.completions` instead of `tracer.outputs` when you don't care about lifecycle `system` events.
+- **Stack Levels**: Note that `system` outputs use 1-based depth, while `segment/completion/milestone` outputs use 0-based indexing (where `SessionRoot` is level 0).
 - **Dispose**: Always call `disposeSession(ctx)` in `afterEach()` to clear subscriptions and timers.

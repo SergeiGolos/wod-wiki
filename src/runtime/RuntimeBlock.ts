@@ -172,7 +172,17 @@ export class RuntimeBlock implements IRuntimeBlock {
                     return loc as unknown as MemoryValueOf<T>;
                 }
                 // For typed memory (timer, round, display, controls, completion),
-                // the value is stored in the first fragment's .value field
+                // the value is stored in the first fragment's .value field.
+                // Special case: 'round' memory uses CurrentRoundFragment which
+                // stores .current and .total as direct fields (value is just the
+                // current round number). Synthesize RoundState for backward compat.
+                if (type === 'round') {
+                    const frag = loc.fragments[0] as unknown as { current?: number; total?: number };
+                    if (frag?.current !== undefined) {
+                        return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
+                    }
+                    return undefined as unknown as MemoryValueOf<T>;
+                }
                 return loc.fragments[0]?.value as MemoryValueOf<T>;
             },
             subscribe(listener: (nv: MemoryValueOf<T> | undefined, ov: MemoryValueOf<T> | undefined) => void): () => void {

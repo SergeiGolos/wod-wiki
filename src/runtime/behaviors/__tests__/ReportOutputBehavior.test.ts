@@ -73,8 +73,7 @@ describe('ReportOutputBehavior', () => {
             type: 'current-round',
             image: 'Round 1 of 3',
             origin: 'runtime' as const,
-            value: { current: 1, total: 3 },
-            sourceBlockKey: 'test-block',
+            value: 1,
             timestamp: new Date(1000),
         };
 
@@ -146,7 +145,7 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'milestone',
             expect.arrayContaining([
-                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, value: { current: 1, total: 3 } }),
+                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, value: 1 }),
             ]),
             expect.objectContaining({ label: 'Round 1 of 3' })
         );
@@ -186,7 +185,7 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'milestone',
             expect.arrayContaining([
-                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, value: { current: 2, total: 5 } }),
+                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, value: 2 }),
             ]),
             expect.objectContaining({ label: 'Round 2 of 5' })
         );

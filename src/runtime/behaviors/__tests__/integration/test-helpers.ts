@@ -182,6 +182,15 @@ export function createIntegrationContext(
             // Try list-based memory first
             const locations = block.getMemoryByTag(type as unknown as MemoryTag);
             if (locations.length > 0 && locations[0].fragments.length > 0) {
+                // Special case: 'round' memory uses CurrentRoundFragment which
+                // stores .current and .total as direct fields. Synthesize RoundState.
+                if (type === 'round') {
+                    const frag = locations[0].fragments[0] as unknown as { current?: number; total?: number };
+                    if (frag?.current !== undefined) {
+                        return { current: frag.current, total: frag.total } as MemoryTypeMap[T];
+                    }
+                    return undefined;
+                }
                 return locations[0].fragments[0].value as MemoryTypeMap[T];
             }
             // Fall back to Map
@@ -224,8 +233,14 @@ export function createIntegrationContext(
             const location = new MemoryLocation(memTag, fragments);
             block.pushMemory(location);
             // Sync to Map for backward compat assertions
-            if (fragments.length > 0 && fragments[0].value !== undefined) {
-                block.memory.set(tag as MemoryType, fragments[0].value);
+            if (fragments.length > 0) {
+                const frag = fragments[0] as unknown as { current?: number; total?: number };
+                const value = (tag === 'round' && frag?.current !== undefined)
+                    ? { current: frag.current, total: frag.total }
+                    : fragments[0].value;
+                if (value !== undefined) {
+                    block.memory.set(tag as MemoryType, value);
+                }
             }
         },
 
@@ -240,8 +255,14 @@ export function createIntegrationContext(
                 block.pushMemory(location);
             }
             // Sync to Map for backward compat assertions
-            if (fragments.length > 0 && fragments[0].value !== undefined) {
-                block.memory.set(tag as MemoryType, fragments[0].value);
+            if (fragments.length > 0) {
+                const frag = fragments[0] as unknown as { current?: number; total?: number };
+                const value = (tag === 'round' && frag?.current !== undefined)
+                    ? { current: frag.current, total: frag.total }
+                    : fragments[0].value;
+                if (value !== undefined) {
+                    block.memory.set(tag as MemoryType, value);
+                }
             }
         }
     } as IBehaviorContext;
