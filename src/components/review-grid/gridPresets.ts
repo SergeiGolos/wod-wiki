@@ -150,24 +150,13 @@ export const FIXED_COLUMNS: GridColumn[] = [
     visible: false, // hidden by default, visible in debug
   },
   {
-    id: FIXED_COLUMN_IDS.ELAPSED,
-    label: 'Elapsed',  // Elapsed: Σ(end − start) active time only
+    id: FIXED_COLUMN_IDS.ELAPSED_TOTAL,
+    label: 'Elapsed',  // Combined Elapsed/Total
     sortable: true,
     filterable: false,
     graphable: true,
     isGraphed: false,
     visible: true,
-    fragmentType: FragmentType.Elapsed,
-  },
-  {
-    id: FIXED_COLUMN_IDS.TOTAL,
-    label: 'Total',  // Total: wall-clock bracket including pauses
-    sortable: true,
-    filterable: false,
-    graphable: true,
-    isGraphed: false,
-    visible: true,
-    fragmentType: FragmentType.Total,
   },
   {
     id: FIXED_COLUMN_IDS.COMPLETION_REASON,
@@ -250,9 +239,8 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
   // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
   fragmentCols.forEach(col => add(col));
 
-  // 6/8. Meta Stats (Elapsed, Total) - Moved to end "after a certain point"
-  add(getFixed(FIXED_COLUMN_IDS.ELAPSED));
-  add(getFixed(FIXED_COLUMN_IDS.TOTAL));
+  // 6/8. Meta Stats (Elapsed/Total) - Moved to end "after a certain point"
+  add(getFixed(FIXED_COLUMN_IDS.ELAPSED_TOTAL));
 
   // 7/9. Debug extras
   if (isDebugMode) {

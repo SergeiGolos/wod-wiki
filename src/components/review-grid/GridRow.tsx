@@ -120,17 +120,12 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
         </td>
       );
 
-    case FIXED_COLUMN_IDS.ELAPSED:
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
       return (
-        <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
-          {formatSecondsMMSS(row.elapsed)}
-        </td>
-      );
-
-    case FIXED_COLUMN_IDS.TOTAL:
-      return (
-        <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-20">
-          {formatSecondsMMSS(row.total)}
+        <td className="py-1 px-2 text-foreground font-mono text-xs text-right w-32 whitespace-nowrap">
+          {row.elapsed === row.total
+            ? formatSecondsMMSS(row.elapsed)
+            : `${formatSecondsMMSS(row.elapsed)} / ${formatSecondsMMSS(row.total)}`}
         </td>
       );
 

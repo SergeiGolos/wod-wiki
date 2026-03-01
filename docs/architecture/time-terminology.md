@@ -47,9 +47,8 @@
 | `#` | Index | `GridRow.index` | `1`, `2`, `3` |
 | `Timestamp` | TimeStamp | `row.spans[0].started` → system clock | `HH:MM:SS` |
 | `Time` | Time | `row.relativeSpans` (session-relative) | `:00 → 2:30` |
-| `Elapsed` | Elapsed | `row.elapsed` | `mm:ss` |
+| `Elapsed` | Elapsed/Total | `row.elapsed`, `row.total` | `mm:ss` or `mm:ss / mm:ss` |
 | `Duration` | Duration | `row.duration` (from `DurationFragment`) | `mm:ss` |
-| `Total` | Total | `row.total` | `mm:ss` |
 
 ## Anti-patterns
 

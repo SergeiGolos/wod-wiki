@@ -1,11 +1,12 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext, Unsubscribe } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { TimerState, ChildrenStatusState } from '../memory/MemoryTypes';
+import { TimerState, ChildrenStatusState, RoundState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
 import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
 import { ClearChildrenAction } from '../actions/stack/ClearChildrenAction';
 import { calculateElapsed } from '../time/calculateElapsed';
+import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
 
 /**
  * Controls what happens when the countdown reaches zero.
@@ -29,6 +30,8 @@ export interface CountdownTimerConfig {
      * Defaults to `'complete-block'`.
      */
     mode?: CountdownMode;
+    /** Factory to create a rest block for "next" transitions */
+    restBlockFactory?: (durationMs: number, label?: string) => IRuntimeAction[];
 }
 
 /**
@@ -124,7 +127,31 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onNext(_ctx: IBehaviorContext): IRuntimeAction[] {
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+        if (!this.config.restBlockFactory) {
+            return [];
+        }
+
+        // Only for leaf nodes (those without child selection)
+        // We use constructor name check to avoid circular dependency with ChildSelectionBehavior
+        const hasChildSelection = ctx.block.behaviors.some(
+            b => b.constructor.name === 'ChildSelectionBehavior'
+        );
+        if (hasChildSelection) {
+            return [];
+        }
+
+        const timer = ctx.getMemory('time') as TimerState | undefined;
+        if (!timer || timer.direction !== 'down' || !timer.durationMs) {
+            return [];
+        }
+
+        const remainingMs = this.getRemainingCountdownMs(ctx);
+        // Only inject rest if more than 1s remaining (matching ChildSelectionBehavior logic)
+        if (remainingMs > 1000) {
+            return this.config.restBlockFactory(remainingMs, 'Rest');
+        }
+
         return [];
     }
 
@@ -138,7 +165,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         return [];
     }
 
-    onDispose(_ctx: IBehaviorContext): void {
+    onDispose(ctx: IBehaviorContext): void {
         for (const unsub of this.subscriptions) {
             try { unsub(); } catch { /* no-op */ }
         }
@@ -164,6 +191,20 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                 spans: [new TimeSpan(ctx.clock.now.getTime())]
             });
 
+            // Cycle complete — advance round counter directly before
+            // resetting for the next cycle. This keeps round tracking
+            // self-contained: no dependency on other behaviors.
+            const round = ctx.getMemory('round') as RoundState | undefined;
+            if (round) {
+                const roundFragment = new CurrentRoundFragment(
+                    round.current + 1,
+                    round.total,
+                    ctx.block.key.toString(),
+                    ctx.clock.now,
+                );
+                ctx.updateMemory('round', [roundFragment]);
+            }
+
             const childStatus = ctx.getMemory('children:status') as ChildrenStatusState | undefined;
             ctx.setMemory('children:status', {
                 childIndex: 0,
@@ -172,6 +213,17 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                 allCompleted: false
             });
         }
+    }
+
+    private getRemainingCountdownMs(ctx: IBehaviorContext): number {
+        const timer = ctx.getMemory('time') as TimerState | undefined;
+        if (!timer || timer.direction !== 'down' || !timer.durationMs) {
+            return 0;
+        }
+
+        const now = ctx.clock.now.getTime();
+        const elapsed = calculateElapsed(timer, now);
+        return Math.max(0, timer.durationMs - elapsed);
     }
 
     private createFragment(ctx: IBehaviorContext, state: TimerState): ICodeFragment {
@@ -206,3 +258,4 @@ function formatDuration(durationMs: number | undefined): string {
     }
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
+

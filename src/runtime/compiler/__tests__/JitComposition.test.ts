@@ -57,6 +57,7 @@ describe("JIT Composition", () => {
         const statement = new CodeStatement();
         statement.fragments = [
             new MockTimerFragment(600000, true), // AMRAP implies 'up'
+            new MockRoundsFragment(1),           // Required for AmrapLogicStrategy.match()
         ];
         statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
         statement.children = [new CodeStatement()]; // Add children to trigger ChildrenStrategy
@@ -74,8 +75,8 @@ describe("JIT Composition", () => {
         if (!block) return;
 
         expect(block.blockType).toBe("AMRAP");
-        // LabelComposer uses the timer fragment image ("10:00") as the primary metric
-        expect(block.label).toContain("10:00");
+        // LabelComposer uses the RoundsFragment image ("1") as the primary metric
+        expect(block.label).toBe("1");
 
         // Check Behaviors - now using aspect-based behaviors
         // AMRAP should have CountdownTimerBehavior (direction: 'down') and ReEntryBehavior (unbounded)
@@ -110,9 +111,11 @@ describe("JIT Composition", () => {
 
         expect(block.blockType).toBe("EMOM");
 
-        // Timer should use CountdownTimerBehavior
         const timer = block.getBehavior(CountdownTimerBehavior);
         expect(timer).toBeDefined();
+        // Verify restBlockFactory is present (added for leaf node transitions)
+        expect((timer as any).config.restBlockFactory).toBeDefined();
+        expect(typeof (timer as any).config.restBlockFactory).toBe('function');
 
         // Should have SoundCueBehavior (added by SoundStrategy)
         expect(block.getBehavior(SoundCueBehavior)).toBeDefined();

@@ -156,6 +156,7 @@ export const FIXED_COLUMN_IDS = {
   ELAPSED: 'elapsed',
   DURATION: 'duration',
   TOTAL: 'total',
+  ELAPSED_TOTAL: 'elapsedTotal',
   SPANS: 'spans',
   COMPLETION_REASON: 'completionReason',
   TIMESTAMP: 'timestamp',

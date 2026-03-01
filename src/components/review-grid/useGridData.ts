@@ -21,6 +21,7 @@ import type {
   GridFilterConfig,
   GridSortConfig,
 } from './types';
+import { FIXED_COLUMN_IDS } from './types';
 import { getPreset, buildAllColumns } from './gridPresets';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
 
@@ -79,6 +80,9 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
       // Noise suppression: Sound is hidden
       if (ft === FragmentType.Sound) return;
       
+      // Elapsed and Total are now combined into a fixed column, suppress as fragments
+      if (ft === FragmentType.Elapsed || ft === FragmentType.Total) return;
+      
       types.add(ft);
     };
 
@@ -116,11 +120,18 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
           return false;
         }
 
-        // Only keep fragment columns if that type exists in the data
-        // EXCEPTION: User explicitly requested Effort to always be visible
-        if (col.fragmentType === FragmentType.Effort) return true;
+        // EXCEPTION: Always keep structural columns (no fragmentType)
+        // or specifically requested columns like Timestamp/Spans/Effort
+        if (
+          !col.fragmentType ||
+          col.id === FIXED_COLUMN_IDS.TIMESTAMP ||
+          col.id === FIXED_COLUMN_IDS.SPANS ||
+          col.fragmentType === FragmentType.Effort
+        ) {
+          return true;
+        }
 
-        return activeFragmentTypes.has(col.fragmentType);
+        // Only keep fragment columns if that type exists in the data
       });
 
       // Map: Force visibility for active fragment columns (auto-select)
@@ -130,7 +141,13 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
         // If it's an active fragment column, ensure it's visible by default
         if (col.fragmentType && activeFragmentTypes.has(col.fragmentType)) {
-          newCol.visible = true;
+          // System fragment columns only auto-show in debug mode
+          // (Does not affect Timestamp/Spans as they use different FragmentTypes)
+          if (col.fragmentType === FragmentType.System) {
+            newCol.visible = isDebugMode;
+          } else {
+            newCol.visible = true;
+          }
         }
 
         // Apply graph tags
@@ -145,7 +162,17 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
       // (Fragment types present in data but not in ALL_FRAGMENT_COLUMNS)
       const knownTypes = new Set(mappedCols.map(c => c.fragmentType).filter(Boolean));
 
-      const orphanTypes = Array.from(activeFragmentTypes).filter(ft => !knownTypes.has(ft));
+      const orphanTypes = Array.from(activeFragmentTypes).filter(ft => {
+        if (knownTypes.has(ft)) return false;
+        
+        // Strict suppression for system types that shouldn't auto-appear
+        if (ft === FragmentType.System && !isDebugMode) return false;
+        
+        // Elapsed and Total are now combined into a fixed column, suppress as fragments
+        if (ft === FragmentType.Elapsed || ft === FragmentType.Total) return false;
+        
+        return true;
+      });
 
       const orphanCols: GridColumn[] = orphanTypes.map(ft => ({
         id: ft,
@@ -398,24 +425,24 @@ function applySorting(
 function getSortValue(row: GridRow, col: GridColumn): string | number {
   // Fixed columns
   switch (col.id) {
-    case '#':
+    case FIXED_COLUMN_IDS.INDEX:
       return row.index;
-    case 'blockKey':
+    case FIXED_COLUMN_IDS.BLOCK_KEY:
       return row.sourceBlockKey;
-    case 'outputType':
+    case FIXED_COLUMN_IDS.OUTPUT_TYPE:
       return row.outputType;
-    case 'stackLevel':
+    case FIXED_COLUMN_IDS.STACK_LEVEL:
       return row.stackLevel;
-    case 'elapsed':
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
       return row.elapsed;
-    case 'duration':
+    case FIXED_COLUMN_IDS.DURATION:
       return row.duration ?? Infinity;
-    case 'total':
-      return row.total;
-    case 'spans':
+    case FIXED_COLUMN_IDS.SPANS:
       return row.spans?.[0]?.started ?? 0;
-    case 'completionReason':
+    case FIXED_COLUMN_IDS.COMPLETION_REASON:
       return row.completionReason ?? '';
+    case FIXED_COLUMN_IDS.TIMESTAMP:
+      return row.absoluteStartTime ?? 0;
   }
 
   // Fragment columns — sort by first fragment's value
@@ -442,24 +469,26 @@ function compareSortValues(a: string | number, b: string | number): number {
  */
 function getCellTextForColumn(row: GridRow, col: GridColumn): string {
   switch (col.id) {
-    case '#':
+    case FIXED_COLUMN_IDS.INDEX:
       return String(row.index);
-    case 'blockKey':
+    case FIXED_COLUMN_IDS.BLOCK_KEY:
       return row.sourceBlockKey;
-    case 'outputType':
+    case FIXED_COLUMN_IDS.OUTPUT_TYPE:
       return row.outputType;
-    case 'stackLevel':
+    case FIXED_COLUMN_IDS.STACK_LEVEL:
       return String(row.stackLevel);
-    case 'elapsed':
-      return formatDuration(row.elapsed);
-    case 'duration':
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
+      return row.elapsed === row.total
+        ? formatDuration(row.elapsed)
+        : `${formatDuration(row.elapsed)} / ${formatDuration(row.total)}`;
+    case FIXED_COLUMN_IDS.DURATION:
       return formatDuration(row.duration);
-    case 'total':
-      return formatDuration(row.total);
-    case 'spans':
+    case FIXED_COLUMN_IDS.SPANS:
       return formatSpans(row.spans, row.duration);
-    case 'completionReason':
+    case FIXED_COLUMN_IDS.COMPLETION_REASON:
       return row.completionReason ?? '';
+    case FIXED_COLUMN_IDS.TIMESTAMP:
+      return String(row.absoluteStartTime);
   }
 
   if (col.fragmentType) {

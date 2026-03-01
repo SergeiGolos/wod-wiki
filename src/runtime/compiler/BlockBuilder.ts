@@ -6,6 +6,8 @@ import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "../../core/models/CodeFragment";
 import { MemoryLocation } from "../memory/MemoryLocation";
+import { RestBlock } from "../blocks/RestBlock";
+import { PushBlockAction } from "../actions/stack/PushBlockAction";
 import {
     CompletionTimestampBehavior,
     CountupTimerBehavior,
@@ -157,7 +159,11 @@ export class BlockBuilder {
                 durationMs: config.durationMs,
                 label: config.label,
                 role: config.role,
-                mode
+                mode,
+                restBlockFactory: (durationMs, label) => {
+                    const restBlock = new RestBlock(this.runtime, { durationMs, label });
+                    return [new PushBlockAction(restBlock)];
+                }
             }));
         } else {
             this.addBehavior(new CountupTimerBehavior({
