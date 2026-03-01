@@ -9,7 +9,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 // Aspect-based behaviors
 import {
     ReportOutputBehavior,
-    LeafExitBehavior,
+    ExitBehavior,
     LabelingBehavior,
     ButtonBehavior
 } from '../behaviors';
@@ -18,13 +18,13 @@ import {
  * WaitingToStartBlock is an idle gate that pauses before workout execution.
  *
  * The user must click 'next()' (i.e., the "Start" button) to advance.
- * When next() is called, WaitingToStart pops immediately via LeafExitBehavior.
+ * When next() is called, WaitingToStart pops immediately via ExitBehavior.
  * The parent SessionRoot then detects the pop and pushes the first workout block.
  *
  * ## Lifecycle
  *
  * 1. Mount: Emits 'segment' output with "Ready to Start" message
- * 2. User clicks next → LeafExitBehavior marks complete, returns PopBlockAction
+ * 2. User clicks next → ExitBehavior marks complete, returns PopBlockAction
  * 3. Unmount: Emits 'completion' output
  * 4. Parent receives control, pushes next child
  *
@@ -33,7 +33,7 @@ import {
  * - ReportOutputBehavior (output on mount/unmount)
  * - LabelingBehavior (show "Ready to Start")
  * - ButtonBehavior (show "Start" button)
- * - LeafExitBehavior (pop on user advance)
+ * - ExitBehavior (pop on user advance)
  */
 export class WaitingToStartBlock extends RuntimeBlock {
     constructor(runtime: IScriptRuntime) {
@@ -90,7 +90,7 @@ export class WaitingToStartBlock extends RuntimeBlock {
         // =====================================================================
         // Completion Aspect - Pop on user advance
         // =====================================================================
-        behaviors.push(new LeafExitBehavior({ onNext: true }));
+        behaviors.push(new ExitBehavior({ mode: 'immediate', onNext: true }));
 
         return behaviors;
     }

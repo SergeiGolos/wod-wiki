@@ -2,25 +2,21 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
 
 // Specific behaviors not covered by aspect composers
 import {
     ChildSelectionBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
     CountdownTimerBehavior,
-    LeafExitBehavior,
-    CompletedBlockPopBehavior,
-    FragmentPromotionBehavior
+    ExitBehavior,
 } from "../../../behaviors";
 
 /**
  * ChildrenStrategy handles blocks with child statements.
  *
  * Uses aspect composer methods:
- * - .asContainer() - Child execution with optional looping
- * Plus specific behaviors for round management (for single-pass default).
+ * - .asRepeater() - Stores round config for ChildSelectionBehavior
+ * - .asContainer() - Child execution with optional looping (consumes round config)
+ * Plus ExitBehavior in deferred mode for container completion pop.
  */
 export class ChildrenStrategy implements IRuntimeBlockStrategy {
     priority = 50;
@@ -43,29 +39,45 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // Filter out empty groups
         const childGroups = children.filter(group => group.length > 0);
 
-        // Check if any timer is present (for AMRAP-style unbounded looping)
-        const hasTimer = builder.hasTimerBehavior();
         // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
-        const hasRoundsFromStrategy = builder.hasBehavior(ReEntryBehavior);
-        // Check if a countdown timer controls completion (AMRAP pattern)
-        // CountdownTimerBehavior is the singular countdown timer — no separate ending behavior needed
-        const hasCountdownCompletion = builder.hasBehavior(CountdownTimerBehavior);
+        const hasRoundsFromStrategy = builder.hasRoundConfig();
+        // Check if a countdown timer controls completion (AMRAP/EMOM pattern)
+        const countdown = builder.getBehavior(CountdownTimerBehavior);
+        const hasCountdownCompletion = !!countdown;
 
-        // Remove LeafExitBehavior if present — children manage advancement,
-        // not simple leaf exit.
-        if (builder.hasBehavior(LeafExitBehavior)) {
-            builder.removeBehavior(LeafExitBehavior);
+        // Remove ExitBehavior if present — children manage advancement,
+        // not simple leaf exit. (Was: removeBehavior(LeafExitBehavior))
+        if (builder.hasBehavior(ExitBehavior)) {
+            builder.removeBehavior(ExitBehavior);
+        }
+
+        // =====================================================================
+        // Round config — must be stored BEFORE asContainer() consumes it
+        // =====================================================================
+        if (!hasRoundsFromStrategy) {
+            if (hasCountdownCompletion) {
+                // Countdown timer (AMRAP pattern): unbounded rounds, timer controls completion
+                builder.asRepeater({ totalRounds: undefined, startRound: 1, addCompletion: false });
+            } else {
+                // Single pass through children (no timer, or countup "for time" timer)
+                builder.asRepeater({ totalRounds: 1, startRound: 1, addCompletion: true });
+            }
         }
 
         // =====================================================================
         // ASPECT COMPOSERS - High-level composition
         // =====================================================================
 
-        // Container Aspect - Child execution with optional looping/rest
+        // Container Aspect - Child execution with optional looping/rest.
+        // asContainer() picks up the pending round config from asRepeater() above
+        // and injects startRound/totalRounds into ChildSelectionBehavior.
         const shouldAddLoop = (hasCountdownCompletion || hasRoundsFromStrategy);
         const loopCondition = hasRoundsFromStrategy ? 'rounds-remaining' : 'timer-active';
-        const shouldInjectRest = hasCountdownCompletion;
+
+        // Only inject rest for interval-based countdowns (EMOM).
+        // For block-capping countdowns (AMRAP), rounds should restart immediately.
+        const shouldInjectRest = hasCountdownCompletion && countdown?.config.mode === 'reset-interval';
 
         builder.asContainer({
             childGroups,
@@ -75,31 +87,10 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         });
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
+        // Completion Aspect — deferred exit for all container blocks.
+        // Fires on next() only once block.isComplete is set externally
+        // (timer expiry, rounds exhausted). Replaces CompletedBlockPopBehavior.
         // =====================================================================
-
-        // Add CompletedBlockPopBehavior for all container blocks.
-        // It is a safe no-op when the block is not complete, and ensures
-        // completion pop is never dependent on timer behavior/strategy ordering.
-        builder.addBehavior(new CompletedBlockPopBehavior());
-
-        // Add default round handling if not already present
-        if (!builder.hasBehavior(ReEntryBehavior)) {
-            if (hasCountdownCompletion) {
-                // Countdown timer (AMRAP pattern): unbounded rounds, timer controls completion
-                builder.addBehavior(new ReEntryBehavior({
-                    totalRounds: undefined, // Unbounded
-                    startRound: 1
-                }));
-                // No RoundsEndBehavior - timer controls completion
-            } else {
-                // Single pass through children (no timer, or countup "for time" timer)
-                builder.addBehavior(new ReEntryBehavior({
-                    totalRounds: 1,
-                    startRound: 1
-                }));
-                builder.addBehavior(new RoundsEndBehavior());
-            }
-        }
+        builder.addBehavior(new ExitBehavior({ mode: 'deferred' }));
     }
 }

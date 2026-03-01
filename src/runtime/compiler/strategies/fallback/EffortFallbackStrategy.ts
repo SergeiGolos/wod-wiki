@@ -8,7 +8,7 @@ import { BlockKey } from "@/core/models/BlockKey";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
-import { LeafExitBehavior } from "../../../behaviors/LeafExitBehavior";
+import { ExitBehavior } from "../../../behaviors/ExitBehavior";
 
 /**
  * EffortFallbackStrategy handles simple leaf effort blocks (e.g., "10 Push-ups").
@@ -91,6 +91,6 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Completion Aspect: complete on user advance
-        builder.addBehavior(new LeafExitBehavior({ onNext: true }));
+        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
     }
 }

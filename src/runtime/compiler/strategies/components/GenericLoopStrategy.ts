@@ -11,7 +11,6 @@ import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
-    ReEntryBehavior,
     FragmentPromotionBehavior,
     LabelingBehavior
 } from "../../../behaviors";
@@ -33,7 +32,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // Skip if round behaviors already added by higher-priority strategy
-        if (builder.hasBehavior(ReEntryBehavior)) {
+        if (builder.hasRoundConfig()) {
             return;
         }
 

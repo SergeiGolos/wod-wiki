@@ -3,7 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { WaitingToStartStrategy } from '../WaitingToStartStrategy';
 import {
     ReportOutputBehavior,
-    LeafExitBehavior,
+    ExitBehavior,
     LabelingBehavior,
     ButtonBehavior
 } from '../../../behaviors';
@@ -62,10 +62,10 @@ describe('WaitingToStartStrategy', () => {
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
         });
 
-        it('should include LeafExitBehavior', () => {
+        it('should include ExitBehavior', () => {
             const block = strategy.build(harness.runtime);
 
-            expect(block.getBehavior(LeafExitBehavior)).toBeDefined();
+            expect(block.getBehavior(ExitBehavior)).toBeDefined();
         });
 
         it('should include LabelingBehavior', () => {

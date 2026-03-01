@@ -27,10 +27,10 @@ All hooks receive `IBehaviorContext` and return `IRuntimeAction[]` (except `onDi
 
 All strategies implement three members:
 
-| Member                                      | Purpose                                 |
-| ------------------------------------------- | --------------------------------------- |
-| `priority: number`                          | Execution order. Higher = runs first.   |
-| `match(statements, runtime): boolean`       | Whether this strategy applies           |
+| Member | Purpose |
+|--------|---------|
+| `priority: number` | Execution order. Higher = runs first. |
+| `match(statements, runtime): boolean` | Whether this strategy applies |
 | `apply(builder, statements, runtime): void` | Attaches behaviors and configures block |
 
 ### Priority Tiers
@@ -51,161 +51,165 @@ All strategies implement three members:
 #### `CompletionTimestampBehavior`
 - **Lifecycle**: `onNext`
 - **Core Function**: Auto-added to ALL blocks. Detects when block transitions to `isComplete = true` and stamps a `SystemTime` completion timestamp into `completion` memory.
-- **Strategies**: None (injected by block builder infrastructure)
+- **Strategies**: None (injected by `BlockBuilder` infrastructure)
 
 ---
 
-### 2. Time (Timer Lifecycle)
+### 2. Time Aspect
 
-#### `TimerInitBehavior`
-- **Lifecycle**: `onMount`, `onDispose`
-- **Core Function**: Initializes timer state in block memory on mount: creates `Time` fragment with direction, duration, label, role, and opens the first `TimeSpan` at current clock time.
-- **Memory Created**: `time` → `TimeFragment`
+The timer aspect is covered by **three single-responsibility behaviors**. Strategies assign exactly one rather than composing the old four-piece quartet (`TimerInitBehavior`, `TimerTickBehavior`, `TimerEndingBehavior`, `TimerPauseBehavior`).
 
-#### `TimerTickBehavior`
+#### `SpanTrackingBehavior`
+- **Lifecycle**: `onMount`, `onUnmount`
+- **Core Function**: Records wall-clock time a block was active. Opens a `TimeSpan` on mount and closes it on unmount. No tick subscription, no pause/resume, no completion signal. Used when elapsed time is needed only for history/reporting, not for a displayed running timer.
+- **Memory Created**: `time` → `TimerState` with `role: 'hidden'`
+
+#### `CountupTimerBehavior`
 - **Lifecycle**: `onMount`, `onUnmount`, `onDispose`
-- **Core Function**: Subscribes to `tick` events (with bubble scope for parent timer tracking) and closes the current time span on unmount to finalize elapsed time.
-- **Memory Updated**: `time.spans`
-
-#### `TimerEndingBehavior`
-- **Lifecycle**: `onMount`, `onDispose`
-- **Core Function**: Monitors countdown timers via `tick` subscription; fires `timer:complete` event when elapsed >= duration. Two modes: 
-  - `complete-block`: marks block complete and clears children
-  - `reset-interval`: resets interval state for next round
-- **Events Emitted**: `timer:complete`
-- **Memory Updated**: `intervals` (EMOM mode)
-
-#### `TimerPauseBehavior`
-- **Lifecycle**: `onMount`, `onDispose`
-- **Core Function**: Handles `timer:pause` and `timer:resume` events, closing current `TimeSpan` on pause and opening new span on resume to exclude paused time from elapsed calculations.
+- **Core Function**: Full lifecycle for count-up (open-ended) timers. Opens a `TimeSpan` on mount. Handles `timer:pause` / `timer:resume` events by closing and reopening spans. Closes the current span on unmount to finalise elapsed time. No completion signal — the block advances only when the user calls `next()`.
+- **Memory Created**: `time` → `TimerState` with `direction: 'up'`
 - **Events Subscribed**: `timer:pause`, `timer:resume`
-- **Memory Updated**: `time.spans`
+- **Configuration**: `CountupTimerConfig` — `label?`, `role?`
 
-#### `TimerBehavior` (Legacy Aggregate)
-- **Lifecycle**: `onMount`, `onNext`, `onUnmount`, `onDispose`
-- **Core Function**: Combines timer initialization, resets on next, closes span on unmount, and subscribes to pause/resume events.
-- **Note**: Being superseded by more granular behaviors
+#### `CountdownTimerBehavior`
+- **Lifecycle**: `onMount`, `onUnmount`, `onDispose`
+- **Core Function**: Full lifecycle for count-down timers. Opens a `TimeSpan` on mount and checks for immediate expiry. Subscribes to `tick` events to monitor elapsed time; fires `timer:complete` and handles expiry when `elapsed >= durationMs`. Handles pause/resume. Closes the span on unmount.
+- **Memory Created**: `time` → `TimerState` with `direction: 'down'`
+- **Events Subscribed**: `tick`, `timer:pause`, `timer:resume`
+- **Events Emitted**: `timer:complete` (on expiry)
+- **Configuration**: `CountdownTimerConfig`:
+  - `durationMs: number` — required countdown duration
+  - `mode?: CountdownMode` — `'complete-block'` (default, AMRAP) or `'reset-interval'` (EMOM)
+  - `label?`, `role?`, `restBlockFactory?`
+
+> **`CountdownMode`**
+> - `complete-block` — marks the block `isComplete` and clears children. Use when the timer owns the block's lifecycle (AMRAP cap, timed effort).
+> - `reset-interval` — resets spans and children state for the next round. Use for repeating-interval timers where the block lives across many rounds (EMOM).
 
 #### Applied via `builder.asTimer(config)` with parameters:
-- `direction`: `'up'` (countup) or `'down'` (countdown)
-- `duration`: milliseconds (for countdown)
-- `label`: display text
-- `role`: `'primary'` or `'secondary'`
-- `completionMode`: `'complete-block'` (AMRAP) or `'reset-interval'` (EMOM)
+- `direction`: `'up'` or `'down'`
+- `durationMs`: milliseconds (required for countdown)
+- `label`, `role`
+- `addCompletion: boolean` — whether to include `TimerEndingBehavior` (legacy path; now mode-specific)
+- `completionConfig?: { completesBlock: boolean }`
 
 ### Which Strategies Apply Timer Behaviors
 
-| Strategy | Priority | Fragment Match | Timer Config |
-|----------|----------|---------------|--------------|
-| **GenericTimerStrategy** | p50 | `Duration` fragment (non-runtime) | Countdown primary + `TimerPauseBehavior` |
-| **AmrapLogicStrategy** | p90 | `Duration` + (`Rounds` \| action="amrap") | Countdown primary, `complete-block` mode |
-| **IntervalLogicStrategy** | p90 | `Duration` + (hint \| action="emom") | Countdown primary, `reset-interval` mode |
-| **WorkoutRootStrategy** | p100 | Root block (direct-build) | Countup primary |
-| **IdleBlockStrategy** | p100 | Idle block (direct-build) | Optional countup secondary |
-| **EffortFallbackStrategy** | p0 | No Duration/Rounds/children | Countup secondary, no completion |
-| **RestBlockStrategy** | p50 | Rest block (direct-build) | Internal timer composition |
+| Strategy                   | Priority | Fragment Match                            | Timer Behavior                                       |     |
+| -------------------------- | -------- | ----------------------------------------- | ---------------------------------------------------- | --- |
+| **GenericTimerStrategy**   | p50      | `Duration` fragment                       | `CountdownTimerBehavior({ mode: 'complete-block' })` |     |
+| **AmrapLogicStrategy**     | p90      | `Duration` + (`Rounds` \| action="amrap") | `CountdownTimerBehavior({ mode: 'complete-block' })` |     |
+| **IntervalLogicStrategy**  | p90      | `Duration` + EMOM pattern                 | `CountdownTimerBehavior({ mode: 'reset-interval' })` |     |
+| **WorkoutRootStrategy**    | p100     | Root block (direct-build)                 | `CountupTimerBehavior`                               |     |
+| **SessionRootBlock**       | p100     | Session root (direct-build)               | `CountupTimerBehavior`                               |     |
+| **EffortFallbackStrategy** | p0       | No Duration/Rounds/children               | `CountupTimerBehavior` (no completion)               |     |
+| **RestBlock**              | p100     | Rest block (direct-build)                 | `CountdownTimerBehavior` internally                  |     |
 
 ---
 
-### 3. Iteration (Round/Loop Management)
+### 3. Iteration Aspect
 
-#### `ReEntryBehavior`
-- **Lifecycle**: `onMount`, `onDispose`
-- **Core Function**: Initializes round state in block memory on mount by writing `CurrentRoundFragment` with starting round number and optional total.
-- **Memory Created**: `round` → `CurrentRoundFragment`
-- **Note**: Round advancement delegated to `ChildSelectionBehavior`
+Round tracking and loop management live inside `ChildSelectionBehavior`. The old two-behavior pair (`ReEntryBehavior` + `RoundsEndBehavior`) is deprecated and their responsibilities are now absorbed.
 
-#### `RoundsEndBehavior`
-- **Lifecycle**: `onNext`, `onDispose`
-- **Core Function**: Safety net that checks on `next()` whether round counter exceeded total; if so, marks block complete with reason `rounds-exhausted` and returns `PopBlockAction`.
-- **Completion Trigger**: `round >= total`
+#### `ChildSelectionBehavior` (round init + dispatch)
+- **Lifecycle**: `onMount`, `onNext`, `onDispose`
+- **Core Function**: Manages sequential dispatch of child blocks from `childGroups`. Optionally initializes round state on mount (replacing `ReEntryBehavior`) and checks for round overflow on next (replacing `RoundsEndBehavior`). Supports loop conditions and rest injection between iterations.
+- **Configuration** (`ChildSelectionConfig`):
+  - `childGroups: number[][]` — groups of statement IDs to compile and dispatch
+  - `loop?: boolean | { condition?: ChildSelectionLoopCondition }` — loop condition: `'always'`, `'timer-active'`, or `'rounds-remaining'`
+  - `injectRest?: boolean` — inject rest blocks between iterations when countdown time remains
+  - `skipOnMount?: boolean` — defer first child dispatch (e.g. for waiting-to-start gates)
+  - `startRound?: number` — if set, writes `CurrentRoundFragment` on mount *(absorbs ReEntryBehavior)*
+  - `totalRounds?: number` — if set alongside `startRound`, overflow-guards on next *(absorbs RoundsEndBehavior)*
+- **Memory Created**: `round` → `CurrentRoundFragment` (when `startRound` is configured), `children:status`
+- **Round advancement**: `advanceRound()` increments the round counter and resets the child index on loop wrap
 
 #### `FragmentPromotionBehavior`
 - **Lifecycle**: `onMount`, `onNext`, `onDispose`
-- **Core Function**: Promotes (inherits) fragment values from parent block memory into child blocks. Supports rep-scheme cycling (e.g., 21-15-9) based on current round and generic promotion rules for arbitrary fragments.
+- **Core Function**: Promotes (inherits) fragment values from parent block memory into child statements before they are compiled. Supports rep-scheme cycling (e.g., 21-15-9) keyed on current round.
 - **Implements**: `IRepSource`, `IFragmentPromoter`
-- **Memory Accessed**: Parent `memory[owner]`, child `memory[owner]`
-- **Memory Created**: Child fragments (promoted or cycled values)
+- **Memory Accessed**: Parent `round` memory; child fragment targets
 
-#### Applied via `builder.asRepeater(config)` with parameters:
-- `totalRounds`: number of rounds (or `Infinity` for unbounded AMRAP)
-- `repScheme`: optional cycling scheme (e.g., `[21, 15, 9]`)
-- `promotionRules`: fragment types to inherit from parent
+#### ~~`ReEntryBehavior`~~ *(deprecated)*
+Round state initialization is now handled by `ChildSelectionBehavior` via `startRound`/`totalRounds` config fields. `ReEntryBehavior` still exists for backward compatibility but should not be used in new code.
+
+#### ~~`RoundsEndBehavior`~~ *(deprecated)*
+The overflow safety net is now built into `ChildSelectionBehavior.onNext()`. `RoundsEndBehavior` still exists for backward compatibility.
+
+#### Applied via `builder.asRepeater(config)` + `builder.asContainer(config)`:
+
+`asRepeater()` stores the round config as `pendingRoundConfig` on the builder — it does **not** add any behaviors directly. `asContainer()` then reads `pendingRoundConfig` and injects `startRound` / `totalRounds` into `ChildSelectionBehavior`. Therefore **`asRepeater()` must always be called before `asContainer()`** in strategy code.
 
 ### Which Strategies Apply Iteration Behaviors
 
-| Strategy | Priority | Fragment Match | Iteration Config |
-|----------|----------|---------------|-----------------|
-| **GenericLoopStrategy** | p50 | `Rounds` fragment | Fixed rounds + `RoundsEnd` + rep-scheme promotion |
-| **AmrapLogicStrategy** | p90 | `Duration` + (Rounds \| amrap action) | Unbounded rounds (timer ends, not rounds) |
-| **IntervalLogicStrategy** | p90 | `Duration` + EMOM pattern | Fixed rounds with completion |
-| **ChildrenStrategy** | p50 | Has children | Conditional: unbounded if countdown, single-pass else |
-| **WorkoutRootStrategy** | p100 | Root block | Optional repeater if `totalRounds > 1` |
+| Strategy | Priority | Fragment Match | Round Config on ChildSelectionBehavior |
+|----------|----------|---------------|---------------------------------------|
+| **GenericLoopStrategy** | p50 | `Rounds` fragment | `startRound: 1, totalRounds: N` |
+| **AmrapLogicStrategy** | p90 | `Duration` + (Rounds \| amrap action) | `startRound: 1, totalRounds: undefined` (unbounded) |
+| **IntervalLogicStrategy** | p90 | `Duration` + EMOM pattern | `startRound: 1, totalRounds: N` |
+| **ChildrenStrategy** | p50 | Statement has children | Reads `hasRoundConfig()` to set loop condition |
+| **WorkoutRootStrategy** | p100 | Root block | `startRound: 1, totalRounds: N` when `totalRounds > 1` |
+| **SessionRootBlock** | p100 | Session root (direct-build) | `startRound: 1, totalRounds` always set |
 
 ---
 
-### 4. Completion (Block Exit/Pop)
+### 4. Completion Aspect
 
-#### `LeafExitBehavior`
-- **Lifecycle**: `onMount`, `onNext`, `onUnmount`, `onDispose`
-- **Core Function**: Provides leaf-block exit logic — marks block complete and returns `PopBlockAction` either on `next()` call (if `onNext: true`) or when subscribed events fire.
-- **Configuration**: 
-  - `onNext: boolean` — pop on next call
-  - `onEvents: string[]` — pop when these events fire
-- **Typical Event**: `timer:complete`
-- **Used By**: Leaf blocks (timers, efforts) with no children
+Block exit and pop are handled by **one unified behavior** replacing the old two-behavior pair.
 
-#### `CompletedBlockPopBehavior`
-- **Lifecycle**: `onNext`, `onDispose`
-- **Core Function**: Deferred pop pattern — on `next()`, checks if block is already marked complete (e.g., by `TimerEndingBehavior`) and returns `PopBlockAction`. Allows upstream behaviors to control timing.
-- **Used By**: Loop blocks (AMRAP/EMOM) where timer marks completion but child dispatch triggers pop
+#### `ExitBehavior`
+- **Lifecycle**: `onMount`, `onNext`, `onDispose`
+- **Core Function**: Unified block-exit behavior supporting two modes:
+  - **`mode: 'immediate'`** — pops as soon as a trigger fires. Replaces `LeafExitBehavior`. Used for leaf blocks (timers, efforts) that exit as soon as their trigger fires.
+    - `onNext?: boolean` (default `true`) — pop when `next()` is called
+    - `onEvents?: string[]` (default `[]`) — pop when any listed event fires (e.g. `'timer:complete'`)
+  - **`mode: 'deferred'`** — pops only when `block.isComplete` is already `true` on the next `next()` call. Replaces `CompletedBlockPopBehavior`. Used for container blocks where a timer or event marks completion externally and the block should wait for in-flight children.
+- **Configuration**: `ExitConfig` — `mode`, `onNext?`, `onEvents?`
 
-#### Applied via builder configuration
+#### ~~`LeafExitBehavior`~~ *(deprecated)*
+Replaced by `ExitBehavior({ mode: 'immediate' })`. Still exists for backward compatibility.
+
+#### ~~`CompletedBlockPopBehavior`~~ *(deprecated)*
+Replaced by `ExitBehavior({ mode: 'deferred' })`. Still exists for backward compatibility.
 
 ### Which Strategies Apply Completion Behaviors
 
-| Strategy | Priority | Fragment Match | Completion Config |
-|----------|----------|---------------|------------------|
-| **GenericTimerStrategy** | p50 | `Duration` fragment | `LeafExitBehavior` (exit on `timer:complete`) |
-| **EffortFallbackStrategy** | p0 | No Duration/Rounds/children | `LeafExitBehavior` (pop on next) |
-| **IdleBlockStrategy** | p100 | Idle block | `LeafExitBehavior` (if configured) |
-| **ChildrenStrategy** | p50 | Has children | `CompletedBlockPopBehavior` + **removes** `LeafExitBehavior` |
+| Strategy | Priority | Fragment Match | Exit Config |
+|----------|----------|---------------|-------------|
+| **GenericTimerStrategy** | p50 | `Duration` fragment | `ExitBehavior({ mode: 'immediate', onNext: true, onEvents: ['timer:complete'] })` |
+| **EffortFallbackStrategy** | p0 | No Duration/Rounds/children | `ExitBehavior({ mode: 'immediate', onNext: true })` |
+| **IdleBlockStrategy** | p100 | Idle block | `ExitBehavior({ mode: 'immediate', onNext: true })` |
+| **WaitingToStartBlock** | direct | Waiting gate | `ExitBehavior({ mode: 'immediate', onNext: true })` |
+| **RestBlock** | direct | Rest block | `ExitBehavior({ mode: 'immediate', onNext: false, onEvents: ['timer:complete'] })` |
+| **ChildrenStrategy** | p50 | Statement has children | `ExitBehavior({ mode: 'deferred' })` — removes any immediate ExitBehavior |
 
 ---
 
-### 5. Children (Child Block Dispatching)
+### 5. Children Aspect
 
-#### `ChildSelectionBehavior`
-- **Lifecycle**: `onMount`, `onNext`, `onUnmount`, `onDispose`
-- **Core Function**: Manages sequential dispatch of child blocks from configured `childGroups`. Tracks child index and round state, supports looping (with conditions: `always`, `timer-active`, `rounds-remaining`), and injects rest blocks between iterations when countdown timer has remaining time.
-- **Configuration**:
-  - `childGroups: IRuntimeBlock[][]` — nested child blocks
-  - `loopCondition`: `'always'` (always re-enter), `'timer-active'` (while countdown running), `'rounds-remaining'` (while rounds < total)
-  - `canInjectRest: boolean` — inject rest blocks between rounds
-- **Memory Created/Updated**: Child indices, round tracking
-- **Methods**: `advanceRound()` — increments round counter and resets child index
+See **Iteration Aspect** above — `ChildSelectionBehavior` is both the child dispatcher and the round-state owner.
 
-#### Applied via `builder.asContainer(config)` with parameters:
-- `loop: boolean` — whether to loop children
-- `restBetweenRounds: boolean` — inject rest blocks
-- `loopCondition`: loop behavior type
+#### Applied via `builder.asContainer(config)`:
+- `childGroups: number[][]` — statement groups to dispatch
+- `addLoop: boolean` — enable looping
+- `loopConfig?: { condition: ChildSelectionLoopCondition }` — loop type
 
 ### Which Strategies Apply Children Behaviors
 
-| Strategy | Priority | Fragment Match | Container Config |
-|----------|----------|---------------|-----------------|
-| **ChildrenStrategy** | p50 | First statement has `children.length > 0` | Loop if countdown/rounds; rest injection if countdown |
-| **WorkoutRootStrategy** | p100 | Root block | No-loop container (sequential children once) |
+| Strategy                | Priority | Fragment Match                            | Container Config                                                     |
+| ----------------------- | -------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| **ChildrenStrategy**    | p50      | First statement has `children.length > 0` | Loop if countdown or `hasRoundConfig()`; rest injection if countdown |
+| **WorkoutRootStrategy** | p100     | Root block                                | No-loop container                                                    |
+| **SessionRootBlock**    | p100     | Session root                              | Loop with `rounds-remaining` condition                               |
 
 ---
 
-### 6. Display (Visual Labeling)
+### 6. Display Aspect
 
 #### `LabelingBehavior`
 - **Lifecycle**: `onMount`, `onNext`, `onDispose`
-- **Core Function**: Creates display text fragments (label, subtitle, action, round display) in block memory on mount; dynamically updates round label on `next()` when round state changes.
+- **Core Function**: Creates display text fragments (label, subtitle, action, round display) in `display` memory on mount; dynamically updates round label on `next()` when round state changes.
 - **Memory Created**: Display fragments in `display` memory
-- **Fragment Types**: `Label`, `Subtitle`, `Action`, `RoundDisplay`
 
 ### Which Strategies Apply Labeling
 
@@ -221,75 +225,64 @@ All strategies implement three members:
 
 ---
 
-### 7. Output (Events, History, Sound)
+### 7. Output Aspect
 
 #### `ReportOutputBehavior`
 - **Lifecycle**: `onMount`, `onNext`, `onUnmount`, `onDispose`
-- **Core Function**: Emits structured output events at different lifecycle points:
-  - `segment`: on mount (if configured)
-  - `milestone`: on round changes (mount and next)
-  - `completion`: on unmount with computed time results
-- **Output Data**: Elapsed time, total time, time spans, system timestamps
-- **Split Display**: Supports splitting results across multiple fragment groups
+- **Core Function**: Emits structured output events: `output:segment` on mount, `output:milestone` on round changes, `output:completion` on unmount with computed time results.
 - **Events Emitted**: `output:segment`, `output:milestone`, `output:completion`
 
 #### `HistoryRecordBehavior`
 - **Lifecycle**: `onUnmount`, `onDispose`
-- **Core Function**: On unmount, gathers execution data (elapsed time, timer direction/duration, completed rounds) and emits `history:record` event for workout history persistence.
+- **Core Function**: On unmount, gathers elapsed time, timer direction/duration, and completed rounds; emits `history:record` for persistence.
 - **Events Emitted**: `history:record`
-- **Data Collected**: Timing, rounds, direction, outcome
 
 #### `SoundCueBehavior`
 - **Lifecycle**: `onMount`, `onNext`, `onUnmount`, `onDispose`
-- **Core Function**: Emits sound cue system outputs at lifecycle points (`mount`, `unmount`/`complete` triggers) and subscribes to `tick` events with bubble scope for countdown triggers at specified second thresholds (e.g., 3-2-1 beeps).
+- **Core Function**: Emits `system:output` sound cues at lifecycle points and subscribes to `tick` events for countdown thresholds (3-2-1 beeps).
 - **Cue Types**: `start-beep`, `countdown-beep`, `timer-complete`, `interval-complete`, `interval-start`
-- **Events Subscribed**: `tick` (for second thresholds)
-- **Configuration**: Threshold seconds for countdown warnings
+- **Events Subscribed**: `tick`
 
 ### Which Strategies Apply Output Behaviors
 
 | Strategy | Priority | Fragment Match | Outputs Applied |
 |----------|----------|---------------|-----------------|
-| **ReportOutputStrategy** | p15 | Universal (any non-empty statements) | `ReportOutputBehavior` (default config) |
-| **HistoryStrategy** | p20 | Universal (any non-empty statements) | `HistoryRecordBehavior` |
-| **SoundStrategy** | p20 | Universal (any non-empty statements) | `SoundCueBehavior` (countdown or start beeps) |
-| **AmrapLogicStrategy** | p90 | AMRAP pattern | `SoundCueBehavior` (start + countdown + complete) |
-| **IntervalLogicStrategy** | p90 | EMOM pattern | `SoundCueBehavior` (start + countdown + interval-complete) |
+| **ReportOutputStrategy** | p15 | Universal | `ReportOutputBehavior` |
+| **HistoryStrategy** | p20 | Universal | `HistoryRecordBehavior` |
+| **SoundStrategy** | p20 | Universal | `SoundCueBehavior` |
+| **AmrapLogicStrategy** | p90 | AMRAP | `SoundCueBehavior` (start + countdown + complete) |
+| **IntervalLogicStrategy** | p90 | EMOM | `SoundCueBehavior` (start + countdown + interval-complete) |
 | **WorkoutRootStrategy** | p100 | Root block | `HistoryRecordBehavior` |
 
 ---
 
-### 8. Controls (UI Interaction)
+### 8. Controls Aspect
 
 #### `ButtonBehavior`
 - **Lifecycle**: `onMount`, `onUnmount`, `onDispose`
-- **Core Function**: Pushes `Action`-type fragments to `controls` memory on mount (representing UI buttons with id, label, variant, visibility, enabled state, and event name) and clears them on unmount.
+- **Core Function**: Pushes `Action`-type fragments to `controls` memory on mount and clears them on unmount. Static method `updateButton(block, id, updates)` allows dynamic state changes.
 - **Memory Created**: Control fragments in `controls` memory
-- **Button Properties**: `id`, `label`, `variant`, `visible`, `enabled`, `eventName`
-- **Static Method**: `updateButton(block, id, updates)` — dynamically change button state
 
 ### Which Strategies Apply Controls
 
 | Strategy | Priority | Fragment Match | Buttons |
 |----------|----------|---------------|---------|
-| **WorkoutRootStrategy** | p100 | Root block | Pause / Next / Stop buttons |
-| **IdleBlockStrategy** | p100 | Idle block | Optional button config |
+| **WorkoutRootStrategy** | p100 | Root block | Pause / Next / Stop |
+| **IdleBlockStrategy** | p100 | Idle block | Optional configured button |
 
 ---
 
-### 9. Lifecycle (Startup Gating)
+### 9. Lifecycle Gating
 
 #### `WaitingToStartInjectorBehavior`
 - **Lifecycle**: `onMount`, `onDispose`
-- **Core Function**: On mount, returns `PushBlockAction` with a `WaitingToStartBlock` to act as an idle gate before workout begins.
-- **Intended Position**: Before `ChildSelectionBehavior` (which should use `skipOnMount: true`)
-- **Effect**: Delays execution until user interaction
+- **Core Function**: On mount, pushes a `WaitingToStartBlock` onto the stack as an idle gate before workout execution begins. The parent's `ChildSelectionBehavior` should be configured with `skipOnMount: true` to defer child dispatch until the gate is dismissed.
 
-### Which Strategies Apply Lifecycle
+### Which Strategies Apply Lifecycle Gating
 
 | Strategy | Priority | Fragment Match |
 |----------|----------|---------------|
-| **WaitingToStartStrategy** | p100 | Direct-build only (creates the `WaitingToStartBlock` itself) |
+| **SessionRootBlock** | p100 | Direct-build only |
 
 ---
 
@@ -308,16 +301,16 @@ Priority p100  Root/Direct-build
 
 Priority p90   Logic Drivers (establish block type identity)
   ├─ AmrapLogicStrategy (AMRAP: countdown + unbounded rounds)
-  └─ IntervalLogicStrategy (EMOM: countdown + fixed rounds, reset on interval)
+  └─ IntervalLogicStrategy (EMOM: countdown + fixed rounds, reset-interval)
 
-Priority p50   Components (fill in timer/group/loop if not set)
+Priority p50   Components (fill in timer/group/loop if not already set)
   ├─ GenericTimerStrategy (any Duration fragment)
   ├─ GenericGroupStrategy (children without Duration/Rounds)
   ├─ GenericLoopStrategy (any Rounds fragment)
   ├─ ChildrenStrategy (first statement has children)
   └─ RestBlockStrategy (direct-build only)
 
-Priority p20   Enhancements (add cross-cutting concerns)
+Priority p20   Enhancements (cross-cutting concerns)
   ├─ SoundStrategy (universal: add sound cues)
   └─ HistoryStrategy (universal: add history recording)
 
@@ -330,14 +323,22 @@ Priority p0    Fallback (catch-all for simple efforts)
 
 ### Behavior Deduplication
 
-All strategies check for behavior presence before attaching. If a behavior is already present, the strategy skips it:
+Strategies check `builder.hasBehavior(Type)` before attaching. If a behavior is already present, the strategy skips it. This ensures composability without duplication:
 
-- `TimerBehavior` prevents re-attachment in lower-priority strategies
-- `ReEntryBehavior` prevents duplicate round state initialization
-- `SoundCueBehavior` prevents duplicate sound cue handlers
-- etc.
+- `CountdownTimerBehavior` / `CountupTimerBehavior` prevent re-attachment in lower-priority strategies.
+- `ChildSelectionBehavior` prevents duplicate child dispatch setup.
+- `SoundCueBehavior` prevents duplicate sound cue handlers.
 
-This ensures composability without duplication.
+When `ChildrenStrategy` runs it **removes** any `ExitBehavior` in `immediate` mode that a lower-priority component strategy added, replacing it with `ExitBehavior({ mode: 'deferred' })` — because the container block's exit is now controlled by its completion state, not a direct next/event trigger.
+
+### `BlockBuilder` Composer Methods
+
+| Method | Effect |
+|--------|--------|
+| `asTimer(config)` | Adds `CountdownTimerBehavior` or `CountupTimerBehavior` + optional `TimerEndingBehavior` |
+| `asRepeater(config)` | **Stores** `RepeaterConfig` as `pendingRoundConfig` — adds no behaviors directly |
+| `asContainer(config)` | Adds `ChildSelectionBehavior`, injecting `startRound`/`totalRounds` from `pendingRoundConfig` if set |
+| `hasRoundConfig()` | Returns `true` if `asRepeater()` was already called (used by strategies to conditionally set loop conditions) |
 
 ---
 
@@ -348,15 +349,14 @@ This ensures composability without duplication.
 **Input**: Statement with `Duration` fragment (10 minutes)
 
 **Matching Strategies** (in order):
-1. ✓ GenericTimerStrategy (p50) matches `Duration` fragment
+1. ✓ **GenericTimerStrategy** (p50) matches `Duration` fragment
    - Sets blockType: `"Timer"`
-   - Attaches: `TimerInitBehavior`, `TimerTickBehavior`, `TimerEndingBehavior` (countdown), `TimerPauseBehavior`, `LeafExitBehavior`, `LabelingBehavior`, `SoundCueBehavior`
+   - Attaches: `CountdownTimerBehavior({ mode: 'complete-block' })`, `ExitBehavior({ mode: 'immediate', onNext: true, onEvents: ['timer:complete'] })`, `LabelingBehavior`, `SoundCueBehavior`
+2. ✓ **SoundStrategy** (p20) — already has `SoundCueBehavior`, skips
+3. ✓ **HistoryStrategy** (p20) — attaches `HistoryRecordBehavior`
+4. ✓ **ReportOutputStrategy** (p15) — attaches `ReportOutputBehavior`
 
-2. ✓ SoundStrategy (p20) — already has `SoundCueBehavior`, skips
-3. ✓ HistoryStrategy (p20) — attaches `HistoryRecordBehavior`
-4. ✓ ReportOutputStrategy (p15) — attaches `ReportOutputBehavior`
-
-**Result**: Block with timer, sound cues, history tracking, and output reporting.
+**Result**: Countdown block that pops on timer expiry, with sound cues, history, and output.
 
 ---
 
@@ -365,21 +365,22 @@ This ensures composability without duplication.
 **Input**: Statement with `Duration` (10 min) + children (reps) + `Effort` action="amrap"
 
 **Matching Strategies** (in order):
-1. ✓ AmrapLogicStrategy (p90) matches `Duration` + amrap action
+1. ✓ **AmrapLogicStrategy** (p90) matches `Duration` + amrap action
    - Sets blockType: `"AMRAP"`
-   - Attaches: `TimerInitBehavior`, `TimerTickBehavior` (countdown, no reset — completes block), `TimerPauseBehavior`, `ReEntryBehavior` (unbounded), `LabelingBehavior`, `SoundCueBehavior` (start + countdown beeps)
+   - Calls `builder.asTimer({ direction: 'down', mode: 'complete-block' })` → `CountdownTimerBehavior`
+   - Calls `builder.asRepeater({ totalRounds: undefined, startRound: 1 })` → stores `pendingRoundConfig`
+   - Attaches: `LabelingBehavior`, `SoundCueBehavior`
+2. ✗ **GenericTimerStrategy** (p50) — blockType already set, skips
+3. ✓ **ChildrenStrategy** (p50) — statement has children
+   - Detects `builder.hasRoundConfig()` → sets loop condition `'timer-active'`
+   - Calls `builder.asContainer({ childGroups, addLoop: true, loopConfig: { condition: 'timer-active' } })` → `ChildSelectionBehavior({ ..., startRound: 1, totalRounds: undefined, loop: { condition: 'timer-active' } })`
+   - Replaces any immediate `ExitBehavior` with `ExitBehavior({ mode: 'deferred' })`
+   - Attaches: `FragmentPromotionBehavior`
+4. ✓ **SoundStrategy** (p20) — already has `SoundCueBehavior`, skips
+5. ✓ **HistoryStrategy** (p20) — attaches `HistoryRecordBehavior`
+6. ✓ **ReportOutputStrategy** (p15) — attaches `ReportOutputBehavior`
 
-2. ✗ GenericTimerStrategy (p50) skipped — blockType already set
-3. ✓ ChildrenStrategy (p50)
-   - Attaches: `ChildSelectionBehavior` (loop while `timer-active`), `CompletedBlockPopBehavior` (deferred pop when timer completes)
-   - Removes: `LeafExitBehavior` (children manage advancement)
-   - Attaches: `FragmentPromotionBehavior` (promote reps from parent to each child)
-
-4. ✓ SoundStrategy (p20) — already has `SoundCueBehavior`, skips
-5. ✓ HistoryStrategy (p20) — attaches `HistoryRecordBehavior`
-6. ✓ ReportOutputStrategy (p15) — attaches `ReportOutputBehavior`
-
-**Result**: Block with countdown timer that loops children until time expires, with sound cues and history tracking.
+**Result**: Countdown block with `ChildSelectionBehavior` looping children until timer expires. No separate `ReEntryBehavior` or `CompletedBlockPopBehavior` needed.
 
 ---
 
@@ -388,77 +389,66 @@ This ensures composability without duplication.
 **Input**: Statement with `Rounds` fragment (3 rounds) + children
 
 **Matching Strategies** (in order):
-1. ✓ GenericLoopStrategy (p50) matches `Rounds` fragment
+1. ✓ **GenericLoopStrategy** (p50) matches `Rounds` fragment
    - Sets blockType: `"Rounds"`
-   - Attaches: `ReEntryBehavior`, `RoundsEndBehavior`, `LabelingBehavior`, `FragmentPromotionBehavior` (cycle reps by round)
+   - Calls `builder.asRepeater({ totalRounds: 3, startRound: 1 })` → stores `pendingRoundConfig`
+   - Attaches: `LabelingBehavior`, `FragmentPromotionBehavior` (cycle reps by round)
+2. ✓ **ChildrenStrategy** (p50) — statement has children
+   - Detects `builder.hasRoundConfig()` → sets loop condition `'rounds-remaining'`
+   - Calls `builder.asContainer(...)` → `ChildSelectionBehavior({ startRound: 1, totalRounds: 3, loop: { condition: 'rounds-remaining' } })`
+   - Attaches: `ExitBehavior({ mode: 'deferred' })`
+3. ✓ **HistoryStrategy** (p20) — attaches `HistoryRecordBehavior`
+4. ✓ **ReportOutputStrategy** (p15) — attaches `ReportOutputBehavior`
 
-2. ✓ ChildrenStrategy (p50)
-   - Attaches: `ChildSelectionBehavior` (loop while `rounds-remaining`), `CompletedBlockPopBehavior`
-   - Attaches: `FragmentPromotionBehavior` (already present, skipped)
-
-3. ✓ SoundStrategy (p20) — no countdown timer, skips
-4. ✓ HistoryStrategy (p20) — attaches `HistoryRecordBehavior`
-5. ✓ ReportOutputStrategy (p15) — attaches `ReportOutputBehavior`
-
-**Result**: Block that loops children 3 times, with round counter and history tracking.
+**Result**: Block that loops children 3 times; round state lives inside `ChildSelectionBehavior`.
 
 ---
 
-### Pattern 4: Simple Group (e.g., "Warm up: 5 Minutes Row, 10 Push-ups")
+### Pattern 4: Simple Group (e.g., "Warm up: Row, Push-ups")
 
 **Input**: Statement with children, NO `Duration`, NO `Rounds`
 
 **Matching Strategies** (in order):
-1. ✗ AmrapLogicStrategy (p90) no AMRAP markers, skips
-2. ✗ IntervalLogicStrategy (p90) no EMOM markers, skips
-3. ✓ GenericGroupStrategy (p50) matches children without Duration/Rounds
-   - Sets blockType: `"Group"`
-   - Attaches: `LabelingBehavior`
+1. ✓ **GenericGroupStrategy** (p50) — children without Duration/Rounds
+   - Sets blockType: `"Group"`, attaches `LabelingBehavior`
+2. ✓ **ChildrenStrategy** (p50) — no `hasRoundConfig()`, no countdown
+   - Sets loop condition `'always'`
+   - `ChildSelectionBehavior({ loop: { condition: 'always' } })` (no round config)
+   - Attaches: `ExitBehavior({ mode: 'deferred' })`
+3. ✓ **HistoryStrategy** (p20) — attaches `HistoryRecordBehavior`
+4. ✓ **ReportOutputStrategy** (p15) — attaches `ReportOutputBehavior`
 
-4. ✓ ChildrenStrategy (p50)
-   - Attaches: `ChildSelectionBehavior` (loop while `always`), `CompletedBlockPopBehavior`
-   - Attaches: `UniqueFragmentPromoter` (no rep cycling)
-
-5. ✓ SoundStrategy (p20) — no countdown, skips
-6. ✓ HistoryStrategy (p20) — attaches `HistoryRecordBehavior`
-7. ✓ ReportOutputStrategy (p15) — attaches `ReportOutputBehavior`
-
-**Result**: Block that sequentially executes children, with history.
+**Result**: Block that sequentially executes children once (no round tracking).
 
 ---
 
 ### Pattern 5: Simple Effort (e.g., "Push-ups")
 
-**Input**: Statement with no `Duration`, NO `Rounds`, NO children
+**Input**: Statement with no `Duration`, no `Rounds`, no children
 
 **Matching Strategies** (in order):
-1. ✗ All logic/component strategies skip (no matching fragments)
-2. ✓ EffortFallbackStrategy (p0) catches everything else
+1. ✗ All logic/component strategies skip
+2. ✓ **EffortFallbackStrategy** (p0)
    - Sets blockType: `"effort"`
-   - Attaches: `TimerInitBehavior`, `TimerTickBehavior` (countup), `LeafExitBehavior` (pop on next)
+   - Attaches: `CountupTimerBehavior`, `ExitBehavior({ mode: 'immediate', onNext: true })`
+3. ✓ **SoundStrategy** (p20) — attaches `SoundCueBehavior` (start beep)
+4. ✓ **HistoryStrategy** (p20) — attaches `HistoryRecordBehavior`
+5. ✓ **ReportOutputStrategy** (p15) — attaches `ReportOutputBehavior`
 
-3. ✓ SoundStrategy (p20) — countup timer, attaches `SoundCueBehavior` (start beep)
-4. ✓ HistoryStrategy (p20) — attaches `HistoryRecordBehavior`
-5. ✓ ReportOutputStrategy (p15) — attaches `ReportOutputBehavior`
-
-**Result**: Simple leaf block with countup timer and exit on next.
+**Result**: Leaf block with countup timer that pops on next.
 
 ---
 
 ## Memory Layout by Behavior
 
-Each block has named memory regions owned by behaviors:
-
-| Memory Owner | Behaviors | Contents |
-|--------------|-----------|----------|
-| `time` | `TimerInitBehavior`, `TimerTickBehavior`, `TimerEndingBehavior` | `Time` fragment with direction, duration, spans |
-| `round` | `ReEntryBehavior`, `ChildSelectionBehavior` | `CurrentRoundFragment` with round number and total |
-| `display` | `LabelingBehavior` | `Label`, `Subtitle`, `Action`, `RoundDisplay` fragments |
-| `controls` | `ButtonBehavior` | `Action`-type fragments representing UI buttons |
-| `promotion` | `FragmentPromotionBehavior` | Promoted fragments from parent to child |
-| `intervals` | `TimerEndingBehavior` (EMOM) | Interval state for reset-interval pattern |
-| `completion` | `CompletionTimestampBehavior` | `SystemTime` timestamp when block marked complete |
-| `children` | `ChildSelectionBehavior` | Child block indices and state |
+| Memory Key | Written By | Contents |
+|------------|-----------|----------|
+| `time` | `SpanTrackingBehavior`, `CountupTimerBehavior`, `CountdownTimerBehavior` | `TimerState` — direction, durationMs, spans |
+| `round` | `ChildSelectionBehavior` (when `startRound` set) | `CurrentRoundFragment` — current and total rounds |
+| `display` | `LabelingBehavior` | Label, Subtitle, Action, RoundDisplay fragments |
+| `controls` | `ButtonBehavior` | Action-type fragments (UI buttons) |
+| `children:status` | `ChildSelectionBehavior` | Child index and completion state |
+| `completion` | `CompletionTimestampBehavior` | `SystemTime` timestamp when `isComplete` first set |
 
 ---
 
@@ -468,18 +458,15 @@ Each block has named memory regions owned by behaviors:
 
 | Event | Emitted By | Listeners |
 |-------|-----------|-----------|
-| `mount` | Runtime | (behaviors onMount hooks) |
-| `next` | Runtime | (behaviors onNext hooks) |
-| `unmount` | Runtime | (behaviors onUnmount hooks) |
-| `tick` | Clock system | `TimerTickBehavior`, `TimerEndingBehavior`, `SoundCueBehavior` |
+| `tick` | Clock system | `CountdownTimerBehavior`, `SoundCueBehavior` |
+| `timer:pause` | User UI | `CountupTimerBehavior`, `CountdownTimerBehavior` |
+| `timer:resume` | User UI | `CountupTimerBehavior`, `CountdownTimerBehavior` |
 
 ### Behavior-Emitted Events
 
 | Event | Emitted By | Listeners |
 |-------|-----------|-----------|
-| `timer:pause` | (User UI) | `TimerBehavior`, `TimerPauseBehavior` |
-| `timer:resume` | (User UI) | `TimerBehavior`, `TimerPauseBehavior` |
-| `timer:complete` | `TimerEndingBehavior` | `LeafExitBehavior` (subscriber), rest of system |
+| `timer:complete` | `CountdownTimerBehavior` | `ExitBehavior` (immediate mode, if configured) |
 | `history:record` | `HistoryRecordBehavior` | History storage service |
 | `output:segment` | `ReportOutputBehavior` | Output subscribers |
 | `output:milestone` | `ReportOutputBehavior` | Output subscribers |
@@ -489,98 +476,109 @@ Each block has named memory regions owned by behaviors:
 
 ## Key Invariants
 
-1. **CompletionTimestampBehavior is universal**: Added to every block, records completion time.
-2. **Deferred completion**: `TimerEndingBehavior` marks block complete; `CompletedBlockPopBehavior` pops on next (allows state inspection).
-3. **Fragment promotion**: Inherits from parent memory after parent's `onMount`, before child's `onMount`.
-4. **Bubble scope tick events**: Parent timers track even when child blocks are active.
-5. **Rest injection**: Injected only if countdown timer has remaining time and `ChildSelectionBehavior` configured for it.
-6. **No behavior duplication**: All strategies check presence before attaching; lower-priority strategies skip if already present.
+1. **`CompletionTimestampBehavior` is universal** — added to every block; records when `isComplete` first becomes true.
+2. **Timer behaviors are mutually exclusive** — a block gets exactly one of `SpanTrackingBehavior`, `CountupTimerBehavior`, or `CountdownTimerBehavior`.
+3. **Round state lives in `ChildSelectionBehavior`** — `asRepeater()` stores config that `asContainer()` injects; no separate init or safety-net behaviors.
+4. **Exit is always `ExitBehavior`** — leaf blocks use `mode: 'immediate'`, containers use `mode: 'deferred'`; `ChildrenStrategy` swaps the mode when converting a leaf to a container.
+5. **`asRepeater()` before `asContainer()`** — `asRepeater()` stores `pendingRoundConfig`; `asContainer()` consumes it. Calling them out of order loses the round config.
+6. **Fragment promotion** — `FragmentPromotionBehavior` inherits from parent memory after parent's `onMount`, before child's `onMount`.
+7. **Bubble scope tick events** — parent countdown timers continue tracking even when child blocks are active.
+8. **No behavior duplication** — strategies check `hasBehavior()` before attaching; lower-priority strategies skip if already present.
 
 ---
 
 ## Lifecycle Execution Sequence Example: AMRAP Block
 
 ```
-1. Block constructed with behaviors attached
+1. Block constructed with behaviors attached via AmrapLogicStrategy + ChildrenStrategy
+
 2. block.mount()
-   ├─ CompletionTimestampBehavior.onMount()     (no-op)
-   ├─ TimerInitBehavior.onMount()               (create time fragment, open TimeSpan)
-   ├─ TimerTickBehavior.onMount()               (subscribe to tick)
-   ├─ TimerEndingBehavior.onMount()             (subscribe to tick, set completion mode)
-   ├─ TimerPauseBehavior.onMount()              (subscribe to pause/resume)
-   ├─ ReEntryBehavior.onMount()                 (create round fragment, round=1)
-   ├─ LabelingBehavior.onMount()                (create label/subtitle displays)
-   ├─ SoundCueBehavior.onMount()                (emit start-beep)
-   ├─ WaitingToStartInjectorBehavior.onMount()  (if present: push waiting gate)
-   ├─ ChildSelectionBehavior.onMount()          (if skipOnMount: false, dispatch first child)
-   │   └─ Child block.mount() [recursive]
-   ├─ FragmentPromotionBehavior.onMount()       (promote parent fragments to children, cycle reps)
-   ├─ CompletedBlockPopBehavior.onMount()       (no-op)
-   ├─ HistoryRecordBehavior.onMount()           (no-op)
-   ├─ ReportOutputBehavior.onMount()            (emit segment output if configured)
-   └─ ButtonBehavior.onMount()                  (create control buttons)
+   ├─ CompletionTimestampBehavior.onMount()      (no-op)
+   ├─ CountdownTimerBehavior.onMount()           (create 'time' fragment, open TimeSpan, subscribe tick/pause/resume)
+   ├─ ChildSelectionBehavior.onMount()
+   │   ├─ write CurrentRoundFragment (round=1, total=undefined) → 'round' memory
+   │   └─ dispatch first child → compile + PushBlockAction
+   │       └─ Child block.mount() [recursive]
+   ├─ LabelingBehavior.onMount()                 (create label/subtitle displays)
+   ├─ SoundCueBehavior.onMount()                 (emit start-beep, subscribe tick for countdown)
+   ├─ ExitBehavior.onMount()                     (deferred mode: no-op)
+   ├─ FragmentPromotionBehavior.onMount()        (promote parent fragments into child statement)
+   ├─ HistoryRecordBehavior.onMount()            (no-op)
+   └─ ReportOutputBehavior.onMount()             (emit segment output if configured)
 
-3. [clock ticks, user interacts]
+3. [clock ticks, children execute and pop]
 
-4. block.next()
-   ├─ CompletionTimestampBehavior.onNext()      (check for completion, maybe stamp)
-   ├─ LeafExitBehavior.onNext()                 (if configured: pop block)
-   ├─ CompletedBlockPopBehavior.onNext()        (if timer marked complete: pop)
-   ├─ RoundsEndBehavior.onNext()                (check if rounds exhausted)
-   ├─ ChildSelectionBehavior.onNext()           (dispatch next child or rewind to first)
-   │   ├─ Current child.unmount() [recursive]
-   │   └─ Next child.mount() [recursive]
-   ├─ LabelingBehavior.onNext()                 (update round display)
-   ├─ ReportOutputBehavior.onNext()             (emit milestone if round changed)
-   └─ ...other behaviors (most no-op on next)
+4. block.next()  [child completed, dispatch next]
+   ├─ CompletionTimestampBehavior.onNext()       (block not complete, no-op)
+   ├─ ExitBehavior.onNext()                      (deferred: block.isComplete = false, no-op)
+   ├─ ChildSelectionBehavior.onNext()
+   │   ├─ childIndex < totalChildren → dispatch next child
+   │   ├─ childIndex >= totalChildren → shouldLoop? timer-active check
+   │   │   ├─ true  → advanceRound(), reset childIndex, dispatch first child again
+   │   │   └─ false → markComplete('children-complete')
+   ├─ LabelingBehavior.onNext()                  (update round display if round changed)
+   └─ ReportOutputBehavior.onNext()              (emit milestone if round advanced)
 
-5. [when timer completes]
-   ├─ TimerEndingBehavior detects elapsed >= duration
-   ├─ TimerEndingBehavior marks block.isComplete = true
-   ├─ TimerEndingBehavior emits timer:complete event
-   ├─ ChildSelectionBehavior receives timer:complete, stops looping
+5. [CountdownTimerBehavior tick fires, elapsed >= durationMs]
+   ├─ CountdownTimerBehavior calls ctx.markComplete('timer:complete')
+   ├─ CountdownTimerBehavior emits 'timer:complete' event
+   └─ CountdownTimerBehavior clears children (ClearChildrenAction)
 
-6. block.next() [final]
-   ├─ CompletedBlockPopBehavior.onNext()        (block.isComplete = true, so return PopBlockAction)
+6. block.next()  [final — after timer expiry]
+   ├─ ExitBehavior.onNext()                      (deferred: block.isComplete = true → PopBlockAction)
    └─ Runtime pops block
 
 7. block.unmount()
-   ├─ CompletionTimestampBehavior.onUnmount()   (no-op)
-   ├─ TimerTickBehavior.onUnmount()             (close current TimeSpan)
-   ├─ TimerEndingBehavior.onUnmount()           (no-op)
-   ├─ TimerPauseBehavior.onUnmount()            (no-op)
-   ├─ ReEntryBehavior.onUnmount()               (no-op)
-   ├─ LabelingBehavior.onUnmount()              (no-op)
-   ├─ SoundCueBehavior.onUnmount()              (emit complete-beep if configured)
-   ├─ ChildSelectionBehavior.onUnmount()        (no-op)
-   ├─ HistoryRecordBehavior.onUnmount()         (gather elapsed, rounds, emit history:record)
-   ├─ ReportOutputBehavior.onUnmount()          (emit completion output with results)
-   └─ ButtonBehavior.onUnmount()                (clear control buttons)
+   ├─ CountdownTimerBehavior.onUnmount()         (close current TimeSpan, unsubscribe)
+   ├─ LabelingBehavior.onUnmount()               (no-op)
+   ├─ SoundCueBehavior.onUnmount()               (emit complete-beep)
+   ├─ ChildSelectionBehavior.onUnmount()         (no-op)
+   ├─ ExitBehavior.onUnmount()                   (no-op)
+   ├─ HistoryRecordBehavior.onUnmount()          (emit history:record)
+   └─ ReportOutputBehavior.onUnmount()           (emit completion output with time results)
 
 8. block.dispose()
-   └─ [resource cleanup: close listeners, clear memory, etc.]
+   └─ [resource cleanup: unsubscribe listeners, clear memory refs]
 ```
 
 ---
 
 ## Testing Behaviors
 
-Use the test harness (`tests/harness/BehaviorTestHarness`) for unit testing individual behaviors in isolation:
+Use `BehaviorTestHarness` for unit testing individual behaviors in isolation:
 
 ```typescript
 import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
-import { TimerBehavior } from '@/runtime/behaviors/TimerBehavior';
+import { CountupTimerBehavior } from '@/runtime/behaviors';
 
 const harness = new BehaviorTestHarness()
   .withClock(new Date('2024-01-01T12:00:00Z'));
 
-const block = new MockBlock('test-timer', [new TimerBehavior('up')]);
+const block = new MockBlock('test-timer', [new CountupTimerBehavior()]);
 harness.push(block);
 harness.mount();
-expect(block.getBehavior(TimerBehavior)!.isRunning()).toBe(true);
+harness.advanceClock(5000);
+// elapsed is tracked internally via time spans
 ```
 
-For integration testing strategies and full block composition, use `RuntimeTestBuilder`.
+For integration testing strategies and full block composition, use `RuntimeTestBuilder`:
+
+```typescript
+import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
+import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
+import { ChildSelectionBehavior } from '@/runtime/behaviors';
+
+const harness = new RuntimeTestBuilder()
+  .withScript('10:00 AMRAP')
+  .withStrategy(new AmrapLogicStrategy())
+  .build();
+
+const block = harness.pushStatement(0);
+const csb = block.getBehavior(ChildSelectionBehavior);
+expect(csb).toBeDefined();
+expect((csb as any).config?.startRound).toBe(1);
+expect((csb as any).config?.totalRounds).toBeUndefined(); // unbounded
+```
 
 ---
 
@@ -589,4 +587,9 @@ For integration testing strategies and full block composition, use `RuntimeTestB
 - [IRuntimeBehavior](src/runtime/contracts/IRuntimeBehavior.ts)
 - [IRuntimeBlockStrategy](src/runtime/contracts/IRuntimeBlockStrategy.ts)
 - [Behavior Index](src/runtime/behaviors/index.ts)
+- [BlockBuilder](src/runtime/compiler/BlockBuilder.ts)
+- [ChildSelectionBehavior](src/runtime/behaviors/ChildSelectionBehavior.ts)
+- [ExitBehavior](src/runtime/behaviors/ExitBehavior.ts)
+- [CountdownTimerBehavior](src/runtime/behaviors/CountdownTimerBehavior.ts)
+- [CountupTimerBehavior](src/runtime/behaviors/CountupTimerBehavior.ts)
 - [Strategy Priority Tiers](src/runtime/compiler/strategies/)

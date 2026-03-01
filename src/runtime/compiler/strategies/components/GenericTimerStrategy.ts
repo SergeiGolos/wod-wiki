@@ -13,7 +13,7 @@ import { LabelComposer } from "../../utils/LabelComposer";
 import {
     CountdownTimerBehavior,
     LabelingBehavior,
-    LeafExitBehavior,
+    ExitBehavior,
     SoundCueBehavior
 } from "../../../behaviors";
 
@@ -71,13 +71,21 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = statements.flatMap(s => 
-            distributor.distribute(
-                (s.fragments || []).filter(f => f.origin !== 'runtime'), 
-                "Timer"
-            )
+            distribute(s.fragments || [], "Timer")
         ).filter(group => group.length > 0);
         
         builder.setFragments(fragmentGroups);
+
+        // =====================================================================
+        // Specific Behaviors - Added BEFORE aspects to ensure correct execution order
+        // (LeafExit before Timer ensures Pop comes before Rest Push onNext)
+        // =====================================================================
+
+        // Completion Aspect
+        // User can still advance manually (skip or acknowledge completion).
+        // For parent blocks with children, ChildrenStrategy removes
+        // ExitBehavior since children manage advancement.
+        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
 
         // =====================================================================
         // ASPECT COMPOSERS - High-level composition
@@ -105,14 +113,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         }
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
+        // Display and Sound
         // =====================================================================
-
-        // Completion Aspect
-        // User can still advance manually (skip or acknowledge completion).
-        // For parent blocks with children, ChildrenStrategy removes
-        // LeafExitBehavior since children manage advancement.
-        builder.addBehavior(new LeafExitBehavior({ onNext: true }));
 
         // Sound Cues
         if (durationMs && direction === 'down') {
@@ -124,12 +126,16 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             }));
         }
 
-        // =====================================================================
         // Display Aspect
-        // =====================================================================
         builder.addBehavior(new LabelingBehavior({
             mode: durationMs ? 'countdown' : 'clock',
             label
         }));
     }
+}
+
+// Keep the logic-heavy fragment distribution local to the strategy
+function distribute(fragments: any[], type: string): any[][] {
+    const distributor = new PassthroughFragmentDistributor();
+    return [distributor.distribute(fragments, type)];
 }

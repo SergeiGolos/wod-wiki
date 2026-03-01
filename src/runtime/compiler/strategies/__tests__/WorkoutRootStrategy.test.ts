@@ -3,8 +3,6 @@ import { WorkoutRootStrategy, WorkoutRootConfig } from '../WorkoutRootStrategy';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import {
     CountupTimerBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
     LabelingBehavior,
     ChildSelectionBehavior,
     ButtonBehavior,
@@ -60,17 +58,18 @@ describe('WorkoutRootStrategy', () => {
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
         });
 
-        it('should NOT include round tracking behaviors for single-round workout', () => {
+        it('should include ChildSelectionBehavior without round config for single-round workout', () => {
             const config: WorkoutRootConfig = {
                 childGroups: [[1]],
                 totalRounds: 1
             };
 
             const block = strategy.build(mockRuntime, config);
-            const behaviors = (block as any).behaviors;
+            const csb = block.getBehavior(ChildSelectionBehavior);
 
-            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(false);
-            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(false);
+            // Single-round: ChildSelectionBehavior present but no round config (asRepeater not called for totalRounds <= 1)
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBeUndefined();
         });
 
         it('should include round tracking behaviors for multi-round workout', () => {
@@ -82,8 +81,11 @@ describe('WorkoutRootStrategy', () => {
             const block = strategy.build(mockRuntime, config);
             const behaviors = (block as any).behaviors;
 
-            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
+            // Round config is now absorbed into ChildSelectionBehavior
+            const childBehavior = behaviors.find((b: any) => b instanceof ChildSelectionBehavior);
+            expect(childBehavior).toBeDefined();
+            expect((childBehavior as any).config?.startRound).toBeDefined();
+            expect((childBehavior as any).config?.totalRounds).toBe(3);
         });
 
         it('should include expected behavior count for single-round workout', () => {

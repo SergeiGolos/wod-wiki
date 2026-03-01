@@ -10,7 +10,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 import {
     ReportOutputBehavior,
     CountdownTimerBehavior,
-    LeafExitBehavior,
+    ExitBehavior,
     LabelingBehavior,
     SoundCueBehavior
 } from '../behaviors';
@@ -97,7 +97,8 @@ export class RestBlock extends RuntimeBlock {
         // Ignore generic next events to prevent accidental fast-skipping
         // (e.g., rapid user/input next events during EMOM).
         // =====================================================================
-        behaviors.push(new LeafExitBehavior({
+        behaviors.push(new ExitBehavior({
+            mode: 'immediate',
             onNext: false,
             onEvents: ['timer:complete']
         }));

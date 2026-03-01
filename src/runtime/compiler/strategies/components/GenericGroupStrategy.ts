@@ -9,13 +9,10 @@ import { FragmentType } from "@/core/models/CodeFragment";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // New aspect-based behaviors
-// CountdownTimerBehavior / CountupTimerBehavior and ReEntryBehavior are imported
+// CountdownTimerBehavior / CountupTimerBehavior are imported
 // for type-checking only to detect if a higher-priority strategy already set the
 // block identity.
 import {
-    CountdownTimerBehavior,
-    CountupTimerBehavior,
-    ReEntryBehavior,
     LabelingBehavior,
 } from "../../../behaviors";
 
@@ -42,7 +39,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // If we have a timer or loop behavior, the identity is already set (Timer/Rounds/AMRAP/EMOM).
-        if (builder.hasTimerBehavior() || builder.hasBehavior(ReEntryBehavior)) {
+        if (builder.hasTimerBehavior() || builder.hasRoundConfig()) {
             return;
         }
 

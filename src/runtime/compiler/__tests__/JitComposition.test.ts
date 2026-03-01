@@ -17,7 +17,7 @@ import { CodeMetadata } from "@/core/models/CodeMetadata";
 // Import new aspect-based behaviors for tests
 import { 
     CountdownTimerBehavior,
-    ReEntryBehavior,
+    ChildSelectionBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
     FragmentPromotionBehavior
@@ -79,12 +79,15 @@ describe("JIT Composition", () => {
         expect(block.label).toBe("1");
 
         // Check Behaviors - now using aspect-based behaviors
-        // AMRAP should have CountdownTimerBehavior (direction: 'down') and ReEntryBehavior (unbounded)
+        // AMRAP should have CountdownTimerBehavior (direction: 'down') and ChildSelectionBehavior (unbounded)
         const timer = block.getBehavior(CountdownTimerBehavior);
         expect(timer).toBeDefined();
 
-        const round = block.getBehavior(ReEntryBehavior);
+        const round = block.getBehavior(ChildSelectionBehavior);
         expect(round).toBeDefined();
+        // AMRAP has unbounded rounds - startRound is set but totalRounds is undefined
+        expect((round as any).config?.startRound).toBe(1);
+        expect((round as any).config?.totalRounds).toBeUndefined();
 
         // Should have HistoryRecordBehavior
         expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();

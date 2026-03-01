@@ -13,15 +13,15 @@
             "state": {
               "type": "canvas",
               "state": {
-                "file": "Untitled.canvas",
+                "file": "Behavior Map.canvas",
                 "viewState": {
-                  "x": 312.966430779504,
-                  "y": -132.10338760470134,
-                  "zoom": 1.1102230246251565e-16
+                  "x": 2677.475893868414,
+                  "y": -361.35887610056,
+                  "zoom": -0.666666636475861
                 }
               },
               "icon": "lucide-layout-dashboard",
-              "title": "Untitled"
+              "title": "Behavior Map"
             }
           }
         ]
@@ -224,8 +224,11 @@
   },
   "active": "9aedeaa1c014a43e",
   "lastOpenFiles": [
-    "Untitled.canvas",
+    "Behavior Map.canvas",
     "BEHAVIORAL_ARCHITECTURE.md",
+    "RUNTIME_INTEGRATION_TESTING.md",
+    "UI_STORYBOOK_TESTING.md",
+    "STORYBOOK_PLAYWRIGHT_TESTING.md",
     "architecture/PERSISTENCE_STRATEGY.md",
     "SEGMENT_TIME_CALCULATION.md",
     "restructure/07-approach-comparison.md",

@@ -3,12 +3,12 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { PushBlockAction } from '../actions/stack/PushBlockAction';
+import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { UpdateNextPreviewAction } from '../actions/stack/UpdateNextPreviewAction';
 import { ChildrenStatusState, RoundState, TimerState } from '../memory/MemoryTypes';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { RestBlock } from '../blocks/RestBlock';
 import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
-import { FragmentType } from '../../core/models/CodeFragment';
 
 export type ChildSelectionLoopCondition = 'always' | 'timer-active' | 'rounds-remaining';
 
@@ -24,6 +24,17 @@ export interface ChildSelectionConfig {
     injectRest?: boolean;
     /** Skip first child dispatch on mount (e.g., for deferred start) */
     skipOnMount?: boolean;
+    /**
+     * If set, initializes round state on mount (absorbs ReEntryBehavior).
+     * Use 1 for the first round. When provided, round memory is written
+     * at mount time so display and loop logic can read it immediately.
+     */
+    startRound?: number;
+    /**
+     * Total rounds for completion checking (undefined = unbounded).
+     * Only used when startRound is also provided.
+     */
+    totalRounds?: number;
 }
 
 class CompileChildBlockAction implements IRuntimeAction {
@@ -97,6 +108,16 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         this.restState = 'idle';
         this.dispatchedOnLastNext = false;
 
+        // Initialize round state if configured (absorbed from ReEntryBehavior)
+        if (this.config.startRound !== undefined) {
+            ctx.pushMemory('round', [new CurrentRoundFragment(
+                this.config.startRound,
+                this.config.totalRounds,
+                ctx.block.key.toString(),
+                ctx.clock.now,
+            )]);
+        }
+
         if (this.config.skipOnMount) {
             const actions: IRuntimeAction[] = [];
             if (this.totalChildren > 0) {
@@ -123,6 +144,18 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             const actions = [this.createNextPreview(ctx)];
             this.writeChildrenStatus(ctx);
             return actions;
+        }
+
+        // Safety net: catch round overshot (absorbed from RoundsEndBehavior).
+        // ChildSelectionBehavior.shouldLoop() handles the normal exhaustion path;
+        // this guard catches the edge case where current advances past total externally.
+        if (this.config.startRound !== undefined) {
+            const round = ctx.getMemory('round') as RoundState | undefined;
+            if (round?.total !== undefined && round.current > round.total) {
+                ctx.markComplete('rounds-exhausted');
+                this.writeChildrenStatus(ctx);
+                return [new PopBlockAction()];
+            }
         }
 
         if (this.restState === 'active') {

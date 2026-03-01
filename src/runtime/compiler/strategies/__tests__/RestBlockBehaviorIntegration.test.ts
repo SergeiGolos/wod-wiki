@@ -16,8 +16,6 @@ import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 import {
     CountdownTimerBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
     ChildSelectionBehavior,
     SoundCueBehavior,
     HistoryRecordBehavior,
@@ -127,8 +125,11 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
-            // AMRAP should NOT have RoundCompletionBehavior (unbounded)
+            const csb = block!.getBehavior(ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            // AMRAP has unbounded rounds - startRound is set but totalRounds is undefined
+            expect((csb as any).config?.startRound).toBe(1);
+            expect((csb as any).config?.totalRounds).toBeUndefined();
             // Note: ChildrenStrategy may add it for unbounded rounds or not
             // depending on hasCountdownCompletion
         });
@@ -217,8 +218,11 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block!.getBehavior(RoundsEndBehavior)).toBeDefined();
+            const csb = block!.getBehavior(ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            // EMOM has bounded rounds
+            expect((csb as any).config?.startRound).toBe(1);
+            expect((csb as any).config?.totalRounds).toBeDefined();
         });
 
         it('should have child behaviors when children are present', () => {
