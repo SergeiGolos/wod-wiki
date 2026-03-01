@@ -72,6 +72,8 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     const types = new Set<FragmentType>();
 
     const addType = (ft: FragmentType) => {
+      // Guard: skip undefined/null fragmentType (defensive against malformed fragments)
+      if (ft == null) return;
       // Redirection: Label, Text, and CurrentRound are now part of Effort column
       if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
         types.add(FragmentType.Effort);
@@ -132,6 +134,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
         }
 
         // Only keep fragment columns if that type exists in the data
+        return activeFragmentTypes.has(col.fragmentType);
       });
 
       // Map: Force visibility for active fragment columns (auto-select)

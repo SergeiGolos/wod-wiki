@@ -84,6 +84,7 @@ interface WorkbenchContextState {
   setViewMode: (mode: ViewMode) => void;
   startWorkout: (block: WodBlock) => void;
   completeWorkout: (results: WorkoutResults) => void;
+  resetResults: () => void;
 
   // Panel Layout Actions
   expandPanel: (viewId: string, panelId: string) => void;
@@ -609,6 +610,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     }
   }, [provider, content, routeId, selectedBlockId, navigate, pathname]);
 
+  const resetResults = useCallback(() => {
+    setResults([]);
+  }, []);
+
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {
     setPanelLayouts(prev => {
@@ -677,6 +682,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     setViewMode,
     startWorkout,
     completeWorkout,
+    resetResults,
     expandPanel,
     collapsePanel,
   }), [
@@ -701,6 +707,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     setViewMode,
     startWorkout,
     completeWorkout,
+    resetResults,
     expandPanel,
     collapsePanel,
   ]);

@@ -7,6 +7,7 @@
  */
 
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import { v4 as uuidv4 } from 'uuid';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { matchesId } from '../../lib/idUtils';
 
@@ -14,7 +15,7 @@ const KEY_PREFIX = 'wodwiki:history:';
 const SCHEMA_VERSION = 1;
 
 function generateId(): string {
-  return crypto.randomUUID();
+  return uuidv4();
 }
 
 export class LocalStorageContentProvider implements IContentProvider {

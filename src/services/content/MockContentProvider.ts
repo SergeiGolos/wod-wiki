@@ -1,4 +1,5 @@
 import { IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import { v4 as uuidv4 } from 'uuid';
 import { HistoryEntry, ProviderCapabilities, EntryQuery } from '../../types/history';
 
 /**
@@ -42,7 +43,7 @@ export class MockContentProvider implements IContentProvider {
     }
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
-        const id = crypto.randomUUID();
+        const id = uuidv4();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {
@@ -61,7 +62,7 @@ export class MockContentProvider implements IContentProvider {
         const source = this.entries.get(sourceId);
         if (!source) throw new Error(`Entry ${sourceId} not found`);
 
-        const id = crypto.randomUUID();
+        const id = uuidv4();
         const now = Date.now();
 
         const newEntry: HistoryEntry = {

@@ -190,6 +190,11 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
     const leafItem = stackItems?.find(i => i.isLeaf);
     const leafLabel = leafItem?.label;
 
+    // Determine the Context Item (e.g. Rounds, AMRAP, EMOM)
+    // We prefer a Rounds block if one exists, otherwise we use the primary timer's block
+    const roundsItem = stackItems?.find(i => i.block.blockType === 'Rounds');
+    const roundsLabel = roundsItem?.label;
+
     // Find the timer corresponding to the leaf block
     const leafTimer = leafItem ? allTimers.find(t => t.block.key.toString() === leafItem.block.key.toString()) : undefined;
     const leafElapsed = leafTimer ? calculateDuration(leafTimer.timer.spans, now) : 0;
@@ -199,17 +204,31 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
       const isLeafTimer = primaryTimer.block.key.toString() === leafItem?.block.key.toString();
       const pinnedElapsed = calculateDuration(primaryTimer.timer.spans, now);
 
+      // Label Resolution:
+      // - If we have a rounds label, use it as main and leaf as sub
+      // - Otherwise use primary timer label as main and leaf as sub
+      const resolvedMainLabel = roundsLabel || primaryTimer.timer.label;
+      const resolvedSubLabel = (resolvedMainLabel === leafLabel) ? undefined : leafLabel;
+
       return {
-        mainLabel: primaryTimer.timer.label,
-        // Only show sub-label (leaf) if it's different from the pinned timer
-        subLabel: isLeafTimer ? undefined : leafLabel,
+        mainLabel: resolvedMainLabel,
+        subLabel: resolvedSubLabel,
         activeTimerEntry: primaryTimer,
         activeElapsed: pinnedElapsed
       };
     }
 
     // No pinned timer (Primary is auto/fallback) -> Show the Leaf Label & Time
-    // If the leaf has a timer, use it. Otherwise fall back to primary (likely session)
+    // If we have a rounds block context, use it as main label and leaf as sub
+    if (roundsLabel && roundsLabel !== leafLabel) {
+      return {
+        mainLabel: roundsLabel,
+        subLabel: leafLabel,
+        activeTimerEntry: leafTimer || primaryTimer,
+        activeElapsed: leafTimer ? leafElapsed : primaryElapsedMs
+      };
+    }
+
     return {
       mainLabel: leafLabel || primaryTimer?.timer.label || "Timer",
       subLabel: undefined,

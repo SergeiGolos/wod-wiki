@@ -20,18 +20,14 @@ export interface StartSessionOptions {
 /**
  * Action that initializes a workout using the SessionRootBlock.
  *
- * Unlike StartWorkoutAction (which uses WorkoutRootStrategy),
- * this action uses the Phase 1 SessionRootStrategy to create a
- * SessionRootBlock with proper behavior composition:
+ * Uses SessionRootStrategy to create a SessionRootBlock with proper behavior composition:
  *
- * - ReportOutputBehavior (emits segment/completion outputs)
- * - TimerInitBehavior (countup for total elapsed time)
- * - ChildRunnerBehavior (sequences WaitingToStart + children)
- * - HistoryRecordBehavior (records session on unmount)
+ * - ReportOutputBehavior (emits segment/completion outputs — source of truth for history)
+ * - CountupTimerBehavior (countup for total elapsed time)
+ * - ChildSelectionBehavior (sequences WaitingToStart + children)
  *
- * The SessionRootBlock automatically pushes WaitingToStart as its
- * first child when mounted, creating the documented lifecycle:
- *   SessionRoot > WaitingToStart (gate) > workout blocks
+ * History persistence is the responsibility of the workbench layer,
+ * which subscribes to the output stream.
  *
  * @see SessionRootStrategy
  * @see SessionRootBlock

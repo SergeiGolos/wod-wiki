@@ -18,7 +18,7 @@ interface CastMessage {
 interface Connection {
   ws: WebSocket;
   deviceId: string;
-  deviceType: 'sender' | 'receiver';
+  deviceType: 'caster' | 'receiver';
   lastPing: number;
   capabilities?: any;
 }
@@ -27,9 +27,9 @@ const connections = new Map<string, Connection>();
 const sessions = new Map<string, { casterId: string; receiverId: string }>();
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8080;
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({ port: PORT, host: '0.0.0.0', path: '/ws' });
 
-console.log(`Relay server started on port ${PORT}`);
+console.log(`Relay server started on port ${PORT} at 0.0.0.0/ws`);
 
 // Heartbeat
 const HEARTBEAT_INTERVAL = 25000;
@@ -66,7 +66,7 @@ wss.on('connection', (ws) => {
         case 'register':
             deviceId = message.payload.clientId;
             const clientType = message.payload.clientType;
-            if (deviceId) {
+            if (deviceId && (clientType === 'caster' || clientType === 'receiver')) {
                 connections.set(deviceId, {
                     ws,
                     deviceId,
@@ -91,32 +91,50 @@ wss.on('connection', (ws) => {
                 };
                 ws.send(JSON.stringify(response));
                 console.log(`Registered ${clientType}: ${deviceId}`);
+
+                // If a receiver just joined, notify all casters immediately
+                if (clientType === 'receiver') {
+                    const discoveryMsg: CastMessage = {
+                        type: 'target-discovered',
+                        messageId: uuidv4(),
+                        timestamp: Date.now(),
+                        payload: {
+                            targetId: deviceId,
+                            name: 'Receiver ' + deviceId,
+                            type: 'web-receiver',
+                            capabilities: message.payload.capabilities,
+                            inSession: false
+                        }
+                    };
+                    connections.forEach(conn => {
+                        if (conn.deviceType === 'caster') {
+                            conn.ws.send(JSON.stringify(discoveryMsg));
+                        }
+                    });
+                }
             }
             break;
 
         case 'discover':
             // Return all connected receivers
-            const receivers: any[] = [];
+            console.log(`[Relay] Discovery request from ${deviceId}. Current connections: ${connections.size}`);
             connections.forEach((conn) => {
-                if (conn.deviceType === 'receiver') {
-                    receivers.push({
-                        targetId: conn.deviceId,
-                        name: 'Receiver ' + conn.deviceId, // Should be from payload
-                        type: 'android-tv',
-                        capabilities: conn.capabilities,
-                        inSession: false // Simplification
-                    });
+                if (conn.deviceType === 'receiver' && conn.deviceId !== deviceId) {
+                    const response: CastMessage = {
+                        type: 'target-discovered',
+                        messageId: uuidv4(),
+                        timestamp: Date.now(),
+                        payload: {
+                            targetId: conn.deviceId,
+                            name: 'Receiver ' + conn.deviceId,
+                            type: 'web-receiver',
+                            capabilities: conn.capabilities,
+                            inSession: false
+                        }
+                    };
+                    ws.send(JSON.stringify(response));
+                    console.log(`[Relay] Reported receiver ${conn.deviceId} to ${deviceId}`);
                 }
-            });
-
-            receivers.forEach(r => {
-                const response: CastMessage = {
-                    type: 'target-discovered',
-                    messageId: uuidv4(),
-                    timestamp: Date.now(),
-                    payload: r
-                };
-                ws.send(JSON.stringify(response));
             });
             break;
 

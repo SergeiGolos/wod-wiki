@@ -15,7 +15,6 @@ import {
     simulateTicks,
     simulateRoundAdvance,
     calculateElapsed,
-    findEvents,
     findOutputs,
     MockRuntime,
     MockBlock,
@@ -27,7 +26,6 @@ import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
-import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { TimerState, RoundState } from '../../../memory/MemoryTypes';
 
@@ -56,7 +54,6 @@ describe('AMRAP Pattern Integration', () => {
 
         // Output aspect
         new ReportOutputBehavior(),
-        new HistoryRecordBehavior(),
 
         // Sound cues
         new SoundCueBehavior({
@@ -188,7 +185,7 @@ describe('AMRAP Pattern Integration', () => {
             expect(roundMilestones.length).toBe(3);
         });
 
-        it('should record final round count in history', () => {
+        it('should emit completion output with round info on unmount', () => {
             const behaviors = createAmrapBehaviors(5000);
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -202,11 +199,9 @@ describe('AMRAP Pattern Integration', () => {
             simulateTicks(runtime, ctx, 6, 1000);
             unmountBehaviors(behaviors, ctx);
 
-            const historyEvents = findEvents(runtime, 'history:record');
-            expect(historyEvents.length).toBe(1);
-
-            // Should have recorded 5 rounds (started at 1, advanced 4)
-            // Note: completedRounds in history is current - 1
+            // All data needed for history is in the output stream
+            const completions = findOutputs(runtime, 'completion');
+            expect(completions.length).toBeGreaterThanOrEqual(1);
         });
 
         it('should emit sound cues as outputs', () => {

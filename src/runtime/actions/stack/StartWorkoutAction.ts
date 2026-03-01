@@ -1,44 +1,36 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
-import { WorkoutRootStrategy, WorkoutRootConfig } from '../../compiler/strategies/WorkoutRootStrategy';
+import { SessionRootStrategy } from '../../compiler/strategies/SessionRootStrategy';
+import { SessionRootConfig } from '../../blocks/SessionRootBlock';
 import { PushBlockAction } from './PushBlockAction';
 
 /**
  * Configuration for starting a workout.
  */
 export interface StartWorkoutOptions {
+    /** Display label for the session */
+    label?: string;
     /** Total rounds for the workout (default: 1) */
     totalRounds?: number;
     /** Optional lifecycle options for the root block */
     lifecycle?: BlockLifecycleOptions;
-    /** Custom root config overrides */
-    rootConfig?: Partial<WorkoutRootConfig>;
 }
 
 /**
  * Action that initializes a workout by wrapping the script's statements
  * in a root block and pushing it onto the stack.
- * 
+ *
  * This action:
  * 1. Reads all top-level statements from runtime.script
- * 2. Creates child groups (each statement in its own group for sequential execution)
- * 3. Builds a root block using WorkoutRootStrategy
+ * 2. Creates child groups (each top-level statement in its own group)
+ * 3. Builds a SessionRootBlock using SessionRootStrategy
  * 4. Pushes the root block to start the workout
- * 
- * The runtime can exist in an "idle" state until this action is executed,
- * allowing for runtime creation separate from workout activation.
- * 
+ *
  * @example
  * ```typescript
- * // Create runtime (idle - nothing on stack)
- * const runtime = new ScriptRuntime(script, compiler, dependencies);
- * 
- * // Later, start the workout via event or direct action
  * runtime.do(new StartWorkoutAction());
- * 
- * // Or with custom rounds
- * runtime.do(new StartWorkoutAction({ totalRounds: 3 }));
+ * runtime.do(new StartWorkoutAction({ label: 'Grace', totalRounds: 3 }));
  * ```
  */
 export class StartWorkoutAction implements IRuntimeAction {
@@ -60,20 +52,26 @@ export class StartWorkoutAction implements IRuntimeAction {
             return [];
         }
 
-        // Build child groups: each top-level statement becomes its own group
-        // This ensures sequential execution of workout items
-        const statementIds = statements.map(s => s.id);
-        const childGroups = statementIds.map(id => [id]);
+        // Build child groups: filter to top-level statements only
+        const childStatementIds = new Set<number>();
+        for (const s of statements) {
+            if (s.children) {
+                for (const childGroup of s.children) {
+                    for (const childId of childGroup) childStatementIds.add(childId);
+                }
+            }
+        }
+        const topLevelStatements = statements.filter(s => !childStatementIds.has(s.id));
+        const childGroups = topLevelStatements.map(s => [s.id]);
 
-        // Build root block configuration
-        const rootConfig: WorkoutRootConfig = {
+        const rootConfig: SessionRootConfig = {
             childGroups,
+            label: this.options.label,
             totalRounds: this.options.totalRounds ?? 1,
-            ...this.options.rootConfig
         };
 
-        // Create root block using WorkoutRootStrategy
-        const rootStrategy = new WorkoutRootStrategy();
+        // Create root block using SessionRootStrategy
+        const rootStrategy = new SessionRootStrategy();
         const rootBlock = rootStrategy.build(runtime, rootConfig);
 
         // Build lifecycle options with start time

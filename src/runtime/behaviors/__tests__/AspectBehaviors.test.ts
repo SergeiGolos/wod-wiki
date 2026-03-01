@@ -271,23 +271,6 @@ describe('Controls Aspect Behaviors', () => {
 });
 
 describe('Output Aspect Behaviors', () => {
-    describe('HistoryRecordBehavior', () => {
-        it('should emit history:record event on unmount', async () => {
-            const { HistoryRecordBehavior } = await import('../HistoryRecordBehavior');
-            const ctx = createMockContext();
-            const behavior = new HistoryRecordBehavior();
-
-            behavior.onUnmount(ctx);
-
-            expect(ctx.emitEvent).toHaveBeenCalledWith(expect.objectContaining({
-                name: 'history:record',
-                data: expect.objectContaining({
-                    blockKey: 'test-block'
-                })
-            }));
-        });
-    });
-
     describe('SoundCueBehavior', () => {
         it('should emit sound output on mount for mount triggers', async () => {
             const { SoundCueBehavior } = await import('../SoundCueBehavior');

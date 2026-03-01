@@ -35,6 +35,7 @@ import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
+import { DisplaySyncBridge } from './DisplaySyncBridge';
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
@@ -43,6 +44,7 @@ import { ContentProviderMode, IContentProvider } from '../../types/content-provi
 import { HistoryEntry } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '../../app/wod-loader';
+import { CastButton } from '@/components/cast/CastButton';
 
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TimerScreen } from '../workbench/TrackPanel';
@@ -457,6 +459,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
             <DebugButton />
 
+            <CastButton />
+
             <Button
               variant="ghost"
               size="icon"
@@ -547,6 +551,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
           <WorkbenchSyncBridge>
+            <DisplaySyncBridge />
             <WorkbenchContent {...props} />
           </WorkbenchSyncBridge>
         </RuntimeLifecycleProvider>

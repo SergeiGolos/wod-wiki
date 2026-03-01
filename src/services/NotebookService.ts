@@ -8,6 +8,7 @@
  * using the `notebook:{id}` convention.
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import type { Notebook } from '../types/notebook';
 
 const NOTEBOOKS_KEY = 'wodwiki:notebooks';
@@ -36,7 +37,7 @@ export class NotebookService {
         const notebooks = this.getAll();
         const now = Date.now();
         const notebook: Notebook = {
-            id: crypto.randomUUID(),
+            id: uuidv4(),
             name,
             description,
             icon,

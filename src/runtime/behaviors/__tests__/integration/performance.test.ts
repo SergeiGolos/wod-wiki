@@ -24,7 +24,6 @@ import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
-import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 
 describe('Performance Integration', () => {
@@ -64,7 +63,6 @@ describe('Performance Integration', () => {
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new LabelingBehavior({ mode: 'countdown' }),
                 new ReportOutputBehavior(),
-                new HistoryRecordBehavior(),
                 new SoundCueBehavior({ cues: [] })
             ];
 
@@ -206,7 +204,6 @@ describe('Performance Integration', () => {
                 new CountupTimerBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new LabelingBehavior({ mode: 'clock' }),
-                new HistoryRecordBehavior(),
                 new ReportOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);

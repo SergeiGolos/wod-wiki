@@ -12,7 +12,6 @@ import {
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior,
     ReportOutputBehavior
 } from '../behaviors';
 import { WaitingToStartInjectorBehavior } from '../behaviors/WaitingToStartInjectorBehavior';
@@ -53,7 +52,9 @@ export interface SessionRootConfig {
  * - ReportOutputBehavior (output on mount/unmount)
  * - LabelingBehavior (display)
  * - ButtonBehavior (controls)
- * - HistoryRecordBehavior (records session on unmount)
+ *
+ * History persistence is the responsibility of the workbench — all data
+ * needed for history is available in the output stream (ReportOutputBehavior).
  */
 export class SessionRootBlock extends RuntimeBlock {
     constructor(
@@ -161,11 +162,6 @@ export class SessionRootBlock extends RuntimeBlock {
                 }
             ]
         }));
-
-        // =====================================================================
-        // Output Aspect - Record session history
-        // =====================================================================
-        behaviors.push(new HistoryRecordBehavior());
 
         return behaviors;
     }

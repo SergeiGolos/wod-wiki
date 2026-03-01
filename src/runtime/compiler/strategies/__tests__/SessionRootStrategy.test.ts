@@ -7,7 +7,6 @@ import {
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior,
     ReportOutputBehavior
 } from '../../../behaviors';
 
@@ -93,7 +92,6 @@ describe('SessionRootStrategy', () => {
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
-            expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
 
         it('should include iteration config in ChildSelectionBehavior for single-round session', () => {

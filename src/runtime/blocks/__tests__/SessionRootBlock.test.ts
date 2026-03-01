@@ -7,7 +7,6 @@ import {
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior,
     ReportOutputBehavior
 } from '../../behaviors';
 
@@ -38,7 +37,6 @@ describe('SessionRootBlock', () => {
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
-            expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
 
         it('should include iteration behaviors for single-round session', () => {
@@ -196,9 +194,10 @@ describe('SessionRootBlock', () => {
                 totalRounds: 1
             }, harness.runtime);
 
-            // Expected: Timer + ChildSelection + WaitingToStartInjector + Output + Display + Controls + History = 7
+            // Expected: Timer + ChildSelection + WaitingToStartInjector + Output + Display + Controls = 6
             // ReEntryBehavior and RoundsEndBehavior are absorbed into ChildSelectionBehavior config
-            expect(behaviors.length).toBe(7);
+            // History is now responsibility of the workbench via the output stream
+            expect(behaviors.length).toBe(6);
         });
 
         it('should return correct behavior count for multi-round', () => {
@@ -208,7 +207,7 @@ describe('SessionRootBlock', () => {
             }, harness.runtime);
 
             // Expected: same as single-round composition (Labeling handles optional round display)
-            expect(behaviors.length).toBe(7);
+            expect(behaviors.length).toBe(6);
         });
     });
 });

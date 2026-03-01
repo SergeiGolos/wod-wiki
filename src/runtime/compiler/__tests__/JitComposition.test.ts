@@ -10,7 +10,6 @@ import { IntervalLogicStrategy } from "../strategies/logic/IntervalLogicStrategy
 import { GenericTimerStrategy } from "../strategies/components/GenericTimerStrategy";
 import { GenericLoopStrategy } from "../strategies/components/GenericLoopStrategy";
 import { SoundStrategy } from "../strategies/enhancements/SoundStrategy";
-import { HistoryStrategy } from "../strategies/enhancements/HistoryStrategy";
 import { ChildrenStrategy } from "../strategies/enhancements/ChildrenStrategy";
 import { CodeMetadata } from "@/core/models/CodeMetadata";
 
@@ -19,7 +18,6 @@ import {
     CountdownTimerBehavior,
     ChildSelectionBehavior,
     SoundCueBehavior,
-    HistoryRecordBehavior,
     FragmentPromotionBehavior
 } from "../../behaviors";
 
@@ -67,7 +65,6 @@ describe("JIT Composition", () => {
         compiler.registerStrategy(new GenericLoopStrategy()); // Priority 50
         compiler.registerStrategy(new ChildrenStrategy()); // Priority 50
         compiler.registerStrategy(new SoundStrategy()); // Priority 20
-        compiler.registerStrategy(new HistoryStrategy()); // Priority 20
 
         const block = compiler.compile([statement], runtime);
 
@@ -88,9 +85,6 @@ describe("JIT Composition", () => {
         // AMRAP has unbounded rounds - startRound is set but totalRounds is undefined
         expect((round as any).config?.startRound).toBe(1);
         expect((round as any).config?.totalRounds).toBeUndefined();
-
-        // Should have HistoryRecordBehavior
-        expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
     });
 
     it("should compile EMOM block using composition with aspect-based behaviors", () => {

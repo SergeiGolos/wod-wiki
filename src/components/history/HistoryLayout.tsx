@@ -9,6 +9,7 @@ import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { NewPostButton } from '@/components/history/NewPostButton';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { DebugButton } from '@/components/layout/DebugModeContext';
+import { CastButton } from '@/components/cast/CastButton';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -148,9 +149,12 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
                         <Search className="h-4 w-4" />
                     </Button>
 
-                    <DebugButton />
-
-                    <Button variant="ghost" size="icon" onClick={() => startTutorial('history')} className="text-muted-foreground hover:text-foreground">
+                                        <DebugButton />
+                    
+                                        <CastButton />
+                    
+                                        <Button variant="ghost" size="icon"
+                     onClick={() => startTutorial('history')} className="text-muted-foreground hover:text-foreground">
                         <HelpCircle className="h-5 w-5" />
                     </Button>
 

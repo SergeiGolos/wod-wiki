@@ -72,7 +72,6 @@ export type { ChildSelectionConfig, ChildSelectionLoopCondition } from './ChildS
 // ============================================================================
 export { ReportOutputBehavior } from './ReportOutputBehavior';
 export type { ReportOutputConfig } from './ReportOutputBehavior';
-export { HistoryRecordBehavior } from './HistoryRecordBehavior';
 export { SoundCueBehavior } from './SoundCueBehavior';
 export type { SoundCue, SoundCueConfig } from './SoundCueBehavior';
 

@@ -69,6 +69,10 @@ const config = {
       'cmdk',
     ];
 
+    // Allow all hosts (for Tailscale / LAN access)
+    config.server = config.server || {};
+    config.server.allowedHosts = true;
+
     return config;
   }
 };

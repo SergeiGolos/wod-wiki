@@ -3,6 +3,7 @@
  * This allows processes to reference memory without directly coupling to it.
  */
 
+import { v4 as uuidv4 } from 'uuid';
 import { IRuntimeMemory } from "./IRuntimeMemory";
 
 export interface IMemoryReference {
@@ -38,7 +39,7 @@ export interface SubscriptionOptions {
 }
 
 export class TypedMemoryReference<T>  implements IMemoryReference {    
-    public id: string = crypto.randomUUID();
+    public id: string = uuidv4();
     private _subscriptions: IMemorySubscription<T>[] = [];
 
     constructor(
@@ -84,7 +85,7 @@ export class TypedMemoryReference<T>  implements IMemoryReference {
         callback: (newValue: T | undefined, oldValue: T | undefined) => void,
         options?: SubscriptionOptions
     ): () => void {
-        const subscriptionId = crypto.randomUUID();
+        const subscriptionId = uuidv4();
         const subscription: IMemorySubscription<T> = {
             id: subscriptionId,
             callback,

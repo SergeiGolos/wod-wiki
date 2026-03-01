@@ -29,11 +29,10 @@ import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
-import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
-import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 
+import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 import { ExecutionContextTestHarness } from '@/testing/harness/ExecutionContextTestHarness';
 import { ExecutionContextTestBuilder } from '@/testing/harness/ExecutionContextTestBuilder';
 import { MockBlock as HarnessMockBlock } from '@/testing/harness/MockBlock';
@@ -208,7 +207,6 @@ describe('For-Time-Single: Session Lifecycle', () => {
     const createSessionRoot = () =>
         new HarnessMockBlock('session-root', [
             new ReportOutputBehavior({ label: 'Grace' }),
-            new HistoryRecordBehavior(),
             new ChildSelectionBehavior({ childGroups: [[0], [1]] })
         ], { blockType: 'SessionRoot', label: 'Grace' });
 

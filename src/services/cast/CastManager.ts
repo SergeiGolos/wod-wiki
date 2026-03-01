@@ -69,6 +69,21 @@ export class CastManager {
   }
 
   async connect(serverUrl: string): Promise<void> {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+        return Promise.resolve();
+    }
+    
+    if (this.ws?.readyState === WebSocket.CONNECTING) {
+        return new Promise((resolve) => {
+            const check = setInterval(() => {
+                if (this.ws?.readyState === WebSocket.OPEN) {
+                    clearInterval(check);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(serverUrl);
 
@@ -90,6 +105,7 @@ export class CastManager {
       this.ws.onmessage = (event) => {
         try {
             const message = JSON.parse(event.data) as CastMessage;
+            console.log(`[CastManager] Received message: ${message.type}`, message.payload);
             this.handleMessage(message);
         } catch (e) {
             console.error('Failed to parse message', e);
@@ -164,8 +180,10 @@ export class CastManager {
   // Buffer events during reconnection
   send(message: CastMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
+      console.log(`[CastManager] Sending message: ${message.type}`, message.payload);
       this.ws.send(JSON.stringify(message));
     } else {
+      console.log(`[CastManager] Buffering message: ${message.type} (WS not ready)`);
       this.eventBuffer.push(message);
     }
   }

@@ -3,8 +3,10 @@ import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
+import { DisplaySyncBridge } from '@/components/layout/DisplaySyncBridge';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
+import { CastButton } from '@/components/cast/CastButton';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
 import { FileText, Activity, BarChart3, Download, RotateCcw, Edit, Timer, BarChart2 } from 'lucide-react';
@@ -39,6 +41,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     provider,
     viewMode,
     setViewMode,
+    resetResults,
   } = useWorkbench();
 
   const { isDebugMode } = useDebugMode();
@@ -75,7 +78,11 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     if (execution.status !== 'idle') {
       execution.reset();
     }
-  }, [resetStore, execution]);
+    selectBlock(null);
+    setActiveBlockId(null);
+    resetResults();
+    setViewMode('plan');
+  }, [resetStore, execution, selectBlock, setActiveBlockId, setViewMode, resetResults]);
 
   const handleExport = useCallback(() => {
     // ... same as before
@@ -188,6 +195,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
           >
             <Download className="h-4 w-4" />
           </Button>
+          <CastButton />
           <DebugButton />
         </div>
       </div>
@@ -277,6 +285,7 @@ export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => 
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
           <WorkbenchSyncBridge>
+            <DisplaySyncBridge />
             <StorybookWorkbenchContent {...props} />
           </WorkbenchSyncBridge>
         </RuntimeLifecycleProvider>
