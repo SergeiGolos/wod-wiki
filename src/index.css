@@ -391,3 +391,47 @@ th {
     border-bottom: 1px solid var(--border);
   }
 }
+
+/* ============================================
+ * TV Remote / 10-foot Focus Styles
+ * ============================================
+ * These styles provide high-contrast focus indicators for the Chromecast
+ * Web Receiver "10-foot" experience. The `tv-focus` class is applied
+ * programmatically by useSpatialNavigation when an element is the current
+ * focus target. The "Double Outline" technique (white inner + black outer)
+ * ensures visibility on any background.
+ * ============================================ */
+
+/* Spatial-navigation focus ring — applied via data attribute by the hook */
+.tv-focusable[data-nav-focused="true"],
+.tv-focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  transition: outline 150ms ease, box-shadow 150ms ease;
+}
+
+/* Rounded variant for circular buttons (timer play/pause, next) */
+button.tv-focusable[data-nav-focused="true"] {
+  border-radius: inherit;
+}
+
+/* Elevated scale on focus for prominent call-to-action feel */
+.tv-focusable[data-nav-focused="true"] {
+  transform: scale(1.03);
+  z-index: 10;
+}
+
+/* Suppress default browser :focus-visible when spatial navigation is active.
+ * The hook manages focus visuals via data attributes instead. */
+.tv-focusable:focus-visible {
+  outline: none;
+}
+
+/* Preview list item focus — lighter card lift effect */
+.tv-focusable[data-nav-id^="preview-block-"][data-nav-focused="true"] {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--primary));
+  transform: scale(1.02);
+}

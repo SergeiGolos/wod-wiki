@@ -15,3 +15,9 @@ export {
   type UseWakeLockOptions,
   type UseWakeLockResult 
 } from './useWakeLock';
+
+export {
+  useSpatialNavigation,
+  type SpatialNavigationOptions,
+  type FocusProps,
+} from './useSpatialNavigation';

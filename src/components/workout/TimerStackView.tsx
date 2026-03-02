@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { formatTimeMMSS } from '../../lib/formatTime';
+import type { FocusProps } from '@/hooks/useSpatialNavigation';
 
 export interface TimerStackViewProps {
     elapsedMs: number;
@@ -28,6 +29,8 @@ export interface TimerStackViewProps {
     secondaryTimers?: ITimerDisplayEntry[];
     focusedBlockId?: string;
     stackItems?: any[];
+    /** Spatial navigation focus props for TV remote support */
+    getFocusProps?: (id: string) => FocusProps;
 }
 
 const formatTime = formatTimeMMSS;
@@ -46,6 +49,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     subLabels,
 
     timerStates,
+    getFocusProps,
 }) => {
 
     // Determine which timer is "Focused" for the big ring
@@ -161,7 +165,8 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             {/* Inner Circle / Content */}
                             <button
                                 onClick={isRunning ? onPause : onStart}
-                                className={`relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 overflow-hidden ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
+                                {...(getFocusProps ? getFocusProps('timer-main') : {})}
+                                className={`tv-focusable relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 overflow-hidden ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
                             >
                                 <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-6xl'}`}>
                                     {formatTime(displayTimeMs)}
@@ -178,7 +183,8 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     <div className={`flex items-center ${compact ? 'gap-3 mt-4' : 'gap-3 sm:gap-6 mt-4 sm:mt-8'} flex-wrap justify-center px-2`}>
                         <button
                             onClick={onStop}
-                            className="group flex flex-col items-center gap-1 sm:gap-2 text-slate-400 hover:text-red-500 transition-colors p-2"
+                            {...(getFocusProps ? getFocusProps('btn-stop') : {})}
+                            className="tv-focusable group flex flex-col items-center gap-1 sm:gap-2 text-slate-400 hover:text-red-500 transition-colors p-2"
                             title="Stop Session"
                         >
                             <div className={`flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-colors ${compact ? 'w-12 h-12' : 'w-12 h-12 sm:w-14 sm:h-14'}`}>
@@ -189,7 +195,8 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
                         <button
                             onClick={onNext}
-                            className={`flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
+                            {...(getFocusProps ? getFocusProps('btn-next') : {})}
+                            className={`tv-focusable flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
                             title="Next Block"
                         >
                             <SkipForward className={compact ? 'w-6 h-6' : 'w-6 h-6 sm:w-8 sm:h-8'} />

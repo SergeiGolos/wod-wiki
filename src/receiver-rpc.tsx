@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { calculateDuration } from '@/lib/timeUtils';
 import { Timer, CheckCircle2, Dumbbell, BarChart3, Play } from 'lucide-react';
+import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
+import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import '@/index.css';
 
 // ============================================================================
@@ -177,7 +179,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
 const ReceiverTimerPanel: React.FC<{
     localNow: number;
     onEvent: (name: string) => void;
-}> = ({ localNow, onEvent }) => {
+    getFocusProps?: (id: string) => FocusProps;
+}> = ({ localNow, onEvent, getFocusProps }) => {
     const primaryTimerEntry = usePrimaryTimer();
     const secondaryTimers = useSecondaryTimers();
     const allTimers = useStackTimers();
@@ -236,6 +239,7 @@ const ReceiverTimerPanel: React.FC<{
                 subLabel={undefined}
                 secondaryTimers={secondaryEntries}
                 timerStates={timerStates}
+                getFocusProps={getFocusProps}
             />
         </div>
     );
@@ -247,7 +251,8 @@ const ReceiverTimerPanel: React.FC<{
 
 const ReceiverPreviewPanel: React.FC<{
     previewData: NonNullable<WorkbenchDisplayState['previewData']>;
-}> = ({ previewData }) => {
+    getFocusProps?: (id: string) => FocusProps;
+}> = ({ previewData, getFocusProps }) => {
     return (
         <div className="h-full w-full flex flex-col items-center justify-center gap-8 p-12 bg-background">
             {/* Logo */}
@@ -267,10 +272,11 @@ const ReceiverPreviewPanel: React.FC<{
             {/* Workout list */}
             {previewData.blocks.length > 0 && (
                 <div className="w-full max-w-lg flex flex-col gap-2">
-                    {previewData.blocks.map((block) => (
+                    {previewData.blocks.map((block, index) => (
                         <div
                             key={block.id}
-                            className="flex items-center justify-between rounded-lg border border-border/60 bg-card/50 px-4 py-3 text-sm"
+                            {...(getFocusProps ? getFocusProps(`preview-block-${index}`) : {})}
+                            className="tv-focusable flex items-center justify-between rounded-lg border border-border/60 bg-card/50 px-4 py-3 text-sm transition-all cursor-pointer"
                         >
                             <div className="flex items-center gap-2">
                                 <Play className="h-4 w-4 text-muted-foreground" />
@@ -350,6 +356,55 @@ const ReceiverApp: React.FC = () => {
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
 
+    // Send event back to browser via the proxy runtime
+    const sendEvent = useCallback((eventName: string) => {
+        const runtime = runtimeRef.current;
+        if (!runtime) return;
+        runtime.handle({
+            name: eventName,
+            timestamp: new Date(),
+        });
+    }, []);
+
+    // D-Pad flash helper
+    const flash = useCallback(() => {
+        setDpadFlash(true);
+        setTimeout(() => setDpadFlash(false), 200);
+    }, []);
+
+    // ── Spatial Navigation ──────────────────────────────────────────────────
+    // The hook handles ArrowUp/Down/Left/Right (focus movement) and
+    // Enter/Select (activation). We map element IDs to runtime events.
+    const { getFocusProps } = useSpatialNavigation({
+        enabled: !!proxyRuntime,
+        initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'timer-main',
+        onSelect: useCallback((elementId: string, element: HTMLElement) => {
+            flash();
+            // Preview screen items → start the workout
+            if (elementId.startsWith('preview-block-')) {
+                sendEvent('next');
+                return;
+            }
+            // Track panel controls
+            switch (elementId) {
+                case 'timer-main':
+                    // Toggle play/pause
+                    element.click();
+                    break;
+                case 'btn-stop':
+                    sendEvent('stop');
+                    break;
+                case 'btn-next':
+                    sendEvent('next');
+                    break;
+                default:
+                    // Fallback: click the element
+                    element.click();
+                    break;
+            }
+        }, [sendEvent, flash]),
+    });
+
     // Local clock for smooth timer interpolation
     useEffect(() => {
         let frameId: number;
@@ -425,84 +480,18 @@ const ReceiverApp: React.FC = () => {
         };
     }, []);
 
-    // Send event back to browser via the proxy runtime
-    const sendEvent = useCallback((eventName: string) => {
-        const runtime = runtimeRef.current;
-        if (!runtime) return;
-        runtime.handle({
-            name: eventName,
-            timestamp: new Date(),
-        });
-    }, []);
-
-    // D-Pad key handler
+    // Escape/Backspace handler (stop event — not part of spatial navigation)
     useEffect(() => {
-        document.body.tabIndex = 0;
-        document.body.focus();
-
-        const refocus = () => {
-            if (document.activeElement !== document.body) {
-                document.body.focus();
-            }
-        };
-
-        const focusInterval = setInterval(refocus, 1000);
-        window.addEventListener('blur', refocus);
-
-        const handleKey = (e: KeyboardEvent) => {
-            const isSelect =
-                e.key === 'Enter' ||
-                e.key === 'Select' ||
-                e.key === 'Center' ||
-                e.key === 'Ok' ||
-                e.key === 'Accept' ||
-                e.key === ' ' ||
-                e.keyCode === 13 ||
-                e.keyCode === 23 ||
-                e.keyCode === 32;
-
-            const isPlayPause =
-                e.key === 'MediaPlayPause' ||
-                e.keyCode === 179;
-
-            if (isSelect || isPlayPause) {
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' || e.key === 'Backspace') {
                 e.preventDefault();
-                sendEvent('next');
-                setDpadFlash(true);
-                setTimeout(() => setDpadFlash(false), 200);
-                return;
-            }
-
-            switch (e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    sendEvent('start');
-                    setDpadFlash(true);
-                    setTimeout(() => setDpadFlash(false), 200);
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    sendEvent('pause');
-                    setDpadFlash(true);
-                    setTimeout(() => setDpadFlash(false), 200);
-                    break;
-                case 'Escape':
-                case 'Backspace':
-                    e.preventDefault();
-                    sendEvent('stop');
-                    setDpadFlash(true);
-                    setTimeout(() => setDpadFlash(false), 200);
-                    break;
+                sendEvent('stop');
+                flash();
             }
         };
-
-        window.addEventListener('keydown', handleKey);
-        return () => {
-            clearInterval(focusInterval);
-            window.removeEventListener('keydown', handleKey);
-            window.removeEventListener('blur', refocus);
-        };
-    }, [sendEvent]);
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [sendEvent, flash]);
 
     // Waiting screen (not yet connected)
     if (!proxyRuntime) {
@@ -520,7 +509,7 @@ const ReceiverApp: React.FC = () => {
                 {dpadFlash && (
                     <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
                 )}
-                <ReceiverPreviewPanel previewData={workbenchState.previewData} />
+                <ReceiverPreviewPanel previewData={workbenchState.previewData} getFocusProps={getFocusProps} />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}
                 </div>
@@ -560,7 +549,7 @@ const ReceiverApp: React.FC = () => {
 
                     {/* Right Column: Timer & Controls */}
                     <div className="w-1/2 flex flex-col bg-background transition-all duration-300">
-                        <ReceiverTimerPanel localNow={now} onEvent={sendEvent} />
+                        <ReceiverTimerPanel localNow={now} onEvent={sendEvent} getFocusProps={getFocusProps} />
                         <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                             {connectionStatus}
                         </div>
