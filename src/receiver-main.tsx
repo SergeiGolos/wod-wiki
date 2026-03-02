@@ -7,7 +7,7 @@ import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeCon
 import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
-import { Timer, CheckCircle2, ListTree } from 'lucide-react';
+import { Timer, CheckCircle2 } from 'lucide-react';
 import '@/index.css';
 
 // ============================================================================
@@ -141,32 +141,48 @@ const RemoteVisualStatePanel: React.FC<{
   displayRows: RemoteDisplayRow[];
   lookahead: { fragments: any[] } | null;
   localNow: number;
-}> = ({ displayRows, lookahead, localNow }) => {
-  if (displayRows.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
-        <ListTree className="h-8 w-8 mb-2 opacity-20" />
-        <span className="text-sm">No Active Blocks</span>
-      </div>
-    );
-  }
+  workoutState: string;
+  sessionElapsedMs: number;
+}> = ({ displayRows, lookahead, localNow, workoutState, sessionElapsedMs }) => {
 
   return (
     <div className="h-full flex flex-col gap-4 p-4 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
-      {/* 1. Active Stack Context */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-col gap-1 relative">
-          {displayRows.map((entry, index) => (
-            <RemoteStackBlockItem
-              key={entry.blockKey || index}
-              entry={entry}
-              localNow={localNow}
-            />
-          ))}
+      {/* 1. Session Header with overall timer */}
+      <div className="shrink-0">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground tracking-tight">Session</h2>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold bg-primary/10 text-primary">
+            <Timer className="h-3 w-3" />
+            {formatTimeMMSS(sessionElapsedMs)}
+          </div>
         </div>
       </div>
 
-      {/* 2. Up Next (Lookahead) */}
+      {/* 2. Workout State / Active Block */}
+      <div className="shrink-0">
+        {displayRows.length > 0 ? (
+          <div className="flex flex-col gap-1 relative">
+            {displayRows.map((entry, index) => (
+              <RemoteStackBlockItem
+                key={entry.blockKey || index}
+                entry={entry}
+                localNow={localNow}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border border-border bg-card p-4">
+            <span className="text-base font-medium text-foreground capitalize">
+              {workoutState || 'Ready to Start'}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Spacer to push Up Next to bottom */}
+      <div className="flex-1 min-h-0" />
+
+      {/* 4. Up Next (Lookahead) */}
       <div className="shrink-0 bg-muted/30 border border-dashed rounded-lg">
         <div className="p-3 pb-0">
           <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
@@ -379,6 +395,8 @@ const ReceiverApp = () => {
             displayRows={remoteState.displayRows || []}
             lookahead={remoteState.lookahead || null}
             localNow={now}
+            workoutState={remoteState.workoutState}
+            sessionElapsedMs={primaryElapsed}
           />
         </div>
 
