@@ -124,12 +124,23 @@ export class WebRtcRpcTransport implements IRpcTransport {
     dispose(): void {
         if (this.disposed) return;
         this.disposed = true;
-        this.dc?.close();
-        this.pc.close();
-        this.signaling.dispose();
+
+        // Notify listeners BEFORE clearing handlers and closing channels.
+        // dc.close() fires onclose asynchronously in Chrome, so by the time it
+        // fires the handler sets would already be empty — no one would hear the
+        // disconnect.  By notifying eagerly here, CastButtonRpc.cleanupCast()
+        // and the receiver's setProxyRuntime(null) both run correctly.
+        if (this.dc?.readyState === 'open') {
+            this.notifyDisconnected();
+        }
+
         this.messageHandlers.clear();
         this.connectedHandlers.clear();
         this.disconnectedHandlers.clear();
+
+        this.dc?.close();
+        this.pc.close();
+        this.signaling.dispose();
     }
 
     // ── Connection lifecycle ────────────────────────────────────────────────
@@ -195,7 +206,12 @@ export class WebRtcRpcTransport implements IRpcTransport {
     private wireDataChannel(dc: RTCDataChannel, onOpen: () => void): void {
         dc.onopen = () => onOpen();
 
-        dc.onclose = () => this.notifyDisconnected();
+        // Guard against double-notification: dispose() already notifies before
+        // clearing handlers, so if we are disposed the handlers set is empty and
+        // iterating it is a no-op — but guard explicitly for clarity.
+        dc.onclose = () => {
+            if (!this.disposed) this.notifyDisconnected();
+        };
 
         dc.onerror = (event) => {
             console.error('[WebRtcRpcTransport] DataChannel error', event);

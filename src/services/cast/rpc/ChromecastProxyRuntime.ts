@@ -288,6 +288,10 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
                 this.handleWorkbenchUpdate(message);
                 break;
             case 'rpc-dispose':
+                // Sender is shutting down — close the transport so its
+                // onDisconnected callbacks fire (e.g. setProxyRuntime(null) on
+                // the receiver), then dispose this proxy runtime.
+                this.transport.dispose();
                 this.dispose();
                 break;
             // rpc-event is handled by ChromecastEventProvider on the browser side

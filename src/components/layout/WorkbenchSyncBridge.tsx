@@ -84,6 +84,21 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     store.getState().setSelectedBlock(selectedBlock);
   }, [selectedBlock]);
 
+  // Clear stale analytics whenever the user navigates to a different note.
+  // Without this, the Chromecast stays stuck on the old completed/review state
+  // because analyticsSegments is only cleared inside the 'track' runtime-init
+  // effect, which doesn't run for non-track viewModes (e.g., 'review').
+  const lastSelectedBlockIdRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (selectedBlockId !== lastSelectedBlockIdRef.current) {
+      if (lastSelectedBlockIdRef.current !== undefined) {
+        console.log('[WorkbenchSyncBridge] Block navigated:', lastSelectedBlockIdRef.current, '→', selectedBlockId, '— clearing analytics for Chromecast');
+        store.getState().setAnalytics([], [], []);
+      }
+      lastSelectedBlockIdRef.current = selectedBlockId;
+    }
+  }, [selectedBlockId]);
+
   // --- View mode → store (drives receiver display mode over RPC) ---
   useEffect(() => {
     store.getState().setViewMode(viewMode);

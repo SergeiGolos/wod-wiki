@@ -29,7 +29,7 @@ const CHROMECAST_SUBSCRIPTION_ID = 'chromecast';
 
 export const CastButtonRpc: React.FC = () => {
     const [sdkState, setSdkState] = useState<CastSdkState>(ChromecastSdk.getState());
-    const [isCasting, setIsCasting] = useState(false);
+    const [isCasting, setIsCasting] = useState(() => ChromecastSdk.isSessionActive());
     const [isConnecting, setIsConnecting] = useState(false);
     const subscriptionManager = useSubscriptionManager();
     const setCastTransport = useWorkbenchSyncStore(s => s.setCastTransport);
@@ -86,6 +86,42 @@ export const CastButtonRpc: React.FC = () => {
         setCastTransport(null);
         setIsCasting(false);
     }, [subscriptionManager, setCastTransport]);
+
+    // Auto-cleanup when the Cast SDK session ends externally (e.g. Chromecast
+    // turned off, user stops casting from another device, or the component
+    // remounts after tab navigation with isCasting=true but no live session).
+    useEffect(() => {
+        return ChromecastSdk.on('session-ended', () => {
+            console.log('[CastButtonRpc] SDK session ended externally — cleaning up');
+            cleanupCast();
+        });
+    }, [cleanupCast]);
+
+    // Send rpc-dispose to the receiver before the page unloads so it shows the
+    // waiting screen immediately instead of staying frozen for ~30s while
+    // WebRTC keepalive detects the dead peer.
+    useEffect(() => {
+        const onPageHide = () => {
+            const transport = transportRef.current;
+            if (transport?.connected) {
+                try { transport.send({ type: 'rpc-dispose' }); } catch { /* ignore */ }
+            }
+        };
+        window.addEventListener('pagehide', onPageHide);
+        return () => window.removeEventListener('pagehide', onPageHide);
+    }, []);
+
+    // Cleanup when this component unmounts while still casting (e.g. Storybook
+    // story navigation). Without this the transport and subscription are
+    // orphaned and cannot be interacted with until the page reloads.
+    useEffect(() => {
+        return () => {
+            if (isCastingRef.current) {
+                console.log('[CastButtonRpc] Unmounting while still casting — disposing cast session');
+                cleanupCast();
+            }
+        };
+    }, [cleanupCast]);
 
     // Native click handler to preserve "User Activation" gesture.
     // React's SyntheticEvent system can introduce microtasks that break gesture-sensitive APIs.

@@ -68,7 +68,9 @@ export const WorkbenchCastBridge: React.FC = () => {
             if (analyticsSegments.length > 0) {
                 message = buildReviewMessage(analyticsData, analyticsSegments);
             } else {
-                message = { type: 'rpc-workbench-update', mode: 'idle' };
+                // Analytics were cleared (navigated to a new note) — show the
+                // new document in preview mode rather than a blank idle screen.
+                message = buildPreviewMessage(selectedBlock, documentItems);
             }
 
         } else {
