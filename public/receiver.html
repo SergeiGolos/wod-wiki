@@ -153,7 +153,7 @@
                 dbg('EVENT: SENDER_DISCONNECTED — senderId=' + e.data);
             });
             context.addEventListener(cast.framework.system.EventType.ERROR, function(e) {
-                dbg('EVENT: ERROR — ' + JSON.stringify(e));
+                dbg('EVENT: ERROR — ' + (e && e.type ? e.type : "unknown"));
             });
 
             // ============================================================

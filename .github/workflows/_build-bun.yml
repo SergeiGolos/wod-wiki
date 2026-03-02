@@ -65,6 +65,7 @@ jobs:
         env:
           # Configure API URL for production build (if used in storybook)
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
+          VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
 
       - name: Upload Build Assets
         uses: actions/upload-artifact@v4
