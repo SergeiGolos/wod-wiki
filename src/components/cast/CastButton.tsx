@@ -16,26 +16,31 @@ export const CastButton: React.FC = () => {
     // Only send updates when logical state changes
     useEffect(() => {
         const manager = castManagerRef.current;
-        const display = store.displayState;
+        const display = store.displayState as any;
 
         if (manager && isCasting && display) {
+            // Send the full displayState from the bridge — it already contains
+            // timerStack, displayRows, lookahead, subLabel, workoutState, etc.
             manager.sendStateUpdate(
                 sessionIdRef.current,
                 {
-                    timerStack: display.primaryTimer ? [display.primaryTimer as any] : [],
+                    timerStack: display.timerStack || [],
                     cardStack: [],
+                    displayRows: display.displayRows || [],
+                    lookahead: display.lookahead || null,
+                    subLabel: display.subLabel,
                     workoutState: display.isRunning ? 'running' : 'paused',
-                    totalElapsedMs: store.execution.elapsedTime
-                },
+                    totalElapsedMs: store.execution.elapsedTime,
+                } as any,
                 store.execution.stepCount
             );
         }
     }, [
         isCasting, 
-        store.displayState.primaryTimer?.label, 
-        store.displayState.isRunning,
+        store.displayState,
         store.execution.status,
-        store.execution.stepCount
+        store.execution.stepCount,
+        store.execution.elapsedTime,
     ]);
 
     const handleCast = useCallback(async () => {

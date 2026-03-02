@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RUNTIME_INTEGRATION_TESTING.md",
+                "file": "labels-crosswalk.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "RUNTIME_INTEGRATION_TESTING"
+              "title": "labels-crosswalk"
             }
           }
         ]
@@ -180,52 +180,14 @@
       "bases:Create new base": false
     }
   },
-  "floating": {
-    "id": "5662f79825ad495c",
-    "type": "floating",
-    "children": [
-      {
-        "id": "b76d50643bbbc2d5",
-        "type": "window",
-        "children": [
-          {
-            "id": "54563e8c09a61368",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "9aedeaa1c014a43e",
-                "type": "leaf",
-                "state": {
-                  "type": "markdown",
-                  "state": {
-                    "file": "BEHAVIORAL_ARCHITECTURE.md",
-                    "mode": "source",
-                    "source": false
-                  },
-                  "icon": "lucide-file",
-                  "title": "BEHAVIORAL_ARCHITECTURE"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "vertical",
-        "x": 0,
-        "y": 0,
-        "width": 600,
-        "height": 841,
-        "maximize": false,
-        "zoom": 1
-      }
-    ]
-  },
-  "active": "9aedeaa1c014a43e",
+  "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
-    "tv/07-aws-production-deployment.md",
     "RUNTIME_INTEGRATION_TESTING.md",
+    "BEHAVIORAL_ARCHITECTURE.md",
+    "labels-crosswalk.md",
+    "tv/07-aws-production-deployment.md",
     "FRAGMENT_CROSSWALK.md",
     "Behavior Map.canvas",
-    "BEHAVIORAL_ARCHITECTURE.md",
     "UI_STORYBOOK_TESTING.md",
     "STORYBOOK_PLAYWRIGHT_TESTING.md",
     "architecture/PERSISTENCE_STRATEGY.md",
