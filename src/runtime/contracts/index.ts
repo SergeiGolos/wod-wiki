@@ -14,5 +14,9 @@ export type { IAnchorValue } from './IAnchorValue';
 export type { IDistributedFragments } from './IDistributedFragments';
 export { PassthroughFragmentDistributor } from './IDistributedFragments';
 
+// Subscription & Event Provider interfaces
+export type { IRuntimeSubscription } from './IRuntimeSubscription';
+export type { IRuntimeEventProvider } from './IRuntimeEventProvider';
+
 // Event interfaces
 export * from './events';
