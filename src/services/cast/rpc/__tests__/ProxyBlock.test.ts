@@ -184,12 +184,73 @@ describe('ProxyBlock', () => {
     });
 
     describe('deprecated memory API', () => {
-        it('getMemory should return undefined', () => {
+        it('getMemory should return undefined when no timer', () => {
             const block = new ProxyBlock(createSerializedBlock());
             expect(block.getMemory('timer' as any)).toBeUndefined();
         });
 
-        it('hasMemory should return false', () => {
+        it("getMemory('time') should return TimerState shim when timer present", () => {
+            const timer: SerializedTimer = {
+                format: 'mm:ss',
+                durationMs: 60000,
+                direction: 'down',
+                label: 'AMRAP',
+                spans: [{ started: 1000, ended: undefined }],
+                isRunning: true,
+            };
+            const block = new ProxyBlock(createSerializedBlock({ timer }));
+
+            const shim = block.getMemory('time' as any);
+            expect(shim).toBeDefined();
+            expect(shim!.value).toBeDefined();
+
+            const state = shim!.value as any;
+            expect(state.direction).toBe('down');
+            expect(state.durationMs).toBe(60000);
+            expect(state.label).toBe('AMRAP');
+            expect(state.spans).toHaveLength(1);
+            expect(state.spans[0].started).toBe(1000);
+            expect(state.spans[0].ended).toBeUndefined();
+        });
+
+        it("getMemory('timer') should return TimerState shim when timer present", () => {
+            const timer: SerializedTimer = {
+                format: 'up',
+                direction: 'up',
+                spans: [{ started: 5000 }],
+                isRunning: true,
+            };
+            const block = new ProxyBlock(createSerializedBlock({ timer }));
+            const shim = block.getMemory('timer' as any);
+            expect(shim).toBeDefined();
+            expect((shim!.value as any).direction).toBe('up');
+        });
+
+        it("getMemory('time') subscribe returns unsubscribe no-op", () => {
+            const timer: SerializedTimer = {
+                format: 'up',
+                direction: 'up',
+                spans: [],
+                isRunning: false,
+            };
+            const block = new ProxyBlock(createSerializedBlock({ timer }));
+            const shim = block.getMemory('time' as any);
+            const unsub = shim!.subscribe(() => {});
+            expect(() => unsub()).not.toThrow();
+        });
+
+        it('hasMemory returns true when timer present', () => {
+            const timer: SerializedTimer = {
+                format: 'up',
+                direction: 'up',
+                spans: [],
+                isRunning: false,
+            };
+            const block = new ProxyBlock(createSerializedBlock({ timer }));
+            expect(block.hasMemory('timer' as any)).toBe(true);
+        });
+
+        it('hasMemory should return false when no timer', () => {
             const block = new ProxyBlock(createSerializedBlock());
             expect(block.hasMemory('timer' as any)).toBe(false);
         });

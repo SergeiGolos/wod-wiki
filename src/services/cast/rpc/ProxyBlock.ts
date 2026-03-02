@@ -4,10 +4,11 @@ import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
 import { IMemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
+import { MemoryType, MemoryValueOf, TimerState } from '@/runtime/memory/MemoryTypes';
 import { FragmentVisibility } from '@/runtime/memory/FragmentVisibility';
 import { BlockKey } from '@/core/models/BlockKey';
 import { ICodeFragment } from '@/core/models/CodeFragment';
+import { TimeSpan } from '@/runtime/models/TimeSpan';
 import type { SerializedBlock } from './RpcMessages';
 
 /**
@@ -66,6 +67,8 @@ export class ProxyBlock implements IRuntimeBlock {
 
     private displayLocations: StaticMemoryLocation[];
     private timerLocation: StaticMemoryLocation | null;
+    /** TimerState built from the serialized timer — drives useStackTimers() */
+    private timerState: TimerState | undefined;
 
     constructor(serialized: SerializedBlock) {
         this.key = new BlockKey(serialized.key);
@@ -80,8 +83,20 @@ export class ProxyBlock implements IRuntimeBlock {
             fragments => new StaticMemoryLocation('fragment:display', fragments),
         );
 
-        // Hydrate timer as a static memory location with span fragments
+        // Hydrate timer state + static memory location
         if (serialized.timer) {
+            const spans = serialized.timer.spans.map(s => new TimeSpan(s.started, s.ended));
+
+            // Build the TimerState that useStackTimers / usePrimaryTimer expect
+            this.timerState = {
+                spans,
+                direction: serialized.timer.direction,
+                durationMs: serialized.timer.durationMs,
+                label: serialized.timer.label ?? '',
+                role: undefined,
+            };
+
+            // Also keep the fragment-based location for getMemoryByTag('timer') callers
             const { FragmentType } = require('@/core/models/CodeFragment');
             const timerFragments: ICodeFragment[] = [
                 {
@@ -106,6 +121,7 @@ export class ProxyBlock implements IRuntimeBlock {
             }
             this.timerLocation = new StaticMemoryLocation('timer', timerFragments);
         } else {
+            this.timerState = undefined;
             this.timerLocation = null;
         }
     }
@@ -159,13 +175,29 @@ export class ProxyBlock implements IRuntimeBlock {
         return undefined;
     }
 
-    // ── Deprecated Memory API (stubs) ───────────────────────────────────────
+    // ── Deprecated Memory API ───────────────────────────────────────────────
 
-    getMemory<T extends MemoryType>(_type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
+    /**
+     * Returns a TimerState shim when type is 'time' or 'timer'.
+     * 'time' is the legacy key used by useStackTimers / usePrimaryTimer hooks.
+     * Without this the timer panel on the Chromecast receiver stays blank.
+     */
+    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
+        if ((type as string) === 'time' || (type as string) === 'timer') {
+            if (!this.timerState) return undefined;
+            const state = this.timerState;
+            return {
+                value: state as unknown as MemoryValueOf<T>,
+                subscribe: (_listener) => () => {},
+            };
+        }
         return undefined;
     }
 
-    hasMemory(_type: MemoryType): boolean {
+    hasMemory(type: MemoryType): boolean {
+        if ((type as string) === 'time' || (type as string) === 'timer') {
+            return this.timerState !== undefined;
+        }
         return false;
     }
 
