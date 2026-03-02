@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
+import { CAST_NAMESPACE } from '@/types/cast/messages';
 import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
 import { TimerStackView } from '@/components/workout/TimerStackView';
@@ -269,8 +270,13 @@ const ReceiverApp = () => {
       setConnectionStatus('disconnected');
     });
 
-    // Start the CAF receiver context to accept incoming Cast sessions
-    castContext.start();
+    // Start the CAF receiver context — custom namespaces MUST be declared
+    // in the start options or the Cast framework rejects all messages.
+    castContext.start({
+      customNamespaces: {
+        [CAST_NAMESPACE]: (window as any).cast.framework.system.MessageType.STRING
+      }
+    });
     setConnectionStatus('cast-ready');
 
     // connect() as answerer — waits for offer from sender

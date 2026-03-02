@@ -137,7 +137,13 @@ export const CastButton: React.FC = () => {
             const session = ChromecastSdk.getSession();
             if (!session) throw new Error('No Cast session after requestSession()');
 
-            // 3. Set up WebRTC: Cast namespace → signaling → DataChannel
+            // 3. Small delay to let the receiver's CAF context.start() complete.
+            //    The Chromecast loads our receiver URL and must initialise the
+            //    Cast Receiver SDK before it can accept custom namespace messages.
+            console.log('[CastButton] Cast session active — waiting for receiver init…');
+            await new Promise(r => setTimeout(r, 2000));
+
+            // 4. Set up WebRTC: Cast namespace → signaling → DataChannel
             const signaling = new SenderCastSignaling(session);
             const transport = new WebRTCTransport('offerer', signaling);
             transportRef.current = transport;

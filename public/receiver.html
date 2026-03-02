@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wod.Wiki TV</title>
-    <!-- Google Cast Application Framework — Receiver SDK -->
-    <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+    <!-- Google Cast Application Framework — Receiver SDK (must be HTTPS) -->
+    <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: white; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
@@ -41,35 +41,39 @@
     </div>
 
     <script type="module">
-        // ── Cast Receiver Context (CAF) ─────────────────────────────────
+        // ====================================================================
+        // 1. Start CAF Receiver Context FIRST — the Chromecast will time out
+        //    (~5 s) and show "failed to cast" if context.start() isn't called.
+        //    Custom namespaces MUST be declared in the start options or the
+        //    Cast framework will reject all messages on that namespace.
+        // ====================================================================
 
         const CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
         const context = cast.framework.CastReceiverContext.getInstance();
 
         // ── DOM refs ────────────────────────────────────────────────────
 
-        const labelEl  = document.getElementById('exercise-label');
+        const labelEl    = document.getElementById('exercise-label');
         const subLabelEl = document.getElementById('sub-label');
-        const timerEl  = document.getElementById('timer-display');
-        const ringEl   = document.getElementById('progress-ring');
-        const dotEl    = document.getElementById('connection-dot');
+        const timerEl    = document.getElementById('timer-display');
+        const ringEl     = document.getElementById('progress-ring');
+        const dotEl      = document.getElementById('connection-dot');
 
         let lastState = null;
         let dcRef = null; // RTCDataChannel
+        let senderIdRef = null;
 
-        // ── WebRTC answerer ─────────────────────────────────────────────
+        // ====================================================================
+        // 2. Create WebRTC PeerConnection (answerer) — must exist before the
+        //    signaling listener fires so we can handle the offer immediately.
+        // ====================================================================
 
         const pc = new RTCPeerConnection({ iceServers: [] }); // LAN-only
 
-        // Forward ICE candidates back to sender via Cast namespace
-        let senderIdRef = null;
-
         pc.onicecandidate = (event) => {
             if (event.candidate && senderIdRef) {
-                context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, JSON.stringify({
-                    type: 'webrtc-ice',
-                    candidate: event.candidate.toJSON(),
-                }));
+                context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
+                    JSON.stringify({ type: 'webrtc-ice', candidate: event.candidate.toJSON() }));
             }
         };
 
@@ -85,17 +89,41 @@
             dotEl.style.background = state === 'connected' ? '#10b981' : '#ef4444';
         };
 
-        // ── Signaling via Cast custom namespace ─────────────────────────
+        // ====================================================================
+        // 3. Register signaling listener (before start so we don't miss msgs)
+        // ====================================================================
 
         context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
+            console.log('[Receiver] Cast message from', event.senderId, event.data);
             senderIdRef = event.senderId;
             let signal;
             try {
                 signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            } catch (e) { return; }
-
+            } catch (e) {
+                console.error('[Receiver] Bad signal JSON', e);
+                return;
+            }
             handleSignal(signal);
         });
+
+        // ====================================================================
+        // 4. NOW call context.start() with the custom namespace declared.
+        //    MessageType.STRING means we send/receive raw strings and parse
+        //    ourselves, which matches SenderCastSignaling's JSON.stringify().
+        // ====================================================================
+
+        try {
+            context.start({
+                customNamespaces: {
+                    [CAST_NAMESPACE]: cast.framework.system.MessageType.STRING
+                }
+            });
+            console.log('[Receiver] CAF Receiver Context started with namespace:', CAST_NAMESPACE);
+            subLabelEl.innerText = 'Cast ready — waiting for sender…';
+        } catch (err) {
+            console.error('[Receiver] context.start() failed:', err);
+            subLabelEl.innerText = 'Error: ' + err.message;
+        }
 
         async function handleSignal(signal) {
             try {
@@ -237,10 +265,8 @@
             }
         });
 
-        // ── Start Cast Receiver Context + timer loop ────────────────────
+        // ── Start timer loop ─────────────────────────────────────────
 
-        context.start();
-        console.log('[Receiver] CAF Receiver Context started');
         tick();
     </script>
 </body>
