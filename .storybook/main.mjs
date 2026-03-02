@@ -74,6 +74,32 @@ const config = {
     config.server = config.server || {};
     config.server.allowedHosts = true;
 
+    // Serve receiver-rpc.html through Vite's transform pipeline (not as static)
+    // so that @vitejs/plugin-react injects its preamble for JSX support.
+    config.plugins = config.plugins || [];
+    config.plugins.push({
+      name: 'serve-receiver-rpc',
+      configureServer(server) {
+        server.middlewares.use(async (req, res, next) => {
+          if (req.url === '/receiver-rpc.html' || req.url === '/receiver-rpc') {
+            try {
+              const htmlPath = path.resolve(process.cwd(), 'receiver-rpc.html');
+              const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
+              const html = await server.transformIndexHtml('/receiver-rpc.html', rawHtml, req.originalUrl);
+              res.setHeader('Content-Type', 'text/html');
+              res.statusCode = 200;
+              res.end(html);
+            } catch (err) {
+              console.error('[serve-receiver-rpc] Error transforming HTML:', err);
+              next(err);
+            }
+            return;
+          }
+          next();
+        });
+      },
+    });
+
     // Tailscale SSL Detection
     const rootDir = process.cwd();
     const certFiles = fs.readdirSync(rootDir).filter(f => f.endsWith('.ts.net.crt'));

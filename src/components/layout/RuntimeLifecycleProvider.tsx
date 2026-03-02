@@ -25,6 +25,9 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import type { WodBlock } from '../../markdown-editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
+import { SubscriptionManager } from '../../runtime/subscriptions/SubscriptionManager';
+import { LocalRuntimeSubscription } from '../../runtime/subscriptions/LocalRuntimeSubscription';
+import { SubscriptionManagerContext } from './SubscriptionManagerContext';
 
 // Re-export hooks for backward compatibility
 export { useRuntimeLifecycle, useRuntime } from './useRuntimeLifecycle';
@@ -53,6 +56,7 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
   children
 }) => {
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
+  const [subscriptionManager, setSubscriptionManager] = useState<SubscriptionManager | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -60,13 +64,21 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
   const factoryRef = useRef(factory);
   factoryRef.current = factory;
 
-  // Track current runtime in a ref to avoid stale closure issues
+  // Track current runtime and subscription manager in refs to avoid stale closure issues
   const currentRuntimeRef = useRef<ScriptRuntime | null>(null);
+  const currentSubManagerRef = useRef<SubscriptionManager | null>(null);
 
   /**
    * Dispose the current runtime safely
    */
   const disposeRuntime = useCallback(() => {
+    // Dispose subscription manager first (it unsubscribes from the runtime)
+    if (currentSubManagerRef.current) {
+      currentSubManagerRef.current.dispose();
+      currentSubManagerRef.current = null;
+    }
+    setSubscriptionManager(null);
+
     setRuntime(currentRuntime => {
       if (currentRuntime) {
         try {
@@ -111,8 +123,15 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
 
       if (newRuntime) {
         currentRuntimeRef.current = newRuntime;
+        // Create a SubscriptionManager and add a local subscription
+        const mgr = new SubscriptionManager(newRuntime);
+        mgr.add(new LocalRuntimeSubscription({ id: 'local' }));
+        currentSubManagerRef.current = mgr;
+        setSubscriptionManager(mgr);
       } else {
         currentRuntimeRef.current = null;
+        currentSubManagerRef.current = null;
+        setSubscriptionManager(null);
       }
     } catch (err) {
       console.error('[RuntimeProvider] Error creating runtime:', err);
@@ -126,6 +145,10 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
   // Cleanup on unmount - use ref to avoid stale closure
   useEffect(() => {
     return () => {
+      // Dispose subscription manager first
+      if (currentSubManagerRef.current) {
+        currentSubManagerRef.current.dispose();
+      }
       // Use ref to get current runtime value, avoiding stale closure
       if (currentRuntimeRef.current) {
         try {
@@ -147,7 +170,9 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
 
   return (
     <RuntimeLifecycleContext.Provider value={value}>
-      {children}
+      <SubscriptionManagerContext.Provider value={subscriptionManager}>
+        {children}
+      </SubscriptionManagerContext.Provider>
     </RuntimeLifecycleContext.Provider>
   );
 };

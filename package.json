@@ -29,6 +29,7 @@
     "clean-storybook": "bun -e 'require(\"fs\").rmSync(\"storybook-static\", { recursive: true, force: true })'",
     "prebuild-storybook": "bun run clean-storybook",
     "build-storybook": "NODE_OPTIONS=--max-old-space-size=4096 storybook build",
+    "postbuild-storybook": "bun x vite build --config vite.receiver.config.ts",
     "docs:check": "bun scripts/check-docs-links.cjs",
     "dev": "bun scripts/dev-start.cjs",
     "dev:web": "bun scripts/dev-start.cjs --web-only --no-emulator",

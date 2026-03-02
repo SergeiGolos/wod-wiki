@@ -119,7 +119,7 @@ import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
 import { DisplaySyncBridge } from '@/components/layout/DisplaySyncBridge';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
-import { CastButton } from '@/components/cast/CastButton';
+import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
 import { FileText, Activity, BarChart3, Download, RotateCcw, Edit, Timer, BarChart2 } from 'lucide-react';
@@ -314,7 +314,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
           >
             <Download className="h-4 w-4" />
           </Button>
-          <CastButton />
+          <CastButtonRpc />
           <DebugButton />
         </div>
       </div>
