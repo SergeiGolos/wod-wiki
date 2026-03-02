@@ -272,9 +272,10 @@ const ReceiverApp = () => {
 
     // Start the CAF receiver context — custom namespaces MUST be declared
     // in the start options or the Cast framework rejects all messages.
+    // Use 'JSON' type — the SDK auto-parses incoming messages as objects.
     castContext.start({
       customNamespaces: {
-        [CAST_NAMESPACE]: (window as any).cast.framework.system.MessageType.STRING
+        [CAST_NAMESPACE]: 'JSON'
       }
     });
     setConnectionStatus('cast-ready');

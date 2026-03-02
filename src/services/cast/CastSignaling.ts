@@ -34,7 +34,11 @@ export class SenderCastSignaling implements ISignaling {
   constructor(private readonly session: any /* cast.framework.CastSession */) {
     this.boundListener = (_namespace: string, message: string) => {
       try {
-        const signal = JSON.parse(message) as WebRTCSignalMessage;
+        // The sender SDK delivers messages as strings from the receiver.
+        // Parse if string, pass through if already an object.
+        const signal = (typeof message === 'string'
+          ? JSON.parse(message)
+          : message) as WebRTCSignalMessage;
         this.handler?.(signal);
       } catch (err) {
         console.error('[SenderCastSignaling] Failed to parse incoming signal', err);
@@ -46,8 +50,9 @@ export class SenderCastSignaling implements ISignaling {
   }
 
   send(signal: WebRTCSignalMessage): void {
+    // Send as a plain object — the Cast SDK serialises it for transport.
     this.session
-      .sendMessage(CAST_NAMESPACE, JSON.stringify(signal))
+      .sendMessage(CAST_NAMESPACE, signal)
       .catch((err: unknown) =>
         console.error('[SenderCastSignaling] sendMessage failed', err)
       );
@@ -87,6 +92,8 @@ export class ReceiverCastSignaling implements ISignaling {
       try {
         // Remember the sender's ID so we can reply
         this.senderId = event.senderId;
+        // With 'JSON' namespace type, event.data is already a parsed object.
+        // Keep string fallback for safety.
         const signal = (typeof event.data === 'string'
           ? JSON.parse(event.data)
           : event.data) as WebRTCSignalMessage;
@@ -105,10 +112,11 @@ export class ReceiverCastSignaling implements ISignaling {
       console.warn('[ReceiverCastSignaling] No senderId yet — cannot reply');
       return;
     }
+    // Send as a plain object — 'JSON' namespace type handles serialization.
     this.context.sendCustomMessage(
       CAST_NAMESPACE,
       this.senderId,
-      JSON.stringify(signal),
+      signal,
     );
   }
 

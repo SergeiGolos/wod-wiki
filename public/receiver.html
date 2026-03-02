@@ -73,7 +73,7 @@
         pc.onicecandidate = (event) => {
             if (event.candidate && senderIdRef) {
                 context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
-                    JSON.stringify({ type: 'webrtc-ice', candidate: event.candidate.toJSON() }));
+                    { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
             }
         };
 
@@ -96,26 +96,22 @@
         context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
             console.log('[Receiver] Cast message from', event.senderId, event.data);
             senderIdRef = event.senderId;
-            let signal;
-            try {
-                signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            } catch (e) {
-                console.error('[Receiver] Bad signal JSON', e);
-                return;
-            }
+            // With 'JSON' namespace type, event.data is already a parsed object.
+            // Keep the string fallback for safety.
+            const signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
             handleSignal(signal);
         });
 
         // ====================================================================
         // 4. NOW call context.start() with the custom namespace declared.
-        //    MessageType.STRING means we send/receive raw strings and parse
-        //    ourselves, which matches SenderCastSignaling's JSON.stringify().
+        //    Use 'JSON' type so the Cast SDK auto-parses incoming messages
+        //    as objects and we send objects directly (no manual stringify).
         // ====================================================================
 
         try {
             context.start({
                 customNamespaces: {
-                    [CAST_NAMESPACE]: cast.framework.system.MessageType.STRING
+                    [CAST_NAMESPACE]: 'JSON'
                 }
             });
             console.log('[Receiver] CAF Receiver Context started with namespace:', CAST_NAMESPACE);
@@ -131,10 +127,10 @@
                     await pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
                     const answer = await pc.createAnswer();
                     await pc.setLocalDescription(answer);
-                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, JSON.stringify({
+                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, {
                         type: 'webrtc-answer',
                         sdp: pc.localDescription.sdp,
-                    }));
+                    });
                 } else if (signal.type === 'webrtc-answer') {
                     await pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
                 } else if (signal.type === 'webrtc-ice') {
