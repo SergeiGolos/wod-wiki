@@ -34,11 +34,13 @@ export class SenderCastSignaling implements ISignaling {
   constructor(private readonly session: any /* cast.framework.CastSession */) {
     this.boundListener = (_namespace: string, message: string) => {
       try {
+        console.log('[SenderCastSignaling] RAW incoming:', typeof message, typeof message === 'string' ? message.substring(0, 120) : JSON.stringify(message).substring(0, 120));
         // The sender SDK delivers messages as strings from the receiver.
         // Parse if string, pass through if already an object.
         const signal = (typeof message === 'string'
           ? JSON.parse(message)
           : message) as WebRTCSignalMessage;
+        console.log('[SenderCastSignaling] Parsed signal type:', signal.type);
         this.handler?.(signal);
       } catch (err) {
         console.error('[SenderCastSignaling] Failed to parse incoming signal', err);
@@ -47,14 +49,17 @@ export class SenderCastSignaling implements ISignaling {
 
     this.session.addMessageListener(CAST_NAMESPACE, this.boundListener);
     console.log(`[SenderCastSignaling] Listening on ${CAST_NAMESPACE}`);
+    console.log(`[SenderCastSignaling] Session state: ${this.session.getSessionState?.()}`);
   }
 
   send(signal: WebRTCSignalMessage): void {
+    console.log(`[SenderCastSignaling] Sending: ${signal.type}`);
     // Send as a plain object — the Cast SDK serialises it for transport.
     this.session
       .sendMessage(CAST_NAMESPACE, signal)
+      .then(() => console.log(`[SenderCastSignaling] sendMessage(${signal.type}) OK`))
       .catch((err: unknown) =>
-        console.error('[SenderCastSignaling] sendMessage failed', err)
+        console.error(`[SenderCastSignaling] sendMessage(${signal.type}) FAILED`, err)
       );
   }
 

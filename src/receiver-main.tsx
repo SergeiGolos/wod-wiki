@@ -295,7 +295,11 @@ const ReceiverApp = () => {
   // ── Send event back to caster via WebRTC DataChannel ──
   const sendReceiverEvent = React.useCallback((eventName: string) => {
     const transport = transportRef.current;
-    if (!transport || !transport.isConnected) return;
+    if (!transport || !transport.isConnected) {
+      console.warn(`[ReceiverApp] Cannot send event "${eventName}" - transport not connected`);
+      return;
+    }
+    console.log(`[ReceiverApp] Sending event: ${eventName}`);
     transport.send({
       type: 'event-from-receiver',
       messageId: 'evt-' + uuidv4().substring(0, 6),
@@ -315,17 +319,44 @@ const ReceiverApp = () => {
     document.body.tabIndex = 0;
     document.body.focus();
 
-    const refocus = () => setTimeout(() => document.body.focus(), 100);
-    document.body.addEventListener('blur', refocus);
+    const refocus = () => {
+      if (document.activeElement !== document.body) {
+        document.body.focus();
+      }
+    };
+    
+    // Check focus every second and on blur
+    const focusInterval = setInterval(refocus, 1000);
+    window.addEventListener('blur', refocus);
 
     const handleKey = (e: KeyboardEvent) => {
+      console.log(`[ReceiverApp] Key pressed: "${e.key}" (code: ${e.code}, keyCode: ${e.keyCode})`);
+      
+      const isSelect = 
+        e.key === 'Enter' || 
+        e.key === 'Select' || 
+        e.key === 'Center' || 
+        e.key === 'Ok' || 
+        e.key === 'Accept' || 
+        e.key === ' ' ||
+        e.keyCode === 13 || // Enter
+        e.keyCode === 23 || // Center/Select
+        e.keyCode === 32;   // Space
+      
+      const isPlayPause = 
+        e.key === 'MediaPlayPause' || 
+        e.keyCode === 179;
+
+      if (isSelect || isPlayPause) {
+        e.preventDefault();
+        console.log(`[ReceiverApp] Triggering "next" event from ${e.key || e.keyCode}`);
+        sendReceiverEvent('next');
+        setDpadFlash(true);
+        setTimeout(() => setDpadFlash(false), 200);
+        return;
+      }
+
       switch (e.key) {
-        case 'Enter':
-          e.preventDefault();
-          sendReceiverEvent('next');
-          setDpadFlash(true);
-          setTimeout(() => setDpadFlash(false), 200);
-          break;
         case 'ArrowUp':
           e.preventDefault();
           sendReceiverEvent('start');
@@ -350,8 +381,9 @@ const ReceiverApp = () => {
 
     window.addEventListener('keydown', handleKey);
     return () => {
+      clearInterval(focusInterval);
       window.removeEventListener('keydown', handleKey);
-      document.body.removeEventListener('blur', refocus);
+      window.removeEventListener('blur', refocus);
     };
   }, [sendReceiverEvent]);
 

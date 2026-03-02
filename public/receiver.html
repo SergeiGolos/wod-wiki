@@ -4,266 +4,436 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wod.Wiki TV</title>
+
     <!-- Google Cast Application Framework — Receiver SDK (must be HTTPS) -->
     <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- ================================================================
+         CRITICAL: call context.start() IMMEDIATELY after the Cast SDK
+         loads, in a regular <script> (NOT type="module" which defers).
+
+         The Chromecast has a ~5 s timeout — if context.start() hasn't
+         been called by then the session is torn down, the sender sees
+         "cancel", and the TV shows a black screen.
+
+         NO other blocking resources (Tailwind CDN, etc.) before this.
+    ================================================================ -->
+    <script>
+        /* --- Boot the CAF Receiver Context as fast as possible --- */
+        (function() {
+            var CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
+            var t0 = performance.now();
+
+            // Expose for the body script
+            window.__CAST_NAMESPACE = CAST_NAMESPACE;
+            window.__t0 = t0;
+            window.__debugLines = [];
+
+            // Lightweight debug logger — writes to console + stores for
+            // the on-screen debug panel rendered later.
+            window.__dbg = function(msg) {
+                var ts = (performance.now() - t0).toFixed(0);
+                var line = '[' + ts + ' ms] ' + msg;
+                console.log('[Receiver] ' + line);
+                window.__debugLines.push(line);
+                // If the debug panel is already in the DOM, append live
+                var el = document.getElementById('debug-log');
+                if (el) {
+                    el.textContent = window.__debugLines.join('\n');
+                    el.scrollTop = el.scrollHeight;
+                }
+            };
+
+            window.__dbg('Cast SDK loaded, calling context.start()…');
+
+            var context = cast.framework.CastReceiverContext.getInstance();
+            window.__castContext = context;
+
+            // Log system events
+            context.addEventListener(cast.framework.system.EventType.READY, function(e) {
+                window.__dbg('EVENT: READY — applicationData=' + JSON.stringify(e.data));
+            });
+            context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, function(e) {
+                window.__dbg('EVENT: SENDER_CONNECTED — senderId=' + e.data);
+            });
+            context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, function(e) {
+                window.__dbg('EVENT: SENDER_DISCONNECTED — senderId=' + e.data);
+            });
+            context.addEventListener(cast.framework.system.EventType.ERROR, function(e) {
+                window.__dbg('EVENT: ERROR — ' + JSON.stringify(e));
+            });
+            context.addEventListener(cast.framework.system.EventType.SHUTDOWN, function() {
+                window.__dbg('EVENT: SHUTDOWN');
+            });
+
+            try {
+                context.start({
+                    disableIdleTimeout: true,
+                    customNamespaces: {
+                        [CAST_NAMESPACE]: 'JSON'
+                    }
+                });
+                window.__dbg('context.start() succeeded');
+            } catch (err) {
+                window.__dbg('context.start() FAILED: ' + err.message);
+            }
+        })();
+    </script>
+
     <style>
-        body { background: #000; color: white; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000; color: #fff; overflow: hidden;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            height: 100vh; width: 100vw; display: flex; flex-direction: row;
+        }
         .timer-ring { transition: stroke-dashoffset 0.1s linear; }
-        .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+
+        /* Left panel */
+        .panel-left {
+            width: 50%; height: 100%; display: flex; flex-direction: column;
+            padding: 4rem; justify-content: center;
+            background: #09090b; border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        .panel-left .heading {
+            opacity: 0.2; font-size: 0.75rem; letter-spacing: 0.5em;
+            text-transform: uppercase; margin-bottom: 3rem; font-weight: 700;
+        }
+        #exercise-label {
+            font-size: 4.5rem; font-weight: 900; letter-spacing: -0.05em;
+            text-transform: uppercase; line-height: 1.1; color: rgba(255,255,255,0.9);
+        }
+        #sub-label {
+            margin-top: 2rem; font-size: 1.5rem; color: rgba(59,130,246,0.6);
+            font-weight: 500; letter-spacing: 0.05em;
+        }
+
+        /* Right panel */
+        .panel-right {
+            width: 50%; height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #000; position: relative;
+        }
+        .ring-svg {
+            position: absolute; width: 80%; height: 80%;
+            transform: rotate(-90deg) scale(0.95);
+        }
+        #timer-display {
+            font-size: 14vw; font-weight: 900; letter-spacing: -0.05em;
+            font-variant-numeric: tabular-nums; line-height: 1; z-index: 10;
+        }
+        .status-bar {
+            position: absolute; bottom: 2rem; right: 2rem;
+            display: flex; align-items: center; gap: 0.75rem; opacity: 0.2;
+        }
+        #connection-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #10b981; box-shadow: 0 0 8px #10b981;
+        }
+        .status-bar span {
+            font-size: 10px; letter-spacing: 0.15em; font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Debug log overlay — visible by default; press 'd' to hide */
+        #debug-log {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 40%; background: rgba(0,0,0,0.92);
+            color: #4ade80; font-size: 11px; padding: 12px 16px;
+            overflow-y: auto; z-index: 10000; white-space: pre-wrap;
+            border-top: 1px solid rgba(74,222,128,0.3);
+            display: block;
+        }
     </style>
 </head>
-<body tabindex="0" id="app-body" class="h-screen w-screen flex flex-row overflow-hidden">
-    <!-- Left Panel: Workout Info (Mirrors VisualStatePanel) -->
-    <div class="w-1/2 h-full border-r border-white/10 flex flex-col p-16 justify-center bg-zinc-950">
-        <div class="opacity-20 text-xs tracking-[0.5em] uppercase mb-12 font-bold">Workout Stack</div>
-        <div id="exercise-label" class="text-7xl font-black tracking-tighter uppercase leading-tight text-white/90">
-            Ready to Start
-        </div>
-        <div id="sub-label" class="mt-8 text-2xl text-blue-500/60 font-medium tracking-wide">
-            Waiting for Cast session...
-        </div>
+<body tabindex="0" id="app-body">
+    <!-- Left Panel: Workout Info -->
+    <div class="panel-left">
+        <div class="heading">Workout Stack</div>
+        <div id="exercise-label">Ready to Start</div>
+        <div id="sub-label">Initialising…</div>
     </div>
 
-    <!-- Right Panel: Big Clock (Mirrors TimerDisplay) -->
-    <div class="w-1/2 h-full flex flex-col items-center justify-center bg-black relative">
-        <svg class="absolute w-[80%] h-[80%] -rotate-90 scale-95" viewBox="0 0 100 100">
+    <!-- Right Panel: Big Clock -->
+    <div class="panel-right">
+        <svg class="ring-svg" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
             <circle id="progress-ring" cx="50" cy="50" r="48" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="301.59" stroke-dashoffset="301.59" stroke-linecap="round" class="timer-ring" />
         </svg>
-        <div id="timer-display" class="text-[14vw] font-black tracking-tighter tabular-nums leading-none z-10">00:00</div>
-        
-        <div class="absolute bottom-8 right-8 flex items-center gap-3 opacity-20">
-            <div id="connection-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
-            <div class="text-[10px] tracking-widest font-bold uppercase">WOD.WIKI // SMART MIRROR</div>
+        <div id="timer-display">00:00</div>
+        <div class="status-bar">
+            <div id="connection-dot"></div>
+            <span>WOD.WIKI // SMART MIRROR</span>
         </div>
     </div>
 
-    <script type="module">
+    <!-- On-screen debug log (visible by default; press 'd' to hide) -->
+    <pre id="debug-log"></pre>
+
+    <script>
         // ====================================================================
-        // 1. Start CAF Receiver Context FIRST — the Chromecast will time out
-        //    (~5 s) and show "failed to cast" if context.start() isn't called.
-        //    Custom namespaces MUST be declared in the start options or the
-        //    Cast framework will reject all messages on that namespace.
+        // Main receiver logic — runs AFTER context.start() (called in <head>).
+        // Regular <script>, not type="module", for maximum compatibility.
         // ====================================================================
+        (function() {
+            'use strict';
 
-        const CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
-        const context = cast.framework.CastReceiverContext.getInstance();
+            var dbg = window.__dbg;
+            var CAST_NAMESPACE = window.__CAST_NAMESPACE;
+            var context = window.__castContext;
 
-        // ── DOM refs ────────────────────────────────────────────────────
+            // ── DOM refs ────────────────────────────────────────────────
+            var labelEl    = document.getElementById('exercise-label');
+            var subLabelEl = document.getElementById('sub-label');
+            var timerEl    = document.getElementById('timer-display');
+            var ringEl     = document.getElementById('progress-ring');
+            var dotEl      = document.getElementById('connection-dot');
+            var debugEl    = document.getElementById('debug-log');
 
-        const labelEl    = document.getElementById('exercise-label');
-        const subLabelEl = document.getElementById('sub-label');
-        const timerEl    = document.getElementById('timer-display');
-        const ringEl     = document.getElementById('progress-ring');
-        const dotEl      = document.getElementById('connection-dot');
+            // Render any lines that were logged before this DOM existed
+            debugEl.textContent = window.__debugLines.join('\n');
 
-        let lastState = null;
-        let dcRef = null; // RTCDataChannel
-        let senderIdRef = null;
+            var lastState = null;
+            var dcRef = null;
+            var senderIdRef = null;
 
-        // ====================================================================
-        // 2. Create WebRTC PeerConnection (answerer) — must exist before the
-        //    signaling listener fires so we can handle the offer immediately.
-        // ====================================================================
-
-        const pc = new RTCPeerConnection({ iceServers: [] }); // LAN-only
-
-        pc.onicecandidate = (event) => {
-            if (event.candidate && senderIdRef) {
-                context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
-                    { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
-            }
-        };
-
-        pc.ondatachannel = (event) => {
-            console.log('[Receiver] DataChannel arrived');
-            dcRef = event.channel;
-            wireDataChannel(dcRef);
-        };
-
-        pc.onconnectionstatechange = () => {
-            const state = pc.connectionState;
-            console.log('[Receiver] PeerConnection state:', state);
-            dotEl.style.background = state === 'connected' ? '#10b981' : '#ef4444';
-        };
-
-        // ====================================================================
-        // 3. Register signaling listener (before start so we don't miss msgs)
-        // ====================================================================
-
-        context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
-            console.log('[Receiver] Cast message from', event.senderId, event.data);
-            senderIdRef = event.senderId;
-            // With 'JSON' namespace type, event.data is already a parsed object.
-            // Keep the string fallback for safety.
-            const signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            handleSignal(signal);
-        });
-
-        // ====================================================================
-        // 4. NOW call context.start() with the custom namespace declared.
-        //    Use 'JSON' type so the Cast SDK auto-parses incoming messages
-        //    as objects and we send objects directly (no manual stringify).
-        // ====================================================================
-
-        try {
-            context.start({
-                customNamespaces: {
-                    [CAST_NAMESPACE]: 'JSON'
-                }
-            });
-            console.log('[Receiver] CAF Receiver Context started with namespace:', CAST_NAMESPACE);
             subLabelEl.innerText = 'Cast ready — waiting for sender…';
-        } catch (err) {
-            console.error('[Receiver] context.start() failed:', err);
-            subLabelEl.innerText = 'Error: ' + err.message;
-        }
+            dbg('Body script running — DOM ready');
 
-        async function handleSignal(signal) {
-            try {
-                if (signal.type === 'webrtc-offer') {
-                    await pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, {
-                        type: 'webrtc-answer',
-                        sdp: pc.localDescription.sdp,
-                    });
-                } else if (signal.type === 'webrtc-answer') {
-                    await pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
-                } else if (signal.type === 'webrtc-ice') {
-                    await pc.addIceCandidate(signal.candidate);
-                }
-            } catch (err) {
-                console.error('[Receiver] Signal error', err);
-            }
-        }
+            // ============================================================
+            // WebRTC PeerConnection (answerer)
+            // ============================================================
+            var pc = new RTCPeerConnection({ iceServers: [] }); // LAN-only
+            dbg('RTCPeerConnection created (iceServers: [])');
 
-        // ── DataChannel handling ────────────────────────────────────────
-
-        function wireDataChannel(dc) {
-            dc.onopen = () => {
-                console.log('[Receiver] DataChannel open — ready');
-                subLabelEl.innerText = 'Connected';
-            };
-            dc.onclose = () => {
-                console.log('[Receiver] DataChannel closed');
-                subLabelEl.innerText = 'Disconnected';
-            };
-            dc.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                if (msg.type === 'state-update') {
-                    lastState = msg.payload.displayState;
-
-                    // Instant update for static text
-                    const primary = lastState.timerStack?.[0] || {};
-                    labelEl.innerText = primary.label || 'Workout';
-                    subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
-                }
-            };
-        }
-
-        // ── Send event back to sender via DataChannel ───────────────────
-
-        let msgCounter = 0;
-
-        function sendReceiverEvent(eventName) {
-            if (!dcRef || dcRef.readyState !== 'open') return;
-            dcRef.send(JSON.stringify({
-                type: 'event-from-receiver',
-                messageId: 'evt-' + (++msgCounter),
-                timestamp: Date.now(),
-                payload: {
-                    event: { name: eventName, timestamp: Date.now() }
-                }
-            }));
-        }
-
-        // ── Timer interpolation (unchanged) ─────────────────────────────
-
-        const calcElapsed = (spans, now) => {
-            if (!spans || !spans.length) return 0;
-            return spans.reduce((total, s) => total + Math.max(0, (s.ended ?? now) - s.started), 0);
-        };
-
-        const tick = () => {
-            if (lastState) {
-                const primary = lastState.timerStack?.[0] || {};
-                const isRunning = lastState.workoutState === 'running';
-                const now = Date.now();
-                const elapsed = calcElapsed(primary.spans, now);
-
-                let timeToShow = elapsed;
-                if (primary.format === 'down' && primary.durationMs) {
-                    timeToShow = Math.max(0, primary.durationMs - elapsed);
-                    const progress = (timeToShow / primary.durationMs);
-                    ringEl.style.strokeDashoffset = 301.59 * (1 - progress);
+            pc.onicecandidate = function(event) {
+                if (event.candidate) {
+                    dbg('ICE candidate (local): ' + event.candidate.candidate.substring(0, 80));
+                    if (senderIdRef) {
+                        context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
+                            { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
+                        dbg('Sent ICE candidate to sender');
+                    } else {
+                        dbg('WARNING: ICE candidate but no senderIdRef yet!');
+                    }
                 } else {
-                    ringEl.style.strokeDashoffset = isRunning ? 0 : 301.59;
+                    dbg('ICE gathering complete (null candidate)');
+                }
+            };
+
+            pc.ondatachannel = function(event) {
+                dbg('DataChannel arrived: label="' + event.channel.label + '" id=' + event.channel.id);
+                dcRef = event.channel;
+                wireDataChannel(dcRef);
+            };
+
+            pc.onconnectionstatechange = function() {
+                dbg('PeerConnection state: ' + pc.connectionState);
+                dotEl.style.background = pc.connectionState === 'connected' ? '#10b981' : '#ef4444';
+            };
+
+            pc.oniceconnectionstatechange = function() {
+                dbg('ICE connection state: ' + pc.iceConnectionState);
+            };
+
+            pc.onicegatheringstatechange = function() {
+                dbg('ICE gathering state: ' + pc.iceGatheringState);
+            };
+
+            pc.onsignalingstatechange = function() {
+                dbg('Signaling state: ' + pc.signalingState);
+            };
+
+            // ============================================================
+            // Cast signaling listener
+            // ============================================================
+            context.addCustomMessageListener(CAST_NAMESPACE, function(event) {
+                var dataType = event.data && event.data.type ? event.data.type : '(unknown)';
+                dbg('Cast msg from ' + event.senderId + ' → type: ' + dataType);
+                senderIdRef = event.senderId;
+
+                var signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                handleSignal(signal);
+            });
+            dbg('Custom message listener registered on ' + CAST_NAMESPACE);
+
+            function handleSignal(signal) {
+                dbg('handleSignal: ' + signal.type);
+
+                if (signal.type === 'webrtc-offer') {
+                    dbg('Setting remote description (offer), SDP length=' + (signal.sdp || '').length);
+                    pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp })
+                        .then(function() {
+                            dbg('Remote description set — creating answer…');
+                            return pc.createAnswer();
+                        })
+                        .then(function(answer) {
+                            dbg('Answer created, SDP length=' + (answer.sdp || '').length);
+                            return pc.setLocalDescription(answer);
+                        })
+                        .then(function() {
+                            dbg('Local description set — sending answer to sender');
+                            context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, {
+                                type: 'webrtc-answer',
+                                sdp: pc.localDescription.sdp,
+                            });
+                            dbg('Answer sent via Cast namespace!');
+                        })
+                        .catch(function(err) {
+                            dbg('ERROR in offer handling: ' + err.message);
+                        });
+                } else if (signal.type === 'webrtc-answer') {
+                    pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp })
+                        .then(function() { dbg('Remote description set (answer)'); })
+                        .catch(function(err) { dbg('ERROR setting answer: ' + err.message); });
+                } else if (signal.type === 'webrtc-ice') {
+                    dbg('Adding remote ICE candidate…');
+                    pc.addIceCandidate(signal.candidate)
+                        .then(function() { dbg('ICE candidate added OK'); })
+                        .catch(function(err) { dbg('ERROR adding ICE: ' + err.message); });
+                } else {
+                    dbg('Unknown signal type: ' + signal.type);
+                }
+            }
+
+            // ── DataChannel handling ────────────────────────────────────
+            function wireDataChannel(dc) {
+                dc.onopen = function() {
+                    dbg('DataChannel OPEN — ready for data!');
+                    subLabelEl.innerText = 'Connected';
+                };
+                dc.onclose = function() {
+                    dbg('DataChannel CLOSED');
+                    subLabelEl.innerText = 'Disconnected';
+                };
+                dc.onerror = function(event) {
+                    dbg('DataChannel ERROR: ' + JSON.stringify(event));
+                };
+                dc.onmessage = function(event) {
+                    try {
+                        var msg = JSON.parse(event.data);
+                        if (msg.type === 'state-update') {
+                            lastState = msg.payload.displayState;
+                            var primary = lastState.timerStack && lastState.timerStack[0] || {};
+                            labelEl.innerText = primary.label || 'Workout';
+                            subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
+                        }
+                    } catch (err) {
+                        dbg('DataChannel parse error: ' + err.message);
+                    }
+                };
+            }
+
+            // ── Send event back to sender via DataChannel ───────────────
+            var msgCounter = 0;
+            function sendReceiverEvent(eventName) {
+                if (!dcRef || dcRef.readyState !== 'open') {
+                    dbg('Cannot send "' + eventName + '" — DataChannel not open');
+                    return;
+                }
+                dcRef.send(JSON.stringify({
+                    type: 'event-from-receiver',
+                    messageId: 'evt-' + (++msgCounter),
+                    timestamp: Date.now(),
+                    payload: { event: { name: eventName, timestamp: Date.now() } }
+                }));
+                dbg('Sent event: ' + eventName);
+            }
+
+            // ── Timer interpolation ─────────────────────────────────────
+            function calcElapsed(spans, now) {
+                if (!spans || !spans.length) return 0;
+                var total = 0;
+                for (var i = 0; i < spans.length; i++) {
+                    var s = spans[i];
+                    total += Math.max(0, (s.ended != null ? s.ended : now) - s.started);
+                }
+                return total;
+            }
+
+            function tick() {
+                if (lastState) {
+                    var primary = lastState.timerStack && lastState.timerStack[0] || {};
+                    var isRunning = lastState.workoutState === 'running';
+                    var now = Date.now();
+                    var elapsed = calcElapsed(primary.spans, now);
+                    var timeToShow = elapsed;
+
+                    if (primary.format === 'down' && primary.durationMs) {
+                        timeToShow = Math.max(0, primary.durationMs - elapsed);
+                        ringEl.style.strokeDashoffset = 301.59 * (1 - timeToShow / primary.durationMs);
+                    } else {
+                        ringEl.style.strokeDashoffset = isRunning ? 0 : 301.59;
+                    }
+
+                    var seconds = Math.floor(timeToShow / 1000);
+                    var mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+                    var ss = String(seconds % 60).padStart(2, '0');
+                    timerEl.innerText = mm + ':' + ss;
+                    timerEl.style.opacity = isRunning ? '1' : '0.4';
+                }
+                requestAnimationFrame(tick);
+            }
+
+            // ── Focus management for Chromecast D-Pad ──────────────────
+            var appBody = document.getElementById('app-body');
+            appBody.focus();
+            appBody.addEventListener('blur', function() {
+                setTimeout(function() { appBody.focus(); }, 100);
+            });
+
+            // ── D-Pad key handler ───────────────────────────────────────
+            var flashOverlay = document.createElement('div');
+            flashOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(59,130,246,0.08);pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999';
+            document.body.appendChild(flashOverlay);
+
+            function flashFeedback() {
+                flashOverlay.style.opacity = '1';
+                setTimeout(function() { flashOverlay.style.opacity = '0'; }, 200);
+            }
+
+            window.addEventListener('keydown', function(e) {
+                dbg('Key: ' + e.key + ' (code=' + e.code + ', keyCode=' + e.keyCode + ')');
+
+                // Toggle debug panel with 'd'
+                if (e.key === 'd' || e.key === 'D') {
+                    debugEl.style.display = debugEl.style.display === 'none' ? 'block' : 'none';
+                    return;
                 }
 
-                const seconds = Math.floor(timeToShow / 1000);
-                const mm = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const ss = (seconds % 60).toString().padStart(2, '0');
-                timerEl.innerText = `${mm}:${ss}`;
-                timerEl.style.opacity = isRunning ? "1" : "0.4";
-            }
-            requestAnimationFrame(tick);
-        };
+                var isSelect =
+                    e.key === 'Enter' || e.key === 'Select' || e.key === 'Center' ||
+                    e.key === 'Ok' || e.key === 'Accept' || e.key === ' ' ||
+                    e.keyCode === 13 || e.keyCode === 23 || e.keyCode === 32;
 
-        // ── Focus management for Chromecast D-Pad ──────────────────────
+                var isPlayPause = e.key === 'MediaPlayPause' || e.keyCode === 179;
 
-        const appBody = document.getElementById('app-body');
-        appBody.focus();
-        appBody.addEventListener('blur', () => {
-            setTimeout(() => appBody.focus(), 100);
-        });
-
-        // ── D-Pad key handler ───────────────────────────────────────────
-
-        const flashOverlay = document.createElement('div');
-        flashOverlay.id = 'dpad-flash';
-        flashOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(59,130,246,0.08);pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999';
-        document.body.appendChild(flashOverlay);
-
-        const flashFeedback = () => {
-            flashOverlay.style.opacity = '1';
-            setTimeout(() => { flashOverlay.style.opacity = '0'; }, 200);
-        };
-
-        window.addEventListener('keydown', (e) => {
-            switch (e.key) {
-                case 'Enter':
+                if (isSelect || isPlayPause) {
                     e.preventDefault();
                     sendReceiverEvent('next');
                     flashFeedback();
-                    subLabelEl.innerText = '⏭ Next...';
-                    setTimeout(() => { if (lastState) subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused'; }, 800);
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    sendReceiverEvent('start');
-                    flashFeedback();
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    sendReceiverEvent('pause');
-                    flashFeedback();
-                    break;
-                case 'Escape':
-                case 'Backspace':
-                    e.preventDefault();
-                    sendReceiverEvent('stop');
-                    flashFeedback();
-                    break;
-            }
-        });
+                    subLabelEl.innerText = '\u23ED Next...';
+                    setTimeout(function() {
+                        if (lastState) subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
+                    }, 800);
+                    return;
+                }
 
-        // ── Start timer loop ─────────────────────────────────────────
+                switch (e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault(); sendReceiverEvent('start'); flashFeedback(); break;
+                    case 'ArrowDown':
+                        e.preventDefault(); sendReceiverEvent('pause'); flashFeedback(); break;
+                    case 'Escape':
+                    case 'Backspace':
+                        e.preventDefault(); sendReceiverEvent('stop'); flashFeedback(); break;
+                }
+            });
 
-        tick();
+            // ── Start timer loop ─────────────────────────────────────
+            tick();
+            dbg('All initialisation complete');
+        })();
     </script>
 </body>
 </html>

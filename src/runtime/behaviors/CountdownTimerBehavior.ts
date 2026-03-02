@@ -137,6 +137,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         const hasChildSelection = ctx.block.behaviors.some(
             b => b.constructor.name === 'ChildSelectionBehavior'
         );
+        
         if (hasChildSelection) {
             return [];
         }
@@ -147,6 +148,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         }
 
         const remainingMs = this.getRemainingCountdownMs(ctx);
+
         // Only inject rest if more than 1s remaining (matching ChildSelectionBehavior logic)
         if (remainingMs > 1000) {
             return this.config.restBlockFactory(remainingMs, 'Rest');

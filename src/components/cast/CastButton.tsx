@@ -1,20 +1,36 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { TvMinimal, Loader2 } from 'lucide-react';
+import { TvMinimal, Loader2, Cast } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
-import { ChromecastSdk } from '@/services/cast/ChromecastSdk';
+import { ChromecastSdk, type CastSdkState } from '@/services/cast/ChromecastSdk';
 import { SenderCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
 import { CAST_APP_ID } from '@/services/cast/config';
 import { v4 as uuidv4 } from 'uuid';
 import type { EventName, CastMessage } from '@/types/cast/messages';
+import { cn } from '@/lib/utils';
 
 export const CastButton: React.FC = () => {
+    const [sdkState, setSdkState] = useState<CastSdkState>(ChromecastSdk.getState());
     const [isCasting, setIsCasting] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const store = useWorkbenchSyncStore();
     const transportRef = useRef<WebRTCTransport | null>(null);
     const sessionIdRef = useRef<string>(uuidv4().substring(0, 8));
+
+    // Initialize SDK on mount and listen for state changes
+    useEffect(() => {
+        // Load the SDK early to check availability
+        ChromecastSdk.load(CAST_APP_ID).catch(() => {
+            // Error is handled by state-changed listener below
+        });
+
+        const unsub = ChromecastSdk.on('state-changed', (newState) => {
+            setSdkState(newState as CastSdkState);
+        });
+
+        return unsub;
+    }, []);
 
     // Listen for receiver events (D-Pad clicks from Chromecast remote)
     useEffect(() => {
@@ -25,22 +41,30 @@ export const CastButton: React.FC = () => {
             const msg = data as CastMessage;
             if (msg.type !== 'event-from-receiver') return;
             const payload = msg.payload as { event: { name: EventName; timestamp: number; data?: unknown } };
-            const { handleNext, handleStart, handlePause, handleStop } = useWorkbenchSyncStore.getState();
-            console.log(`[CastButton] Received remote event: ${payload.event.name}`);
+            const state = useWorkbenchSyncStore.getState();
+            const { handleNext, handleStart, handlePause, handleStop } = state;
+            
+            console.log(`[CastButton] Received remote event: "${payload.event.name}" at ${new Date(payload.event.timestamp).toLocaleTimeString()}`);
 
             switch (payload.event.name) {
                 case 'next':
+                    console.log('[CastButton] Calling handleNext()');
                     handleNext();
                     break;
                 case 'start':
+                    console.log('[CastButton] Calling handleStart()');
                     handleStart();
                     break;
                 case 'pause':
+                    console.log('[CastButton] Calling handlePause()');
                     handlePause();
                     break;
                 case 'stop':
+                    console.log('[CastButton] Calling handleStop()');
                     handleStop();
                     break;
+                default:
+                    console.warn(`[CastButton] Unhandled remote event: ${payload.event.name}`);
             }
         };
 
@@ -128,42 +152,91 @@ export const CastButton: React.FC = () => {
         }
 
         setIsConnecting(true);
+        const t0 = Date.now();
+        const elapsed = () => `${Date.now() - t0}ms`;
         try {
-            // 1. Load the Cast SDK and open the native device picker
+            // 1. Ensure SDK is loaded
+            console.log(`[CastButton] Step 1: Loading Cast SDK (appId=${CAST_APP_ID})…`);
             await ChromecastSdk.load(CAST_APP_ID);
+            console.log(`[CastButton] Step 1: SDK loaded [${elapsed()}]`);
+            
+            // 2. Open the native device picker
+            console.log(`[CastButton] Step 2: Opening device picker…`);
             await ChromecastSdk.requestSession();
+            console.log(`[CastButton] Step 2: Device selected [${elapsed()}]`);
 
-            // 2. Get the active Cast session for signaling
+            // 3. Get the active Cast session for signaling
             const session = ChromecastSdk.getSession();
             if (!session) throw new Error('No Cast session after requestSession()');
+            console.log(`[CastButton] Step 3: Session obtained — state=${session.getSessionState?.()} [${elapsed()}]`);
 
-            // 3. Small delay to let the receiver's CAF context.start() complete.
-            //    The Chromecast loads our receiver URL and must initialise the
-            //    Cast Receiver SDK before it can accept custom namespace messages.
-            console.log('[CastButton] Cast session active — waiting for receiver init…');
-            await new Promise(r => setTimeout(r, 2000));
+            // 4. Wait for receiver to boot.  The receiver calls context.start()
+            //    immediately in <head> now, so 3s should be plenty.
+            console.log(`[CastButton] Step 4: Waiting 3s for receiver init…`);
+            await new Promise(r => setTimeout(r, 3000));
+            console.log(`[CastButton] Step 4: Wait complete [${elapsed()}]`);
 
-            // 4. Set up WebRTC: Cast namespace → signaling → DataChannel
-            const signaling = new SenderCastSignaling(session);
+            // 4b. Verify session is still alive
+            const sessionAfterWait = ChromecastSdk.getSession();
+            if (!sessionAfterWait) throw new Error('Cast session died during receiver init wait');
+            console.log(`[CastButton] Step 4b: Session still alive — state=${sessionAfterWait.getSessionState?.()} [${elapsed()}]`);
+
+            // 5. Set up WebRTC: Cast namespace → signaling → DataChannel
+            console.log(`[CastButton] Step 5: Creating signaling + WebRTCTransport…`);
+            const signaling = new SenderCastSignaling(sessionAfterWait);
             const transport = new WebRTCTransport('offerer', signaling);
             transportRef.current = transport;
 
+            console.log(`[CastButton] Step 6: Calling transport.connect()…`);
             await transport.connect();
 
-            console.log('[CastButton] WebRTC DataChannel open — casting!');
+            console.log(`[CastButton] Step 7: DataChannel OPEN — casting! [${elapsed()}]`);
             setIsCasting(true);
         } catch (err) {
             console.error('[CastButton] Cast failed:', err);
             transportRef.current?.dispose();
             transportRef.current = null;
+            setIsCasting(false);
         } finally {
             setIsConnecting(false);
         }
     }, [isCasting]);
 
+    // Handle states: unavailable | available | connecting | connected
+    const isUnavailable = sdkState === 'unavailable';
+    const isAvailable = sdkState === 'ready';
+    const isConnected = isCasting && sdkState === 'session-active';
+    const isCurrentlyConnecting = isConnecting || (sdkState === 'loading');
+
+    if (isUnavailable) {
+        return (
+            <Button variant="ghost" size="icon" disabled className="opacity-20 cursor-not-allowed">
+                <Cast className="h-5 w-5" />
+            </Button>
+        );
+    }
+
     return (
-        <Button variant="ghost" size="icon" onClick={handleCast} className={isCasting ? "text-blue-500 bg-blue-500/10 animate-pulse" : ""}>
-            {isConnecting ? <Loader2 className="h-5 w-5 animate-spin" /> : <TvMinimal className="h-5 w-5" />}
+        <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleCast} 
+            className={cn(
+                "transition-all duration-300",
+                isConnected ? "text-blue-500 bg-blue-500/10" : "",
+                isCurrentlyConnecting ? "text-blue-400" : "",
+                isAvailable ? "text-foreground hover:text-blue-500" : ""
+            )}
+            title={isConnected ? "Stop Casting" : (isCurrentlyConnecting ? "Connecting..." : "Cast to TV")}
+        >
+            {isConnected ? (
+                <TvMinimal className="h-5 w-5" />
+            ) : (
+                <Cast className={cn(
+                    "h-5 w-5",
+                    isCurrentlyConnecting ? "animate-pulse-opacity" : ""
+                )} />
+            )}
         </Button>
     );
 };

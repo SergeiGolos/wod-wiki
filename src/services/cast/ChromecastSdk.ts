@@ -165,8 +165,14 @@ class ChromecastSdkClass {
     async requestSession(): Promise<void> {
         if (!window.cast?.framework) throw new Error('Cast SDK not loaded');
         const ctx = window.cast.framework.CastContext.getInstance();
+        console.log('[Cast SDK] requestSession() — opening device picker…');
         const err = await ctx.requestSession();
-        if (err) throw new Error(`Cast session request failed: ${err}`);
+        if (err) {
+            console.error('[Cast SDK] requestSession() error code:', err);
+            throw new Error(`Cast session request failed: ${err}`);
+        }
+        const session = ctx.getCurrentSession();
+        console.log('[Cast SDK] requestSession() succeeded — sessionId:', session?.getSessionId?.(), 'state:', session?.getSessionState?.());
     }
 
     /** End the current cast session. */

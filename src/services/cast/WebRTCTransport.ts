@@ -68,23 +68,43 @@ export class WebRTCTransport {
     // Forward ICE candidates to the remote peer via signaling channel.
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log(`[WebRTCTransport:${role}] ICE candidate (local):`, event.candidate.candidate.substring(0, 80));
         this.signaling.send({
           type: 'webrtc-ice',
           candidate: event.candidate.toJSON(),
         });
+      } else {
+        console.log(`[WebRTCTransport:${role}] ICE gathering complete (null candidate)`);
       }
     };
 
     this.pc.onconnectionstatechange = () => {
       const state = this.pc.connectionState;
-      console.log(`[WebRTCTransport] Connection state: ${state}`);
+      console.log(`[WebRTCTransport:${role}] Connection state: ${state}`);
       if (state === 'disconnected' || state === 'failed' || state === 'closed') {
         this.emit('disconnected');
       }
     };
 
+    this.pc.oniceconnectionstatechange = () => {
+      console.log(`[WebRTCTransport:${role}] ICE connection state: ${this.pc.iceConnectionState}`);
+    };
+
+    this.pc.onicegatheringstatechange = () => {
+      console.log(`[WebRTCTransport:${role}] ICE gathering state: ${this.pc.iceGatheringState}`);
+    };
+
+    this.pc.onsignalingstatechange = () => {
+      console.log(`[WebRTCTransport:${role}] Signaling state: ${this.pc.signalingState}`);
+    };
+
     // Wire up incoming signals (offer/answer/ICE from the remote peer).
-    this.signaling.onSignal((signal) => this.handleSignal(signal));
+    this.signaling.onSignal((signal) => {
+      console.log(`[WebRTCTransport:${role}] Received signal: ${signal.type}`);
+      this.handleSignal(signal);
+    });
+
+    console.log(`[WebRTCTransport:${role}] Created — RTCPeerConnection ready`);
   }
 
   // ── Event emitter ─────────────────────────────────────────────────────────
@@ -111,31 +131,42 @@ export class WebRTCTransport {
    * Resolves when the RTCDataChannel is open and ready for messages.
    */
   connect(timeoutMs = 15_000): Promise<void> {
+    console.log(`[WebRTCTransport:${this.role}] connect() called, timeout=${timeoutMs}ms`);
     return new Promise((resolve, reject) => {
+      const t0 = Date.now();
       const timer = setTimeout(() => {
+        console.error(`[WebRTCTransport:${this.role}] TIMEOUT after ${timeoutMs}ms — pc.connectionState=${this.pc.connectionState}, pc.iceConnectionState=${this.pc.iceConnectionState}, pc.signalingState=${this.pc.signalingState}, dc.readyState=${this.dc?.readyState ?? 'null'}`);
         reject(new Error(`WebRTC connect timed out after ${timeoutMs}ms`));
       }, timeoutMs);
 
       const onOpen = () => {
         clearTimeout(timer);
+        console.log(`[WebRTCTransport:${this.role}] DataChannel OPEN in ${Date.now() - t0}ms`);
         this.emit('connected');
         resolve();
       };
 
       if (this.role === 'offerer') {
         // Sender creates the DataChannel *before* creating the offer.
+        console.log(`[WebRTCTransport:offerer] Creating DataChannel…`);
         this.dc = this.pc.createDataChannel('wod-wiki', {
           ordered: true,
         });
         this.wireDataChannel(this.dc, onOpen);
 
+        console.log(`[WebRTCTransport:offerer] Creating offer…`);
         this.pc.createOffer()
-          .then(offer => this.pc.setLocalDescription(offer))
+          .then(offer => {
+            console.log(`[WebRTCTransport:offerer] Offer created, SDP length=${offer.sdp?.length}`);
+            return this.pc.setLocalDescription(offer);
+          })
           .then(() => {
+            console.log(`[WebRTCTransport:offerer] Local description set — sending offer via signaling`);
             this.signaling.send({
               type: 'webrtc-offer',
               sdp: this.pc.localDescription!.sdp,
             });
+            console.log(`[WebRTCTransport:offerer] Offer sent — waiting for answer…`);
           })
           .catch(reject);
       } else {
@@ -209,14 +240,20 @@ export class WebRTCTransport {
     try {
       switch (signal.type) {
         case 'webrtc-offer': {
-          // Only the answerer should handle offers.
-          if (this.role !== 'answerer') return;
+          if (this.role !== 'answerer') {
+            console.warn(`[WebRTCTransport:${this.role}] Ignoring offer — wrong role`);
+            return;
+          }
+          console.log(`[WebRTCTransport:answerer] Received offer, SDP length=${(signal as any).sdp?.length}`);
           await this.pc.setRemoteDescription({
             type: 'offer',
-            sdp: signal.sdp,
+            sdp: (signal as any).sdp,
           });
+          console.log(`[WebRTCTransport:answerer] Remote description set — creating answer`);
           const answer = await this.pc.createAnswer();
+          console.log(`[WebRTCTransport:answerer] Answer created, SDP length=${answer.sdp?.length}`);
           await this.pc.setLocalDescription(answer);
+          console.log(`[WebRTCTransport:answerer] Sending answer via signaling`);
           this.signaling.send({
             type: 'webrtc-answer',
             sdp: this.pc.localDescription!.sdp,
@@ -224,21 +261,27 @@ export class WebRTCTransport {
           break;
         }
         case 'webrtc-answer': {
-          // Only the offerer should handle answers.
-          if (this.role !== 'offerer') return;
+          if (this.role !== 'offerer') {
+            console.warn(`[WebRTCTransport:${this.role}] Ignoring answer — wrong role`);
+            return;
+          }
+          console.log(`[WebRTCTransport:offerer] Received answer, SDP length=${(signal as any).sdp?.length}`);
           await this.pc.setRemoteDescription({
             type: 'answer',
-            sdp: signal.sdp,
+            sdp: (signal as any).sdp,
           });
+          console.log(`[WebRTCTransport:offerer] Remote description set — waiting for ICE + DataChannel`);
           break;
         }
         case 'webrtc-ice': {
-          await this.pc.addIceCandidate(signal.candidate);
+          console.log(`[WebRTCTransport:${this.role}] Adding remote ICE candidate`);
+          await this.pc.addIceCandidate((signal as any).candidate);
+          console.log(`[WebRTCTransport:${this.role}] ICE candidate added OK`);
           break;
         }
       }
     } catch (err) {
-      console.error('[WebRTCTransport] Signal handling error', err);
+      console.error(`[WebRTCTransport:${this.role}] Signal handling error`, err);
       this.emit('error', err);
     }
   }
