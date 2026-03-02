@@ -44,6 +44,8 @@ export interface CodeMirrorEditorProps {
   onBlocksChange?: (blocks: WodBlock[]) => void;
   onViewCreated?: (view: EditorView) => void;
   mode?: "edit" | "track" | "data";
+  lineWrapping?: boolean;
+  showLineNumbers?: boolean;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -56,7 +58,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   onStartWorkout,
   onBlocksChange,
   onViewCreated,
-  mode = "edit"
+  mode = "edit",
+  lineWrapping: initialLineWrapping = true,
+  showLineNumbers = true
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -74,12 +78,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, []);
 
   const baseExtensions = useMemo(() => [
-    lineNumbers(),
-    highlightActiveLineGutter(),
+    ...(showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []),
     highlightSpecialChars(),
     history(),
     drawSelection(),
     dropCursor(),
+    ...(initialLineWrapping ? [EditorView.lineWrapping] : []),
     EditorState.allowMultipleSelections.of(true),
     indentOnInput(),
     syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
@@ -121,7 +125,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     EditorState.readOnly.of(readonly),
     activeWorkoutIdField,
     wodBlockRuntimeField
-  ], [onStartWorkout, onBlocksChange, onChange, onCursorPositionChange, readonly, setIsOpen]);
+  ], [onStartWorkout, onBlocksChange, onChange, onCursorPositionChange, readonly, setIsOpen, showLineNumbers, initialLineWrapping]);
 
   useEffect(() => {
     if (!editorRef.current) return;

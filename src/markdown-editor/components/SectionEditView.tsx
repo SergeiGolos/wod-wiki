@@ -107,8 +107,8 @@ export const SectionEditView: React.FC<SectionEditViewProps> = ({
   const autoResize = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
-    const lineCount = textarea.value.split('\n').length;
-    textarea.style.height = `${lineCount * SECTION_LINE_HEIGHT}px`;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(SECTION_LINE_HEIGHT, textarea.scrollHeight)}px`;
   }, []);
 
   useEffect(() => {

@@ -8,47 +8,6 @@
     <!-- Google Cast Application Framework — Receiver SDK (must be HTTPS) -->
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
 
-    <!-- ================================================================
-         CRITICAL: The Cast SDK is loaded here in <head>, but
-         context.start() is called as the FIRST <script> in <body>.
-
-         All Google Cast examples call context.start() from <body> where
-         document.body exists.  The Cast SDK may need DOM references
-         during start() — calling it from <head> (where document.body
-         is null) can cause silent failure and a black-screen timeout.
-
-         NO other blocking resources (Tailwind CDN, etc.) before this.
-    ================================================================ -->
-    <script>
-        /* --- Pre-boot: set up debug utilities (no DOM needed) --- */
-        (function() {
-            var CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
-            var t0 = performance.now();
-
-            // Expose for the body script
-            window.__CAST_NAMESPACE = CAST_NAMESPACE;
-            window.__t0 = t0;
-            window.__debugLines = [];
-
-            // Lightweight debug logger — writes to console + stores for
-            // the on-screen debug panel rendered later.
-            window.__dbg = function(msg) {
-                var ts = (performance.now() - t0).toFixed(0);
-                var line = '[' + ts + ' ms] ' + msg;
-                console.log('[Receiver] ' + line);
-                window.__debugLines.push(line);
-                // If the debug panel is already in the DOM, append live
-                var el = document.getElementById('debug-log');
-                if (el) {
-                    el.textContent = window.__debugLines.join('\n');
-                    el.scrollTop = el.scrollHeight;
-                }
-            };
-
-            window.__dbg('Cast SDK loaded — waiting for <body> to call context.start()');
-        })();
-    </script>
-
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -116,69 +75,8 @@
     </style>
 </head>
 <body tabindex="0" id="app-body">
-    <!-- ================================================================
-         FIRST thing in <body>: boot the Cast Receiver Context.
-         document.body now exists, which the Cast SDK may need.
-         This runs synchronously before the browser renders anything.
-    ================================================================ -->
-    <script>
-        (function() {
-            var dbg = window.__dbg;
-            var CAST_NAMESPACE = window.__CAST_NAMESPACE;
-
-            dbg('Booting CastReceiverContext (document.body exists: ' + !!document.body + ')');
-
-            var context = cast.framework.CastReceiverContext.getInstance();
-            window.__castContext = context;
-
-            // Log ALL system events for diagnostics
-            context.addEventListener(cast.framework.system.EventType.READY, function(e) {
-                dbg('EVENT: READY — applicationData=' + JSON.stringify(e.data));
-            });
-            context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, function(e) {
-                dbg('EVENT: SENDER_CONNECTED — senderId=' + e.data);
-            });
-            context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, function(e) {
-                dbg('EVENT: SENDER_DISCONNECTED — senderId=' + e.data);
-            });
-            context.addEventListener(cast.framework.system.EventType.ERROR, function(e) {
-                dbg('EVENT: ERROR — ' + JSON.stringify(e));
-            });
-            context.addEventListener(cast.framework.system.EventType.SHUTDOWN, function() {
-                dbg('EVENT: SHUTDOWN');
-            });
-            context.addEventListener(cast.framework.system.EventType.MAX_VIDEO_RESOLUTION_CHANGED, function() {
-                dbg('EVENT: MAX_VIDEO_RESOLUTION_CHANGED');
-            });
-
-            // Build options using the pattern from Google's official docs
-            var nsConfig = {};
-            // Use the Cast SDK enum if available, fall back to string literal
-            var msgTypeJson = (cast.framework.system.MessageType && cast.framework.system.MessageType.JSON)
-                ? cast.framework.system.MessageType.JSON
-                : 'JSON';
-            nsConfig[CAST_NAMESPACE] = msgTypeJson;
-            dbg('Namespace type resolved to: ' + JSON.stringify(msgTypeJson));
-
-            try {
-                context.start({
-                    // Non-media app: disable the idle timeout entirely
-                    disableIdleTimeout: true,
-                    // Development: keep receiver alive for 1 hour without sender heartbeat
-                    maxInactivity: 3600,
-                    // Register our custom namespace for WebRTC signaling
-                    customNamespaces: nsConfig,
-                    // Don't auto-create a media player
-                    playbackConfig: null,
-                    // Provide a human-readable status
-                    statusText: 'WOD Wiki Receiver'
-                });
-                dbg('context.start() succeeded');
-            } catch (err) {
-                dbg('context.start() FAILED: ' + (err.message || err));
-            }
-        })();
-    </script>
+    <!-- Google Cast strongly expects a <cast-media-player> element -->
+    <cast-media-player style="display: none;"></cast-media-player>
 
     <!-- Left Panel: Workout Info -->
     <div class="panel-left">
@@ -200,26 +98,15 @@
         </div>
     </div>
 
-    <!-- On-screen debug log (visible by default; press 'd' to hide) -->
+    <!-- On-screen debug log -->
     <pre id="debug-log"></pre>
 
     <script>
-        // ====================================================================
-        // Main receiver logic — runs AFTER context.start() (called above).
-        // Regular <script>, not type="module", for maximum compatibility.
-        // ====================================================================
         (function() {
             'use strict';
 
-            var dbg = window.__dbg;
-            var CAST_NAMESPACE = window.__CAST_NAMESPACE;
-            var context = window.__castContext;
-
-            if (!context) {
-                dbg('FATAL: __castContext is null — Cast SDK did not initialize!');
-                document.getElementById('sub-label').innerText = 'ERROR: Cast SDK failed to initialize';
-                return;
-            }
+            var t0 = performance.now();
+            var CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
 
             // ── DOM refs ────────────────────────────────────────────────
             var labelEl    = document.getElementById('exercise-label');
@@ -229,137 +116,78 @@
             var dotEl      = document.getElementById('connection-dot');
             var debugEl    = document.getElementById('debug-log');
 
-            // Render any lines that were logged before this DOM existed
-            debugEl.textContent = window.__debugLines.join('\n');
+            var debugLines = [];
+            function dbg(msg) {
+                var ts = (performance.now() - t0).toFixed(0);
+                var line = '[' + ts + ' ms] ' + msg;
+                console.log('[Receiver] ' + line);
+                debugLines.push(line);
+                if (debugEl) {
+                    debugEl.textContent = debugLines.join('\n');
+                    debugEl.scrollTop = debugEl.scrollHeight;
+                }
+            }
 
-            var lastState = null;
+            dbg('Receiver script starting...');
+
+            // ============================================================
+            // 1. Initialise receiver context
+            // ============================================================
+            if (!window.cast || !window.cast.framework) {
+                var err = 'FATAL: window.cast.framework is missing. Was the SDK blocked?';
+                dbg(err);
+                subLabelEl.innerText = err;
+                return;
+            }
+
+            var context = cast.framework.CastReceiverContext.getInstance();
+            
+            // Log ALL system events
+            context.addEventListener(cast.framework.system.EventType.READY, function(e) {
+                dbg('EVENT: READY');
+            });
+            context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, function(e) {
+                dbg('EVENT: SENDER_CONNECTED — senderId=' + e.data);
+            });
+            context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, function(e) {
+                dbg('EVENT: SENDER_DISCONNECTED — senderId=' + e.data);
+            });
+            context.addEventListener(cast.framework.system.EventType.ERROR, function(e) {
+                dbg('EVENT: ERROR — ' + JSON.stringify(e));
+            });
+
+            // ============================================================
+            // 2. Setup WebRTC PeerConnection (answerer)
+            // ============================================================
+            var pc = new RTCPeerConnection({ iceServers: [] });
             var dcRef = null;
             var senderIdRef = null;
-
-            subLabelEl.innerText = 'Cast ready — waiting for sender…';
-            dbg('Body script running — DOM ready');
-
-            // ============================================================
-            // WebRTC PeerConnection (answerer)
-            // ============================================================
-            var pc = new RTCPeerConnection({ iceServers: [] }); // LAN-only
-            dbg('RTCPeerConnection created (iceServers: [])');
+            var lastState = null;
 
             pc.onicecandidate = function(event) {
-                if (event.candidate) {
-                    dbg('ICE candidate (local): ' + event.candidate.candidate.substring(0, 80));
-                    if (senderIdRef) {
-                        context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
-                            { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
-                        dbg('Sent ICE candidate to sender');
-                    } else {
-                        dbg('WARNING: ICE candidate but no senderIdRef yet!');
-                    }
-                } else {
-                    dbg('ICE gathering complete (null candidate)');
+                if (event.candidate && senderIdRef) {
+                    dbg('ICE (local) -> ' + event.candidate.candidate.substring(0, 40));
+                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
+                        { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
                 }
             };
 
             pc.ondatachannel = function(event) {
-                dbg('DataChannel arrived: label="' + event.channel.label + '" id=' + event.channel.id);
+                dbg('DataChannel arrived: ' + event.channel.label);
                 dcRef = event.channel;
-                wireDataChannel(dcRef);
-            };
-
-            pc.onconnectionstatechange = function() {
-                dbg('PeerConnection state: ' + pc.connectionState);
-                dotEl.style.background = pc.connectionState === 'connected' ? '#10b981' : '#ef4444';
-            };
-
-            pc.oniceconnectionstatechange = function() {
-                dbg('ICE connection state: ' + pc.iceConnectionState);
-            };
-
-            pc.onicegatheringstatechange = function() {
-                dbg('ICE gathering state: ' + pc.iceGatheringState);
-            };
-
-            pc.onsignalingstatechange = function() {
-                dbg('Signaling state: ' + pc.signalingState);
-            };
-
-            // ============================================================
-            // Cast signaling listener
-            // ============================================================
-            context.addCustomMessageListener(CAST_NAMESPACE, function(event) {
-                var dataType = event.data && event.data.type ? event.data.type : '(unknown)';
-                dbg('Cast msg from ' + event.senderId + ' → type: ' + dataType);
-                senderIdRef = event.senderId;
-
-                var signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-
-                // Respond to ping immediately (health check before WebRTC)
-                if (signal.type === 'ping') {
-                    dbg('Received ping — sending pong');
-                    context.sendCustomMessage(CAST_NAMESPACE, event.senderId,
-                        { type: 'pong', timestamp: Date.now() });
-                    return;
-                }
-
-                handleSignal(signal);
-            });
-            dbg('Custom message listener registered on ' + CAST_NAMESPACE);
-
-            function handleSignal(signal) {
-                dbg('handleSignal: ' + signal.type);
-
-                if (signal.type === 'webrtc-offer') {
-                    dbg('Setting remote description (offer), SDP length=' + (signal.sdp || '').length);
-                    pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp })
-                        .then(function() {
-                            dbg('Remote description set — creating answer…');
-                            return pc.createAnswer();
-                        })
-                        .then(function(answer) {
-                            dbg('Answer created, SDP length=' + (answer.sdp || '').length);
-                            return pc.setLocalDescription(answer);
-                        })
-                        .then(function() {
-                            dbg('Local description set — sending answer to sender');
-                            context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, {
-                                type: 'webrtc-answer',
-                                sdp: pc.localDescription.sdp,
-                            });
-                            dbg('Answer sent via Cast namespace!');
-                        })
-                        .catch(function(err) {
-                            dbg('ERROR in offer handling: ' + err.message);
-                        });
-                } else if (signal.type === 'webrtc-answer') {
-                    pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp })
-                        .then(function() { dbg('Remote description set (answer)'); })
-                        .catch(function(err) { dbg('ERROR setting answer: ' + err.message); });
-                } else if (signal.type === 'webrtc-ice') {
-                    dbg('Adding remote ICE candidate…');
-                    pc.addIceCandidate(signal.candidate)
-                        .then(function() { dbg('ICE candidate added OK'); })
-                        .catch(function(err) { dbg('ERROR adding ICE: ' + err.message); });
-                } else {
-                    dbg('Unknown signal type: ' + signal.type);
-                }
-            }
-
-            // ── DataChannel handling ────────────────────────────────────
-            function wireDataChannel(dc) {
-                dc.onopen = function() {
-                    dbg('DataChannel OPEN — ready for data!');
-                    subLabelEl.innerText = 'Connected';
+                dcRef.onopen = function() {
+                    dbg('DataChannel OPEN');
+                    subLabelEl.innerText = 'Connected via WebRTC';
+                    dotEl.style.background = '#10b981';
                 };
-                dc.onclose = function() {
+                dcRef.onclose = function() {
                     dbg('DataChannel CLOSED');
                     subLabelEl.innerText = 'Disconnected';
+                    dotEl.style.background = '#ef4444';
                 };
-                dc.onerror = function(event) {
-                    dbg('DataChannel ERROR: ' + JSON.stringify(event));
-                };
-                dc.onmessage = function(event) {
+                dcRef.onmessage = function(e) {
                     try {
-                        var msg = JSON.parse(event.data);
+                        var msg = JSON.parse(e.data);
                         if (msg.type === 'state-update') {
                             lastState = msg.payload.displayState;
                             var primary = lastState.timerStack && lastState.timerStack[0] || {};
@@ -367,48 +195,106 @@
                             subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
                         }
                     } catch (err) {
-                        dbg('DataChannel parse error: ' + err.message);
+                        dbg('parse error: ' + err.message);
                     }
                 };
-            }
+            };
 
-            // ── Send event back to sender via DataChannel ───────────────
-            var msgCounter = 0;
-            function sendReceiverEvent(eventName) {
-                if (!dcRef || dcRef.readyState !== 'open') {
-                    dbg('Cannot send "' + eventName + '" — DataChannel not open');
+            pc.onconnectionstatechange = function() {
+                dbg('PC connection: ' + pc.connectionState);
+            };
+
+            // ============================================================
+            // 3. Register Custom Cast Message Listener BEFORE context.start
+            // ============================================================
+            context.addCustomMessageListener(CAST_NAMESPACE, function(event) {
+                var dataType = event.data && event.data.type ? event.data.type : '(unknown)';
+                dbg('Cast msg -> ' + dataType);
+                senderIdRef = event.senderId;
+
+                var signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+                // Simple ping-pong
+                if (signal.type === 'ping') {
+                    dbg('Received ping -> sending pong');
+                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, { type: 'pong', timestamp: Date.now() });
                     return;
                 }
-                dcRef.send(JSON.stringify({
-                    type: 'event-from-receiver',
-                    messageId: 'evt-' + (++msgCounter),
-                    timestamp: Date.now(),
-                    payload: { event: { name: eventName, timestamp: Date.now() } }
-                }));
-                dbg('Sent event: ' + eventName);
+
+                if (signal.type === 'webrtc-offer') {
+                    dbg('Got offer, SDP len=' + (signal.sdp || '').length);
+                    pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp })
+                        .then(function() { return pc.createAnswer(); })
+                        .then(function(answer) { return pc.setLocalDescription(answer); })
+                        .then(function() {
+                            dbg('Sending answer');
+                            context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, {
+                                type: 'webrtc-answer',
+                                sdp: pc.localDescription.sdp,
+                            });
+                        })
+                        .catch(function(err) { dbg('Offer error: ' + err.message); });
+                } else if (signal.type === 'webrtc-ice') {
+                    pc.addIceCandidate(signal.candidate)
+                        .catch(function(err) { dbg('ICE error: ' + err.message); });
+                }
+            });
+            dbg('Registered listener on ' + CAST_NAMESPACE);
+
+            // ============================================================
+            // 4. Boot the Receiver
+            // ============================================================
+            var msgTypeJson = (cast.framework.system.MessageType && cast.framework.system.MessageType.JSON)
+                ? cast.framework.system.MessageType.JSON : 'JSON';
+            
+            var nsConfig = {};
+            nsConfig[CAST_NAMESPACE] = msgTypeJson;
+
+            var options = cast.framework.CastReceiverOptions ? new cast.framework.CastReceiverOptions() : {};
+            options.disableIdleTimeout = true;
+            options.customNamespaces = nsConfig;
+            options.statusText = 'WOD Wiki Receiver ready';
+
+            dbg('Calling context.start()...');
+            try {
+                context.start(options);
+                dbg('context.start() called without throwing');
+                subLabelEl.innerText = 'Waiting for sender...';
+            } catch (e) {
+                dbg('context.start() threw: ' + e);
             }
 
-            // ── Timer interpolation ─────────────────────────────────────
-            function calcElapsed(spans, now) {
-                if (!spans || !spans.length) return 0;
-                var total = 0;
-                for (var i = 0; i < spans.length; i++) {
-                    var s = spans[i];
-                    total += Math.max(0, (s.ended != null ? s.ended : now) - s.started);
+            // ============================================================
+            // 5. Timer loop and D-Pad handlers
+            // ============================================================
+            var msgCounter = 0;
+            function sendReceiverEvent(eventName) {
+                if (dcRef && dcRef.readyState === 'open') {
+                    dcRef.send(JSON.stringify({
+                        type: 'event-from-receiver',
+                        messageId: 'evt-' + (++msgCounter),
+                        timestamp: Date.now(),
+                        payload: { event: { name: eventName, timestamp: Date.now() } }
+                    }));
                 }
-                return total;
             }
 
             function tick() {
                 if (lastState) {
                     var primary = lastState.timerStack && lastState.timerStack[0] || {};
                     var isRunning = lastState.workoutState === 'running';
+                    var total = 0;
                     var now = Date.now();
-                    var elapsed = calcElapsed(primary.spans, now);
-                    var timeToShow = elapsed;
+                    if (primary.spans) {
+                        for (var i = 0; i < primary.spans.length; i++) {
+                            var s = primary.spans[i];
+                            total += Math.max(0, (s.ended != null ? s.ended : now) - s.started);
+                        }
+                    }
+                    var timeToShow = total;
 
                     if (primary.format === 'down' && primary.durationMs) {
-                        timeToShow = Math.max(0, primary.durationMs - elapsed);
+                        timeToShow = Math.max(0, primary.durationMs - total);
                         ringEl.style.strokeDashoffset = 301.59 * (1 - timeToShow / primary.durationMs);
                     } else {
                         ringEl.style.strokeDashoffset = isRunning ? 0 : 301.59;
@@ -422,65 +308,21 @@
                 }
                 requestAnimationFrame(tick);
             }
-
-            // ── Focus management for Chromecast D-Pad ──────────────────
-            var appBody = document.getElementById('app-body');
-            appBody.focus();
-            appBody.addEventListener('blur', function() {
-                setTimeout(function() { appBody.focus(); }, 100);
-            });
-
-            // ── D-Pad key handler ───────────────────────────────────────
-            var flashOverlay = document.createElement('div');
-            flashOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(59,130,246,0.08);pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999';
-            document.body.appendChild(flashOverlay);
-
-            function flashFeedback() {
-                flashOverlay.style.opacity = '1';
-                setTimeout(function() { flashOverlay.style.opacity = '0'; }, 200);
-            }
+            tick();
 
             window.addEventListener('keydown', function(e) {
-                dbg('Key: ' + e.key + ' (code=' + e.code + ', keyCode=' + e.keyCode + ')');
-
-                // Toggle debug panel with 'd'
                 if (e.key === 'd' || e.key === 'D') {
                     debugEl.style.display = debugEl.style.display === 'none' ? 'block' : 'none';
                     return;
                 }
-
-                var isSelect =
-                    e.key === 'Enter' || e.key === 'Select' || e.key === 'Center' ||
-                    e.key === 'Ok' || e.key === 'Accept' || e.key === ' ' ||
-                    e.keyCode === 13 || e.keyCode === 23 || e.keyCode === 32;
-
-                var isPlayPause = e.key === 'MediaPlayPause' || e.keyCode === 179;
-
-                if (isSelect || isPlayPause) {
-                    e.preventDefault();
-                    sendReceiverEvent('next');
-                    flashFeedback();
-                    subLabelEl.innerText = '\u23ED Next...';
-                    setTimeout(function() {
-                        if (lastState) subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
-                    }, 800);
-                    return;
-                }
-
-                switch (e.key) {
-                    case 'ArrowUp':
-                        e.preventDefault(); sendReceiverEvent('start'); flashFeedback(); break;
-                    case 'ArrowDown':
-                        e.preventDefault(); sendReceiverEvent('pause'); flashFeedback(); break;
-                    case 'Escape':
-                    case 'Backspace':
-                        e.preventDefault(); sendReceiverEvent('stop'); flashFeedback(); break;
-                }
+                var sel = e.key === 'Enter' || e.key === 'Select';
+                var up = e.key === 'ArrowUp';
+                var dn = e.key === 'ArrowDown';
+                if (sel) sendReceiverEvent('next');
+                if (up) sendReceiverEvent('start');
+                if (dn) sendReceiverEvent('pause');
             });
 
-            // ── Start timer loop ─────────────────────────────────────
-            tick();
-            dbg('All initialisation complete');
         })();
     </script>
 </body>

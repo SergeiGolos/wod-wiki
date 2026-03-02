@@ -62,8 +62,7 @@ export const MarkdownDisplay: React.FC<MarkdownDisplayProps> = ({ section, class
             )}
             style={{
               lineHeight: `${SECTION_LINE_HEIGHT}px`,
-              minHeight: line.trim() === '' ? SECTION_LINE_HEIGHT : undefined,
-              height: SECTION_LINE_HEIGHT,
+              minHeight: SECTION_LINE_HEIGHT,
             }}
           >
             {line || '\u00A0'}
