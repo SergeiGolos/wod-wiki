@@ -128,6 +128,7 @@ import { cn } from '@/lib/utils';
 
 import { PlanPanel } from '@/components/workbench/PlanPanel';
 import { TimerScreen } from '@/components/workbench/TrackPanel';
+import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
 import { ReviewGrid } from '@/components/review-grid';
 import { WorkbenchProps } from '@/components/layout/Workbench';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
@@ -259,7 +260,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Header with Panel Toggles and Debug */}
       <div className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
-        <div className="font-bold tracking-widest text-sm">STORYBOOK WORKBENCH</div>
+        <div className="font-bold tracking-widest text-sm hidden sm:block">STORYBOOK WORKBENCH</div>
         <div className="flex gap-2 items-center">
           <div className="flex bg-muted p-1 rounded-lg mr-2">
             <Button
@@ -270,7 +271,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
               title="Plan View"
             >
               <Edit className="h-4 w-4" />
-              Plan
+              <span className="hidden sm:inline">Plan</span>
             </Button>
             <Button
               variant={viewMode === "track" ? "default" : "ghost"}
@@ -280,7 +281,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
               title="Track View"
             >
               <Timer className="h-4 w-4" />
-              Track
+              <span className="hidden sm:inline">Track</span>
             </Button>
             <Button
               variant={viewMode === "review" ? "default" : "ghost"}
@@ -290,7 +291,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
               title="Review View"
             >
               <BarChart2 className="h-4 w-4" />
-              Review
+              <span className="hidden sm:inline">Review</span>
             </Button>
           </div>
           <div className="h-6 w-px bg-border mx-1" />
@@ -302,7 +303,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
             title="Reset All Data"
           >
             <RotateCcw className="h-4 w-4" />
-            Reset
+            <span className="hidden sm:inline">Reset</span>
           </Button>
           <Button
             variant="outline"
@@ -344,27 +345,29 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
         {viewMode === 'track' && (
           <section className="flex flex-col h-full">
             <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden flex-1 min-h-0">
-              <TimerScreen
-                runtime={runtime}
-                execution={execution}
-                selectedBlock={selectedBlock}
-                documentItems={documentItems}
-                activeBlockId={activeBlockId || undefined}
-                onBlockHover={handleBlockHover}
-                onBlockClick={() => { }}
-                onSelectBlock={selectBlock}
-                onSetActiveBlockId={setActiveBlockId}
-                onStart={handleStart}
-                onPause={handlePause}
-                onStop={handleStop}
-                onNext={handleNext}
-                activeSegmentIds={activeSegmentIds}
-                activeStatementIds={activeStatementIds}
-                hoveredBlockKey={hoveredBlockKey}
-                content={content}
-                onStartWorkout={handleStartWorkoutAction}
-                setBlocks={setBlocks}
-              />
+              <PanelSizeProvider>
+                <TimerScreen
+                  runtime={runtime}
+                  execution={execution}
+                  selectedBlock={selectedBlock}
+                  documentItems={documentItems}
+                  activeBlockId={activeBlockId || undefined}
+                  onBlockHover={handleBlockHover}
+                  onBlockClick={() => { }}
+                  onSelectBlock={selectBlock}
+                  onSetActiveBlockId={setActiveBlockId}
+                  onStart={handleStart}
+                  onPause={handlePause}
+                  onStop={handleStop}
+                  onNext={handleNext}
+                  activeSegmentIds={activeSegmentIds}
+                  activeStatementIds={activeStatementIds}
+                  hoveredBlockKey={hoveredBlockKey}
+                  content={content}
+                  onStartWorkout={handleStartWorkoutAction}
+                  setBlocks={setBlocks}
+                />
+              </PanelSizeProvider>
             </div>
           </section>
         )}

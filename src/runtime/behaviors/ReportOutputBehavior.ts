@@ -77,18 +77,35 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
         const timer = ctx.getMemory('time') as TimerState | undefined;
+        const round = ctx.getMemory('round') as RoundState | undefined;
         const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
+
+        // Determine a descriptive completion label
+        let completionLabel = 'Completed';
+        if (ctx.block.blockType === 'SessionRoot') {
+            completionLabel = 'Session Completed';
+        } else if (round && round.total !== undefined && round.total > 1) {
+            completionLabel = `Completed ${round.total} Round(s)`;
+        } else if (round && round.current > 1) {
+            // Fallback for unbounded rounds where at least one round was done
+            completionLabel = `Completed ${round.current} Round(s)`;
+        }
 
         if (shouldComputeTimeResults) {
             const displayGroups = ctx.block.getMemoryByTag('fragment:display');
             if (displayGroups.length > 1) {
                 // Split results proportionally across groups
-                const resultGroups = this.computeSplitTimeResults(ctx, timer, displayGroups.map(loc => loc.fragments));
+                const resultGroups = this.computeSplitTimeResults(
+                    ctx,
+                    timer,
+                    displayGroups.map(loc => loc.fragments),
+                    completionLabel
+                );
                 this.writeResultGroups(ctx, resultGroups);
 
                 for (const group of resultGroups) {
                     ctx.emitOutput('completion', group, {
-                        label: this.formatLabel(ctx),
+                        label: completionLabel,
                     });
                 }
                 return [];
@@ -97,13 +114,13 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
 
         // Default single-output result
         const resultFragments = shouldComputeTimeResults
-            ? this.computeTimeResults(ctx, timer)
+            ? this.computeTimeResults(ctx, timer, completionLabel)
             : [new SystemTimeFragment(new Date(), ctx.block.key.toString())];
 
         this.writeResultMemory(ctx, resultFragments);
 
         ctx.emitOutput('completion', resultFragments, {
-            label: this.formatLabel(ctx),
+            label: completionLabel,
         });
 
         return [];
@@ -155,7 +172,11 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         return fragments;
     }
 
-    private computeTimeResults(ctx: IBehaviorContext, timer: TimerState | undefined): ICodeFragment[] {
+    private computeTimeResults(
+        ctx: IBehaviorContext,
+        timer: TimerState | undefined,
+        customRoundLabel?: string
+    ): ICodeFragment[] {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
@@ -175,7 +196,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 new SystemTimeFragment(new Date(), blockKey),
             ];
             if (round) {
-                fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+                fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
             }
             return fragments;
         }
@@ -188,7 +209,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             new SystemTimeFragment(new Date(), blockKey),
         ];
         if (round) {
-            fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+            fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
         }
         return fragments;
     }
@@ -196,7 +217,8 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     private computeSplitTimeResults(
         ctx: IBehaviorContext,
         timer: TimerState | undefined,
-        groups: ICodeFragment[][]
+        groups: ICodeFragment[][],
+        customRoundLabel?: string
     ): ICodeFragment[][] {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
@@ -212,7 +234,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                     new SystemTimeFragment(new Date(), blockKey),
                 ];
                 if (round) {
-                    groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+                    groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
                 }
                 return groupFragments;
             });
@@ -252,7 +274,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 new SystemTimeFragment(new Date(), blockKey),
             ];
             if (round) {
-                groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now));
+                groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
             }
             return groupFragments;
         });

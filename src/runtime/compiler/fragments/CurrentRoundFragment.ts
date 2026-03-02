@@ -37,16 +37,18 @@ export class CurrentRoundFragment implements ICodeFragment {
    * @param total Total number of planned rounds (undefined for unbounded)
    * @param sourceBlockKey Block that owns this round counter
    * @param timestamp When this fragment was created
+   * @param customImage Optional custom image string (e.g., "Completed 3 Round(s)")
    */
   constructor(
     readonly current: number,
     readonly total: number | undefined,
     readonly sourceBlockKey?: string,
     readonly timestamp?: Date,
+    customImage?: string
   ) {
     this.value = current;
-    this.image = total !== undefined
+    this.image = customImage ?? (total !== undefined
       ? `Round ${current} of ${total}`
-      : `Round ${current}`;
+      : `Round ${current}`);
   }
 }

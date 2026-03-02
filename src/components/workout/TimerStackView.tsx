@@ -14,10 +14,7 @@ export interface TimerStackViewProps {
     primaryTimer?: ITimerDisplayEntry;
     currentCard?: IDisplayCardEntry;
     compact?: boolean;
-    /** Single sub-label (kept for backward compat) */
     subLabel?: string;
-    /** Multiple sub-label lines — each rendered on its own line below the main label */
-    subLabels?: string[];
 
     /** Map of all active timer states by block ID (ownerId) */
     timerStates?: Map<string, {
@@ -45,7 +42,6 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     primaryTimer,
     compact = false,
     subLabel,
-    subLabels,
 
     timerStates,
 }) => {
@@ -123,15 +119,14 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             <h2 className={`${compact ? 'text-lg' : 'text-lg sm:text-xl'} font-bold text-slate-700 dark:text-slate-200`}>
                                 {effectivePrimaryTimer?.label || "Timer"}
                             </h2>
-                            {/* Render subLabels array (multi-line) or fall back to single subLabel */}
-                            {(subLabels && subLabels.length > 0 ? subLabels : subLabel ? [subLabel] : []).map((line, idx) => (
-                                <React.Fragment key={idx}>
+                            {subLabel && (
+                                <>
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2 w-full" />
                                     <div className={`${compact ? 'text-sm' : 'text-base'} font-medium text-slate-500 dark:text-slate-400`}>
-                                        {line}
+                                        {subLabel}
                                     </div>
-                                </React.Fragment>
-                            ))}
+                                </>
+                            )}
                         </div>
                     </div>
 
