@@ -98,20 +98,32 @@ export const CastButton: React.FC = () => {
     const lastSentFingerprintRef = useRef('');
     const sequenceRef = useRef(0);
 
+    // Reset fingerprint whenever casting starts so the first state update
+    // is always sent, even if it looks structurally identical to a prior session.
+    useEffect(() => {
+        if (isCasting) {
+            lastSentFingerprintRef.current = '';
+        }
+    }, [isCasting]);
+
     useEffect(() => {
         const transport = transportRef.current;
         const display = store.displayState as any;
 
         if (!transport || !isCasting || !display) return;
 
-        // Build a structural fingerprint that ignores timer elapsed values.
+        // Build a structural fingerprint that ignores timer elapsed values
+        // but captures identity changes (new block, reset spans, state transitions).
         const rowKeys = (display.displayRows || []).map((r: any) =>
             `${r.blockKey}:${r.label}:${r.blockType}:${JSON.stringify(r.rows)}`
         ).join('|');
 
-        const timerStructure = (display.timerStack || []).map((t: any) =>
-            `${t.ownerId}:${t.format}:${t.durationMs}:${t.isRunning}:${t.role}:${t.spans?.length}`
-        ).join('|');
+        const timerStructure = (display.timerStack || []).map((t: any) => {
+            // Include the start timestamp of the first span so a reset/new block
+            // still triggers a send even if span count is the same.
+            const firstSpanStart = t.spans?.[0]?.started ?? 0;
+            return `${t.ownerId}:${t.format}:${t.durationMs}:${t.isRunning}:${t.role}:${t.spans?.length}:${firstSpanStart}`;
+        }).join('|');
 
         const fingerprint = [
             display.workoutState,
