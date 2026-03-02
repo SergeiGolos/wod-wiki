@@ -23,8 +23,6 @@ const preview = {
       test: "todo"
     },
     options: {
-      showToolbar: false,
-      showPanel: false,
       storySort: {
         order: [
           'Playground',

@@ -63,14 +63,14 @@
             text-transform: uppercase;
         }
 
-        /* Debug log overlay — visible by default; press 'd' to hide */
+        /* Debug log overlay — hidden by default; add ?debug to URL or press 'd' to show */
         #debug-log {
             position: fixed; bottom: 0; left: 0; right: 0;
-            height: 40%; background: rgba(0,0,0,0.92);
-            color: #4ade80; font-size: 11px; padding: 12px 16px;
+            height: 25%; background: rgba(0,0,0,0.92);
+            color: #4ade80; font-size: 11px; padding: 8px 12px;
             overflow-y: auto; z-index: 10000; white-space: pre-wrap;
             border-top: 1px solid rgba(74,222,128,0.3);
-            display: block;
+            display: none;
         }
     </style>
 </head>
@@ -124,6 +124,8 @@
             var ringEl     = document.getElementById('progress-ring');
             var dotEl      = document.getElementById('connection-dot');
             var debugEl    = document.getElementById('debug-log');
+            var debugMode  = /[?&]debug(=|&|$)/.test(window.location.search);
+            if (debugMode) debugEl.style.display = 'block';
 
             var debugLines = [];
             function dbg(msg) {
@@ -386,7 +388,8 @@
 
             window.addEventListener('keydown', function(e) {
                 if (e.key === 'd' || e.key === 'D') {
-                    debugEl.style.display = debugEl.style.display === 'none' ? 'block' : 'none';
+                    debugMode = !debugMode;
+                    debugEl.style.display = debugMode ? 'block' : 'none';
                     return;
                 }
                 var sel = e.key === 'Enter' || e.key === 'Select';
