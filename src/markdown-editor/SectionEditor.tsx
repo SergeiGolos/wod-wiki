@@ -82,11 +82,13 @@ const SectionDisplayRenderer: React.FC<{
   provider?: IContentProvider;
   sourceNoteId?: string;
   mode?: 'preview' | 'template';
-}> = ({ section, onStartWorkout, onAddToPlan, provider, sourceNoteId, mode }) => {
+  startLineNumber?: number;
+  gutterWidth?: number;
+}> = ({ section, onStartWorkout, onAddToPlan, provider, sourceNoteId, mode, startLineNumber, gutterWidth }) => {
   switch (section.type) {
     case 'title':
     case 'markdown':
-      return <MarkdownDisplay section={section} />;
+      return <MarkdownDisplay section={section} startLineNumber={startLineNumber} gutterWidth={gutterWidth} />;
     case 'wod':
       return (
         <WodBlockDisplay
@@ -264,6 +266,8 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
           provider={provider}
           sourceNoteId={sourceNoteId}
           mode={mode}
+          startLineNumber={section.startLine + 1}
+          gutterWidth={gutterWidth}
         />
       );
     }
@@ -331,6 +335,9 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
 
             {visibleSections.map((section) => {
               const isActive = section.id === activeSectionId;
+              const isMarkdown = section.type === 'markdown' || section.type === 'title';
+              const suppressGutter = !isActive && isMarkdown;
+              
               return (
                 <React.Fragment key={section.id}>
                   <SectionContainer
@@ -338,6 +345,7 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
                     startLineNumber={section.startLine + 1}
                     gutterWidth={gutterWidth}
                     isActive={isActive}
+                    suppressGutter={suppressGutter}
                     onClick={handleSectionClick}
                     onDelete={(editable && mode !== 'template') ? (id) => _softDeleteSection(id) : undefined}
                   >
