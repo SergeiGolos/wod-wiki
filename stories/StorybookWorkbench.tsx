@@ -1,5 +1,66 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CommandProvider } from '@/components/command-palette/CommandContext';
+
+// ---------------------------------------------------------------------------
+// ?z=<base64encodedzip> support
+// The `z` URL param carries content that has been gzip-compressed and then
+// base64-encoded. Falls back to treating the param as plain base64 (no
+// compression) if decompression fails, so both workflows are supported.
+// ---------------------------------------------------------------------------
+
+async function decodeZParam(z: string): Promise<string> {
+  // base64 → binary bytes
+  const binary = atob(z.replace(/-/g, '+').replace(/_/g, '/')); // handle URL-safe base64
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+
+  try {
+    // Attempt gzip decompression (native browser API, no extra deps)
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    const reader = ds.readable.getReader();
+    writer.write(bytes);
+    writer.close();
+
+    const chunks: Uint8Array[] = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    const totalLen = chunks.reduce((n, c) => n + c.length, 0);
+    const merged = new Uint8Array(totalLen);
+    let off = 0;
+    for (const c of chunks) { merged.set(c, off); off += c.length; }
+    return new TextDecoder().decode(merged);
+  } catch {
+    // Fallback: treat bytes as raw UTF-8 (plain base64, no compression)
+    return new TextDecoder().decode(bytes);
+  }
+}
+
+/**
+ * Reads the `?z=` URL param once on mount, decodes / decompresses it, and
+ * returns `{ content, ready }`.  `ready` is false only during the async
+ * decode when a `z` param is actually present.
+ */
+function useZParamContent(): { content: string | undefined; ready: boolean } {
+  const [content, setContent] = useState<string | undefined>(undefined);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const z = params.get('z');
+    if (!z) { setReady(true); return; }
+
+    decodeZParam(z)
+      .then(decoded => setContent(decoded))
+      .catch(err => console.warn('[Playground] Failed to decode ?z= param:', err))
+      .finally(() => setReady(true));
+  }, []);
+
+  return { content, ready };
+}
 import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
@@ -279,10 +340,19 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
 };
 
 export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => {
+  const { content: zContent, ready } = useZParamContent();
+
+  // Hold rendering until we know whether ?z= should override initialContent.
+  // When no `z` param is present `ready` is set synchronously, so there is no
+  // visible flash.
+  if (!ready) return null;
+
+  const effectiveContent = zContent ?? props.initialContent;
+
   return (
     <CommandProvider>
       <WorkbenchProvider
-        initialContent={props.initialContent}
+        initialContent={effectiveContent}
         initialActiveEntryId={props.initialActiveEntryId}
         initialViewMode={props.initialViewMode}
         mode={props.mode}
