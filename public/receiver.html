@@ -9,26 +9,32 @@
         body { background: #000; color: white; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
         .timer-ring { transition: stroke-dashoffset 0.1s linear; }
         .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col items-center justify-center p-12">
-    <div id="root" class="w-full h-full flex flex-col items-center justify-between">
-        <div id="exercise-label" class="text-5xl font-black tracking-tight text-white/90 uppercase mt-8 text-center transition-all duration-500">
+<body class="h-screen w-screen flex flex-row overflow-hidden">
+    <!-- Left Panel: Workout Info (Mirrors VisualStatePanel) -->
+    <div class="w-1/2 h-full border-r border-white/10 flex flex-col p-16 justify-center bg-zinc-950">
+        <div class="opacity-20 text-xs tracking-[0.5em] uppercase mb-12 font-bold">Workout Stack</div>
+        <div id="exercise-label" class="text-7xl font-black tracking-tighter uppercase leading-tight text-white/90">
             Ready to Start
         </div>
-
-        <div class="relative w-[32rem] h-[80vh] flex items-center justify-center">
-            <svg class="absolute inset-0 w-full h-full -rotate-90 scale-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1" />
-                <circle id="progress-ring" cx="50" cy="50" r="48" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="301.59" stroke-dashoffset="301.59" stroke-linecap="round" class="timer-ring" />
-            </svg>
-            <div id="timer-display" class="text-[12rem] font-black tracking-tighter tabular-nums leading-none">00:00</div>
+        <div id="sub-label" class="mt-8 text-2xl text-blue-500/60 font-medium tracking-wide">
+            Waiting for session...
         </div>
+    </div>
 
-        <div class="mb-8 flex flex-col items-center gap-2">
-            <div id="sub-label" class="text-xl font-medium text-white/20 tracking-widest uppercase mb-4">Wod.Wiki // Smart Receiver</div>
-            <div id="connection-dot" class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
+    <!-- Right Panel: Big Clock (Mirrors TimerDisplay) -->
+    <div class="w-1/2 h-full flex flex-col items-center justify-center bg-black relative">
+        <svg class="absolute w-[80%] h-[80%] -rotate-90 scale-95" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="48" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
+            <circle id="progress-ring" cx="50" cy="50" r="48" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="301.59" stroke-dashoffset="301.59" stroke-linecap="round" class="timer-ring" />
+        </svg>
+        <div id="timer-display" class="text-[14vw] font-black tracking-tighter tabular-nums leading-none z-10">00:00</div>
+        
+        <div class="absolute bottom-8 right-8 flex items-center gap-3 opacity-20">
+            <div id="connection-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
+            <div class="text-[10px] tracking-widest font-bold uppercase">WOD.WIKI // SMART MIRROR</div>
         </div>
     </div>
 
@@ -41,6 +47,7 @@
         const deviceId = 'tv-' + Math.random().toString(36).substr(2, 4);
 
         const labelEl = document.getElementById('exercise-label');
+        const subLabelEl = document.getElementById('sub-label');
         const timerEl = document.getElementById('timer-display');
         const ringEl = document.getElementById('progress-ring');
 
@@ -59,24 +66,14 @@
                 if (msg.type === 'state-update') {
                     lastState = msg.payload.displayState;
                     lastUpdateReceivedAt = Date.now();
-                    updateMetadata();
+                    
+                    // Instant update for static text
+                    const primary = lastState.timerStack?.[0] || {};
+                    labelEl.innerText = primary.label || 'Workout';
+                    subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
                 }
             };
             ws.onclose = () => setTimeout(connect, 3000);
-        };
-
-        const updateMetadata = () => {
-            if (!lastState) return;
-            const primary = lastState.timerStack?.[0] || {};
-            labelEl.innerText = primary.label || 'Workout';
-            
-            if (lastState.workoutState === 'running') {
-                timerEl.classList.remove('opacity-50');
-                ringEl.classList.add('pulse');
-            } else {
-                timerEl.classList.add('opacity-50');
-                ringEl.classList.remove('pulse');
-            }
         };
 
         const tick = () => {
@@ -84,18 +81,13 @@
                 const primary = lastState.timerStack?.[0] || {};
                 const isRunning = lastState.workoutState === 'running';
                 
-                // Calculate live elapsed time locally
                 let elapsed = lastState.totalElapsedMs || 0;
-                if (isRunning) {
-                    elapsed += (Date.now() - lastUpdateReceivedAt);
-                }
+                if (isRunning) elapsed += (Date.now() - lastUpdateReceivedAt);
 
-                // Format Timer
                 let timeToShow = elapsed;
                 if (primary.format === 'down' && primary.durationMs) {
                     const accumulated = (primary.accumulatedMs || 0) + (isRunning ? (Date.now() - lastUpdateReceivedAt) : 0);
                     timeToShow = Math.max(0, primary.durationMs - accumulated);
-                    
                     const progress = (timeToShow / primary.durationMs);
                     ringEl.style.strokeDashoffset = 301.59 * (1 - progress);
                 } else {
@@ -106,6 +98,8 @@
                 const mm = Math.floor(seconds / 60).toString().padStart(2, '0');
                 const ss = (seconds % 60).toString().padStart(2, '0');
                 timerEl.innerText = `${mm}:${ss}`;
+                
+                timerEl.style.opacity = isRunning ? "1" : "0.4";
             }
             requestAnimationFrame(tick);
         };

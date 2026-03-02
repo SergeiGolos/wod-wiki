@@ -13,7 +13,7 @@ export const CastButton: React.FC = () => {
     const castManagerRef = useRef<CastManager | null>(null);
     const sessionIdRef = useRef<string>(uuidv4().substring(0, 8));
 
-    // Smart Sync: Only push when the logical state changes
+    // Only send updates when logical state changes
     useEffect(() => {
         const manager = castManagerRef.current;
         const display = store.displayState;
@@ -33,7 +33,6 @@ export const CastButton: React.FC = () => {
     }, [
         isCasting, 
         store.displayState.primaryTimer?.label, 
-        store.displayState.primaryTimer?.durationMs,
         store.displayState.isRunning,
         store.execution.status,
         store.execution.stepCount
@@ -63,8 +62,6 @@ export const CastButton: React.FC = () => {
             setIsCasting(true);
 
             if ('PresentationRequest' in window) {
-                let url = window.location.href.split('#')[0];
-                url = url.replace('viewMode=story', 'viewMode=tv');
                 const host = window.location.hostname === '0.0.0.0' ? 'pluto.forest-adhara.ts.net' : window.location.hostname;
                 const origin = `https://${host}:6006`;
                 const finalUrl = `${origin}/receiver.html?session=${sessionIdRef.current}&relay=${encodeURIComponent(RELAY_URL)}`;
