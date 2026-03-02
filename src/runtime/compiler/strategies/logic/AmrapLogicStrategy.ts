@@ -7,13 +7,12 @@ import { DurationFragment } from "../../fragments/DurationFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
     LabelingBehavior,
-    HistoryRecordBehavior,
-    SoundCueBehavior,
-    ReportOutputBehavior
+    SoundCueBehavior
 } from "../../../behaviors";
 
 /**
@@ -55,7 +54,11 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), firstStatementWithTimer.exerciseId || '');
-        const label = `AMRAP ${Math.round(durationMs / 60000)} min`;
+        
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: `AMRAP ${Math.round(durationMs / 60000)} min`
+        });
 
         builder
             .setContext(context)
@@ -92,18 +95,12 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         });
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
-        // =====================================================================
-
         // Display Aspect
+        // =====================================================================
         builder.addBehavior(new LabelingBehavior({
             mode: 'countdown',
             label
         }));
-
-        // Output Aspect
-        builder.addBehavior(new ReportOutputBehavior({ label }));
-        builder.addBehavior(new HistoryRecordBehavior());
 
         // Sound Cues
         builder.addBehavior(new SoundCueBehavior({

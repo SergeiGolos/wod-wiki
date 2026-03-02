@@ -22,10 +22,8 @@ import {
     createIntegrationContext
 } from './test-helpers';
 
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerEndingBehavior } from '../../TimerEndingBehavior';
-import { TimerPauseBehavior } from '../../TimerPauseBehavior';
+import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
+import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
@@ -44,11 +42,9 @@ describe('Timer Block Integration', () => {
 
     describe('Countdown Timer', () => {
         const createCountdownBehaviors = (durationMs: number = 10000) => [
-            new TimerInitBehavior({ direction: 'down', durationMs, label: 'Countdown' }),
-            new TimerTickBehavior(),
-            new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
+            new CountdownTimerBehavior({ durationMs, label: 'Countdown', mode: 'complete-block' }),
             new LabelingBehavior({ mode: 'countdown', label: 'Countdown' }),
-            new ReportOutputBehavior({ label: 'Countdown' })
+            new ReportOutputBehavior({ label: 'Countdown', emitSegmentOnMount: true })
         ];
 
         it('should initialize timer state on mount', () => {
@@ -140,8 +136,7 @@ describe('Timer Block Integration', () => {
 
     describe('Countup Timer', () => {
         const createCountupBehaviors = () => [
-            new TimerInitBehavior({ direction: 'up', label: 'For Time' }),
-            new TimerTickBehavior(),
+            new CountupTimerBehavior({ label: 'For Time' }),
             new LeafExitBehavior(),
             new LabelingBehavior({ mode: 'clock', label: 'For Time' }),
             new ReportOutputBehavior({ label: 'For Time' })
@@ -178,10 +173,7 @@ describe('Timer Block Integration', () => {
 
     describe('Timer with Pause/Resume', () => {
         const createPausableBehaviors = (durationMs: number = 10000) => [
-            new TimerInitBehavior({ direction: 'down', durationMs, label: 'Pausable' }),
-            new TimerTickBehavior(),
-            new TimerPauseBehavior(),
-            new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
+            new CountdownTimerBehavior({ durationMs, label: 'Pausable', mode: 'complete-block' })
         ];
 
         it('should close span on pause (timer:pause event)', () => {
@@ -239,9 +231,7 @@ describe('Timer Block Integration', () => {
 
     describe('Timer with Sound Cues', () => {
         const createSoundBehaviors = () => [
-            new TimerInitBehavior({ direction: 'down', durationMs: 5000, label: 'Sound Test' }),
-            new TimerTickBehavior(),
-            new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
+            new CountdownTimerBehavior({ durationMs: 5000, label: 'Sound Test', mode: 'complete-block' }),
             new SoundCueBehavior({
                 cues: [
                     { sound: 'start-beep', trigger: 'mount' },
@@ -256,8 +246,8 @@ describe('Timer Block Integration', () => {
 
             mountBehaviors(behaviors, runtime, block);
 
-            // Sound cues emit milestone outputs, not events
-            const milestones = findOutputs(runtime, 'milestone');
+            // Sound cues emit system outputs (not milestone) - excluded from review logs
+            const milestones = findOutputs(runtime, 'system');
             const soundOutputs = milestones.filter(m => 
                 (m.fragments as any[]).some(f => f.sound === 'start-beep')
             );
@@ -272,8 +262,8 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(2000);
             simulateTicks(runtime, ctx, 3, 1000);
 
-            // Sound cues emit milestone outputs, not events
-            const milestones = findOutputs(runtime, 'milestone');
+            // Sound cues emit system outputs (not milestone) - excluded from review logs
+            const milestones = findOutputs(runtime, 'system');
             const countdownSounds = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.sound === 'countdown-beep')
             );
@@ -287,8 +277,8 @@ describe('Timer Block Integration', () => {
             runtime.clock.advance(6000);
             unmountBehaviors(behaviors, ctx);
 
-            // Sound cues emit milestone outputs, not events
-            const milestones = findOutputs(runtime, 'milestone');
+            // Sound cues emit system outputs (not milestone) - excluded from review logs
+            const milestones = findOutputs(runtime, 'system');
             const completeSounds = milestones.filter(m =>
                 (m.fragments as any[]).some(f => f.sound === 'complete-chime')
             );

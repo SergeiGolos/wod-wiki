@@ -24,6 +24,7 @@ import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/Ge
 import { GenericGroupStrategy } from '@/runtime/compiler/strategies/components/GenericGroupStrategy';
 import { SoundStrategy } from '@/runtime/compiler/strategies/enhancements/SoundStrategy';
 import { HistoryStrategy } from '@/runtime/compiler/strategies/enhancements/HistoryStrategy';
+import { ReportOutputStrategy } from '@/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 
@@ -42,9 +43,10 @@ export function createFullCompiler(): JitCompiler {
     compiler.registerStrategy(new GenericLoopStrategy());
     compiler.registerStrategy(new GenericGroupStrategy());
 
-    // Enhancement strategies (Priority 20-50)
+    // Enhancement strategies (Priority 15-50)
     compiler.registerStrategy(new SoundStrategy());
     compiler.registerStrategy(new HistoryStrategy());
+    compiler.registerStrategy(new ReportOutputStrategy());
     compiler.registerStrategy(new ChildrenStrategy());
 
     // Fallback strategies (Priority 0)

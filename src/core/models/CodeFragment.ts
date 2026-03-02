@@ -1,5 +1,4 @@
 import { MetricBehavior } from "../../types/MetricBehavior";
-import { CodeMetadata } from "./CodeMetadata";
 
 /**
  * Origin of a fragment - where it was created and its current state.
@@ -68,27 +67,39 @@ export interface ICodeFragment {
  */
 export enum FragmentType {
   /**
-   * **Time** — runtime timer state stored in block memory.
+   * **Duration** (Core) — parser-defined planned target.
    *
-   * The spans collection (TimeSpan[]) that a block tracks.
-   * Displayed on the grid as session-relative time ranges (e.g., :00 → 2:30).
-   * Created by runtime behaviors (TimerBehavior, TimerInitBehavior, etc.).
-   *
-   * @see docs/architecture/time-terminology.md
-   */
-  Time = 'time',
-
-  /**
-   * **Duration** — parser-defined planned duration.
-   *
-   * A fragment defined by the CodeStatement (e.g., "5:00" → 300 000 ms).
-   * Consumed by TimerEndingBehavior to know how long the span elapsed
-   * should be before closing the span.
+   * A fragment defined by the CodeStatement during parsing (e.g., "5:00" → 300 000 ms).
+   * It can be a time (duration) or a placeholder to be resolved.
    * Owned by the parser — the runtime reads it but never computes it.
-   *
-   * @see docs/architecture/time-terminology.md
    */
   Duration = 'duration',
+
+  /**
+   * **Spans** (Core) — raw start/stop TimeSpan[] recordings.
+   *
+   * Source-of-truth data recorded using the runtime clock.
+   * Each span represents a continuous period of active (unpaused) execution.
+   * These can be recorded at runtime or back-filled during analytics.
+   */
+  Spans = 'spans',
+
+  /**
+   * **SystemTime** (Core) — real system time (Date.now()) when a message is logged.
+   *
+   * Ground-truth wall-clock reference (timestamp) associated with system time metrics.
+   * Independent of the runtime clock.
+   */
+  SystemTime = 'system-time',
+
+  /** @deprecated Use Spans. This represented runtime timer state in block memory. */
+  Time = 'time',
+
+  /** @deprecated Calculated from Spans when needed. Σ(end − start) of active segments. */
+  Elapsed = 'elapsed',
+
+  /** @deprecated Calculated from Spans when needed. lastEnd − firstStart. */
+  Total = 'total',
 
   Rep = 'rep',
   Effort = 'effort',
@@ -103,43 +114,4 @@ export enum FragmentType {
   Sound = 'sound',
   System = 'system',
   Label = 'label',
-
-  /**
-   * **Spans** — raw start/stop TimeSpan[] recordings.
-   *
-   * Source-of-truth data from which Elapsed and Total are derived.
-   * Each span represents a continuous period of active (unpaused) execution.
-   *
-   * @see docs/architecture/time-terminology.md
-   */
-  Spans = 'spans',
-
-  /**
-   * **Elapsed** — total running time (active only, excludes pauses).
-   *
-   * Computed as Σ(end − start) for each span segment on the block's Time.
-   * Derived from Spans by the runtime.
-   *
-   * @see docs/architecture/time-terminology.md
-   */
-  Elapsed = 'elapsed',
-
-  /**
-   * **Total** — wall-clock bracket (includes pauses).
-   *
-   * Computed as lastSpan.end − firstSpan.start.
-   * Derived from Spans by the runtime.
-   *
-   * @see docs/architecture/time-terminology.md
-   */
-  Total = 'total',
-
-  /**
-   * **TimeStamp** — real system time (Date.now()) when a message is logged.
-   *
-   * Ground-truth wall-clock reference independent of the runtime clock.
-   *
-   * @see docs/architecture/time-terminology.md
-   */
-  SystemTime = 'system-time'
 }

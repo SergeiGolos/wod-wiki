@@ -21,14 +21,10 @@ import { SessionRootBlock, SessionRootConfig } from '../../blocks/SessionRootBlo
  *    - WaitingToStart (idle gate)
  *    - Compiled child blocks (workout exercises)
  *
- * ## Relationship to WorkoutRootStrategy
- *
- * SessionRootStrategy creates a SessionRootBlock (the new Phase 1 block
- * with ReportOutputBehavior, HistoryRecordBehavior, etc.). It is intended
- * to eventually replace WorkoutRootStrategy as the primary root builder.
+ * History persistence is delegated to the workbench layer — all data needed
+ * is available in the output stream (ReportOutputBehavior completions).
  *
  * @see SessionRootBlock
- * @see WorkoutRootStrategy
  */
 export class SessionRootStrategy implements IRuntimeBlockStrategy {
     priority = 100;

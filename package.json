@@ -24,13 +24,15 @@
     "build:app": "bun x vite build --config vite.app.config.ts",
     "preview:app": "bun x vite preview --config vite.app.config.ts",
     "build": "bun run build-storybook",
-    "storybook": "npx storybook dev -p 6006",
+    "storybook": "npx storybook dev -p 6006 --host 0.0.0.0 --https --ssl-cert pluto.forest-adhara.ts.net.crt --ssl-key pluto.forest-adhara.ts.net.key",
     "storybook:debug": "set NODE_OPTIONS=--inspect=9229 && npx storybook dev -p 6006",
     "clean-storybook": "bun -e 'require(\"fs\").rmSync(\"storybook-static\", { recursive: true, force: true })'",
     "prebuild-storybook": "bun run clean-storybook",
     "build-storybook": "NODE_OPTIONS=--max-old-space-size=4096 storybook build",
     "docs:check": "bun scripts/check-docs-links.cjs",
     "dev": "bun scripts/dev-start.cjs",
+    "dev:web": "bun scripts/dev-start.cjs --web-only --no-emulator",
+    "dev:all": "bun scripts/dev-start.cjs",
     "dev:app": "bun x vite --config vite.app.config.ts"
   },
   "dependencies": {

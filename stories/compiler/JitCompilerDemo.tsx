@@ -12,7 +12,9 @@ import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
 import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
-import { WorkoutRootStrategy } from '../../src/runtime/compiler/strategies/WorkoutRootStrategy';
+import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
+import { ReportOutputStrategy } from '../../src/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
+import { SessionRootStrategy } from '../../src/runtime/compiler/strategies/SessionRootStrategy';
 import { ScriptRuntimeProvider } from '../../src/runtime/context/RuntimeContext';
 import { ClockAnchor } from '../../src/clock/anchors/ClockAnchor';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
@@ -618,6 +620,8 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     jitCompiler.registerStrategy(new GenericLoopStrategy());     // Rounds/loops
     jitCompiler.registerStrategy(new GenericTimerStrategy());    // Timers
     jitCompiler.registerStrategy(new GenericGroupStrategy());    // Groups
+    jitCompiler.registerStrategy(new ChildrenStrategy());        // Children/Selection
+    jitCompiler.registerStrategy(new ReportOutputStrategy());    // Output (Milestones/Segments)
     jitCompiler.registerStrategy(new IdleBlockStrategy());       // Fallback
 
     console.log(`📝 Registered strategies with JIT compiler: GenericLoop → GenericTimer → GenericGroup → Idle`);
@@ -631,16 +635,15 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     
     const runtime = new ScriptRuntime(wodScript, jitCompiler, dependencies);
 
-    // Initialize by creating root block with WorkoutRootStrategy
+    // Initialize by creating root block using SessionRootStrategy
     console.log(`🌱 Initializing with ${wodScript.statements.length} statements`);
     
     if (wodScript.statements.length > 0) {
-      // Create root block using WorkoutRootStrategy
-      // This properly wraps all statements with lifecycle behaviors
+      // Create root block using SessionRootStrategy
       const statementIds = wodScript.statements.map(s => s.id);
       const childGroups = statementIds.map(id => [id]);
       
-      const rootStrategy = new WorkoutRootStrategy();
+      const rootStrategy = new SessionRootStrategy();
       const rootBlock = rootStrategy.build(runtime, {
         childGroups: childGroups,
         totalRounds: 1
@@ -652,7 +655,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
       console.log(`  ✅ Root block pushed to stack, depth: ${runtime.stack.blocks.length}`);
     } else {
       console.warn(`  ⚠️ No statements to compile - creating empty root block`);
-      const rootStrategy = new WorkoutRootStrategy();
+      const rootStrategy = new SessionRootStrategy();
       const rootBlock = rootStrategy.build(runtime, {
         childGroups: [],
         totalRounds: 1

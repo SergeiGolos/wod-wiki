@@ -29,6 +29,8 @@ export interface SectionContainerProps {
   onDelete?: (sectionId: string) => void;
   /** Content to render (display or edit view) */
   children: React.ReactNode;
+  /** Whether to suppress the default gutter (e.g. if child renders its own) */
+  suppressGutter?: boolean;
   /** Additional CSS classes */
   className?: string;
 }
@@ -41,6 +43,7 @@ export const SectionContainer: React.FC<SectionContainerProps> = ({
   onClick,
   onDelete,
   children,
+  suppressGutter = false,
   className,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -81,31 +84,33 @@ export const SectionContainer: React.FC<SectionContainerProps> = ({
       )}
     >
       {/* Line number gutter */}
-      <div
-        className={cn(
-          'flex-shrink-0 select-none text-right pr-3 pt-0',
-          'text-muted-foreground/50 font-mono text-xs',
-          isActive && 'text-muted-foreground/70',
-        )}
-        style={gutterStyle}
-        aria-hidden="true"
-      >
-        {lineNumbers.map((num) => (
-          <div
-            key={num}
-            className="leading-[22px]"
-            style={{ height: SECTION_LINE_HEIGHT }}
-          >
-            {num}
-          </div>
-        ))}
-      </div>
+      {!suppressGutter && (
+        <div
+          className={cn(
+            'flex-shrink-0 select-none text-right pr-3 pt-0',
+            'text-muted-foreground/50 font-mono text-xs',
+            isActive && 'text-muted-foreground/70',
+          )}
+          style={gutterStyle}
+          aria-hidden="true"
+        >
+          {lineNumbers.map((num) => (
+            <div
+              key={num}
+              className="leading-[22px]"
+              style={{ height: SECTION_LINE_HEIGHT }}
+            >
+              {num}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div
         ref={contentRef}
         className={cn(
           'flex-1 min-w-0 cursor-text relative',
-          'border-l-2 pl-3',
+          !suppressGutter && 'border-l-2 pl-3',
           isActive ? 'border-primary/50' : 'border-transparent hover:border-muted-foreground/20',
         )}
         onClick={handleClick}

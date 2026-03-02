@@ -32,17 +32,17 @@ describe('For Time (Single Exercise) — Output Statements', () => {
             // Act: Start session (pushes SessionRoot → WaitingToStart)
             startSession(ctx, { label: 'Grace' });
 
-            // Step 1: SessionRoot mounted → segment output
-            // Step 2: WaitingToStart mounted → segment output
+            // Step 1: SessionRoot mounted → compiler/system outputs
+            // Step 2: WaitingToStart mounted → compiler/system outputs
             expect(ctx.runtime.stack.count).toBe(2); // SessionRoot + WaitingToStart
-            expect(ctx.tracer.segments.length).toBeGreaterThanOrEqual(2);
+            expect(ctx.tracer.outputs.length).toBeGreaterThanOrEqual(2);
 
             // Step 3: User clicks "Start" → WaitingToStart pops
             userNext(ctx);
 
             // Step 4: WaitingToStart unmounted → completion output
             // Step →5: SessionRoot.next() → ChildRunner pushes exercise
-            // Step 6: Exercise mounted → segment output
+            // Step 6: Exercise mounted → system output
             expect(ctx.runtime.stack.count).toBe(2); // SessionRoot + Exercise
             expect(ctx.tracer.completions.length).toBeGreaterThanOrEqual(1); // WaitingToStart completion
 
@@ -58,16 +58,11 @@ describe('For Time (Single Exercise) — Output Statements', () => {
             const outputs = ctx.tracer.outputs;
 
             // Check we got the right output types in order
-            // SessionRoot segment, WaitingToStart segment (at least)
             expect(outputs.length).toBeGreaterThanOrEqual(4);
 
-            // First output: SessionRoot segment
-            expect(outputs[0].outputType).toBe('segment');
-            expect(outputs[0].stackLevel).toBe(0);
-
             // Should have both segments and completions
-            expect(ctx.tracer.segments.length).toBeGreaterThanOrEqual(3); // root + waiting + exercise
-            expect(ctx.tracer.completions.length).toBeGreaterThanOrEqual(3); // waiting + exercise + root
+            // Grace completion, WaitingToStart completion, SessionRoot completion
+            expect(ctx.tracer.completions.length).toBeGreaterThanOrEqual(3); 
 
             // Session ends with stack empty
             expect(stackInfo(ctx).depth).toBe(0);
@@ -83,35 +78,36 @@ describe('For Time (Single Exercise) — Output Statements', () => {
             expect(unpaired).toEqual([]);
         });
 
-        it('should emit SessionRoot segment at stack level 0', () => {
+        it('should emit SessionRoot system output at stack level 1', () => {
             ctx = createSessionContext('30 Clean & Jerk 135lb');
             startSession(ctx, { label: 'Grace' });
 
-            const rootSegment = ctx.tracer.outputs[0];
-            expect(rootSegment.outputType).toBe('segment');
-            expect(rootSegment.stackLevel).toBe(0);
+            const rootPush = ctx.tracer.outputs.find(o => o.outputType === 'system' && o.sourceBlockKey === 'session-root');
+            expect(rootPush).toBeDefined();
+            expect(rootPush?.stackLevel).toBe(1);
         });
 
-        it('should emit WaitingToStart segment at stack level 1', () => {
+        it('should emit WaitingToStart system output at stack level 2', () => {
             ctx = createSessionContext('30 Clean & Jerk 135lb');
             startSession(ctx, { label: 'Grace' });
 
-            // WaitingToStart is mounted after SessionRoot, at depth 1
-            const waitingSegment = ctx.tracer.outputs.find(
-                o => o.outputType === 'segment' && o.stackLevel === 1
+            // WaitingToStart is pushed after SessionRoot, at depth 2
+            const waitingPush = ctx.tracer.outputs.find(
+                o => o.outputType === 'system' && o.sourceBlockKey === 'waiting-to-start'
             );
-            expect(waitingSegment).toBeDefined();
+            expect(waitingPush).toBeDefined();
+            expect(waitingPush?.stackLevel).toBe(2);
         });
 
-        it('should emit exercise segment after WaitingToStart is dismissed', () => {
+        it('should emit exercise system output after WaitingToStart is dismissed', () => {
             ctx = createSessionContext('30 Clean & Jerk 135lb');
             startSession(ctx, { label: 'Grace' });
             userNext(ctx); // Dismiss WaitingToStart
 
-            // Exercise should now be on stack at depth 1
-            const exerciseSegments = ctx.tracer.segments.filter(o => o.stackLevel === 1);
-            // Should have WaitingToStart segment + Exercise segment at level 1
-            expect(exerciseSegments.length).toBeGreaterThanOrEqual(2);
+            // Exercise should now be pushed at depth 2 (SessionRoot still exists)
+            const systemOutputs = ctx.tracer.outputs.filter(o => o.outputType === 'system');
+            const exercisePush = systemOutputs.find(o => o.stackLevel === 2 && o.sourceBlockKey !== 'waiting-to-start');
+            expect(exercisePush).toBeDefined();
         });
 
         it('should end session when exercise completes', () => {

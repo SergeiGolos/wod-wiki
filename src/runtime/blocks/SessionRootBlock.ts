@@ -8,13 +8,10 @@ import { BlockKey } from '../../core/models/BlockKey';
 
 // Aspect-based behaviors
 import {
-    TimerBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
+    CountupTimerBehavior,
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior,
     ReportOutputBehavior
 } from '../behaviors';
 import { WaitingToStartInjectorBehavior } from '../behaviors/WaitingToStartInjectorBehavior';
@@ -49,15 +46,15 @@ export interface SessionRootConfig {
  * handles round advancement internally, and RuntimeBlock.next() auto-pops
  * when any behavior marks the block complete.
  *
- * - TimerBehavior (elapsed workout timer)
- * - ChildSelectionBehavior (child dispatch + round advancement)
- * - ReEntryBehavior (round initialization on mount)
+ * - CountupTimerBehavior (elapsed workout timer)
+ * - ChildSelectionBehavior (child dispatch + round init + advancement + safety net)
  * - WaitingToStartInjectorBehavior (pushes WaitingToStart gate on mount)
- * - RoundsEndBehavior (safety net for completion)
  * - ReportOutputBehavior (output on mount/unmount)
  * - LabelingBehavior (display)
  * - ButtonBehavior (controls)
- * - HistoryRecordBehavior (records session on unmount)
+ *
+ * History persistence is the responsibility of the workbench — all data
+ * needed for history is available in the output stream (ReportOutputBehavior).
  */
 export class SessionRootBlock extends RuntimeBlock {
     constructor(
@@ -91,11 +88,10 @@ export class SessionRootBlock extends RuntimeBlock {
         const totalRounds = config.totalRounds ?? 1;
         const sessionLabel = config.label ?? 'Session';
 
-        // =====================================================================
+        // ====================================================================
         // Time Aspect - Track total session elapsed time
-        // =====================================================================
-        behaviors.push(new TimerBehavior({
-            direction: 'up',
+        // ====================================================================
+        behaviors.push(new CountupTimerBehavior({
             label: sessionLabel,
             role: 'auto'
         }));
@@ -105,22 +101,14 @@ export class SessionRootBlock extends RuntimeBlock {
         // skipOnMount: true because WaitingToStartInjectorBehavior handles
         // the first mount push. Child selection begins on the first onNext()
         // (triggered when WaitingToStart pops).
-        // Also handles round advancement when cycling — self-contained.
+        // startRound/totalRounds: absorbed from ReEntryBehavior + RoundsEndBehavior.
         // =====================================================================
         behaviors.push(new ChildSelectionBehavior({
             childGroups: config.childGroups,
             loop: totalRounds > 1 ? { condition: 'rounds-remaining' } : false,
-            skipOnMount: true
-        }));
-
-        // =====================================================================
-        // Iteration Aspect - If multi-round workout
-        // Initializes round state on mount. Round advancement is handled
-        // by ChildSelectionBehavior — no ordering dependency.
-        // =====================================================================
-        behaviors.push(new ReEntryBehavior({
+            skipOnMount: true,
+            startRound: 1,
             totalRounds,
-            startRound: 1
         }));
 
         // =====================================================================
@@ -129,11 +117,6 @@ export class SessionRootBlock extends RuntimeBlock {
         // before ChildSelectionBehavior begins pushing workout children.
         // =====================================================================
         behaviors.push(new WaitingToStartInjectorBehavior(runtime));
-
-        // =====================================================================
-        // Completion Aspect - Unified rounds/session completion
-        // =====================================================================
-        behaviors.push(new RoundsEndBehavior());
 
         // =====================================================================
         // Output Aspect - Segment tracking
@@ -179,11 +162,6 @@ export class SessionRootBlock extends RuntimeBlock {
                 }
             ]
         }));
-
-        // =====================================================================
-        // Output Aspect - Record session history
-        // =====================================================================
-        behaviors.push(new HistoryRecordBehavior());
 
         return behaviors;
     }

@@ -27,14 +27,12 @@ import {
 
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
+import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { LeafExitBehavior } from '../../LeafExitBehavior';
-import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
 import { TimerState } from '../../../memory/MemoryTypes';
-import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 
+import { IBehaviorContext } from '../../../contracts/IBehaviorContext';
 import { ExecutionContextTestHarness } from '@/testing/harness/ExecutionContextTestHarness';
 import { ExecutionContextTestBuilder } from '@/testing/harness/ExecutionContextTestBuilder';
 import { MockBlock as HarnessMockBlock } from '@/testing/harness/MockBlock';
@@ -58,8 +56,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
                 { sound: 'completion-beep', trigger: 'complete' }
             ]
         }),
-        new TimerInitBehavior({ direction: 'up', label: 'For Time', role: 'secondary' }),
-        new TimerTickBehavior(),
+        new CountupTimerBehavior({ label: 'For Time', role: 'secondary' }),
         new LeafExitBehavior()
     ];
 
@@ -79,13 +76,13 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
     });
 
     // Step 7: SoundCueBehavior mount trigger
-    it('should emit start-beep milestone on mount', () => {
+    it('should emit start-beep system output on mount', () => {
         const behaviors = createExerciseBehaviors();
 
         mountBehaviors(behaviors, runtime, block);
 
-        const milestones = findOutputs(runtime, 'milestone');
-        const startBeeps = milestones.filter(m =>
+        const systemOutputs = findOutputs(runtime, 'system');
+        const startBeeps = systemOutputs.filter(m =>
             (m.fragments as any[]).some(f => f.sound === 'start-beep')
         );
         expect(startBeeps.length).toBeGreaterThanOrEqual(1);
@@ -159,15 +156,15 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
     });
 
     // Step 10: SoundCueBehavior unmount emits completion-beep
-    it('should emit completion-beep milestone on unmount', () => {
+    it('should emit completion-beep system output on unmount', () => {
         const behaviors = createExerciseBehaviors();
         const ctx = mountBehaviors(behaviors, runtime, block);
 
         runtime.clock.advance(45000);
         unmountBehaviors(behaviors, ctx);
 
-        const milestones = findOutputs(runtime, 'milestone');
-        const completeBeeps = milestones.filter(m =>
+        const systemOutputs = findOutputs(runtime, 'system');
+        const completeBeeps = systemOutputs.filter(m =>
             (m.fragments as any[]).some(f => f.sound === 'completion-beep')
         );
         expect(completeBeeps.length).toBeGreaterThanOrEqual(1);
@@ -203,15 +200,13 @@ describe('For-Time-Single: Session Lifecycle', () => {
                     { sound: 'completion-beep', trigger: 'complete' }
                 ]
             }),
-            new TimerInitBehavior({ direction: 'up', label: 'For Time', role: 'secondary' }),
-            new TimerTickBehavior(),
+            new CountupTimerBehavior({ label: 'For Time', role: 'secondary' }),
             new LeafExitBehavior()
         ], { blockType: 'Exercise', label: 'Clean & Jerk' });
 
     const createSessionRoot = () =>
         new HarnessMockBlock('session-root', [
             new ReportOutputBehavior({ label: 'Grace' }),
-            new HistoryRecordBehavior(),
             new ChildSelectionBehavior({ childGroups: [[0], [1]] })
         ], { blockType: 'SessionRoot', label: 'Grace' });
 

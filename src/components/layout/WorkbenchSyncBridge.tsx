@@ -169,7 +169,13 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
       const { data, segments, groups } = getAnalyticsFromLogs(logs, currentEntry.results.startTime);
       store.getState().setAnalytics(data, segments, groups);
     }
-  }, [runtime, execution.stepCount, execution.status]);
+    // We REMOVED the auto-clear else block here.
+    // Analytics will persist until:
+    // 1. A new runtime starts (overwrites)
+    // 2. A new entry with logs is loaded (overwrites)
+    // 3. Manual Reset (calls store.resetStore())
+    // 4. Bridge unmounts (calls store.resetStore())
+  }, [runtime, execution.stepCount, execution.status, currentEntry]);
 
   // --- Active segment/statement tracking (derived from runtime stack) ---
   useEffect(() => {
@@ -191,6 +197,14 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     }
     store.getState().setActiveStatementIds(statementIds);
   }, [runtime, execution.stepCount, viewMode]);
+
+  // --- Reset store on unmount ---
+  useEffect(() => {
+    return () => {
+      console.log('[WorkbenchSyncBridge] Unmounting, resetting store');
+      store.getState().resetStore();
+    };
+  }, []);
 
   return <>{children}</>;
 };

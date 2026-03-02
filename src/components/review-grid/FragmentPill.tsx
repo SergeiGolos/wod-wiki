@@ -7,8 +7,9 @@
  */
 
 import React from 'react';
-import type { ICodeFragment } from '@/core/models/CodeFragment';
+import { type ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
 import { getFragmentColorClasses } from '@/views/runtime/fragmentColorMap';
+import { formatDurationSmart } from '@/lib/formatTime';
 
 interface FragmentPillProps {
   /** The fragment to display */
@@ -49,8 +50,30 @@ export const FragmentPill: React.FC<FragmentPillProps> = ({ fragment }) => {
  * Extract the display text from a fragment.
  */
 function fragmentDisplayText(frag: ICodeFragment): string {
+  // Specialized formatting for time-based fragments (values are in milliseconds)
+  if (
+    (frag.fragmentType === FragmentType.Duration ||
+      frag.fragmentType === FragmentType.Time ||
+      frag.fragmentType === FragmentType.Elapsed ||
+      frag.fragmentType === FragmentType.Total) &&
+    typeof frag.value === 'number'
+  ) {
+    return formatDurationSmart(frag.value);
+  }
+
   if (frag.image) return frag.image;
-  if (frag.value !== undefined && frag.value !== null) return String(frag.value);
+  if (frag.value !== undefined && frag.value !== null) {
+    if (typeof frag.value === 'object') {
+      const val = frag.value as any;
+      // Handle { text, role } objects common in Text fragments
+      if ('text' in val) return val.text;
+      // Handle { current, total? } objects common in CurrentRound fragments
+      if ('current' in val) return `Round ${val.current}`;
+      
+      return JSON.stringify(frag.value);
+    }
+    return String(frag.value);
+  }
   return frag.type;
 }
 

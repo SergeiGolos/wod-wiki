@@ -21,7 +21,9 @@ import type {
   GridFilterConfig,
   GridSortConfig,
 } from './types';
+import { FIXED_COLUMN_IDS } from './types';
 import { getPreset, buildAllColumns } from './gridPresets';
+import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
 
 // ─── Public Hook ───────────────────────────────────────────────
 
@@ -69,11 +71,28 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
   const activeFragmentTypes = useMemo(() => {
     const types = new Set<FragmentType>();
 
+    const addType = (ft: FragmentType) => {
+      // Guard: skip undefined/null fragmentType (defensive against malformed fragments)
+      if (ft == null) return;
+      // Redirection: Label, Text, and CurrentRound are now part of Effort column
+      if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
+        types.add(FragmentType.Effort);
+        return;
+      }
+      // Noise suppression: Sound is hidden
+      if (ft === FragmentType.Sound) return;
+      
+      // Elapsed and Total are now combined into a fixed column, suppress as fragments
+      if (ft === FragmentType.Elapsed || ft === FragmentType.Total) return;
+      
+      types.add(ft);
+    };
+
     // Check runtime segments
     for (const seg of segments) {
       if (seg.fragments) {
         for (const f of seg.fragments) {
-          types.add(f.fragmentType);
+          addType(f.fragmentType);
         }
       }
     }
@@ -81,7 +100,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     // Check user overrides
     for (const fragments of userOutputOverrides.values()) {
       for (const f of fragments) {
-        types.add(f.fragmentType);
+        addType(f.fragmentType);
       }
     }
 
@@ -103,10 +122,18 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
           return false;
         }
 
-        // Only keep fragment columns if that type exists in the data
-        // EXCEPTION: User explicitly requested Effort to always be visible
-        if (col.fragmentType === FragmentType.Effort) return true;
+        // EXCEPTION: Always keep structural columns (no fragmentType)
+        // or specifically requested columns like Timestamp/Spans/Effort
+        if (
+          !col.fragmentType ||
+          col.id === FIXED_COLUMN_IDS.TIMESTAMP ||
+          col.id === FIXED_COLUMN_IDS.SPANS ||
+          col.fragmentType === FragmentType.Effort
+        ) {
+          return true;
+        }
 
+        // Only keep fragment columns if that type exists in the data
         return activeFragmentTypes.has(col.fragmentType);
       });
 
@@ -117,7 +144,13 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
         // If it's an active fragment column, ensure it's visible by default
         if (col.fragmentType && activeFragmentTypes.has(col.fragmentType)) {
-          newCol.visible = true;
+          // System fragment columns only auto-show in debug mode
+          // (Does not affect Timestamp/Spans as they use different FragmentTypes)
+          if (col.fragmentType === FragmentType.System) {
+            newCol.visible = isDebugMode;
+          } else {
+            newCol.visible = true;
+          }
         }
 
         // Apply graph tags
@@ -132,7 +165,17 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
       // (Fragment types present in data but not in ALL_FRAGMENT_COLUMNS)
       const knownTypes = new Set(mappedCols.map(c => c.fragmentType).filter(Boolean));
 
-      const orphanTypes = Array.from(activeFragmentTypes).filter(ft => !knownTypes.has(ft));
+      const orphanTypes = Array.from(activeFragmentTypes).filter(ft => {
+        if (knownTypes.has(ft)) return false;
+        
+        // Strict suppression for system types that shouldn't auto-appear
+        if (ft === FragmentType.System && !isDebugMode) return false;
+        
+        // Elapsed and Total are now combined into a fixed column, suppress as fragments
+        if (ft === FragmentType.Elapsed || ft === FragmentType.Total) return false;
+        
+        return true;
+      });
 
       const orphanCols: GridColumn[] = orphanTypes.map(ft => ({
         id: ft,
@@ -215,28 +258,6 @@ function segmentsToRows(
     }
 
     const outputType = ((seg as SegmentWithContext).context?.outputType as string) ?? seg.type;
-    const isMilestone = outputType === 'milestone';
-
-    // Segment active time (pause-aware)
-    const duration = (typeof seg.duration === 'number' && !isNaN(seg.duration)) ? seg.duration * 1000 : undefined;
-
-    // Absolute running time from workout start to end of segment
-    // seg.endTime is relative to workoutStartTime (in seconds)
-    let elapsed = (seg.endTime ?? 0) * 1000;
-
-    // For milestones, prefer the explicit Elapsed fragment if present, 
-    // as it might be more precise than the span end time.
-    if (isMilestone) {
-      const elapsedFrag = seg.fragments?.find((f) => f.fragmentType === FragmentType.Elapsed);
-      if (elapsedFrag && typeof elapsedFrag.value === 'number') {
-        elapsed = elapsedFrag.value;
-      }
-    }
-
-    // Fallback: if elapsed is 0 but startTime is not (highly unlikely if start is 0, but safe)
-    if (elapsed === 0 && seg.startTime > 0) {
-      elapsed = seg.startTime * 1000;
-    }
 
     return {
       id: seg.id,
@@ -245,17 +266,11 @@ function segmentsToRows(
       sourceStatementId: (seg as SegmentWithContext).context?.sourceStatementId as number | undefined,
       outputType: outputType as GridRow['outputType'],
       stackLevel: seg.depth,
-      elapsed,
-      duration,
-      total: ((seg.endTime ?? 0) - (seg.startTime ?? 0)) * 1000,
-      spans: seg.spans?.map(s => ({
-        started: s.started * 1000,
-        ended: s.ended !== undefined ? s.ended * 1000 : undefined
-      })),
-      relativeSpans: seg.relativeSpans?.map(s => ({
-        started: s.started * 1000,
-        ended: s.ended !== undefined ? s.ended * 1000 : undefined
-      })),
+      absoluteStartTime: seg.absoluteStartTime,
+      duration: seg.duration,
+      elapsed: seg.elapsed,
+      total: seg.total,
+      spans: seg.spans ? [...seg.spans] : [],
       completionReason: (seg as SegmentWithContext).context?.completionReason as string | undefined,
       cells,
     } satisfies GridRow;
@@ -275,12 +290,25 @@ function extractBlockKey(seg: Segment): string | undefined {
 
 /**
  * Group a single fragment into the cells map.
+ * EXCEPTION: Label fragments are merged into the Effort cell to compose them
+ * in one column. Sound fragments are ignored.
  */
 function groupFragmentIntoCell(
   cells: Map<FragmentType, GridCell>,
   frag: ICodeFragment,
 ): void {
-  const ft = frag.fragmentType;
+  let ft = frag.fragmentType;
+
+  // Composed columns: Combine Label, Text, and CurrentRound into Effort
+  if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
+    ft = FragmentType.Effort;
+  }
+
+  // Hide noise: Sounds are no longer displayed in the grid
+  if (ft === FragmentType.Sound) {
+    return;
+  }
+
   const existing = cells.get(ft);
   if (existing) {
     // Mutably append — safe because we've just allocated these arrays
@@ -400,24 +428,24 @@ function applySorting(
 function getSortValue(row: GridRow, col: GridColumn): string | number {
   // Fixed columns
   switch (col.id) {
-    case '#':
+    case FIXED_COLUMN_IDS.INDEX:
       return row.index;
-    case 'blockKey':
+    case FIXED_COLUMN_IDS.BLOCK_KEY:
       return row.sourceBlockKey;
-    case 'outputType':
+    case FIXED_COLUMN_IDS.OUTPUT_TYPE:
       return row.outputType;
-    case 'stackLevel':
+    case FIXED_COLUMN_IDS.STACK_LEVEL:
       return row.stackLevel;
-    case 'elapsed':
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
       return row.elapsed;
-    case 'duration':
-      return row.duration ?? -1;
-    case 'total':
-      return row.total;
-    case 'spans':
-      return row.relativeSpans?.[0]?.started ?? 0;
-    case 'completionReason':
+    case FIXED_COLUMN_IDS.DURATION:
+      return row.duration ?? Infinity;
+    case FIXED_COLUMN_IDS.SPANS:
+      return row.spans?.[0]?.started ?? 0;
+    case FIXED_COLUMN_IDS.COMPLETION_REASON:
       return row.completionReason ?? '';
+    case FIXED_COLUMN_IDS.TIMESTAMP:
+      return row.absoluteStartTime ?? 0;
   }
 
   // Fragment columns — sort by first fragment's value
@@ -444,24 +472,26 @@ function compareSortValues(a: string | number, b: string | number): number {
  */
 function getCellTextForColumn(row: GridRow, col: GridColumn): string {
   switch (col.id) {
-    case '#':
+    case FIXED_COLUMN_IDS.INDEX:
       return String(row.index);
-    case 'blockKey':
+    case FIXED_COLUMN_IDS.BLOCK_KEY:
       return row.sourceBlockKey;
-    case 'outputType':
+    case FIXED_COLUMN_IDS.OUTPUT_TYPE:
       return row.outputType;
-    case 'stackLevel':
+    case FIXED_COLUMN_IDS.STACK_LEVEL:
       return String(row.stackLevel);
-    case 'elapsed':
-      return formatDuration(row.elapsed);
-    case 'duration':
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
+      return row.elapsed === row.total
+        ? formatDuration(row.elapsed)
+        : `${formatDuration(row.elapsed)} / ${formatDuration(row.total)}`;
+    case FIXED_COLUMN_IDS.DURATION:
       return formatDuration(row.duration);
-    case 'total':
-      return formatDuration(row.total);
-    case 'spans':
-      return formatSpans(row.relativeSpans, row.duration);
-    case 'completionReason':
+    case FIXED_COLUMN_IDS.SPANS:
+      return formatSpans(row.spans, row.duration);
+    case FIXED_COLUMN_IDS.COMPLETION_REASON:
       return row.completionReason ?? '';
+    case FIXED_COLUMN_IDS.TIMESTAMP:
+      return String(row.absoluteStartTime);
   }
 
   if (col.fragmentType) {
@@ -478,45 +508,53 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
  */
 function fragmentToText(frag: ICodeFragment): string {
   if (frag.image) return frag.image;
-  if (frag.value !== undefined && frag.value !== null) return String(frag.value);
+  if (frag.value !== undefined && frag.value !== null) {
+    if (typeof frag.value === 'object') {
+      const val = frag.value as any;
+      if ('text' in val) return val.text;
+      if ('current' in val) return `Round ${val.current}`;
+      
+      return JSON.stringify(frag.value);
+    }
+    return String(frag.value);
+  }
   return frag.type;
 }
 
 /**
- * Format milliseconds into a human-readable duration (M:SS or H:MM:SS).
+ * Format duration (in seconds) into a human-readable duration (M:SS or H:MM:SS).
  */
-function formatDuration(ms?: number): string {
-  if (ms === undefined || isNaN(ms)) return '';
-  if (ms <= 0) return '0:00';
-  const totalSeconds = Math.round(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+function formatDuration(seconds?: number): string {
+  if (seconds === undefined || seconds === null || isNaN(seconds) || seconds <= 0) {
+    return '';
   }
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  
+  if (seconds >= 3600) {
+    return formatSecondsHHMMSS(seconds);
+  }
+  return formatSecondsMMSS(seconds);
 }
 
 /**
  * Format spans into a human-readable string.
  * "start - finish" across spans, or just "timestamp" if duration is 0.
  */
-function formatSpans(spans?: { started: number; ended?: number }[], durationMs: number = 0): string {
+function formatSpans(spans?: { started: number; ended?: number }[], durationSeconds: number = 0): string {
   if (!spans || spans.length === 0) return '';
 
-  // If duration is 0 and we have at least one span, show it as a timestamp
-  if (durationMs === 0 && spans.length > 0) {
+  const format = (s: number) => formatDuration(s);
+
+  // If duration is 0 and we have at least one span, show it as a relative time
+  if (durationSeconds === 0 && spans.length > 0) {
     const first = spans[0];
-    return formatDuration(first.started * 1000);
+    return format(first.started);
   }
 
   // Otherwise show the bracket across all spans
   const first = spans[0];
   const last = spans[spans.length - 1];
-  const start = formatDuration(first.started * 1000);
-  const end = last.ended !== undefined ? formatDuration(last.ended * 1000) : '...';
+  const start = format(first.started);
+  const end = last.ended !== undefined ? format(last.ended) : '...';
 
   return `${start} — ${end}`;
 }

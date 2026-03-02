@@ -6,20 +6,42 @@ import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { ICodeFragment, FragmentType } from "../../core/models/CodeFragment";
 import { MemoryLocation } from "../memory/MemoryLocation";
+import { RestBlock } from "../blocks/RestBlock";
+import { PushBlockAction } from "../actions/stack/PushBlockAction";
 import {
     CompletionTimestampBehavior,
-    TimerBehavior, TimerConfig,
-    TimerEndingBehavior,
-    ReEntryBehavior, ReEntryConfig,
-    RoundsEndBehavior,
+    CountupTimerBehavior,
+    CountdownTimerBehavior, CountdownMode,
+    SpanTrackingBehavior,
     ChildSelectionBehavior,
     ChildSelectionConfig,
     ChildSelectionLoopCondition
 } from "../behaviors";
 
+/** Round configuration stored by asRepeater() and forwarded by asContainer() */
+export interface RepeaterConfig {
+    totalRounds?: number;
+    startRound?: number;
+    addCompletion?: boolean;
+}
+
+/** @deprecated Use RepeaterConfig. Kept for external call-site backward compatibility */
+export type ReEntryConfig = RepeaterConfig;
+
+/** Legacy timer config shape — kept for call-site backward compatibility */
+export interface TimerConfig {
+    direction: 'up' | 'down';
+    durationMs?: number;
+    label?: string;
+    role?: 'primary' | 'secondary' | 'hidden' | 'auto';
+}
+
 export interface TimerCompletionConfig {
     completesBlock?: boolean;
 }
+
+/** @internal re-exported for backward compat */ 
+export type { CountdownMode };
 
 export class BlockBuilder {
     private behaviors: Map<any, IRuntimeBehavior> = new Map();
@@ -29,6 +51,8 @@ export class BlockBuilder {
     private blockType: string = "Block";
     private fragments: ICodeFragment[][] | undefined;
     private sourceIds: number[] = [];
+    /** Pending round config stored by asRepeater(), consumed by asContainer() */
+    private pendingRoundConfig: RepeaterConfig | undefined;
 
     constructor(private runtime: IScriptRuntime) { }
 
@@ -126,58 +150,83 @@ export class BlockBuilder {
     // ============================================================================
 
     /**
-     * Timer Aspect Composer - Adds all timer-related behaviors as a unit.
-     * Configures countdown/countup timer with tick, pause, and optional completion.
+     * Timer Aspect Composer — assigns exactly ONE self-contained timer behavior.
+     *
+     * - `direction: 'down'` + `durationMs` → `CountdownTimerBehavior`
+     *   (subscribes to tick, fires timer:complete, handles pause/resume)
+     * - `direction: 'up'` or no duration → `CountupTimerBehavior`
+     *   (tracks elapsed via spans, handles pause/resume, no completion signal)
      *
      * @param config Timer configuration
      * @returns This builder for chaining
      */
     asTimer(config: TimerConfig & { addCompletion?: boolean; completionConfig?: TimerCompletionConfig }): BlockBuilder {
-        // Time Aspect behaviors
-        this.addBehavior(new TimerBehavior({
-            direction: config.direction,
-            durationMs: config.durationMs,
-            label: config.label,
-            role: config.role
-        }));
-
-        // Optional completion behavior
-        if (config.addCompletion !== false) {
-            this.addBehavior(new TimerEndingBehavior({
-                ending: config.completionConfig?.completesBlock === false
-                    ? { mode: 'reset-interval' }
-                    : { mode: 'complete-block' }
+        if (config.direction === 'down' && config.durationMs) {
+            const mode: CountdownMode = config.completionConfig?.completesBlock === false
+                ? 'reset-interval'
+                : 'complete-block';
+            this.addBehavior(new CountdownTimerBehavior({
+                durationMs: config.durationMs,
+                label: config.label,
+                role: config.role,
+                mode,
+                restBlockFactory: (durationMs, label) => {
+                    const restBlock = new RestBlock(this.runtime, { durationMs, label });
+                    return [new PushBlockAction(restBlock)];
+                }
+            }));
+        } else {
+            this.addBehavior(new CountupTimerBehavior({
+                label: config.label,
+                role: config.role
             }));
         }
-
         return this;
     }
 
     /**
-     * Repeater Aspect Composer - Adds all round/iteration-related behaviors as a unit.
-     * Configures round initialization, advancement, display, and optional completion.
+     * Returns true if round config was stored via asRepeater().
+     * Use this guard in strategies that must skip their iteration logic when rounds are already set.
+     */
+    hasRoundConfig(): boolean {
+        return this.pendingRoundConfig !== undefined;
+    }
+
+    /**
+     * Returns true if any timer behavior (countdown, countup, or span-only) is present.
+     * Use this guard in strategies that must skip their timer logic when timer is already set.
+     */
+    hasTimerBehavior(): boolean {
+        return (
+            this.behaviors.has(CountdownTimerBehavior) ||
+            this.behaviors.has(CountupTimerBehavior) ||
+            this.behaviors.has(SpanTrackingBehavior)
+        );
+    }
+
+    /**
+     * Repeater Aspect Composer — stores round/iteration config to be forwarded
+     * when asContainer() is called.
+     *
+     * Previously created ReEntryBehavior + RoundsEndBehavior directly; now the
+     * config is absorbed into ChildSelectionBehavior via asContainer(), which
+     * owns round state initialization and the overflow safety net.
      *
      * @param config Round configuration
      * @returns This builder for chaining
      */
-    asRepeater(config: ReEntryConfig & { addCompletion?: boolean }): BlockBuilder {
-        // Iteration Aspect behaviors
-        this.addBehavior(new ReEntryBehavior({
+    asRepeater(config: RepeaterConfig): BlockBuilder {
+        this.pendingRoundConfig = {
             totalRounds: config.totalRounds,
-            startRound: config.startRound ?? 1
-        }));
-
-        // Optional completion behavior
-        if (config.addCompletion !== false) {
-            this.addBehavior(new RoundsEndBehavior());
-        }
-
+            startRound: config.startRound ?? 1,
+            addCompletion: config.addCompletion,
+        };
         return this;
     }
 
     /**
-     * Container Aspect Composer - Adds child selection behavior as a unit.
-     * Configures child dispatch, optional looping, and optional rest injection.
+     * Container Aspect Composer — adds ChildSelectionBehavior, incorporating any
+     * round config stored by a prior asRepeater() call.
      *
      * @param config Container configuration
      * @returns This builder for chaining
@@ -188,6 +237,7 @@ export class BlockBuilder {
             loopConfig?: { condition?: ChildSelectionLoopCondition };
         }
     ): BlockBuilder {
+        const roundCfg = this.pendingRoundConfig;
         this.addBehavior(new ChildSelectionBehavior({
             childGroups: config.childGroups,
             loop: config.addLoop
@@ -195,6 +245,9 @@ export class BlockBuilder {
                 : false,
             injectRest: config.injectRest,
             skipOnMount: config.skipOnMount,
+            // Forward round config from asRepeater() (absorbed from ReEntryBehavior)
+            startRound: roundCfg?.startRound,
+            totalRounds: roundCfg?.totalRounds,
         }));
 
         return this;

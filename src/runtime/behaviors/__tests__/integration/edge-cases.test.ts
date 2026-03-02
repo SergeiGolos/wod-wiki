@@ -18,10 +18,8 @@ import {
     MockBlock
 } from './test-helpers';
 
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerEndingBehavior } from '../../TimerEndingBehavior';
-import { TimerPauseBehavior } from '../../TimerPauseBehavior';
+import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
+import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
@@ -86,9 +84,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle timer + round completion (timer wins)', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 5000 }),
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
+                new CountdownTimerBehavior({ durationMs: 5000, mode: 'complete-block' }),
                 new ReEntryBehavior({ totalRounds: 10 }),
                 new RoundsEndBehavior()
             ];
@@ -108,9 +104,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle timer + round completion (rounds win)', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 60000 }),
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
+                new CountdownTimerBehavior({ durationMs: 60000, mode: 'complete-block' }),
                 new ReEntryBehavior({ totalRounds: 2 }),
                 new RoundsEndBehavior()
             ];
@@ -174,9 +168,7 @@ describe('Edge Cases Integration', () => {
     describe('Timer Edge Cases', () => {
         it('should handle zero duration timer', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 0 }),
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
+                new CountdownTimerBehavior({ durationMs: 0, mode: 'complete-block' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -188,9 +180,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle very long duration timer', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 3600000 }), // 1 hour
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
+                new CountdownTimerBehavior({ durationMs: 3600000, mode: 'complete-block' }) // 1 hour
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -203,9 +193,7 @@ describe('Edge Cases Integration', () => {
 
         it('should handle pause/resume spam', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 10000 }),
-                new TimerTickBehavior(),
-                new TimerPauseBehavior()
+                new CountdownTimerBehavior({ durationMs: 10000 })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -265,7 +253,7 @@ describe('Edge Cases Integration', () => {
     describe('Memory State Preservation', () => {
         it('should preserve memory across mount/unmount cycle', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'up', label: 'Preserved' }),
+                new CountupTimerBehavior({ label: 'Preserved' }),
                 new ReEntryBehavior({ totalRounds: 5 })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -309,8 +297,7 @@ describe('Edge Cases Integration', () => {
     describe('Event Subscription Edge Cases', () => {
         it('should handle multiple behaviors subscribing to same event', () => {
             const behaviors = [
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } })
+                new CountdownTimerBehavior({ durationMs: 5000, mode: 'complete-block' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 

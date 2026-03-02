@@ -4,7 +4,7 @@ import { formatTimestamp, formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../runtime/RuntimeBlock';
-import { TimerInitBehavior, TimerTickBehavior, TimerPauseBehavior } from '../../runtime/behaviors';
+import { CountdownTimerBehavior, CountupTimerBehavior } from '../../runtime/behaviors';
 import { JitCompiler } from '../../runtime/compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
@@ -46,10 +46,9 @@ export interface TimerHarnessProps {
 /**
  * Timer Test Harness with memory visualization and controls
  *
- * Uses the new behavior-based timer system with:
- * - TimerInitBehavior for state initialization
- * - TimerTickBehavior for time updates
- * - TimerPauseBehavior for pause/resume events
+ * Uses the new consolidated timer behaviors:
+ * - CountdownTimerBehavior for timed (countdown) blocks
+ * - CountupTimerBehavior for stopwatch (countup) blocks
  */
 export const TimerHarness: React.FC<TimerHarnessProps> = ({
   timerType,
@@ -79,18 +78,10 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
 
   // Create block with new behavior-based timer system
   const { block, blockKey, timerState } = useMemo(() => {
-    const direction = timerType === 'countdown' ? 'down' : 'up';
-
-    // Use new aspect-based behaviors
-    const behaviors = [
-      new TimerInitBehavior({
-        direction,
-        durationMs: timerType === 'countdown' ? durationMs : undefined,
-        label: 'Timer'
-      }),
-      new TimerTickBehavior(),
-      new TimerPauseBehavior()
-    ];
+    // Use a single self-contained timer behavior based on type
+    const behaviors = timerType === 'countdown'
+      ? [new CountdownTimerBehavior({ durationMs, label: 'Timer' })]
+      : [new CountupTimerBehavior({ label: 'Timer' })];
 
     const newBlock = new RuntimeBlock(runtime, [1], behaviors, 'Timer');
 

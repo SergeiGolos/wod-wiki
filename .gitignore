@@ -157,3 +157,6 @@ package-lock.json
 server/package-lock.json
 tv/package-lock.json
 .playwright-mcp/
+pluto.forest-adhara.ts.net.crt
+pluto.forest-adhara.ts.net.key
+pluto.forest.adhara.ts.net.key

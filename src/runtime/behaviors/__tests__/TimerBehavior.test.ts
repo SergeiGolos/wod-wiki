@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'bun:test';
-import { TimerBehavior } from '../TimerBehavior';
+import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
+import { CountupTimerBehavior } from '../CountupTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { ICodeFragment } from '../../../core/models/CodeFragment';
-import { IMemoryLocation, MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { MemoryTag, MemoryLocation, IMemoryLocation } from '../../memory/MemoryLocation';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
     const memoryLocations: IMemoryLocation[] = [];
@@ -19,7 +20,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         },
         clock: { now: new Date(1000) },
         stackLevel: 0,
-        subscribe: vi.fn(() => () => {}),
+        subscribe: vi.fn(() => vi.fn()),
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
@@ -30,14 +31,17 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             }
             return undefined;
         }),
-        setMemory: vi.fn(),
+        setMemory: vi.fn((type: string, value: any) => {
+            const locs = memoryLocations.filter(l => l.tag === type);
+            if (locs.length > 0 && locs[0].fragments.length > 0) {
+                (locs[0].fragments[0] as any).value = value;
+            }
+        }),
         pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            const loc = new MemoryLocation(tag as MemoryTag, fragments);
-            memoryLocations.push(loc);
-            return loc;
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
         }),
         updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            const locs = memoryLocations.filter(l => l.tag === tag);
+            const locs = memoryLocations.filter(l => l.tag === type);
             if (locs.length > 0) {
                 locs[0].update(fragments);
             } else {
@@ -49,10 +53,10 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
     return { ...ctx, ...overrides } as IBehaviorContext;
 }
 
-describe('TimerBehavior', () => {
-    it('initializes timer state on mount', () => {
+describe('CountdownTimerBehavior', () => {
+    it('initializes timer state on mount with countdown direction', () => {
         const ctx = createMockContext();
-        const behavior = new TimerBehavior({ direction: 'down', durationMs: 30000, label: 'Work' });
+        const behavior = new CountdownTimerBehavior({ durationMs: 30000, label: 'Work' });
 
         behavior.onMount(ctx);
 
@@ -66,36 +70,134 @@ describe('TimerBehavior', () => {
                 }),
             }),
         ]));
-        expect(ctx.subscribe).toHaveBeenCalledTimes(2);
     });
 
-    it('onNext rotates span boundary when running', () => {
+    it('subscribes to tick, pause and resume events on mount', () => {
         const ctx = createMockContext();
-        const behavior = new TimerBehavior({ direction: 'up' });
+        const behavior = new CountdownTimerBehavior({ durationMs: 30000 });
+
         behavior.onMount(ctx);
 
-        behavior.onNext(ctx);
+        expect(ctx.subscribe).toHaveBeenCalledTimes(3);
+        expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function), { scope: 'bubble' });
+    });
 
-        expect(ctx.updateMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
+    it('onNext is a no-op', () => {
+        const ctx = createMockContext();
+        const behavior = new CountdownTimerBehavior({ durationMs: 30000 });
+        behavior.onMount(ctx);
+
+        const actions = behavior.onNext(ctx);
+
+        expect(actions).toEqual([]);
+    });
+
+    it('onUnmount closes active span', () => {
+        const ctx = createMockContext();
+        const behavior = new CountdownTimerBehavior({ durationMs: 30000 });
+        behavior.onMount(ctx);
+
+        (ctx.clock as any).now = new Date(5000);
+        behavior.onUnmount(ctx);
+
+        expect(ctx.setMemory).toHaveBeenCalledWith('time', expect.objectContaining({
+            spans: expect.arrayContaining([
+                expect.objectContaining({ ended: expect.any(Number) })
+            ])
+        }));
+    });
+
+    it('onDispose unsubscribes all listeners', () => {
+        const unsubscribers: Array<ReturnType<typeof vi.fn>> = [];
+        const ctx = createMockContext({
+            subscribe: vi.fn(() => {
+                const unsub = vi.fn();
+                unsubscribers.push(unsub);
+                return unsub;
+            })
+        });
+        const behavior = new CountdownTimerBehavior({ durationMs: 30000 });
+        behavior.onMount(ctx);
+        expect(unsubscribers.length).toBe(3);
+
+        behavior.onDispose(ctx);
+
+        for (const unsub of unsubscribers) {
+            expect(unsub).toHaveBeenCalled();
+        }
+    });
+});
+
+describe('CountupTimerBehavior', () => {
+    it('initializes timer state on mount with countup direction', () => {
+        const ctx = createMockContext();
+        const behavior = new CountupTimerBehavior({ label: 'Session' });
+
+        behavior.onMount(ctx);
+
+        expect(ctx.pushMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
             expect.objectContaining({
                 value: expect.objectContaining({
-                    spans: expect.arrayContaining([expect.objectContaining({ ended: expect.any(Number) })]),
+                    direction: 'up',
+                    label: 'Session',
+                    spans: expect.arrayContaining([expect.objectContaining({ started: expect.any(Number) })]),
                 }),
             }),
         ]));
     });
 
-    it('onUnmount closes active span and writes elapsed/total to fragment:result', () => {
+    it('subscribes to pause and resume events on mount (no tick subscription)', () => {
         const ctx = createMockContext();
-        const behavior = new TimerBehavior({ direction: 'up' });
+        const behavior = new CountupTimerBehavior();
+
         behavior.onMount(ctx);
 
+        expect(ctx.subscribe).toHaveBeenCalledTimes(2);
+        expect(ctx.subscribe).not.toHaveBeenCalledWith('tick', expect.any(Function), expect.anything());
+    });
+
+    it('onNext is a no-op', () => {
+        const ctx = createMockContext();
+        const behavior = new CountupTimerBehavior();
+        behavior.onMount(ctx);
+
+        const actions = behavior.onNext(ctx);
+
+        expect(actions).toEqual([]);
+    });
+
+    it('onUnmount closes active span', () => {
+        const ctx = createMockContext();
+        const behavior = new CountupTimerBehavior();
+        behavior.onMount(ctx);
+
+        (ctx.clock as any).now = new Date(10000);
         behavior.onUnmount(ctx);
 
-        expect(ctx.updateMemory).toHaveBeenCalledWith('time', expect.any(Array));
-        expect(ctx.pushMemory).toHaveBeenCalledWith('fragment:result', expect.arrayContaining([
-            expect.objectContaining({ type: 'elapsed' }),
-            expect.objectContaining({ type: 'total' }),
-        ]));
+        expect(ctx.setMemory).toHaveBeenCalledWith('time', expect.objectContaining({
+            spans: expect.arrayContaining([
+                expect.objectContaining({ ended: expect.any(Number) })
+            ])
+        }));
+    });
+
+    it('onDispose unsubscribes all listeners', () => {
+        const unsubscribers: Array<ReturnType<typeof vi.fn>> = [];
+        const ctx = createMockContext({
+            subscribe: vi.fn(() => {
+                const unsub = vi.fn();
+                unsubscribers.push(unsub);
+                return unsub;
+            })
+        });
+        const behavior = new CountupTimerBehavior();
+        behavior.onMount(ctx);
+        expect(unsubscribers.length).toBe(2);
+
+        behavior.onDispose(ctx);
+
+        for (const unsub of unsubscribers) {
+            expect(unsub).toHaveBeenCalled();
+        }
     });
 });

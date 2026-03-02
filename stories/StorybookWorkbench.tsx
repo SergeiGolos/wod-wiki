@@ -3,11 +3,13 @@ import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
+import { DisplaySyncBridge } from '@/components/layout/DisplaySyncBridge';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
+import { CastButton } from '@/components/cast/CastButton';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
-import { FileText, Activity, BarChart3, Download } from 'lucide-react';
+import { FileText, Activity, BarChart3, Download, RotateCcw, Edit, Timer, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +17,8 @@ import { PlanPanel } from '@/components/workbench/PlanPanel';
 import { TimerScreen } from '@/components/workbench/TrackPanel';
 import { ReviewGrid } from '@/components/review-grid';
 import { WorkbenchProps } from '@/components/layout/Workbench';
+import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { TVPage } from '@/app/pages/TVPage';
 
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
@@ -26,9 +30,6 @@ interface StorybookWorkbenchProps extends WorkbenchProps {
 
 const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
   initialContent,
-  initialShowPlan = true,
-  initialShowTrack = true,
-  initialShowReview = true,
 }) => {
   const {
     content,
@@ -39,13 +40,13 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     selectBlock,
     setContent,
     provider,
+    viewMode,
+    setViewMode,
+    resetResults,
   } = useWorkbench();
 
-  const [showPlan, setShowPlan] = useState(initialShowPlan);
-  const [showTrack, setShowTrack] = useState(initialShowTrack);
-  const [showReview, setShowReview] = useState(initialShowReview);
-
   const { isDebugMode } = useDebugMode();
+  const resetStore = useWorkbenchSyncStore(s => s.resetStore);
 
   const {
     runtime,
@@ -72,7 +73,20 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     setHoveredBlockKey(blockKey);
   }, [setHoveredBlockKey]);
 
+  const handleReset = useCallback(() => {
+    resetStore();
+    // Also reset execution if it's currently active/completed
+    if (execution.status !== 'idle') {
+      execution.reset();
+    }
+    selectBlock(null);
+    setActiveBlockId(null);
+    resetResults();
+    setViewMode('plan');
+  }, [resetStore, execution, selectBlock, setActiveBlockId, setViewMode, resetResults]);
+
   const handleExport = useCallback(() => {
+    // ... same as before
     // Collect serializable runtime state
     const exportState = {
       timestamp: new Date().toISOString(),
@@ -124,6 +138,10 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     runtime
   ]);
 
+  if (viewMode === 'tv') {
+    return <TVPage />;
+  }
+
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
       {/* Header with Panel Toggles and Debug */}
@@ -132,34 +150,47 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
         <div className="flex gap-2 items-center">
           <div className="flex bg-muted p-1 rounded-lg mr-2">
             <Button
-              variant={showPlan ? "default" : "ghost"}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowPlan(!showPlan)}
-              title="Toggle Plan Panel"
+              variant={viewMode === "plan" ? "default" : "ghost"}
+              size="sm"
+              className="gap-2"
+              onClick={() => setViewMode("plan")}
+              title="Plan View"
             >
-              <FileText className="h-4 w-4" />
+              <Edit className="h-4 w-4" />
+              Plan
             </Button>
             <Button
-              variant={showTrack ? "default" : "ghost"}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowTrack(!showTrack)}
-              title="Toggle Track Panel"
+              variant={viewMode === "track" ? "default" : "ghost"}
+              size="sm"
+              className="gap-2"
+              onClick={() => setViewMode("track")}
+              title="Track View"
             >
-              <Activity className="h-4 w-4" />
+              <Timer className="h-4 w-4" />
+              Track
             </Button>
             <Button
-              variant={showReview ? "default" : "ghost"}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setShowReview(!showReview)}
-              title="Toggle Review Panel"
+              variant={viewMode === "review" ? "default" : "ghost"}
+              size="sm"
+              className="gap-2"
+              onClick={() => setViewMode("review")}
+              title="Review View"
             >
-              <BarChart3 className="h-4 w-4" />
+              <BarChart2 className="h-4 w-4" />
+              Review
             </Button>
           </div>
           <div className="h-6 w-px bg-border mx-1" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleReset}
+            title="Reset All Data"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </Button>
           <Button
             variant="outline"
             size="icon"
@@ -169,23 +200,19 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
           >
             <Download className="h-4 w-4" />
           </Button>
+          <CastButton />
           <DebugButton />
         </div>
       </div>
 
       {/* Scrollable Container with toggled views */}
       <div className={cn(
-        "flex-1 overflow-y-auto p-4 space-y-6 bg-muted/10",
-        (!showPlan && !showTrack && !showReview) && "flex items-center justify-center text-muted-foreground italic"
+        "flex-1 overflow-y-auto p-4 bg-muted/10",
       )}>
-        {!showPlan && !showTrack && !showReview && (
-          <div>No panels selected. Toggle panels in the header.</div>
-        )}
-
         {/* Plan View */}
-        {showPlan && (
-          <section className="flex flex-col">
-            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[600px]">
+        {viewMode === 'plan' && (
+          <section className="flex flex-col h-full">
+            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden flex-1 min-h-0">
               <PlanPanel
                 initialContent={initialContent}
                 value={content}
@@ -201,9 +228,9 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
         )}
 
         {/* Track View */}
-        {showTrack && (
-          <section className="flex flex-col">
-            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[700px]">
+        {viewMode === 'track' && (
+          <section className="flex flex-col h-full">
+            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden flex-1 min-h-0">
               <TimerScreen
                 runtime={runtime}
                 execution={execution}
@@ -230,9 +257,9 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
         )}
 
         {/* Review View */}
-        {showReview && (
-          <section className="flex flex-col">
-            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden h-[500px]">
+        {viewMode === 'review' && (
+          <section className="flex flex-col h-full">
+            <div className="border border-border rounded-xl bg-background shadow-sm overflow-hidden flex-1 min-h-0">
               <ReviewGrid
                 runtime={runtime}
                 segments={analyticsSegments}
@@ -246,7 +273,6 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
             </div>
           </section>
         )}
-
       </div>
     </div>
   );
@@ -264,6 +290,7 @@ export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => 
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
           <WorkbenchSyncBridge>
+            <DisplaySyncBridge />
             <StorybookWorkbenchContent {...props} />
           </WorkbenchSyncBridge>
         </RuntimeLifecycleProvider>

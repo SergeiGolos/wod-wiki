@@ -31,6 +31,7 @@ import type { DocumentItem } from '../../markdown-editor/utils/documentStructure
 import type { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import type { ICodeFragment } from '../../core/models/CodeFragment';
+import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 
 /**
  * Default no-op execution return used before the bridge hydrates the store
@@ -90,6 +91,14 @@ interface WorkbenchSyncState {
   // --- Editor Bridge ---
   cursorLine: number;
   highlightedLine: number | null;
+
+  // --- Display State (Derived UI state for casting) ---
+  displayState: {
+    primaryTimer?: ITimerDisplayEntry;
+    secondaryTimers?: ITimerDisplayEntry[];
+    subLabel?: string;
+    isRunning: boolean;
+  };
 }
 
 // ─── Actions ───────────────────────────────────────────────────
@@ -110,6 +119,7 @@ interface WorkbenchSyncActions {
   setSelectedBlock: (block: WodBlock | null) => void;
   setCursorLine: (line: number) => void;
   setHighlightedLine: (line: number | null) => void;
+  setDisplayState: (state: WorkbenchSyncState['displayState']) => void;
 
   // --- Bridge hydration (called by WorkbenchSyncBridge to inject React hook values) ---
   _hydrateRuntime: (payload: {
@@ -123,6 +133,9 @@ interface WorkbenchSyncActions {
     handleNext: () => void;
     handleStartWorkoutAction: (block: WodBlock) => void;
   }) => void;
+
+  /** Resets the entire store to its initial state */
+  resetStore: () => void;
 }
 
 // ─── Combined store type ───────────────────────────────────────
@@ -162,6 +175,10 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   cursorLine: 1,
   highlightedLine: null,
+
+  displayState: {
+    isRunning: false,
+  },
 
   // --- Actions ---
 
@@ -219,7 +236,45 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setSelectedBlock: (block) => set({ selectedBlock: block }),
   setCursorLine: (line) => set({ cursorLine: line }),
   setHighlightedLine: (line) => set({ highlightedLine: line }),
+  setDisplayState: (displayState) => set({ displayState }),
 
   // Bridge hydration — pushes React hook values into the store
   _hydrateRuntime: (payload) => set(payload),
+
+  // Reset the store to its initial state
+  resetStore: () => set({
+    runtime: null,
+    execution: noopExecution,
+    initializeRuntime: () => { },
+    disposeRuntime: () => { },
+    handleStart: () => { },
+    handlePause: () => { },
+    handleStop: () => { },
+    handleNext: () => { },
+    handleStartWorkoutAction: () => { },
+
+    activeSegmentIds: new Set(),
+    activeStatementIds: new Set(),
+
+    analyticsData: [],
+    analyticsSegments: [],
+    analyticsGroups: [],
+    selectedAnalyticsIds: new Set(),
+    lastSelectedAnalyticsId: null,
+
+    userOutputOverrides: new Map(),
+    gridViewPreset: 'default',
+
+    hoveredBlockKey: null,
+
+    documentItems: [],
+    selectedBlock: null,
+
+    cursorLine: 1,
+    highlightedLine: null,
+
+    displayState: {
+      isRunning: false,
+    },
+  }),
 }));

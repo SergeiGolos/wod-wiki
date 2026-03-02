@@ -129,10 +129,8 @@ function getNumericValue(
 ): number {
   // Fixed numeric columns
   switch (columnId) {
-    case FIXED_COLUMN_IDS.ELAPSED:
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
       return row.elapsed;
-    case FIXED_COLUMN_IDS.TOTAL:
-      return row.total;
     case FIXED_COLUMN_IDS.STACK_LEVEL:
       return row.stackLevel;
     case FIXED_COLUMN_IDS.INDEX:
@@ -165,10 +163,8 @@ function getColorForColumn(col: GridColumn): string {
 
   // Fixed columns
   switch (col.id) {
-    case FIXED_COLUMN_IDS.ELAPSED:
+    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
       return '#14b8a6'; // teal
-    case FIXED_COLUMN_IDS.TOTAL:
-      return '#0ea5e9'; // sky
     default:
       return '#888888';
   }
@@ -194,7 +190,7 @@ const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
  */
 function getUnitForColumn(col: GridColumn): string {
   if (!col.fragmentType) {
-    if (col.id === FIXED_COLUMN_IDS.ELAPSED || col.id === FIXED_COLUMN_IDS.TOTAL) return 'ms';
+    if (col.id === FIXED_COLUMN_IDS.ELAPSED_TOTAL) return 'ms';
     return '';
   }
 

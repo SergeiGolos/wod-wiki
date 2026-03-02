@@ -134,6 +134,7 @@ export const WodSectionEditor: React.FC<WodSectionEditorProps> = ({
             value={innerContent}
             onChange={handleEditorChange}
             theme="vs"
+            showLineNumbers={false}
           />
         </div>
 

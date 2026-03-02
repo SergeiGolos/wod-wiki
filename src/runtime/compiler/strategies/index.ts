@@ -3,7 +3,6 @@
  */
 
 // Root / Direct-build strategies
-export * from './WorkoutRootStrategy';
 export * from './IdleBlockStrategy';
 export * from './SessionRootStrategy';
 export * from './WaitingToStartStrategy';
@@ -21,7 +20,7 @@ export * from './components/RestBlockStrategy';
 // Enhancement strategies (Priority 20-50)
 export * from './enhancements/ChildrenStrategy';
 export * from './enhancements/SoundStrategy';
-export * from './enhancements/HistoryStrategy';
+export * from './enhancements/ReportOutputStrategy';
 
 // Fallback strategies (Priority 0)
 export * from './fallback/EffortFallbackStrategy';

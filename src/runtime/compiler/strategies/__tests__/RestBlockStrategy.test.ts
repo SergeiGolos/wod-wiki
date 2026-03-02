@@ -3,8 +3,7 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { RestBlockStrategy } from '../components/RestBlockStrategy';
 import {
     ReportOutputBehavior,
-    TimerBehavior,
-    TimerEndingBehavior,
+    CountdownTimerBehavior,
     LabelingBehavior,
     SoundCueBehavior
 } from '../../../behaviors';
@@ -58,7 +57,7 @@ describe('RestBlockStrategy', () => {
                 durationMs: 60000
             });
 
-            const timer = block.getBehavior(TimerBehavior);
+            const timer = block.getBehavior(CountdownTimerBehavior);
             expect(timer).toBeDefined();
         });
 
@@ -85,16 +84,16 @@ describe('RestBlockStrategy', () => {
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
         });
 
-        it('should include TimerBehavior (countdown)', () => {
+        it('should include CountdownTimerBehavior (countdown)', () => {
             const block = strategy.build(harness.runtime, { durationMs: 30000 });
 
-            expect(block.getBehavior(TimerBehavior)).toBeDefined();
+            expect(block.getBehavior(CountdownTimerBehavior)).toBeDefined();
         });
 
-        it('should include TimerEndingBehavior', () => {
+        it('should include CountdownTimerBehavior (countdown completion)', () => {
             const block = strategy.build(harness.runtime, { durationMs: 30000 });
 
-            expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
+            expect(block.getBehavior(CountdownTimerBehavior)).toBeDefined();
         });
 
         it('should include LabelingBehavior', () => {

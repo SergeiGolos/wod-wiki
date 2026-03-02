@@ -195,6 +195,16 @@ export class BehaviorContext implements IBehaviorContext {
         if (locations.length === 0) return undefined;
         const loc = locations[0];
         if (loc.fragments.length === 0) return undefined;
+        // Special case: 'round' memory uses CurrentRoundFragment which stores
+        // .current and .total as direct fields (value is just the current number).
+        // Synthesize RoundState for backward compat with getMemory('round') callers.
+        if (type === 'round') {
+            const frag = loc.fragments[0] as unknown as { current?: number; total?: number };
+            if (frag?.current !== undefined) {
+                return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
+            }
+            return undefined;
+        }
         // For typed memory (timer, round, etc.), value is in the first fragment's .value
         return loc.fragments[0]?.value as MemoryValueOf<T>;
     }

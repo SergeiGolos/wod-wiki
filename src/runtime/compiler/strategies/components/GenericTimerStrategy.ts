@@ -7,14 +7,14 @@ import { DurationFragment } from "../../fragments/DurationFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
-    TimerBehavior,
+    CountdownTimerBehavior,
     LabelingBehavior,
-    LeafExitBehavior,
-    SoundCueBehavior,
-    ReportOutputBehavior
+    ExitBehavior,
+    SoundCueBehavior
 } from "../../../behaviors";
 
 /**
@@ -37,8 +37,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        // Skip if timer behaviors already added by higher-priority strategy
-        if (builder.hasBehavior(TimerBehavior)) {
+        // Skip if a timer behavior was already added by a higher-priority strategy
+        if (builder.hasTimerBehavior()) {
             return;
         }
 
@@ -52,7 +52,11 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
-        const label = direction === 'down' ? 'Countdown' : 'For Time';
+        
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: direction === 'down' ? 'Countdown' : 'For Time'
+        });
 
         // Block metadata
         const blockKey = new BlockKey();
@@ -67,13 +71,21 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughFragmentDistributor();
         const fragmentGroups = statements.flatMap(s => 
-            distributor.distribute(
-                (s.fragments || []).filter(f => f.origin !== 'runtime'), 
-                "Timer"
-            )
+            distribute(s.fragments || [], "Timer")
         ).filter(group => group.length > 0);
         
         builder.setFragments(fragmentGroups);
+
+        // =====================================================================
+        // Specific Behaviors - Added BEFORE aspects to ensure correct execution order
+        // (LeafExit before Timer ensures Pop comes before Rest Push onNext)
+        // =====================================================================
+
+        // Completion Aspect
+        // User can still advance manually (skip or acknowledge completion).
+        // For parent blocks with children, ChildrenStrategy removes
+        // ExitBehavior since children manage advancement.
+        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
 
         // =====================================================================
         // ASPECT COMPOSERS - High-level composition
@@ -101,14 +113,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         }
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
+        // Display and Sound
         // =====================================================================
-
-        // Completion Aspect
-        // User can still advance manually (skip or acknowledge completion).
-        // For parent blocks with children, ChildrenStrategy removes
-        // LeafExitBehavior since children manage advancement.
-        builder.addBehavior(new LeafExitBehavior({ onNext: true }));
 
         // Sound Cues
         if (durationMs && direction === 'down') {
@@ -120,17 +126,16 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             }));
         }
 
-        // =====================================================================
         // Display Aspect
-        // =====================================================================
         builder.addBehavior(new LabelingBehavior({
             mode: durationMs ? 'countdown' : 'clock',
             label
         }));
-
-        // =====================================================================
-        // Output Aspect
-        // =====================================================================
-        builder.addBehavior(new ReportOutputBehavior({ label }));
     }
+}
+
+// Keep the logic-heavy fragment distribution local to the strategy
+function distribute(fragments: any[], type: string): any[][] {
+    const distributor = new PassthroughFragmentDistributor();
+    return [distributor.distribute(fragments, type)];
 }

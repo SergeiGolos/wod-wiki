@@ -4,8 +4,7 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { RestBlock, RestBlockConfig } from '../RestBlock';
 import {
     ReportOutputBehavior,
-    TimerBehavior,
-    TimerEndingBehavior,
+    CountdownTimerBehavior,
     LabelingBehavior,
     SoundCueBehavior
 } from '../../behaviors';
@@ -28,8 +27,7 @@ describe('RestBlock', () => {
             const block = new RestBlock(harness.runtime, config);
 
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerEndingBehavior)).toBeDefined();
+            expect(block.getBehavior(CountdownTimerBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
         });
@@ -126,7 +124,7 @@ describe('RestBlock', () => {
             harness.push(block);
             harness.mount();
 
-            // TimerEndingBehavior should mark complete immediately for zero duration
+            // CountdownTimerBehavior should mark complete immediately for zero duration
             expect(block.isComplete).toBe(true);
         });
 
@@ -144,8 +142,9 @@ describe('RestBlock', () => {
         it('should return correct behavior count', () => {
             const behaviors = RestBlock.buildBehaviors({ durationMs: 60000 });
 
-            // Expected: Segment(1) + Timer(1) + TimerEnding(1) + LeafExit(1) + Display(1) + Sound(1) = 6
-            expect(behaviors.length).toBe(6);
+            // Expected: Segment(1) + CountdownTimer(1) + LeafExit(1) + Display(1) + Sound(1) = 5
+            // (Old TimerBehavior + TimerEndingBehavior merged into CountdownTimerBehavior)
+            expect(behaviors.length).toBe(5);
         });
     });
 });

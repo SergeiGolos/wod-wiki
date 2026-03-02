@@ -13,19 +13,17 @@ import {
     advanceBehaviors,
     unmountBehaviors,
     simulateTicks,
+    simulateRoundAdvance,
     MockRuntime,
     MockBlock
 } from './test-helpers';
 
-import { TimerInitBehavior } from '../../TimerInitBehavior';
-import { TimerTickBehavior } from '../../TimerTickBehavior';
-import { TimerEndingBehavior } from '../../TimerEndingBehavior';
-import { TimerPauseBehavior } from '../../TimerPauseBehavior';
+import { CountdownTimerBehavior } from '../../CountdownTimerBehavior';
+import { CountupTimerBehavior } from '../../CountupTimerBehavior';
 import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
-import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { SoundCueBehavior } from '../../SoundCueBehavior';
 
 describe('Performance Integration', () => {
@@ -61,14 +59,10 @@ describe('Performance Integration', () => {
 
         it('should mount full AMRAP composition in < 10ms', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 600000 }),
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
-                new TimerPauseBehavior(),
+                new CountdownTimerBehavior({ durationMs: 600000, mode: 'complete-block' }),
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new LabelingBehavior({ mode: 'countdown' }),
                 new ReportOutputBehavior(),
-                new HistoryRecordBehavior(),
                 new SoundCueBehavior({ cues: [] })
             ];
 
@@ -84,7 +78,7 @@ describe('Performance Integration', () => {
                 for (let i = 0; i < 100; i++) {
                     const testBlock = createMockBlock({ label: `Block ${i}` });
                     mountBehaviors([
-                        new TimerInitBehavior({ direction: 'up' }),
+                        new CountupTimerBehavior(),
                         new ReEntryBehavior({ totalRounds: 5 }),
                         new LabelingBehavior({ mode: 'clock' })
                     ], createMockRuntime(), testBlock);
@@ -98,8 +92,7 @@ describe('Performance Integration', () => {
     describe('Tick Performance', () => {
         it('should process 1000 ticks in < 50ms', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'up' }),
-                new TimerTickBehavior(),
+                new CountupTimerBehavior(),
                 new LabelingBehavior({ mode: 'clock' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -113,9 +106,7 @@ describe('Performance Integration', () => {
 
         it('should process tick with full behavior set in < 1ms average', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'down', durationMs: 600000 }),
-                new TimerTickBehavior(),
-                new TimerEndingBehavior({ ending: { mode: 'complete-block' } }),
+                new CountdownTimerBehavior({ durationMs: 600000, mode: 'complete-block' }),
                 new LabelingBehavior({ mode: 'countdown' })
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -157,6 +148,7 @@ describe('Performance Integration', () => {
 
             // Advance many times
             for (let i = 0; i < 10000; i++) {
+                simulateRoundAdvance(ctx);
                 advanceBehaviors(behaviors, ctx);
             }
 
@@ -170,8 +162,7 @@ describe('Performance Integration', () => {
     describe('Memory Performance', () => {
         it('should not create excessive objects per tick', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'up' }),
-                new TimerTickBehavior()
+                new CountupTimerBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -187,9 +178,7 @@ describe('Performance Integration', () => {
 
         it('should maintain stable memory across long workout', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'up' }),
-                new TimerTickBehavior(),
-                new TimerPauseBehavior(),
+                new CountupTimerBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new LabelingBehavior({ mode: 'clock' })
             ];
@@ -212,12 +201,9 @@ describe('Performance Integration', () => {
     describe('Unmount Performance', () => {
         it('should unmount quickly after long workout', () => {
             const behaviors = [
-                new TimerInitBehavior({ direction: 'up' }),
-                new TimerTickBehavior(),
-                new TimerPauseBehavior(),
+                new CountupTimerBehavior(),
                 new ReEntryBehavior({ totalRounds: undefined }),
                 new LabelingBehavior({ mode: 'clock' }),
-                new HistoryRecordBehavior(),
                 new ReportOutputBehavior()
             ];
             const ctx = mountBehaviors(behaviors, runtime, block);
@@ -247,8 +233,7 @@ describe('Performance Integration', () => {
                     const testRuntime = createMockRuntime(0);
                     const testBlock = createMockBlock({ label: `Block ${i}` });
                     const behaviors = [
-                        new TimerInitBehavior({ direction: 'up' }),
-                        new TimerTickBehavior(),
+                        new CountupTimerBehavior(),
                         new ReEntryBehavior({ totalRounds: 5 }),
                         new RoundsEndBehavior()
                     ];

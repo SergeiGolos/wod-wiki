@@ -3,15 +3,11 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { SessionRootBlock, SessionRootConfig } from '../SessionRootBlock';
 import {
-    TimerBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
+    CountupTimerBehavior,
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior,
-    ReportOutputBehavior,
-    WaitingToStartInjectorBehavior
+    ReportOutputBehavior
 } from '../../behaviors';
 
 describe('SessionRootBlock', () => {
@@ -37,24 +33,24 @@ describe('SessionRootBlock', () => {
 
             // Core behaviors present
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerBehavior)).toBeDefined();
+            expect(block.getBehavior(CountupTimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
-            expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
 
-        it('should include re-entry and completion behaviors for single-round session', () => {
+        it('should include iteration behaviors for single-round session', () => {
             const config: SessionRootConfig = {
                 childGroups: [[1]],
                 totalRounds: 1
             };
 
             const block = new SessionRootBlock(harness.runtime, config);
+            const csb = block.getBehavior(ChildSelectionBehavior);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.startRound).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(1);
         });
 
         it('should include round behaviors for multi-round session', () => {
@@ -64,10 +60,11 @@ describe('SessionRootBlock', () => {
             };
 
             const block = new SessionRootBlock(harness.runtime, config);
+            const csb = block.getBehavior(ChildSelectionBehavior);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.startRound).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(3);
         });
 
         it('should set correct block type and label', () => {
@@ -109,8 +106,11 @@ describe('SessionRootBlock', () => {
             const block = new SessionRootBlock(harness.runtime, {
                 childGroups: [[1]]
             });
+            const csb = block.getBehavior(ChildSelectionBehavior);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.startRound).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(1);
         });
     });
 
@@ -194,8 +194,10 @@ describe('SessionRootBlock', () => {
                 totalRounds: 1
             }, harness.runtime);
 
-            // Expected: Segment + Timer + ReEntry + WaitingToStartInjector + ChildSelection + RoundsEnd + Display + Controls + History
-            expect(behaviors.length).toBe(9);
+            // Expected: Timer + ChildSelection + WaitingToStartInjector + Output + Display + Controls = 6
+            // ReEntryBehavior and RoundsEndBehavior are absorbed into ChildSelectionBehavior config
+            // History is now responsibility of the workbench via the output stream
+            expect(behaviors.length).toBe(6);
         });
 
         it('should return correct behavior count for multi-round', () => {
@@ -205,7 +207,7 @@ describe('SessionRootBlock', () => {
             }, harness.runtime);
 
             // Expected: same as single-round composition (Labeling handles optional round display)
-            expect(behaviors.length).toBe(9);
+            expect(behaviors.length).toBe(6);
         });
     });
 });

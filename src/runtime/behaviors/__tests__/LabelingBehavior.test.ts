@@ -3,6 +3,7 @@ import { FragmentType, ICodeFragment } from '../../../core/models/CodeFragment';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
 import { LabelingBehavior } from '../LabelingBehavior';
+import { CurrentRoundFragment } from '../../compiler/fragments/CurrentRoundFragment';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
     const memoryLocations: IMemoryLocation[] = [];
@@ -109,12 +110,7 @@ describe('LabelingBehavior', () => {
 
     it('shows round display when round memory is present', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [{
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 2, total: 5 }
-        }]);
+        ctx.pushMemory('round', [new CurrentRoundFragment(2, 5, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'Rounds' });
         behavior.onMount(ctx);
@@ -133,12 +129,7 @@ describe('LabelingBehavior', () => {
 
     it('formats unbounded rounds as "Round X"', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [{
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 3 }
-        }]);
+        ctx.pushMemory('round', [new CurrentRoundFragment(3, undefined, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'AMRAP' });
         behavior.onMount(ctx);
@@ -148,22 +139,12 @@ describe('LabelingBehavior', () => {
 
     it('updates round display on next()', () => {
         const ctx = createMockContext();
-        const roundLocation = ctx.pushMemory('round', [{
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 1, total: 3 }
-        }]);
+        const roundLocation = ctx.pushMemory('round', [new CurrentRoundFragment(1, 3, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'Rounds' });
         behavior.onMount(ctx);
 
-        roundLocation.update([{ 
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 2, total: 3 }
-        }]);
+        roundLocation.update([new CurrentRoundFragment(2, 3, 'test-block', new Date())]);
 
         behavior.onNext(ctx);
 
@@ -172,30 +153,15 @@ describe('LabelingBehavior', () => {
 
     it('does not accumulate duplicate round fragments', () => {
         const ctx = createMockContext();
-        const roundLocation = ctx.pushMemory('round', [{
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 1, total: 3 }
-        }]);
+        const roundLocation = ctx.pushMemory('round', [new CurrentRoundFragment(1, 3, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'Rounds' });
         behavior.onMount(ctx);
 
-        roundLocation.update([{ 
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 2, total: 3 }
-        }]);
+        roundLocation.update([new CurrentRoundFragment(2, 3, 'test-block', new Date())]);
         behavior.onNext(ctx);
 
-        roundLocation.update([{ 
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 3, total: 3 }
-        }]);
+        roundLocation.update([new CurrentRoundFragment(3, 3, 'test-block', new Date())]);
         behavior.onNext(ctx);
 
         const display = ctx.block.getMemoryByTag('display')[0];
@@ -209,12 +175,7 @@ describe('LabelingBehavior', () => {
 
     it('supports custom round formatter', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [{
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 2, total: 4 }
-        }]);
+        ctx.pushMemory('round', [new CurrentRoundFragment(2, 4, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({
             roundFormat: (current, total) => `Set ${current}/${total ?? '?'}`
@@ -227,12 +188,7 @@ describe('LabelingBehavior', () => {
 
     it('respects showRoundDisplay=false even when round memory exists', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [{
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
-            origin: 'runtime',
-            value: { current: 1, total: 5 }
-        }]);
+        ctx.pushMemory('round', [new CurrentRoundFragment(1, 5, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ showRoundDisplay: false });
         behavior.onMount(ctx);

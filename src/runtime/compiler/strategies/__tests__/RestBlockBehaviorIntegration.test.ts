@@ -10,17 +10,13 @@ import { GenericTimerStrategy } from '../components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../components/GenericLoopStrategy';
 import { ChildrenStrategy } from '../enhancements/ChildrenStrategy';
 import { SoundStrategy } from '../enhancements/SoundStrategy';
-import { HistoryStrategy } from '../enhancements/HistoryStrategy';
+import { ReportOutputStrategy } from '../enhancements/ReportOutputStrategy';
 import { CodeMetadata } from '@/core/models/CodeMetadata';
 
 import {
-    TimerBehavior,
-    TimerEndingBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
+    CountdownTimerBehavior,
     ChildSelectionBehavior,
     SoundCueBehavior,
-    HistoryRecordBehavior,
     ReportOutputBehavior
 } from '../../../behaviors';
 
@@ -66,7 +62,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             compiler.registerStrategy(new GenericLoopStrategy());     // Priority 50
             compiler.registerStrategy(new ChildrenStrategy());        // Priority 50
             compiler.registerStrategy(new SoundStrategy());           // Priority 20
-            compiler.registerStrategy(new HistoryStrategy());         // Priority 20
+            compiler.registerStrategy(new ReportOutputStrategy());    // Priority 15
         });
 
         it('should include ChildSelectionBehavior in compiled AMRAP block', () => {
@@ -96,8 +92,8 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
             expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
@@ -126,8 +122,11 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
-            // AMRAP should NOT have RoundCompletionBehavior (unbounded)
+            const csb = block!.getBehavior(ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            // AMRAP has unbounded rounds - startRound is set but totalRounds is undefined
+            expect((csb as any).config?.startRound).toBe(1);
+            expect((csb as any).config?.totalRounds).toBeUndefined();
             // Note: ChildrenStrategy may add it for unbounded rounds or not
             // depending on hasCountdownCompletion
         });
@@ -146,7 +145,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             expect(block!.getBehavior(SoundCueBehavior)).toBeDefined();
         });
 
-        it('should include segment output and history', () => {
+        it('should include segment output', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(600000, true),
@@ -158,7 +157,6 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             const block = compiler.compile([statement], runtime);
 
             expect(block!.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block!.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
     });
 
@@ -169,7 +167,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             compiler.registerStrategy(new GenericLoopStrategy());    // Priority 50
             compiler.registerStrategy(new ChildrenStrategy());       // Priority 50
             compiler.registerStrategy(new SoundStrategy());          // Priority 20
-            compiler.registerStrategy(new HistoryStrategy());        // Priority 20
+            compiler.registerStrategy(new ReportOutputStrategy());   // Priority 15
         });
 
         it('should include ChildSelectionBehavior in compiled EMOM block', () => {
@@ -199,8 +197,8 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(TimerBehavior)).toBeDefined();
-            expect(block!.getBehavior(TimerEndingBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
+            expect(block!.getBehavior(CountdownTimerBehavior)).toBeDefined();
             expect(block!.getBehavior(ChildSelectionBehavior)).toBeDefined();
         });
 
@@ -215,8 +213,11 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
             const block = compiler.compile([statement], runtime);
 
-            expect(block!.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block!.getBehavior(RoundsEndBehavior)).toBeDefined();
+            const csb = block!.getBehavior(ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            // EMOM has bounded rounds
+            expect((csb as any).config?.startRound).toBe(1);
+            expect((csb as any).config?.totalRounds).toBeDefined();
         });
 
         it('should have child behaviors when children are present', () => {
@@ -246,7 +247,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             expect(block!.getBehavior(SoundCueBehavior)).toBeDefined();
         });
 
-        it('should include segment output and history', () => {
+        it('should include segment output', () => {
             const statement = new CodeStatement();
             statement.fragments = [
                 new MockTimerFragment(60000),
@@ -257,7 +258,6 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
             const block = compiler.compile([statement], runtime);
 
             expect(block!.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block!.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
     });
 });

@@ -63,7 +63,7 @@ describe('Round Promotion', () => {
             // Seed a source fragment
             const roundFragment = {
                 fragmentType: FragmentType.CurrentRound,
-                value: { current: 1, total: 5 },
+                value: 1,
                 origin: 'runtime',
                 type: 'current-round'
             } as any;
@@ -85,7 +85,7 @@ describe('Round Promotion', () => {
 
             const promotedFrag = promoted![0].fragments[0];
             expect(promotedFrag.fragmentType).toBe(FragmentType.CurrentRound);
-            expect(promotedFrag.value).toEqual({ current: 1, total: 5 });
+            expect(promotedFrag.value).toBe(1);
             expect(promotedFrag.origin).toBe('execution'); // Default origin
         });
 
@@ -95,7 +95,7 @@ describe('Round Promotion', () => {
             // Seed initial state
             const roundLoc = ctx.pushMemory('round', [{
                 fragmentType: FragmentType.CurrentRound,
-                value: { current: 1, total: 5 },
+                value: 1,
                 origin: 'runtime',
                 type: 'current-round'
             } as any]);
@@ -113,7 +113,7 @@ describe('Round Promotion', () => {
             // Change source state
             roundLoc.update([{
                 fragmentType: FragmentType.CurrentRound,
-                value: { current: 2, total: 5 },
+                value: 2,
                 origin: 'runtime',
                 type: 'current-round'
             } as any]);
@@ -123,7 +123,7 @@ describe('Round Promotion', () => {
 
             // Verify update
             const promoted = ctx.memoryStore.get('fragment:promote');
-            expect(promoted![0].fragments[0].value).toEqual({ current: 2, total: 5 });
+            expect(promoted![0].fragments[0].value).toBe(2);
         });
     });
 });

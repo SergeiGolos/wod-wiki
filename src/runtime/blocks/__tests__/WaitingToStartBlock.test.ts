@@ -4,7 +4,7 @@ import { BehaviorTestHarness } from '@/testing/harness/BehaviorTestHarness';
 import { WaitingToStartBlock } from '../WaitingToStartBlock';
 import {
     ReportOutputBehavior,
-    LeafExitBehavior,
+    ExitBehavior,
     LabelingBehavior,
     ButtonBehavior
 } from '../../behaviors';
@@ -28,7 +28,7 @@ describe('WaitingToStartBlock', () => {
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
-            expect(block.getBehavior(LeafExitBehavior)).toBeDefined();
+            expect(block.getBehavior(ExitBehavior)).toBeDefined();
         });
 
         it('should set correct block type and label', () => {

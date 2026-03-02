@@ -15,7 +15,6 @@ import {
     expectDisplayLabel,
     expectRoundDisplay,
     getRoundDisplay,
-    findEvents,
     findOutputs,
     MockRuntime,
     MockBlock
@@ -25,7 +24,6 @@ import { ReEntryBehavior } from '../../ReEntryBehavior';
 import { RoundsEndBehavior } from '../../RoundsEndBehavior';
 import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
-import { HistoryRecordBehavior } from '../../HistoryRecordBehavior';
 import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
 import { RoundState } from '../../../memory/MemoryTypes';
 import { CurrentRoundFragment } from '../../../compiler/fragments/CurrentRoundFragment';
@@ -134,8 +132,7 @@ describe('Loop Block Integration', () => {
         const createLoopBehaviors = (totalRounds: number = 3) => [
             new ReEntryBehavior({ totalRounds, startRound: 1 }),
             new RoundsEndBehavior(),
-            new ReportOutputBehavior(),
-            new HistoryRecordBehavior()
+            new ReportOutputBehavior()
         ];
 
         it('should update round memory on advance (no event emission)', () => {
@@ -180,7 +177,7 @@ describe('Loop Block Integration', () => {
             expect(hasSpans).toBe(true);
         });
 
-        it('should record history on unmount', () => {
+        it('should emit completion output on unmount', () => {
             const behaviors = createLoopBehaviors();
             const ctx = mountBehaviors(behaviors, runtime, block);
 
@@ -190,9 +187,9 @@ describe('Loop Block Integration', () => {
             advanceBehaviors(behaviors, ctx);
             unmountBehaviors(behaviors, ctx);
 
-            const historyEvents = findEvents(runtime, 'history:record');
-            expect(historyEvents.length).toBeGreaterThanOrEqual(1);
-            expect((historyEvents[0].data as any).blockKey).toBeDefined();
+            // History data is now in the output stream
+            const completions = findOutputs(runtime, 'completion');
+            expect(completions.length).toBeGreaterThanOrEqual(1);
         });
     });
 

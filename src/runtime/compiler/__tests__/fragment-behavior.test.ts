@@ -81,13 +81,13 @@ describe('Fragment behavior & metadata', () => {
     expect(cr.fragmentType).toBe(FragmentType.CurrentRound);
     expect(cr.behavior).toBe(MetricBehavior.Recorded);
     expect(cr.origin).toBe('runtime');
-    expect(cr.value).toEqual({ current: 2, total: 5 });
+    expect(cr.value).toBe(2);
     expect(cr.image).toBe('Round 2 of 5');
   });
 
   it('CurrentRoundFragment handles unbounded rounds', () => {
     const cr = new CurrentRoundFragment(3, undefined, 'block-1', new Date());
-    expect(cr.value).toEqual({ current: 3, total: undefined });
+    expect(cr.value).toBe(3);
     expect(cr.image).toBe('Round 3');
   });
 });

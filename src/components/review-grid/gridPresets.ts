@@ -16,12 +16,12 @@ import { getFragmentIcon } from '@/views/runtime/fragmentColorMap';
  * All available fragment-type columns.
  * Order here determines default column order in the grid.
  *
- * NOTE: Elapsed, Total, Duration, and Spans are EXCLUDED here because
+ * NOTE: Elapsed, Total, and Spans are EXCLUDED here because
  * they are handled as FIXED_COLUMNS with special rendering and ordering.
  */
 export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
-  FragmentType.Time,
   FragmentType.Effort,
+  FragmentType.Duration,
   FragmentType.Rep,
   FragmentType.Rounds,
   FragmentType.Distance,
@@ -29,28 +29,22 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
   FragmentType.Action,
   FragmentType.Increment,
   FragmentType.Group,
-  FragmentType.Text,
-  FragmentType.Sound,
-  FragmentType.Label,
-  FragmentType.CurrentRound,
   FragmentType.System,
-  FragmentType.SystemTime,
 ];
 
 /**
  * Fragment columns shown in the default (non-debug) view.
- * Excludes System, Sound, Group which are typically noise.
+ * Excludes System, Sound, Group, Text which are typically noise or merged.
  */
 const DEFAULT_VISIBLE_COLUMNS: FragmentType[] = [
-  FragmentType.Time,
   FragmentType.Effort,
+  FragmentType.Duration,
   FragmentType.Rep,
   FragmentType.Rounds,
   FragmentType.Distance,
   FragmentType.Resistance,
   FragmentType.Action,
   FragmentType.Increment,
-  FragmentType.Text,
 ];
 
 /**
@@ -156,35 +150,13 @@ export const FIXED_COLUMNS: GridColumn[] = [
     visible: false, // hidden by default, visible in debug
   },
   {
-    id: FIXED_COLUMN_IDS.ELAPSED,
-    label: 'Elapsed',  // Elapsed: Σ(end − start) active time only
+    id: FIXED_COLUMN_IDS.ELAPSED_TOTAL,
+    label: 'Elapsed',  // Combined Elapsed/Total
     sortable: true,
     filterable: false,
     graphable: true,
     isGraphed: false,
     visible: true,
-    fragmentType: FragmentType.Elapsed,
-  },
-  {
-    id: FIXED_COLUMN_IDS.DURATION,
-    label: 'Duration',  // Duration: parser-defined planned target
-    sortable: true,
-    filterable: false,
-    graphable: true,
-    isGraphed: false,
-    visible: true,
-    fragmentType: FragmentType.Duration,
-  },
-
-  {
-    id: FIXED_COLUMN_IDS.TOTAL,
-    label: 'Total',  // Total: wall-clock bracket including pauses
-    sortable: true,
-    filterable: false,
-    graphable: true,
-    isGraphed: false,
-    visible: true,
-    fragmentType: FragmentType.Total,
   },
   {
     id: FIXED_COLUMN_IDS.COMPLETION_REASON,
@@ -267,10 +239,8 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
   // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
   fragmentCols.forEach(col => add(col));
 
-  // 6/8. Meta Stats (Elapsed, Total, Duration) - Moved to end "after a certain point"
-  add(getFixed(FIXED_COLUMN_IDS.ELAPSED));
-  add(getFixed(FIXED_COLUMN_IDS.TOTAL));
-  add(getFixed(FIXED_COLUMN_IDS.DURATION));
+  // 6/8. Meta Stats (Elapsed/Total) - Moved to end "after a certain point"
+  add(getFixed(FIXED_COLUMN_IDS.ELAPSED_TOTAL));
 
   // 7/9. Debug extras
   if (isDebugMode) {
@@ -285,7 +255,10 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
  */
 function isNumericFragmentType(ft: FragmentType): boolean {
   switch (ft) {
-    case FragmentType.Time:
+    case FragmentType.Spans:
+    case FragmentType.Elapsed:
+    case FragmentType.Duration:
+    case FragmentType.Total:
     case FragmentType.Rep:
     case FragmentType.Distance:
     case FragmentType.Rounds:

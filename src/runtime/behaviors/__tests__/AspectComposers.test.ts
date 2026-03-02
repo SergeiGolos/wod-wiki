@@ -6,8 +6,6 @@ import { BlockKey } from '../../../core/models/BlockKey';
 import {
     TimerBehavior,
     TimerEndingBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
     ChildSelectionBehavior,
     CompletionTimestampBehavior
 } from '../index';
@@ -91,7 +89,7 @@ describe('BlockBuilder Aspect Composers', () => {
     });
 
     describe('asRepeater()', () => {
-        it('should add repeater aspect behaviors with completion when totalRounds is defined', () => {
+        it('should wire round config into ChildSelectionBehavior when totalRounds is defined', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -102,17 +100,20 @@ describe('BlockBuilder Aspect Composers', () => {
                 .asRepeater({
                     totalRounds: 5,
                     startRound: 1
-                });
+                })
+                .asContainer({ childGroups: [[1]] });
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have ReEntry and RoundsEndBehavior
-            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
+            // Round config is now wired into ChildSelectionBehavior
+            const csb = behaviors.find((b: any) => b instanceof ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(5);
+            expect((csb as any).config?.startRound).toBe(1);
         });
 
-        it('should skip completion behavior for unbounded rounds', () => {
+        it('should wire unbounded round config into ChildSelectionBehavior', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -123,18 +124,20 @@ describe('BlockBuilder Aspect Composers', () => {
                 .asRepeater({
                     totalRounds: undefined,  // Unbounded
                     startRound: 1
-                });
+                })
+                .asContainer({ childGroups: [[1]] });
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have RoundsEndBehavior
-            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(true);
-            // Should still have ReEntry
-            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
+            const csb = behaviors.find((b: any) => b instanceof ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            // Unbounded: startRound is passed but totalRounds is undefined
+            expect((csb as any).config?.startRound).toBe(1);
+            expect((csb as any).config?.totalRounds).toBeUndefined();
         });
 
-        it('should respect addCompletion flag explicitly', () => {
+        it('should store round config regardless of addCompletion flag', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -144,14 +147,17 @@ describe('BlockBuilder Aspect Composers', () => {
                 .setKey(key)
                 .asRepeater({
                     totalRounds: 5,
-                    addCompletion: false  // Explicit false
-                });
+                    addCompletion: false  // Explicit false - stored but internal to ChildSelectionBehavior
+                })
+                .asContainer({ childGroups: [[1]] });
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should NOT have RoundsEndBehavior due explicit addCompletion flag
-            expect(behaviors.some((b: any) => b instanceof RoundsEndBehavior)).toBe(false);
+            // ChildSelectionBehavior is still added (round config is stored)
+            const csb = behaviors.find((b: any) => b instanceof ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(5);
         });
     });
 
@@ -230,7 +236,8 @@ describe('BlockBuilder Aspect Composers', () => {
             // Should have universal behaviors PLUS aspect behaviors
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
+            // Note: asRepeater() alone doesn't add behaviors; ChildSelectionBehavior is only
+            // wired when asContainer() is also called (round config is stored in pendingRoundConfig)
         });
     });
 
@@ -252,7 +259,6 @@ describe('BlockBuilder Aspect Composers', () => {
 
             // Should have all three aspects
             expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof ReEntryBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
         });
 

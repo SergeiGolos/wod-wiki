@@ -7,7 +7,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
 import { EmitEventAction } from '../actions/events/EmitEventAction';
 import { TrackMetricAction } from '../actions/tracking/TrackMetricAction';
-import { TimerBehavior } from '../behaviors/TimerBehavior';
+import { CountupTimerBehavior } from '../behaviors/CountupTimerBehavior';
 import { LabelingBehavior } from '../behaviors/LabelingBehavior';
 
 
@@ -114,8 +114,7 @@ export class EffortBlock extends RuntimeBlock {
     }));
     this.behaviors.push(completionBehavior);
     // Timer aspect - countup timer for segment timing
-    this.behaviors.push(new TimerBehavior({
-      direction: 'up',
+    this.behaviors.push(new CountupTimerBehavior({
       label: 'Segment Timer',
       role: 'secondary'
     }));

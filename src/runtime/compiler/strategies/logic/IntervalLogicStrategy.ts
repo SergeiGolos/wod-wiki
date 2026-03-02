@@ -8,13 +8,12 @@ import { RoundsFragment } from "../../fragments/RoundsFragment";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
     LabelingBehavior,
-    HistoryRecordBehavior,
     SoundCueBehavior,
-    ReportOutputBehavior
 } from "../../../behaviors";
 
 /**
@@ -68,7 +67,11 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         // Block metadata
         const blockKey = new BlockKey();
         const context = new BlockContext(runtime, blockKey.toString(), (firstStatementWithTimer as any).exerciseId || '');
-        const label = `EMOM ${totalRounds}`;
+        
+        // Use LabelComposer for a standardized, descriptive label
+        const label = LabelComposer.build(statements, {
+            defaultLabel: `EMOM ${totalRounds}`
+        });
 
         builder
             .setContext(context)
@@ -107,18 +110,12 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         });
 
         // =====================================================================
-        // Specific Behaviors - Not covered by aspect composers
-        // =====================================================================
-
         // Display Aspect
+        // =====================================================================
         builder.addBehavior(new LabelingBehavior({
             mode: 'countdown',
             label
         }));
-
-        // Output Aspect
-        builder.addBehavior(new ReportOutputBehavior({ label }));
-        builder.addBehavior(new HistoryRecordBehavior());
 
         // Sound Cues
         builder.addBehavior(new SoundCueBehavior({

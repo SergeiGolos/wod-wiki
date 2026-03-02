@@ -2,11 +2,16 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-// Simple interface for now as I cannot easily share types across package boundaries in this setup
-// without monorepo tools or symlinks.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 interface CastMessage {
     type: string;
     messageId: string;
@@ -18,45 +23,36 @@ interface CastMessage {
 interface Connection {
   ws: WebSocket;
   deviceId: string;
-  deviceType: 'sender' | 'receiver';
-  lastPing: number;
-  capabilities?: any;
+  deviceType: 'caster' | 'receiver';
+  sessionId?: string; // Stick to a specific room
 }
 
 const connections = new Map<string, Connection>();
-const sessions = new Map<string, { casterId: string; receiverId: string }>();
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8080;
-const wss = new WebSocketServer({ port: PORT });
 
-console.log(`Relay server started on port ${PORT}`);
+// Tailscale TLS Detection
+const rootDir = path.resolve(__dirname, '../../');
+const certFiles = fs.readdirSync(rootDir).filter(f => f.endsWith('.ts.net.crt'));
+const keyFiles = fs.readdirSync(rootDir).filter(f => f.endsWith('.ts.net.key'));
 
-// Heartbeat
-const HEARTBEAT_INTERVAL = 25000;
-const HEARTBEAT_TIMEOUT = 30000;
+let wss: WebSocketServer;
 
-setInterval(() => {
-  const now = Date.now();
-  connections.forEach((conn, deviceId) => {
-    if (now - conn.lastPing > HEARTBEAT_TIMEOUT) {
-      console.log(`Terminating stale connection: ${deviceId}`);
-      conn.ws.terminate();
-      connections.delete(deviceId);
-    } else {
-      conn.ws.ping();
-    }
-  });
-}, HEARTBEAT_INTERVAL);
+if (certFiles.length > 0 && keyFiles.length > 0) {
+    const server = https.createServer({
+        cert: fs.readFileSync(path.join(rootDir, certFiles[0])),
+        key: fs.readFileSync(path.join(rootDir, keyFiles[0]))
+    });
+    wss = new WebSocketServer({ server, path: '/ws' });
+    server.listen(PORT, '0.0.0.0');
+    console.log(`\n🚀 WOD Wiki Secure Relay started at wss://0.0.0.0:${PORT}/ws`);
+} else {
+    wss = new WebSocketServer({ port: PORT, host: '0.0.0.0', path: '/ws' });
+    console.log(`\n🚀 WOD Wiki Relay started at ws://0.0.0.0:${PORT}/ws (Insecure)`);
+}
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   let deviceId: string | null = null;
-
-  ws.on('pong', () => {
-    if (deviceId && connections.has(deviceId)) {
-        const conn = connections.get(deviceId)!;
-        conn.lastPing = Date.now();
-    }
-  });
 
   ws.on('message', (data) => {
     try {
@@ -65,129 +61,55 @@ wss.on('connection', (ws) => {
       switch (message.type) {
         case 'register':
             deviceId = message.payload.clientId;
-            const clientType = message.payload.clientType;
-            if (deviceId) {
-                connections.set(deviceId, {
-                    ws,
-                    deviceId,
-                    deviceType: clientType,
-                    lastPing: Date.now(),
-                    capabilities: message.payload.capabilities
-                });
-
-                const response: CastMessage = {
-                    type: 'register-ack',
-                    messageId: uuidv4(),
-                    timestamp: Date.now(),
-                    payload: {
-                        success: true,
-                        relayId: 'relay-local',
-                        serverCapabilities: {
-                            maxSessionDuration: 14400000,
-                            maxMetricsBatchSize: 1000,
-                            heartbeatInterval: 30000
-                        }
-                    }
-                };
-                ws.send(JSON.stringify(response));
-                console.log(`Registered ${clientType}: ${deviceId}`);
+            connections.set(deviceId!, {
+                ws,
+                deviceId: deviceId!,
+                deviceType: message.payload.clientType,
+                sessionId: message.sessionId
+            });
+            console.log(`✅ Registered ${message.payload.clientType.toUpperCase()}: ${deviceId} [Room: ${message.sessionId || 'Global'}]`);
+            if (message.payload.url) {
+                console.log(`   🔗 URL: ${message.payload.url}`);
             }
             break;
 
         case 'discover':
-            // Return all connected receivers
-            const receivers: any[] = [];
+            // Only find receivers in the SAME sessionId if laptop provided one
             connections.forEach((conn) => {
-                if (conn.deviceType === 'receiver') {
-                    receivers.push({
-                        targetId: conn.deviceId,
-                        name: 'Receiver ' + conn.deviceId, // Should be from payload
-                        type: 'android-tv',
-                        capabilities: conn.capabilities,
-                        inSession: false // Simplification
-                    });
+                if (conn.deviceType === 'receiver' && (!message.sessionId || conn.sessionId === message.sessionId)) {
+                    ws.send(JSON.stringify({
+                        type: 'target-discovered',
+                        messageId: uuidv4(),
+                        timestamp: Date.now(),
+                        payload: { targetId: conn.deviceId, name: 'Chromecast', type: 'web-receiver' }
+                    }));
                 }
-            });
-
-            receivers.forEach(r => {
-                const response: CastMessage = {
-                    type: 'target-discovered',
-                    messageId: uuidv4(),
-                    timestamp: Date.now(),
-                    payload: r
-                };
-                ws.send(JSON.stringify(response));
             });
             break;
 
+        case 'state-update':
         case 'cast-request':
-            const targetId = message.payload.targetId;
-            const targetConn = connections.get(targetId);
-            if (targetConn) {
-                targetConn.ws.send(JSON.stringify(message));
-                // Track session
-                if (message.payload.sessionId && deviceId) {
-                    sessions.set(message.payload.sessionId, {
-                        casterId: deviceId,
-                        receiverId: targetId
-                    });
-                }
-            } else {
-                // Send error
-                const error: CastMessage = {
-                    type: 'error',
-                    messageId: uuidv4(),
-                    timestamp: Date.now(),
-                    payload: {
-                        code: 'TARGET_NOT_FOUND',
-                        message: 'Target device not found',
-                        recoverable: false
+        case 'event-from-receiver':
+            // Simple broadcast to everyone in the same session
+            if (message.sessionId) {
+                connections.forEach((conn) => {
+                    if (conn.sessionId === message.sessionId && conn.deviceId !== deviceId) {
+                        conn.ws.send(JSON.stringify(message));
                     }
-                };
-                ws.send(JSON.stringify(error));
+                });
             }
             break;
 
-        default:
-            // Forward message if we know the destination
-            // Assuming direct forwarding based on sessionId or if targetId is specified in payload (not standard for all messages)
-            // Or simpler: if this is from caster, send to receiver in session, and vice versa.
-
-            if (message.sessionId) {
-                const session = sessions.get(message.sessionId);
-                if (session) {
-                    let destId: string | undefined;
-                    if (deviceId === session.casterId) {
-                        destId = session.receiverId;
-                    } else if (deviceId === session.receiverId) {
-                        destId = session.casterId;
-                    }
-
-                    if (destId) {
-                        const destConn = connections.get(destId);
-                        if (destConn) {
-                            destConn.ws.send(JSON.stringify(message));
-                        }
-                    }
-
-                    // Clean up session if ended
-                    if (message.type === 'session-ended' || message.type === 'cast-stop') {
-                        sessions.delete(message.sessionId);
-                        console.log(`Session ended: ${message.sessionId}`);
-                    }
-                }
-            }
+        case 'log':
+            console.log(`[Remote Log] ${deviceId}:`, message.payload);
             break;
       }
     } catch (e) {
-      console.error('Error processing message', e);
+      console.error('[Relay] Error:', e);
     }
   });
 
   ws.on('close', () => {
-    if (deviceId) {
-      connections.delete(deviceId);
-      console.log(`Disconnected: ${deviceId}`);
-    }
+    if (deviceId) connections.delete(deviceId);
   });
 });

@@ -10,7 +10,8 @@ export function editorTheme(isDark: boolean): Extension {
     },
     ".cm-content": {
       fontFamily: "Monaco, Menlo, Ubuntu Mono, Consolas, monospace",
-      padding: "16px 0"
+      lineHeight: "22px",
+      padding: "0"
     },
     ".cm-gutters": {
       backgroundColor: isDark ? "#1e1e1e" : "#f5f5f5",

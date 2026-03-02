@@ -84,6 +84,7 @@ interface WorkbenchContextState {
   setViewMode: (mode: ViewMode) => void;
   startWorkout: (block: WodBlock) => void;
   completeWorkout: (results: WorkoutResults) => void;
+  resetResults: () => void;
 
   // Panel Layout Actions
   expandPanel: (viewId: string, panelId: string) => void;
@@ -122,17 +123,19 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId, view: legacyView } = useParams<{
     noteId?: string; sectionId?: string; resultId?: string; view?: string;
   }>();
-  const { pathname, state: locationState } = useLocation();
+  const { pathname, search, hash, state: locationState } = useLocation();
 
   // Derive routeView from the URL path segments (explicit routes) or legacy :view param
   const routeView = useMemo(() => {
-    // Check explicit path patterns first
-    if (pathname.match(/\/plan(\/|$)/)) return 'plan';
-    if (pathname.match(/\/track(\/|$)/)) return 'track';
-    if (pathname.match(/\/review(\/|$)/)) return 'review';
+    // Check explicit path patterns first (checking both pathname and hash for robustness)
+    const fullPath = pathname + hash + search;
+    if (fullPath.match(/\/plan(\/|$)/)) return 'plan';
+    if (fullPath.match(/\/track(\/|$)/)) return 'track';
+    if (fullPath.match(/\/review(\/|$)/)) return 'review';
+    if (fullPath.match(/\/tv(\/|$)/)) return 'tv';
     // Fall back to legacy :view param for backward compat
     return legacyView;
-  }, [pathname, legacyView]);
+  }, [pathname, hash, search, legacyView]);
 
   // Resolve provider: use external if given, else auto-create from mode + initialContent
   const provider = useMemo(() => externalProvider ?? new StaticContentProvider(propInitialContent), [externalProvider, propInitialContent]);
@@ -386,6 +389,13 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Derive viewMode from route
   const viewMode = useMemo(() => {
+    // Priority 0: Explicit TV mode detection (Atomic priority)
+    const fullUrl = (pathname + hash + search).toLowerCase();
+    const rawUrl = window.location.href.toLowerCase();
+    if (fullUrl.includes('viewmode=tv') || fullUrl.includes('/tv') || rawUrl.includes('viewmode=tv') || rawUrl.includes('/tv')) {
+      return 'tv';
+    }
+
     // Priority 1: Direct route parameters
     if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze' || routeView === 'history') {
       return routeView as ViewMode;
@@ -408,7 +418,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     if (routeId || pathname.startsWith('/playground')) return 'plan';
 
     return resolvedMode === 'history' ? 'history' : 'plan';
-  }, [pathname, routeView, routeId, resolvedMode, initialViewMode]);
+  }, [pathname, hash, search, routeView, routeId, resolvedMode, initialViewMode]);
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
@@ -609,6 +619,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     }
   }, [provider, content, routeId, selectedBlockId, navigate, pathname]);
 
+  const resetResults = useCallback(() => {
+    setResults([]);
+  }, []);
+
   // Panel Layout Actions
   const expandPanel = useCallback((viewId: string, panelId: string) => {
     setPanelLayouts(prev => {
@@ -677,6 +691,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     setViewMode,
     startWorkout,
     completeWorkout,
+    resetResults,
     expandPanel,
     collapsePanel,
   }), [
@@ -701,6 +716,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     setViewMode,
     startWorkout,
     completeWorkout,
+    resetResults,
     expandPanel,
     collapsePanel,
   ]);

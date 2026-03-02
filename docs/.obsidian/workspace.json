@@ -8,13 +8,17 @@
         "type": "tabs",
         "children": [
           {
-            "id": "9aedeaa1c014a43e",
+            "id": "4a5f4b86da0fbe68",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "receiver-vs-trackpanel.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "receiver-vs-trackpanel"
             }
           }
         ]
@@ -74,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 223.50558853149414
   },
   "right": {
     "id": "c1fb46b8873a0f9a",
@@ -176,8 +180,27 @@
       "bases:Create new base": false
     }
   },
-  "active": "9aedeaa1c014a43e",
+  "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
+    "labels-crosswalk.md",
+    "receiver-vs-trackpanel.md",
+    "RUNTIME_INTEGRATION_TESTING.md",
+    "BEHAVIORAL_ARCHITECTURE.md",
+    "tv/07-aws-production-deployment.md",
+    "FRAGMENT_CROSSWALK.md",
+    "Behavior Map.canvas",
+    "UI_STORYBOOK_TESTING.md",
+    "STORYBOOK_PLAYWRIGHT_TESTING.md",
+    "architecture/PERSISTENCE_STRATEGY.md",
+    "SEGMENT_TIME_CALCULATION.md",
+    "restructure/07-approach-comparison.md",
+    "restructure/06-current-implementation-analysis.md",
+    "restructure/04-implementation-roadmap.md",
+    "restructure/05-ui-impact-and-rendering.md",
+    "restructure/03-analytics-projection.md",
+    "restructure/02-processor-registry.md",
+    "restructure/01-fragment-state-model.md",
+    "restructure/00-vision-and-principles.md",
     "code-mirror/phase-4-migration-cleanup.md",
     "code-mirror/phase-3-state-compartments.md",
     "code-mirror/phase-2-editor-component.md",

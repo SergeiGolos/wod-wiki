@@ -29,7 +29,7 @@ export class CurrentRoundFragment implements ICodeFragment {
   readonly fragmentType = FragmentType.CurrentRound;
   readonly origin: FragmentOrigin = 'runtime';
   readonly behavior: MetricBehavior = MetricBehavior.Recorded;
-  readonly value: { current: number; total: number | undefined };
+  readonly value: number;
   readonly image: string;
 
   /**
@@ -44,7 +44,7 @@ export class CurrentRoundFragment implements ICodeFragment {
     readonly sourceBlockKey?: string,
     readonly timestamp?: Date,
   ) {
-    this.value = { current, total };
+    this.value = current;
     this.image = total !== undefined
       ? `Round ${current} of ${total}`
       : `Round ${current}`;

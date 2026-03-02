@@ -82,7 +82,7 @@ The round concept is now represented by **two** fragment types:
 - `RoundInitBehavior` — creates initial round state in memory
 - `RoundAdvanceBehavior` — updates round state on each advance
 - `RoundOutputBehavior` — includes in milestone outputs
-- `PromoteFragmentBehavior` — promotes to children (configured with `FragmentType.CurrentRound`)
+- `ChildSelectionBehavior` — manages current round progress in parent memory
 
 ---
 
@@ -91,7 +91,6 @@ The round concept is now represented by **two** fragment types:
 - ✅ **`behavior` now set on all 17 fragment classes** — consumers can rely on intent classification
 - ✅ **`SoundFragment` now persists `meta`** — `this.meta = options.meta` added
 - ✅ **Round fragment split** — `RoundsFragment` (plan) vs `CurrentRoundFragment` (runtime progress)
-- ✅ **`PromoteFragmentBehavior` updated** — uses `FragmentType.CurrentRound` in strategy configs
 
 ## Remaining Items
 

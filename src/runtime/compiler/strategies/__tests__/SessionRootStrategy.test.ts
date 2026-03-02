@@ -3,13 +3,10 @@ import { ExecutionContextTestHarness } from '@/testing/harness';
 import { SessionRootStrategy } from '../SessionRootStrategy';
 import { SessionRootConfig } from '../../../blocks/SessionRootBlock';
 import {
-    TimerBehavior,
-    ReEntryBehavior,
-    RoundsEndBehavior,
+    CountupTimerBehavior,
     ChildSelectionBehavior,
     LabelingBehavior,
     ButtonBehavior,
-    HistoryRecordBehavior,
     ReportOutputBehavior
 } from '../../../behaviors';
 
@@ -91,37 +88,38 @@ describe('SessionRootStrategy', () => {
             const block = strategy.build(harness.runtime, config);
 
             expect(block.getBehavior(ReportOutputBehavior)).toBeDefined();
-            expect(block.getBehavior(TimerBehavior)).toBeDefined();
+            expect(block.getBehavior(CountupTimerBehavior)).toBeDefined();
             expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
             expect(block.getBehavior(LabelingBehavior)).toBeDefined();
             expect(block.getBehavior(ButtonBehavior)).toBeDefined();
-            expect(block.getBehavior(HistoryRecordBehavior)).toBeDefined();
         });
 
-        it('should NOT include round behaviors for single-round session', () => {
+        it('should include iteration config in ChildSelectionBehavior for single-round session', () => {
             const config: SessionRootConfig = {
                 childGroups: [[1]],
                 totalRounds: 1
             };
 
             const block = strategy.build(harness.runtime, config);
+            const csb = block.getBehavior(ChildSelectionBehavior);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.startRound).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(1);
         });
 
-        it('should include round behaviors for multi-round session', () => {
+        it('should include round config in ChildSelectionBehavior for multi-round session', () => {
             const config: SessionRootConfig = {
                 childGroups: [[1]],
                 totalRounds: 3
             };
 
             const block = strategy.build(harness.runtime, config);
+            const csb = block.getBehavior(ChildSelectionBehavior);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
-            expect(block.getBehavior(ChildSelectionBehavior)).toBeDefined();
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.startRound).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(3);
         });
 
         it('should flatten child groups for source IDs', () => {
@@ -181,9 +179,10 @@ describe('SessionRootStrategy', () => {
                 totalRounds: 5
             });
 
-            // Multi-round should have round behaviors
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
-            expect(block.getBehavior(RoundsEndBehavior)).toBeDefined();
+            // Multi-round should wire totalRounds into ChildSelectionBehavior config
+            const csb = block.getBehavior(ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.totalRounds).toBe(5);
         });
 
         it('should default to single-round when no options provided', () => {
@@ -193,7 +192,10 @@ describe('SessionRootStrategy', () => {
 
             const block = strategy.buildFromStatements(harness.runtime, statements);
 
-            expect(block.getBehavior(ReEntryBehavior)).toBeDefined();
+            // Default single-round session should still have ChildSelectionBehavior with startRound
+            const csb = block.getBehavior(ChildSelectionBehavior);
+            expect(csb).toBeDefined();
+            expect((csb as any).config?.startRound).toBeDefined();
         });
     });
 
