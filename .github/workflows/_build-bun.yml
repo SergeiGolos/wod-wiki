@@ -67,12 +67,40 @@ jobs:
           echo "::error::A Custom Receiver App ID is required for Cast namespace signaling."
           exit 1
 
+      - name: Debug Cast App ID wiring
+        run: |
+          if [ -z "${{ vars.VITE_CAST_APP_ID }}" ]; then
+            echo "VITE_CAST_APP_ID is empty in workflow vars context"
+          else
+            echo "VITE_CAST_APP_ID is set (length=${#VITE_CAST_APP_ID})"
+          fi
+        env:
+          VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
+
       - name: Build Storybook
         run: bun run build-storybook
         env:
           # Configure API URL for production build (if used in storybook)
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
           VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
+
+      - name: Validate built Cast App ID
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+        run: |
+          if [ -z "${{ vars.VITE_CAST_APP_ID }}" ]; then
+            echo "::error::VITE_CAST_APP_ID is empty during build validation"
+            exit 1
+          fi
+
+          if grep -R -F "CC1AD845" storybook-static/assets; then
+            echo "::error::Default Cast App ID (CC1AD845) found in build output"
+            exit 1
+          fi
+
+          if ! grep -R -F "${{ vars.VITE_CAST_APP_ID }}" storybook-static/assets; then
+            echo "::error::Custom Cast App ID not found in build output"
+            exit 1
+          fi
 
       - name: Upload Build Assets
         uses: actions/upload-artifact@v4
