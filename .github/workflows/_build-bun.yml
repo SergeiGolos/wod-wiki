@@ -59,6 +59,7 @@ jobs:
         run: |
           sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' index.html
           sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' .storybook/preview-head.html
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' receiver-rpc.html
 
       - name: Build Storybook
         run: bun run build-storybook

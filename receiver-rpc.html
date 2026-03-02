@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wod.Wiki TV (RPC Receiver)</title>
 
+    <!-- Google tag (gtag.js) -->
+    <!-- Dev placeholder G-PROD-ID is replaced during production build -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PROD-ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-PROD-ID');
+    </script>
+
     <!-- Google Cast Application Framework — Receiver SDK (must be HTTPS) -->
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
 
