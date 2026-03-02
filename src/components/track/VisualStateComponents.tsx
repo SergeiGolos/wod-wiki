@@ -201,11 +201,16 @@ const StackBlockItem: React.FC<{
                                     {(block.blockType !== 'SessionRoot' && roundDisplay) ? roundDisplay.label : block.label}
                                 </span>
                             )}
-                            {/* Leaf: show display fragments inline with the clock */}
+                            {/* Leaf: show display fragments inline, or fall back to label if no fragments */}
                             {isLeaf && displayRows.length > 0 && (
                                 <div className="flex items-center flex-wrap gap-0.5 min-w-0">
                                     {renderFragmentSection(displayRows, 'display', false)}
                                 </div>
+                            )}
+                            {isLeaf && displayRows.length === 0 && block.label && (
+                                <span className="font-semibold tracking-tight text-muted-foreground">
+                                    {block.label}
+                                </span>
                             )}
                             {block.blockType && debug && (
                                 <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
