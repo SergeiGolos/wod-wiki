@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wod.Wiki TV</title>
+    <!-- Google Cast Application Framework — Receiver SDK -->
+    <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: white; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
@@ -20,7 +22,7 @@
             Ready to Start
         </div>
         <div id="sub-label" class="mt-8 text-2xl text-blue-500/60 font-medium tracking-wide">
-            Waiting for session...
+            Waiting for Cast session...
         </div>
     </div>
 
@@ -39,48 +41,124 @@
     </div>
 
     <script type="module">
-        import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
+        // ── Cast Receiver Context (CAF) ─────────────────────────────────
 
-        const params = new URLSearchParams(window.location.search);
-        const relay = params.get('relay');
-        const session = params.get('session');
-        const deviceId = 'tv-' + Math.random().toString(36).substr(2, 4);
+        const CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
+        const context = cast.framework.CastReceiverContext.getInstance();
 
-        const labelEl = document.getElementById('exercise-label');
+        // ── DOM refs ────────────────────────────────────────────────────
+
+        const labelEl  = document.getElementById('exercise-label');
         const subLabelEl = document.getElementById('sub-label');
-        const timerEl = document.getElementById('timer-display');
-        const ringEl = document.getElementById('progress-ring');
+        const timerEl  = document.getElementById('timer-display');
+        const ringEl   = document.getElementById('progress-ring');
+        const dotEl    = document.getElementById('connection-dot');
 
         let lastState = null;
+        let dcRef = null; // RTCDataChannel
 
-        const connect = () => {
-            const ws = new WebSocket(relay);
-            ws.onopen = () => {
-                wsRef = ws;
-                ws.send(JSON.stringify({
-                    type: 'register', messageId: uuidv4(), sessionId: session || undefined,
-                    timestamp: Date.now(), payload: { clientType: 'receiver', clientId: deviceId }
+        // ── WebRTC answerer ─────────────────────────────────────────────
+
+        const pc = new RTCPeerConnection({ iceServers: [] }); // LAN-only
+
+        // Forward ICE candidates back to sender via Cast namespace
+        let senderIdRef = null;
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate && senderIdRef) {
+                context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, JSON.stringify({
+                    type: 'webrtc-ice',
+                    candidate: event.candidate.toJSON(),
                 }));
-            };
+            }
+        };
 
-            ws.onmessage = (event) => {
+        pc.ondatachannel = (event) => {
+            console.log('[Receiver] DataChannel arrived');
+            dcRef = event.channel;
+            wireDataChannel(dcRef);
+        };
+
+        pc.onconnectionstatechange = () => {
+            const state = pc.connectionState;
+            console.log('[Receiver] PeerConnection state:', state);
+            dotEl.style.background = state === 'connected' ? '#10b981' : '#ef4444';
+        };
+
+        // ── Signaling via Cast custom namespace ─────────────────────────
+
+        context.addCustomMessageListener(CAST_NAMESPACE, (event) => {
+            senderIdRef = event.senderId;
+            let signal;
+            try {
+                signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            } catch (e) { return; }
+
+            handleSignal(signal);
+        });
+
+        async function handleSignal(signal) {
+            try {
+                if (signal.type === 'webrtc-offer') {
+                    await pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef, JSON.stringify({
+                        type: 'webrtc-answer',
+                        sdp: pc.localDescription.sdp,
+                    }));
+                } else if (signal.type === 'webrtc-answer') {
+                    await pc.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
+                } else if (signal.type === 'webrtc-ice') {
+                    await pc.addIceCandidate(signal.candidate);
+                }
+            } catch (err) {
+                console.error('[Receiver] Signal error', err);
+            }
+        }
+
+        // ── DataChannel handling ────────────────────────────────────────
+
+        function wireDataChannel(dc) {
+            dc.onopen = () => {
+                console.log('[Receiver] DataChannel open — ready');
+                subLabelEl.innerText = 'Connected';
+            };
+            dc.onclose = () => {
+                console.log('[Receiver] DataChannel closed');
+                subLabelEl.innerText = 'Disconnected';
+            };
+            dc.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'state-update') {
                     lastState = msg.payload.displayState;
-                    
+
                     // Instant update for static text
                     const primary = lastState.timerStack?.[0] || {};
                     labelEl.innerText = primary.label || 'Workout';
                     subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
                 }
             };
-            ws.onclose = () => {
-                wsRef = null;
-                setTimeout(connect, 3000);
-            };
-        };
+        }
 
-        // Compute elapsed from raw TimeSpan[] spans (mirrors src/lib/timeUtils.ts)
+        // ── Send event back to sender via DataChannel ───────────────────
+
+        let msgCounter = 0;
+
+        function sendReceiverEvent(eventName) {
+            if (!dcRef || dcRef.readyState !== 'open') return;
+            dcRef.send(JSON.stringify({
+                type: 'event-from-receiver',
+                messageId: 'evt-' + (++msgCounter),
+                timestamp: Date.now(),
+                payload: {
+                    event: { name: eventName, timestamp: Date.now() }
+                }
+            }));
+        }
+
+        // ── Timer interpolation (unchanged) ─────────────────────────────
+
         const calcElapsed = (spans, now) => {
             if (!spans || !spans.length) return 0;
             return spans.reduce((total, s) => total + Math.max(0, (s.ended ?? now) - s.started), 0);
@@ -91,8 +169,6 @@
                 const primary = lastState.timerStack?.[0] || {};
                 const isRunning = lastState.workoutState === 'running';
                 const now = Date.now();
-
-                // Compute elapsed directly from spans — no offset needed
                 const elapsed = calcElapsed(primary.spans, now);
 
                 let timeToShow = elapsed;
@@ -108,39 +184,21 @@
                 const mm = Math.floor(seconds / 60).toString().padStart(2, '0');
                 const ss = (seconds % 60).toString().padStart(2, '0');
                 timerEl.innerText = `${mm}:${ss}`;
-                
                 timerEl.style.opacity = isRunning ? "1" : "0.4";
             }
             requestAnimationFrame(tick);
         };
 
-        // ── Focus management for Chromecast D-Pad ──
+        // ── Focus management for Chromecast D-Pad ──────────────────────
+
         const appBody = document.getElementById('app-body');
         appBody.focus();
         appBody.addEventListener('blur', () => {
             setTimeout(() => appBody.focus(), 100);
         });
 
-        // ── D-Pad key handler ──
-        let wsRef = null;
+        // ── D-Pad key handler ───────────────────────────────────────────
 
-        const sendReceiverEvent = (eventName) => {
-            if (!wsRef || wsRef.readyState !== WebSocket.OPEN) return;
-            wsRef.send(JSON.stringify({
-                type: 'event-from-receiver',
-                messageId: uuidv4(),
-                sessionId: session || undefined,
-                timestamp: Date.now(),
-                payload: {
-                    event: {
-                        name: eventName,
-                        timestamp: Date.now()
-                    }
-                }
-            }));
-        };
-
-        // Visual feedback flash
         const flashOverlay = document.createElement('div');
         flashOverlay.id = 'dpad-flash';
         flashOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(59,130,246,0.08);pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999';
@@ -179,7 +237,10 @@
             }
         });
 
-        connect();
+        // ── Start Cast Receiver Context + timer loop ────────────────────
+
+        context.start();
+        console.log('[Receiver] CAF Receiver Context started');
         tick();
     </script>
 </body>

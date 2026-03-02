@@ -1,3 +1,9 @@
+/**
+ * @deprecated — The WebSocket relay has been replaced by peer-to-peer WebRTC.
+ * Use WebRTCTransport.ts + CastSignaling.ts instead.
+ * This file is kept for reference only and will be removed in a future cleanup.
+ */
+
 // src/services/cast/CastManager.ts
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -11,16 +17,16 @@ import {
     SessionConfig,
     TargetDiscoveredMessage
 } from '@/types/cast/messages';
-import {
-    MAX_RECONNECT_ATTEMPTS,
-    RECONNECT_BASE_DELAY_SECONDS,
-    MAX_RECONNECT_DELAY_SECONDS,
-    RECONNECT_JITTER_PERCENT,
-    WEB_DEVICE_ID_PREFIX,
-    DEVICE_ID_LENGTH,
-    CAST_PROTOCOL_VERSION,
-    DEFAULT_METRICS_SYNC_INTERVAL_MS
-} from './constants';
+
+// Inline the constants that were removed from constants.ts
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_BASE_DELAY_SECONDS = 1;
+const MAX_RECONNECT_DELAY_SECONDS = 30;
+const RECONNECT_JITTER_PERCENT = 0.3;
+const WEB_DEVICE_ID_PREFIX = 'web-';
+const DEVICE_ID_LENGTH = 8;
+const CAST_PROTOCOL_VERSION = '1.0.0';
+const DEFAULT_METRICS_SYNC_INTERVAL_MS = 5000;
 
 type Listener = (...args: unknown[]) => void;
 

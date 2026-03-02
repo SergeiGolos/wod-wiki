@@ -2,10 +2,32 @@ import React, { useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { TimerStackView } from '@/components/workout/TimerStackView';
 import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
-import { RELAY_URL } from '@/services/cast/config';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { Timer, CheckCircle2, ListTree } from 'lucide-react';
+
+/**
+ * @deprecated — TVPage was a WebSocket-relay receiver.  Use receiver.html or
+ * receiver-main.tsx (both now use WebRTC + Cast SDK) instead.
+ */
+
+/** Derive a WS relay URL from query params or hostname (legacy). */
+const getLegacyRelayUrl = () => {
+    const search = window.location.search || window.location.hash.split('?')[1] || '';
+    const params = new URLSearchParams(search);
+    let url = params.get('relay');
+    if (!url) {
+        let host = window.location.hostname;
+        if (host === '0.0.0.0' || host === '127.0.0.1' || host === 'localhost') {
+            host = 'pluto.forest-adhara.ts.net';
+        }
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        url = `${protocol}://${host}:8080/ws`;
+    }
+    return url;
+};
+
+const RELAY_URL = getLegacyRelayUrl();
 
 export const TVPage: React.FC = () => {
   const [remoteState, setRemoteState] = useState<any>(null);

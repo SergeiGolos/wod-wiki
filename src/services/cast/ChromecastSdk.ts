@@ -179,6 +179,15 @@ class ChromecastSdkClass {
     isSessionActive(): boolean {
         return this.state === 'session-active';
     }
+
+    /**
+     * Return the current Cast session, or null if none is active.
+     * Used by SenderCastSignaling to attach message listeners for WebRTC.
+     */
+    getSession(): any /* cast.framework.CastSession */ | null {
+        return window.cast?.framework?.CastContext.getInstance()
+            ?.getCurrentSession() ?? null;
+    }
 }
 
 export const ChromecastSdk = new ChromecastSdkClass();

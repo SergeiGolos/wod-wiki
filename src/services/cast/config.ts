@@ -1,34 +1,22 @@
 /**
  * Cast Configuration
+ *
+ * The relay server has been replaced by peer-to-peer WebRTC.  Signaling
+ * flows through the Google Cast SDK custom message namespace, and all
+ * workout data is exchanged directly over an RTCDataChannel.
+ *
+ * Set VITE_CAST_APP_ID in .env.local to the App ID of your registered
+ * Custom Receiver at https://cast.google.com/publish.
  */
 
-const getRelayUrl = () => {
-    const search = window.location.search || window.location.hash.split('?')[1] || '';
-    const params = new URLSearchParams(search);
-    let url = params.get('relay');
-
-    if (!url) {
-        // 1. Try to use the current hostname
-        let host = window.location.hostname;
-
-        // 2. CRITICAL: If hostname is 0.0.0.0, it won't work for Chromecast.
-        // We hardcode your Tailscale name here as the 'Preferred Host' for this environment.
-        if (host === '0.0.0.0' || host === '127.0.0.1' || host === 'localhost') {
-            host = 'pluto.forest-adhara.ts.net';
-        }
-        
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-        url = `${protocol}://${host}:8080/ws`;
-    }
-
-    // Security Force: If the page is HTTPS, the relay MUST be WSS
-    if (window.location.protocol === 'https:' && url.startsWith('ws:')) {
-        url = url.replace('ws:', 'wss:');
-    }
-
-    return url;
-};
-
-export const RELAY_URL = getRelayUrl();
+/**
+ * Cast Application ID.  Must be a Custom Receiver — the default Google
+ * media receiver ('CC1AD845') does NOT support custom message namespaces.
+ *
+ * Register your receiver URL (e.g.
+ *   https://pluto.forest-adhara.ts.net:6006/receiver.html
+ * ) at https://cast.google.com/publish and paste the generated App ID.
+ */
 export const CAST_APP_ID = import.meta.env.VITE_CAST_APP_ID || 'CC1AD845';
-console.log('[Config] Relay URL:', RELAY_URL);
+
+console.log('[Config] Cast App ID:', CAST_APP_ID);

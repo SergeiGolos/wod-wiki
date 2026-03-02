@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
-import { RELAY_URL } from '@/services/cast/config';
+import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
+import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
 import { TimerStackView } from '@/components/workout/TimerStackView';
 import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
 import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
@@ -220,11 +221,10 @@ const RemoteVisualStatePanel: React.FC<{
 
 const ReceiverApp = () => {
   const [remoteState, setRemoteState] = useState<RemoteState | null>(null);
-  const [wsStatus, setWsStatus] = useState('connecting');
+  const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
   const [now, setNow] = useState(Date.now());
   const [dpadFlash, setDpadFlash] = useState(false);
-  const wsRef = React.useRef<WebSocket | null>(null);
-  const sessionIdRef = React.useRef<string | null>(null);
+  const transportRef = React.useRef<WebRTCTransport | null>(null);
 
   // Local clock for smooth timer interpolation
   useEffect(() => {
@@ -237,42 +237,61 @@ const ReceiverApp = () => {
     return () => cancelAnimationFrame(frameId);
   }, []);
 
-  // WebSocket connection
+  // WebRTC connection via Cast Receiver SDK
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
-    const sessionId = params.get('session');
-    sessionIdRef.current = sessionId;
-    const deviceId = 'tv-' + uuidv4().substring(0, 4);
+    // The Cast Receiver SDK is loaded in the HTML shell via <script> tag.
+    // We access it from the global `cast` object.
+    const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
+    if (!castContext) {
+      console.error('[ReceiverApp] Cast Receiver SDK not loaded');
+      setConnectionStatus('error: no Cast SDK');
+      return;
+    }
 
-    const connect = () => {
-      const ws = new WebSocket(RELAY_URL);
-      ws.onopen = () => {
-        setWsStatus('connected');
-        wsRef.current = ws;
-        ws.send(JSON.stringify({
-          type: 'register', messageId: uuidv4(), sessionId: sessionId || undefined,
-          timestamp: Date.now(), payload: { clientType: 'receiver', clientId: deviceId }
-        }));
-      };
-      ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'state-update') {
-          setRemoteState(msg.payload.displayState);
-        }
-      };
-      ws.onclose = () => { wsRef.current = null; setWsStatus('connecting'); setTimeout(connect, 3000); };
+    const signaling = new ReceiverCastSignaling(castContext);
+    const transport = new WebRTCTransport('answerer', signaling);
+    transportRef.current = transport;
+
+    transport.on('message', (data: unknown) => {
+      const msg = data as { type: string; payload: any };
+      if (msg.type === 'state-update') {
+        setRemoteState(msg.payload.displayState);
+      }
+    });
+
+    transport.on('connected', () => {
+      console.log('[ReceiverApp] WebRTC DataChannel open');
+      setConnectionStatus('connected');
+    });
+
+    transport.on('disconnected', () => {
+      console.log('[ReceiverApp] WebRTC disconnected');
+      setConnectionStatus('disconnected');
+    });
+
+    // Start the CAF receiver context to accept incoming Cast sessions
+    castContext.start();
+    setConnectionStatus('cast-ready');
+
+    // connect() as answerer — waits for offer from sender
+    transport.connect().catch((err: unknown) => {
+      console.error('[ReceiverApp] WebRTC connect failed', err);
+      setConnectionStatus('error');
+    });
+
+    return () => {
+      transport.dispose();
+      transportRef.current = null;
     };
-    connect();
   }, []);
 
-  // ── Send event back to caster via relay ──
+  // ── Send event back to caster via WebRTC DataChannel ──
   const sendReceiverEvent = React.useCallback((eventName: string) => {
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({
+    const transport = transportRef.current;
+    if (!transport || !transport.isConnected) return;
+    transport.send({
       type: 'event-from-receiver',
-      messageId: uuidv4(),
-      sessionId: sessionIdRef.current || undefined,
+      messageId: 'evt-' + uuidv4().substring(0, 6),
       timestamp: Date.now(),
       payload: {
         event: {
@@ -280,7 +299,7 @@ const ReceiverApp = () => {
           timestamp: Date.now()
         }
       }
-    }));
+    });
   }, []);
 
   // ── D-Pad key handler + focus management for Chromecast remote ──
@@ -333,7 +352,7 @@ const ReceiverApp = () => {
   if (!remoteState) {
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/20 font-mono uppercase tracking-[0.5em]">
-        <div className="animate-pulse">Wod.Wiki // {wsStatus}</div>
+        <div className="animate-pulse">Wod.Wiki // {connectionStatus}</div>
       </div>
     );
   }
@@ -419,7 +438,7 @@ const ReceiverApp = () => {
           </div>
           
           <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
-            {wsStatus} // {remoteState.workoutState}
+            {connectionStatus} // {remoteState.workoutState}
           </div>
         </div>
       </div>

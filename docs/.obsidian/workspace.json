@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "labels-crosswalk.md",
+                "file": "receiver-vs-trackpanel.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "labels-crosswalk"
+              "title": "receiver-vs-trackpanel"
             }
           }
         ]
@@ -182,10 +182,10 @@
   },
   "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
+    "labels-crosswalk.md",
     "receiver-vs-trackpanel.md",
     "RUNTIME_INTEGRATION_TESTING.md",
     "BEHAVIORAL_ARCHITECTURE.md",
-    "labels-crosswalk.md",
     "tv/07-aws-production-deployment.md",
     "FRAGMENT_CROSSWALK.md",
     "Behavior Map.canvas",

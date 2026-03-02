@@ -349,3 +349,35 @@ export interface ReconnectMessage extends CastMessage {
     clientId: string;
   };
 }
+
+// ============================================================================
+// WebRTC Signaling Messages (exchanged via Cast SDK custom namespace)
+// ============================================================================
+
+/**
+ * Custom Cast namespace used for WebRTC signaling.
+ * All SDP offers, answers, and ICE candidates are exchanged through this
+ * namespace on the Cast message channel — no relay server needed.
+ */
+export const CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
+
+/** Discriminated union of all signaling messages */
+export type WebRTCSignalMessage =
+  | WebRTCOfferMessage
+  | WebRTCAnswerMessage
+  | WebRTCIceCandidateMessage;
+
+export interface WebRTCOfferMessage {
+  type: 'webrtc-offer';
+  sdp: string;
+}
+
+export interface WebRTCAnswerMessage {
+  type: 'webrtc-answer';
+  sdp: string;
+}
+
+export interface WebRTCIceCandidateMessage {
+  type: 'webrtc-ice';
+  candidate: RTCIceCandidateInit;
+}

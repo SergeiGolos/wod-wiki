@@ -1,3 +1,9 @@
+/**
+ * @deprecated — The WebSocket relay has been replaced by peer-to-peer WebRTC.
+ * CastButton.tsx now uses ChromecastSdk + WebRTCTransport directly.
+ * This hook is unused and will be removed in a future cleanup.
+ */
+
 // src/hooks/useCastManager.ts
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CastManager } from '@/services/cast/CastManager';

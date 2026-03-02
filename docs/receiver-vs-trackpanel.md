@@ -4,12 +4,12 @@
 
 Both screens display the same conceptual workout state — a **stack of active blocks** (left column) and a **big timer with controls** (right column). However, they obtain and bind that data through fundamentally different mechanisms.
 
-| Aspect | **Workbench TrackPanel** | **Receiver (Chromecast)** |
-|--------|--------------------------|---------------------------|
-| Runtime access | **Direct** — in-process `IScriptRuntime` | **None** — receives serialized JSON snapshots |
-| Data transport | React hooks + Zustand store | WebSocket (`state-update` messages via relay server) |
+| Aspect            | **Workbench TrackPanel**                             | **Receiver (Chromecast)**                                            |
+| ----------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Runtime access    | **Direct** — in-process `IScriptRuntime`             | **None** — receives serialized JSON snapshots                        |
+| Data transport    | React hooks + Zustand store                          | WebSocket (`state-update` messages via relay server)                 |
 | Timer computation | Block memory subscriptions + `requestAnimationFrame` | Local `requestAnimationFrame` over raw `TimeSpan[]` sent from bridge |
-| Reactivity model | Observable memory cells → hook re-renders | JSON snapshot diffing (fingerprint-gated) → `setState` |
+| Reactivity model  | Observable memory cells → hook re-renders            | JSON snapshot diffing (fingerprint-gated) → `setState`               |
 
 ---
 
