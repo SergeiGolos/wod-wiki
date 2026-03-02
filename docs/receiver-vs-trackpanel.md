@@ -348,3 +348,188 @@ This is a stripped-down fallback for environments where the React bundle cannot 
 | Big timer + ring | `<TimerStackView>` via `<TimerDisplay>` | `<TimerStackView>` directly | **Yes** — identical component |
 | Control actions | `useActiveControls()` + `runtime.handle()` | D-Pad keys → WebSocket → `CastButton` → store handlers | No — completely different path |
 | Sub-label | Derived in `StackIntegratedTimer` | Pre-serialized in `remoteState.subLabel` | N/A — string value, not a component |
+
+---
+
+## 9. Problem: Divergent Abstractions Block Component Reuse
+
+TrackPanel components expect **live runtime primitives** (`IRuntimeBlock`, memory subscriptions, in-process actions). The receiver gets **transport-friendly snapshots** and a different action path. This mismatch prevents us from rendering the exact same React tree in both places.
+
+- **State shape drift**: hooks expose rich objects; receiver consumes flattened `RemoteState`.
+- **Action path drift**: TrackPanel dispatches directly to `runtime.handle()`, receiver emits WebSocket events without dynamic buttons.
+- **Timer plumbing drift**: TrackPanel reads memory + `calculateDuration`; receiver re-derives elapsed with its own helper.
+- **Component duplication**: `StackBlockItem` vs `RemoteStackBlockItem`; hooks vs WebSocket listener.
+
+Goal: make the UI **location-agnostic** so the same React components (TrackPanel layout + controls) render on both the workbench and Chromecast.
+
+---
+
+## 10. Design Goals
+
+- **Single display contract**: One `DisplayState` and `DisplayAction` interface used everywhere.
+- **Pluggable transport**: Runtime in-process provider and Cast/WebRTC transport both satisfy the same controller contract.
+- **No feature loss**: Keep current TrackPanel behavior (fragment tiers, pinning, lookahead, controls).
+- **Zero UI duplication**: Reuse `VisualStatePanel`, `TimerStackView`, and the Track control buttons verbatim on receiver.
+- **Drift-proof timers**: One elapsed-time function shared by both surfaces.
+
+---
+
+## 11. Proposed Architecture (C4 Views)
+
+### 11a. Context (users + screens)
+
+```
+[Athlete] ─┬─ interacts with ─► [Workbench UI (browser)]
+          └─ views ───────────► [TV UI (Chromecast receiver)]
+
+[Coach] ───┬─ monitors ───────► [TV UI]
+          └─ edits ───────────► [Workbench UI]
+```
+
+### 11b. Container View (runtime, bridge, receiver)
+
+```
+┌───────────────────────────┐        Cast/WebRTC events        ┌───────────────────────────┐
+│ Workbench Browser         │  DisplayState ⇄ DisplayAction    │ Chromecast Receiver (TV)  │
+│                           │─────────────────────────────────►│                           │
+│  ScriptRuntime            │                                  │  ReceiverApp              │
+│   └─ RuntimeDisplayCtrl   │                                  │   └─ RemoteDisplayCtrl    │
+│      (projects runtime →  │◄─────────────────────────────────│      (subscribes to      │
+│       DisplayState)       │   fingerprints + reliability     │       transport)          │
+│                           │                                  │                           │
+│  DisplaySurface (UI)      │                                  │  DisplaySurface (same UI) │
+└───────────────────────────┘                                  └───────────────────────────┘
+```
+
+### 11c. Component / Sequence (unified flow)
+
+```
+Runtime → RuntimeDisplayController
+        → emits DisplayState (live objects)
+        → DisplaySurface renders (TrackPanel components)
+        → CastBridge serializes DisplayState
+        → Transport sends to receiver
+Receiver → RemoteDisplayController deserializes DisplayState
+        → DisplaySurface renders (same components)
+        → DisplaySurface dispatches DisplayAction
+        → RemoteDisplayController sends action event
+        → CastBridge routes to runtime.handle()
+```
+
+---
+
+## 12. Implementation Plan (Minimal, Safe, Reversible)
+
+1) **Define shared contracts**
+   - `DisplayState` (timers, stack rows, lookahead, controls, subLabel, workout status).
+   - `DisplayAction` (start, pause, stop, next, plus dynamic control buttons).
+   - `DisplayController` interface with `state$` (observable/subscribe) and `dispatch(action)`.
+
+2) **Create runtime-backed controller**
+   - Move existing bridge logic (`usePrimaryTimer`, `useStackTimers`, fragment subscriptions, label resolution) into `RuntimeDisplayController` that **emits DisplayState** without serialization.
+   - Expose `dispatch` that calls `runtime.handle(action)` and preserves dynamic controls.
+
+3) **Create transport-backed controller**
+   - `RemoteDisplayController` listens to Cast/WebRTC messages (`state-update`) and exposes the same `state$`.
+   - `dispatch` publishes `event-from-receiver` with the same `DisplayAction` payloads (not just d-pad).
+
+4) **Unify UI entry point**
+   - Introduce `DisplaySurface` (provider + hooks) that consumes any `DisplayController`.
+   - Render **TrackPanel** and **ReceiverApp** through `DisplaySurface`, passing different controllers:
+     - Workbench: `controller={new RuntimeDisplayController(runtime)}`
+     - Receiver: `controller={new RemoteDisplayController(transport)}`
+
+5) **Remove duplicated plumbing**
+   - Replace `RemoteStackBlockItem` with the actual `StackBlockItem`, supplying adapters to map `DisplayState` rows to the props it expects (fragments, timer state, depth, label).
+   - Replace receiver-specific elapsed calculation with the shared `calculateDuration`.
+
+6) **Transport details**
+   - Keep fingerprinting in the transport layer (CastButton / bridge) so UI remains pure.
+   - Use the same `DisplayState` serializer for Cast payloads; receiver simply hydrates.
+
+---
+
+## 13. Before / After Code Sketches
+
+### 13a. UI wiring (TrackPanel)
+```tsx
+// BEFORE (tight runtime coupling)
+const blocks = useSnapshotBlocks();
+const primary = usePrimaryTimer();
+return <TimerStackView primaryTimer={primary} blocks={blocks} />;
+```
+
+```tsx
+// AFTER (location-agnostic)
+const display = useDisplaySurface(); // from shared provider
+return (
+  <TrackLayout
+    stackRows={display.state.displayRows}
+    timers={display.state.timerStack}
+    controls={display.state.controls}
+    dispatch={display.dispatch}
+  />
+);
+```
+
+### 13b. UI wiring (Receiver)
+```tsx
+// BEFORE (WebSocket-driven state)
+const [remoteState, setRemoteState] = useState<RemoteState>();
+useEffect(() => ws.onmessage = msg => setRemoteState(JSON.parse(msg.data)), []);
+return <TimerStackView primaryTimer={derive(remoteState)} />;
+```
+
+```tsx
+// AFTER (same components, different controller)
+const controller = useMemo(() => new RemoteDisplayController(transport), [transport]);
+const display = useDisplaySurface(controller);
+return (
+  <TrackLayout
+    stackRows={display.state.displayRows}
+    timers={display.state.timerStack}
+    controls={display.state.controls}
+    dispatch={display.dispatch}
+  />
+);
+```
+
+### 13c. Controller contract
+```typescript
+export interface DisplayController {
+  subscribe(listener: (state: DisplayState) => void): () => void;
+  dispatch(action: DisplayAction): void;
+}
+
+class RuntimeDisplayController implements DisplayController {
+  constructor(private runtime: IScriptRuntime) {}
+  subscribe(fn) { /* hook aggregation using existing use* hooks */ }
+  dispatch(action) { this.runtime.handle(action); }
+}
+
+class RemoteDisplayController implements DisplayController {
+  constructor(private transport: CastTransport) {}
+  subscribe(fn) { return transport.onState(fn); }
+  dispatch(action) { transport.sendAction(action); }
+}
+```
+
+### 13d. Action symmetry (example)
+```typescript
+// BEFORE: receiver hardcodes
+sendReceiverEvent('next');
+
+// AFTER: shared action payload
+dispatch({ type: 'controls/trigger', id: 'next' });
+```
+
+---
+
+## 14. Migration Steps (Keeps Current Behavior Intact)
+
+- **Phase 1**: Extract `calculateDuration` into a shared module used by receiver; wrap existing Remote components with the new provider (no UI change).
+- **Phase 2**: Swap ReceiverApp to render the **real TrackPanel components** via `DisplaySurface` adapters while keeping legacy `RemoteStackBlockItem` behind a feature flag for rollback.
+- **Phase 3**: Move Cast serialization to use `DisplayState` contract; delete bespoke `RemoteDisplayRow` types.
+- **Phase 4**: Enable dynamic controls over transport (`DisplayAction`), preserving current d-pad mappings as defaults.
+
+Each phase is shippable and reversible; TrackPanel remains unchanged while Receiver progressively adopts the shared components.
