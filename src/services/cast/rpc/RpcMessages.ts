@@ -23,6 +23,8 @@ export interface SerializedTimer {
     direction: 'up' | 'down';
     spans: SerializedTimeSpan[];
     isRunning: boolean;
+    /** Timer role — 'primary' marks a pinned timer (drives usePrimaryTimer on the receiver). */
+    role?: 'primary' | 'secondary' | 'auto';
 }
 
 /**
@@ -46,6 +48,14 @@ export interface SerializedBlock {
 
     /** Timer state (if the block has a timer memory location) */
     timer: SerializedTimer | null;
+
+    /**
+     * "Up Next" preview fragments from the block's fragment:next memory.
+     * Used by useNextPreview() on the receiver to render the Up Next panel.
+     * Empty array when no next-preview is available.
+     * Optional for backwards compatibility with test fixtures created before this field.
+     */
+    nextFragments?: ICodeFragment[];
 }
 
 // ============================================================================

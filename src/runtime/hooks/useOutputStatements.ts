@@ -44,31 +44,32 @@ export interface OutputStatementsData {
  * const data = useOutputStatements(myRuntime);
  * ```
  */
-export function useOutputStatements(runtime?: IScriptRuntime | null): OutputStatementsData;
-export function useOutputStatements(runtime: IScriptRuntime | null = null): OutputStatementsData {
-  // Use context if runtime not provided
-  const contextRuntime = runtime === undefined ? useScriptRuntime() : runtime;
-  
+export function useOutputStatements(runtime?: IScriptRuntime | null): OutputStatementsData {
+  // Always call useScriptRuntime (satisfies Rules of Hooks — no conditional calls).
+  // Use the explicit runtime if provided, otherwise fall back to context.
+  const contextRuntime = useScriptRuntime();
+  const resolvedRuntime = (runtime !== undefined) ? runtime : contextRuntime;
+
   const [outputs, setOutputs] = useState<IOutputStatement[]>(() => {
-    return contextRuntime?.getOutputStatements?.() ?? [];
+    return resolvedRuntime?.getOutputStatements?.() ?? [];
   });
 
   useEffect(() => {
-    if (!contextRuntime) {
+    if (!resolvedRuntime) {
       setOutputs([]);
       return;
     }
 
     // Initial load
-    setOutputs(contextRuntime.getOutputStatements());
+    setOutputs(resolvedRuntime.getOutputStatements());
 
     // Subscribe to new output statements
-    const unsubscribe = contextRuntime.subscribeToOutput?.(() => {
-      setOutputs(contextRuntime.getOutputStatements());
+    const unsubscribe = resolvedRuntime.subscribeToOutput?.(() => {
+      setOutputs(resolvedRuntime.getOutputStatements());
     });
 
     return unsubscribe;
-  }, [contextRuntime]);
+  }, [resolvedRuntime]);
 
   // Compute derived data (memoized for performance)
   const data = useMemo<OutputStatementsData>(() => {

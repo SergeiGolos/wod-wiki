@@ -1,17 +1,32 @@
+import React from 'react';
 import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
+import { AISkillPage } from './AI-SkillPage';
 import type { Meta, StoryObj } from '@storybook/react';
 
-const meta: Meta<typeof Workbench> = {
-  title: 'Syntax/Reference Guide',
-  component: Workbench,
+const meta: Meta = {
+  title: 'Syntax',
   parameters: {
     layout: 'fullscreen',
+  }
+};
+
+export default meta;
+
+// 1. AI Skill Story (using the specialized AISkillPage)
+export const AISkill: StoryObj = {
+  render: () => <AISkillPage />,
+  parameters: {
     docs: {
       description: {
-        component: 'Comprehensive guide to WOD Wiki syntax.'
+        story: 'Detailed documentation for the WOD Extraction skill used by LLMs to convert natural language workouts to WOD Wiki syntax.'
       }
     }
-  },
+  }
+};
+
+// 2. Syntax Reference Stories (using the StorybookWorkbench)
+const WorkbenchTemplate: StoryObj<typeof Workbench> = {
+  render: (args) => <Workbench {...args} />,
   args: {
     showToolbar: true,
     readonly: true,
@@ -26,18 +41,16 @@ const meta: Meta<typeof Workbench> = {
       control: 'select',
       options: ['wod-light', 'wod-dark'],
       description: 'Editor theme',
-      table: { defaultValue: { summary: 'wod-light' } }
     },
     showToolbar: { control: 'boolean' },
     readonly: { control: 'boolean' }
   }
 };
 
-export default meta;
-type Story = StoryObj<typeof meta>;
-
-export const BasicStructure: Story = {
+export const BasicStructure: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Basic Structure
 
 A WOD block is defined by \`\`\`wod ... \`\`\`.
@@ -52,8 +65,10 @@ Squats
   }
 };
 
-export const RoundsAndGrouping: Story = {
+export const RoundsAndGrouping: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Rounds and Grouping
 
 Use parentheses \`()\` to group exercises into rounds.
@@ -88,8 +103,10 @@ You can name your groups for clarity.
   }
 };
 
-export const TimersAndIntervals: Story = {
+export const TimersAndIntervals: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Timers and Intervals
 
 Time components are crucial for workouts.
@@ -129,8 +146,10 @@ Combine rounds with work/rest timers.
   }
 };
 
-export const WeightsAndResistance: Story = {
+export const WeightsAndResistance: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Weights and Resistance
 
 Specify weights using \`lb\`, \`kg\`, or \`bw\` (bodyweight).
@@ -152,8 +171,10 @@ Bench Press @75%
   }
 };
 
-export const DistanceAndCardio: Story = {
+export const DistanceAndCardio: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Distance and Cardio
 
 Supported units: \`m\`, \`km\`, \`ft\`, \`miles\`.
@@ -169,8 +190,10 @@ Swim 500m
   }
 };
 
-export const EffortAndTrend: Story = {
+export const EffortAndTrend: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Effort and Trends
 
 ## Trends
@@ -189,8 +212,10 @@ Row 500m @ Max Effort
   }
 };
 
-export const ActionsAndRest: Story = {
+export const ActionsAndRest: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
   args: {
+    ...WorkbenchTemplate.args,
     initialContent: `# Actions and Rest
 
 Special actions are enclosed in brackets \`[]\`.

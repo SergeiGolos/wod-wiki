@@ -69,6 +69,8 @@ export class ProxyBlock implements IRuntimeBlock {
     private timerLocation: StaticMemoryLocation | null;
     /** TimerState built from the serialized timer — drives useStackTimers() */
     private timerState: TimerState | undefined;
+    /** 'Up Next' preview fragments from fragment:next memory — drives useNextPreview() */
+    private nextLocation: StaticMemoryLocation | null;
 
     constructor(serialized: SerializedBlock) {
         this.key = new BlockKey(serialized.key);
@@ -87,13 +89,15 @@ export class ProxyBlock implements IRuntimeBlock {
         if (serialized.timer) {
             const spans = serialized.timer.spans.map(s => new TimeSpan(s.started, s.ended));
 
-            // Build the TimerState that useStackTimers / usePrimaryTimer expect
+            // Build the TimerState that useStackTimers / usePrimaryTimer expect.
+            // Preserve the role from the browser so usePrimaryTimer() can correctly
+            // identify pinned (parent) timers vs. leaf/auto timers.
             this.timerState = {
                 spans,
                 direction: serialized.timer.direction,
                 durationMs: serialized.timer.durationMs,
                 label: serialized.timer.label ?? '',
-                role: undefined,
+                role: serialized.timer.role,
             };
 
             // Store as a single fragment with .value = TimerState under 'time' tag
@@ -112,6 +116,14 @@ export class ProxyBlock implements IRuntimeBlock {
             this.timerState = undefined;
             this.timerLocation = null;
         }
+
+        // Hydrate fragment:next preview (for useNextPreview / Up Next panel).
+        const nextFrags = serialized.nextFragments ?? [];
+        if (nextFrags.length > 0) {
+            this.nextLocation = new StaticMemoryLocation('fragment:next', nextFrags);
+        } else {
+            this.nextLocation = null;
+        }
     }
 
     // ── Memory API ──────────────────────────────────────────────────────────
@@ -124,12 +136,14 @@ export class ProxyBlock implements IRuntimeBlock {
     getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
         if (tag === 'fragment:display') return this.displayLocations;
         if (tag === 'time' && this.timerLocation) return [this.timerLocation];
+        if (tag === 'fragment:next' && this.nextLocation) return [this.nextLocation];
         return [];
     }
 
     getAllMemory(): IMemoryLocation[] {
         const all: IMemoryLocation[] = [...this.displayLocations];
         if (this.timerLocation) all.push(this.timerLocation);
+        if (this.nextLocation) all.push(this.nextLocation);
         return all;
     }
 

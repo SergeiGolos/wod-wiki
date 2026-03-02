@@ -68,6 +68,7 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
             isComplete: boolean;
             timer: { isRunning: boolean; spans: Array<{ started: number }>; durationMs?: number } | null;
             displayFragments: unknown[][];
+            nextFragments?: unknown[];
         }>;
         depth: number;
     }): string {
@@ -87,6 +88,11 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
             }
             // Include fragment structure but not fragment values that change on tick
             parts.push(`frags:${block.displayFragments.length}`);
+            // Include next-preview fragment content so Up Next changes trigger a re-send
+            const nextSig = block.nextFragments
+                ?.map((f: any) => `${f.fragmentType ?? f.type ?? ''}:${f.image ?? f.value ?? ''}`)
+                .join(',') ?? '';
+            parts.push(`next:${nextSig}`);
         }
 
         return parts.join('|');

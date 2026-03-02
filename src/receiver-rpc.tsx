@@ -27,11 +27,12 @@ import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeCon
 import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import { usePrimaryTimer, useSecondaryTimers, useStackTimers } from '@/runtime/hooks/useStackDisplay';
 import { useNextPreview } from '@/runtime/hooks/useNextPreview';
+import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
 import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { calculateDuration } from '@/lib/timeUtils';
-import { Timer, CheckCircle2, Dumbbell, BarChart3, Play } from 'lucide-react';
+import { Timer, CheckCircle2, Dumbbell, BarChart3, Play, Clock } from 'lucide-react';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import '@/index.css';
@@ -44,6 +45,7 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
     const blocks = useSnapshotBlocks();
     const nextPreview = useNextPreview();
     const allTimers = useStackTimers();
+    const { outputs } = useOutputStatements();
 
     // Build timer lookup
     const blockTimerMap = new Map<string, {
@@ -65,9 +67,41 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
     // Root→leaf order (stack is leaf→root)
     const orderedBlocks = [...blocks].reverse();
 
+    // Helper: render interleaved completion summary for a given stack level.
+    // Mirrors the browser's RuntimeStackView.renderHistorySummary() logic.
+    const renderCompletionSummary = (childLevel: number) => {
+        const levelOutputs = outputs.filter(
+            o => o.stackLevel === childLevel && (o.outputType as string) === 'completion',
+        );
+        if (levelOutputs.length === 0) return null;
+
+        const totalDuration = levelOutputs.reduce(
+            (acc, curr) => acc + (curr.elapsed ?? curr.timeSpan.duration ?? 0), 0,
+        );
+        const formatDur = (ms: number) => {
+            const s = Math.floor(ms / 1000);
+            const m = Math.floor(s / 60);
+            return `${m}:${String(s % 60).padStart(2, '0')}`;
+        };
+
+        return (
+            <div className="flex items-center gap-3 text-xs text-muted-foreground py-2 pl-4 border-l-2 border-muted ml-3 my-1 bg-muted/5 rounded-r-md">
+                <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span className="font-medium">{levelOutputs.length} Completed</span>
+                </div>
+                <div className="w-px h-3 bg-border/50" />
+                <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span className="font-mono">{formatDur(totalDuration)}</span>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="h-full flex flex-col gap-4 p-4 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
-            {/* Stack blocks */}
+            {/* Stack blocks with interleaved completion history */}
             <div className="shrink-0">
                 {orderedBlocks.length > 0 ? (
                     <div className="flex flex-col gap-1 relative">
@@ -77,53 +111,59 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                             const isLeaf = index === orderedBlocks.length - 1;
                             const displayLocs = block.getFragmentMemoryByVisibility('display');
                             const rows = displayLocs.map(loc => loc.fragments);
+                            // Show completed children immediately after the parent block
+                            const childLevel = index + 1;
 
                             return (
-                                <div key={blockKey} className={cn(
-                                    "relative w-full",
-                                    isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
-                                )}>
+                                <React.Fragment key={blockKey}>
                                     <div className={cn(
-                                        "rounded-md border text-sm transition-all",
-                                        isLeaf
-                                            ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
-                                            : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
+                                        "relative w-full",
+                                        isLeaf ? "animate-in fade-in slide-in-from-left-1 duration-300" : ""
                                     )}>
-                                        <div className="flex items-center justify-between gap-3 p-3">
-                                            <div className="flex flex-col min-w-0">
-                                                <span className={cn(
-                                                    "tracking-tight",
-                                                    isLeaf ? "text-base font-bold text-foreground" : "text-xs font-medium text-muted-foreground/70"
-                                                )}>
-                                                    {block.label}
-                                                </span>
+                                        <div className={cn(
+                                            "rounded-md border text-sm transition-all",
+                                            isLeaf
+                                                ? "bg-card shadow-sm border-primary/40 ring-1 ring-primary/10"
+                                                : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
+                                        )}>
+                                            <div className="flex items-center justify-between gap-3 p-3">
+                                                <div className="flex flex-col min-w-0">
+                                                    <span className={cn(
+                                                        "tracking-tight",
+                                                        isLeaf ? "text-base font-bold text-foreground" : "text-xs font-medium text-muted-foreground/70"
+                                                    )}>
+                                                        {block.label}
+                                                    </span>
+                                                </div>
+                                                {timer && (
+                                                    <div className={cn(
+                                                        "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
+                                                        timer.isRunning
+                                                            ? "bg-primary/10 text-primary animate-pulse"
+                                                            : "bg-muted text-muted-foreground"
+                                                    )}>
+                                                        <Timer className="h-3 w-3" />
+                                                        {formatTimeMMSS(timer.elapsed)}
+                                                    </div>
+                                                )}
                                             </div>
-                                            {timer && (
-                                                <div className={cn(
-                                                    "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
-                                                    timer.isRunning
-                                                        ? "bg-primary/10 text-primary animate-pulse"
-                                                        : "bg-muted text-muted-foreground"
-                                                )}>
-                                                    <Timer className="h-3 w-3" />
-                                                    {formatTimeMMSS(timer.elapsed)}
+                                            {rows.length > 0 && (
+                                                <div className="flex flex-col gap-0.5 px-3 pb-2">
+                                                    {rows.map((row, rowIdx) => (
+                                                        <FragmentSourceRow
+                                                            key={rowIdx}
+                                                            fragments={row}
+                                                            size={isLeaf ? "normal" : "compact"}
+                                                            isLeaf={isLeaf}
+                                                        />
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
-                                        {rows.length > 0 && (
-                                            <div className="flex flex-col gap-0.5 px-3 pb-2">
-                                                {rows.map((row, rowIdx) => (
-                                                    <FragmentSourceRow
-                                                        key={rowIdx}
-                                                        fragments={row}
-                                                        size={isLeaf ? "normal" : "compact"}
-                                                        isLeaf={isLeaf}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
-                                </div>
+                                    {/* Interleaved completion history for children of this block */}
+                                    {renderCompletionSummary(childLevel)}
+                                </React.Fragment>
                             );
                         })}
                     </div>

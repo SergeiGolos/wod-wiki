@@ -44,6 +44,13 @@ function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
 
     const direction: 'up' | 'down' = state.direction ?? 'up';
 
+    const rawRole = state.role;
+    // 'hidden' is used by SpanTrackingBehavior but is not a valid TimerState role;
+    // treat it as 'auto' (not pinned, not secondary).
+    const role: SerializedTimer['role'] = rawRole === 'hidden'
+        ? 'auto'
+        : (rawRole as SerializedTimer['role']);
+
     return {
         label: state.label,
         format: direction,
@@ -51,6 +58,7 @@ function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
         direction,
         spans,
         isRunning: spans.some(s => s.ended === undefined),
+        role,
     };
 }
 
@@ -67,6 +75,11 @@ export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
     const displayLocs = block.getFragmentMemoryByVisibility('display');
     const displayFragments = displayLocs.map(loc => loc.fragments);
 
+    // Extract 'Up Next' preview fragments from fragment:next memory.
+    // Walk all fragment:next locations and collect all fragments.
+    const nextLocs = block.getMemoryByTag('fragment:next');
+    const nextFragments = nextLocs.flatMap(loc => loc.fragments);
+
     return {
         key: block.key.toString(),
         blockType: block.blockType ?? 'Block',
@@ -76,6 +89,7 @@ export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
         completionReason: block.completionReason,
         displayFragments,
         timer: extractTimer(block),
+        nextFragments,
     };
 }
 
