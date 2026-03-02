@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { TvMinimal, Loader2, Cast } from 'lucide-react';
+import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { ChromecastSdk, type CastSdkState } from '@/services/cast/ChromecastSdk';
@@ -176,6 +176,18 @@ export const CastButton: React.FC = () => {
             const session = ChromecastSdk.getSession();
             if (!session) throw new Error('No Cast session after requestSession()');
             console.log(`[CastButton] Step 3: Session obtained — id=${session.getSessionId?.()} state=${session.getSessionState?.()} [${elapsed()}]`);
+
+            const appMetadata = session.getApplicationMetadata?.();
+            const advertisedNamespaces = ((appMetadata?.namespaces || []) as Array<{ name?: string }>)
+                .map((ns) => ns?.name)
+                .filter((name): name is string => Boolean(name));
+            console.log('[CastButton] Receiver app metadata namespaces:', advertisedNamespaces);
+            if (!advertisedNamespaces.includes(CAST_NAMESPACE_STR)) {
+                console.warn(
+                    `[CastButton] WARNING: Receiver does not advertise expected namespace ${CAST_NAMESPACE_STR}. ` +
+                    'This usually means wrong App ID, stale receiver registration, or receiver URL mismatch in Cast Developer Console.'
+                );
+            }
 
             // 4. Wait for receiver to boot.  The receiver calls context.start()
             //    as the first <script> in <body> now, so 3s should be plenty.

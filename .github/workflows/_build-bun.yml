@@ -60,6 +60,14 @@ jobs:
           sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' index.html
           sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' .storybook/preview-head.html
 
+      - name: Replace Chromecast App ID
+        if: ${{ vars.VITE_CAST_APP_ID != '' || secrets.VITE_CAST_APP_ID != '' }}
+        run: |
+          APP_ID="${{ vars.VITE_CAST_APP_ID || secrets.VITE_CAST_APP_ID }}"
+          echo "Injecting Custom Cast App ID..."
+          sed -i "s/CC1AD845/$APP_ID/g" src/services/cast/config.ts
+          sed -i "s/CC1AD845/$APP_ID/g" src/components/cast/CastButton.tsx
+
       - name: Build Storybook
         run: bun run build-storybook
         env:
