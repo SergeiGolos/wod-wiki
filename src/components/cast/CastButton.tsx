@@ -193,9 +193,9 @@ export const CastButton: React.FC = () => {
                 .filter((name): name is string => Boolean(name));
             console.log('[CastButton] Receiver app metadata namespaces:', advertisedNamespaces);
             if (!advertisedNamespaces.includes(CAST_NAMESPACE_STR)) {
-                throw new Error(
-                    `Receiver app does not advertise expected namespace ${CAST_NAMESPACE_STR}. ` +
-                    'Check App ID, receiver URL, and namespace registration in Cast Developer Console.'
+                console.warn(
+                    `[CastButton] Receiver metadata does not list namespace ${CAST_NAMESPACE_STR}. ` +
+                    'Continuing with ping probe because metadata can be incomplete on some Cast runtimes.'
                 );
             }
 
@@ -218,7 +218,16 @@ export const CastButton: React.FC = () => {
                 await sessionAfterWait.sendMessage(CAST_NAMESPACE_STR, { type: 'ping', timestamp: Date.now() });
                 console.log(`[CastButton] Step 4c: Ping sent to receiver [${elapsed()}]`);
             } catch (pingErr) {
-                console.warn(`[CastButton] Step 4c: Ping failed (receiver may not be ready):`, pingErr);
+                const reason = typeof pingErr === 'string'
+                    ? pingErr
+                    : ((pingErr as { code?: string; message?: string } | null)?.code
+                        || (pingErr as { message?: string } | null)?.message
+                        || String(pingErr));
+
+                throw new Error(
+                    `Cast namespace ping failed (${reason}). ` +
+                    `Receiver is not accepting ${CAST_NAMESPACE_STR}; verify App ID points to the published custom receiver and namespace registration.`
+                );
             }
 
             // 5. Set up WebRTC: Cast namespace → signaling → DataChannel
