@@ -150,8 +150,10 @@ export const CastButton: React.FC = () => {
                     cardStack: [],
                     displayRows: display.displayRows || [],
                     lookahead: display.lookahead || null,
-                    subLabel: display.subLabel,
-                    workoutState: display.isRunning ? 'running' : 'paused',
+                    subLabel: display.subLabel || '',
+                    // Use the actual workoutState value — not a boolean conversion —
+                    // so the receiver can distinguish idle / running / paused / complete.
+                    workoutState: display.workoutState || (display.isRunning ? 'running' : 'paused'),
                 },
                 sequenceNumber: sequenceRef.current,
             },

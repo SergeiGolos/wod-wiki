@@ -227,9 +227,25 @@
                             var msg = JSON.parse(e.data);
                             if (msg.type === 'state-update') {
                                 lastState = msg.payload.displayState;
-                                var primary = lastState.timerStack && lastState.timerStack[0] || {};
-                                labelEl.innerText = primary.label || 'Workout';
-                                subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
+                                var seq = msg.payload.sequenceNumber || '?';
+                                dbg('state-update #' + seq + ' workoutState=' + lastState.workoutState);
+
+                                // Exercise label: prefer displayRows, fall back to timerStack owner
+                                var rows = lastState.displayRows || [];
+                                var primaryRow = rows[0] || {};
+                                var exerciseLabel = primaryRow.label || (lastState.timerStack && lastState.timerStack[0] && lastState.timerStack[0].label) || 'Workout';
+                                labelEl.innerText = exerciseLabel;
+
+                                // Sub-label: use explicit subLabel if provided, otherwise derive from workoutState
+                                if (lastState.subLabel) {
+                                    subLabelEl.innerText = lastState.subLabel;
+                                } else {
+                                    var ws = lastState.workoutState || '';
+                                    if (ws === 'running') subLabelEl.innerText = 'Active Effort';
+                                    else if (ws === 'complete') subLabelEl.innerText = 'Complete';
+                                    else if (ws === 'idle') subLabelEl.innerText = 'Ready';
+                                    else subLabelEl.innerText = 'Paused';
+                                }
                             }
                         } catch (err) {
                             dbg('parse error: ' + err.message);
