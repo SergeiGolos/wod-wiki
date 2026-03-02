@@ -193,13 +193,19 @@ const StackBlockItem: React.FC<{
             )}>
                 {/* Block header row */}
                 <div className="flex items-center justify-between gap-3 p-3">
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                            {/* Leaf label is shown above the clock, not in the session card */}
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                            {/* Non-leaf: show label (Session root always shows block.label, not round display) */}
                             {!isLeaf && (
                                 <span className="font-semibold tracking-tight text-muted-foreground">
-                                    {roundDisplay ? roundDisplay.label : block.label}
+                                    {(block.blockType !== 'SessionRoot' && roundDisplay) ? roundDisplay.label : block.label}
                                 </span>
+                            )}
+                            {/* Leaf: show display fragments inline with the clock */}
+                            {isLeaf && displayRows.length > 0 && (
+                                <div className="flex items-center flex-wrap gap-0.5 min-w-0">
+                                    {renderFragmentSection(displayRows, 'display', false)}
+                                </div>
                             )}
                             {block.blockType && debug && (
                                 <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
@@ -240,15 +246,18 @@ const StackBlockItem: React.FC<{
                     )}
                 </div>
 
-                {/* Fragment rows — inside the card */}
-                {hasFragments && (
+                {/* Fragment rows — non-leaf blocks only (leaf fragments are inline in the header) */}
+                {!isLeaf && displayRows.length > 0 && (
                     <div className="flex flex-col gap-1 px-3 pb-2">
-                        {/* Display tier — always shown */}
                         {renderFragmentSection(displayRows, 'display', debug)}
+                    </div>
+                )}
 
-                        {/* Promote & private — debug mode only */}
-                        {debug && renderFragmentSection(promoteRows, 'promote', true)}
-                        {debug && renderFragmentSection(privateRows, 'private', true)}
+                {/* Debug tiers — promote & private (always below header) */}
+                {debug && (promoteRows.length > 0 || privateRows.length > 0) && (
+                    <div className="flex flex-col gap-1 px-3 pb-2">
+                        {renderFragmentSection(promoteRows, 'promote', true)}
+                        {renderFragmentSection(privateRows, 'private', true)}
                     </div>
                 )}
             </div>

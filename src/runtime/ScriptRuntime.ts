@@ -177,6 +177,19 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public subscribeToOutput(listener: OutputListener): Unsubscribe {
         this._outputListeners.add(listener);
+
+        // Immediate notification of current state, deferred to next tick to avoid React render warnings
+        const currentOutputs = [...this._outputStatements];
+        if (currentOutputs.length > 0) {
+            setTimeout(() => {
+                if (this._outputListeners.has(listener)) {
+                    for (const output of currentOutputs) {
+                        listener(output);
+                    }
+                }
+            }, 0);
+        }
+
         return () => {
             this._outputListeners.delete(listener);
         };
@@ -215,13 +228,19 @@ export class ScriptRuntime implements IScriptRuntime {
     public subscribeToStack(observer: StackObserver): Unsubscribe {
         this._stackObservers.add(observer);
 
-        // Immediate notification of current state
-        observer({
+        // Immediate notification of current state, deferred to next tick to avoid React render warnings
+        const initialSnapshot: StackSnapshot = {
             type: 'initial',
             blocks: this.stack.blocks,
             depth: this.stack.count,
             clockTime: this.clock.now,
-        });
+        };
+
+        setTimeout(() => {
+            if (this._stackObservers.has(observer)) {
+                observer(initialSnapshot);
+            }
+        }, 0);
 
         return () => {
             this._stackObservers.delete(observer);

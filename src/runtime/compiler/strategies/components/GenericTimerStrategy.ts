@@ -142,5 +142,5 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 // Keep the logic-heavy fragment distribution local to the strategy
 function distribute(fragments: any[], type: string): any[][] {
     const distributor = new PassthroughFragmentDistributor();
-    return [distributor.distribute(fragments, type)];
+    return distributor.distribute(fragments, type);
 }

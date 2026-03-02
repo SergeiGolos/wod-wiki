@@ -160,35 +160,45 @@ export class RuntimeBlock implements IRuntimeBlock {
         if (locations.length === 0) return undefined;
 
         const loc = locations[0];
+
+        // Helper to extract the value from fragments based on the memory type
+        const extractValue = (fragments: readonly ICodeFragment[]): MemoryValueOf<T> | undefined => {
+            if (fragments.length === 0) return undefined as unknown as MemoryValueOf<T>;
+
+            // For 'fragment' type, return { groups: [...all fragment:display groups] }
+            if (type === 'fragment') {
+                return { groups: fragments } as unknown as MemoryValueOf<T>;
+            }
+
+            // For 'fragment:display', return the location itself (it may implement IFragmentSource)
+            if (type === 'fragment:display') {
+                return loc as unknown as MemoryValueOf<T>;
+            }
+
+            // For typed memory (timer, round, display, controls, completion),
+            // the value is stored in the first fragment's .value field.
+            // Special case: 'round' memory uses CurrentRoundFragment which
+            // stores .current and .total as direct fields (value is just the
+            // current round number). Synthesize RoundState for backward compat.
+            if (type === 'round') {
+                const frag = fragments[0] as unknown as { current?: number; total?: number; value?: any };
+                if (frag?.current !== undefined) {
+                    return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
+                }
+                return frag?.value as MemoryValueOf<T>;
+            }
+
+            return fragments[0]?.value as MemoryValueOf<T>;
+        };
+
         return {
             get value(): MemoryValueOf<T> {
-                if (loc.fragments.length === 0) return undefined as unknown as MemoryValueOf<T>;
-                // For 'fragment' type, return { groups: [...all fragment:display groups] }
-                if (type === 'fragment') {
-                    return { groups: loc.fragments } as unknown as MemoryValueOf<T>;
-                }
-                // For 'fragment:display', return the location itself (it may implement IFragmentSource)
-                if (type === 'fragment:display') {
-                    return loc as unknown as MemoryValueOf<T>;
-                }
-                // For typed memory (timer, round, display, controls, completion),
-                // the value is stored in the first fragment's .value field.
-                // Special case: 'round' memory uses CurrentRoundFragment which
-                // stores .current and .total as direct fields (value is just the
-                // current round number). Synthesize RoundState for backward compat.
-                if (type === 'round') {
-                    const frag = loc.fragments[0] as unknown as { current?: number; total?: number };
-                    if (frag?.current !== undefined) {
-                        return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
-                    }
-                    return undefined as unknown as MemoryValueOf<T>;
-                }
-                return loc.fragments[0]?.value as MemoryValueOf<T>;
+                return extractValue(loc.fragments) as MemoryValueOf<T>;
             },
             subscribe(listener: (nv: MemoryValueOf<T> | undefined, ov: MemoryValueOf<T> | undefined) => void): () => void {
                 return loc.subscribe((newFrags, oldFrags) => {
-                    const newVal = newFrags.length > 0 ? newFrags[0]?.value as MemoryValueOf<T> : undefined;
-                    const oldVal = oldFrags.length > 0 ? oldFrags[0]?.value as MemoryValueOf<T> : undefined;
+                    const newVal = extractValue(newFrags);
+                    const oldVal = extractValue(oldFrags);
                     listener(newVal, oldVal);
                 });
             }
