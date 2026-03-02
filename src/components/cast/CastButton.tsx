@@ -5,7 +5,7 @@ import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { ChromecastSdk, type CastSdkState } from '@/services/cast/ChromecastSdk';
 import { SenderCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
-import { CAST_APP_ID } from '@/services/cast/config';
+import { CAST_APP_ID, DEFAULT_MEDIA_RECEIVER_APP_ID, hasCustomCastAppId } from '@/services/cast/config';
 import { v4 as uuidv4 } from 'uuid';
 import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';
 import type { EventName, CastMessage } from '@/types/cast/messages';
@@ -21,6 +21,14 @@ export const CastButton: React.FC = () => {
 
     // Initialize SDK on mount and listen for state changes
     useEffect(() => {
+        if (!hasCustomCastAppId) {
+            console.error(
+                `[CastButton] Cast disabled: VITE_CAST_APP_ID is not configured with a Custom Receiver ID. ` +
+                `Current value: ${CAST_APP_ID || '(empty)'} (default media receiver: ${DEFAULT_MEDIA_RECEIVER_APP_ID}).`
+            );
+            return;
+        }
+
         // Load the SDK early to check availability
         ChromecastSdk.load(CAST_APP_ID).catch(() => {
             // Error is handled by state-changed listener below
@@ -157,8 +165,10 @@ export const CastButton: React.FC = () => {
         const elapsed = () => `${Date.now() - t0}ms`;
         try {
             // 0. Validate App ID
-            if (!CAST_APP_ID || CAST_APP_ID === 'CC1AD845') {
-                console.warn('[CastButton] WARNING: Using default media receiver ID (CC1AD845). Custom namespaces will NOT work. Set VITE_CAST_APP_ID in .env.local');
+            if (!hasCustomCastAppId) {
+                throw new Error(
+                    `Cast is not configured. Set VITE_CAST_APP_ID to your Custom Receiver App ID (current: ${CAST_APP_ID || '(empty)'}, default media receiver: ${DEFAULT_MEDIA_RECEIVER_APP_ID}).`
+                );
             }
             console.log(`[CastButton] App ID: ${CAST_APP_ID}`);
 
@@ -183,9 +193,9 @@ export const CastButton: React.FC = () => {
                 .filter((name): name is string => Boolean(name));
             console.log('[CastButton] Receiver app metadata namespaces:', advertisedNamespaces);
             if (!advertisedNamespaces.includes(CAST_NAMESPACE_STR)) {
-                console.warn(
-                    `[CastButton] WARNING: Receiver does not advertise expected namespace ${CAST_NAMESPACE_STR}. ` +
-                    'This usually means wrong App ID, stale receiver registration, or receiver URL mismatch in Cast Developer Console.'
+                throw new Error(
+                    `Receiver app does not advertise expected namespace ${CAST_NAMESPACE_STR}. ` +
+                    'Check App ID, receiver URL, and namespace registration in Cast Developer Console.'
                 );
             }
 

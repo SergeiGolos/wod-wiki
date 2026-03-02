@@ -17,6 +17,14 @@
  *   https://pluto.forest-adhara.ts.net:6006/receiver.html
  * ) at https://cast.google.com/publish and paste the generated App ID.
  */
-export const CAST_APP_ID = import.meta.env.VITE_CAST_APP_ID || 'CC1AD845';
+export const DEFAULT_MEDIA_RECEIVER_APP_ID = 'CC1AD845';
+
+export const CAST_APP_ID = (import.meta.env.VITE_CAST_APP_ID || DEFAULT_MEDIA_RECEIVER_APP_ID).trim();
+
+export const isCustomCastAppId = (appId: string): boolean => {
+	return Boolean(appId) && appId !== DEFAULT_MEDIA_RECEIVER_APP_ID;
+};
+
+export const hasCustomCastAppId = isCustomCastAppId(CAST_APP_ID);
 
 console.log('[Config] Cast App ID:', CAST_APP_ID);
