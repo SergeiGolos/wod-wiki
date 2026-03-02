@@ -22,6 +22,7 @@ const preview = {
       // 'off' - skip a11y checks entirely
       test: "todo"
     },
+    layout: 'fullscreen',
     options: {
       showPanel: false,
       storySort: {

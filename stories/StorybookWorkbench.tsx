@@ -6,11 +6,60 @@ import { CommandProvider } from '@/components/command-palette/CommandContext';
 // The `z` URL param carries content that has been gzip-compressed and then
 // base64-encoded. Falls back to treating the param as plain base64 (no
 // compression) if decompression fails, so both workflows are supported.
+//
+// IMPORTANT: We extract AND strip the `z` param synchronously at module-load
+// time, before any React rendering or Storybook router code has a chance to
+// snapshot the URL. This prevents the param from leaking into subsequent
+// navigation events.
 // ---------------------------------------------------------------------------
 
+/**
+ * Synchronously reads the `z` query param from the current window or its
+ * parent (for the Storybook UI iframe case), strips it from both URLs via
+ * `history.replaceState`, and returns the raw value (or null if absent).
+ *
+ * Called once at module initialisation — intentionally top-level.
+ */
+function extractAndStripZ(): string | null {
+  // Determine which window holds the param and grab it
+  let targetWindow: Window = window;
+  let params = new URLSearchParams(window.location.search);
+
+  if (!params.has('z')) {
+    try {
+      const parentParams = new URLSearchParams(window.parent.location.search);
+      if (parentParams.has('z')) {
+        targetWindow = window.parent;
+        params = parentParams;
+      }
+    } catch { /* cross-origin parent — inaccessible */ }
+  }
+
+  const z = params.get('z');
+  if (!z) return null;
+
+  // Strip immediately — synchronously, before React mounts or the router runs.
+  params.delete('z');
+  const newSearch = params.toString();
+  const newUrl = targetWindow.location.pathname
+    + (newSearch ? '?' + newSearch : '')
+    + targetWindow.location.hash;
+  try {
+    targetWindow.history.replaceState(null, '', newUrl);
+  } catch { /* cross-origin parent — can't rewrite, not critical */ }
+
+  return z;
+}
+
+// Captured once when this module is first imported.
+// `let` so we can null it out after first consumption — prevents remounts
+// (e.g. navigating away and back to the Playground story) from re-applying
+// the same content again.
+let _rawZ: string | null = extractAndStripZ();
+
 async function decodeZParam(z: string): Promise<string> {
-  // base64 → binary bytes
-  const binary = atob(z.replace(/-/g, '+').replace(/_/g, '/')); // handle URL-safe base64
+  // base64 → binary bytes (handle URL-safe base64)
+  const binary = atob(z.replace(/-/g, '+').replace(/_/g, '/'));
   const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
 
   try {
@@ -40,24 +89,27 @@ async function decodeZParam(z: string): Promise<string> {
 }
 
 /**
- * Reads the `?z=` URL param once on mount, decodes / decompresses it, and
- * returns `{ content, ready }`.  `ready` is false only during the async
- * decode when a `z` param is actually present.
+ * Decodes the pre-captured `z` value (extracted synchronously at module load)
+ * and returns `{ content, ready }`. When no `z` param was present, `ready`
+ * is true immediately with no flash.
  */
 function useZParamContent(): { content: string | undefined; ready: boolean } {
   const [content, setContent] = useState<string | undefined>(undefined);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(!_rawZ); // instantly ready when no z param
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const z = params.get('z');
-    if (!z) { setReady(true); return; }
+    // Consume and clear _rawZ so that if this component unmounts and remounts
+    // (e.g. the user browses to another story and back) it won't re-apply the
+    // same encoded content — the next mount sees _rawZ=null and renders clean.
+    const z = _rawZ;
+    _rawZ = null;
+    if (!z) return;
 
     decodeZParam(z)
       .then(decoded => setContent(decoded))
       .catch(err => console.warn('[Playground] Failed to decode ?z= param:', err))
       .finally(() => setReady(true));
-  }, []);
+  }, []); // runs once per mount; _rawZ is module-level and consumed immediately
 
   return { content, ready };
 }

@@ -8,6 +8,7 @@ import { StatementDisplay } from '@/components/fragments/StatementDisplay';
 import { parseWodBlock } from '../utils/parseWodBlock';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WodPlaygroundButton } from './WodPlaygroundButton';
 import type { WodBlock } from '../types';
 import { CodeMirrorEditor } from '../../components/Editor/CodeMirrorEditor';
 
@@ -112,6 +113,7 @@ export const WodSectionEditor: React.FC<WodSectionEditorProps> = ({
             <span>Run</span>
           </button>
         )}
+        <WodPlaygroundButton wodContent={innerContent} />
         <span className={cn(
           'text-[9px] px-1.5 py-0.5 rounded',
           liveErrors.length > 0

@@ -19,6 +19,7 @@ import { AddWodToNoteDropdown } from '@/components/workbench/AddWodToNoteDropdow
 import type { IContentProvider } from '@/types/content-provider';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 import { WodBlockResults } from './WodBlockResults';
+import { WodPlaygroundButton } from '../WodPlaygroundButton';
 
 export interface WodBlockDisplayProps {
   section: Section;
@@ -88,6 +89,12 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
                 <Play className="h-3 w-3 fill-current" />
                 <span>Run</span>
               </button>
+            )}
+
+            {wodBlock && !isTemplate && (
+              <WodPlaygroundButton
+                wodContent={wodBlock.content ?? section.displayContent ?? ''}
+              />
             )}
 
             {wodBlock && (

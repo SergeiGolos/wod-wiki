@@ -1,0 +1,28 @@
+<style>
+  /*
+   * Hide the Storybook addon panel.
+   *
+   * Storybook 10 uses a resizable container that wraps the drag-handle divider
+   * and the aside panel. Hiding the children alone leaves the container taking
+   * space in the parent grid. The :has() selector collapses the wrapper itself.
+   */
+
+  /* 1. Hide the addon panel aside element */
+  aside[role="region"][aria-labelledby="storybook-panel-heading"] {
+    display: none !important;
+  }
+
+  /* 2. Hide the horizontal resize/drag handle */
+  div[orientation="horizontal"] {
+    display: none !important;
+    height: 0 !important;
+  }
+
+  /* 3. Collapse the wrapper div that holds the divider + aside.
+        This reclaims the grid row space so the preview can fill it. */
+  div:has(> aside[role="region"][aria-labelledby="storybook-panel-heading"]) {
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+</style>
