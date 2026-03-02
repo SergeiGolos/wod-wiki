@@ -18,9 +18,96 @@
     <!-- Google Cast Application Framework — Receiver SDK (must be HTTPS) -->
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
 
-    <!-- Tailwind + app styles are bundled by Vite via the TSX entry point -->
+    <style>
+        body {
+            background-color: #000; /* Match bg-black */
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #initial-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            color: rgba(255, 255, 255, 0.9);
+            transition: opacity 0.5s ease-out;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(59, 130, 246, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 2rem;
+        }
+
+        .booting-text {
+            font-size: 1rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.6;
+            text-align: center;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Configure the CAF built-in splash screen to match our theme */
+        cast-media-player {
+            --background-color: #09090b;
+            --splash-image: none; /* We use our own loader */
+        }
+    </style>
 </head>
 <body class="bg-black text-white overflow-hidden h-screen w-screen">
+    <div id="initial-loader">
+        <div class="spinner"></div>
+        <div id="booting-msg" class="booting-text">Wod.Wiki is booting up...</div>
+    </div>
+
+    <script>
+        (function() {
+            var messages = [
+                "Wod.Wiki is stretching...",
+                "Wod.Wiki is chalking up...",
+                "Wod.Wiki is loading the bar...",
+                "Wod.Wiki is doing burpees...",
+                "Wod.Wiki is catching its breath...",
+                "Wod.Wiki is warming up...",
+                "Wod.Wiki is tightening its belt...",
+                "Wod.Wiki is checking the clock...",
+                "Wod.Wiki is hydrating...",
+                "Wod.Wiki is tying its shoes...",
+                "Wod.Wiki is checking the whiteboard...",
+                "Wod.Wiki is setting the timer...",
+                "Wod.Wiki is cleaning the platform...",
+                "Wod.Wiki is adjusting the jump rope...",
+                "Wod.Wiki is visualizing the PR...",
+                "Wod.Wiki is fueling up...",
+                "Wod.Wiki is foam rolling...",
+                "Wod.Wiki is getting in the zone...",
+                "Wod.Wiki is prepping the workout...",
+                "Wod.Wiki is almost ready to go..."
+            ];
+            var msgEl = document.getElementById('booting-msg');
+            if (msgEl) {
+                msgEl.innerText = messages[Math.floor(Math.random() * messages.length)];
+            }
+        })();
+    </script>
+
     <div id="root"></div>
     <script type="module" src="/src/receiver-rpc.tsx"></script>
 </body>

@@ -395,6 +395,17 @@ const ReceiverApp: React.FC = () => {
         });
 
         // Start the CAF receiver context
+        castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
+            console.log('[ReceiverApp] Cast Receiver READY');
+            const loader = document.getElementById('initial-loader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500); // Wait for fade-out transition
+            }
+        });
+
         castContext.start({
             customNamespaces: {
                 [CAST_NAMESPACE]: 'JSON',

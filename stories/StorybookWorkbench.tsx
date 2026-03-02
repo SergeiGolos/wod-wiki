@@ -117,6 +117,7 @@ import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchCo
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
 import { DisplaySyncBridge } from '@/components/layout/DisplaySyncBridge';
+import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
@@ -415,6 +416,7 @@ export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => 
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
           <WorkbenchSyncBridge>
+            <WorkbenchCastBridge />
             <DisplaySyncBridge />
             <StorybookWorkbenchContent {...props} />
           </WorkbenchSyncBridge>

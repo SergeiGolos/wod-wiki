@@ -44,9 +44,10 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
     }
 
     dispose(): void {
-        if (this.transport.connected) {
-            this.transport.send({ type: 'rpc-dispose' });
-        }
+        // Intentionally does NOT send rpc-dispose — that message is reserved for
+        // explicit cast-session teardown (sent by CastButtonRpc.cleanupCast).
+        // Sending rpc-dispose here would permanently destroy the receiver's proxy
+        // runtime on every workout reset/navigation, preventing any further syncing.
         this.lastFingerprint = '';
     }
 

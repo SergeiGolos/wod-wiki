@@ -185,15 +185,18 @@ describe('ChromecastRuntimeSubscription', () => {
     });
 
     describe('dispose', () => {
-        it('should send rpc-dispose when connected', () => {
+        it('should NOT send rpc-dispose on runtime cleanup (only CastButtonRpc.cleanupCast does)', () => {
+            // rpc-dispose is only sent by the explicit cast-session teardown path,
+            // not by ChromecastRuntimeSubscription.dispose() — otherwise every
+            // runtime reset would permanently break the receiver's proxy runtime.
             subscription.dispose();
 
-            expect(transport.sent).toHaveLength(1);
-            expect(transport.sent[0].type).toBe('rpc-dispose');
+            expect(transport.sent).toHaveLength(0);
         });
 
-        it('should not send rpc-dispose when disconnected', () => {
-            transport.connected = false;
+        it('should not send rpc-dispose even when connected', () => {
+            // Same invariant regardless of connection state
+            transport.connected = true;
             subscription.dispose();
 
             expect(transport.sent).toHaveLength(0);

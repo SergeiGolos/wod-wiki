@@ -15,6 +15,7 @@ import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { useSubscriptionManager } from '@/components/layout/SubscriptionManagerContext';
+import { SubscriptionManager } from '@/runtime/subscriptions/SubscriptionManager';
 import { ChromecastSdk, type CastSdkState } from '@/services/cast/ChromecastSdk';
 import { SenderCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
@@ -57,18 +58,44 @@ export const CastButtonRpc: React.FC = () => {
         return unsub;
     }, []);
 
-    // Re-add Chromecast subscription whenever the subscriptionManager changes
-    // (new runtime created while actively casting)
-    useEffect(() => {
-        if (!isCastingRef.current || !subscriptionManager || !transportRef.current) return;
-        const transport = transportRef.current;
-        // Rebuild the stack subscription against the new manager
+    // Shared helper: attach a new ChromecastRuntimeSubscription to a manager and
+    // immediately send the current stack state to the receiver.
+    const attachSubscription = useCallback((mgr: SubscriptionManager, transport: WebRtcRpcTransport) => {
         const chromecastSub = new ChromecastRuntimeSubscription(transport, {
             id: CHROMECAST_SUBSCRIPTION_ID,
         });
-        subscriptionManager.add(chromecastSub);
-        console.log('[CastButtonRpc] Re-attached subscription to new SubscriptionManager');
-    }, [subscriptionManager]);
+        mgr.add(chromecastSub);
+        console.log('[CastButtonRpc] Attached subscription to SubscriptionManager');
+
+        // Immediately push the current stack state so the receiver doesn't wait for
+        // the next stack change. The SubscriptionManager's initial snapshot fires
+        // via setTimeout which races with React's effect scheduling — sending it
+        // explicitly here ensures the receiver always gets the current state.
+        const runtime = useWorkbenchSyncStore.getState().runtime;
+        if (runtime && transport.connected && runtime.stack.count > 0) {
+            chromecastSub.onStackSnapshot({
+                type: 'initial',
+                blocks: [...runtime.stack.blocks],
+                depth: runtime.stack.count,
+                clockTime: runtime.clock.now,
+            });
+            console.log('[CastButtonRpc] Sent initial stack snapshot to receiver', runtime.stack.count, 'blocks');
+        }
+    }, []);
+
+    // Re-add Chromecast subscription whenever the subscriptionManager changes
+    // (new runtime created while already casting)
+    useEffect(() => {
+        if (!isCastingRef.current || !subscriptionManager || !transportRef.current) return;
+        attachSubscription(subscriptionManager, transportRef.current);
+    }, [subscriptionManager, attachSubscription]);
+
+    // Also attach when isCasting becomes true with a pre-existing subscriptionManager
+    // (user is already on the track view when they start casting)
+    useEffect(() => {
+        if (!isCasting || !subscriptionManager || !transportRef.current) return;
+        attachSubscription(subscriptionManager, transportRef.current);
+    }, [isCasting, attachSubscription]); // intentionally excludes subscriptionManager to avoid double-attaching
 
     // Wire ChromecastEventProvider to route receiver events → local runtime
     useEffect(() => {
@@ -109,6 +136,15 @@ export const CastButtonRpc: React.FC = () => {
     const cleanupCast = useCallback(() => {
         // Remove chromecast subscription from the manager
         subscriptionManager?.remove(CHROMECAST_SUBSCRIPTION_ID);
+
+        // Explicitly notify the receiver that the cast session is ending.
+        // This is the ONLY place rpc-dispose should be sent — NOT in
+        // ChromecastRuntimeSubscription.dispose(), which fires on every
+        // runtime reset and would permanently break the receiver's proxy.
+        const transport = transportRef.current;
+        if (transport?.connected) {
+            try { transport.send({ type: 'rpc-dispose' }); } catch { /* ignore */ }
+        }
 
         // Dispose event provider
         eventProviderRef.current?.dispose();
@@ -178,23 +214,16 @@ export const CastButtonRpc: React.FC = () => {
             // 6. Connect
             await transport.connect();
 
-            // 7. Create subscription and event provider
-            // Only wire the stack subscription if there's an active runtime
-            if (subscriptionManager) {
-                const chromecastSub = new ChromecastRuntimeSubscription(transport, {
-                    id: CHROMECAST_SUBSCRIPTION_ID,
-                });
-                subscriptionManager.add(chromecastSub);
-            } else {
-                console.log('[CastButtonRpc] No active runtime — stack subscription deferred until runtime loads');
-            }
-
+            // 7. Wire event provider for receiver → browser event routing
             const eventProvider = new ChromecastEventProvider(transport);
             eventProviderRef.current = eventProvider;
 
-            // Publish transport to store so WorkbenchCastBridge can send workbench-level msgs
+            // 8. Publish transport to store so WorkbenchCastBridge can send workbench-level msgs
             setCastTransport(transport);
 
+            // 9. setIsCasting triggers the isCasting effect which calls attachSubscription,
+            //    registering ChromecastRuntimeSubscription with the active SubscriptionManager
+            //    (or deferred until the next runtime init if no runtime exists yet).
             setIsCasting(true);
         } catch (err) {
             console.error('[CastButtonRpc] Cast failed:', err);
