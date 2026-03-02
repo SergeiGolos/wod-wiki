@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
 import { RELAY_URL } from '@/services/cast/config';
-import { TimerStackView } from '@/components/workout/TimerStackView';
-import { VisualStatePanel } from '@/components/track/VisualStatePanel';
+import { TimerScreen } from '@/components/workbench/TrackPanel';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
+import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
 import '@/index.css';
 
 const ReceiverApp = () => {
@@ -44,6 +44,26 @@ const ReceiverApp = () => {
     connect();
   }, []);
 
+  // Mock Objects to satisfy TimerScreen props
+  const mockExecution = useMemo(() => {
+    if (!remoteState) return null;
+    const isRunning = remoteState.workoutState === 'running';
+    let elapsed = remoteState.totalElapsedMs || 0;
+    if (isRunning) elapsed += (now - lastUpdate);
+
+    return {
+      status: remoteState.workoutState,
+      elapsedTime: elapsed,
+      stepCount: 0,
+      startTime: Date.now() - elapsed,
+      start: () => {},
+      pause: () => {},
+      stop: () => {},
+      reset: () => {},
+      next: () => {}
+    };
+  }, [remoteState, now, lastUpdate]);
+
   if (!remoteState) {
     return (
       <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/20 font-mono uppercase tracking-[0.5em]">
@@ -53,36 +73,35 @@ const ReceiverApp = () => {
   }
 
   const primary = remoteState.timerStack?.[0] || {};
-  const isRunning = remoteState.workoutState === 'running';
-  
-  // Calculate local time for 60fps smoothness
-  let elapsed = remoteState.totalElapsedMs || 0;
-  if (isRunning) elapsed += (now - lastUpdate);
 
   return (
-    <div className="h-screen w-screen bg-background text-foreground flex overflow-hidden">
-      {/* Left: Visual State Panel (The same one from the browser!) */}
-      <div className="flex-1 border-r border-border bg-secondary/5 overflow-hidden">
-         {/* We mock the runtime context so the VisualStatePanel can render without a real runtime */}
-         <div className="p-8 scale-125 origin-top-left">
-            <h2 className="text-sm font-bold opacity-30 mb-8 tracking-widest uppercase">Workout Stack</h2>
-            {/* Note: In a full implementation, we'd pass the serialized stack here */}
-            <div className="text-4xl font-black">{primary.label || 'Prepare'}</div>
-         </div>
-      </div>
-
-      {/* Right: Big Clock */}
-      <div className="w-1/2 flex flex-col items-center justify-center bg-black">
-        <TimerStackView
-          elapsedMs={elapsed}
-          hasActiveBlock={!!primary}
-          onStart={() => {}} onPause={() => {}} onStop={() => {}} onNext={() => {}}
-          isRunning={isRunning}
-          primaryTimer={primary}
-          secondaryTimers={[]}
+    <PanelSizeProvider>
+      <div className="h-screen w-screen bg-background">
+        <TimerScreen
+          runtime={null} // We will use specific mocks if needed
+          execution={mockExecution as any}
+          selectedBlock={{ id: 'remote', label: primary.label }}
+          activeSegmentIds={new Set()}
+          activeStatementIds={new Set()}
+          hoveredBlockKey={null}
+          documentItems={[]}
+          activeBlockId="remote"
+          onBlockHover={() => {}}
+          onBlockClick={() => {}}
+          onSelectBlock={() => {}}
+          onSetActiveBlockId={() => {}}
+          onStart={() => {}}
+          onPause={() => {}}
+          onStop={() => {}}
+          onNext={() => {}}
         />
+        
+        {/* Tiny connection indicator */}
+        <div className="absolute bottom-2 left-2 opacity-10 text-[6px] font-mono uppercase">
+          {wsStatus} // REMOTE_SYNC_ACTIVE
+        </div>
       </div>
-    </div>
+    </PanelSizeProvider>
   );
 };
 
