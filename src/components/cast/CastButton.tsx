@@ -5,6 +5,7 @@ import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { CastManager } from '@/services/cast/CastManager';
 import { RELAY_URL } from '@/services/cast/config';
 import { v4 as uuidv4 } from 'uuid';
+import type { EventName } from '@/types/cast/messages';
 
 export const CastButton: React.FC = () => {
     const [isCasting, setIsCasting] = useState(false);
@@ -12,6 +13,35 @@ export const CastButton: React.FC = () => {
     const store = useWorkbenchSyncStore();
     const castManagerRef = useRef<CastManager | null>(null);
     const sessionIdRef = useRef<string>(uuidv4().substring(0, 8));
+
+    // Listen for receiver events (D-Pad clicks from Chromecast remote)
+    useEffect(() => {
+        const manager = castManagerRef.current;
+        if (!manager || !isCasting) return;
+
+        const handleReceiverEvent = (payload: { event: { name: EventName; timestamp: number; data?: unknown } }) => {
+            const { handleNext, handleStart, handlePause, handleStop } = useWorkbenchSyncStore.getState();
+            console.log(`[CastButton] Received remote event: ${payload.event.name}`);
+
+            switch (payload.event.name) {
+                case 'next':
+                    handleNext();
+                    break;
+                case 'start':
+                    handleStart();
+                    break;
+                case 'pause':
+                    handlePause();
+                    break;
+                case 'stop':
+                    handleStop();
+                    break;
+            }
+        };
+
+        manager.on('receiverEvent', handleReceiverEvent as any);
+        return () => { manager.off('receiverEvent', handleReceiverEvent as any); };
+    }, [isCasting]);
 
     // Only send updates when logical state changes
     useEffect(() => {

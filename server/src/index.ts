@@ -89,6 +89,7 @@ wss.on('connection', (ws, req) => {
 
         case 'state-update':
         case 'cast-request':
+        case 'event-from-receiver':
             // Simple broadcast to everyone in the same session
             if (message.sessionId) {
                 connections.forEach((conn) => {

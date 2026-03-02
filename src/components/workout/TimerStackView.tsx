@@ -40,7 +40,6 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     onNext,
     isRunning,
     primaryTimer,
-    currentCard,
     compact = false,
     subLabel,
 
@@ -133,7 +132,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
                     <div className="relative flex items-center justify-center">
                         {/* Main Timer Circle — sizes driven by compact prop (container-aware) */}
-                        <div className={`relative flex items-center justify-center z-10 transition-all ${compact ? 'w-[min(12rem,75vw)] h-[min(12rem,75vw)]' : 'w-48 h-48 lg:w-96 lg:h-96'}`}>
+                        <div className={`relative flex items-center justify-center z-10 transition-all ${compact ? 'w-[min(12rem,75vw)] h-[min(12rem,75vw)]' : 'w-48 h-48 lg:w-80 lg:h-80'}`}>
                             {/* SVG Background Ring */}
                             <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
                                 <circle
@@ -154,13 +153,13 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             {/* Inner Circle / Content */}
                             <button
                                 onClick={isRunning ? onPause : onStart}
-                                className={`relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-80 lg:h-80'}`}
+                                className={`relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 overflow-hidden ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
                             >
-                                <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-8xl'}`}>
+                                <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-6xl'}`}>
                                     {formatTime(displayTimeMs)}
                                 </span>
                                 <div className="mt-2 text-blue-500 group-hover:text-blue-600 transition-colors">
-                                    {isRunning ? <Pause className={`title-pause ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-16 lg:h-16'}`} /> : <Play className={`ml-2 title-play ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-16 lg:h-16'}`} />}
+                                    {isRunning ? <Pause className={`title-pause ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-12 lg:h-12'}`} /> : <Play className={`ml-2 title-play ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-12 lg:h-12'}`} />}
                                 </div>
                             </button>
                         </div>

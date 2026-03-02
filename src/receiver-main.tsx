@@ -200,6 +200,9 @@ const ReceiverApp = () => {
   const [wsStatus, setWsStatus] = useState('connecting');
   const [lastUpdate, setLastUpdate] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const [dpadFlash, setDpadFlash] = useState(false);
+  const wsRef = React.useRef<WebSocket | null>(null);
+  const sessionIdRef = React.useRef<string | null>(null);
 
   // Local clock for smooth timer interpolation
   useEffect(() => {
@@ -216,12 +219,14 @@ const ReceiverApp = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
     const sessionId = params.get('session');
+    sessionIdRef.current = sessionId;
     const deviceId = 'tv-' + uuidv4().substring(0, 4);
 
     const connect = () => {
       const ws = new WebSocket(RELAY_URL);
       ws.onopen = () => {
         setWsStatus('connected');
+        wsRef.current = ws;
         ws.send(JSON.stringify({
           type: 'register', messageId: uuidv4(), sessionId: sessionId || undefined,
           timestamp: Date.now(), payload: { clientType: 'receiver', clientId: deviceId }
@@ -234,10 +239,74 @@ const ReceiverApp = () => {
           setLastUpdate(Date.now());
         }
       };
-      ws.onclose = () => { setWsStatus('connecting'); setTimeout(connect, 3000); };
+      ws.onclose = () => { wsRef.current = null; setWsStatus('connecting'); setTimeout(connect, 3000); };
     };
     connect();
   }, []);
+
+  // ── Send event back to caster via relay ──
+  const sendReceiverEvent = React.useCallback((eventName: string) => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({
+      type: 'event-from-receiver',
+      messageId: uuidv4(),
+      sessionId: sessionIdRef.current || undefined,
+      timestamp: Date.now(),
+      payload: {
+        event: {
+          name: eventName,
+          timestamp: Date.now()
+        }
+      }
+    }));
+  }, []);
+
+  // ── D-Pad key handler + focus management for Chromecast remote ──
+  useEffect(() => {
+    // Ensure body can receive focus
+    document.body.tabIndex = 0;
+    document.body.focus();
+
+    const refocus = () => setTimeout(() => document.body.focus(), 100);
+    document.body.addEventListener('blur', refocus);
+
+    const handleKey = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case 'Enter':
+          e.preventDefault();
+          sendReceiverEvent('next');
+          setDpadFlash(true);
+          setTimeout(() => setDpadFlash(false), 200);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          sendReceiverEvent('start');
+          setDpadFlash(true);
+          setTimeout(() => setDpadFlash(false), 200);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          sendReceiverEvent('pause');
+          setDpadFlash(true);
+          setTimeout(() => setDpadFlash(false), 200);
+          break;
+        case 'Escape':
+        case 'Backspace':
+          e.preventDefault();
+          sendReceiverEvent('stop');
+          setDpadFlash(true);
+          setTimeout(() => setDpadFlash(false), 200);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      window.removeEventListener('keydown', handleKey);
+      document.body.removeEventListener('blur', refocus);
+    };
+  }, [sendReceiverEvent]);
 
   // ── Waiting screen ──
   if (!remoteState) {
@@ -301,6 +370,11 @@ const ReceiverApp = () => {
   return (
     <PanelSizeProvider>
       <div className="h-screen w-screen bg-background text-foreground flex overflow-hidden">
+        {/* D-Pad flash overlay */}
+        {dpadFlash && (
+          <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
+        )}
+
         {/* Left Column: Visual State Panel (stack + lookahead) */}
         <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
           <RemoteVisualStatePanel
@@ -318,7 +392,10 @@ const ReceiverApp = () => {
             <TimerStackView
               elapsedMs={primaryElapsed}
               hasActiveBlock={!!primary}
-              onStart={() => {}} onPause={() => {}} onStop={() => {}} onNext={() => {}}
+              onStart={() => sendReceiverEvent('start')}
+              onPause={() => sendReceiverEvent('pause')}
+              onStop={() => sendReceiverEvent('stop')}
+              onNext={() => sendReceiverEvent('next')}
               isRunning={isRunning}
               primaryTimer={primaryTimerEntry}
               subLabel={remoteState.subLabel}

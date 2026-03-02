@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
-import { usePrimaryTimer, useSecondaryTimers, useStackDisplayRows, useStackTimers } from '../../runtime/hooks/useStackDisplay';
+import { usePrimaryTimer, useSecondaryTimers, useStackTimers } from '../../runtime/hooks/useStackDisplay';
+import { useSnapshotBlocks } from '../../runtime/hooks/useStackSnapshot';
 import { calculateDuration } from '../../lib/timeUtils';
 import { useRuntimeLifecycle } from './RuntimeLifecycleProvider';
 import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
@@ -11,20 +12,37 @@ import { useNextPreview } from '@/runtime/hooks/useNextPreview';
  *
  * Produces a JSON-serializable snapshot that mirrors everything the Track panel shows:
  * - timerStack (primary + secondary timers with accumulatedMs)
- * - displayRows (stack blocks with label, fragments, per-block timer)
+ * - displayRows (ALL stack blocks with label, fragments, per-block timer — no filtering)
  * - lookahead (next block's fragments)
  * - subLabel (from label resolution logic)
+ *
+ * Unlike useStackDisplayRows() (which filters blocks), this renders ALL blocks on the
+ * runtime stack — matching exactly what RuntimeStackView in VisualStatePanel does.
  */
 const DisplaySyncBridgeContent: React.FC = () => {
   const setDisplayState = useWorkbenchSyncStore(s => s.setDisplayState);
   const execution = useWorkbenchSyncStore(s => s.execution);
   
-  // 1. Get the full rich stacks
+  // 1. Get the full stack (unfiltered) + timer data
+  const blocks = useSnapshotBlocks();
   const primaryTimerEntry = usePrimaryTimer();
   const secondaryTimers = useSecondaryTimers();
   const allTimers = useStackTimers();
-  const stackItems = useStackDisplayRows();
   const nextPreview = useNextPreview();
+
+  // 2. Subscribe to fragment memory changes on ALL blocks (like StackBlockItem does)
+  const [fragmentVersion, setFragmentVersion] = useState(0);
+  useEffect(() => {
+    const unsubscribes: (() => void)[] = [];
+    for (const block of blocks) {
+      // Subscribe to display-tier fragment memory
+      const displayLocs = block.getFragmentMemoryByVisibility('display');
+      for (const loc of displayLocs) {
+        unsubscribes.push(loc.subscribe(() => setFragmentVersion(v => v + 1)));
+      }
+    }
+    return () => unsubscribes.forEach(fn => fn());
+  }, [blocks]);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -34,7 +52,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
   }, [execution.status]);
 
   useEffect(() => {
-    // 2. Build per-block timer lookup (blockKey → timer state)
+    // 3. Build per-block timer lookup (blockKey → timer state)
     const blockTimerMap = new Map<string, {
       elapsed: number;
       durationMs?: number;
@@ -51,7 +69,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
       });
     }
 
-    // 3. Prepare full serializable timer stack
+    // 4. Prepare full serializable timer stack
     const timerStack = [
       ...(primaryTimerEntry ? [{
         id: `timer-${primaryTimerEntry.block.key}`,
@@ -77,25 +95,32 @@ const DisplaySyncBridgeContent: React.FC = () => {
       }))
     ];
 
-    // 4. Prepare serializable display rows with per-block timer data
-    const displayRows = stackItems?.map(item => {
-      const blockKey = item.block.key.toString();
+    // 5. Serialize ALL stack blocks (root→leaf order) — matches RuntimeStackView exactly
+    //    NO filtering: every block on the stack gets a display row.
+    const orderedBlocks = [...blocks].reverse(); // Stack is leaf→root; reverse for root→leaf
+    const displayRows = orderedBlocks.map((block, index) => {
+      const blockKey = block.key.toString();
       const timer = blockTimerMap.get(blockKey);
+
+      // Read fragment:display memory for this block (same as StackBlockItem)
+      const displayLocs = block.getFragmentMemoryByVisibility('display');
+      const rows = displayLocs.map(loc => loc.fragments);
+
       return {
         blockKey,
-        blockType: item.block.blockType,
-        label: item.label,
-        isLeaf: item.isLeaf,
-        depth: item.depth,
-        rows: item.displayRows, // ICodeFragment[][] is serializable
-        timer: timer || null,   // per-block timer state
+        blockType: block.blockType,
+        label: block.label,
+        isLeaf: index === orderedBlocks.length - 1,
+        depth: index,
+        rows,            // ICodeFragment[][] — serializable
+        timer: timer || null,
       };
-    }) || [];
+    });
 
-    // 5. Derive sub-label (same logic as StackIntegratedTimer)
+    // 6. Derive sub-label (same logic as StackIntegratedTimer)
     let subLabel: string | undefined;
-    const leafItem = stackItems?.find(i => i.isLeaf);
-    const roundsItem = stackItems?.find(i => i.block.blockType === 'Rounds');
+    const leafItem = displayRows.find(i => i.isLeaf);
+    const roundsItem = displayRows.find(i => i.blockType === 'Rounds');
     if (primaryTimerEntry?.isPinned) {
       const resolvedMainLabel = roundsItem?.label || primaryTimerEntry.timer.label;
       if (resolvedMainLabel !== leafItem?.label) {
@@ -105,7 +130,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
       subLabel = leafItem?.label;
     }
 
-    // 6. Serialize lookahead (next block preview)
+    // 7. Serialize lookahead (next block preview)
     const lookahead = nextPreview ? {
       fragments: nextPreview.fragments,
     } : null;
@@ -119,7 +144,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
       totalElapsedMs: execution.elapsedTime,
       isRunning: execution.status === 'running',
     } as any);
-  }, [primaryTimerEntry, secondaryTimers, allTimers, stackItems, nextPreview, execution.status, execution.elapsedTime, now]);
+  }, [blocks, primaryTimerEntry, secondaryTimers, allTimers, nextPreview, fragmentVersion, execution.status, execution.elapsedTime, now]);
 
   return null;
 };

@@ -12,7 +12,7 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-row overflow-hidden">
+<body tabindex="0" id="app-body" class="h-screen w-screen flex flex-row overflow-hidden">
     <!-- Left Panel: Workout Info (Mirrors VisualStatePanel) -->
     <div class="w-1/2 h-full border-r border-white/10 flex flex-col p-16 justify-center bg-zinc-950">
         <div class="opacity-20 text-xs tracking-[0.5em] uppercase mb-12 font-bold">Workout Stack</div>
@@ -56,10 +56,13 @@
 
         const connect = () => {
             const ws = new WebSocket(relay);
-            ws.onopen = () => ws.send(JSON.stringify({
-                type: 'register', messageId: uuidv4(), sessionId: session || undefined,
-                timestamp: Date.now(), payload: { clientType: 'receiver', clientId: deviceId }
-            }));
+            ws.onopen = () => {
+                wsRef = ws;
+                ws.send(JSON.stringify({
+                    type: 'register', messageId: uuidv4(), sessionId: session || undefined,
+                    timestamp: Date.now(), payload: { clientType: 'receiver', clientId: deviceId }
+                }));
+            };
 
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
@@ -73,7 +76,10 @@
                     subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
                 }
             };
-            ws.onclose = () => setTimeout(connect, 3000);
+            ws.onclose = () => {
+                wsRef = null;
+                setTimeout(connect, 3000);
+            };
         };
 
         const tick = () => {
@@ -103,6 +109,71 @@
             }
             requestAnimationFrame(tick);
         };
+
+        // ── Focus management for Chromecast D-Pad ──
+        const appBody = document.getElementById('app-body');
+        appBody.focus();
+        appBody.addEventListener('blur', () => {
+            setTimeout(() => appBody.focus(), 100);
+        });
+
+        // ── D-Pad key handler ──
+        let wsRef = null;
+
+        const sendReceiverEvent = (eventName) => {
+            if (!wsRef || wsRef.readyState !== WebSocket.OPEN) return;
+            wsRef.send(JSON.stringify({
+                type: 'event-from-receiver',
+                messageId: uuidv4(),
+                sessionId: session || undefined,
+                timestamp: Date.now(),
+                payload: {
+                    event: {
+                        name: eventName,
+                        timestamp: Date.now()
+                    }
+                }
+            }));
+        };
+
+        // Visual feedback flash
+        const flashOverlay = document.createElement('div');
+        flashOverlay.id = 'dpad-flash';
+        flashOverlay.style.cssText = 'position:fixed;inset:0;background:rgba(59,130,246,0.08);pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999';
+        document.body.appendChild(flashOverlay);
+
+        const flashFeedback = () => {
+            flashOverlay.style.opacity = '1';
+            setTimeout(() => { flashOverlay.style.opacity = '0'; }, 200);
+        };
+
+        window.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'Enter':
+                    e.preventDefault();
+                    sendReceiverEvent('next');
+                    flashFeedback();
+                    subLabelEl.innerText = '⏭ Next...';
+                    setTimeout(() => { if (lastState) subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused'; }, 800);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    sendReceiverEvent('start');
+                    flashFeedback();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    sendReceiverEvent('pause');
+                    flashFeedback();
+                    break;
+                case 'Escape':
+                case 'Backspace':
+                    e.preventDefault();
+                    sendReceiverEvent('stop');
+                    flashFeedback();
+                    break;
+            }
+        });
 
         connect();
         tick();
