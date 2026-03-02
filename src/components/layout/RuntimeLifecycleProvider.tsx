@@ -108,6 +108,12 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
       // Create new runtime FIRST before disposing old one
       const newRuntime = factoryRef.current.createRuntime(block) as ScriptRuntime | null;
 
+      // Dispose old subscription manager first
+      if (currentSubManagerRef.current) {
+        currentSubManagerRef.current.dispose();
+        currentSubManagerRef.current = null;
+      }
+
       // Now do a single atomic state update that disposes old and sets new
       setRuntime(currentRuntime => {
         if (currentRuntime) {

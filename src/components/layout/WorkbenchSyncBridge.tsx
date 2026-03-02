@@ -136,6 +136,10 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
       const currentKey = getBlockKey(selectedBlock);
       if (lastInitializedKeyRef.current !== currentKey) {
         console.log('[WorkbenchSyncBridge] Re-initializing runtime for block', selectedBlock.id, 'old:', lastInitializedKeyRef.current, 'new:', currentKey);
+        
+        // Clear analytics before starting the new runtime
+        store.getState().setAnalytics([], [], []);
+        
         initializeRuntime(selectedBlock);
         lastInitializedKeyRef.current = currentKey;
       }

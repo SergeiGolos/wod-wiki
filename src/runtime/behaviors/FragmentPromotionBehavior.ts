@@ -60,7 +60,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
 
         // 1. Dynamic rep scheme promotion
         if (this._repScheme.length > 0) {
-            const roundState = parentBlock.getMemory('round')?.value as RoundState | undefined;
+            const roundState = parentBlock.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
             const round = roundState?.current ?? 1;
             const reps = this.getRepsForRound(round);
             
@@ -94,7 +94,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         if (this._repScheme.length > 0) {
-            const round = (ctx.getMemory('round') as RoundState | undefined)?.current ?? 1;
+            const round = (ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined)?.current ?? 1;
             this.promoteRepScheme(ctx, round);
         }
 
@@ -104,7 +104,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
         if (this._repScheme.length > 0) {
-            const round = ctx.getMemory('round') as RoundState | undefined;
+            const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
             if (round && round.current !== this._lastPromotedRound) {
                 this.promoteRepScheme(ctx, round.current);
             }

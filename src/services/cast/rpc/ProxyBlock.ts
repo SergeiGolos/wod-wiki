@@ -96,30 +96,19 @@ export class ProxyBlock implements IRuntimeBlock {
                 role: undefined,
             };
 
-            // Also keep the fragment-based location for getMemoryByTag('timer') callers
+            // Store as a single fragment with .value = TimerState under 'time' tag
+            // (matching what RuntimeBlock stores, so hooks using getMemoryByTag('time') work)
             const { FragmentType } = require('@/core/models/CodeFragment');
             const timerFragments: ICodeFragment[] = [
                 {
-                    type: 'spans',
-                    fragmentType: FragmentType?.Spans ?? 'spans',
-                    value: serialized.timer.spans,
+                    type: 'timer',
+                    fragmentType: FragmentType?.Duration ?? 'duration',
+                    image: '',
+                    origin: 'runtime' as any,
+                    value: this.timerState,
                 },
             ];
-            if (serialized.timer.durationMs !== undefined) {
-                timerFragments.push({
-                    type: 'duration',
-                    fragmentType: FragmentType?.Duration ?? 'duration',
-                    value: serialized.timer.durationMs,
-                });
-            }
-            if (serialized.timer.label) {
-                timerFragments.push({
-                    type: 'label',
-                    fragmentType: FragmentType?.Label ?? 'label',
-                    image: serialized.timer.label,
-                });
-            }
-            this.timerLocation = new StaticMemoryLocation('timer', timerFragments);
+            this.timerLocation = new StaticMemoryLocation('time', timerFragments);
         } else {
             this.timerState = undefined;
             this.timerLocation = null;
@@ -135,7 +124,7 @@ export class ProxyBlock implements IRuntimeBlock {
 
     getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
         if (tag === 'fragment:display') return this.displayLocations;
-        if (tag === 'timer' && this.timerLocation) return [this.timerLocation];
+        if (tag === 'time' && this.timerLocation) return [this.timerLocation];
         return [];
     }
 
@@ -175,33 +164,5 @@ export class ProxyBlock implements IRuntimeBlock {
         return undefined;
     }
 
-    // ── Deprecated Memory API ───────────────────────────────────────────────
-
-    /**
-     * Returns a TimerState shim when type is 'time' or 'timer'.
-     * 'time' is the legacy key used by useStackTimers / usePrimaryTimer hooks.
-     * Without this the timer panel on the Chromecast receiver stays blank.
-     */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
-        if ((type as string) === 'time' || (type as string) === 'timer') {
-            if (!this.timerState) return undefined;
-            const state = this.timerState;
-            return {
-                value: state as unknown as MemoryValueOf<T>,
-                subscribe: (_listener) => () => {},
-            };
-        }
-        return undefined;
-    }
-
-    hasMemory(type: MemoryType): boolean {
-        if ((type as string) === 'time' || (type as string) === 'timer') {
-            return this.timerState !== undefined;
-        }
-        return false;
-    }
-
-    setMemoryValue<T extends MemoryType>(_type: T, _value: MemoryValueOf<T>): void {
-        // No-op
-    }
+    // ── Deprecated Memory API removed — use getMemoryByTag() instead ──────────
 }

@@ -24,6 +24,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
         getMemory: vi.fn((type: string) => {
             const locs = memoryLocations.filter(l => l.tag === type);
             if (locs.length > 0 && locs[0].fragments.length > 0) {
@@ -41,7 +42,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
         }),
         updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            const locs = memoryLocations.filter(l => l.tag === type);
+            const locs = memoryLocations.filter(l => l.tag === tag);
             if (locs.length > 0) {
                 locs[0].update(fragments);
             } else {

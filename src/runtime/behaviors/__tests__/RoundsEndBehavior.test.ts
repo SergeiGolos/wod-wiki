@@ -1,14 +1,16 @@
 import { describe, it, expect, vi } from 'bun:test';
 import { RoundsEndBehavior } from '../RoundsEndBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
+import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
 
 function createMockContext(overrides: {
     round?: { current: number; total: number | undefined };
     isComplete?: boolean;
 } = {}): IBehaviorContext {
-    const memoryStore = new Map<string, any>();
+    const memoryLocations: MemoryLocation[] = [];
     if (overrides.round) {
-        memoryStore.set('round', overrides.round);
+        // Store round state as the fragment itself (cast to RoundState)
+        memoryLocations.push(new MemoryLocation('round', [overrides.round as any]));
     }
 
     return {
@@ -24,7 +26,8 @@ function createMockContext(overrides: {
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
+        getMemory: vi.fn(),
         setMemory: vi.fn()
     } as unknown as IBehaviorContext;
 }

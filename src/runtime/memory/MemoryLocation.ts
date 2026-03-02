@@ -17,6 +17,7 @@ import { ICodeFragment } from '../../core/models/CodeFragment';
  * @see FragmentVisibility for classification helpers.
  */
 export type MemoryTag =
+    | 'time'
     | 'timer'
     | 'round'
     | 'children:status'

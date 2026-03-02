@@ -41,9 +41,9 @@ export function useStackTimers(): StackTimerEntry[] {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const timerEntry = block.getMemory('time');
-            if (timerEntry) {
-                const unsub = timerEntry.subscribe(() => {
+            const timerLoc = block.getMemoryByTag('time')[0];
+            if (timerLoc) {
+                const unsub = timerLoc.subscribe(() => {
                     setVersion(v => v + 1);
                 });
                 unsubscribes.push(unsub);
@@ -59,10 +59,10 @@ export function useStackTimers(): StackTimerEntry[] {
         const entries: StackTimerEntry[] = [];
 
         for (const block of blocks) {
-            const timerEntry = block.getMemory('time');
-            if (!timerEntry) continue;
+            const timerLoc = block.getMemoryByTag('time')[0];
+            if (!timerLoc) continue;
 
-            const timer = timerEntry.value;
+            const timer = timerLoc.fragments[0]?.value as TimerState | undefined;
             if (!timer) continue;
 
             entries.push({

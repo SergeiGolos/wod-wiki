@@ -57,7 +57,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
     it("should have fragment:display memory after build", () => {
         const block = buildWithFragments([[timerFragment, actionFragment]]);
 
-        expect(block.hasMemory('fragment:display')).toBe(true);
+        expect(block.getMemoryByTag('fragment:display')).toHaveLength(1);
     });
 
     it("should preserve multi-group structure as separate memory locations", () => {
@@ -74,7 +74,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
     it("should handle empty fragment groups gracefully", () => {
         const block = buildWithFragments([]);
 
-        expect(block.hasMemory('fragment:display')).toBe(false);
+        expect(block.getMemoryByTag('fragment:display')).toHaveLength(0);
         expect(block.getMemoryByTag('fragment:display')).toEqual([]);
     });
 
@@ -89,13 +89,13 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
             .setLabel("Test Block")
             .build();
 
-        expect(block.hasMemory('fragment:display')).toBe(false);
+        expect(block.getMemoryByTag('fragment:display')).toHaveLength(0);
     });
 
     it("should not allocate memory when empty fragment groups are set", () => {
         const block = buildWithFragments([]);
 
-        expect(block.hasMemory('fragment:display')).toBe(false);
+        expect(block.getMemoryByTag('fragment:display')).toHaveLength(0);
     });
 
     it("should store all fragment types correctly", () => {

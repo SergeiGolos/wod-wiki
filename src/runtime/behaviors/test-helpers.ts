@@ -254,6 +254,10 @@ export function createIntegrationContext(
             return location;
         },
 
+        getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+            return block.getMemoryByTag(tag);
+        },
+
         updateMemory(tag: string, fragments: ICodeFragment[]): void {
             const locations = block.getMemoryByTag(tag as MemoryTag);
             if (locations.length > 0) {

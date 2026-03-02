@@ -15,5 +15,15 @@
     gtag('event', 'story_rendered', {
       'story_id': window.location.pathname
     });
+
+    // Attempt to ensure the iframe allows presentation
+    try {
+        if (window.frameElement) {
+            window.frameElement.setAttribute('allow', (window.frameElement.getAttribute('allow') || '') + ' presentation');
+            console.info('[Storybook Patch] Added allow="presentation" to preview iframe');
+        }
+    } catch (e) {
+        // May fail due to cross-origin restrictions in some setups
+    }
   });
 </script>

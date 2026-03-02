@@ -2,12 +2,12 @@ import { describe, expect, it, vi } from 'bun:test';
 import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
-import { MemoryTag, MemoryLocation, IMemoryLocation } from '../../memory/MemoryLocation';
+import { MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
 import { TimerState, RoundState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
-    const memory = new Map<string, any>();
+    const memoryLocations = new Map<MemoryTag, MemoryLocation>();
     const behaviors: any[] = [];
 
     const ctx = {
@@ -24,13 +24,41 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memory.get(type)),
-        setMemory: vi.fn((type: string, value: any) => memory.set(type, value)),
-        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            memory.set(tag, fragments[0].value);
+        // setMemory is used in tests to seed data — store as MemoryLocation
+        setMemory: vi.fn((tag: MemoryTag, value: any) => {
+            // For 'round': fragment is the roundState itself (cast pattern)
+            // For 'time': fragment has .value = timerState
+            const frag: ICodeFragment = tag === 'round'
+                ? { ...value, fragmentType: FragmentType.CurrentRound, type: 'current-round', image: '', origin: 'runtime' as any } as any
+                : { fragmentType: 0 as any, type: tag, image: '', origin: 'runtime' as any, value };
+            const existing = memoryLocations.get(tag);
+            if (existing) {
+                existing.update([frag]);
+            } else {
+                memoryLocations.set(tag, new MemoryLocation(tag, [frag]));
+            }
         }),
-        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            memory.set(tag, fragments[0].value);
+        getMemory: vi.fn((tag: MemoryTag) => {
+            const loc = memoryLocations.get(tag);
+            if (!loc || loc.fragments.length === 0) return undefined;
+            return tag === 'round' ? loc.fragments[0] : loc.fragments[0].value;
+        }),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => {
+            const loc = memoryLocations.get(tag);
+            return loc ? [loc] : [];
+        }),
+        pushMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
+            const loc = new MemoryLocation(tag, fragments);
+            memoryLocations.set(tag, loc);
+            return loc;
+        }),
+        updateMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
+            const loc = memoryLocations.get(tag);
+            if (loc) {
+                loc.update(fragments);
+            } else {
+                memoryLocations.set(tag, new MemoryLocation(tag, fragments));
+            }
         }),
     } as unknown as IBehaviorContext;
 

@@ -54,15 +54,15 @@ export class SetLoopIndexAction implements ITestSetupAction {
     }
 
     for (const memoryType of memoryTypes) {
-      const entry = block.getMemory(memoryType as any);
+      const loc = block.getMemoryByTag(memoryType as any)[0];
 
-      if (entry) {
-        const currentValue = entry.value;
+      if (loc?.fragments[0]) {
+        const currentValue = loc.fragments[0].value;
         const newValue = typeof currentValue === 'object' && currentValue !== null
           ? { ...currentValue, currentIndex: this.params.currentIndex }
           : { currentIndex: this.params.currentIndex, total: this.params.totalIterations };
 
-        block.setMemoryValue(memoryType as any, newValue);
+        loc.update([{ ...loc.fragments[0], value: newValue }]);
         return; // Found and set, done
       }
     }

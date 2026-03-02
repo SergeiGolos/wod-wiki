@@ -77,7 +77,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         // Tick subscription — monitors elapsed and triggers expiry
         this.subscriptions.push(
             ctx.subscribe('tick', (_event, tickCtx) => {
-                const timer = tickCtx.getMemory('time') as TimerState | undefined;
+                const timer = tickCtx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
                 if (!timer || timer.direction !== 'down' || timer.durationMs === undefined) {
                     return [];
                 }
@@ -98,12 +98,10 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         this.subscriptions.push(
             ctx.subscribe('timer:reset' as any, (_event, rCtx) => {
                 if (mode !== 'reset-interval') return [];
-                const timer = rCtx.getMemory('time') as TimerState | undefined;
-                if (!timer) return [];
-                rCtx.setMemory('time', {
-                    ...timer,
-                    spans: [new TimeSpan(rCtx.clock.now.getTime())]
-                });
+                const timeLoc = rCtx.getMemoryByTag('time')[0];
+                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.fragments[0]) return [];
+                rCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: [new TimeSpan(rCtx.clock.now.getTime())]}}]);
                 return [];
             })
         );
@@ -112,12 +110,10 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         this.subscriptions.push(
             ctx.subscribe('timer:pause' as any, (_event, pCtx) => {
                 if (this.isPaused) return [];
-                const timer = pCtx.getMemory('time') as TimerState | undefined;
-                if (!timer) return [];
-                pCtx.setMemory('time', {
-                    ...timer,
-                    spans: closeCurrentSpan(timer.spans, pCtx.clock.now.getTime())
-                });
+                const timeLoc = pCtx.getMemoryByTag('time')[0];
+                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.fragments[0]) return [];
+                pCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: closeCurrentSpan(timer.spans, pCtx.clock.now.getTime())}}]);
                 this.isPaused = true;
                 return [];
             })
@@ -127,12 +123,10 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
         this.subscriptions.push(
             ctx.subscribe('timer:resume' as any, (_event, rCtx) => {
                 if (!this.isPaused) return [];
-                const timer = rCtx.getMemory('time') as TimerState | undefined;
-                if (!timer) return [];
-                rCtx.setMemory('time', {
-                    ...timer,
-                    spans: [...timer.spans, new TimeSpan(rCtx.clock.now.getTime())]
-                });
+                const timeLoc = rCtx.getMemoryByTag('time')[0];
+                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.fragments[0]) return [];
+                rCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: [...timer.spans, new TimeSpan(rCtx.clock.now.getTime())]}}]);
                 this.isPaused = false;
                 return [];
             })
@@ -157,7 +151,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        const timer = ctx.getMemory('time') as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return [];
         }
@@ -173,12 +167,10 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('time') as TimerState | undefined;
-        if (!timer || timer.spans.length === 0) return [];
-        ctx.setMemory('time', {
-            ...timer,
-            spans: closeCurrentSpan(timer.spans, ctx.clock.now.getTime())
-        });
+        const timeLoc = ctx.getMemoryByTag('time')[0];
+        const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+        if (!timer || timer.spans.length === 0 || !timeLoc?.fragments[0]) return [];
+        ctx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: closeCurrentSpan(timer.spans, ctx.clock.now.getTime())}}]);
         return [];
     }
 
@@ -202,11 +194,11 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             ctx.markComplete('timer-expired');
         } else {
             // reset-interval: new span starting now, reset child cursor
-            const timer = ctx.getMemory('time') as TimerState;
-            ctx.setMemory('time', {
-                ...timer,
-                spans: [new TimeSpan(ctx.clock.now.getTime())]
-            });
+            const timeLoc = ctx.getMemoryByTag('time')[0];
+            const timer = timeLoc?.fragments[0]?.value as TimerState;
+            if (timeLoc?.fragments[0]) {
+                ctx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: [new TimeSpan(ctx.clock.now.getTime())]}}]);
+            }
 
             // If ChildSelectionBehavior is present, it will handle round/status advancement
             // via its own logic (coordinated with Rest block popping or manual next).
@@ -221,7 +213,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             // Cycle complete — advance round counter directly before
             // resetting for the next cycle. This keeps round tracking
             // self-contained for simple repeating timers without children.
-            const round = ctx.getMemory('round') as RoundState | undefined;
+            const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
             if (round) {
                 const roundFragment = new CurrentRoundFragment(
                     round.current + 1,
@@ -232,18 +224,19 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                 ctx.updateMemory('round', [roundFragment]);
             }
 
-            const childStatus = ctx.getMemory('children:status') as ChildrenStatusState | undefined;
-            ctx.setMemory('children:status', {
-                childIndex: 0,
-                totalChildren: childStatus?.totalChildren ?? 0,
-                allExecuted: false,
-                allCompleted: false
-            });
+            const childLoc = ctx.getMemoryByTag('children:status')[0];
+            const childStatus = childLoc?.fragments[0]?.value as ChildrenStatusState | undefined;
+            const newChildStatus = { childIndex: 0, totalChildren: childStatus?.totalChildren ?? 0, allExecuted: false, allCompleted: false };
+            if (childLoc?.fragments[0]) {
+                ctx.updateMemory('children:status', [{...childLoc.fragments[0], value: newChildStatus}]);
+            } else {
+                ctx.pushMemory('children:status', [{fragmentType: 0 as any, type: 'children:status', image: '', origin: 'runtime' as any, value: newChildStatus}]);
+            }
         }
     }
 
     private getRemainingCountdownMs(ctx: IBehaviorContext): number {
-        const timer = ctx.getMemory('time') as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return 0;
         }

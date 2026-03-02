@@ -93,10 +93,10 @@ describe('RestBlock', () => {
             harness.push(block);
             harness.mount();
 
-            const timerMemory = harness.getMemory('time');
+            const timerMemory = harness.getMemory<{ direction: string; durationMs: number }>('time');
             expect(timerMemory).toBeDefined();
-            expect(timerMemory.direction).toBe('down');
-            expect(timerMemory.durationMs).toBe(60000);
+            expect(timerMemory!.direction).toBe('down');
+            expect(timerMemory!.durationMs).toBe(60000);
         });
 
         it('should have Rest block type on stack after mount', () => {

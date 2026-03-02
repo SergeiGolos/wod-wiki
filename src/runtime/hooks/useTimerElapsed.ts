@@ -70,7 +70,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   
   // Subscribe to block-level timer memory
   const [timerState, setTimerState] = useState<TimerState | undefined>(() => {
-    return block?.getMemory('time')?.value;
+    return block?.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
   });
   
   // Subscribe to stack changes to update block reference
@@ -78,8 +78,8 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     const unsubscribe = runtime.stack.subscribe(() => {
       const foundBlock = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
       if (foundBlock) {
-        const entry = foundBlock.getMemory('time');
-        setTimerState(entry?.value);
+        const timerLoc = foundBlock.getMemoryByTag('time')[0];
+        setTimerState(timerLoc?.fragments[0]?.value as TimerState | undefined);
       } else {
         setTimerState(undefined);
       }
@@ -94,12 +94,12 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
       return;
     }
     
-    const entry = block.getMemory('time');
-    setTimerState(entry?.value);
+    const timerLoc = block.getMemoryByTag('time')[0];
+    setTimerState(timerLoc?.fragments[0]?.value as TimerState | undefined);
     
-    if (entry && typeof entry.subscribe === 'function') {
-      const unsubscribe = entry.subscribe((newValue) => {
-        setTimerState(newValue as TimerState | undefined);
+    if (timerLoc) {
+      const unsubscribe = timerLoc.subscribe((newFrags) => {
+        setTimerState(newFrags[0]?.value as TimerState | undefined);
       });
       return unsubscribe;
     }

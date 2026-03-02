@@ -47,8 +47,9 @@ export class SetMemoryValueAction implements ITestSetupAction {
       return;
     }
 
-    if (block.hasMemory(this.params.memoryType as any)) {
-      block.setMemoryValue(this.params.memoryType as any, this.params.value);
+    const loc = block.getMemoryByTag(this.params.memoryType as any)[0];
+    if (loc?.fragments[0]) {
+      loc.update([{ ...loc.fragments[0], value: this.params.value }]);
     } else {
       console.warn(
         `SetMemoryValueAction: No memory found for type="${this.params.memoryType}" on block "${this.params.ownerId}"`

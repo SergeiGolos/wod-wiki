@@ -275,23 +275,6 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.getAllMemory();
   }
 
-  hasMemory(type: import('../../runtime/memory/MemoryTypes').MemoryType): boolean {
-    return this._wrapped.hasMemory(type);
-  }
-
-  getMemory<T extends import('../../runtime/memory/MemoryTypes').MemoryType>(
-    type: T
-  ): import('../../runtime/contracts/IRuntimeBlock').IMemoryEntryShim<import('../../runtime/memory/MemoryTypes').MemoryValueOf<T>> | undefined {
-    return this._wrapped.getMemory(type);
-  }
-
-  setMemoryValue<T extends import('../../runtime/memory/MemoryTypes').MemoryType>(
-    type: T,
-    value: import('../../runtime/memory/MemoryTypes').MemoryValueOf<T>
-  ): void {
-    this._wrapped.setMemoryValue(type, value);
-  }
-
   // ========== Private Helpers ==========
 
   private _intercept<R>(

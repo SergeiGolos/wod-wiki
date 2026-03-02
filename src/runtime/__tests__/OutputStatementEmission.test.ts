@@ -46,8 +46,8 @@ function createMockBlock(options: {
             const endTime = this.executionTiming?.completedAt?.getTime() ?? Date.now();
             const timeSpan = new TimeSpan(startTime, endTime);
             // Access fragments through memory (new API)
-            const fragmentMem = this.getMemory?.('fragment');
-            const fragments = fragmentMem?.value?.groups?.flat() ?? [];
+            const fragmentLocs = this.getMemoryByTag?.('fragment:display') ?? [];
+            const fragments = fragmentLocs.flatMap((loc: any) => loc.fragments);
 
             const output = new OutputStatement({
                 outputType: 'completion',

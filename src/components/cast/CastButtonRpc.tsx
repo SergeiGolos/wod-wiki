@@ -36,9 +36,13 @@ export const CastButtonRpc: React.FC = () => {
 
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
     const eventProviderRef = useRef<ChromecastEventProvider | null>(null);
-    // Track whether we are currently casting (stable ref for effects)
+    const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+    // Track state in refs for the native event listener closure
     const isCastingRef = useRef(false);
     isCastingRef.current = isCasting;
+    const sdkStateRef = useRef(sdkState);
+    sdkStateRef.current = sdkState;
 
     // Initialize SDK on mount
     useEffect(() => {
@@ -58,186 +62,142 @@ export const CastButtonRpc: React.FC = () => {
         return unsub;
     }, []);
 
-    // Shared helper: attach a new ChromecastRuntimeSubscription to a manager and
-    // immediately send the current stack state to the receiver.
+    // Shared helper: attach a new ChromecastRuntimeSubscription to a manager
     const attachSubscription = useCallback((mgr: SubscriptionManager, transport: WebRtcRpcTransport) => {
         const chromecastSub = new ChromecastRuntimeSubscription(transport, {
             id: CHROMECAST_SUBSCRIPTION_ID,
         });
         mgr.add(chromecastSub);
         console.log('[CastButtonRpc] Attached subscription to SubscriptionManager');
-
-        // Immediately push the current stack state so the receiver doesn't wait for
-        // the next stack change. The SubscriptionManager's initial snapshot fires
-        // via setTimeout which races with React's effect scheduling — sending it
-        // explicitly here ensures the receiver always gets the current state.
-        const runtime = useWorkbenchSyncStore.getState().runtime;
-        if (runtime && transport.connected && runtime.stack.count > 0) {
-            chromecastSub.onStackSnapshot({
-                type: 'initial',
-                blocks: [...runtime.stack.blocks],
-                depth: runtime.stack.count,
-                clockTime: runtime.clock.now,
-            });
-            console.log('[CastButtonRpc] Sent initial stack snapshot to receiver', runtime.stack.count, 'blocks');
-        }
     }, []);
 
-    // Re-add Chromecast subscription whenever the subscriptionManager changes
-    // (new runtime created while already casting)
-    useEffect(() => {
-        if (!isCastingRef.current || !subscriptionManager || !transportRef.current) return;
-        attachSubscription(subscriptionManager, transportRef.current);
-    }, [subscriptionManager, attachSubscription]);
-
-    // Also attach when isCasting becomes true with a pre-existing subscriptionManager
-    // (user is already on the track view when they start casting)
-    useEffect(() => {
-        if (!isCasting || !subscriptionManager || !transportRef.current) return;
-        attachSubscription(subscriptionManager, transportRef.current);
-    }, [isCasting, attachSubscription]); // intentionally excludes subscriptionManager to avoid double-attaching
-
-    // Wire ChromecastEventProvider to route receiver events → local runtime
-    useEffect(() => {
-        const eventProvider = eventProviderRef.current;
-        if (!eventProvider || !isCasting) return;
-
-        // When the receiver sends events (D-Pad), feed them into the local runtime
-        const unsub = eventProvider.onEvent((event) => {
-            const state = useWorkbenchSyncStore.getState();
-            const { handleNext, handleStart, handlePause, handleStop } = state;
-
-            switch (event.name) {
-                case 'next': handleNext(); break;
-                case 'start': handleStart(); break;
-                case 'pause': handlePause(); break;
-                case 'stop': handleStop(); break;
-                default:
-                    console.warn(`[CastButtonRpc] Unhandled remote event: ${event.name}`);
-            }
-        });
-
-        return unsub;
-    }, [isCasting]);
-
-    // Handle transport disconnect
-    useEffect(() => {
-        const transport = transportRef.current;
-        if (!transport || !isCasting) return;
-
-        const unsub = transport.onDisconnected(() => {
-            console.log('[CastButtonRpc] Transport disconnected');
-            cleanupCast();
-        });
-
-        return unsub;
-    }, [isCasting]);
-
     const cleanupCast = useCallback(() => {
-        // Remove chromecast subscription from the manager
         subscriptionManager?.remove(CHROMECAST_SUBSCRIPTION_ID);
 
-        // Explicitly notify the receiver that the cast session is ending.
-        // This is the ONLY place rpc-dispose should be sent — NOT in
-        // ChromecastRuntimeSubscription.dispose(), which fires on every
-        // runtime reset and would permanently break the receiver's proxy.
         const transport = transportRef.current;
         if (transport?.connected) {
             try { transport.send({ type: 'rpc-dispose' }); } catch { /* ignore */ }
         }
 
-        // Dispose event provider
         eventProviderRef.current?.dispose();
         eventProviderRef.current = null;
-
-        // Dispose transport + clear in store
         transportRef.current?.dispose();
         transportRef.current = null;
         setCastTransport(null);
-
         setIsCasting(false);
     }, [subscriptionManager, setCastTransport]);
 
-    const handleCast = useCallback(async () => {
-        if (isCasting) {
-            cleanupCast();
-            ChromecastSdk.endSession();
-            return;
-        }
+    // Native click handler to preserve "User Activation" gesture.
+    // React's SyntheticEvent system can introduce microtasks that break gesture-sensitive APIs.
+    useEffect(() => {
+        const btn = buttonRef.current;
+        if (!btn) return;
 
-        // NOTE: We allow casting even when no runtime/subscriptionManager is active.
-        // The WorkbenchCastBridge will send workbench-level updates (preview/review modes)
-        // and the subscription will be added once a runtime is initialized.
-
-        setIsConnecting(true);
-        try {
-            if (!hasCustomCastAppId) {
-                throw new Error(
-                    `Cast is not configured. Set VITE_CAST_APP_ID to your Custom Receiver App ID.`
-                );
+        const onNativeClick = async () => {
+            if (isCastingRef.current) {
+                console.log('[CastButtonRpc] Stopping active session');
+                cleanupCast();
+                ChromecastSdk.endSession();
+                return;
             }
 
-            // 1. Load SDK
-            await ChromecastSdk.load(CAST_APP_ID);
-
-            // 2. Open device picker
-            await ChromecastSdk.requestSession();
-
-            // 3. Get Cast session
-            const session = ChromecastSdk.getSession();
-            if (!session) throw new Error('No Cast session after requestSession()');
-
-            // 4. Wait for receiver boot
-            await new Promise(r => setTimeout(r, 3000));
-
-            const sessionAfterWait = ChromecastSdk.getSession();
-            if (!sessionAfterWait) throw new Error('Cast session died during receiver init wait');
-
-            // 4b. Ping to verify namespace
+            // GESTURE CRITICAL: Calling requestSession() must be the very first action
+            // in the tick of the user gesture. 
+            console.log('[CastButtonRpc] Native click: requesting device picker...');
             try {
+                if (!hasCustomCastAppId) throw new Error('Cast not configured');
+                
+                // Diagnostic check (no delay)
+                if (window.self !== window.top) {
+                    console.info('[CastButtonRpc] Running in iframe (Storybook) - ensure "allow=presentation"');
+                }
+
+                await ChromecastSdk.requestSession();
+                
+                // --- User chose a device ---
+                setIsConnecting(true);
+
+                const session = ChromecastSdk.getSession();
+                if (!session) throw new Error('No session');
+
+                console.log('[CastButtonRpc] Session obtained, waiting for receiver boot...');
+                await new Promise(r => setTimeout(r, 3000));
+                
+                const sessionAfterWait = ChromecastSdk.getSession();
+                if (!sessionAfterWait) throw new Error('Session died');
+
+                // Verify namespace
                 await sessionAfterWait.sendMessage(CAST_NAMESPACE_STR, { type: 'ping', timestamp: Date.now() });
-            } catch (pingErr) {
-                const reason = typeof pingErr === 'string'
-                    ? pingErr
-                    : ((pingErr as any)?.code || (pingErr as any)?.message || String(pingErr));
-                throw new Error(
-                    `Cast namespace ping failed (${reason}). ` +
-                    `Verify App ID points to the published custom receiver.`
-                );
+
+                // Create RPC transport
+                const signaling = new SenderCastSignaling(sessionAfterWait);
+                const transport = new WebRtcRpcTransport('offerer', signaling);
+                transportRef.current = transport;
+
+                await transport.connect();
+
+                const eventProvider = new ChromecastEventProvider(transport);
+                eventProviderRef.current = eventProvider;
+                setCastTransport(transport);
+                setIsCasting(true);
+                console.log('[CastButtonRpc] Cast session established');
+
+            } catch (err: any) {
+                if (err?.message?.includes('cancel') || err === 'cancel') {
+                    console.log('[CastButtonRpc] Cast request canceled or gesture expired');
+                } else {
+                    console.error('[CastButtonRpc] Cast failed:', err);
+                }
+                cleanupCast();
+            } finally {
+                setIsConnecting(false);
             }
+        };
 
-            // 5. Create RPC transport
-            const signaling = new SenderCastSignaling(sessionAfterWait);
-            const transport = new WebRtcRpcTransport('offerer', signaling);
-            transportRef.current = transport;
+        btn.addEventListener('click', onNativeClick);
+        return () => btn.removeEventListener('click', onNativeClick);
+    }, [cleanupCast, setCastTransport]);
 
-            // 6. Connect
-            await transport.connect();
+    // Subscription management effects
+    useEffect(() => {
+        if (!isCasting || !subscriptionManager || !transportRef.current) return;
+        attachSubscription(subscriptionManager, transportRef.current);
+    }, [isCasting, subscriptionManager, attachSubscription]);
 
-            // 7. Wire event provider for receiver → browser event routing
-            const eventProvider = new ChromecastEventProvider(transport);
-            eventProviderRef.current = eventProvider;
+    // Remote event routing (Receiver -> Local Runtime)
+    useEffect(() => {
+        const eventProvider = eventProviderRef.current;
+        if (!eventProvider || !isCasting) return;
 
-            // 8. Publish transport to store so WorkbenchCastBridge can send workbench-level msgs
-            setCastTransport(transport);
+        const unsub = eventProvider.onEvent((event) => {
+            const state = useWorkbenchSyncStore.getState();
+            const { handleNext, handleStart, handlePause, handleStop } = state;
+            switch (event.name) {
+                case 'next': handleNext(); break;
+                case 'start': handleStart(); break;
+                case 'pause': handlePause(); break;
+                case 'stop': handleStop(); break;
+            }
+        });
+        return unsub;
+    }, [isCasting]);
 
-            // 9. setIsCasting triggers the isCasting effect which calls attachSubscription,
-            //    registering ChromecastRuntimeSubscription with the active SubscriptionManager
-            //    (or deferred until the next runtime init if no runtime exists yet).
-            setIsCasting(true);
-        } catch (err) {
-            console.error('[CastButtonRpc] Cast failed:', err);
+    // Auto-cleanup on disconnect
+    useEffect(() => {
+        const transport = transportRef.current;
+        if (!transport || !isCasting) return;
+        return transport.onDisconnected(() => {
+            console.log('[CastButtonRpc] Transport disconnected');
             cleanupCast();
-        } finally {
-            setIsConnecting(false);
-        }
-    }, [isCasting, subscriptionManager, cleanupCast, setCastTransport]);
+        });
+    }, [isCasting, cleanupCast]);
 
-    // Handle states
+    // State derivation
     const isUnavailable = sdkState === 'unavailable';
     const isAvailable = sdkState === 'ready';
     const isConnected = isCasting && sdkState === 'session-active';
     const isCurrentlyConnecting = isConnecting || (sdkState === 'loading');
+    const canInteract = isAvailable || isConnected;
 
     if (isUnavailable) {
         return (
@@ -249,9 +209,10 @@ export const CastButtonRpc: React.FC = () => {
 
     return (
         <Button
+            ref={buttonRef}
             variant="ghost"
             size="icon"
-            onClick={handleCast}
+            disabled={isCurrentlyConnecting || !canInteract}
             className={cn(
                 "transition-all duration-300",
                 isConnected ? "text-blue-500 bg-blue-500/10" : "",

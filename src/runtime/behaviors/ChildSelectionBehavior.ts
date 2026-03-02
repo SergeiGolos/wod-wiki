@@ -162,7 +162,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         // ChildSelectionBehavior.shouldLoop() handles the normal exhaustion path;
         // this guard catches the edge case where current advances past total externally.
         if (this.config.startRound !== undefined) {
-            const round = ctx.getMemory('round') as RoundState | undefined;
+            const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
             if (round?.total !== undefined && round.current > round.total) {
                 ctx.markComplete('rounds-exhausted');
                 this.writeChildrenStatus(ctx);
@@ -271,7 +271,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         }
 
         if (condition === 'timer-active') {
-            const timer = ctx.getMemory('time') as TimerState | undefined;
+            const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
             if (!timer) {
                 return false;
             }
@@ -283,7 +283,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return true;
         }
 
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
         if (!round) {
             return false;
         }
@@ -298,7 +298,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return false;
         }
 
-        const timer = ctx.getMemory('time') as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return false;
         }
@@ -316,7 +316,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
     }
 
     private getRemainingCountdownMs(ctx: IBehaviorContext): number {
-        const timer = ctx.getMemory('time') as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return 0;
         }
@@ -333,8 +333,12 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             allExecuted: this.allChildrenExecuted,
             allCompleted: this.allChildrenCompleted,
         };
-
-        ctx.setMemory('children:status', status);
+        const childLoc = ctx.getMemoryByTag('children:status')[0];
+        if (childLoc?.fragments[0]) {
+            ctx.updateMemory('children:status', [{...childLoc.fragments[0], value: status}]);
+        } else {
+            ctx.pushMemory('children:status', [{fragmentType: 0 as any, type: 'children:status', image: '', origin: 'runtime' as any, value: status}]);
+        }
     }
 
     /**
@@ -346,7 +350,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
      * ReEntryBehavior's onNext() or behavior execution ordering.
      */
     private advanceRound(ctx: IBehaviorContext): void {
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
         if (!round) return;
 
         const roundFragment = new CurrentRoundFragment(

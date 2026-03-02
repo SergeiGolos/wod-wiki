@@ -77,6 +77,43 @@ describe('AnalyticsTransformer', () => {
       expect(result.segments[0].name).toBe('Warmup');
       expect(result.segments[0].elapsed).toBe(60);
     });
+
+    it('ignores non-segment output types (load, system, etc.)', () => {
+      const startTime = Date.now();
+      const outputs: IOutputStatement[] = [
+        createMockOutput({
+          id: 1,
+          outputType: 'load',
+          started: startTime,
+          ended: startTime,
+          fragments: [{ type: 'load', fragmentType: FragmentType.Label, value: 'Load', image: 'Load' }]
+        }),
+        createMockOutput({
+          id: 2,
+          outputType: 'segment',
+          started: startTime,
+          ended: startTime + 60000,
+          fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Work', image: 'Work' }]
+        }),
+        createMockOutput({
+          id: 3,
+          outputType: 'system',
+          started: startTime + 60000,
+          ended: startTime + 60000,
+          fragments: [{ type: 'lifecycle', fragmentType: FragmentType.System, value: 'pop', image: 'pop' }]
+        })
+      ];
+
+      const runtime = {
+        getOutputStatements: () => outputs,
+      } as unknown as IScriptRuntime;
+
+      const result = getAnalyticsFromRuntime(runtime);
+
+      // Should ONLY include the 'segment' output
+      expect(result.segments).toHaveLength(1);
+      expect(result.segments[0].name).toBe('Work');
+    });
   });
 
   describe('AnalyticsTransformer Class', () => {

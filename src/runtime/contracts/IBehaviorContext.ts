@@ -234,6 +234,13 @@ export interface IBehaviorContext {
     pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation;
 
     /**
+     * Get all memory locations matching the given tag.
+     * Delegates to block.getMemoryByTag — use this inside behaviors instead of
+     * the deprecated getMemory() shim.
+     */
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
+
+    /**
      * Update the first matching memory location with new fragment data.
      *
      * Convenience method for updating existing memory without managing references.

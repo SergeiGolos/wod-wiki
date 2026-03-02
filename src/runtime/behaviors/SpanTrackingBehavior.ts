@@ -47,13 +47,14 @@ export class SpanTrackingBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timerState = ctx.getMemory('time') as TimerState | undefined;
-        if (!timerState || timerState.spans.length === 0) return [];
+        const timeLoc = ctx.getMemoryByTag('time')[0];
+        const timerState = timeLoc?.fragments[0]?.value as TimerState | undefined;
+        if (!timerState || timerState.spans.length === 0 || !timeLoc?.fragments[0]) return [];
 
         const now = ctx.clock.now.getTime();
         const closedSpans = closeCurrentSpan(timerState.spans, now);
 
-        ctx.setMemory('time', { ...timerState, spans: closedSpans });
+        ctx.updateMemory('time', [{...timeLoc.fragments[0], value: { ...timerState, spans: closedSpans }}]);
         return [];
     }
 

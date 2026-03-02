@@ -174,6 +174,10 @@ export class BehaviorContext implements IBehaviorContext {
         return location;
     }
 
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+        return this.block.getMemoryByTag(tag);
+    }
+
     updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void {
         const locations = this.block.getMemoryByTag(tag);
         if (locations.length > 0) {

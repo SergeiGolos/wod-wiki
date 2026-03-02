@@ -3,15 +3,21 @@ import { ChildSelectionBehavior } from '../ChildSelectionBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { TimerState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
+import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+import { ICodeFragment } from '../../../core/models/CodeFragment';
 
 function createMockContext(overrides: {
     timerState?: TimerState;
     isComplete?: boolean;
     clockNow?: number;
 } = {}): IBehaviorContext {
-    const memoryStore = new Map<string, unknown>();
+    const memoryLocations: MemoryLocation[] = [];
     if (overrides.timerState) {
-        memoryStore.set('time', overrides.timerState);
+        // Store timer state as fragment.value under 'time' tag
+        memoryLocations.push(new MemoryLocation('time', [{
+            fragmentType: 0 as any, type: 'time', image: '', origin: 'runtime' as any,
+            value: overrides.timerState
+        }]));
     }
 
     return {
@@ -28,8 +34,18 @@ function createMockContext(overrides: {
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: unknown) => memoryStore.set(type, value)),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
+        getMemory: vi.fn(),
+        setMemory: vi.fn(),
+        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+            const loc = new MemoryLocation(tag as MemoryTag, fragments);
+            memoryLocations.push(loc);
+            return loc;
+        }),
+        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+            const loc = memoryLocations.find(l => l.tag === tag);
+            if (loc) loc.update(fragments);
+        }),
     } as unknown as IBehaviorContext;
 }
 
@@ -43,12 +59,16 @@ describe('ChildSelectionBehavior', () => {
         expect(actions[0].type).toBe('compile-child-block');
         expect(actions[0].payload).toEqual({ statementIds: [1] });
         expect(actions[1].type).toBe('update-next-preview');
-        expect(ctx.setMemory).toHaveBeenCalledWith('children:status', expect.objectContaining({
-            childIndex: 1,
-            totalChildren: 2,
-            allExecuted: false,
-            allCompleted: false,
-        }));
+        expect(ctx.pushMemory).toHaveBeenCalledWith('children:status', expect.arrayContaining([
+            expect.objectContaining({
+                value: expect.objectContaining({
+                    childIndex: 1,
+                    totalChildren: 2,
+                    allExecuted: false,
+                    allCompleted: false,
+                })
+            })
+        ]));
     });
 
     it('supports skipOnMount and only sets next preview', () => {
@@ -59,10 +79,14 @@ describe('ChildSelectionBehavior', () => {
 
         expect(actions.length).toBe(1);
         expect(actions[0].type).toBe('update-next-preview');
-        expect(ctx.setMemory).toHaveBeenCalledWith('children:status', expect.objectContaining({
-            childIndex: 0,
-            allExecuted: false,
-        }));
+        expect(ctx.pushMemory).toHaveBeenCalledWith('children:status', expect.arrayContaining([
+            expect.objectContaining({
+                value: expect.objectContaining({
+                    childIndex: 0,
+                    allExecuted: false,
+                })
+            })
+        ]));
     });
 
     it('dispatches next children in sequence on onNext', () => {

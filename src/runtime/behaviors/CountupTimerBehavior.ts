@@ -51,12 +51,10 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
         this.subscriptions.push(
             ctx.subscribe('timer:pause' as any, (_event, pCtx) => {
                 if (this.isPaused) return [];
-                const timer = pCtx.getMemory('time') as TimerState | undefined;
-                if (!timer) return [];
-                pCtx.setMemory('time', {
-                    ...timer,
-                    spans: closeCurrentSpan(timer.spans, pCtx.clock.now.getTime())
-                });
+                const timeLoc = pCtx.getMemoryByTag('time')[0];
+                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.fragments[0]) return [];
+                pCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: closeCurrentSpan(timer.spans, pCtx.clock.now.getTime())}}]);
                 this.isPaused = true;
                 return [];
             })
@@ -66,12 +64,10 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
         this.subscriptions.push(
             ctx.subscribe('timer:resume' as any, (_event, rCtx) => {
                 if (!this.isPaused) return [];
-                const timer = rCtx.getMemory('time') as TimerState | undefined;
-                if (!timer) return [];
-                rCtx.setMemory('time', {
-                    ...timer,
-                    spans: [...timer.spans, new TimeSpan(rCtx.clock.now.getTime())]
-                });
+                const timeLoc = rCtx.getMemoryByTag('time')[0];
+                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.fragments[0]) return [];
+                rCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: [...timer.spans, new TimeSpan(rCtx.clock.now.getTime())]}}]);
                 this.isPaused = false;
                 return [];
             })
@@ -85,12 +81,10 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('time') as TimerState | undefined;
-        if (!timer || timer.spans.length === 0) return [];
-        ctx.setMemory('time', {
-            ...timer,
-            spans: closeCurrentSpan(timer.spans, ctx.clock.now.getTime())
-        });
+        const timeLoc = ctx.getMemoryByTag('time')[0];
+        const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
+        if (!timer || timer.spans.length === 0 || !timeLoc?.fragments[0]) return [];
+        ctx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: closeCurrentSpan(timer.spans, ctx.clock.now.getTime())}}]);
         return [];
     }
 

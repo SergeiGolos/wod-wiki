@@ -52,8 +52,14 @@ export const WorkbenchCastBridge: React.FC = () => {
                 // Workout just ended while still on the track view — show results.
                 message = buildReviewMessage(analyticsData, analyticsSegments);
 
+            } else if (runtime) {
+                // On track view, runtime exists but not yet started (idle).
+                // Show 'active' mode so the TV displays the stack ("Ready to Start") 
+                // matching the browser view.
+                message = { type: 'rpc-workbench-update', mode: 'active' };
+
             } else {
-                // On track view but runtime not yet started → show plan preview.
+                // On track view but no runtime yet (selecting a block) → show plan preview.
                 message = buildPreviewMessage(selectedBlock, documentItems);
             }
 

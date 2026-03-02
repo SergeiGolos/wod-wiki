@@ -44,7 +44,7 @@ describe('Loop Block Integration', () => {
      * we drive it manually.
      */
     function simulateRoundAdvance(ctx: IBehaviorContext) {
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
         if (!round) return;
         const frag = new CurrentRoundFragment(
             round.current + 1,

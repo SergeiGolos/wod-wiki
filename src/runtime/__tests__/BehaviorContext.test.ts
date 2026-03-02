@@ -220,16 +220,17 @@ describe('BehaviorContext', () => {
         });
     });
 
-    describe('getMemory', () => {
-        it('should return undefined when no memory exists', () => {
-            const result = ctx.getMemory('time');
-            expect(result).toBeUndefined();
+    describe('getMemoryByTag', () => {
+        it('should return empty array when no memory exists', () => {
+            (block.getMemoryByTag as any).mockReturnValue([]);
+            const result = ctx.getMemoryByTag('time');
+            expect(result).toEqual([]);
         });
 
-        it('should return memory value when it exists', () => {
-            // BehaviorContext.getMemory now reads from getMemoryByTag -> fragments[0].value
+        it('should return memory locations when they exist', () => {
+            // BehaviorContext.getMemoryByTag delegates to block.getMemoryByTag
             const mockLocation = {
-                tag: 'timer',
+                tag: 'time',
                 fragments: [{ value: { elapsed: 1000 } }],
                 subscribe: vi.fn(),
                 update: vi.fn(),
@@ -237,8 +238,9 @@ describe('BehaviorContext', () => {
             };
             (block.getMemoryByTag as any).mockReturnValue([mockLocation]);
 
-            const result = ctx.getMemory('time');
-            expect(result).toEqual({ elapsed: 1000 });
+            const result = ctx.getMemoryByTag('time');
+            expect(result).toEqual([mockLocation]);
+            expect(result[0]?.fragments[0]?.value).toEqual({ elapsed: 1000 });
         });
     });
 

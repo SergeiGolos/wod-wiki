@@ -326,19 +326,16 @@ export class BehaviorTestHarness {
     if (!ownerId) {
       const currentBlock = this._stack.current;
       if (currentBlock) {
-        // Check if block has a context with the memory (MockBlock pattern)
-        const blockContext = (currentBlock as any).context;
-        if (blockContext?.get) {
-          const ref = blockContext.get(type);
-          if (ref) {
-            return ref.get?.() ?? ref.value?.();
-          }
-        }
-        // Also check if block has direct getMemory (IRuntimeBlock pattern)
-        if (typeof (currentBlock as any).getMemory === 'function') {
-          const memEntry = (currentBlock as any).getMemory(type);
-          if (memEntry?.value !== undefined) {
-            return memEntry.value;
+        // Check block's list-based memory via getMemoryByTag
+        if (typeof currentBlock.getMemoryByTag === 'function') {
+          const loc = currentBlock.getMemoryByTag(type as any)[0];
+          if (loc) {
+            const frag = loc.fragments[0];
+            if (frag) {
+              // 'round' tag: fragment itself is the RoundState
+              if (type === 'round') return frag as unknown as T;
+              return frag.value as T;
+            }
           }
         }
       }

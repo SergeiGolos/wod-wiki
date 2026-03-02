@@ -42,7 +42,7 @@ describe('RootBlock Lifecycle', () => {
 
         // Expectations: All behaviors called onMount
         // Timer initialized in memory on root block, controls initialized, first child pushed
-        expect(rootBlock.getMemory('time')).toBeDefined();
+        expect(rootBlock.getMemoryByTag('time')).toHaveLength(1);
         expect(harness.stack.count).toBe(2); // root + child
         
         harness.dispose();

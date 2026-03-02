@@ -4,6 +4,7 @@ import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from 
 import { IFragmentSource } from '../../core/contracts/IFragmentSource';
 import { formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
+import { MemoryTag } from '../memory/MemoryLocation';
 
 /**
  * React hook to subscribe to a specific memory type on a block.
@@ -31,9 +32,15 @@ export function useBlockMemory<T extends MemoryType>(
     block: IRuntimeBlock | undefined,
     type: T
 ): MemoryValueOf<T> | undefined {
-    const [value, setValue] = useState<MemoryValueOf<T> | undefined>(() => {
-        return block?.getMemory(type)?.value;
-    });
+    const tag = type as unknown as MemoryTag;
+    const getVal = (): MemoryValueOf<T> | undefined => {
+        const loc = block?.getMemoryByTag(tag)[0];
+        if (!loc) return undefined;
+        // 'round' tag: the fragment itself IS the value (CurrentRoundFragment satisfies RoundState)
+        if (tag === 'round') return loc.fragments[0] as unknown as MemoryValueOf<T>;
+        return loc.fragments[0]?.value as MemoryValueOf<T> | undefined;
+    };
+    const [value, setValue] = useState<MemoryValueOf<T> | undefined>(getVal);
 
     useEffect(() => {
         if (!block) {
@@ -42,19 +49,23 @@ export function useBlockMemory<T extends MemoryType>(
         }
 
         // Get initial value
-        const entry = block.getMemory(type);
-        setValue(entry?.value);
+        setValue(getVal());
 
         // Subscribe to changes
-        if (entry && typeof entry.subscribe === 'function') {
-            const unsubscribe = entry.subscribe((newValue) => {
-                setValue(newValue as MemoryValueOf<T> | undefined);
+        const loc = block.getMemoryByTag(tag)[0];
+        if (loc) {
+            const unsubscribe = loc.subscribe((newFrags) => {
+                if (tag === 'round') {
+                    setValue(newFrags[0] as unknown as MemoryValueOf<T> | undefined);
+                } else {
+                    setValue(newFrags[0]?.value as MemoryValueOf<T> | undefined);
+                }
             });
             return unsubscribe;
         }
 
-        // No entry or no subscribe method
         return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [block, type]);
 
     return value;
@@ -268,15 +279,28 @@ export function useRoundDisplay(block: IRuntimeBlock | undefined): RoundDisplayV
  * ```
  */
 export function useFragmentSource(block: IRuntimeBlock | undefined): IFragmentSource | undefined {
-    // Subscribe to the display state for reactivity (triggers re-render on changes)
-    const displayState = useBlockMemory(block, 'fragment:display');
+    const [version, setVersion] = useState(0);
 
-    // Return the memory entry itself as IFragmentSource (it implements the interface)
+    useEffect(() => {
+        if (!block) return;
+        const loc = block.getMemoryByTag('fragment:display')[0];
+        if (!loc) return;
+        return loc.subscribe(() => setVersion(v => v + 1));
+    }, [block]);
+
     return useMemo(() => {
-        if (!block || !displayState) return undefined;
-        const entry = block.getMemory('fragment:display');
-        if (!entry) return undefined;
-        // DisplayFragmentMemory implements IFragmentSource
-        return entry as unknown as IFragmentSource;
-    }, [block, displayState]);
+        if (!block) return undefined;
+        const locs = block.getMemoryByTag('fragment:display');
+        if (locs.length === 0) return undefined;
+        const allFragments = locs.flatMap(loc => loc.fragments);
+        return {
+            id: block.key.toString(),
+            getDisplayFragments: () => allFragments,
+            getFragment: (type) => allFragments.find(f => f.fragmentType === type),
+            getAllFragmentsByType: (type) => allFragments.filter(f => f.fragmentType === type),
+            hasFragment: (type) => allFragments.some(f => f.fragmentType === type),
+            rawFragments: allFragments,
+        } as IFragmentSource;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [block, version]);
 }

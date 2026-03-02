@@ -163,16 +163,23 @@ class ChromecastSdkClass {
      * Returns once the user selects a device (or throws on cancel / error).
      */
     async requestSession(): Promise<void> {
-        if (!window.cast?.framework) throw new Error('Cast SDK not loaded');
-        const ctx = window.cast.framework.CastContext.getInstance();
-        console.log('[Cast SDK] requestSession() — opening device picker…');
+        const { cast } = window;
+        if (!cast?.framework) throw new Error('Cast SDK not loaded');
+
+        const ctx = cast.framework.CastContext.getInstance();
+        
+        // We call the SDK method immediately. Every microtask/log before this
+        // increases the risk of "Lost User Activation" in Chrome/iframes.
         const err = await ctx.requestSession();
+
         if (err) {
+            if (err === 'cancel') throw new Error('cancel');
             console.error('[Cast SDK] requestSession() error code:', err);
             throw new Error(`Cast session request failed: ${err}`);
         }
+
         const session = ctx.getCurrentSession();
-        console.log('[Cast SDK] requestSession() succeeded — sessionId:', session?.getSessionId?.(), 'state:', session?.getSessionState?.());
+        console.log('[Cast SDK] requestSession() succeeded — sessionId:', session?.getSessionId?.());
     }
 
     /** End the current cast session. */

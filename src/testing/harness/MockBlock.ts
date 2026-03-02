@@ -141,6 +141,10 @@ class MockBehaviorContext implements IBehaviorContext {
     }
   }
 
+  getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+    return this._mockBlock.getMemoryByTag(tag);
+  }
+
   pushMemory(_tag: string, _fragments: ICodeFragment[]): IMemoryLocation {
     // Create a real MemoryLocation and push it to the MockBlock
     const location = new MemoryLocation(_tag as MemoryTag, _fragments);

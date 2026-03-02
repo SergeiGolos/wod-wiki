@@ -4,9 +4,15 @@ import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { FragmentType, ICodeFragment } from '../../../core/models/CodeFragment';
 import { RoundState } from '../../memory/MemoryTypes';
 import { IRepSource } from '../../contracts/behaviors/IRepSource';
+import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+
+function makeRoundLocation(round: RoundState): MemoryLocation {
+    // Round fragments are the roundState itself (cast pattern)
+    return new MemoryLocation('round', [{ ...round, fragmentType: FragmentType.CurrentRound, type: 'current-round', image: '', origin: 'runtime' as any } as any]);
+}
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
-    const memoryStore = new Map<string, any>();
+    const memoryStore = new Map<MemoryTag, MemoryLocation>();
 
     return {
         block: {
@@ -22,8 +28,12 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => {
+            const loc = memoryStore.get(tag);
+            return loc ? [loc] : [];
+        }),
+        getMemory: vi.fn(),
+        setMemory: vi.fn(),
         pushMemory: vi.fn(),
         updateMemory: vi.fn(),
         ...overrides,
@@ -31,21 +41,34 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
 }
 
 function withRoundState(round: RoundState): Partial<IBehaviorContext> {
-    const memoryStore = new Map<string, any>([['round', round]]);
+    const loc = makeRoundLocation(round);
     return {
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => tag === 'round' ? [loc] : []),
+        getMemory: vi.fn(),
+        setMemory: vi.fn(),
     };
 }
 
 function withMutableRound(initial: RoundState) {
+    let loc = makeRoundLocation(initial);
     const memoryStore = new Map<string, any>([['round', initial]]);
     return {
         memoryStore,
         overrides: {
-            getMemory: vi.fn((type: string) => memoryStore.get(type)),
-            setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
+            getMemoryByTag: vi.fn((tag: MemoryTag) => tag === 'round' ? [loc] : []),
+            getMemory: vi.fn(),
+            setMemory: vi.fn((tagStr: string, value: RoundState) => {
+                if (tagStr === 'round') {
+                    memoryStore.set('round', value);
+                    loc = makeRoundLocation(value);
+                }
+            }),
         } as Partial<IBehaviorContext>,
+        // Allow tests to mutate the round by updating the memoryStore
+        setRound: (r: RoundState) => {
+            memoryStore.set('round', r);
+            loc = makeRoundLocation(r);
+        },
     };
 }
 
@@ -188,7 +211,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
     describe('onNext — promotes reps on round change', () => {
         it('should update rep-target when round advances', () => {
             const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const { memoryStore, overrides } = withMutableRound({ current: 1, total: 3 });
+            const { setRound, overrides } = withMutableRound({ current: 1, total: 3 });
             const ctx = createMockContext({
                 ...overrides,
                 block: {
@@ -204,7 +227,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             behavior.onMount(ctx);
 
             // Advance to round 2
-            memoryStore.set('round', { current: 2, total: 3 } as RoundState);
+            setRound({ current: 2, total: 3 } as RoundState);
             behavior.onNext(ctx);
 
             // Should update (not push) because rep-target already exists
@@ -216,7 +239,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
         it('should NOT promote when round has not changed', () => {
             const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const { memoryStore, overrides } = withMutableRound({ current: 1, total: 3 });
+            const { overrides } = withMutableRound({ current: 1, total: 3 });
             const ctx = createMockContext(overrides);
 
             // Mount with round 1
@@ -243,7 +266,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
         it('should handle full round-robin cycle over multiple advances', () => {
             const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const { memoryStore, overrides } = withMutableRound({ current: 1, total: 6 });
+            const { setRound, overrides } = withMutableRound({ current: 1, total: 6 });
             let repTargetPushed = false;
             const ctx = createMockContext({
                 ...overrides,
@@ -267,7 +290,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             );
 
             // Round 2 → 15
-            memoryStore.set('round', { current: 2, total: 6 });
+            setRound({ current: 2, total: 6 });
             behavior.onNext(ctx);
             expect(ctx.updateMemory).toHaveBeenCalledWith(
                 'fragment:rep-target',
@@ -275,7 +298,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             );
 
             // Round 3 → 9
-            memoryStore.set('round', { current: 3, total: 6 });
+            setRound({ current: 3, total: 6 });
             behavior.onNext(ctx);
             expect(ctx.updateMemory).toHaveBeenCalledWith(
                 'fragment:rep-target',
@@ -283,7 +306,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             );
 
             // Round 4 → wraps to 21
-            memoryStore.set('round', { current: 4, total: 6 });
+            setRound({ current: 4, total: 6 });
             behavior.onNext(ctx);
             expect(ctx.updateMemory).toHaveBeenLastCalledWith(
                 'fragment:rep-target',

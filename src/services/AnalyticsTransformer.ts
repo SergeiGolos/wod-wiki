@@ -252,7 +252,11 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
   if (!runtime) return { data: [], segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
-  const outputs = runtime.getOutputStatements();
+  const allOutputs = runtime.getOutputStatements();
+  // Filter for workout segments only — avoids 'load', 'system', 'event' outputs
+  // appearing in results and analytics graphs.
+  const outputs = allOutputs.filter(o => o.outputType === 'segment');
+  
   const segments = transformer.fromOutputStatements(outputs);
 
   if (segments.length === 0) {
@@ -301,7 +305,11 @@ export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTi
   if (!outputs || outputs.length === 0) return { data: [], segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
-  const segments = transformer.fromOutputStatements(outputs, workoutStartTime);
+  // Filter for workout segments only — avoids historical 'load' outputs
+  // appearing in results and analytics graphs.
+  const filteredOutputs = outputs.filter(o => o.outputType === 'segment');
+  
+  const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime);
 
   if (segments.length === 0) {
     return { data: [], segments: [], groups: [] };

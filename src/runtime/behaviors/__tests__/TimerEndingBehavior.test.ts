@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { TimeSpan } from '../../models/TimeSpan';
+import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+import { ICodeFragment } from '../../../core/models/CodeFragment';
 
 interface MockContextState {
     memoryStore: Map<string, any>;
@@ -11,6 +13,7 @@ interface MockContextState {
 
 function createMockContext(initialTime: number = 0): { ctx: IBehaviorContext; state: MockContextState } {
     const memoryStore = new Map<string, any>();
+    const memoryLocations = new Map<string, MemoryLocation>();
     const listeners = new Map<string, (event: any, ctx: IBehaviorContext) => any[]>();
     const unsubscribers: Array<ReturnType<typeof vi.fn>> = [];
 
@@ -34,13 +37,29 @@ function createMockContext(initialTime: number = 0): { ctx: IBehaviorContext; st
         markComplete: vi.fn(),
         getMemory: vi.fn((type: string) => memoryStore.get(type)),
         setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
-        pushMemory: vi.fn((tag: string, fragments: any[]) => {
+        getMemoryByTag: vi.fn((tag: MemoryTag) => {
+            const loc = memoryLocations.get(tag);
+            return loc ? [loc] : [];
+        }),
+        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
             // Store the TimerState (fragment.value) so getMemory can return it
             if (fragments.length > 0 && fragments[0].value !== undefined) {
                 memoryStore.set(tag, fragments[0].value);
             }
+            const loc = new MemoryLocation(tag as MemoryTag, fragments);
+            memoryLocations.set(tag, loc);
+            return loc;
         }),
-        updateMemory: vi.fn(),
+        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+            const loc = memoryLocations.get(tag);
+            if (loc) {
+                loc.update(fragments);
+                // Also sync memoryStore for backward-compat test assertions
+                if (fragments.length > 0 && fragments[0].value !== undefined) {
+                    memoryStore.set(tag, fragments[0].value);
+                }
+            }
+        }),
     } as unknown as IBehaviorContext;
 
     return { ctx, state: { memoryStore, listeners, unsubscribers } };
@@ -137,6 +156,7 @@ describe('CountdownTimerBehavior (via TimerEndingBehavior replacement)', () => {
         const emptyCtx = {
             ...ctx,
             getMemory: vi.fn(() => undefined),
+            getMemoryByTag: vi.fn(() => []),
             pushMemory: vi.fn(),
         } as unknown as IBehaviorContext;
 
@@ -151,7 +171,7 @@ describe('CountdownTimerBehavior (via TimerEndingBehavior replacement)', () => {
         )?.[1];
 
         if (listener) {
-            const emptyGetMemoryCtx = { ...emptyCtx, getMemory: vi.fn(() => undefined) } as unknown as IBehaviorContext;
+            const emptyGetMemoryCtx = { ...emptyCtx, getMemory: vi.fn(() => undefined), getMemoryByTag: vi.fn(() => []) } as unknown as IBehaviorContext;
             const actions = listener({ name: 'tick', timestamp: new Date(1000) }, emptyGetMemoryCtx);
             expect(actions).toEqual([]);
             expect(emptyCtx.markComplete).not.toHaveBeenCalled();

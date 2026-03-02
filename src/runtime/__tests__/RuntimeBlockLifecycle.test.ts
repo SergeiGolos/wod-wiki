@@ -111,7 +111,7 @@ describe('RuntimeBlock Lifecycle', () => {
 
             block.unmount(runtime);
             expect(disposeSpy).toHaveBeenCalled();
-            expect(block.hasMemory('time')).toBe(false);
+            expect(block.getMemoryByTag('time')).toHaveLength(0);
         });
 
         it('should handle unmount without event handler cleanup (no per-block handlers)', () => {

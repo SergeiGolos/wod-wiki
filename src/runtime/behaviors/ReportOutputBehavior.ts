@@ -35,7 +35,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             });
         }
 
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
         const shouldEmitMilestones = this.config.emitMilestones ?? !!round;
         if (shouldEmitMilestones && round && (round.total === undefined || round.total > 1)) {
             this.lastEmittedRound = round.current;
@@ -48,7 +48,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
         const shouldEmitMilestones = this.config.emitMilestones ?? !!round;
         if (!shouldEmitMilestones || !round || (round.total !== undefined && round.total <= 1)) {
             return [];
@@ -76,8 +76,8 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('time') as TimerState | undefined;
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
         const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
 
         // Determine a descriptive completion label
@@ -158,7 +158,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             ),
         ];
 
-        const timer = ctx.getMemory('time') as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
         if (timer) {
             const nowMs = ctx.clock.now.getTime();
             const elapsed = calculateElapsed(timer, nowMs);
@@ -180,7 +180,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
 
         if (timer && timer.spans.length > 0) {
             const elapsed = calculateElapsed(timer, nowMs);
@@ -223,7 +223,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
-        const round = ctx.getMemory('round') as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
 
         if (!timer || timer.spans.length === 0) {
             return groups.map(() => {

@@ -41,6 +41,11 @@ function createMockContext(options: MockContextOptions = {}): IBehaviorContext {
         subscribe: vi.fn(),
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
+        getMemoryByTag: (tag: string) => {
+            const fragments = tagStore.get(tag) ?? [];
+            if (fragments.length === 0) return [];
+            return [{ tag, fragments } as any];
+        },
         pushMemory,
         updateMemory,
         markComplete: vi.fn(),

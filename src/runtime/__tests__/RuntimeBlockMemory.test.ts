@@ -79,39 +79,39 @@ describe('RuntimeBlock Memory Methods', () => {
     });
 
     // ====================================================================
-    // Backward-Compatible Shims
+    // Memory existence check (modern API)
     // ====================================================================
 
-    describe('hasMemory (shim)', () => {
-        it('should return false when no memory is set', () => {
+    describe('hasTag', () => {
+        it('should have no tag when no memory is set', () => {
             const block = createBlock();
-            expect(block.hasMemory('time')).toBe(false);
-            expect(block.hasMemory('round')).toBe(false);
+            expect(block.getMemoryByTag('time')).toHaveLength(0);
+            expect(block.getMemoryByTag('round')).toHaveLength(0);
         });
 
-        it('should return true after memory is pushed', () => {
+        it('should find tag after memory is pushed', () => {
             const block = createBlock();
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
 
-            expect(block.hasMemory('time')).toBe(true);
-            expect(block.hasMemory('round')).toBe(false);
+            expect(block.getMemoryByTag('time')).toHaveLength(1);
+            expect(block.getMemoryByTag('round')).toHaveLength(0);
         });
     });
 
-    describe('getMemory (shim)', () => {
-        it('should return undefined when no memory is set', () => {
+    describe('getMemoryByTag value access', () => {
+        it('should return empty array when no memory is set', () => {
             const block = createBlock();
-            expect(block.getMemory('time')).toBeUndefined();
+            expect(block.getMemoryByTag('time')[0]).toBeUndefined();
         });
 
-        it('should return a shim that reads first fragment value', () => {
+        it('should read first fragment value', () => {
             const block = createBlock();
             const timerState = { direction: 'down', durationMs: 60000, label: 'Countdown', spans: [] };
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', timerState)]));
 
-            const shim = block.getMemory('time');
-            expect(shim).toBeDefined();
-            expect(shim?.value).toEqual(timerState);
+            const loc = block.getMemoryByTag('time')[0];
+            expect(loc).toBeDefined();
+            expect(loc?.fragments[0]?.value).toEqual(timerState);
         });
 
         it('should preserve type safety across multiple memory types', () => {
@@ -120,39 +120,45 @@ describe('RuntimeBlock Memory Methods', () => {
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', timerState)]));
             block.pushMemory(new MemoryLocation('round', [new CurrentRoundFragment(1, 5, 'block', new Date())]));
 
-            const timer = block.getMemory('time');
-            const round = block.getMemory('round');
+            const timerLoc = block.getMemoryByTag('time')[0];
+            const roundFrag = block.getMemoryByTag('round')[0]?.fragments[0] as any;
 
-            expect(timer?.value.spans).toBeDefined();
-            expect(round?.value.current).toBe(1);
-            expect(round?.value.total).toBe(5);
+            expect(timerLoc?.fragments[0]?.value).toMatchObject({ spans: [] });
+            expect(roundFrag?.current).toBe(1);
+            expect(roundFrag?.total).toBe(5);
         });
     });
 
-    describe('setMemoryValue (shim)', () => {
+    describe('IMemoryLocation.update (replaces setMemoryValue)', () => {
         it('should create new location when none exists', () => {
             const block = createBlock();
-            block.setMemoryValue('time', { direction: 'up', spans: [], label: 'Test' } as any);
+            const loc = new MemoryLocation('time', [createFragment('timer', { direction: 'up', spans: [], label: 'Test' })]);
+            block.pushMemory(loc);
 
-            expect(block.hasMemory('time')).toBe(true);
-            expect(block.getMemory('time')?.value.direction).toBe('up');
+            expect(block.getMemoryByTag('time')).toHaveLength(1);
+            expect((block.getMemoryByTag('time')[0]?.fragments[0]?.value as any)?.direction).toBe('up');
         });
 
         it('should update existing location value', () => {
             const block = createBlock();
-            block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up', label: 'First' })]));
+            const frag = createFragment('timer', { direction: 'up', label: 'First' });
+            const loc = new MemoryLocation('time', [frag]);
+            block.pushMemory(loc);
 
-            block.setMemoryValue('time', { direction: 'down', label: 'Second' } as any);
+            loc.update([{ ...frag, value: { direction: 'down', label: 'Second' } }]);
 
-            expect(block.getMemory('time')?.value.label).toBe('Second');
+            expect((block.getMemoryByTag('time')[0]?.fragments[0]?.value as any)?.label).toBe('Second');
         });
 
-        it('should allow overwriting memory without error', () => {
+        it('should allow updating memory without error', () => {
             const block = createBlock();
-            block.setMemoryValue('time', { direction: 'up', label: 'First' } as any);
-            block.setMemoryValue('time', { direction: 'down', label: 'Second' } as any);
+            const frag = createFragment('timer', { direction: 'up', label: 'First' });
+            const loc = new MemoryLocation('time', [frag]);
+            block.pushMemory(loc);
+            loc.update([{ ...frag, value: { direction: 'down', label: 'Second' } }]);
+            loc.update([{ ...frag, value: { direction: 'up', label: 'Third' } }]);
 
-            expect(block.getMemory('time')?.value.label).toBe('Second');
+            expect((block.getMemoryByTag('time')[0]?.fragments[0]?.value as any)?.label).toBe('Third');
         });
     });
 
@@ -168,7 +174,7 @@ describe('RuntimeBlock Memory Methods', () => {
             block.dispose(runtime);
 
             // Memory is NOT cleared by dispose - only by unmount
-            expect(block.hasMemory('time')).toBe(true);
+            expect(block.getMemoryByTag('time')).toHaveLength(1);
         });
 
         it('should allow multiple dispose calls safely', () => {

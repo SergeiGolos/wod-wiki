@@ -183,13 +183,13 @@ describe('ProxyBlock', () => {
         });
     });
 
-    describe('deprecated memory API', () => {
-        it('getMemory should return undefined when no timer', () => {
+    describe('memory API', () => {
+        it('getMemoryByTag returns empty when no timer', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.getMemory('timer' as any)).toBeUndefined();
+            expect(block.getMemoryByTag('time' as any)).toHaveLength(0);
         });
 
-        it("getMemory('time') should return TimerState shim when timer present", () => {
+        it("getMemoryByTag('time') returns TimerState via fragment value when timer present", () => {
             const timer: SerializedTimer = {
                 format: 'mm:ss',
                 durationMs: 60000,
@@ -200,11 +200,10 @@ describe('ProxyBlock', () => {
             };
             const block = new ProxyBlock(createSerializedBlock({ timer }));
 
-            const shim = block.getMemory('time' as any);
-            expect(shim).toBeDefined();
-            expect(shim!.value).toBeDefined();
+            const locs = block.getMemoryByTag('time' as any);
+            expect(locs).toHaveLength(1);
 
-            const state = shim!.value as any;
+            const state = locs[0]!.fragments[0]!.value as any;
             expect(state.direction).toBe('down');
             expect(state.durationMs).toBe(60000);
             expect(state.label).toBe('AMRAP');
@@ -213,7 +212,7 @@ describe('ProxyBlock', () => {
             expect(state.spans[0].ended).toBeUndefined();
         });
 
-        it("getMemory('timer') should return TimerState shim when timer present", () => {
+        it("getMemoryByTag('time') returns TimerState with direction when timer present", () => {
             const timer: SerializedTimer = {
                 format: 'up',
                 direction: 'up',
@@ -221,43 +220,14 @@ describe('ProxyBlock', () => {
                 isRunning: true,
             };
             const block = new ProxyBlock(createSerializedBlock({ timer }));
-            const shim = block.getMemory('timer' as any);
-            expect(shim).toBeDefined();
-            expect((shim!.value as any).direction).toBe('up');
+            const locs = block.getMemoryByTag('time' as any);
+            expect(locs).toHaveLength(1);
+            expect((locs[0]!.fragments[0]!.value as any).direction).toBe('up');
         });
 
-        it("getMemory('time') subscribe returns unsubscribe no-op", () => {
-            const timer: SerializedTimer = {
-                format: 'up',
-                direction: 'up',
-                spans: [],
-                isRunning: false,
-            };
-            const block = new ProxyBlock(createSerializedBlock({ timer }));
-            const shim = block.getMemory('time' as any);
-            const unsub = shim!.subscribe(() => {});
-            expect(() => unsub()).not.toThrow();
-        });
-
-        it('hasMemory returns true when timer present', () => {
-            const timer: SerializedTimer = {
-                format: 'up',
-                direction: 'up',
-                spans: [],
-                isRunning: false,
-            };
-            const block = new ProxyBlock(createSerializedBlock({ timer }));
-            expect(block.hasMemory('timer' as any)).toBe(true);
-        });
-
-        it('hasMemory should return false when no timer', () => {
+        it('no timer means getMemoryByTag returns empty array', () => {
             const block = new ProxyBlock(createSerializedBlock());
-            expect(block.hasMemory('timer' as any)).toBe(false);
-        });
-
-        it('setMemoryValue should not throw', () => {
-            const block = new ProxyBlock(createSerializedBlock());
-            expect(() => block.setMemoryValue('timer' as any, {} as any)).not.toThrow();
+            expect(block.getMemoryByTag('time' as any)).toHaveLength(0);
         });
     });
 });

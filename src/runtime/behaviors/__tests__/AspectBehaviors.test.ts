@@ -44,6 +44,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             }
             return undefined;
         }),
+        getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
         setMemory: vi.fn(),
         pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
             memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));

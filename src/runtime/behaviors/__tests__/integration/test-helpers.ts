@@ -178,6 +178,10 @@ export function createIntegrationContext(
             runtime.completionReason = reason;
         },
 
+        getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
+            return block.getMemoryByTag(tag);
+        },
+
         getMemory<T extends MemoryType>(type: T): MemoryTypeMap[T] | undefined {
             // Try list-based memory first
             const locations = block.getMemoryByTag(type as unknown as MemoryTag);
@@ -468,7 +472,7 @@ export function expectRoundDisplay(block: MockBlock, expected: string): void {
  * advanceBehaviors() to simulate what ChildSelectionBehavior would do.
  */
 export function simulateRoundAdvance(ctx: IBehaviorContext): void {
-    const round = ctx.getMemory('round') as RoundState | undefined;
+    const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
     if (!round) return;
     const frag = new CurrentRoundFragment(
         round.current + 1,

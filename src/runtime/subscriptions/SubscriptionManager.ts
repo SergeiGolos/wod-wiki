@@ -49,6 +49,9 @@ export class SubscriptionManager {
     /**
      * Register a subscription. If a subscription with the same ID already exists,
      * the old one is disposed and replaced.
+     * 
+     * New subscriptions immediately receive the current stack state and any
+     * existing output statements to catch them up.
      */
     add(subscription: IRuntimeSubscription): void {
         if (this.disposed) {
@@ -61,6 +64,23 @@ export class SubscriptionManager {
             existing.dispose();
         }
         this.subscriptions.set(subscription.id, subscription);
+
+        // Catch up the new subscription with the current runtime state
+        try {
+            subscription.onStackSnapshot({
+                type: 'initial',
+                blocks: [...this.runtime.stack.blocks],
+                depth: this.runtime.stack.count,
+                clockTime: this.runtime.clock.now,
+            });
+
+            const currentOutputs = this.runtime.getOutputStatements();
+            for (const output of currentOutputs) {
+                subscription.onOutput(output);
+            }
+        } catch (err) {
+            console.error(`[SubscriptionManager] Error catching up subscription '${subscription.id}':`, err);
+        }
     }
 
     /**
