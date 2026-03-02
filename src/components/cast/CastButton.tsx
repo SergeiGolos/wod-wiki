@@ -1,139 +1,86 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Tv, TvMinimal, Loader2 } from 'lucide-react';
+import { TvMinimal, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { CastManager } from '@/services/cast/CastManager';
 import { RELAY_URL } from '@/services/cast/config';
+import { v4 as uuidv4 } from 'uuid';
 
 export const CastButton: React.FC = () => {
-    const [connection, setConnection] = useState<any>(null);
+    const [isCasting, setIsCasting] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const store = useWorkbenchSyncStore();
     const castManagerRef = useRef<CastManager | null>(null);
-    const sessionIdRef = useRef<string | null>(null);
+    const sessionIdRef = useRef<string>(uuidv4().substring(0, 8));
 
-    // 1. Setup CastManager
+    // Smart Sync: Only push when the logical state changes
     useEffect(() => {
-        const manager = new CastManager();
-        castManagerRef.current = manager;
+        const manager = castManagerRef.current;
+        const display = store.displayState;
 
-        manager.on('connectionOpened', () => {
-            console.log('[CastButton] Connected to relay');
-            setIsConnecting(false);
-        });
-
-        manager.on('targetDiscovered', (target: any) => {
-            if (!sessionIdRef.current) {
-                console.log('[CastButton] Receiver discovered:', target.targetId);
-                const sid = manager.startCast(target.targetId, '');
-                sessionIdRef.current = sid;
-                setConnection({ targetId: target.targetId, sessionId: sid });
-            }
-        });
-
-        manager.on('castStop', () => {
-            setConnection(null);
-            sessionIdRef.current = null;
-        });
-
-        return () => {
-            manager.disconnect();
-        };
-    }, []);
-
-    // 2. Continuous Discovery Loop (when active)
-    useEffect(() => {
-        if (!isConnecting && !connection) return;
-        
-        const interval = setInterval(() => {
-            if (castManagerRef.current) {
-                castManagerRef.current.discoverTargets();
-            }
-        }, 3000);
-        return () => clearInterval(interval);
-    }, [isConnecting, connection]);
-
-    // 3. Hybrid State Sync (BroadcastChannel + WebSockets)
-    useEffect(() => {
-        const channel = new BroadcastChannel('wod-wiki-cast');
-        
-        const syncInterval = setInterval(() => {
-            const manager = castManagerRef.current;
-            const sessionId = sessionIdRef.current;
-            const display = store.displayState;
-
-            const payload = {
-                execution: {
-                    elapsedTime: store.execution.elapsedTime,
-                    status: store.execution.status,
-                    stepCount: store.execution.stepCount,
+        if (manager && isCasting && display) {
+            manager.sendStateUpdate(
+                sessionIdRef.current,
+                {
+                    timerStack: display.primaryTimer ? [display.primaryTimer as any] : [],
+                    cardStack: [],
+                    workoutState: display.isRunning ? 'running' : 'paused',
+                    totalElapsedMs: store.execution.elapsedTime
                 },
-                display: display
-            };
-
-            // Method A: Local sync (Tabs on same machine)
-            channel.postMessage({ type: 'STATE_UPDATE', payload });
-
-            // Method B: Remote sync (Chromecast via Relay)
-            if (manager && sessionId && display) {
-                manager.sendStateUpdate(
-                    sessionId,
-                    {
-                        timerStack: display.primaryTimer ? [display.primaryTimer as any] : [],
-                        cardStack: [],
-                        workoutState: display.isRunning ? 'running' : 'paused',
-                        totalElapsedMs: store.execution.elapsedTime
-                    },
-                    store.execution.stepCount
-                );
-            }
-        }, 500);
-
-        return () => {
-            clearInterval(syncInterval);
-            channel.close();
-        };
-    }, [connection, store.displayState, store.execution.elapsedTime, store.execution.status, store.execution.stepCount]);
+                store.execution.stepCount
+            );
+        }
+    }, [
+        isCasting, 
+        store.displayState.primaryTimer?.label, 
+        store.displayState.primaryTimer?.durationMs,
+        store.displayState.isRunning,
+        store.execution.status,
+        store.execution.stepCount
+    ]);
 
     const handleCast = useCallback(async () => {
-        const manager = castManagerRef.current;
-        if (!manager) return;
-
-        if (connection) {
-            if (sessionIdRef.current) manager.stopCast(sessionIdRef.current);
-            manager.disconnect();
-            setConnection(null);
-            sessionIdRef.current = null;
+        if (isCasting) {
+            castManagerRef.current?.disconnect();
+            setIsCasting(false);
             return;
         }
 
         setIsConnecting(true);
         try {
-            console.log('[CastButton] Starting cast to:', RELAY_URL);
+            const manager = new CastManager();
+            castManagerRef.current = manager;
             await manager.connect(RELAY_URL);
-            manager.discoverTargets();
+            
+            manager.send({
+                type: 'register',
+                messageId: uuidv4(),
+                sessionId: sessionIdRef.current,
+                timestamp: Date.now(),
+                payload: { clientType: 'caster', clientId: 'web-' + uuidv4().substring(0, 4) }
+            } as any);
+
+            setIsCasting(true);
 
             if ('PresentationRequest' in window) {
-                const url = `${window.location.origin}${window.location.pathname}#/tv`;
-                const request = new (window as any).PresentationRequest([url]);
-                request.start().catch(e => console.log('Presentation Picker closed'));
+                let url = window.location.href.split('#')[0];
+                url = url.replace('viewMode=story', 'viewMode=tv');
+                const host = window.location.hostname === '0.0.0.0' ? 'pluto.forest-adhara.ts.net' : window.location.hostname;
+                const origin = `https://${host}:6006`;
+                const finalUrl = `${origin}/receiver.html?session=${sessionIdRef.current}&relay=${encodeURIComponent(RELAY_URL)}`;
+                const request = new (window as any).PresentationRequest([finalUrl]);
+                request.start();
             }
         } catch (err) {
             console.error('Cast failed:', err);
+        } finally {
             setIsConnecting(false);
         }
-    }, [connection]);
+    }, [isCasting]);
 
     return (
-        <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleCast}
-            className={connection ? "text-primary" : "text-muted-foreground hover:text-foreground"}
-            title={connection ? "Stop Casting" : "Cast to TV"}
-        >
-            {isConnecting ? <Loader2 className="h-5 w-5 animate-spin" /> : 
-             connection ? <Tv className="h-5 w-5 animate-pulse" /> : <TvMinimal className="h-5 w-5" />}
+        <Button variant="ghost" size="icon" onClick={handleCast} className={isCasting ? "text-blue-500 bg-blue-500/10 animate-pulse" : ""}>
+            {isConnecting ? <Loader2 className="h-5 w-5 animate-spin" /> : <TvMinimal className="h-5 w-5" />}
         </Button>
     );
 };

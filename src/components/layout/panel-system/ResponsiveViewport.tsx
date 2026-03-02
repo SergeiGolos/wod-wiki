@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import type { ViewDescriptor } from './types';
 import { PanelGrid } from './PanelGrid';
 
-export type ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze';
+export type ViewMode = 'history' | 'plan' | 'track' | 'review' | 'analyze' | 'tv';
 
 /** Constrained type for static mode — only the original 3 views */
 export type StaticViewMode = 'plan' | 'track' | 'review';

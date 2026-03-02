@@ -24,7 +24,7 @@
     "build:app": "bun x vite build --config vite.app.config.ts",
     "preview:app": "bun x vite preview --config vite.app.config.ts",
     "build": "bun run build-storybook",
-    "storybook": "npx storybook dev -p 6006 --host 0.0.0.0",
+    "storybook": "npx storybook dev -p 6006 --host 0.0.0.0 --https --ssl-cert pluto.forest-adhara.ts.net.crt --ssl-key pluto.forest-adhara.ts.net.key",
     "storybook:debug": "set NODE_OPTIONS=--inspect=9229 && npx storybook dev -p 6006",
     "clean-storybook": "bun -e 'require(\"fs\").rmSync(\"storybook-static\", { recursive: true, force: true })'",
     "prebuild-storybook": "bun run clean-storybook",

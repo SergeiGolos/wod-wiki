@@ -1,6 +1,7 @@
 // This file has been automatically migrated to valid ESM format by Storybook.
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -72,6 +73,19 @@ const config = {
     // Allow all hosts (for Tailscale / LAN access)
     config.server = config.server || {};
     config.server.allowedHosts = true;
+
+    // Tailscale SSL Detection
+    const rootDir = process.cwd();
+    const certFiles = fs.readdirSync(rootDir).filter(f => f.endsWith('.ts.net.crt'));
+    const keyFiles = fs.readdirSync(rootDir).filter(f => f.endsWith('.ts.net.key'));
+
+    if (certFiles.length > 0 && keyFiles.length > 0) {
+      config.server.https = {
+        cert: fs.readFileSync(path.join(rootDir, certFiles[0])),
+        key: fs.readFileSync(path.join(rootDir, keyFiles[0])),
+      };
+      console.log(`\n🔒 Storybook: HTTPS Active (using ${certFiles[0]})\n`);
+    }
 
     return config;
   }
