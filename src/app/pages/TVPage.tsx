@@ -169,8 +169,8 @@ export const TVPage: React.FC = () => {
                       )}>
                         <div className="flex items-center justify-between gap-3 p-3">
                           <span className={cn(
-                            "font-semibold tracking-tight",
-                            entry.isLeaf ? "text-foreground" : "text-muted-foreground"
+                            "tracking-tight",
+                            entry.isLeaf ? "text-base font-bold text-foreground" : "text-xs font-medium text-muted-foreground/70"
                           )}>
                             {entry.label}
                           </span>
@@ -189,7 +189,7 @@ export const TVPage: React.FC = () => {
                         {entry.rows?.length > 0 && (
                           <div className="flex flex-col gap-0.5 px-3 pb-2">
                             {entry.rows.map((row: any, rowIdx: number) => (
-                              <FragmentSourceRow key={rowIdx} fragments={row} size="compact" />
+                              <FragmentSourceRow key={rowIdx} fragments={row} size={entry.isLeaf ? "normal" : "compact"} isLeaf={entry.isLeaf} />
                             ))}
                           </div>
                         )}
@@ -210,7 +210,7 @@ export const TVPage: React.FC = () => {
               {lookahead ? (
                 <div className="rounded-md border text-sm bg-card/50 border-border/60">
                   <div className="flex flex-col gap-0.5 p-3">
-                    <FragmentSourceRow fragments={lookahead.fragments} size="compact" />
+                    <FragmentSourceRow fragments={lookahead.fragments} size="compact" isLeaf={false} />
                   </div>
                 </div>
               ) : (

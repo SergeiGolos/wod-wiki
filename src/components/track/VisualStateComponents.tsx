@@ -159,7 +159,8 @@ const StackBlockItem: React.FC<{
     const renderFragmentSection = (
         rows: ICodeFragment[][],
         visibility: FragmentVisibility,
-        showBadge: boolean
+        showBadge: boolean,
+        isLeaf: boolean
     ) => {
         if (rows.length === 0) return null;
         return (
@@ -169,7 +170,8 @@ const StackBlockItem: React.FC<{
                     <FragmentSourceRow
                         key={`${visibility}-${rowIdx}`}
                         fragments={row}
-                        size="compact"
+                        size={isLeaf ? "normal" : "compact"}
+                        isLeaf={isLeaf}
                     />
                 ))}
             </div>
@@ -197,18 +199,18 @@ const StackBlockItem: React.FC<{
                         <div className="flex items-center gap-2 min-w-0">
                             {/* Non-leaf: show label (Session root always shows block.label, not round display) */}
                             {!isLeaf && (
-                                <span className="font-semibold tracking-tight text-muted-foreground">
+                                <span className="text-xs font-medium tracking-tight text-muted-foreground/70">
                                     {(block.blockType !== 'SessionRoot' && roundDisplay) ? roundDisplay.label : block.label}
                                 </span>
                             )}
                             {/* Leaf: show display fragments inline, or fall back to label if no fragments */}
                             {isLeaf && displayRows.length > 0 && (
-                                <div className="flex items-center flex-wrap gap-0.5 min-w-0">
-                                    {renderFragmentSection(displayRows, 'display', false)}
+                                <div className="flex items-center flex-wrap gap-0.5 min-w-0 font-bold text-foreground text-base">
+                                    {renderFragmentSection(displayRows, 'display', false, isLeaf)}
                                 </div>
                             )}
                             {isLeaf && displayRows.length === 0 && block.label && (
-                                <span className="font-semibold tracking-tight text-muted-foreground">
+                                <span className="text-base font-bold tracking-tight text-foreground">
                                     {block.label}
                                 </span>
                             )}
@@ -254,15 +256,15 @@ const StackBlockItem: React.FC<{
                 {/* Fragment rows — non-leaf blocks only (leaf fragments are inline in the header) */}
                 {!isLeaf && displayRows.length > 0 && (
                     <div className="flex flex-col gap-1 px-3 pb-2">
-                        {renderFragmentSection(displayRows, 'display', debug)}
+                        {renderFragmentSection(displayRows, 'display', debug, isLeaf)}
                     </div>
                 )}
 
                 {/* Debug tiers — promote & private (always below header) */}
                 {debug && (promoteRows.length > 0 || privateRows.length > 0) && (
                     <div className="flex flex-col gap-1 px-3 pb-2">
-                        {renderFragmentSection(promoteRows, 'promote', true)}
-                        {renderFragmentSection(privateRows, 'private', true)}
+                        {renderFragmentSection(promoteRows, 'promote', true, isLeaf)}
+                        {renderFragmentSection(privateRows, 'private', true, isLeaf)}
                     </div>
                 )}
             </div>
@@ -390,6 +392,7 @@ export const LookaheadView: React.FC<{
                     <FragmentSourceRow
                         fragments={preview.fragments}
                         size="compact"
+                        isLeaf={false}
                     />
                 </div>
             </div>

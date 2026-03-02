@@ -70,6 +70,8 @@ export interface FragmentSourceRowProps {
     isSelected?: boolean;
     /** Whether this item is highlighted (e.g., hovered) */
     isHighlighted?: boolean;
+    /** Whether this is the leaf (most active) entry */
+    isLeaf?: boolean;
     /** Whether this item should render as a section header */
     isHeader?: boolean;
     /** Display label (fallback if fragments empty) */
@@ -117,6 +119,7 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
     filter,
     isSelected = false,
     isHighlighted = false,
+    isLeaf = false,
     isHeader = false,
     label,
     showDuration = false,
@@ -180,6 +183,7 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
                 onClick && 'cursor-pointer hover:bg-muted/50',
                 isSelected && 'bg-primary/10',
                 isHighlighted && 'bg-muted/40',
+                isLeaf && 'font-bold',
                 // Custom className
                 className
             )}

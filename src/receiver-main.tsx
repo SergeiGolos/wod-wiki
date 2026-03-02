@@ -96,17 +96,17 @@ const RemoteStackBlockItem: React.FC<{
           : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/50 hover:border-border/50"
       )}>
         {/* Block header row */}
-        <div className="flex items-center justify-between gap-3 p-3">
-          <div className="flex flex-col min-w-0">
-            <span className={cn(
-              "font-semibold tracking-tight",
-              entry.isLeaf ? "text-foreground" : "text-muted-foreground"
-            )}>
-              {entry.label}
-            </span>
-          </div>
-
-          {hasTimer && (
+                <div className="flex items-center justify-between gap-3 p-3">
+                  <div className="flex flex-col min-w-0">
+                    <span className={cn(
+                      "tracking-tight",
+                      entry.isLeaf ? "text-base font-bold text-foreground" : "text-xs font-medium text-muted-foreground/70"
+                    )}>
+                      {entry.label}
+                    </span>
+                  </div>
+        
+                  {hasTimer && (
             <div className={cn(
               "flex items-center gap-1.5 px-2 py-1 rounded font-mono text-xs font-bold shrink-0",
               entry.timer?.isRunning
@@ -126,7 +126,8 @@ const RemoteStackBlockItem: React.FC<{
               <FragmentSourceRow
                 key={rowIdx}
                 fragments={row}
-                size="compact"
+                size={entry.isLeaf ? "normal" : "compact"}
+                isLeaf={entry.isLeaf}
               />
             ))}
           </div>

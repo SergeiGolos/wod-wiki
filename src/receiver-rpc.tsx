@@ -90,8 +90,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                                         <div className="flex items-center justify-between gap-3 p-3">
                                             <div className="flex flex-col min-w-0">
                                                 <span className={cn(
-                                                    "font-semibold tracking-tight",
-                                                    isLeaf ? "text-foreground" : "text-muted-foreground"
+                                                    "tracking-tight",
+                                                    isLeaf ? "text-base font-bold text-foreground" : "text-xs font-medium text-muted-foreground/70"
                                                 )}>
                                                     {block.label}
                                                 </span>
@@ -114,7 +114,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                                                     <FragmentSourceRow
                                                         key={rowIdx}
                                                         fragments={row}
-                                                        size="compact"
+                                                        size={isLeaf ? "normal" : "compact"}
+                                                        isLeaf={isLeaf}
                                                     />
                                                 ))}
                                             </div>
@@ -153,6 +154,7 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                                 <FragmentSourceRow
                                     fragments={nextPreview.fragments}
                                     size="compact"
+                                    isLeaf={false}
                                 />
                             </div>
                         </div>
