@@ -224,6 +224,7 @@ const ReceiverTimerPanel: React.FC<{
     const primaryTimerEntry = usePrimaryTimer();
     const secondaryTimers = useSecondaryTimers();
     const allTimers = useStackTimers();
+    const blocks = useSnapshotBlocks();
 
     const isRunning = primaryTimerEntry
         ? primaryTimerEntry.timer.spans.some(s => s.ended === undefined)
@@ -243,11 +244,20 @@ const ReceiverTimerPanel: React.FC<{
         });
     }
 
+    // Use the leaf block's label as the timer header — it reflects the current
+    // exercise (e.g. "21 Thrusters") rather than the session root's generic
+    // "Session" string. Fall back to the timer's own label when it's more
+    // descriptive (AMRAP countdown, etc.) or when there's only one block.
+    const leafLabel = blocks.at(-1)?.label;
+    const timerLabel = (leafLabel && leafLabel !== primaryTimerEntry?.timer.label)
+        ? leafLabel
+        : (primaryTimerEntry?.timer.label || 'Session');
+
     const primaryEntry = primaryTimerEntry ? {
         id: `timer-${primaryTimerEntry.block.key}`,
         ownerId: primaryTimerEntry.block.key.toString(),
         timerMemoryId: '',
-        label: primaryTimerEntry.timer.label,
+        label: timerLabel,
         format: primaryTimerEntry.timer.direction,
         durationMs: primaryTimerEntry.timer.durationMs,
         role: primaryTimerEntry.isPinned ? 'primary' as const : 'auto' as const,

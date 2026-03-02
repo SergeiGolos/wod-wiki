@@ -114,4 +114,5 @@ export enum FragmentType {
   Sound = 'sound',
   System = 'system',
   Label = 'label',
+  Lap = 'lap',
 }

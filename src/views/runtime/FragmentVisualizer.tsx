@@ -137,14 +137,17 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {visibleFragments
-        // Filter out '+' lap tokens - only '-' lap tokens should be rendered
+        // Filter out structural grouping fragments (+ and -)
         .filter(fragment => {
           const type = (fragment.type || '').toLowerCase();
-          if (type === 'lap') {
-            // Only render lap fragments with '-' (decrement), hide '+' (increment)
-            return fragment.image === '-';
+          const image = fragment.image || '';
+          
+          // Hide fragments that are just grouping symbols
+          if (type === 'group' && (image === '+' || image === '-')) {
+            return false;
           }
-          return true;
+          
+          return type !== 'lap';
         })
         .map((fragment, index) => {
         const type = fragment.type || 'unknown';

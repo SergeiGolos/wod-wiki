@@ -66,7 +66,12 @@ export class LabelComposer {
     // Fallback: If no structured parts, join all non-runtime fragments
     if (parts.length === 0) {
       return allFragments
-        .filter(f => f.image)
+        .filter(f => {
+            if (!f.image) return false;
+            // Filter out structural symbols from fallback label
+            const type = f.fragmentType || f.type;
+            return type !== FragmentType.Lap && type !== FragmentType.Group && type !== 'lap' && type !== 'group';
+        })
         .map(f => f.image)
         .join(" ") || defaultLabel;
     }
@@ -112,7 +117,8 @@ export class LabelComposer {
     // We include Reps here if they are interleaved (e.g. "100 KB Swings")
     const identityFragments = fragments.filter(f => {
       if (f.fragmentType === FragmentType.Duration || f.fragmentType === FragmentType.Rounds || 
-          f.fragmentType === FragmentType.Resistance || f.fragmentType === FragmentType.Distance) {
+          f.fragmentType === FragmentType.Resistance || f.fragmentType === FragmentType.Distance ||
+          f.fragmentType === FragmentType.Lap || f.fragmentType === FragmentType.Group) {
           return false;
       }
       const val = (f.image || f.value?.toString() || "").toUpperCase();

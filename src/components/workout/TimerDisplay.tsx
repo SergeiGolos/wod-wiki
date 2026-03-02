@@ -254,7 +254,15 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
     // If the leaf has multiple display rows, extract text from each row
     if (leafItem.displayRows && leafItem.displayRows.length > 1) {
       const lines = leafItem.displayRows
-        .map(row => row.map(f => f.image || '').filter(Boolean).join(' ').trim())
+        .map(row => row
+          .filter(f => {
+            const type = (f.type || f.fragmentType || '').toLowerCase();
+            const image = f.image || '';
+            if (type === 'group' && (image === '+' || image === '-')) return false;
+            return type !== 'lap';
+          })
+          .map(f => f.image || '').filter(Boolean).join(' ').trim()
+        )
         .filter(Boolean);
       if (lines.length > 0) return lines;
     }

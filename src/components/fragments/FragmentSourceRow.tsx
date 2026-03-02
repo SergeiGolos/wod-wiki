@@ -204,7 +204,14 @@ export const FragmentSourceRow: React.FC<FragmentSourceRowProps> = ({
             <div className="flex-1 min-w-0">
                 {fragmentGroups && fragmentGroups.length > 1 ? (
                     <div className="flex flex-col">
-                        {fragmentGroups.filter(g => g.length > 0).map((group, i, arr) => (
+                        {fragmentGroups
+                            .map(group => group.filter(f => {
+                                const type = (f.type || f.fragmentType || '').toLowerCase();
+                                const image = f.image || '';
+                                if (type === 'group' && (image === '+' || image === '-')) return false;
+                                return type !== 'lap';
+                            }))
+                            .filter(g => g.length > 0).map((group, i, arr) => (
                             <div
                                 key={i}
                                 className={cn(

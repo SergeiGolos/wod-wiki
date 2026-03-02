@@ -92,7 +92,16 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
         duration: output.elapsed,
         startTime: output.timeSpan.started,
         endTime: output.timeSpan.ended,
-        label: fragments.map(f => f.image || '').join(' ').trim() || undefined,
+        label: fragments
+          .filter(f => {
+            const type = (f.type || f.fragmentType || '').toLowerCase();
+            const image = f.image || '';
+            if (type === 'group' && (image === '+' || image === '-')) return false;
+            return type !== 'lap';
+          })
+          .map(f => f.image || '')
+          .join(' ')
+          .trim() || undefined,
       };
     });
 

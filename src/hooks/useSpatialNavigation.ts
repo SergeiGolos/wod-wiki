@@ -150,10 +150,23 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
     const registerElement = useCallback((id: string, el: HTMLElement | null) => {
         if (el) {
             elementsRef.current.set(id, el);
+            // Apply focus class immediately when the currently-focused element
+            // registers (e.g., on initial mount when focusedId is already set).
+            // Without this, the element registers AFTER the focusedId useEffect
+            // fires, leaving it without a visible focus indicator.
+            if (id === focusedIdRef.current) {
+                el.classList.add(focusClassName);
+                el.setAttribute('data-nav-focused', 'true');
+            }
         } else {
+            const existing = elementsRef.current.get(id);
+            if (existing) {
+                existing.classList.remove(focusClassName);
+                existing.setAttribute('data-nav-focused', 'false');
+            }
             elementsRef.current.delete(id);
         }
-    }, []);
+    }, [focusClassName]);
 
     // ── Apply / remove focus class ──────────────────────────────────────────
 
