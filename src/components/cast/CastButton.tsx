@@ -7,6 +7,7 @@ import { SenderCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
 import { CAST_APP_ID } from '@/services/cast/config';
 import { v4 as uuidv4 } from 'uuid';
+import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';
 import type { EventName, CastMessage } from '@/types/cast/messages';
 import { cn } from '@/lib/utils';
 
@@ -155,8 +156,14 @@ export const CastButton: React.FC = () => {
         const t0 = Date.now();
         const elapsed = () => `${Date.now() - t0}ms`;
         try {
+            // 0. Validate App ID
+            if (!CAST_APP_ID || CAST_APP_ID === 'CC1AD845') {
+                console.warn('[CastButton] WARNING: Using default media receiver ID (CC1AD845). Custom namespaces will NOT work. Set VITE_CAST_APP_ID in .env.local');
+            }
+            console.log(`[CastButton] App ID: ${CAST_APP_ID}`);
+
             // 1. Ensure SDK is loaded
-            console.log(`[CastButton] Step 1: Loading Cast SDK (appId=${CAST_APP_ID})…`);
+            console.log(`[CastButton] Step 1: Loading Cast SDK…`);
             await ChromecastSdk.load(CAST_APP_ID);
             console.log(`[CastButton] Step 1: SDK loaded [${elapsed()}]`);
             
@@ -168,10 +175,11 @@ export const CastButton: React.FC = () => {
             // 3. Get the active Cast session for signaling
             const session = ChromecastSdk.getSession();
             if (!session) throw new Error('No Cast session after requestSession()');
-            console.log(`[CastButton] Step 3: Session obtained — state=${session.getSessionState?.()} [${elapsed()}]`);
+            console.log(`[CastButton] Step 3: Session obtained — id=${session.getSessionId?.()} state=${session.getSessionState?.()} [${elapsed()}]`);
 
             // 4. Wait for receiver to boot.  The receiver calls context.start()
-            //    immediately in <head> now, so 3s should be plenty.
+            //    as the first <script> in <body> now, so 3s should be plenty.
+            //    Also send a "ping" to verify the receiver is alive.
             console.log(`[CastButton] Step 4: Waiting 3s for receiver init…`);
             await new Promise(r => setTimeout(r, 3000));
             console.log(`[CastButton] Step 4: Wait complete [${elapsed()}]`);
@@ -179,7 +187,17 @@ export const CastButton: React.FC = () => {
             // 4b. Verify session is still alive
             const sessionAfterWait = ChromecastSdk.getSession();
             if (!sessionAfterWait) throw new Error('Cast session died during receiver init wait');
-            console.log(`[CastButton] Step 4b: Session still alive — state=${sessionAfterWait.getSessionState?.()} [${elapsed()}]`);
+            const sessionState = sessionAfterWait.getSessionState?.();
+            console.log(`[CastButton] Step 4b: Session alive — state=${sessionState} [${elapsed()}]`);
+
+            // 4c. Send a quick ping to the receiver via Cast namespace to verify
+            //     the custom namespace is working before starting WebRTC
+            try {
+                await sessionAfterWait.sendMessage(CAST_NAMESPACE_STR, { type: 'ping', timestamp: Date.now() });
+                console.log(`[CastButton] Step 4c: Ping sent to receiver [${elapsed()}]`);
+            } catch (pingErr) {
+                console.warn(`[CastButton] Step 4c: Ping failed (receiver may not be ready):`, pingErr);
+            }
 
             // 5. Set up WebRTC: Cast namespace → signaling → DataChannel
             console.log(`[CastButton] Step 5: Creating signaling + WebRTCTransport…`);

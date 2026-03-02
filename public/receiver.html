@@ -6,20 +6,21 @@
     <title>Wod.Wiki TV</title>
 
     <!-- Google Cast Application Framework — Receiver SDK (must be HTTPS) -->
-    <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+    <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
 
     <!-- ================================================================
-         CRITICAL: call context.start() IMMEDIATELY after the Cast SDK
-         loads, in a regular <script> (NOT type="module" which defers).
+         CRITICAL: The Cast SDK is loaded here in <head>, but
+         context.start() is called as the FIRST <script> in <body>.
 
-         The Chromecast has a ~5 s timeout — if context.start() hasn't
-         been called by then the session is torn down, the sender sees
-         "cancel", and the TV shows a black screen.
+         All Google Cast examples call context.start() from <body> where
+         document.body exists.  The Cast SDK may need DOM references
+         during start() — calling it from <head> (where document.body
+         is null) can cause silent failure and a black-screen timeout.
 
          NO other blocking resources (Tailwind CDN, etc.) before this.
     ================================================================ -->
     <script>
-        /* --- Boot the CAF Receiver Context as fast as possible --- */
+        /* --- Pre-boot: set up debug utilities (no DOM needed) --- */
         (function() {
             var CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
             var t0 = performance.now();
@@ -44,39 +45,7 @@
                 }
             };
 
-            window.__dbg('Cast SDK loaded, calling context.start()…');
-
-            var context = cast.framework.CastReceiverContext.getInstance();
-            window.__castContext = context;
-
-            // Log system events
-            context.addEventListener(cast.framework.system.EventType.READY, function(e) {
-                window.__dbg('EVENT: READY — applicationData=' + JSON.stringify(e.data));
-            });
-            context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, function(e) {
-                window.__dbg('EVENT: SENDER_CONNECTED — senderId=' + e.data);
-            });
-            context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, function(e) {
-                window.__dbg('EVENT: SENDER_DISCONNECTED — senderId=' + e.data);
-            });
-            context.addEventListener(cast.framework.system.EventType.ERROR, function(e) {
-                window.__dbg('EVENT: ERROR — ' + JSON.stringify(e));
-            });
-            context.addEventListener(cast.framework.system.EventType.SHUTDOWN, function() {
-                window.__dbg('EVENT: SHUTDOWN');
-            });
-
-            try {
-                context.start({
-                    disableIdleTimeout: true,
-                    customNamespaces: {
-                        [CAST_NAMESPACE]: 'JSON'
-                    }
-                });
-                window.__dbg('context.start() succeeded');
-            } catch (err) {
-                window.__dbg('context.start() FAILED: ' + err.message);
-            }
+            window.__dbg('Cast SDK loaded — waiting for <body> to call context.start()');
         })();
     </script>
 
@@ -147,6 +116,70 @@
     </style>
 </head>
 <body tabindex="0" id="app-body">
+    <!-- ================================================================
+         FIRST thing in <body>: boot the Cast Receiver Context.
+         document.body now exists, which the Cast SDK may need.
+         This runs synchronously before the browser renders anything.
+    ================================================================ -->
+    <script>
+        (function() {
+            var dbg = window.__dbg;
+            var CAST_NAMESPACE = window.__CAST_NAMESPACE;
+
+            dbg('Booting CastReceiverContext (document.body exists: ' + !!document.body + ')');
+
+            var context = cast.framework.CastReceiverContext.getInstance();
+            window.__castContext = context;
+
+            // Log ALL system events for diagnostics
+            context.addEventListener(cast.framework.system.EventType.READY, function(e) {
+                dbg('EVENT: READY — applicationData=' + JSON.stringify(e.data));
+            });
+            context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, function(e) {
+                dbg('EVENT: SENDER_CONNECTED — senderId=' + e.data);
+            });
+            context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, function(e) {
+                dbg('EVENT: SENDER_DISCONNECTED — senderId=' + e.data);
+            });
+            context.addEventListener(cast.framework.system.EventType.ERROR, function(e) {
+                dbg('EVENT: ERROR — ' + JSON.stringify(e));
+            });
+            context.addEventListener(cast.framework.system.EventType.SHUTDOWN, function() {
+                dbg('EVENT: SHUTDOWN');
+            });
+            context.addEventListener(cast.framework.system.EventType.MAX_VIDEO_RESOLUTION_CHANGED, function() {
+                dbg('EVENT: MAX_VIDEO_RESOLUTION_CHANGED');
+            });
+
+            // Build options using the pattern from Google's official docs
+            var nsConfig = {};
+            // Use the Cast SDK enum if available, fall back to string literal
+            var msgTypeJson = (cast.framework.system.MessageType && cast.framework.system.MessageType.JSON)
+                ? cast.framework.system.MessageType.JSON
+                : 'JSON';
+            nsConfig[CAST_NAMESPACE] = msgTypeJson;
+            dbg('Namespace type resolved to: ' + JSON.stringify(msgTypeJson));
+
+            try {
+                context.start({
+                    // Non-media app: disable the idle timeout entirely
+                    disableIdleTimeout: true,
+                    // Development: keep receiver alive for 1 hour without sender heartbeat
+                    maxInactivity: 3600,
+                    // Register our custom namespace for WebRTC signaling
+                    customNamespaces: nsConfig,
+                    // Don't auto-create a media player
+                    playbackConfig: null,
+                    // Provide a human-readable status
+                    statusText: 'WOD Wiki Receiver'
+                });
+                dbg('context.start() succeeded');
+            } catch (err) {
+                dbg('context.start() FAILED: ' + (err.message || err));
+            }
+        })();
+    </script>
+
     <!-- Left Panel: Workout Info -->
     <div class="panel-left">
         <div class="heading">Workout Stack</div>
@@ -172,7 +205,7 @@
 
     <script>
         // ====================================================================
-        // Main receiver logic — runs AFTER context.start() (called in <head>).
+        // Main receiver logic — runs AFTER context.start() (called above).
         // Regular <script>, not type="module", for maximum compatibility.
         // ====================================================================
         (function() {
@@ -181,6 +214,12 @@
             var dbg = window.__dbg;
             var CAST_NAMESPACE = window.__CAST_NAMESPACE;
             var context = window.__castContext;
+
+            if (!context) {
+                dbg('FATAL: __castContext is null — Cast SDK did not initialize!');
+                document.getElementById('sub-label').innerText = 'ERROR: Cast SDK failed to initialize';
+                return;
+            }
 
             // ── DOM refs ────────────────────────────────────────────────
             var labelEl    = document.getElementById('exercise-label');
@@ -253,6 +292,15 @@
                 senderIdRef = event.senderId;
 
                 var signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+                // Respond to ping immediately (health check before WebRTC)
+                if (signal.type === 'ping') {
+                    dbg('Received ping — sending pong');
+                    context.sendCustomMessage(CAST_NAMESPACE, event.senderId,
+                        { type: 'pong', timestamp: Date.now() });
+                    return;
+                }
+
                 handleSignal(signal);
             });
             dbg('Custom message listener registered on ' + CAST_NAMESPACE);
