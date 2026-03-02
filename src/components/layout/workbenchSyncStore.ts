@@ -33,6 +33,7 @@ import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels'
 import type { ICodeFragment } from '../../core/models/CodeFragment';
 import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
+import type { ViewMode } from './panel-system/ResponsiveViewport';
 
 /**
  * Default no-op execution return used before the bridge hydrates the store
@@ -104,6 +105,10 @@ interface WorkbenchSyncState {
   // --- Cast Transport (shared between CastButtonRpc and WorkbenchCastBridge) ---
   /** Active RPC transport while casting, null otherwise */
   castTransport: IRpcTransport | null;
+
+  // --- Navigation View Mode (synced from WorkbenchContext) ---
+  /** Current view mode in the browser workbench — drives receiver display mode */
+  viewMode: ViewMode;
 }
 
 // ─── Actions ───────────────────────────────────────────────────
@@ -126,6 +131,7 @@ interface WorkbenchSyncActions {
   setHighlightedLine: (line: number | null) => void;
   setDisplayState: (state: WorkbenchSyncState['displayState']) => void;
   setCastTransport: (transport: IRpcTransport | null) => void;
+  setViewMode: (mode: ViewMode) => void;
 
   // --- Bridge hydration (called by WorkbenchSyncBridge to inject React hook values) ---
   _hydrateRuntime: (payload: {
@@ -188,6 +194,8 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   castTransport: null,
 
+  viewMode: 'plan' as ViewMode,
+
   // --- Actions ---
 
   setActiveSegmentIds: (ids) => set({ activeSegmentIds: ids }),
@@ -246,6 +254,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setHighlightedLine: (line) => set({ highlightedLine: line }),
   setDisplayState: (displayState) => set({ displayState }),
   setCastTransport: (castTransport) => set({ castTransport }),
+  setViewMode: (viewMode) => set({ viewMode }),
 
   // Bridge hydration — pushes React hook values into the store
   _hydrateRuntime: (payload) => set(payload),
@@ -287,5 +296,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     },
 
     castTransport: null,
+
+    viewMode: 'plan' as ViewMode,
   }),
 }));

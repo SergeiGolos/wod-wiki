@@ -84,6 +84,11 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     store.getState().setSelectedBlock(selectedBlock);
   }, [selectedBlock]);
 
+  // --- View mode → store (drives receiver display mode over RPC) ---
+  useEffect(() => {
+    store.getState().setViewMode(viewMode);
+  }, [viewMode]);
+
   // --- Runtime lifecycle & execution (from React hooks) ---
   const {
     runtime,

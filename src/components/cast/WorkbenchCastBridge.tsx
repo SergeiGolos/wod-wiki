@@ -2,13 +2,15 @@
  * WorkbenchCastBridge — renderless component that broadcasts workbench-level
  * display state to the Chromecast receiver via the active RPC transport.
  *
- * While a runtime is running, the ChromecastRuntimeSubscription handles stack
- * snapshot delivery.  This bridge fills in the gaps:
+ * Uses viewMode (synced from WorkbenchContext into the store) as the PRIMARY
+ * signal for which display mode to send to the receiver, so navigation changes
+ * in the browser immediately update the receiver regardless of runtime state.
  *
- * - **preview** — a note is loaded but no runtime is active → shows plan on TV.
- * - **review**  — no active runtime, but analytics / result data exists → summary.
- * - **active**  — a runtime is running; stack subscription drives the TV.
- * - **idle**    — nothing to show.
+ * Mode mapping:
+ * - viewMode 'track'  + runtime running/paused  → 'active'  (stack/timer drives TV)
+ * - viewMode 'track'  + workout just ended       → 'review'  (analytics summary)
+ * - viewMode 'review'                            → 'review'  (analytics summary)
+ * - viewMode 'plan' / 'analyze' / other          → 'preview' (document info) or 'idle'
  *
  * Placement: inside WorkbenchSyncBridge so the store is fully hydrated.
  */
@@ -17,11 +19,16 @@ import React, { useEffect, useRef } from 'react';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 import { formatTimeMMSS } from '@/lib/formatTime';
+import type { AnalyticsDataPoint } from '@/services/AnalyticsTransformer';
+import type { Segment } from '@/core/models/AnalyticsModels';
+import type { DocumentItem } from '@/markdown-editor/utils/documentStructure';
+import type { WodBlock } from '@/markdown-editor/types';
 
 export const WorkbenchCastBridge: React.FC = () => {
     const castTransport = useWorkbenchSyncStore(s => s.castTransport);
     const runtime = useWorkbenchSyncStore(s => s.runtime);
     const execution = useWorkbenchSyncStore(s => s.execution);
+    const viewMode = useWorkbenchSyncStore(s => s.viewMode);
     const selectedBlock = useWorkbenchSyncStore(s => s.selectedBlock);
     const documentItems = useWorkbenchSyncStore(s => s.documentItems);
     const analyticsSegments = useWorkbenchSyncStore(s => s.analyticsSegments);
@@ -35,68 +42,32 @@ export const WorkbenchCastBridge: React.FC = () => {
 
         let message: RpcWorkbenchUpdate;
 
-        if (runtime && (execution.status === 'running' || execution.status === 'paused')) {
-            // Stack subscription drives the TV; just signal the mode so the
-            // receiver knows not to show preview/review over the top.
-            message = { type: 'rpc-workbench-update', mode: 'active' };
+        if (viewMode === 'track') {
+            if (runtime && (execution.status === 'running' || execution.status === 'paused')) {
+                // Active workout in progress — stack subscription drives the TV display;
+                // just signal the mode so the receiver doesn't overlay preview/review.
+                message = { type: 'rpc-workbench-update', mode: 'active' };
 
-        } else if (!runtime && analyticsSegments.length > 0) {
-            // Review mode: results from a completed workout
-            const firstTime = analyticsData[0]?.time ?? 0;
-            const lastTime = analyticsData[analyticsData.length - 1]?.time ?? 0;
-            const totalMs = lastTime - firstTime;
+            } else if (analyticsSegments.length > 0) {
+                // Workout just ended while still on the track view — show results.
+                message = buildReviewMessage(analyticsData, analyticsSegments);
 
-            const rows: Array<{ label: string; value: string }> = [];
-            if (totalMs > 0) {
-                rows.push({ label: 'Total Time', value: formatTimeMMSS(totalMs) });
-            }
-            rows.push({ label: 'Segments', value: String(analyticsSegments.length) });
-
-            // Add up to 4 representative segment times from the deepest level
-            const maxDepth = Math.max(...analyticsSegments.map(s => s.depth));
-            const leafSegs = analyticsSegments.filter(s => s.depth === maxDepth).slice(0, 4);
-            leafSegs.forEach(seg => {
-                rows.push({
-                    label: seg.name || 'Segment',
-                    value: formatTimeMMSS(Math.round(seg.elapsed * 1000)),
-                });
-            });
-
-            message = {
-                type: 'rpc-workbench-update',
-                mode: 'review',
-                reviewData: {
-                    totalDurationMs: totalMs,
-                    completedSegments: analyticsSegments.length,
-                    rows,
-                },
-            };
-
-        } else if (!runtime) {
-            // Preview mode: show what's in the loaded document
-            const wodItems = documentItems.filter(i => i.type === 'wod');
-
-            if (wodItems.length === 0 && !selectedBlock) {
-                message = { type: 'rpc-workbench-update', mode: 'idle' };
             } else {
-                // Use the first line of the active block's content as the title
-                const titleSource = selectedBlock?.content ?? wodItems[0]?.content ?? '';
-                const title = titleSource.split('\n')[0].trim().substring(0, 60) || 'Workout';
-
-                const blocks = wodItems.slice(0, 8).map(item => ({
-                    id: item.id,
-                    title: (item.wodBlock?.content ?? item.content).split('\n')[0].trim().substring(0, 50) || 'Workout',
-                    statementCount: item.wodBlock?.statements?.length ?? 0,
-                }));
-
-                message = {
-                    type: 'rpc-workbench-update',
-                    mode: 'preview',
-                    previewData: { title, blocks },
-                };
+                // On track view but runtime not yet started → show plan preview.
+                message = buildPreviewMessage(selectedBlock, documentItems);
             }
+
+        } else if (viewMode === 'review') {
+            // Explicitly on the review view.
+            if (analyticsSegments.length > 0) {
+                message = buildReviewMessage(analyticsData, analyticsSegments);
+            } else {
+                message = { type: 'rpc-workbench-update', mode: 'idle' };
+            }
+
         } else {
-            message = { type: 'rpc-workbench-update', mode: 'idle' };
+            // plan, analyze, history, tv — show document preview or idle.
+            message = buildPreviewMessage(selectedBlock, documentItems);
         }
 
         // Skip send if nothing has changed
@@ -111,6 +82,7 @@ export const WorkbenchCastBridge: React.FC = () => {
         }
     }, [
         castTransport,
+        viewMode,
         runtime,
         execution.status,
         selectedBlock,
@@ -121,3 +93,66 @@ export const WorkbenchCastBridge: React.FC = () => {
 
     return null;
 };
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildReviewMessage(
+    analyticsData: AnalyticsDataPoint[],
+    analyticsSegments: Segment[],
+): RpcWorkbenchUpdate {
+    const firstTime = analyticsData[0]?.time ?? 0;
+    const lastTime = analyticsData[analyticsData.length - 1]?.time ?? 0;
+    const totalMs = lastTime - firstTime;
+
+    const rows: Array<{ label: string; value: string }> = [];
+    if (totalMs > 0) {
+        rows.push({ label: 'Total Time', value: formatTimeMMSS(totalMs) });
+    }
+    rows.push({ label: 'Segments', value: String(analyticsSegments.length) });
+
+    const maxDepth = Math.max(...analyticsSegments.map(s => s.depth));
+    const leafSegs = analyticsSegments.filter(s => s.depth === maxDepth).slice(0, 4);
+    leafSegs.forEach(seg => {
+        rows.push({
+            label: seg.name || 'Segment',
+            value: formatTimeMMSS(Math.round(seg.elapsed * 1000)),
+        });
+    });
+
+    return {
+        type: 'rpc-workbench-update',
+        mode: 'review',
+        reviewData: {
+            totalDurationMs: totalMs,
+            completedSegments: analyticsSegments.length,
+            rows,
+        },
+    };
+}
+
+function buildPreviewMessage(
+    selectedBlock: WodBlock | null,
+    documentItems: DocumentItem[],
+): RpcWorkbenchUpdate {
+    const wodItems = documentItems.filter(i => i.type === 'wod');
+
+    if (wodItems.length === 0 && !selectedBlock) {
+        return { type: 'rpc-workbench-update', mode: 'idle' };
+    }
+
+    const titleSource = selectedBlock?.content ?? wodItems[0]?.content ?? '';
+    const title = titleSource.split('\n')[0].trim().substring(0, 60) || 'Workout';
+
+    const blocks = wodItems.slice(0, 8).map(item => ({
+        id: item.id,
+        title: (item.wodBlock?.content ?? item.content).split('\n')[0].trim().substring(0, 50) || 'Workout',
+        statementCount: item.wodBlock?.statements?.length ?? 0,
+    }));
+
+    return {
+        type: 'rpc-workbench-update',
+        mode: 'preview',
+        previewData: { title, blocks },
+    };
+}
+
