@@ -88,10 +88,38 @@ export interface RpcDispose {
 }
 
 /**
+ * Workbench-level display mode update.
+ * Sent by the browser when the workbench state changes outside of a live runtime
+ * (e.g., a note is loaded in preview, or results are shown in review).
+ */
+export interface RpcWorkbenchUpdate {
+    type: 'rpc-workbench-update';
+    /** Current workbench display mode */
+    mode: 'idle' | 'preview' | 'active' | 'review';
+    /** Populated in 'preview' mode — info about the loaded document */
+    previewData?: {
+        /** Title of the selected WOD block (or document title) */
+        title: string;
+        /** Workout blocks available in the document */
+        blocks: Array<{ id: string; title: string; statementCount: number }>;
+    };
+    /** Populated in 'review' mode — summary of completed workout */
+    reviewData?: {
+        /** Total wall-clock duration in ms */
+        totalDurationMs: number;
+        /** Number of completed segments */
+        completedSegments: number;
+        /** Key-value summary rows (e.g. "Total Time" → "12:34") */
+        rows: Array<{ label: string; value: string }>;
+    };
+}
+
+/**
  * Union of all RPC message types sent over the DataChannel.
  */
 export type RpcMessage =
     | RpcStackUpdate
     | RpcOutputStatement
     | RpcEvent
-    | RpcDispose;
+    | RpcDispose
+    | RpcWorkbenchUpdate;

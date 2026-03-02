@@ -32,6 +32,7 @@ import type { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import type { ICodeFragment } from '../../core/models/CodeFragment';
 import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
+import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
 
 /**
  * Default no-op execution return used before the bridge hydrates the store
@@ -99,6 +100,10 @@ interface WorkbenchSyncState {
     subLabel?: string;
     isRunning: boolean;
   };
+
+  // --- Cast Transport (shared between CastButtonRpc and WorkbenchCastBridge) ---
+  /** Active RPC transport while casting, null otherwise */
+  castTransport: IRpcTransport | null;
 }
 
 // ─── Actions ───────────────────────────────────────────────────
@@ -120,6 +125,7 @@ interface WorkbenchSyncActions {
   setCursorLine: (line: number) => void;
   setHighlightedLine: (line: number | null) => void;
   setDisplayState: (state: WorkbenchSyncState['displayState']) => void;
+  setCastTransport: (transport: IRpcTransport | null) => void;
 
   // --- Bridge hydration (called by WorkbenchSyncBridge to inject React hook values) ---
   _hydrateRuntime: (payload: {
@@ -180,6 +186,8 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     isRunning: false,
   },
 
+  castTransport: null,
+
   // --- Actions ---
 
   setActiveSegmentIds: (ids) => set({ activeSegmentIds: ids }),
@@ -237,6 +245,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setCursorLine: (line) => set({ cursorLine: line }),
   setHighlightedLine: (line) => set({ highlightedLine: line }),
   setDisplayState: (displayState) => set({ displayState }),
+  setCastTransport: (castTransport) => set({ castTransport }),
 
   // Bridge hydration — pushes React hook values into the store
   _hydrateRuntime: (payload) => set(payload),
@@ -276,5 +285,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     displayState: {
       isRunning: false,
     },
+
+    castTransport: null,
   }),
 }));

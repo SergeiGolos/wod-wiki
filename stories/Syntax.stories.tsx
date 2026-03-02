@@ -2,7 +2,7 @@ import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof Workbench> = {
-  title: 'Syntax',
+  title: 'Syntax/Reference Guide',
   component: Workbench,
   parameters: {
     layout: 'fullscreen',

@@ -13,7 +13,7 @@ import { BlockKey } from '@/core/models/BlockKey';
 import { WodScript } from '@/parser/WodScript';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import type { IRpcTransport } from './IRpcTransport';
-import type { RpcMessage, RpcStackUpdate, RpcOutputStatement } from './RpcMessages';
+import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate } from './RpcMessages';
 import { ProxyBlock } from './ProxyBlock';
 
 // ── Stub implementations ────────────────────────────────────────────────────
@@ -120,6 +120,20 @@ class ProxyEventBus implements IEventBus {
     }
 }
 
+// ── WorkbenchState ─────────────────────────────────────────────────────────
+
+/**
+ * Workbench display mode carried by rpc-workbench-update messages.
+ * The receiver renders different UI panels based on this mode.
+ */
+export interface WorkbenchDisplayState {
+    mode: 'idle' | 'preview' | 'active' | 'review';
+    previewData?: RpcWorkbenchUpdate['previewData'];
+    reviewData?: RpcWorkbenchUpdate['reviewData'];
+}
+
+export type WorkbenchStateListener = (state: WorkbenchDisplayState) => void;
+
 // ── ChromecastProxyRuntime ──────────────────────────────────────────────────
 
 /**
@@ -150,6 +164,10 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     private outputs: IOutputStatement[] = [];
     private transportUnsub: (() => void) | null = null;
     private disposed = false;
+
+    // Workbench display state (from rpc-workbench-update)
+    private _workbenchState: WorkbenchDisplayState = { mode: 'idle' };
+    private workbenchListeners = new Set<WorkbenchStateListener>();
 
     constructor(private readonly transport: IRpcTransport) {
         this.proxyStack = new ProxyStack();
@@ -182,6 +200,19 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.outputListeners.add(listener);
         return () => this.outputListeners.delete(listener);
     }
+
+    /**
+     * Subscribe to workbench display mode changes.
+     * The listener is called immediately with the current state, then on every update.
+     */
+    subscribeToWorkbench(listener: WorkbenchStateListener): Unsubscribe {
+        this.workbenchListeners.add(listener);
+        listener(this._workbenchState);
+        return () => this.workbenchListeners.delete(listener);
+    }
+
+    /** Current workbench display state (mode + optional preview/review data). */
+    get workbenchState(): WorkbenchDisplayState { return this._workbenchState; }
 
     getOutputStatements(): IOutputStatement[] {
         return [...this.outputs];
@@ -239,6 +270,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.proxyEventBus.dispose();
         this.stackObservers.clear();
         this.outputListeners.clear();
+        this.workbenchListeners.clear();
         this.outputs = [];
     }
 
@@ -251,6 +283,9 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
                 break;
             case 'rpc-output':
                 this.handleOutput(message);
+                break;
+            case 'rpc-workbench-update':
+                this.handleWorkbenchUpdate(message);
                 break;
             case 'rpc-dispose':
                 this.dispose();
@@ -320,5 +355,16 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         } as any;
 
         this.addOutput(output);
+    }
+
+    private handleWorkbenchUpdate(message: RpcWorkbenchUpdate): void {
+        this._workbenchState = {
+            mode: message.mode,
+            previewData: message.previewData,
+            reviewData: message.reviewData,
+        };
+        for (const listener of this.workbenchListeners) {
+            listener(this._workbenchState);
+        }
     }
 }

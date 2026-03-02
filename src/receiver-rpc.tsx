@@ -20,6 +20,7 @@ import { CAST_NAMESPACE } from '@/types/cast/messages';
 import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
 import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRuntime';
+import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { TimerStackView } from '@/components/workout/TimerStackView';
 import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
@@ -30,7 +31,7 @@ import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { calculateDuration } from '@/lib/timeUtils';
-import { Timer, CheckCircle2 } from 'lucide-react';
+import { Timer, CheckCircle2, Dumbbell, BarChart3, Play } from 'lucide-react';
 import '@/index.css';
 
 // ============================================================================
@@ -239,12 +240,110 @@ const ReceiverTimerPanel: React.FC<{
 };
 
 // ============================================================================
+// ReceiverPreviewPanel — shown when a note is loaded but no runtime is active
+// ============================================================================
+
+const ReceiverPreviewPanel: React.FC<{
+    previewData: NonNullable<WorkbenchDisplayState['previewData']>;
+}> = ({ previewData }) => {
+    return (
+        <div className="h-full w-full flex flex-col items-center justify-center gap-8 p-12 bg-background">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+                <Dumbbell className="h-8 w-8 text-primary" />
+                <span className="text-2xl font-bold tracking-tight text-foreground">Wod.Wiki</span>
+            </div>
+
+            {/* Title */}
+            <div className="text-center">
+                <h1 className="text-4xl font-bold text-foreground leading-tight">
+                    {previewData.title}
+                </h1>
+                <p className="mt-2 text-muted-foreground text-lg">Select a workout to begin</p>
+            </div>
+
+            {/* Workout list */}
+            {previewData.blocks.length > 0 && (
+                <div className="w-full max-w-lg flex flex-col gap-2">
+                    {previewData.blocks.map((block) => (
+                        <div
+                            key={block.id}
+                            className="flex items-center justify-between rounded-lg border border-border/60 bg-card/50 px-4 py-3 text-sm"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Play className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium text-foreground truncate max-w-xs">
+                                    {block.title}
+                                </span>
+                            </div>
+                            {block.statementCount > 0 && (
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                    {block.statementCount} steps
+                                </span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            <p className="text-xs text-muted-foreground/40 font-mono uppercase tracking-widest">
+                Ready
+            </p>
+        </div>
+    );
+};
+
+// ============================================================================
+// ReceiverReviewPanel — shown after a workout completes (results available)
+// ============================================================================
+
+const ReceiverReviewPanel: React.FC<{
+    reviewData: NonNullable<WorkbenchDisplayState['reviewData']>;
+}> = ({ reviewData }) => {
+    return (
+        <div className="h-full w-full flex flex-col items-center justify-center gap-8 p-12 bg-background">
+            {/* Header */}
+            <div className="flex flex-col items-center gap-3">
+                <CheckCircle2 className="h-12 w-12 text-green-500" />
+                <h1 className="text-4xl font-bold text-foreground">Workout Complete</h1>
+            </div>
+
+            {/* Stats grid */}
+            <div className="w-full max-w-md flex flex-col gap-2">
+                {reviewData.rows.map((row, i) => (
+                    <div
+                        key={i}
+                        className={cn(
+                            "flex items-center justify-between rounded-lg px-5 py-3 text-base",
+                            i === 0
+                                ? "bg-primary/10 border border-primary/30 font-bold"
+                                : "bg-card/40 border border-border/40"
+                        )}
+                    >
+                        <span className="text-muted-foreground">{row.label}</span>
+                        <span className="font-mono font-semibold text-foreground">{row.value}</span>
+                    </div>
+                ))}
+            </div>
+
+            <div className="flex items-center gap-2 text-muted-foreground/50">
+                <BarChart3 className="h-4 w-4" />
+                <span className="text-xs font-mono uppercase tracking-widest">
+                    {reviewData.completedSegments} segments completed
+                </span>
+            </div>
+        </div>
+    );
+};
+
+// ============================================================================
 // ReceiverApp — Main receiver component
 // ============================================================================
 
 const ReceiverApp: React.FC = () => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
+    const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
     const [now, setNow] = useState(Date.now());
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
@@ -280,6 +379,11 @@ const ReceiverApp: React.FC = () => {
             console.log('[ReceiverApp] RPC transport connected');
             setConnectionStatus('connected');
             setProxyRuntime(runtime);
+
+            // Subscribe to workbench display mode updates
+            runtime.subscribeToWorkbench((state) => {
+                setWorkbenchState(state);
+            });
         });
 
         transport.onDisconnected(() => {
@@ -387,7 +491,7 @@ const ReceiverApp: React.FC = () => {
         };
     }, [sendEvent]);
 
-    // Waiting screen
+    // Waiting screen (not yet connected)
     if (!proxyRuntime) {
         return (
             <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/20 font-mono uppercase tracking-[0.5em]">
@@ -396,6 +500,37 @@ const ReceiverApp: React.FC = () => {
         );
     }
 
+    // Preview mode: note loaded but no active runtime
+    if (workbenchState.mode === 'preview' && workbenchState.previewData) {
+        return (
+            <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
+                {dpadFlash && (
+                    <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
+                )}
+                <ReceiverPreviewPanel previewData={workbenchState.previewData} />
+                <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
+                    {connectionStatus}
+                </div>
+            </div>
+        );
+    }
+
+    // Review mode: workout completed, results available
+    if (workbenchState.mode === 'review' && workbenchState.reviewData) {
+        return (
+            <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
+                {dpadFlash && (
+                    <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
+                )}
+                <ReceiverReviewPanel reviewData={workbenchState.reviewData} />
+                <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
+                    {connectionStatus}
+                </div>
+            </div>
+        );
+    }
+
+    // Active / Idle mode: normal stack + timer layout
     return (
         <ScriptRuntimeProvider runtime={proxyRuntime}>
             <PanelSizeProvider>

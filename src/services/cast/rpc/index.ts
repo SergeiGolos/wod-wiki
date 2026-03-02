@@ -5,6 +5,7 @@ export type {
     RpcOutputStatement,
     RpcEvent,
     RpcDispose,
+    RpcWorkbenchUpdate,
     SerializedBlock,
     SerializedTimer,
     SerializedTimeSpan,

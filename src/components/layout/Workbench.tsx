@@ -44,7 +44,8 @@ import { ContentProviderMode, IContentProvider } from '../../types/content-provi
 import { HistoryEntry } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '../../app/wod-loader';
-import { CastButton } from '@/components/cast/CastButton';
+import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { TVPage } from '@/app/pages/TVPage';
 
 import { PlanPanel } from '../workbench/PlanPanel';
@@ -463,7 +464,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
             <DebugButton />
 
-            <CastButton />
+            <CastButtonRpc />
 
             <Button
               variant="ghost"
@@ -555,6 +556,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
           <WorkbenchSyncBridge>
+            <WorkbenchCastBridge />
             <DisplaySyncBridge />
             <WorkbenchContent {...props} />
           </WorkbenchSyncBridge>

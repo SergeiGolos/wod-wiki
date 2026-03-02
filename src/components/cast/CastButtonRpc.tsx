@@ -31,9 +31,13 @@ export const CastButtonRpc: React.FC = () => {
     const [isCasting, setIsCasting] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const subscriptionManager = useSubscriptionManager();
+    const setCastTransport = useWorkbenchSyncStore(s => s.setCastTransport);
 
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
     const eventProviderRef = useRef<ChromecastEventProvider | null>(null);
+    // Track whether we are currently casting (stable ref for effects)
+    const isCastingRef = useRef(false);
+    isCastingRef.current = isCasting;
 
     // Initialize SDK on mount
     useEffect(() => {
@@ -52,6 +56,19 @@ export const CastButtonRpc: React.FC = () => {
 
         return unsub;
     }, []);
+
+    // Re-add Chromecast subscription whenever the subscriptionManager changes
+    // (new runtime created while actively casting)
+    useEffect(() => {
+        if (!isCastingRef.current || !subscriptionManager || !transportRef.current) return;
+        const transport = transportRef.current;
+        // Rebuild the stack subscription against the new manager
+        const chromecastSub = new ChromecastRuntimeSubscription(transport, {
+            id: CHROMECAST_SUBSCRIPTION_ID,
+        });
+        subscriptionManager.add(chromecastSub);
+        console.log('[CastButtonRpc] Re-attached subscription to new SubscriptionManager');
+    }, [subscriptionManager]);
 
     // Wire ChromecastEventProvider to route receiver events → local runtime
     useEffect(() => {
@@ -97,12 +114,13 @@ export const CastButtonRpc: React.FC = () => {
         eventProviderRef.current?.dispose();
         eventProviderRef.current = null;
 
-        // Dispose transport
+        // Dispose transport + clear in store
         transportRef.current?.dispose();
         transportRef.current = null;
+        setCastTransport(null);
 
         setIsCasting(false);
-    }, [subscriptionManager]);
+    }, [subscriptionManager, setCastTransport]);
 
     const handleCast = useCallback(async () => {
         if (isCasting) {
@@ -111,10 +129,9 @@ export const CastButtonRpc: React.FC = () => {
             return;
         }
 
-        if (!subscriptionManager) {
-            console.warn('[CastButtonRpc] No subscription manager — runtime not active');
-            return;
-        }
+        // NOTE: We allow casting even when no runtime/subscriptionManager is active.
+        // The WorkbenchCastBridge will send workbench-level updates (preview/review modes)
+        // and the subscription will be added once a runtime is initialized.
 
         setIsConnecting(true);
         try {
@@ -162,13 +179,21 @@ export const CastButtonRpc: React.FC = () => {
             await transport.connect();
 
             // 7. Create subscription and event provider
-            const chromecastSub = new ChromecastRuntimeSubscription(transport, {
-                id: CHROMECAST_SUBSCRIPTION_ID,
-            });
-            subscriptionManager.add(chromecastSub);
+            // Only wire the stack subscription if there's an active runtime
+            if (subscriptionManager) {
+                const chromecastSub = new ChromecastRuntimeSubscription(transport, {
+                    id: CHROMECAST_SUBSCRIPTION_ID,
+                });
+                subscriptionManager.add(chromecastSub);
+            } else {
+                console.log('[CastButtonRpc] No active runtime — stack subscription deferred until runtime loads');
+            }
 
             const eventProvider = new ChromecastEventProvider(transport);
             eventProviderRef.current = eventProvider;
+
+            // Publish transport to store so WorkbenchCastBridge can send workbench-level msgs
+            setCastTransport(transport);
 
             setIsCasting(true);
         } catch (err) {
@@ -177,7 +202,7 @@ export const CastButtonRpc: React.FC = () => {
         } finally {
             setIsConnecting(false);
         }
-    }, [isCasting, subscriptionManager, cleanupCast]);
+    }, [isCasting, subscriptionManager, cleanupCast, setCastTransport]);
 
     // Handle states
     const isUnavailable = sdkState === 'unavailable';
