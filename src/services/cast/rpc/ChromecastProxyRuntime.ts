@@ -295,8 +295,14 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     }
 
     private handleStackUpdate(message: RpcStackUpdate): void {
-        // Hydrate ProxyBlocks from serialized data
-        const blocks = message.blocks.map(sb => new ProxyBlock(sb));
+        let blocks: ProxyBlock[];
+        try {
+            // Hydrate ProxyBlocks from serialized data
+            blocks = message.blocks.map(sb => new ProxyBlock(sb));
+        } catch (err) {
+            console.error('[ChromecastProxyRuntime] Failed to hydrate ProxyBlocks from snapshot — snapshot dropped', err);
+            return;
+        }
 
         // Find the affected block
         const affectedBlock = message.affectedBlockKey

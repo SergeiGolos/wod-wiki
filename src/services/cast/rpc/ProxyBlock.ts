@@ -7,7 +7,7 @@ import { IMemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
 import { MemoryType, MemoryValueOf, TimerState } from '@/runtime/memory/MemoryTypes';
 import { FragmentVisibility } from '@/runtime/memory/FragmentVisibility';
 import { BlockKey } from '@/core/models/BlockKey';
-import { ICodeFragment } from '@/core/models/CodeFragment';
+import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import type { SerializedBlock } from './RpcMessages';
 
@@ -98,11 +98,10 @@ export class ProxyBlock implements IRuntimeBlock {
 
             // Store as a single fragment with .value = TimerState under 'time' tag
             // (matching what RuntimeBlock stores, so hooks using getMemoryByTag('time') work)
-            const { FragmentType } = require('@/core/models/CodeFragment');
             const timerFragments: ICodeFragment[] = [
                 {
-                    type: 'timer',
-                    fragmentType: FragmentType?.Duration ?? 'duration',
+                    type: 'time',
+                    fragmentType: FragmentType.Time,
                     image: '',
                     origin: 'runtime' as any,
                     value: this.timerState,
