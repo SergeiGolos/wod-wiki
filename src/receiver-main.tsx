@@ -14,6 +14,11 @@ import '@/index.css';
 // Types for serialized display state from the WebSocket bridge
 // ============================================================================
 
+interface RemoteTimeSpan {
+  started: number;   // epoch ms
+  ended?: number;    // epoch ms, undefined = still running
+}
+
 interface RemoteTimerEntry {
   id: string;
   ownerId: string;
@@ -21,7 +26,7 @@ interface RemoteTimerEntry {
   format: 'up' | 'down';
   durationMs?: number;
   role: 'primary' | 'secondary';
-  accumulatedMs: number;
+  spans: RemoteTimeSpan[];  // Raw time segments for local interpolation
   isRunning: boolean;
   isPinned?: boolean;
 }
@@ -34,7 +39,7 @@ interface RemoteDisplayRow {
   depth: number;
   rows: any[][]; // ICodeFragment[][]
   timer: {
-    elapsed: number;
+    spans: RemoteTimeSpan[];
     durationMs?: number;
     direction: 'up' | 'down';
     isRunning: boolean;
@@ -47,7 +52,18 @@ interface RemoteState {
   lookahead: { fragments: any[] } | null;
   subLabel?: string;
   workoutState: string;
-  totalElapsedMs: number;
+}
+
+// ============================================================================
+// Shared utility: compute elapsed from spans (mirrors src/lib/timeUtils.ts)
+// ============================================================================
+
+function calculateElapsedFromSpans(spans: RemoteTimeSpan[] | undefined, now: number): number {
+  if (!spans || spans.length === 0) return 0;
+  return spans.reduce((total, span) => {
+    const end = span.ended ?? now;
+    return total + Math.max(0, end - span.started);
+  }, 0);
 }
 
 // ============================================================================
@@ -57,16 +73,11 @@ interface RemoteState {
 const RemoteStackBlockItem: React.FC<{
   entry: RemoteDisplayRow;
   localNow: number;
-  lastUpdate: number;
-  isRunning: boolean;
-}> = ({ entry, localNow, lastUpdate, isRunning: workoutRunning }) => {
+}> = ({ entry, localNow }) => {
   const hasTimer = !!entry.timer;
 
-  // Locally interpolate timer elapsed for smoother display  
-  let elapsed = entry.timer?.elapsed ?? 0;
-  if (entry.timer?.isRunning && workoutRunning) {
-    elapsed += (localNow - lastUpdate);
-  }
+  // Compute elapsed directly from spans — no offset needed
+  const elapsed = hasTimer ? calculateElapsedFromSpans(entry.timer!.spans, localNow) : 0;
 
   return (
     <div
@@ -130,9 +141,7 @@ const RemoteVisualStatePanel: React.FC<{
   displayRows: RemoteDisplayRow[];
   lookahead: { fragments: any[] } | null;
   localNow: number;
-  lastUpdate: number;
-  isRunning: boolean;
-}> = ({ displayRows, lookahead, localNow, lastUpdate, isRunning }) => {
+}> = ({ displayRows, lookahead, localNow }) => {
   if (displayRows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
@@ -152,8 +161,6 @@ const RemoteVisualStatePanel: React.FC<{
               key={entry.blockKey || index}
               entry={entry}
               localNow={localNow}
-              lastUpdate={lastUpdate}
-              isRunning={isRunning}
             />
           ))}
         </div>
@@ -198,7 +205,6 @@ const RemoteVisualStatePanel: React.FC<{
 const ReceiverApp = () => {
   const [remoteState, setRemoteState] = useState<RemoteState | null>(null);
   const [wsStatus, setWsStatus] = useState('connecting');
-  const [lastUpdate, setLastUpdate] = useState(0);
   const [now, setNow] = useState(Date.now());
   const [dpadFlash, setDpadFlash] = useState(false);
   const wsRef = React.useRef<WebSocket | null>(null);
@@ -236,7 +242,6 @@ const ReceiverApp = () => {
         const msg = JSON.parse(event.data);
         if (msg.type === 'state-update') {
           setRemoteState(msg.payload.displayState);
-          setLastUpdate(Date.now());
         }
       };
       ws.onclose = () => { wsRef.current = null; setWsStatus('connecting'); setTimeout(connect, 3000); };
@@ -323,21 +328,14 @@ const ReceiverApp = () => {
   const secondaries = timerStack.filter(t => t !== primary);
   const isRunning = remoteState.workoutState === 'running';
 
-  // Locally interpolate primary timer elapsed
-  let primaryElapsed = primary?.accumulatedMs ?? 0;
-  if (primary?.isRunning && isRunning) {
-    primaryElapsed += (now - lastUpdate);
-  }
+  // Compute elapsed directly from spans — no offset interpolation needed
+  const primaryElapsed = primary ? calculateElapsedFromSpans(primary.spans, now) : 0;
 
-  // Build timerStates map for TimerStackView 
+  // Build timerStates map for TimerStackView
   const timerStates = new Map<string, { elapsed: number; duration?: number; format: 'down' | 'up' }>();
   for (const t of timerStack) {
-    let elapsed = t.accumulatedMs || 0;
-    if (t.isRunning && isRunning) {
-      elapsed += (now - lastUpdate);
-    }
     timerStates.set(t.ownerId, {
-      elapsed,
+      elapsed: calculateElapsedFromSpans(t.spans, now),
       duration: t.durationMs,
       format: t.format,
     });
@@ -364,7 +362,7 @@ const ReceiverApp = () => {
     format: t.format,
     durationMs: t.durationMs,
     role: 'auto' as const,
-    accumulatedMs: t.accumulatedMs || 0,
+    accumulatedMs: calculateElapsedFromSpans(t.spans, now),
   }));
 
   return (
@@ -381,8 +379,6 @@ const ReceiverApp = () => {
             displayRows={remoteState.displayRows || []}
             lookahead={remoteState.lookahead || null}
             localNow={now}
-            lastUpdate={lastUpdate}
-            isRunning={isRunning}
           />
         </div>
 

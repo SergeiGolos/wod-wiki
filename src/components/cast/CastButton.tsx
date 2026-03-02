@@ -43,34 +43,57 @@ export const CastButton: React.FC = () => {
         return () => { manager.off('receiverEvent', handleReceiverEvent as any); };
     }, [isCasting]);
 
-    // Only send updates when logical state changes
+    // Only send updates on structural changes (not timer ticks)
+    // Receiver interpolates timers locally via requestAnimationFrame
+    const lastSentFingerprintRef = useRef('');
+    const sequenceRef = useRef(0);
+
     useEffect(() => {
         const manager = castManagerRef.current;
         const display = store.displayState as any;
 
-        if (manager && isCasting && display) {
-            // Send the full displayState from the bridge — it already contains
-            // timerStack, displayRows, lookahead, subLabel, workoutState, etc.
-            manager.sendStateUpdate(
-                sessionIdRef.current,
-                {
-                    timerStack: display.timerStack || [],
-                    cardStack: [],
-                    displayRows: display.displayRows || [],
-                    lookahead: display.lookahead || null,
-                    subLabel: display.subLabel,
-                    workoutState: display.isRunning ? 'running' : 'paused',
-                    totalElapsedMs: store.execution.elapsedTime,
-                } as any,
-                store.execution.stepCount
-            );
-        }
+        if (!manager || !isCasting || !display) return;
+
+        // Build a structural fingerprint that ignores timer elapsed values.
+        // This captures: block structure, fragment content, workout state,
+        // timer running state, lookahead — but NOT elapsed ticks or stepCount.
+        const rowKeys = (display.displayRows || []).map((r: any) =>
+            `${r.blockKey}:${r.label}:${r.blockType}:${JSON.stringify(r.rows)}`
+        ).join('|');
+
+        const timerStructure = (display.timerStack || []).map((t: any) =>
+            `${t.ownerId}:${t.format}:${t.durationMs}:${t.isRunning}:${t.role}:${t.spans?.length}`
+        ).join('|');
+
+        const fingerprint = [
+            display.workoutState,
+            display.subLabel,
+            rowKeys,
+            timerStructure,
+            JSON.stringify(display.lookahead),
+            store.execution.status,
+        ].join('::');
+
+        if (fingerprint === lastSentFingerprintRef.current) return;
+        lastSentFingerprintRef.current = fingerprint;
+        sequenceRef.current += 1;
+
+        manager.sendStateUpdate(
+            sessionIdRef.current,
+            {
+                timerStack: display.timerStack || [],
+                cardStack: [],
+                displayRows: display.displayRows || [],
+                lookahead: display.lookahead || null,
+                subLabel: display.subLabel,
+                workoutState: display.isRunning ? 'running' : 'paused',
+            } as any,
+            sequenceRef.current
+        );
     }, [
-        isCasting, 
+        isCasting,
         store.displayState,
         store.execution.status,
-        store.execution.stepCount,
-        store.execution.elapsedTime,
     ]);
 
     const handleCast = useCallback(async () => {

@@ -52,7 +52,6 @@
         const ringEl = document.getElementById('progress-ring');
 
         let lastState = null;
-        let lastUpdateReceivedAt = 0;
 
         const connect = () => {
             const ws = new WebSocket(relay);
@@ -68,7 +67,6 @@
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'state-update') {
                     lastState = msg.payload.displayState;
-                    lastUpdateReceivedAt = Date.now();
                     
                     // Instant update for static text
                     const primary = lastState.timerStack?.[0] || {};
@@ -82,18 +80,24 @@
             };
         };
 
+        // Compute elapsed from raw TimeSpan[] spans (mirrors src/lib/timeUtils.ts)
+        const calcElapsed = (spans, now) => {
+            if (!spans || !spans.length) return 0;
+            return spans.reduce((total, s) => total + Math.max(0, (s.ended ?? now) - s.started), 0);
+        };
+
         const tick = () => {
             if (lastState) {
                 const primary = lastState.timerStack?.[0] || {};
                 const isRunning = lastState.workoutState === 'running';
-                
-                let elapsed = lastState.totalElapsedMs || 0;
-                if (isRunning) elapsed += (Date.now() - lastUpdateReceivedAt);
+                const now = Date.now();
+
+                // Compute elapsed directly from spans — no offset needed
+                const elapsed = calcElapsed(primary.spans, now);
 
                 let timeToShow = elapsed;
                 if (primary.format === 'down' && primary.durationMs) {
-                    const accumulated = (primary.accumulatedMs || 0) + (isRunning ? (Date.now() - lastUpdateReceivedAt) : 0);
-                    timeToShow = Math.max(0, primary.durationMs - accumulated);
+                    timeToShow = Math.max(0, primary.durationMs - elapsed);
                     const progress = (timeToShow / primary.durationMs);
                     ringEl.style.strokeDashoffset = 301.59 * (1 - progress);
                 } else {
