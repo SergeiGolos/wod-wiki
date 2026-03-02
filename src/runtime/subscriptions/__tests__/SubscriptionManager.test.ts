@@ -111,8 +111,10 @@ describe('SubscriptionManager', () => {
         const snapshot = createMockSnapshot('push');
         runtime._emitStack(snapshot);
 
-        expect(received).toHaveLength(1);
-        expect(received[0].type).toBe('push');
+        // Expect 2: one from catch-up during add(), one from fan-out
+        expect(received).toHaveLength(2);
+        expect(received[0].type).toBe('initial');
+        expect(received[1].type).toBe('push');
     });
 
     it('should fan out output statements to all subscriptions', () => {
@@ -128,6 +130,7 @@ describe('SubscriptionManager', () => {
         const output = createMockOutput();
         runtime._emitOutput(output);
 
+        // Still 1 because createMockRuntime returns empty getOutputStatements()
         expect(received).toHaveLength(1);
     });
 
@@ -150,8 +153,8 @@ describe('SubscriptionManager', () => {
 
         runtime._emitStack(createMockSnapshot());
 
-        expect(receivedA).toHaveLength(1);
-        expect(receivedB).toHaveLength(1);
+        expect(receivedA).toHaveLength(2);
+        expect(receivedB).toHaveLength(2);
     });
 
     it('should remove subscriptions by id', () => {
@@ -196,7 +199,7 @@ describe('SubscriptionManager', () => {
         expect(manager.count).toBe(1);
 
         runtime._emitStack(createMockSnapshot());
-        expect(received).toHaveLength(1);
+        expect(received).toHaveLength(2);
     });
 
     it('should dispose all subscriptions on dispose', () => {
@@ -235,9 +238,8 @@ describe('SubscriptionManager', () => {
         manager.dispose();
         runtime._emitStack(createMockSnapshot());
 
-        // After dispose, the manager unsubscribed from runtime,
-        // so the snapshot should not be forwarded
-        expect(received).toHaveLength(0);
+        // Expect 1: from catch-up during add(), but NO more after dispose
+        expect(received).toHaveLength(1);
     });
 
     it('should handle errors in subscription callbacks gracefully', () => {
@@ -258,7 +260,7 @@ describe('SubscriptionManager', () => {
 
         // Should not throw — error is caught internally
         runtime._emitStack(createMockSnapshot());
-        expect(received).toHaveLength(1);
+        expect(received).toHaveLength(2);
     });
 });
 

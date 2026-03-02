@@ -100,7 +100,7 @@ describe('ProxyBlock', () => {
             };
             const block = new ProxyBlock(createSerializedBlock({ timer }));
 
-            const timerLocations = block.getMemoryByTag('timer');
+            const timerLocations = block.getMemoryByTag('time');
             expect(timerLocations).toHaveLength(1);
             expect(timerLocations[0].fragments.length).toBeGreaterThan(0);
         });

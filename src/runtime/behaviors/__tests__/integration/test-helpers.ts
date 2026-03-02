@@ -77,6 +77,8 @@ export interface MockBlock {
     readonly label: string;
     fragments: unknown[][];
     memory: Map<MemoryType, unknown>;
+    /** Read-only list of behaviors (new requirement for some behaviors) */
+    behaviors: readonly IRuntimeBehavior[];
     /** List-based memory locations (new API) */
     _memoryLocations: IMemoryLocation[];
     /** New list-based API: get locations by tag */
@@ -110,6 +112,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         },
         fragments: config.fragments ?? [],
         memory: config.memory ?? new Map(),
+        behaviors: config.behaviors ?? [],
         _memoryLocations: memoryLocations,
         getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
             return memoryLocations.filter(loc => loc.tag === tag);
@@ -317,6 +320,8 @@ export function mountBehaviors(
     block: MockBlock
 ): IBehaviorContext {
     const ctx = createIntegrationContext(runtime, block);
+    // Populate behaviors on the block for reflection (onNext inspection)
+    (block as any).behaviors = behaviors;
     for (const behavior of behaviors) {
         behavior.onMount(ctx);
     }

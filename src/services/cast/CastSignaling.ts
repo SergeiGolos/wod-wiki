@@ -95,6 +95,7 @@ export class ReceiverCastSignaling implements ISignaling {
   constructor(private readonly context: any /* cast.framework.CastReceiverContext */) {
     this.boundListener = (event: any) => {
       try {
+        console.log('[ReceiverCastSignaling] RAW incoming:', event.senderId, typeof event.data === 'string' ? event.data.substring(0, 120) : JSON.stringify(event.data).substring(0, 120));
         // Remember the sender's ID so we can reply
         this.senderId = event.senderId;
         // With 'JSON' namespace type, event.data is already a parsed object.
@@ -102,6 +103,7 @@ export class ReceiverCastSignaling implements ISignaling {
         const signal = (typeof event.data === 'string'
           ? JSON.parse(event.data)
           : event.data) as WebRTCSignalMessage;
+        console.log('[ReceiverCastSignaling] Parsed signal type:', signal.type);
         this.handler?.(signal);
       } catch (err) {
         console.error('[ReceiverCastSignaling] Failed to parse incoming signal', err);
@@ -117,12 +119,18 @@ export class ReceiverCastSignaling implements ISignaling {
       console.warn('[ReceiverCastSignaling] No senderId yet — cannot reply');
       return;
     }
+    console.log(`[ReceiverCastSignaling] Sending: ${signal.type} to ${this.senderId}`);
     // Send as a plain object — 'JSON' namespace type handles serialization.
-    this.context.sendCustomMessage(
-      CAST_NAMESPACE,
-      this.senderId,
-      signal,
-    );
+    try {
+      this.context.sendCustomMessage(
+        CAST_NAMESPACE,
+        this.senderId,
+        signal,
+      );
+      console.log(`[ReceiverCastSignaling] sendCustomMessage(${signal.type}) OK`);
+    } catch (err) {
+      console.error(`[ReceiverCastSignaling] sendCustomMessage(${signal.type}) FAILED`, err);
+    }
   }
 
   onSignal(handler: (signal: WebRTCSignalMessage) => void): void {

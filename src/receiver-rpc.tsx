@@ -425,6 +425,32 @@ const ReceiverApp: React.FC = () => {
             return;
         }
 
+        // Start the CAF receiver context FIRST — the custom namespace must be
+        // declared in start() before addCustomMessageListener() is called.
+        // If the listener is registered before start(), the Cast SDK may not
+        // deliver messages on that namespace, causing webrtc-offer to be silently
+        // dropped and the WebRTC handshake to time out on the sender side.
+        castContext.start({
+            customNamespaces: {
+                [CAST_NAMESPACE]: 'JSON',
+            },
+        });
+        setConnectionStatus('cast-ready');
+        console.log('[ReceiverApp] castContext.start() called — namespace registered');
+
+        castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
+            console.log('[ReceiverApp] Cast Receiver READY');
+            const loader = document.getElementById('initial-loader');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                }, 500); // Wait for fade-out transition
+            }
+        });
+
+        // Create signaling AFTER start() so addCustomMessageListener is attached
+        // to an active namespace and will receive messages correctly.
         const signaling = new ReceiverCastSignaling(castContext);
         const transport = new WebRtcRpcTransport('answerer', signaling);
 
@@ -448,25 +474,6 @@ const ReceiverApp: React.FC = () => {
             setConnectionStatus('disconnected');
             setProxyRuntime(null);
         });
-
-        // Start the CAF receiver context
-        castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
-            console.log('[ReceiverApp] Cast Receiver READY');
-            const loader = document.getElementById('initial-loader');
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                }, 500); // Wait for fade-out transition
-            }
-        });
-
-        castContext.start({
-            customNamespaces: {
-                [CAST_NAMESPACE]: 'JSON',
-            },
-        });
-        setConnectionStatus('cast-ready');
 
         transport.connect().catch((err: unknown) => {
             console.error('[ReceiverApp] RPC transport connect failed', err);
