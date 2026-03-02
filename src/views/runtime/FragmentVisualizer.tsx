@@ -20,9 +20,6 @@ export interface FragmentVisualizerProps {
 
   /** Optional filter configuration */
   filter?: VisualizerFilter;
-
-  /** @deprecated Use size='compact' instead */
-  compact?: boolean;
 }
 
 /**
@@ -33,12 +30,9 @@ export const FragmentVisualizer = React.memo<FragmentVisualizerProps>(({
   fragments,
   error,
   className = '',
-  size: sizeProp = 'normal',
+  size = 'normal',
   filter,
-  compact: compactProp
 }) => {
-  // Backward compatibility
-  const size = compactProp ? 'compact' : sizeProp;
 
   // Filter fragments logic
   const visibleFragments = useMemo(() => {

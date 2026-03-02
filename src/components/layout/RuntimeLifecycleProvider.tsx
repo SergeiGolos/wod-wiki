@@ -29,8 +29,7 @@ import { SubscriptionManager } from '../../runtime/subscriptions/SubscriptionMan
 import { LocalRuntimeSubscription } from '../../runtime/subscriptions/LocalRuntimeSubscription';
 import { SubscriptionManagerContext } from './SubscriptionManagerContext';
 
-// Re-export hooks for backward compatibility
-export { useRuntimeLifecycle, useRuntime } from './useRuntimeLifecycle';
+export { useRuntimeLifecycle } from './useRuntimeLifecycle';
 
 /**
  * Props for RuntimeLifecycleProvider
@@ -176,8 +175,5 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
     </RuntimeLifecycleContext.Provider>
   );
 };
-
-/** @deprecated Use RuntimeLifecycleProvider instead */
-export const RuntimeProvider = RuntimeLifecycleProvider;
 
 export default RuntimeLifecycleProvider;

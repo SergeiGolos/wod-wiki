@@ -16,8 +16,8 @@ export interface RuntimeHistoryLogProps {
   workoutStartTime?: number | null;
   /** Whether to show active items (default: true) */
   showActive?: boolean;
-  /** Compact display mode */
-  compact?: boolean;
+  /** Display size variant */
+  size?: VisualizerSize;
   /** Pre-computed entries — when provided, skips useOutputStatements */
   entries?: FragmentSourceEntry[];
   /** Set of selected item IDs (string) for multi-select */
@@ -42,7 +42,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   autoScroll = true,
   className,
   showActive = true,
-  compact = false,
+  size = 'normal',
   entries: externalEntries,
   selectedIds,
   onSelectionChange,
@@ -118,8 +118,6 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     return { entries: displayEntries, activeItemId };
   }, [runtime, outputs, updateVersion, showActive, externalEntries]);
 
-  const effectiveSize: VisualizerSize = compact ? 'compact' : 'normal';
-
   return (
     <FragmentSourceList
       entries={entries}
@@ -128,7 +126,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
       onSelectionChange={onSelectionChange}
       onDoubleClick={onDoubleClick}
       autoScroll={autoScroll}
-      size={effectiveSize}
+      size={size}
       showDurations
       groupLinked={false}
       className={className}

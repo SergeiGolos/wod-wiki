@@ -42,9 +42,9 @@
  * 
  * function WorkoutPage() {
  *   return (
- *     <RuntimeProvider runtime={runtime}>
+ *     <ScriptRuntimeProvider runtime={runtime}>
  *       <StackedClockDisplay />
- *     </RuntimeProvider>
+ *     </ScriptRuntimeProvider>
  *   );
  * }
  * 

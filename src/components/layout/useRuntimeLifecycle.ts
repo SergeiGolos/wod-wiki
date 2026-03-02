@@ -20,5 +20,3 @@ export const useRuntimeLifecycle = (): RuntimeLifecycleState => {
   return context;
 };
 
-/** @deprecated Use useRuntimeLifecycle instead */
-export const useRuntime = useRuntimeLifecycle;

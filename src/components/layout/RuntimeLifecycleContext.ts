@@ -34,8 +34,3 @@ export interface RuntimeLifecycleState {
 
 export const RuntimeLifecycleContext = createContext<RuntimeLifecycleState | undefined>(undefined);
 
-// Backward-compatible aliases
-/** @deprecated Use RuntimeLifecycleState instead */
-export type RuntimeContextState = RuntimeLifecycleState;
-/** @deprecated Use RuntimeLifecycleContext instead */
-export const RuntimeContext = RuntimeLifecycleContext;

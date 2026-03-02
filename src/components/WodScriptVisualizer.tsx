@@ -17,8 +17,6 @@ export interface WodScriptVisualizerProps {
   size?: VisualizerSize;
   /** Optional filter configuration */
   filter?: VisualizerFilter;
-  /** @deprecated Use size='compact' instead */
-  compact?: boolean;
   onSelectionChange?: (itemId: string | null) => void;
   renderActions?: (entry: FragmentSourceEntry) => React.ReactNode;
   className?: string;
@@ -53,7 +51,6 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   selectedLine,
   size,
   filter,
-  compact,
   onSelectionChange,
   renderActions,
   className,
@@ -94,13 +91,11 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
     return undefined;
   }, [entries, selectedLine]);
 
-  const effectiveSize = compact ? 'compact' as VisualizerSize : size;
-
   return (
     <FragmentSourceList
       entries={entries}
       activeItemId={activeItemId}
-      size={effectiveSize}
+      size={size}
       filter={filter}
       showDurations={showDurations}
       groupLinked

@@ -21,14 +21,14 @@ import type { Section as EditorSection } from '../../markdown-editor/types/secti
 /**
  * WorkbenchContext - Manages document state and view navigation
  *
- * DECOUPLED: Runtime management has been moved to RuntimeProvider.
+ * DECOUPLED: Runtime management has been moved to ScriptRuntimeProvider.
  * This context now focuses solely on:
  * - Document state (content, blocks, active/selected block)
  * - View mode navigation
  * - Workout results collection
  * - Panel layout state (for responsive panel system)
  *
- * Components needing runtime should use useRuntime() from RuntimeProvider.
+ * Components needing runtime should use useScriptRuntime() from ScriptRuntimeProvider.
  */
 
 export type SaveState = 'idle' | 'changed' | 'saving' | 'saved' | 'error';

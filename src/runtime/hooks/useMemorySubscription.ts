@@ -14,7 +14,7 @@ import { TypedMemoryReference } from '../contracts/IMemoryReference';
  * 
  * @example
  * ```tsx
- * const runtime = useRuntimeContext();
+ * const runtime = useScriptRuntime();
  * const timeSpansRef = runtime.memory.search({ 
  *   type: 'timer-time-spans', 
  *   ownerId: blockKey 

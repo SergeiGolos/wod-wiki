@@ -62,10 +62,3 @@ export function useScriptRuntime(): IScriptRuntime {
   return runtime;
 }
 
-// Backward-compatible aliases
-/** @deprecated Use ScriptRuntimeProviderProps instead */
-export type RuntimeProviderProps = ScriptRuntimeProviderProps;
-/** @deprecated Use ScriptRuntimeProvider instead */
-export const RuntimeProvider = ScriptRuntimeProvider;
-/** @deprecated Use useScriptRuntime instead */
-export const useRuntimeContext = useScriptRuntime;
