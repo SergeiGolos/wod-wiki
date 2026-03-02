@@ -108,6 +108,15 @@
             var t0 = performance.now();
             var CAST_NAMESPACE = 'urn:x-cast:com.wodwiki';
 
+            function safeToString(value) {
+                try {
+                    if (typeof value === 'string') return value;
+                    return JSON.stringify(value);
+                } catch (_err) {
+                    return String(value);
+                }
+            }
+
             // ── DOM refs ────────────────────────────────────────────────
             var labelEl    = document.getElementById('exercise-label');
             var subLabelEl = document.getElementById('sub-label');
@@ -127,6 +136,15 @@
                     debugEl.scrollTop = debugEl.scrollHeight;
                 }
             }
+
+            window.addEventListener('error', function(e) {
+                var text = e && e.message ? e.message : 'unknown error';
+                dbg('window.onerror: ' + text);
+            });
+
+            window.addEventListener('unhandledrejection', function(e) {
+                dbg('unhandledrejection: ' + safeToString(e && e.reason));
+            });
 
             dbg('Receiver script starting...');
 
@@ -159,50 +177,72 @@
             // ============================================================
             // 2. Setup WebRTC PeerConnection (answerer)
             // ============================================================
-            var pc = new RTCPeerConnection({ iceServers: [] });
+            var pc = null;
             var dcRef = null;
             var senderIdRef = null;
             var lastState = null;
 
-            pc.onicecandidate = function(event) {
-                if (event.candidate && senderIdRef) {
-                    dbg('ICE (local) -> ' + event.candidate.candidate.substring(0, 40));
-                    context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
-                        { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
-                }
-            };
+            function ensurePeerConnection() {
+                if (pc) return true;
 
-            pc.ondatachannel = function(event) {
-                dbg('DataChannel arrived: ' + event.channel.label);
-                dcRef = event.channel;
-                dcRef.onopen = function() {
-                    dbg('DataChannel OPEN');
-                    subLabelEl.innerText = 'Connected via WebRTC';
-                    dotEl.style.background = '#10b981';
-                };
-                dcRef.onclose = function() {
-                    dbg('DataChannel CLOSED');
-                    subLabelEl.innerText = 'Disconnected';
+                if (!window.RTCPeerConnection) {
+                    dbg('FATAL: RTCPeerConnection is not available in receiver runtime');
+                    subLabelEl.innerText = 'WebRTC not supported on this device';
                     dotEl.style.background = '#ef4444';
-                };
-                dcRef.onmessage = function(e) {
-                    try {
-                        var msg = JSON.parse(e.data);
-                        if (msg.type === 'state-update') {
-                            lastState = msg.payload.displayState;
-                            var primary = lastState.timerStack && lastState.timerStack[0] || {};
-                            labelEl.innerText = primary.label || 'Workout';
-                            subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
-                        }
-                    } catch (err) {
-                        dbg('parse error: ' + err.message);
+                    return false;
+                }
+
+                try {
+                    pc = new RTCPeerConnection({ iceServers: [] });
+                } catch (err) {
+                    dbg('FATAL: Failed to create RTCPeerConnection: ' + (err && err.message ? err.message : safeToString(err)));
+                    subLabelEl.innerText = 'WebRTC init failed';
+                    dotEl.style.background = '#ef4444';
+                    return false;
+                }
+
+                pc.onicecandidate = function(event) {
+                    if (event.candidate && senderIdRef) {
+                        dbg('ICE (local) -> ' + event.candidate.candidate.substring(0, 40));
+                        context.sendCustomMessage(CAST_NAMESPACE, senderIdRef,
+                            { type: 'webrtc-ice', candidate: event.candidate.toJSON() });
                     }
                 };
-            };
 
-            pc.onconnectionstatechange = function() {
-                dbg('PC connection: ' + pc.connectionState);
-            };
+                pc.ondatachannel = function(event) {
+                    dbg('DataChannel arrived: ' + event.channel.label);
+                    dcRef = event.channel;
+                    dcRef.onopen = function() {
+                        dbg('DataChannel OPEN');
+                        subLabelEl.innerText = 'Connected via WebRTC';
+                        dotEl.style.background = '#10b981';
+                    };
+                    dcRef.onclose = function() {
+                        dbg('DataChannel CLOSED');
+                        subLabelEl.innerText = 'Disconnected';
+                        dotEl.style.background = '#ef4444';
+                    };
+                    dcRef.onmessage = function(e) {
+                        try {
+                            var msg = JSON.parse(e.data);
+                            if (msg.type === 'state-update') {
+                                lastState = msg.payload.displayState;
+                                var primary = lastState.timerStack && lastState.timerStack[0] || {};
+                                labelEl.innerText = primary.label || 'Workout';
+                                subLabelEl.innerText = lastState.workoutState === 'running' ? 'Active Effort' : 'Paused';
+                            }
+                        } catch (err) {
+                            dbg('parse error: ' + err.message);
+                        }
+                    };
+                };
+
+                pc.onconnectionstatechange = function() {
+                    dbg('PC connection: ' + pc.connectionState);
+                };
+
+                return true;
+            }
 
             // ============================================================
             // 3. Register Custom Cast Message Listener BEFORE context.start
@@ -212,7 +252,18 @@
                 dbg('Cast msg -> ' + dataType);
                 senderIdRef = event.senderId;
 
-                var signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                var signal;
+                try {
+                    signal = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                } catch (err) {
+                    dbg('Cast signal parse error: ' + (err && err.message ? err.message : safeToString(err)));
+                    return;
+                }
+
+                if (!signal || !signal.type) {
+                    dbg('Ignoring cast message without type');
+                    return;
+                }
 
                 // Simple ping-pong
                 if (signal.type === 'ping') {
@@ -222,6 +273,7 @@
                 }
 
                 if (signal.type === 'webrtc-offer') {
+                    if (!ensurePeerConnection()) return;
                     dbg('Got offer, SDP len=' + (signal.sdp || '').length);
                     pc.setRemoteDescription({ type: 'offer', sdp: signal.sdp })
                         .then(function() { return pc.createAnswer(); })
@@ -235,6 +287,7 @@
                         })
                         .catch(function(err) { dbg('Offer error: ' + err.message); });
                 } else if (signal.type === 'webrtc-ice') {
+                    if (!ensurePeerConnection()) return;
                     pc.addIceCandidate(signal.candidate)
                         .catch(function(err) { dbg('ICE error: ' + err.message); });
                 }
@@ -250,7 +303,12 @@
             var nsConfig = {};
             nsConfig[CAST_NAMESPACE] = msgTypeJson;
 
-            var options = cast.framework.CastReceiverOptions ? new cast.framework.CastReceiverOptions() : {};
+            var options;
+            try {
+                options = cast.framework.CastReceiverOptions ? new cast.framework.CastReceiverOptions() : {};
+            } catch (_err) {
+                options = {};
+            }
             options.disableIdleTimeout = true;
             options.customNamespaces = nsConfig;
             options.statusText = 'WOD Wiki Receiver ready';
