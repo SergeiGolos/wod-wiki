@@ -132,7 +132,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     if (fullPath.match(/\/plan(\/|$)/)) return 'plan';
     if (fullPath.match(/\/track(\/|$)/)) return 'track';
     if (fullPath.match(/\/review(\/|$)/)) return 'review';
-    if (fullPath.match(/\/tv(\/|$)/)) return 'tv';
     // Fall back to legacy :view param for backward compat
     return legacyView;
   }, [pathname, hash, search, legacyView]);
@@ -389,13 +388,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Derive viewMode from route
   const viewMode = useMemo(() => {
-    // Priority 0: Explicit TV mode detection (Atomic priority)
-    const fullUrl = (pathname + hash + search).toLowerCase();
-    const rawUrl = window.location.href.toLowerCase();
-    if (fullUrl.includes('viewmode=tv') || fullUrl.includes('/tv') || rawUrl.includes('viewmode=tv') || rawUrl.includes('/tv')) {
-      return 'tv';
-    }
-
     // Priority 1: Direct route parameters
     if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze' || routeView === 'history') {
       return routeView as ViewMode;

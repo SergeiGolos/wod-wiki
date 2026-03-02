@@ -46,7 +46,6 @@ import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '../../app/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
-import { TVPage } from '@/app/pages/TVPage';
 
 import { PlanPanel } from '../workbench/PlanPanel';
 import { TimerScreen } from '../workbench/TrackPanel';
@@ -363,10 +362,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     hidePlanUnlessDebug,
     isDebugMode,
   ]);
-
-  if (viewMode === 'tv') {
-    return <TVPage />;
-  }
 
   return (
     <>

@@ -133,7 +133,6 @@ import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeCon
 import { ReviewGrid } from '@/components/review-grid';
 import { WorkbenchProps } from '@/components/layout/Workbench';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
-import { TVPage } from '@/app/pages/TVPage';
 
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
@@ -252,10 +251,6 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     analyticsGroups,
     runtime
   ]);
-
-  if (viewMode === 'tv') {
-    return <TVPage />;
-  }
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background">

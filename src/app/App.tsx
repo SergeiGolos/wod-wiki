@@ -15,7 +15,6 @@ import { AudioProvider } from '@/components/audio/AudioContext';
 import { DebugModeProvider } from '@/components/layout/DebugModeContext';
 import { CommandProvider } from '@/components/command-palette/CommandContext';
 
-import { TVPage } from './pages/TVPage';
 
 const provider = new IndexedDBContentProvider();
 
@@ -37,7 +36,6 @@ export const App: React.FC = () => {
                                     <Route path="/" element={<Navigate to="/notebooks" replace />} />
                                     <Route path="/history" element={<Navigate to="/notebooks" replace />} />
 
-                                    <Route path="/tv" element={<TVPage />} />
                                     <Route path="/notebooks" element={<NotebooksPage provider={provider} />} />
                                     <Route path="/collections" element={<CollectionsPage provider={provider} />} />
                                     <Route path="/feed" element={<FeedPage />} />
