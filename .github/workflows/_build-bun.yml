@@ -60,12 +60,12 @@ jobs:
           sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' index.html
           sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' .storybook/preview-head.html
 
-      - name: Replace Chromecast App ID
-        if: ${{ vars.VITE_CAST_APP_ID != '' }}
+      - name: Validate Cast App ID for production builds
+        if: ${{ (github.ref_type=='tag' || github.ref_name=='main') && vars.VITE_CAST_APP_ID == '' }}
         run: |
-          echo "Injecting Custom Cast App ID: ${{ vars.VITE_CAST_APP_ID }}"
-          sed -i "s/CC1AD845/${{ vars.VITE_CAST_APP_ID }}/g" src/services/cast/config.ts
-          sed -i "s/CC1AD845/${{ vars.VITE_CAST_APP_ID }}/g" src/components/cast/CastButton.tsx
+          echo "::error::Missing repository variable VITE_CAST_APP_ID."
+          echo "::error::A Custom Receiver App ID is required for Cast namespace signaling."
+          exit 1
 
       - name: Build Storybook
         run: bun run build-storybook
