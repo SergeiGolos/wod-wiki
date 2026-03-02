@@ -160,20 +160,25 @@ export class BlockBuilder {
      * @param config Timer configuration
      * @returns This builder for chaining
      */
-    asTimer(config: TimerConfig & { addCompletion?: boolean; completionConfig?: TimerCompletionConfig }): BlockBuilder {
+    asTimer(config: TimerConfig & { 
+        addCompletion?: boolean; 
+        completionConfig?: TimerCompletionConfig;
+        injectRest?: boolean;
+    }): BlockBuilder {
         if (config.direction === 'down' && config.durationMs) {
             const mode: CountdownMode = config.completionConfig?.completesBlock === false
                 ? 'reset-interval'
                 : 'complete-block';
+            
             this.addBehavior(new CountdownTimerBehavior({
                 durationMs: config.durationMs,
                 label: config.label,
                 role: config.role,
                 mode,
-                restBlockFactory: (durationMs, label) => {
+                restBlockFactory: config.injectRest ? (durationMs, label) => {
                     const restBlock = new RestBlock(this.runtime, { durationMs, label });
                     return [new PushBlockAction(restBlock)];
-                }
+                } : undefined
             }));
         } else {
             this.addBehavior(new CountupTimerBehavior({

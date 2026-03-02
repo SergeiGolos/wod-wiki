@@ -35,7 +35,7 @@ Quantity {
   (AtSign)? ( (Question | Number) (DistanceUnit | WeightUnit)? !quantity | (DistanceUnit | WeightUnit) )
 }
 
-Duration { (Trend)? (CollectibleTimer | Timer) }
+Duration { (Trend | rest)? (CollectibleTimer | Timer) }
 
 Action { actionOpen colon (Identifier | allowedSymbol | minus)+ actionClose }
 
@@ -60,6 +60,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   minus { "-" }
   plus { "+" }
   trend { "^" }
+  rest { "*" }
   colon { ":" }
   atSign { "@" }
   question { "?" }
@@ -77,6 +78,7 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
     distanceUnit, 
     atSign,
     trend,
+    rest,
     colon,
     allowedSymbol,
     Identifier, 

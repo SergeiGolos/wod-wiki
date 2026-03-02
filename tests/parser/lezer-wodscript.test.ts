@@ -138,4 +138,14 @@ describe('Lezer WodScript Parser', () => {
     expect(effortMeta).toBeDefined();
     expect(effortMeta?.raw).toBe("Thrusters");
   });
+
+  it('should parse "*" inject-rest modifier', () => {
+    const code = `*:45 Rest\n`;
+    const statements = parse(code);
+    
+    expect(statements.length).toBe(1);
+    expect(statements[0].fragments[0].fragmentType).toBe(FragmentType.Duration);
+    expect(statements[0].fragments[0].image).toBe(":45");
+    expect(statements[0].hints?.has('behavior.inject_rest')).toBe(true);
+  });
 });

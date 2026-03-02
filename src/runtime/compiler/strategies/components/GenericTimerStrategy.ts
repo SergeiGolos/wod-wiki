@@ -91,6 +91,9 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // ASPECT COMPOSERS - High-level composition
         // =====================================================================
 
+        // Check for inject-rest hint
+        const injectRest = statements.some(s => s.hints?.has('behavior.inject_rest'));
+
         // Timer Aspect - countdown or countup timer
         if (durationMs && direction === 'down') {
             // Countdown timer with completion
@@ -99,7 +102,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
                 durationMs,
                 label,
                 role: 'primary',
-                addCompletion: true  // Timer completion marks block as complete
+                addCompletion: true,  // Timer completion marks block as complete
+                injectRest
             });
         } else {
             // Countup timer without completion
@@ -108,7 +112,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
                 durationMs,
                 label,
                 role: 'primary',
-                addCompletion: false  // No timer completion - user must advance
+                addCompletion: false,  // No timer completion - user must advance
+                injectRest
             });
         }
 

@@ -72,6 +72,12 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                   case terms.Duration: {
                     const trend = fragmentNode.getChild(terms.Trend);
                     const forceCountUp = !!trend;
+                    // Check for '*' inject-rest modifier
+                    const hasInjectRest = fragText.includes('*');
+                    if (hasInjectRest) {
+                      if (!statement.hints) statement.hints = new Set();
+                      statement.hints.add('behavior.inject_rest');
+                    }
                     const timerNode = fragmentNode.getChild(terms.Timer) || fragmentNode.getChild(terms.CollectibleTimer);
                     if (timerNode) {
                       const timerText = source.slice(timerNode.from, timerNode.to);

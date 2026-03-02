@@ -94,6 +94,20 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             }, { scope: 'bubble' })
         );
 
+        // Timer Reset — for EMOM manual skip or synchronization
+        this.subscriptions.push(
+            ctx.subscribe('timer:reset' as any, (_event, rCtx) => {
+                if (mode !== 'reset-interval') return [];
+                const timer = rCtx.getMemory('time') as TimerState | undefined;
+                if (!timer) return [];
+                rCtx.setMemory('time', {
+                    ...timer,
+                    spans: [new TimeSpan(rCtx.clock.now.getTime())]
+                });
+                return [];
+            })
+        );
+
         // Pause — close current span
         this.subscriptions.push(
             ctx.subscribe('timer:pause' as any, (_event, pCtx) => {
@@ -128,17 +142,18 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
-        if (!this.config.restBlockFactory) {
-            return [];
-        }
-
-        // Only for leaf nodes (those without child selection)
-        // We use constructor name check to avoid circular dependency with ChildSelectionBehavior
+        // Parent blocks (those with child selection) should NEVER push their own rest.
+        // ChildSelectionBehavior handles rest injection (EMOM) or sibling transitions.
+        // We use constructor name check to avoid circular dependency.
         const hasChildSelection = ctx.block.behaviors.some(
             b => b.constructor.name === 'ChildSelectionBehavior'
         );
         
         if (hasChildSelection) {
+            return [];
+        }
+
+        if (!this.config.restBlockFactory) {
             return [];
         }
 
@@ -193,9 +208,19 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
                 spans: [new TimeSpan(ctx.clock.now.getTime())]
             });
 
+            // If ChildSelectionBehavior is present, it will handle round/status advancement
+            // via its own logic (coordinated with Rest block popping or manual next).
+            // We use constructor name check to avoid circular dependency.
+            const hasChildSelection = ctx.block.behaviors.some(
+                b => b.constructor.name === 'ChildSelectionBehavior'
+            );
+            if (hasChildSelection) {
+                return;
+            }
+
             // Cycle complete — advance round counter directly before
             // resetting for the next cycle. This keeps round tracking
-            // self-contained: no dependency on other behaviors.
+            // self-contained for simple repeating timers without children.
             const round = ctx.getMemory('round') as RoundState | undefined;
             if (round) {
                 const roundFragment = new CurrentRoundFragment(

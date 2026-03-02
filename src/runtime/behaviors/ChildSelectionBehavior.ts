@@ -118,6 +118,18 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             )]);
         }
 
+        // Handle interval timer resets for EMOM synchronization
+        if (this.config.injectRest) {
+            ctx.subscribe('timer:complete' as any, (_event, _ctx) => {
+                // Interval over — advance round and reset for the next cycle
+                this.advanceRound(ctx);
+                this.childIndex = 0;
+                this.restState = 'idle';
+                this.writeChildrenStatus(ctx);
+                return [];
+            }, { scope: 'active' });
+        }
+
         if (this.config.skipOnMount) {
             const actions: IRuntimeAction[] = [];
             if (this.totalChildren > 0) {
@@ -160,6 +172,21 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
         if (this.restState === 'active') {
             this.restState = 'idle';
+            
+            // For EMOM (injectRest = true), we only advance the round AFTER the rest block pops.
+            // This keeps us in the correct round during the rest period.
+            if (this.config.injectRest) {
+                this.advanceRound(ctx);
+                this.childIndex = 0;
+                
+                // If this next was manual (rest timer didn't expire yet),
+                // we should reset the parent timer for the next interval.
+                ctx.emitEvent({
+                    name: 'timer:reset' as any,
+                    timestamp: ctx.clock.now,
+                    data: { blockKey: ctx.block.key.toString() }
+                });
+            }
         }
 
         if (this.childIndex >= this.totalChildren) {
@@ -173,12 +200,8 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 return [this.createNextPreview(ctx)];
             }
 
-            // Cycle complete — advance round counter directly before
-            // resetting for the next cycle. This keeps round tracking
-            // self-contained: no dependency on ReEntryBehavior ordering.
-            this.advanceRound(ctx);
-            this.childIndex = 0;
-
+            // If we have rest injection (EMOM), we push a Rest block and STAY in the current round.
+            // We will advance the round when the Rest block is done (either Naturally or via manual Next).
             if (this.shouldInjectRest(ctx)) {
                 this.restState = 'pending';
                 const restDurationMs = this.getRemainingCountdownMs(ctx);
@@ -190,6 +213,10 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
                 this.writeChildrenStatus(ctx);
                 return actions;
             }
+
+            // No rest, so advance round and reset index immediately for the next cycle (AMRAP pattern).
+            this.advanceRound(ctx);
+            this.childIndex = 0;
         }
 
         const actions = this.dispatchNext(ctx);

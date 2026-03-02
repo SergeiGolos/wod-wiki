@@ -19,6 +19,7 @@ import {
   useActiveControls,
   useStackDisplayRows,
 } from '../../runtime/hooks/useStackDisplay';
+import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
 import { calculateDuration } from '../../lib/timeUtils';
 
 import { TimerStackView } from './TimerStackView';
@@ -82,6 +83,11 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   const allTimers = useStackTimers();
   const activeControls = useActiveControls();
   const stackItems = useStackDisplayRows();
+
+  // Find the Rounds block from the stack (if any) and subscribe to its round state
+  // This gives us a reactive "Round X of Y" label that updates as rounds advance
+  const roundsItem = stackItems?.find(i => i.block.blockType === 'Rounds');
+  const roundDisplay = useRoundDisplay(roundsItem?.block);
 
   // ---------------------------------------------------------------------------
   // Ticking Logic for Open Spans
@@ -192,8 +198,10 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
 
     // Determine the Context Item (e.g. Rounds, AMRAP, EMOM)
     // We prefer a Rounds block if one exists, otherwise we use the primary timer's block
-    const roundsItem = stackItems?.find(i => i.block.blockType === 'Rounds');
-    const roundsLabel = roundsItem?.label;
+    const roundsItemInMemo = stackItems?.find(i => i.block.blockType === 'Rounds');
+    // Use the reactive roundDisplay?.label ("Round X of Y") if available,
+    // otherwise fall back to the static block label ("3 Rounds")
+    const roundsLabel = roundDisplay?.label ?? roundsItemInMemo?.label;
 
     // Find the timer corresponding to the leaf block
     const leafTimer = leafItem ? allTimers.find(t => t.block.key.toString() === leafItem.block.key.toString()) : undefined;
@@ -201,7 +209,6 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
 
     // If we have a Pinned Primary Timer
     if (primaryTimer && primaryTimer.isPinned) {
-      const isLeafTimer = primaryTimer.block.key.toString() === leafItem?.block.key.toString();
       const pinnedElapsed = calculateDuration(primaryTimer.timer.spans, now);
 
       // Label Resolution:
@@ -235,7 +242,25 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
       activeTimerEntry: leafTimer || primaryTimer,
       activeElapsed: leafTimer ? leafElapsed : primaryElapsedMs /* fallback to session if leaf has no timer */
     };
-  }, [primaryTimer, stackItems, allTimers, now, primaryElapsedMs]);
+  }, [primaryTimer, stackItems, allTimers, now, primaryElapsedMs, roundDisplay]);
+
+  // Build subLabels array for multi-line context above the clock.
+  // When the leaf block has multiple display rows (grouped code statements),
+  // each row is shown as its own line. Otherwise a single subLabel line is used.
+  const subLabels = useMemo((): string[] | undefined => {
+    const leafItem = stackItems?.find(i => i.isLeaf);
+    if (!leafItem) return subLabel ? [subLabel] : undefined;
+
+    // If the leaf has multiple display rows, extract text from each row
+    if (leafItem.displayRows && leafItem.displayRows.length > 1) {
+      const lines = leafItem.displayRows
+        .map(row => row.map(f => f.image || '').filter(Boolean).join(' ').trim())
+        .filter(Boolean);
+      if (lines.length > 0) return lines;
+    }
+
+    return subLabel ? [subLabel] : undefined;
+  }, [stackItems, subLabel]);
 
   // Override the label/values in the primaryTimerEntry sent to the view
   const displayTimerEntry = useMemo(() => {
@@ -304,6 +329,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
 
       primaryTimer={displayTimerEntry}
       subLabel={subLabel}
+      subLabels={subLabels}
       secondaryTimers={secondaryTimerEntries}
       stackItems={stackItems}
       compact={props.compact}

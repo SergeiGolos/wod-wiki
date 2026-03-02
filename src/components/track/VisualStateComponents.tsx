@@ -5,6 +5,7 @@ import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, ListTree, Timer, Eye, ArrowUpCircle, Lock, Table2 } from 'lucide-react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
+import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
 import { ICodeFragment } from '@/core/models/CodeFragment';
@@ -109,6 +110,8 @@ const StackBlockItem: React.FC<{
     const debug = debugProp ?? isDebugMode;
     const runtime = useScriptRuntime();
     const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
+    // Subscribe to round state for dynamic round label (updates reactively as rounds advance)
+    const roundDisplay = useRoundDisplay(block);
     const [displayRows, setDisplayRows] = useState<ICodeFragment[][]>([]);
     const [promoteRows, setPromoteRows] = useState<ICodeFragment[][]>([]);
     const [privateRows, setPrivateRows] = useState<ICodeFragment[][]>([]);
@@ -192,12 +195,12 @@ const StackBlockItem: React.FC<{
                 <div className="flex items-center justify-between gap-3 p-3">
                     <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-2">
-                            <span className={cn(
-                                "font-semibold tracking-tight",
-                                isLeaf ? "text-foreground" : "text-muted-foreground"
-                            )}>
-                                {block.label}
-                            </span>
+                            {/* Leaf label is shown above the clock, not in the session card */}
+                            {!isLeaf && (
+                                <span className="font-semibold tracking-tight text-muted-foreground">
+                                    {roundDisplay ? roundDisplay.label : block.label}
+                                </span>
+                            )}
                             {block.blockType && debug && (
                                 <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/5 text-primary/70 font-bold tracking-wider">
                                     {block.blockType}

@@ -38,14 +38,16 @@ export class CrossFitDialect implements IDialect {
     const fragments = statement.fragments || [];
 
     // Check for AMRAP - time-bound workout
-    if (this.hasKeyword(fragments, 'AMRAP')) {
+    const isAmrap = this.hasKeyword(fragments, 'AMRAP');
+    if (isAmrap) {
       hints.push('behavior.time_bound');
       hints.push('workout.amrap');
     }
 
     // Check for EMOM - repeating interval workout
     // Explicit EMOM keyword
-    if (this.hasKeyword(fragments, 'EMOM')) {
+    const isEmom = this.hasKeyword(fragments, 'EMOM');
+    if (isEmom) {
       hints.push('behavior.repeating_interval');
       hints.push('workout.emom');
     }
@@ -55,7 +57,7 @@ export class CrossFitDialect implements IDialect {
     // - Rounds specify how many intervals
     // - Timer specifies interval duration (defaults to 60s if not specified)
     // - Children are executed within each interval
-    if (!this.hasKeyword(fragments, 'EMOM')) {
+    if (!isEmom && !isAmrap) {
       const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
       const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Duration);
       const hasChildStatements = this.hasChildren(statement);

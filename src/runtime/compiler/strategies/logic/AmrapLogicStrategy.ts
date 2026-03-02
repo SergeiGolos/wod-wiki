@@ -84,7 +84,8 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
             durationMs,
             label: 'AMRAP',
             role: 'primary',
-            addCompletion: true  // Timer completion marks block as complete
+            addCompletion: true,  // Timer completion marks block as complete
+            injectRest: false
         });
 
         // Repeater Aspect - AMRAP has unbounded rounds (no completion on round exhaustion)
