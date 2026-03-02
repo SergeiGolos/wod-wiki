@@ -15,6 +15,7 @@ export interface TimerStackViewProps {
     currentCard?: IDisplayCardEntry;
     compact?: boolean;
     subLabel?: string;
+    subLabels?: string[];
 
     /** Map of all active timer states by block ID (ownerId) */
     timerStates?: Map<string, {
@@ -42,6 +43,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     primaryTimer,
     compact = false,
     subLabel,
+    subLabels,
 
     timerStates,
 }) => {
@@ -116,14 +118,20 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     {/* Header Label - Shows what the BIG timer is focused on */}
                     <div className={`text-center ${compact ? 'mb-4' : 'mb-4 sm:mb-8'} shrink-0 z-20`}>
                         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-xl px-6 py-3 shadow-lg">
-                            <h2 className={`${compact ? 'text-lg' : 'text-lg sm:text-xl'} font-bold text-slate-700 dark:text-slate-200`}>
+                            <h2 className={`${compact ? 'text-lg' : 'text-lg sm:text-xl'} ${(subLabel || (subLabels && subLabels.length > 0)) ? 'font-medium text-slate-500 dark:text-slate-400' : 'font-bold text-slate-700 dark:text-slate-200'}`}>
                                 {effectivePrimaryTimer?.label || "Timer"}
                             </h2>
-                            {subLabel && (
+                            {(subLabel || (subLabels && subLabels.length > 0)) && (
                                 <>
                                     <div className="h-px bg-slate-200 dark:bg-slate-700 my-2 w-full" />
-                                    <div className={`${compact ? 'text-sm' : 'text-base'} font-medium text-slate-500 dark:text-slate-400`}>
-                                        {subLabel}
+                                    <div className={`${compact ? 'text-sm' : 'text-base'} font-bold text-slate-700 dark:text-slate-200 flex flex-col gap-1`}>
+                                        {subLabels && subLabels.length > 0 ? (
+                                            subLabels.map((line, idx) => (
+                                                <div key={idx}>{line}</div>
+                                            ))
+                                        ) : (
+                                            <div>{subLabel}</div>
+                                        )}
                                     </div>
                                 </>
                             )}

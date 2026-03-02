@@ -234,6 +234,7 @@ export const TVPage: React.FC = () => {
             isRunning={isRunning}
             primaryTimer={primaryTimerEntry}
             subLabel={remoteState.subLabel}
+            subLabels={remoteState.subLabels}
             secondaryTimers={secondaryTimerEntries}
             timerStates={timerStates}
           />

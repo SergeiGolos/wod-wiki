@@ -11,61 +11,47 @@ import {
 /**
  * Extract timer state from a block's timer memory location.
  * Returns null if the block has no timer.
+ *
+ * Timer behaviors (CountupTimerBehavior, CountdownTimerBehavior, SpanTrackingBehavior)
+ * all use ctx.pushMemory('time', [fragment]) where the fragment's .value holds a
+ * full TimerState object.  The tag is 'time', not 'timer'.
  */
 function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
-    const timerLocs = block.getMemoryByTag('timer');
+    // All timer behaviors push memory under the 'time' tag.
+    const timerLocs = block.getMemoryByTag('time');
     if (timerLocs.length === 0) return null;
 
-    // Timer fragments encode spans and metadata
     const timerLoc = timerLocs[0];
     const fragments = timerLoc.fragments;
+    if (fragments.length === 0) return null;
 
-    // Find the timer behavior data from the fragments
-    // Timer fragments typically contain: direction, durationMs, spans, label, format
-    let direction: 'up' | 'down' = 'up';
-    let durationMs: number | undefined;
-    let label: string | undefined;
-    let format = 'up';
-    const spans: { started: number; ended?: number }[] = [];
-    let isRunning = false;
+    // CountupTimerBehavior / CountdownTimerBehavior store the full TimerState as
+    // the first fragment's .value field.
+    const state = fragments[0]?.value as {
+        spans?: Array<{ started: number; ended?: number }>;
+        direction?: 'up' | 'down';
+        durationMs?: number;
+        label?: string;
+        role?: string;
+    } | undefined;
 
-    for (const frag of fragments) {
-        if (frag.type === 'duration' || frag.fragmentType === 'duration') {
-            durationMs = frag.value as number;
-        }
-        if (frag.type === 'spans' || frag.fragmentType === 'spans') {
-            const rawSpans = frag.value as Array<{ started: number; ended?: number }>;
-            if (Array.isArray(rawSpans)) {
-                for (const s of rawSpans) {
-                    spans.push({ started: s.started, ended: s.ended });
-                    if (s.ended === undefined) isRunning = true;
-                }
-            }
-        }
-        if (frag.type === 'label' || frag.fragmentType === 'label') {
-            label = frag.image ?? (frag.value as string);
-        }
-    }
+    if (!state || !Array.isArray(state.spans)) return null;
 
-    // Attempt to read direction/format from the timer behavior directly
-    const timerBehavior = block.behaviors.find(
-        (b: any) => b.constructor?.name === 'TimerBehavior' || b.direction
-    ) as any;
-    if (timerBehavior) {
-        direction = timerBehavior.direction ?? direction;
-        format = timerBehavior.format ?? timerBehavior.direction ?? format;
-        durationMs = timerBehavior.durationMs ?? durationMs;
-        label = timerBehavior.label ?? label;
-        if (timerBehavior.spans) {
-            spans.length = 0;
-            for (const s of timerBehavior.spans) {
-                spans.push({ started: s.started, ended: s.ended });
-                if (s.ended === undefined) isRunning = true;
-            }
-        }
-    }
+    const spans: { started: number; ended?: number }[] = state.spans.map(s => ({
+        started: s.started,
+        ended: s.ended,
+    }));
 
-    return { label, format, durationMs, direction, spans, isRunning };
+    const direction: 'up' | 'down' = state.direction ?? 'up';
+
+    return {
+        label: state.label,
+        format: direction,
+        durationMs: state.durationMs,
+        direction,
+        spans,
+        isRunning: spans.some(s => s.ended === undefined),
+    };
 }
 
 /**

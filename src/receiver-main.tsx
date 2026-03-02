@@ -53,6 +53,7 @@ interface RemoteState {
   displayRows: RemoteDisplayRow[];
   lookahead: { fragments: any[] } | null;
   subLabel?: string;
+  subLabels?: string[];
   workoutState: string;
 }
 
@@ -471,6 +472,7 @@ const ReceiverApp = () => {
               isRunning={isRunning}
               primaryTimer={primaryTimerEntry}
               subLabel={remoteState.subLabel}
+              subLabels={remoteState.subLabels}
               secondaryTimers={secondaryTimerEntries}
               timerStates={timerStates}
             />
