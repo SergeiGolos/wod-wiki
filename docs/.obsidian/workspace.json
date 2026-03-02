@@ -11,14 +11,10 @@
             "id": "4a5f4b86da0fbe68",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "receiver-vs-trackpanel.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "receiver-vs-trackpanel"
+              "title": "New tab"
             }
           }
         ]
@@ -182,25 +178,25 @@
   },
   "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
-    "labels-crosswalk.md",
-    "receiver-vs-trackpanel.md",
-    "RUNTIME_INTEGRATION_TESTING.md",
-    "BEHAVIORAL_ARCHITECTURE.md",
     "tv/07-aws-production-deployment.md",
-    "FRAGMENT_CROSSWALK.md",
-    "Behavior Map.canvas",
-    "UI_STORYBOOK_TESTING.md",
-    "STORYBOOK_PLAYWRIGHT_TESTING.md",
-    "architecture/PERSISTENCE_STRATEGY.md",
-    "SEGMENT_TIME_CALCULATION.md",
     "restructure/07-approach-comparison.md",
     "restructure/06-current-implementation-analysis.md",
-    "restructure/04-implementation-roadmap.md",
     "restructure/05-ui-impact-and-rendering.md",
+    "restructure/04-implementation-roadmap.md",
     "restructure/03-analytics-projection.md",
     "restructure/02-processor-registry.md",
     "restructure/01-fragment-state-model.md",
     "restructure/00-vision-and-principles.md",
+    "receiver-vs-trackpanel.md",
+    "labels-crosswalk.md",
+    "architecture/PERSISTENCE_STRATEGY.md",
+    "UI_STORYBOOK_TESTING.md",
+    "SEGMENT_TIME_CALCULATION.md",
+    "RUNTIME_INTEGRATION_TESTING.md",
+    "FRAGMENT_CROSSWALK.md",
+    "Behavior Map.canvas",
+    "BEHAVIORAL_ARCHITECTURE.md",
+    "STORYBOOK_PLAYWRIGHT_TESTING.md",
     "code-mirror/phase-4-migration-cleanup.md",
     "code-mirror/phase-3-state-compartments.md",
     "code-mirror/phase-2-editor-component.md",
