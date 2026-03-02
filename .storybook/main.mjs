@@ -76,12 +76,19 @@ const config = {
 
     // Serve receiver-rpc.html through Vite's transform pipeline (not as static)
     // so that @vitejs/plugin-react injects its preamble for JSX support.
+    // Also intercepts /receiver.html so the legacy URL routes to the RPC receiver
+    // instead of the old static public/receiver.html served by staticDirs.
     config.plugins = config.plugins || [];
     config.plugins.push({
       name: 'serve-receiver-rpc',
       configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
-          if (req.url === '/receiver-rpc.html' || req.url === '/receiver-rpc') {
+          const isReceiverUrl =
+            req.url === '/receiver-rpc.html' ||
+            req.url === '/receiver-rpc' ||
+            req.url === '/receiver.html' ||
+            req.url === '/receiver';
+          if (isReceiverUrl) {
             try {
               const htmlPath = path.resolve(process.cwd(), 'receiver-rpc.html');
               const rawHtml = fs.readFileSync(htmlPath, 'utf-8');

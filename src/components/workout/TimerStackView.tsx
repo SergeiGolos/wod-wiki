@@ -166,7 +166,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             <button
                                 onClick={isRunning ? onPause : onStart}
                                 {...(getFocusProps ? getFocusProps('timer-main') : {})}
-                                className={`tv-focusable relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 overflow-hidden ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
+                                className={`tv-focusable relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
                             >
                                 <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-6xl'}`}>
                                     {formatTime(displayTimeMs)}

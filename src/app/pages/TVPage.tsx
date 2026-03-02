@@ -7,8 +7,8 @@ import { formatTimeMMSS } from '@/lib/formatTime';
 import { Timer, CheckCircle2, ListTree } from 'lucide-react';
 
 /**
- * @deprecated — TVPage was a WebSocket-relay receiver.  Use receiver.html or
- * receiver-main.tsx (both now use WebRTC + Cast SDK) instead.
+ * @deprecated — TVPage was a WebSocket-relay receiver. Use receiver-rpc.html
+ * (src/receiver-rpc.tsx) which uses WebRTC + Cast SDK instead.
  */
 
 /** Derive a WS relay URL from query params or hostname (legacy). */
