@@ -72,17 +72,23 @@ export const CastButtonRpc: React.FC = () => {
     }, []);
 
     const cleanupCast = useCallback(() => {
+        // Null out refs FIRST so re-entrant calls (fired by dispose()'s
+        // notifyDisconnected() → onDisconnected handler → cleanupCast)
+        // are no-ops instead of double-disposing.
         subscriptionManager?.remove(CHROMECAST_SUBSCRIPTION_ID);
 
         const transport = transportRef.current;
+        transportRef.current = null;   // ← null before dispose to break re-entrancy
+
         if (transport?.connected) {
             try { transport.send({ type: 'rpc-dispose' }); } catch { /* ignore */ }
         }
 
-        eventProviderRef.current?.dispose();
+        const eventProvider = eventProviderRef.current;
         eventProviderRef.current = null;
-        transportRef.current?.dispose();
-        transportRef.current = null;
+        eventProvider?.dispose();
+
+        transport?.dispose();
         setCastTransport(null);
         setIsCasting(false);
     }, [subscriptionManager, setCastTransport]);
@@ -110,18 +116,6 @@ export const CastButtonRpc: React.FC = () => {
         window.addEventListener('pagehide', onPageHide);
         return () => window.removeEventListener('pagehide', onPageHide);
     }, []);
-
-    // Cleanup when this component unmounts while still casting (e.g. Storybook
-    // story navigation). Without this the transport and subscription are
-    // orphaned and cannot be interacted with until the page reloads.
-    useEffect(() => {
-        return () => {
-            if (isCastingRef.current) {
-                console.log('[CastButtonRpc] Unmounting while still casting — disposing cast session');
-                cleanupCast();
-            }
-        };
-    }, [cleanupCast]);
 
     // Native click handler to preserve "User Activation" gesture.
     // React's SyntheticEvent system can introduce microtasks that break gesture-sensitive APIs.

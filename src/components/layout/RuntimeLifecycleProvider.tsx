@@ -78,16 +78,21 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
     }
     setSubscriptionManager(null);
 
-    setRuntime(currentRuntime => {
-      if (currentRuntime) {
-        try {
-          factoryRef.current.disposeRuntime(currentRuntime);
-        } catch (err) {
-          console.error('[RuntimeProvider] Error disposing runtime:', err);
-        }
+    // Dispose the runtime synchronously via the ref — NEVER inside a setState
+    // updater.  React calls updater functions during the render phase; disposal
+    // triggers MemoryLocation subscribers (e.g. setVersion in useStackTimers)
+    // which call setState on other components, producing the
+    // "Cannot update a component while rendering a different component" warning.
+    const runtimeToDispose = currentRuntimeRef.current;
+    currentRuntimeRef.current = null;
+    if (runtimeToDispose) {
+      try {
+        factoryRef.current.disposeRuntime(runtimeToDispose);
+      } catch (err) {
+        console.error('[RuntimeProvider] Error disposing runtime:', err);
       }
-      return null;
-    });
+    }
+    setRuntime(null);
     setError(null);
   }, []);
 
@@ -105,36 +110,38 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
     setError(null);
 
     try {
-      // Create new runtime FIRST before disposing old one
-      const newRuntime = factoryRef.current.createRuntime(block) as ScriptRuntime | null;
-
-      // Dispose old subscription manager first
+      // Dispose old runtime synchronously BEFORE creating the new one.
+      // Must use the ref (not the state value) to avoid stale closures.
+      // Must NOT call disposeRuntime inside a setState updater — updaters run
+      // during the React render phase and disposal fires MemoryLocation
+      // subscribers (setState in useStackTimers) causing the
+      // "Cannot update a component while rendering" warning.
       if (currentSubManagerRef.current) {
         currentSubManagerRef.current.dispose();
         currentSubManagerRef.current = null;
       }
-
-      // Now do a single atomic state update that disposes old and sets new
-      setRuntime(currentRuntime => {
-        if (currentRuntime) {
-          try {
-            factoryRef.current.disposeRuntime(currentRuntime);
-          } catch (err) {
-            console.error('[RuntimeProvider] Error disposing existing runtime:', err);
-          }
+      const oldRuntime = currentRuntimeRef.current;
+      currentRuntimeRef.current = null;
+      if (oldRuntime) {
+        try {
+          factoryRef.current.disposeRuntime(oldRuntime);
+        } catch (err) {
+          console.error('[RuntimeProvider] Error disposing existing runtime:', err);
         }
-        return newRuntime;
-      });
+      }
+
+      // Now create the new runtime and update state.
+      const newRuntime = factoryRef.current.createRuntime(block) as ScriptRuntime | null;
+      currentRuntimeRef.current = newRuntime;
+      setRuntime(newRuntime);
 
       if (newRuntime) {
-        currentRuntimeRef.current = newRuntime;
         // Create a SubscriptionManager and add a local subscription
         const mgr = new SubscriptionManager(newRuntime);
         mgr.add(new LocalRuntimeSubscription({ id: 'local' }));
         currentSubManagerRef.current = mgr;
         setSubscriptionManager(mgr);
       } else {
-        currentRuntimeRef.current = null;
         currentSubManagerRef.current = null;
         setSubscriptionManager(null);
       }

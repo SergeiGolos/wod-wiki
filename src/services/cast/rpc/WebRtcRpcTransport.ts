@@ -125,14 +125,11 @@ export class WebRtcRpcTransport implements IRpcTransport {
         if (this.disposed) return;
         this.disposed = true;
 
-        // Notify listeners BEFORE clearing handlers and closing channels.
-        // dc.close() fires onclose asynchronously in Chrome, so by the time it
-        // fires the handler sets would already be empty — no one would hear the
-        // disconnect.  By notifying eagerly here, CastButtonRpc.cleanupCast()
-        // and the receiver's setProxyRuntime(null) both run correctly.
-        if (this.dc?.readyState === 'open') {
-            this.notifyDisconnected();
-        }
+        // Snapshot and clear handlers BEFORE notifying so that re-entrant
+        // calls inside the notification (e.g. cleanupCast → transport.dispose())
+        // find an already-empty handler set and do nothing additional.
+        const wasConnected = this.dc?.readyState === 'open';
+        const disconnectedSnapshot = [...this.disconnectedHandlers];
 
         this.messageHandlers.clear();
         this.connectedHandlers.clear();
@@ -141,6 +138,14 @@ export class WebRtcRpcTransport implements IRpcTransport {
         this.dc?.close();
         this.pc.close();
         this.signaling.dispose();
+
+        // Notify AFTER clearing so the listeners don’t see a half-torn-down
+        // transport in their handler sets, and re-entrant dispose() calls are
+        // no-ops.  Only fire if the DataChannel was actually open — avoids
+        // spurious disconnect events for transports that never connected.
+        if (wasConnected) {
+            for (const handler of disconnectedSnapshot) handler();
+        }
     }
 
     // ── Connection lifecycle ────────────────────────────────────────────────
