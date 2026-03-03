@@ -172,7 +172,26 @@ export const CastButtonRpc: React.FC = () => {
                 eventProviderRef.current = eventProvider;
                 setCastTransport(transport);
                 setIsCasting(true);
-                console.log('[CastButtonRpc] Cast session established');
+
+                // GESTURE/SESSION CRITICAL: Now that transport is connected, wire it up 
+                // to the SubscriptionManager immediately. This ensures the catch-up
+                // snapshot is sent while the transport is definitely 'connected'.
+                if (subscriptionManager) {
+                    attachSubscription(subscriptionManager, transport);
+                }
+
+                // Also ensure the receiver's display mode is synchronized.
+                // The WorkbenchCastBridge will handle subsequent updates, but we send
+                // an initial mode sync here to be sure.
+                const workbenchState = useWorkbenchSyncStore.getState();
+                transport.send({
+                    type: 'rpc-workbench-update',
+                    mode: workbenchState.mode,
+                    previewData: workbenchState.previewData,
+                    reviewData: workbenchState.reviewData,
+                });
+
+                console.log('[CastButtonRpc] Cast session established and synchronized');
 
             } catch (err: any) {
                 if (err?.message?.includes('cancel') || err === 'cancel') {
