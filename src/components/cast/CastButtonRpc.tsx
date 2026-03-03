@@ -31,6 +31,7 @@ export const CastButtonRpc: React.FC = () => {
     const [sdkState, setSdkState] = useState<CastSdkState>(ChromecastSdk.getState());
     const [isCasting, setIsCasting] = useState(() => ChromecastSdk.isSessionActive());
     const [isConnecting, setIsConnecting] = useState(false);
+    const [isDisconnecting, setIsDisconnecting] = useState(false);
     const subscriptionManager = useSubscriptionManager();
     const setCastTransport = useWorkbenchSyncStore(s => s.setCastTransport);
 
@@ -127,9 +128,17 @@ export const CastButtonRpc: React.FC = () => {
             // If the SDK thinks we are casting, the button should stop it,
             // even if our internal WebRTC state (isCasting) is false.
             if (sdkStateRef.current === 'session-active') {
+                if (isDisconnecting) return;
+
                 console.log('[CastButtonRpc] Stopping active session');
-                cleanupCast();
-                ChromecastSdk.endSession();
+                setIsDisconnecting(true);
+                try {
+                    cleanupCast();
+                    ChromecastSdk.endSession();
+                } finally {
+                    // Safety timeout to reset busy state if events are missed
+                    setTimeout(() => setIsDisconnecting(false), 2000);
+                }
                 return;
             }
 
@@ -249,6 +258,7 @@ export const CastButtonRpc: React.FC = () => {
     const isConnected = sdkState === 'session-active';
     const isWebRtcActive = isCasting && isConnected;
     const isCurrentlyConnecting = isConnecting || (sdkState === 'loading');
+    const isCurrentlyBusy = isCurrentlyConnecting || isDisconnecting;
     const canInteract = isAvailable || isConnected;
 
     if (isUnavailable) {
@@ -264,19 +274,20 @@ export const CastButtonRpc: React.FC = () => {
             ref={buttonRef}
             variant="ghost"
             size="icon"
-            disabled={isCurrentlyConnecting || !canInteract}
+            disabled={isCurrentlyBusy || !canInteract}
             className={cn(
                 "transition-all duration-300",
                 isConnected ? "text-blue-500 bg-blue-500/10" : "",
-                isCurrentlyConnecting ? "text-blue-400" : "",
+                isCurrentlyBusy ? "text-blue-400" : "",
                 isAvailable ? "text-foreground hover:text-blue-500" : ""
             )}
-            title={isConnected ? "Stop Casting" : (isCurrentlyConnecting ? "Connecting..." : "Cast to TV")}
+            title={isConnected ? "Stop Casting" : (isCurrentlyBusy ? "Connecting..." : "Cast to TV")}
         >
             {isConnected ? (
                 <TvMinimal className={cn(
                     "h-5 w-5",
-                    !isWebRtcActive && "opacity-50"
+                    !isWebRtcActive && "opacity-50",
+                    isDisconnecting && "animate-pulse"
                 )} />
             ) : (
                 <Cast className={cn(
