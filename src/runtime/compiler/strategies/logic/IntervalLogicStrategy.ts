@@ -100,7 +100,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             role: 'primary',
             addCompletion: true,
             completionConfig: { completesBlock: false },  // Timer resets for next round
-            injectRest: false
+            injectRest: true
         });
 
         // Repeater Aspect - EMOM has fixed rounds, block completes when exhausted

@@ -81,14 +81,16 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
 
         // Determine a descriptive completion label
-        let completionLabel = 'Completed';
-        if (ctx.block.blockType === 'SessionRoot') {
-            completionLabel = 'Session Completed';
-        } else if (round && round.total !== undefined && round.total > 1) {
-            completionLabel = `Completed ${round.total} Round(s)`;
-        } else if (round && round.current > 1) {
-            // Fallback for unbounded rounds where at least one round was done
-            completionLabel = `Completed ${round.current} Round(s)`;
+        let completionLabel = this.config.label ?? 'Completed';
+        if (!this.config.label) {
+            if (ctx.block.blockType === 'SessionRoot') {
+                completionLabel = 'Session Completed';
+            } else if (round && round.total !== undefined && round.total > 1) {
+                completionLabel = `Completed ${round.total} Round(s)`;
+            } else if (round && round.current > 1) {
+                // Fallback for unbounded rounds where at least one round was done
+                completionLabel = `Completed ${round.current} Round(s)`;
+            }
         }
 
         if (shouldComputeTimeResults) {

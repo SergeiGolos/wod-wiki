@@ -26,9 +26,12 @@ import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { parseDocumentStructure } from '../../markdown-editor/utils/documentStructure';
 import { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '../../services/AnalyticsTransformer';
+import type { SegmentWithMetadata } from '../../services/AnalyticsTransformer';
 import { hashCode } from '../../lib/utils';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
 import { WodBlock } from '../../markdown-editor/types';
+import { indexedDBService } from '../../services/db/IndexedDBService';
+import type { AnalyticsDataPoint } from '../../types/storage';
 
 // Helper to generate a unique key for a block based on its content/statements
 const getBlockKey = (block: WodBlock | null): string => {
@@ -36,6 +39,60 @@ const getBlockKey = (block: WodBlock | null): string => {
   // Include version and hash of statements to ensure re-init when content or parsing changes
   return `${block.id}-v${block.version || 0}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
 };
+
+/**
+ * Convert in-memory SegmentWithMetadata[] to V4 AnalyticsDataPoint records
+ * for persistence in IndexedDB. Each segment metric becomes a separate row.
+ */
+function segmentsToAnalyticsPoints(
+  segments: SegmentWithMetadata[],
+  noteId: string,
+  resultId?: string,
+): AnalyticsDataPoint[] {
+  const now = Date.now();
+  const points: AnalyticsDataPoint[] = [];
+
+  for (const seg of segments) {
+    const segId = String(seg.id);
+
+    // Persist elapsed time as a metric
+    if (seg.elapsed != null && seg.elapsed > 0) {
+      points.push({
+        id: `${segId}-elapsed-${now}`,
+        noteId,
+        segmentId: segId,
+        segmentVersion: 0,
+        resultId: resultId ?? '',
+        metricType: 'elapsed',
+        value: seg.elapsed,
+        unit: 's',
+        label: `${seg.name ?? 'Segment'} – Elapsed`,
+        timestamp: seg.absoluteStartTime ?? now,
+        createdAt: now,
+      });
+    }
+
+    // Persist each dynamic metric (reps, resistance, distance, etc.)
+    for (const [key, value] of Object.entries(seg.metrics)) {
+      if (typeof value !== 'number') continue;
+      points.push({
+        id: `${segId}-${key}-${now}`,
+        noteId,
+        segmentId: segId,
+        segmentVersion: 0,
+        resultId: resultId ?? '',
+        metricType: key,
+        value,
+        unit: '',
+        label: `${seg.name ?? 'Segment'} – ${key}`,
+        timestamp: seg.absoluteStartTime ?? now,
+        createdAt: now,
+      });
+    }
+  }
+
+  return points;
+}
 
 interface WorkbenchSyncBridgeProps {
   children: React.ReactNode;
@@ -93,7 +150,7 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     if (selectedBlockId !== lastSelectedBlockIdRef.current) {
       if (lastSelectedBlockIdRef.current !== undefined) {
         console.log('[WorkbenchSyncBridge] Block navigated:', lastSelectedBlockIdRef.current, '→', selectedBlockId, '— clearing analytics for Chromecast');
-        store.getState().setAnalytics([], [], []);
+        store.getState().setAnalytics([], []);
       }
       lastSelectedBlockIdRef.current = selectedBlockId;
     }
@@ -153,7 +210,7 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
         console.log('[WorkbenchSyncBridge] Re-initializing runtime for block', selectedBlock.id, 'old:', lastInitializedKeyRef.current, 'new:', currentKey);
         
         // Clear analytics before starting the new runtime
-        store.getState().setAnalytics([], [], []);
+        store.getState().setAnalytics([], []);
         
         initializeRuntime(selectedBlock);
         lastInitializedKeyRef.current = currentKey;
@@ -182,16 +239,16 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
       const shouldUpdate = statusChanged || (now - lastAnalyticsUpdateRef.current > 1000);
 
       if (shouldUpdate) {
-        const { data, segments, groups } = getAnalyticsFromRuntime(runtime);
-        store.getState().setAnalytics(data, segments, groups);
+        const { segments, groups } = getAnalyticsFromRuntime(runtime);
+        store.getState().setAnalytics(segments, groups);
         lastAnalyticsUpdateRef.current = now;
         lastStatusRef.current = execution.status;
       }
     } else if (currentEntry?.results?.logs) {
       // If no runtime, but we have historical logs, use them for analytics
       const logs = currentEntry.results.logs;
-      const { data, segments, groups } = getAnalyticsFromLogs(logs, currentEntry.results.startTime);
-      store.getState().setAnalytics(data, segments, groups);
+      const { segments, groups } = getAnalyticsFromLogs(logs, currentEntry.results.startTime);
+      store.getState().setAnalytics(segments, groups);
     }
     // We REMOVED the auto-clear else block here.
     // Analytics will persist until:
@@ -200,6 +257,30 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     // 3. Manual Reset (calls store.resetStore())
     // 4. Bridge unmounts (calls store.resetStore())
   }, [runtime, execution.stepCount, execution.status, currentEntry]);
+
+  // --- Persist analytics to IndexedDB on workout completion ---
+  const hasPersisted = useRef(false);
+
+  useEffect(() => {
+    // Reset the flag when a new runtime starts
+    if (execution.status === 'running') {
+      hasPersisted.current = false;
+    }
+
+    if (execution.status === 'completed' && !hasPersisted.current) {
+      hasPersisted.current = true;
+
+      const currentSegments = store.getState().analyticsSegments;
+      const noteId = currentEntry?.id ?? selectedBlock?.id ?? 'unknown';
+
+      if (currentSegments.length > 0) {
+        const points = segmentsToAnalyticsPoints(currentSegments, noteId);
+        indexedDBService.saveAnalyticsPoints(points)
+          .then(() => console.log(`[WorkbenchSyncBridge] Persisted ${points.length} analytics points`))
+          .catch((err: unknown) => console.error('[WorkbenchSyncBridge] Failed to persist analytics:', err));
+      }
+    }
+  }, [execution.status, currentEntry, selectedBlock]);
 
   // --- Active segment/statement tracking (derived from runtime stack) ---
   useEffect(() => {

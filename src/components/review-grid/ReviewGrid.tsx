@@ -11,7 +11,6 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
-import type { AnalyticsDataPoint } from '@/services/AnalyticsTransformer';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import type { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
@@ -38,8 +37,6 @@ export interface ReviewGridProps {
   onSelectSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
   /** Analytics groups (reserved for Phase 3 graph panel) */
   groups: AnalyticsGroup[];
-  /** Raw analytics data points (reserved for Phase 3 graph panel) */
-  rawData: AnalyticsDataPoint[];
   /** User override map from the store */
   userOutputOverrides?: Map<string, ICodeFragment[]>;
   /** Active grid preset id from the store */

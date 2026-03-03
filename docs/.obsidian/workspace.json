@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "architecture/ANALYTICS_SYSTEM_REVIEW.md",
+                "file": "architecture/STORAGE_V4_PLAN.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ANALYTICS_SYSTEM_REVIEW"
+              "title": "STORAGE_V4_PLAN"
             }
           }
         ]
@@ -182,6 +182,8 @@
   },
   "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
+    "architecture/ANALYTICS_SYSTEM_REVIEW.md",
+    "architecture/STORAGE_V4_PLAN.md",
     "architecture/STORAGE_SCHEMA.md",
     "architecture/PERSISTENCE_STRATEGY.md",
     "DEPRECATION_CLEANUP.md",
@@ -191,7 +193,6 @@
     "diagrams/domain-model-overview.canvas",
     "diagrams/behavior-overview.canvas",
     "diagrams/behavior-memory-matrix.md",
-    "architecture/ANALYTICS_SYSTEM_REVIEW.md",
     "architecture/output-statement-deep-dive.md",
     "architecture/review-grid-plan.md",
     "architecture/time-terminology.md",
@@ -212,7 +213,6 @@
     "tv/01-android-tv-application-spec.md",
     "tv",
     "system-output-implementation.md",
-    "session-state.md",
     "restructure/post-restructure-bugs",
     "restructure",
     "code-mirror",

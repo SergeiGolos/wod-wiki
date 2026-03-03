@@ -28,7 +28,6 @@ import type { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import type { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import type { WodBlock } from '../../markdown-editor/types';
 import type { DocumentItem } from '../../markdown-editor/utils/documentStructure';
-import type { AnalyticsDataPoint } from '../../services/AnalyticsTransformer';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import type { ICodeFragment } from '../../core/models/CodeFragment';
 import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
@@ -71,7 +70,6 @@ interface WorkbenchSyncState {
   activeStatementIds: Set<number>;
 
   // --- Analytics (persisted across runtime disposal) ---
-  analyticsData: AnalyticsDataPoint[];
   analyticsSegments: Segment[];
   analyticsGroups: AnalyticsGroup[];
   selectedAnalyticsIds: Set<number>;
@@ -117,7 +115,7 @@ interface WorkbenchSyncActions {
   // --- Pure state setters ---
   setActiveSegmentIds: (ids: Set<number>) => void;
   setActiveStatementIds: (ids: Set<number>) => void;
-  setAnalytics: (data: AnalyticsDataPoint[], segments: Segment[], groups: AnalyticsGroup[]) => void;
+  setAnalytics: (segments: Segment[], groups: AnalyticsGroup[]) => void;
   toggleAnalyticsSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
 
   // --- Review Grid Actions ---
@@ -171,7 +169,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   activeSegmentIds: new Set(),
   activeStatementIds: new Set(),
 
-  analyticsData: [],
   analyticsSegments: [],
   analyticsGroups: [],
   selectedAnalyticsIds: new Set(),
@@ -201,8 +198,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setActiveSegmentIds: (ids) => set({ activeSegmentIds: ids }),
   setActiveStatementIds: (ids) => set({ activeStatementIds: ids }),
 
-  setAnalytics: (data, segments, groups) => set({
-    analyticsData: data,
+  setAnalytics: (segments, groups) => set({
     analyticsSegments: segments,
     analyticsGroups: groups,
   }),
@@ -274,7 +270,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     activeSegmentIds: new Set(),
     activeStatementIds: new Set(),
 
-    analyticsData: [],
     analyticsSegments: [],
     analyticsGroups: [],
     selectedAnalyticsIds: new Set(),

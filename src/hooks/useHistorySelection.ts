@@ -78,21 +78,12 @@ export function useHistorySelection(
     const next = new Set(selectedIds);
     if (next.has(id)) {
       next.delete(id);
-      // If unchecking the currently active entry, try to fallback to another selected entry
-      if (activeEntryId === id) {
-        if (next.size === 0) setActiveEntryId(null);
-        else setActiveEntryId(Array.from(next)[0]);
-      }
     } else {
       next.add(id);
-      // If this is the first selection or no active entry, make it active
-      if (next.size === 1 || activeEntryId === null) {
-        setActiveEntryId(id);
-      }
     }
     setSelectedIds(next);
     setLastSelectedId(id);
-  }, [selectedIds, activeEntryId]);
+  }, [selectedIds]);
 
   const handleSelection = useCallback((id: string, modifiers: { ctrlKey: boolean; shiftKey: boolean }, visibleIds: string[]) => {
     const next = new Set(selectedIds);
@@ -110,15 +101,11 @@ export function useHistorySelection(
       // Toggle
       if (next.has(id)) {
         next.delete(id);
-        if (activeEntryId === id) {
-          setActiveEntryId(next.size > 0 ? Array.from(next)[0] : null);
-        }
       } else {
         next.add(id);
-        if (activeEntryId === null) setActiveEntryId(id);
       }
     } else {
-      // Single select
+      // Single select (Row click)
       next.clear();
       next.add(id);
       setActiveEntryId(id);
@@ -126,7 +113,7 @@ export function useHistorySelection(
 
     setSelectedIds(next);
     setLastSelectedId(id);
-  }, [selectedIds, activeEntryId, lastSelectedId]);
+  }, [selectedIds, lastSelectedId]);
 
   const selectAll = useCallback((visibleIds: string[]) => {
     setSelectedIds(new Set(visibleIds));

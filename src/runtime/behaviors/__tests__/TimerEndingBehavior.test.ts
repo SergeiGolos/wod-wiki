@@ -22,6 +22,7 @@ function createMockContext(initialTime: number = 0): { ctx: IBehaviorContext; st
             key: { toString: () => 'test-block' },
             label: 'Test Block',
             fragments: [],
+            behaviors: [],
             isComplete: false
         },
         clock: { now: new Date(initialTime) },
@@ -185,8 +186,8 @@ describe('CountdownTimerBehavior (via TimerEndingBehavior replacement)', () => {
         behavior.onMount(ctx);
         behavior.onDispose(ctx);
 
-        // Should have 3 unsubscribers (tick + timer:pause + timer:resume)
-        expect(state.unsubscribers.length).toBe(3);
+        // Should have 4 unsubscribers (tick + reset + timer:pause + timer:resume)
+        expect(state.unsubscribers.length).toBe(4);
         for (const unsub of state.unsubscribers) {
             expect(unsub).toHaveBeenCalled();
         }

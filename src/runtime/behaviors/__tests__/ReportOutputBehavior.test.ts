@@ -141,8 +141,11 @@ describe('ReportOutputBehavior', () => {
 
     it('emits milestone on mount for multi-round blocks', () => {
         const behavior = new ReportOutputBehavior();
+        const roundState: RoundState = { current: 1, total: 3 };
         const ctx = createMockContext({
-            memory: { round: { current: 1, total: 3 } as RoundState },
+            tagFragments: {
+                round: [{ ...roundState, fragmentType: FragmentType.CurrentRound, type: 'current-round', value: 1 }]
+            }
         });
 
         behavior.onMount(ctx);
@@ -150,7 +153,7 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'milestone',
             expect.arrayContaining([
-                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, value: 1 }),
+                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, current: 1, total: 3 }),
             ]),
             expect.objectContaining({ label: 'Round 1 of 3' })
         );
@@ -158,8 +161,11 @@ describe('ReportOutputBehavior', () => {
 
     it('does not emit milestone on mount for single-round blocks', () => {
         const behavior = new ReportOutputBehavior();
+        const roundState: RoundState = { current: 1, total: 1 };
         const ctx = createMockContext({
-            memory: { round: { current: 1, total: 1 } as RoundState },
+            tagFragments: {
+                round: [{ ...roundState, fragmentType: FragmentType.CurrentRound, type: 'current-round', value: 1 }]
+            }
         });
 
         behavior.onMount(ctx);
@@ -170,19 +176,21 @@ describe('ReportOutputBehavior', () => {
 
     it('emits milestone on next when round advances', () => {
         const behavior = new ReportOutputBehavior();
+        const round1: RoundState = { current: 1, total: 5 };
         // Mount with round 1 to initialize lastEmittedRound
         const mountCtx = createMockContext({
-            memory: {
-                round: { current: 1, total: 5 } as RoundState,
-            },
+            tagFragments: {
+                round: [{ ...round1, fragmentType: FragmentType.CurrentRound, type: 'current-round', value: 1 }]
+            }
         });
         behavior.onMount(mountCtx);
 
         // Simulate round advancing to 2 (done by ChildSelectionBehavior)
+        const round2: RoundState = { current: 2, total: 5 };
         const ctx = createMockContext({
-            memory: {
-                round: { current: 2, total: 5 } as RoundState,
-            },
+            tagFragments: {
+                round: [{ ...round2, fragmentType: FragmentType.CurrentRound, type: 'current-round', value: 2 }]
+            }
         });
 
         behavior.onNext(ctx);
@@ -190,7 +198,7 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'milestone',
             expect.arrayContaining([
-                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, value: 2 }),
+                expect.objectContaining({ fragmentType: FragmentType.CurrentRound, current: 2, total: 5 }),
             ]),
             expect.objectContaining({ label: 'Round 2 of 5' })
         );
@@ -198,19 +206,20 @@ describe('ReportOutputBehavior', () => {
 
     it('does not emit milestone on next when round has not changed', () => {
         const behavior = new ReportOutputBehavior();
+        const round2: RoundState = { current: 2, total: 5 };
         // Mount emits milestone for round 2 and sets lastEmittedRound
         const mountCtx = createMockContext({
-            memory: {
-                round: { current: 2, total: 5 } as RoundState,
-            },
+            tagFragments: {
+                round: [{ ...round2, fragmentType: FragmentType.CurrentRound, type: 'current-round', value: 2 }]
+            }
         });
         behavior.onMount(mountCtx);
 
         // onNext with same round should not emit again
         const ctx = createMockContext({
-            memory: {
-                round: { current: 2, total: 5 } as RoundState,
-            },
+            tagFragments: {
+                round: [{ ...round2, fragmentType: FragmentType.CurrentRound, type: 'current-round', value: 2 }]
+            }
         });
 
         behavior.onNext(ctx);
@@ -229,7 +238,6 @@ describe('ReportOutputBehavior', () => {
         };
 
         const ctx = createMockContext({
-            memory: { time: timer },
             tagFragments: {
                 time: [{
                     fragmentType: FragmentType.Duration,

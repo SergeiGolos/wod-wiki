@@ -1,8 +1,8 @@
 /**
- * IndexedDBContentProvider
+ * IndexedDBContentProvider — V4 Multi-Source Data Lens
  * 
  * Implements IContentProvider using IndexedDB as the backing store.
- * Manages the Note -> Script -> Version hierarchy.
+ * Manages the Note -> NoteSegment (versioned) hierarchy.
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -10,12 +10,12 @@ import { toShortId } from '../../lib/idUtils';
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '../db/IndexedDBService';
-import { Note, WorkoutResult, SectionHistory } from '../../types/storage';
+import { Note, NoteSegment, WorkoutResult, SegmentDataType } from '../../types/storage';
 import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
 import { Section, SectionType } from '../../markdown-editor/types/section';
 
 /**
- * Migrate legacy section types stored in IndexedDB to the new model.
+ * Map legacy SectionType values stored in older DBs to current types.
  * 'heading' → 'title', 'paragraph' | 'empty' → 'markdown', others pass through.
  */
 function migrateSectionType(storedType: string): SectionType {
@@ -26,6 +26,19 @@ function migrateSectionType(storedType: string): SectionType {
             return 'markdown';
         default:
             return storedType as SectionType;
+    }
+}
+
+/**
+ * Convert a SectionType to a V4 SegmentDataType.
+ */
+function toSegmentDataType(sectionType: SectionType): SegmentDataType {
+    switch (sectionType) {
+        case 'wod': return 'wod';
+        case 'title': return 'title';
+        case 'markdown':
+        default:
+            return 'markdown';
     }
 }
 
@@ -50,15 +63,8 @@ export class IndexedDBContentProvider implements IContentProvider {
 
         // We can do this in parallel
         const entryPromises = notes.map(async (note) => {
-            // Prefer rawContent cached on the note (segment-based model),
-            // fall back to latest Script record (legacy model).
-            let rawContent = note.rawContent || '';
-            if (!rawContent) {
-                const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
-                if (latestScript) {
-                    rawContent = latestScript.content;
-                }
-            }
+            // Prefer rawContent cached on the note (segment-based model).
+            const rawContent = note.rawContent || '';
 
             return {
                 id: note.id,
@@ -113,31 +119,26 @@ export class IndexedDBContentProvider implements IContentProvider {
         if (!note) return null;
 
         let rawContent = '';
-        let segments: SectionHistory[] = [];
+        let segments: NoteSegment[] = [];
         if (note.segmentIds && note.segmentIds.length > 0) {
             // Reconstruct from segments
             const fetchedSegments = await indexedDBService.getLatestSegments(note.segmentIds);
             // Sort segments according to segmentIds order
-            segments = note.segmentIds.map(sid => fetchedSegments.find(s => s.sectionId === sid)).filter((s): s is SectionHistory => !!s);
+            segments = note.segmentIds.map(sid => fetchedSegments.find(s => s.id === sid)).filter((s): s is NoteSegment => !!s);
 
             // Rebuild rawContent
             rawContent = segments.map(s => {
-                const resolvedType = migrateSectionType(s.type);
+                const resolvedType = migrateSectionType(s.dataType);
                 if (resolvedType === 'wod') {
                     const dialect = s.wodBlock?.dialect ?? 'wod';
-                    return `\`\`\`${dialect}\n${s.content}\n\`\`\``;
+                    return `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``;
                 }
                 // Title and markdown sections: content already includes heading prefix (e.g. "# Hello")
-                return s.content;
+                return s.rawContent;
             }).join('\n');
         } else {
-            // Legacy Note (no segmentIds) — fallback to script storage
-            const latestScript = await indexedDBService.getLatestScriptForNote(note.id);
-            if (latestScript) {
-                rawContent = latestScript.content;
-            } else {
-                rawContent = note.rawContent || '';
-            }
+            // Legacy Note (no segmentIds) — fallback to rawContent on note
+            rawContent = note.rawContent || '';
         }
 
         // Fetch latest result for this note
@@ -146,22 +147,22 @@ export class IndexedDBContentProvider implements IContentProvider {
             ? latestResults.sort((a, b) => b.completedAt - a.completedAt)[0]
             : undefined;
 
-        // Map SectionHistory to Section types for the editor
+        // Map NoteSegment to Section types for the editor
         const sections: Section[] = segments.map(s => {
-            const resolvedType = migrateSectionType(s.type);
+            const resolvedType = migrateSectionType(s.dataType);
             const dialect = s.wodBlock?.dialect ?? 'wod';
             return {
-                id: s.sectionId,
+                id: s.id,
                 type: resolvedType,
                 rawContent: resolvedType === 'wod'
-                    ? `\`\`\`${dialect}\n${s.content}\n\`\`\``
-                    : s.content,
-                displayContent: s.content,
+                    ? `\`\`\`${dialect}\n${s.rawContent}\n\`\`\``
+                    : s.rawContent,
+                displayContent: s.rawContent,
                 dialect: resolvedType === 'wod' ? dialect : undefined,
                 level: s.level,
                 wodBlock: s.wodBlock,
                 version: s.version,
-                createdAt: s.timestamp,
+                createdAt: s.createdAt,
                 // lines will be recomputed by the hook
                 startLine: 0,
                 endLine: 0,
@@ -215,17 +216,18 @@ export class IndexedDBContentProvider implements IContentProvider {
         const segmentIds: string[] = [];
 
         for (const section of sections) {
-            const segment: SectionHistory = {
-                sectionId: section.id,
+            const segment: NoteSegment = {
+                id: section.id,
                 version: 1,
                 noteId: noteId,
-                content: section.displayContent,
-                type: section.type,
+                dataType: toSegmentDataType(section.type),
+                data: section.wodBlock || null,
+                rawContent: section.displayContent,
                 level: section.level,
                 wodBlock: section.wodBlock,
-                timestamp: now
+                createdAt: now,
             };
-            await indexedDBService.saveSectionHistory(segment);
+            await indexedDBService.saveSegment(segment);
             segmentIds.push(section.id);
         }
 
@@ -294,40 +296,42 @@ export class IndexedDBContentProvider implements IContentProvider {
                 // Match by position + type first (stable across content changes),
                 // then fall back to exact sectionId match.
                 const existingSegment =
-                    currentSegments.find(s => s.sectionId === section.id) ||
+                    currentSegments.find(s => s.id === section.id) ||
                     currentSegments.find((s, idx) => {
                         const samePosition = idx === newSegmentIds.length; // same ordinal
-                        const sameType = s.type === section.type || migrateSectionType(s.type) === section.type;
+                        const sameType = s.dataType === toSegmentDataType(section.type) || migrateSectionType(s.dataType) === section.type;
                         return samePosition && sameType;
                     });
 
                 // Content changed or new segment
-                if (!existingSegment || existingSegment.content !== section.displayContent) {
+                if (!existingSegment || existingSegment.rawContent !== section.displayContent) {
                     const newVersion = (existingSegment?.version || 0) + 1;
-                    const segment: SectionHistory = {
-                        sectionId: section.id,
+                    const segment: NoteSegment = {
+                        id: section.id,
                         version: newVersion,
                         noteId: note.id,
-                        content: section.displayContent,
-                        type: section.type,
+                        dataType: toSegmentDataType(section.type),
+                        data: section.wodBlock || null,
+                        rawContent: section.displayContent,
                         level: section.level,
                         wodBlock: section.wodBlock,
-                        timestamp: now
+                        createdAt: now,
                     };
-                    await indexedDBService.saveSectionHistory(segment);
-                } else if (existingSegment.sectionId !== section.id) {
+                    await indexedDBService.saveSegment(segment);
+                } else if (existingSegment.id !== section.id) {
                     // Same content, different ID — carry forward under the new ID
-                    const segment: SectionHistory = {
-                        sectionId: section.id,
+                    const segment: NoteSegment = {
+                        id: section.id,
                         version: existingSegment.version,
                         noteId: note.id,
-                        content: existingSegment.content,
-                        type: section.type,
+                        dataType: toSegmentDataType(section.type),
+                        data: section.wodBlock || null,
+                        rawContent: existingSegment.rawContent,
                         level: section.level,
                         wodBlock: section.wodBlock,
-                        timestamp: existingSegment.timestamp
+                        createdAt: existingSegment.createdAt,
                     };
-                    await indexedDBService.saveSectionHistory(segment);
+                    await indexedDBService.saveSegment(segment);
                 }
                 newSegmentIds.push(section.id);
             }
@@ -341,9 +345,9 @@ export class IndexedDBContentProvider implements IContentProvider {
             const resultData = patch.results;
             const newResult: WorkoutResult = {
                 id: patch.resultId || uuidv4(),
-                scriptId: note.id, // Link to note's canonical UUID
+                segmentId: patch.sectionId, // Link to the NoteSegment that was executed
                 noteId: note.id,   // Use resolved UUID (not raw route param)
-                sectionId: patch.sectionId, // Link to the WOD section that was executed
+                sectionId: patch.sectionId, // Legacy compat
                 data: resultData,
                 completedAt: resultData.endTime || now
             };

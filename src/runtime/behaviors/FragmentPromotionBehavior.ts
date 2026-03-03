@@ -69,7 +69,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
                     fragmentType: FragmentType.Rep,
                     type: 'rep',
                     image: reps.toString(),
-                    origin: 'execution',
+                    origin: 'runtime',
                     value: reps,
                     sourceBlockKey: parentBlock.key.toString(),
                     timestamp: runtime.clock.now,
@@ -84,7 +84,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
             if (sourceFragment) {
                 fragments.push({
                     ...sourceFragment,
-                    origin: rule.origin ?? 'execution'
+                    origin: rule.origin ?? 'runtime'
                 });
             }
         }
@@ -129,7 +129,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
 
             const promotedFragment: ICodeFragment = {
                 ...sourceFragment,
-                origin: rule.origin ?? 'execution'
+                origin: rule.origin ?? 'runtime'
             };
 
             this.upsertPromotedFragment(ctx, promotedFragment);
@@ -146,7 +146,7 @@ export class FragmentPromotionBehavior implements IRuntimeBehavior, IRepSource, 
             fragmentType: FragmentType.Rep,
             type: 'rep',
             image: reps.toString(),
-            origin: 'execution',
+            origin: 'runtime',
             value: reps,
             sourceBlockKey: ctx.block.key.toString(),
             timestamp: ctx.clock.now,

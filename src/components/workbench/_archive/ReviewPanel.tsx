@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { TimerIndexPanel } from '../../layout/TimerIndexPanel';
 import { TimelineView } from '../../../timeline/TimelineView';
 import { Segment, AnalyticsGroup } from '../../../core/models/AnalyticsModels';
-import { AnalyticsDataPoint } from '../../../services/AnalyticsTransformer';
 import { IScriptRuntime } from '../../../runtime/contracts/IScriptRuntime';
 
 export interface ReviewPanelProps {
@@ -12,7 +11,6 @@ export interface ReviewPanelProps {
   selectedSegmentIds: Set<number>;
   onSelectSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
   groups: AnalyticsGroup[];
-  rawData: AnalyticsDataPoint[];
 }
 
 export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'runtime' | 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
@@ -52,15 +50,14 @@ export const ReviewPanelIndex: React.FC<Pick<ReviewPanelProps, 'runtime' | 'segm
   );
 };
 
-export const ReviewPanelPrimary: React.FC<Pick<ReviewPanelProps, 'rawData' | 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
-  rawData,
+export const ReviewPanelPrimary: React.FC<Pick<ReviewPanelProps, 'segments' | 'selectedSegmentIds' | 'onSelectSegment' | 'groups'>> = ({
   segments,
   selectedSegmentIds,
   onSelectSegment,
   groups
 }) => (
   <TimelineView
-    rawData={rawData}
+    rawData={[]}
     segments={segments}
     selectedSegmentIds={selectedSegmentIds}
     onSelectSegment={onSelectSegment}

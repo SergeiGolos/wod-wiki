@@ -168,13 +168,20 @@ describe('RuntimeBlock Memory Methods', () => {
 
     describe('dispose', () => {
         it('should call onDispose on behaviors', () => {
+            const behavior = { onDispose: vi.fn() };
+            const block = new RuntimeBlock(runtime, [], [behavior as any]);
+            block.dispose(runtime);
+            expect(behavior.onDispose).toHaveBeenCalled();
+        });
+
+        it('should clear all memory locations on dispose', () => {
             const block = createBlock();
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
 
             block.dispose(runtime);
 
-            // Memory is NOT cleared by dispose - only by unmount
-            expect(block.getMemoryByTag('time')).toHaveLength(1);
+            // Memory IS cleared by dispose in the modern architecture
+            expect(block.getMemoryByTag('time')).toHaveLength(0);
         });
 
         it('should allow multiple dispose calls safely', () => {

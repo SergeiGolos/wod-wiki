@@ -35,6 +35,8 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
     dispose: vi.fn(),
     getBehavior: vi.fn().mockReturnValue(undefined),
     behaviors: [],
+    getMemoryByTag: vi.fn().mockReturnValue([]),
+    getAllMemory: vi.fn().mockReturnValue([]),
   } as any;
 };
 

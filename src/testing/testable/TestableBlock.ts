@@ -169,6 +169,10 @@ export class TestableBlock implements IRuntimeBlock {
     return this._wrapped.isComplete;
   }
 
+  get behaviors(): IRuntimeBehavior[] {
+    return this._wrapped.behaviors;
+  }
+
   markComplete(reason?: string): void {
     this._wrapped.markComplete(reason);
   }

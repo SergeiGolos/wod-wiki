@@ -44,6 +44,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         emitEvent: vi.fn(),
         emitOutput: vi.fn(),
         markComplete: vi.fn(),
+        getMemoryByTag: vi.fn((tag: string) => memoryStore.get(tag) ?? []),
         getMemory: vi.fn((tag: string) => {
             const location = memoryStore.get(tag)?.[0];
             if (!location || location.fragments.length === 0) return undefined;
@@ -81,7 +82,7 @@ describe('FragmentPromotionBehavior', () => {
         const promoted = ctx.memoryStore.get('fragment:promote')?.[0]?.fragments;
         expect(promoted).toBeDefined();
         expect(promoted?.[0].fragmentType).toBe(FragmentType.CurrentRound);
-        expect(promoted?.[0].origin).toBe('execution');
+        expect(promoted?.[0].origin).toBe('runtime');
     });
 
     it('uses configured origin override', () => {

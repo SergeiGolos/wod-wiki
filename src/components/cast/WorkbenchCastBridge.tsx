@@ -19,7 +19,6 @@ import React, { useEffect, useRef } from 'react';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 import { formatTimeMMSS } from '@/lib/formatTime';
-import type { AnalyticsDataPoint } from '@/services/AnalyticsTransformer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { DocumentItem } from '@/markdown-editor/utils/documentStructure';
 import type { WodBlock } from '@/markdown-editor/types';
@@ -32,7 +31,6 @@ export const WorkbenchCastBridge: React.FC = () => {
     const selectedBlock = useWorkbenchSyncStore(s => s.selectedBlock);
     const documentItems = useWorkbenchSyncStore(s => s.documentItems);
     const analyticsSegments = useWorkbenchSyncStore(s => s.analyticsSegments);
-    const analyticsData = useWorkbenchSyncStore(s => s.analyticsData);
 
     // Fingerprint of the last sent message — avoids redundant sends
     const lastFingerprintRef = useRef<string>('');
@@ -50,7 +48,7 @@ export const WorkbenchCastBridge: React.FC = () => {
 
             } else if (analyticsSegments.length > 0) {
                 // Workout just ended while still on the track view — show results.
-                message = buildReviewMessage(analyticsData, analyticsSegments);
+                message = buildReviewMessage(analyticsSegments);
 
             } else if (runtime) {
                 // On track view, runtime exists but not yet started (idle).
@@ -66,7 +64,7 @@ export const WorkbenchCastBridge: React.FC = () => {
         } else if (viewMode === 'review') {
             // Explicitly on the review view.
             if (analyticsSegments.length > 0) {
-                message = buildReviewMessage(analyticsData, analyticsSegments);
+                message = buildReviewMessage(analyticsSegments);
             } else {
                 // Analytics were cleared (navigated to a new note) — show the
                 // new document in preview mode rather than a blank idle screen.
@@ -96,7 +94,6 @@ export const WorkbenchCastBridge: React.FC = () => {
         selectedBlock,
         documentItems,
         analyticsSegments,
-        analyticsData,
     ]);
 
     return null;
@@ -105,12 +102,13 @@ export const WorkbenchCastBridge: React.FC = () => {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildReviewMessage(
-    analyticsData: AnalyticsDataPoint[],
     analyticsSegments: Segment[],
 ): RpcWorkbenchUpdate {
-    const firstTime = analyticsData[0]?.time ?? 0;
-    const lastTime = analyticsData[analyticsData.length - 1]?.time ?? 0;
-    const totalMs = lastTime - firstTime;
+    // Derive total duration from segments instead of old time-series data
+    const totalSeconds = analyticsSegments.length > 0
+        ? Math.max(...analyticsSegments.map(s => s.endTime)) - Math.min(...analyticsSegments.map(s => s.startTime))
+        : 0;
+    const totalMs = Math.round(totalSeconds * 1000);
 
     const rows: Array<{ label: string; value: string }> = [];
     if (totalMs > 0) {

@@ -210,7 +210,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     highlightedLine: _highlightedLine,
     setHighlightedLine,
     setCursorLine: _setCursorLine,
-    analyticsData,
     analyticsSegments,
     analyticsGroups,
     selectedAnalyticsIds,
@@ -327,7 +326,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
         selectedSegmentIds={selectedAnalyticsIds}
         onSelectSegment={toggleAnalyticsSegment}
         groups={analyticsGroups}
-        rawData={analyticsData}
         hoveredBlockKey={hoveredBlockKey}
         onHoverBlockKey={setHoveredBlockKey}
       />

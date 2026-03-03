@@ -39,7 +39,6 @@ describe('AnalyticsTransformer', () => {
   describe('getAnalyticsFromRuntime', () => {
     it('returns empty result when runtime is null', () => {
       const result = getAnalyticsFromRuntime(null);
-      expect(result.data).toEqual([]);
       expect(result.segments).toEqual([]);
       expect(result.groups).toEqual([]);
     });
@@ -50,7 +49,6 @@ describe('AnalyticsTransformer', () => {
       } as unknown as IScriptRuntime;
 
       const result = getAnalyticsFromRuntime(runtime);
-      expect(result.data).toEqual([]);
       expect(result.segments).toEqual([]);
       expect(result.groups).toEqual([]);
     });

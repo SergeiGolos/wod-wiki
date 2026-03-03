@@ -1,78 +1,114 @@
 /**
- * IndexedDB Service
+ * IndexedDB Service — V4 Multi-Source Data Lens
  * 
  * Wrapper around 'idb' to manage the 'wodwiki-db' database.
- * Handles schema upgrades and provides typed access to stores.
+ * V4 implements a "fresh start" destructive upgrade: if the existing DB is < 4
+ * all legacy stores are dropped and recreated with the V4 schema.
+ *
+ * V4 stores:
+ *   notes       — root containers
+ *   segments    — versioned content (replaces scripts + section_history)
+ *   results     — workout execution logs
+ *   attachments — external temporal blobs (HR / GPS)
+ *   analytics   — de-normalized metric data points
  */
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { Note, Script, WorkoutResult, SectionHistory } from '../../types/storage';
+import {
+    Note,
+    NoteSegment,
+    WorkoutResult,
+    Attachment,
+    AnalyticsDataPoint,
+    SegmentDataType,
+} from '../../types/storage';
 
+// ---------------------------------------------------------------------------
+// DB Schema type (idb generic)
+// ---------------------------------------------------------------------------
 interface WodWikiDB extends DBSchema {
     notes: {
         key: string;
         value: Note;
-        indexes: { 'by-updated': number, 'by-target-date': number };
+        indexes: { 'by-updated': number; 'by-target-date': number };
     };
-    scripts: {
-        key: string;
-        value: Script;
-        indexes: { 'by-note': string, 'by-created': number };
+    segments: {
+        key: [string, number]; // [id, version]
+        value: NoteSegment;
+        indexes: { 'by-note': string; 'by-type': SegmentDataType };
     };
     results: {
         key: string;
         value: WorkoutResult;
-        indexes: { 'by-script': string, 'by-note': string, 'by-completed': number };
+        indexes: { 'by-segment': string; 'by-note': string; 'by-completed': number };
     };
-    'section_history': {
-        key: [string, number];
-        value: SectionHistory;
-        indexes: { 'by-section': string, 'by-note': string };
+    attachments: {
+        key: string;
+        value: Attachment;
+        indexes: { 'by-note': string; 'by-time': number };
+    };
+    analytics: {
+        key: string;
+        value: AnalyticsDataPoint;
+        indexes: { 'by-type': string; 'by-segment': string; 'by-result': string };
     };
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 3; // Incremented for section_history
+const DB_VERSION = 4; // V4 — Multi-Source Data Lens
 
 class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
 
     constructor() {
         this.dbPromise = openDB<WodWikiDB>(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                // Notes Store
+            upgrade(db, oldVersion) {
+                // -------------------------------------------------------
+                // Fresh-start strategy: drop everything below V4
+                // -------------------------------------------------------
+                if (oldVersion < 4) {
+                    // Remove all legacy stores
+                    const names = Array.from(db.objectStoreNames);
+                    for (const name of names) {
+                        db.deleteObjectStore(name);
+                    }
+                }
+
+                // ---- Notes ----
                 if (!db.objectStoreNames.contains('notes')) {
                     const store = db.createObjectStore('notes', { keyPath: 'id' });
                     store.createIndex('by-updated', 'updatedAt');
                     store.createIndex('by-target-date', 'targetDate');
-                } else {
-                    const tx = db.transaction('notes', 'versionchange');
-                    const store = tx.objectStore('notes');
-                    if (!store.indexNames.contains('by-target-date')) {
-                        store.createIndex('by-target-date', 'targetDate');
-                    }
                 }
 
-                // Scripts Store
-                if (!db.objectStoreNames.contains('scripts')) {
-                    const store = db.createObjectStore('scripts', { keyPath: 'id' });
+                // ---- Segments (replaces scripts + section_history) ----
+                if (!db.objectStoreNames.contains('segments')) {
+                    const store = db.createObjectStore('segments', { keyPath: ['id', 'version'] });
                     store.createIndex('by-note', 'noteId');
-                    store.createIndex('by-created', 'createdAt');
+                    store.createIndex('by-type', 'dataType');
                 }
 
-                // Results Store
+                // ---- Results ----
                 if (!db.objectStoreNames.contains('results')) {
                     const store = db.createObjectStore('results', { keyPath: 'id' });
-                    store.createIndex('by-script', 'scriptId');
+                    store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-note', 'noteId');
                     store.createIndex('by-completed', 'completedAt');
                 }
 
-                // Section History Store (V3)
-                if (!db.objectStoreNames.contains('section_history')) {
-                    const store = db.createObjectStore('section_history', { keyPath: ['sectionId', 'version'] });
-                    store.createIndex('by-section', 'sectionId');
+                // ---- Attachments (new in V4) ----
+                if (!db.objectStoreNames.contains('attachments')) {
+                    const store = db.createObjectStore('attachments', { keyPath: 'id' });
                     store.createIndex('by-note', 'noteId');
+                    store.createIndex('by-time', 'createdAt');
+                }
+
+                // ---- Analytics (new in V4) ----
+                if (!db.objectStoreNames.contains('analytics')) {
+                    const store = db.createObjectStore('analytics', { keyPath: 'id' });
+                    store.createIndex('by-type', 'metricType');
+                    store.createIndex('by-segment', 'segmentId');
+                    store.createIndex('by-result', 'resultId');
                 }
             },
         });
@@ -82,7 +118,9 @@ class IndexedDBService {
         return this.dbPromise;
     }
 
-    // --- Notes Operations ---
+    // =======================================================================
+    // Notes
+    // =======================================================================
 
     async getNote(id: string): Promise<Note | undefined> {
         return (await this.dbPromise).get('notes', id);
@@ -98,73 +136,117 @@ class IndexedDBService {
 
     async deleteNote(id: string): Promise<void> {
         const db = await this.dbPromise;
-        const tx = db.transaction(['notes', 'scripts', 'results', 'section_history'], 'readwrite');
+        const tx = db.transaction(
+            ['notes', 'segments', 'results', 'attachments', 'analytics'],
+            'readwrite',
+        );
 
         // Delete Note
         await tx.objectStore('notes').delete(id);
 
-        // Delete associated Scripts
-        const scriptsIndex = tx.objectStore('scripts').index('by-note');
-        let scriptCursor = await scriptsIndex.openCursor(IDBKeyRange.only(id));
-        while (scriptCursor) {
-            await scriptCursor.delete();
-            scriptCursor = await scriptCursor.continue();
+        // Delete associated Segments
+        const segIdx = tx.objectStore('segments').index('by-note');
+        let segCursor = await segIdx.openCursor(IDBKeyRange.only(id));
+        while (segCursor) {
+            await segCursor.delete();
+            segCursor = await segCursor.continue();
         }
 
         // Delete associated Results
-        const resultsIndex = tx.objectStore('results').index('by-note');
-        let resultCursor = await resultsIndex.openCursor(IDBKeyRange.only(id));
-        while (resultCursor) {
-            await resultCursor.delete();
-            resultCursor = await resultCursor.continue();
+        const resIdx = tx.objectStore('results').index('by-note');
+        let resCursor = await resIdx.openCursor(IDBKeyRange.only(id));
+        while (resCursor) {
+            await resCursor.delete();
+            resCursor = await resCursor.continue();
         }
 
-        // Delete associated Section History (V3)
-        const historyIndex = tx.objectStore('section_history').index('by-note');
-        let historyCursor = await historyIndex.openCursor(IDBKeyRange.only(id));
-        while (historyCursor) {
-            await historyCursor.delete();
-            historyCursor = await historyCursor.continue();
+        // Delete associated Attachments
+        const attIdx = tx.objectStore('attachments').index('by-note');
+        let attCursor = await attIdx.openCursor(IDBKeyRange.only(id));
+        while (attCursor) {
+            await attCursor.delete();
+            attCursor = await attCursor.continue();
+        }
+
+        // Delete associated Analytics (by result IDs we're about to delete)
+        const resultIds: string[] = [];
+        const resIdx2 = tx.objectStore('results').index('by-note');
+        let resCursor2 = await resIdx2.openCursor(IDBKeyRange.only(id));
+        while (resCursor2) {
+            resultIds.push(resCursor2.value.id);
+            resCursor2 = await resCursor2.continue();
+        }
+        for (const resultId of resultIds) {
+            const anaByResult = tx.objectStore('analytics').index('by-result');
+            let anaCursor = await anaByResult.openCursor(IDBKeyRange.only(resultId));
+            while (anaCursor) {
+                await anaCursor.delete();
+                anaCursor = await anaCursor.continue();
+            }
         }
 
         await tx.done;
     }
 
-    // --- Scripts Operations ---
+    // =======================================================================
+    // Segments (replaces Scripts + SectionHistory)
+    // =======================================================================
 
-    async getScript(id: string): Promise<Script | undefined> {
-        return (await this.dbPromise).get('scripts', id);
+    async saveSegment(segment: NoteSegment): Promise<[string, number]> {
+        return (await this.dbPromise).put('segments', segment);
     }
 
-    async getLatestScriptForNote(noteId: string): Promise<Script | undefined> {
+    async getSegment(id: string, version: number): Promise<NoteSegment | undefined> {
+        return (await this.dbPromise).get('segments', [id, version]);
+    }
+
+    async getSegmentHistory(segmentId: string): Promise<NoteSegment[]> {
+        return (await this.dbPromise).getAllFromIndex('segments', 'by-note', segmentId)
+            .then(all => all.filter(s => s.id === segmentId));
+    }
+
+    async getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined> {
         const db = await this.dbPromise;
-        const index = db.transaction('scripts').store.index('by-note');
-        // Get all scripts for note, sort by created descending
-        // IndexedDB range queries are sorted by key (created is not the key), 
-        // but we can use 'by-created' index if we filter manually or use a compound index.
-        // Simpler approach for V1: Get all by note, sort in memory (usually small count per note).
-        const scripts = await index.getAll(noteId);
-        if (scripts.length === 0) return undefined;
-
-        return scripts.sort((a, b) => b.createdAt - a.createdAt)[0];
+        const tx = db.transaction('segments', 'readonly');
+        const store = tx.objectStore('segments');
+        // Walk backwards through all entries with matching id
+        // Since key is [id, version], IDBKeyRange can select by id prefix
+        const range = IDBKeyRange.bound([segmentId, 0], [segmentId, Number.MAX_SAFE_INTEGER]);
+        const cursor = await store.openCursor(range, 'prev');
+        return cursor?.value;
     }
 
-    async saveScript(script: Script): Promise<string> {
-        return (await this.dbPromise).put('scripts', script);
+    /**
+     * Get the latest version of multiple segments, preserving order.
+     */
+    async getLatestSegments(segmentIds: string[]): Promise<NoteSegment[]> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('segments', 'readonly');
+        const store = tx.objectStore('segments');
+
+        const result: NoteSegment[] = [];
+        for (const id of segmentIds) {
+            const range = IDBKeyRange.bound([id, 0], [id, Number.MAX_SAFE_INTEGER]);
+            const cursor = await store.openCursor(range, 'prev');
+            if (cursor) {
+                result.push(cursor.value);
+            }
+        }
+        return result;
     }
 
-    // --- Results Operations ---
+    // =======================================================================
+    // Results
+    // =======================================================================
 
     async saveResult(result: WorkoutResult): Promise<string> {
         return (await this.dbPromise).put('results', result);
     }
 
     async getResultsForNote(noteId: string): Promise<WorkoutResult[]> {
-        // Try exact match first
         let results = await (await this.dbPromise).getAllFromIndex('results', 'by-note', noteId);
 
-        // Fallback: if noteId is a full UUID but results were saved with short ID (or vice versa),
-        // scan all results for suffix match
+        // Fallback: suffix matching for ID format mismatches (legacy compat)
         if (results.length === 0) {
             const allResults = await (await this.dbPromise).getAll('results');
             results = allResults.filter(r =>
@@ -179,46 +261,88 @@ class IndexedDBService {
 
     async getResultsForSection(noteId: string, sectionId: string): Promise<WorkoutResult[]> {
         const noteResults = await this.getResultsForNote(noteId);
-        return noteResults.filter(r => r.sectionId === sectionId);
+        return noteResults.filter(r => r.sectionId === sectionId || r.segmentId === sectionId);
     }
 
     async getResultById(resultId: string): Promise<WorkoutResult | undefined> {
         return (await this.dbPromise).get('results', resultId);
     }
 
-    // --- Section History Operations ---
+    // =======================================================================
+    // Attachments (new in V4)
+    // =======================================================================
 
-    async saveSectionHistory(history: SectionHistory): Promise<[string, number]> {
-        return (await this.dbPromise).put('section_history', history);
+    async saveAttachment(attachment: Attachment): Promise<string> {
+        return (await this.dbPromise).put('attachments', attachment);
     }
 
-    async getSectionHistory(sectionId: string): Promise<SectionHistory[]> {
-        return (await this.dbPromise).getAllFromIndex('section_history', 'by-section', sectionId);
+    async getAttachmentsForNote(noteId: string): Promise<Attachment[]> {
+        return (await this.dbPromise).getAllFromIndex('attachments', 'by-note', noteId);
     }
 
-    async getLatestSectionVersion(sectionId: string): Promise<SectionHistory | undefined> {
-        const history = await this.getSectionHistory(sectionId);
-        if (history.length === 0) return undefined;
-        return history.sort((a, b) => b.version - a.version)[0];
+    async getAttachment(id: string): Promise<Attachment | undefined> {
+        return (await this.dbPromise).get('attachments', id);
     }
 
-    /**
-     * Get the latest version of multiple segments.
-     */
-    async getLatestSegments(segmentIds: string[]): Promise<SectionHistory[]> {
+    async deleteAttachment(id: string): Promise<void> {
+        return (await this.dbPromise).delete('attachments', id);
+    }
+
+    // =======================================================================
+    // Analytics (new in V4)
+    // =======================================================================
+
+    async saveAnalyticsPoints(points: AnalyticsDataPoint[]): Promise<void> {
         const db = await this.dbPromise;
-        const tx = db.transaction('section_history', 'readonly');
-        const store = tx.objectStore('section_history');
-        const index = store.index('by-section');
-
-        const result: SectionHistory[] = [];
-        for (const id of segmentIds) {
-            const cursor = await index.openCursor(IDBKeyRange.only(id), 'prev');
-            if (cursor) {
-                result.push(cursor.value);
-            }
+        const tx = db.transaction('analytics', 'readwrite');
+        const store = tx.objectStore('analytics');
+        for (const pt of points) {
+            await store.put(pt);
         }
-        return result;
+        await tx.done;
+    }
+
+    async getAnalyticsByType(metricType: string): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-type', metricType);
+    }
+
+    async getAnalyticsBySegment(segmentId: string): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-segment', segmentId);
+    }
+
+    async getAnalyticsByResult(resultId: string): Promise<AnalyticsDataPoint[]> {
+        return (await this.dbPromise).getAllFromIndex('analytics', 'by-result', resultId);
+    }
+
+    async deleteAnalyticsForResult(resultId: string): Promise<void> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('analytics', 'readwrite');
+        const idx = tx.objectStore('analytics').index('by-result');
+        let cursor = await idx.openCursor(IDBKeyRange.only(resultId));
+        while (cursor) {
+            await cursor.delete();
+            cursor = await cursor.continue();
+        }
+        await tx.done;
+    }
+
+    // =======================================================================
+    // Legacy compat shims (for callers not yet migrated)
+    // =======================================================================
+
+    /** @deprecated Use saveSegment instead */
+    async saveSectionHistory(history: NoteSegment): Promise<[string, number]> {
+        return this.saveSegment(history);
+    }
+
+    /** @deprecated Use getLatestSegmentVersion instead */
+    async getLatestSectionVersion(sectionId: string): Promise<NoteSegment | undefined> {
+        return this.getLatestSegmentVersion(sectionId);
+    }
+
+    /** @deprecated Use getSegmentHistory instead */
+    async getSectionHistory(sectionId: string): Promise<NoteSegment[]> {
+        return this.getSegmentHistory(sectionId);
     }
 }
 

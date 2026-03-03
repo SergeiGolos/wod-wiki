@@ -7,15 +7,6 @@ import { IOutputStatement } from '../core/models/OutputStatement';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 
 /**
- * Time-series data point for analytics visualization.
- * Contains time and dynamic metric values.
- */
-export interface AnalyticsDataPoint {
-  time: number;
-  [key: string]: number;
-}
-
-/**
  * Format a metric key into a human-readable label.
  * Capitalizes the first letter and replaces underscores with spaces.
  */
@@ -236,8 +227,7 @@ export class AnalyticsTransformer {
  * Analytics result from transforming runtime output.
  */
 export interface AnalyticsResult {
-  data: AnalyticsDataPoint[];
-  segments: Segment[];
+  segments: SegmentWithMetadata[];
   groups: AnalyticsGroup[];
 }
 
@@ -249,7 +239,7 @@ export interface AnalyticsResult {
  * @returns Analytics data including time-series data, segments, and metric groups
  */
 export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): AnalyticsResult {
-  if (!runtime) return { data: [], segments: [], groups: [] };
+  if (!runtime) return { segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
   const allOutputs = runtime.getOutputStatements();
@@ -264,41 +254,12 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
   const segments = transformer.fromOutputStatements(outputs);
 
   if (segments.length === 0) {
-    return { data: [], segments: [], groups: [] };
+    return { segments: [], groups: [] };
   }
 
   const groups = transformer.toAnalyticsGroup(segments);
-  const data: AnalyticsDataPoint[] = [];
 
-  const totalDuration = segments.length > 0 ? Math.max(...segments.map(s => s.endTime)) : 0;
-  const availableMetricKeys = new Set<string>();
-  segments.forEach(s => {
-    Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k));
-    availableMetricKeys.add('elapsed');
-    availableMetricKeys.add('total');
-  });
-
-  for (let t = 0; t <= totalDuration; t++) {
-    const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
-    const dataPoint: AnalyticsDataPoint = { time: t };
-
-    availableMetricKeys.forEach(key => {
-      const segWithMetric = activeSegs.find(s => (s.metrics[key] !== undefined) || (key === 'elapsed') || (key === 'total'));
-      if (segWithMetric) {
-        let baseVal = (key === 'elapsed') ? segWithMetric.elapsed : 
-                      (key === 'total') ? segWithMetric.total :
-                      (segWithMetric.metrics[key] || 0);
-
-        // Add slight variation for visualization (can be removed if deterministic values needed)
-        dataPoint[key] = Math.max(0, Math.round(baseVal + (Math.random() - 0.5) * (baseVal * 0.1)));
-      } else {
-        dataPoint[key] = 0;
-      }
-    });
-    data.push(dataPoint);
-  }
-
-  return { data, segments, groups };
+  return { segments, groups };
 }
 
 /**
@@ -306,7 +267,7 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
  * Used for historical analysis where no runtime instance exists.
  */
 export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTime?: number): AnalyticsResult {
-  if (!outputs || outputs.length === 0) return { data: [], segments: [], groups: [] };
+  if (!outputs || outputs.length === 0) return { segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();
   // Filter for workout segments and analytics outputs — avoids historical 'load' outputs
@@ -320,37 +281,10 @@ export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTi
   const segments = transformer.fromOutputStatements(filteredOutputs, workoutStartTime);
 
   if (segments.length === 0) {
-    return { data: [], segments: [], groups: [] };
+    return { segments: [], groups: [] };
   }
 
   const groups = transformer.toAnalyticsGroup(segments);
-  const data: AnalyticsDataPoint[] = [];
 
-  const totalDuration = segments.length > 0 ? Math.max(...segments.map(s => s.endTime)) : 0;
-  const availableMetricKeys = new Set<string>();
-  segments.forEach(s => {
-    Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k));
-    availableMetricKeys.add('elapsed');
-    availableMetricKeys.add('total');
-  });
-
-  for (let t = 0; t <= totalDuration; t++) {
-    const activeSegs = segments.filter(s => t >= s.startTime && t <= s.endTime);
-    const dataPoint: AnalyticsDataPoint = { time: t };
-
-    availableMetricKeys.forEach(key => {
-      const segWithMetric = activeSegs.find(s => (s.metrics[key] !== undefined) || (key === 'elapsed') || (key === 'total'));
-      if (segWithMetric) {
-        let baseVal = (key === 'elapsed') ? segWithMetric.elapsed : 
-                      (key === 'total') ? segWithMetric.total :
-                      (segWithMetric.metrics[key] || 0);
-        dataPoint[key] = Math.round(baseVal); // No variation for historical logs
-      } else {
-        dataPoint[key] = 0;
-      }
-    });
-    data.push(dataPoint);
-  }
-
-  return { data, segments, groups };
+  return { segments, groups };
 }

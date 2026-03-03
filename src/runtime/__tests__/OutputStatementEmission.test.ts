@@ -70,8 +70,8 @@ function createMockBlock(options: {
 
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockImplementation((tag: string) => {
-            if (tag === 'fragment' && fragmentGroups) {
-                return [{ tag: 'fragment', fragments: fragmentGroups.flat() }] as any;
+            if (tag === 'fragment:display' && fragmentGroups) {
+                return fragmentGroups.map(g => ({ tag: 'fragment:display', fragments: g })) as any;
             }
             if (tag === 'fragment:result' && resultFragments.length > 0) {
                 return [{ tag: 'fragment:result', fragments: resultFragments }] as any;
@@ -79,14 +79,19 @@ function createMockBlock(options: {
             return [];
         }),
         getAllMemory: vi.fn().mockImplementation(() => {
+            const mem: any[] = [];
             if (fragmentGroups) {
-                return [{ tag: 'fragment', fragments: fragmentGroups.flat() }] as any;
+                mem.push(...fragmentGroups.map(g => ({ tag: 'fragment:display', fragments: g })));
             }
-            return [];
+            if (resultFragments.length > 0) {
+                mem.push({ tag: 'fragment:result', fragments: resultFragments });
+            }
+            return mem;
         }),
 
         hasMemory: vi.fn().mockImplementation((type: string) => {
-            if (type === 'fragment' && fragmentGroups) return true;
+            if (type === 'fragment:display' && fragmentGroups) return true;
+            if (type === 'fragment:result' && resultFragments.length > 0) return true;
             return false;
         }),
         getMemory: vi.fn().mockImplementation((type: string) => {
@@ -139,12 +144,13 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block);
             runtime.popBlock();
 
-            // Pop emits a system output (lifecycle event), not a completion output
-            expect(listener).toHaveBeenCalled();
+            // Should find at least one system output among all emitted (compiler, system-push, completion, system-pop)
+            const systemOutput = listener.mock.calls
+                .map(c => c[0] as IOutputStatement)
+                .find(o => o.outputType === 'system');
 
-            const output: IOutputStatement = listener.mock.calls[0][0];
-            expect(output.outputType).toBe('system');
-            expect(output.sourceBlockKey).toBe(block.key.toString());
+            expect(systemOutput).toBeDefined();
+            expect(systemOutput?.sourceBlockKey).toBe(block.key.toString());
         });
 
         it('should stop notifying after unsubscribe', () => {
@@ -259,9 +265,13 @@ describe('ScriptRuntime Output Statements', () => {
             runtime.pushBlock(block);
             runtime.popBlock();
 
-            const output: IOutputStatement = listener.mock.calls[0][0];
-            expect(output.timeSpan).toBeDefined();
-            expect(output.timeSpan.started).toBeDefined();
+            // Find any output with timing (e.g. completion or segment)
+            const output = listener.mock.calls
+                .map(c => c[0] as IOutputStatement)
+                .find(o => o.timeSpan !== undefined);
+
+            expect(output).toBeDefined();
+            expect(output?.timeSpan.started).toBeDefined();
         });
 
         it('should include fragments from the block', () => {
@@ -284,8 +294,8 @@ describe('ScriptRuntime Output Statements', () => {
                 .find((entry: IOutputStatement) => entry.outputType === 'completion') as IOutputStatement | undefined;
 
             expect(output).toBeDefined();
-            expect(output.fragments).toHaveLength(1);
-            expect(output.fragments[0].value).toBe('Push-ups');
+            expect(output!.fragments).toHaveLength(1);
+            expect(output!.fragments[0].value).toBe('Push-ups');
         });
 
         it('should link to source statement ID', () => {

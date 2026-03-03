@@ -82,20 +82,20 @@ export class ExecutionContext implements IScriptRuntime {
 
     /**
      * Pushes an action onto the execution work list to be processed in this turn.
-     * Actions pushed during another action's execution will be appended to the end
-     * of the list (FIFO side-effect queuing).
+     * Actions pushed during another action's execution land on top of the stack
+     * (LIFO / Depth-First semantics).
      */
     do(action: IRuntimeAction): void {
-        this._workList.push(action);
+        this._workList.unshift(action);
     }
 
     /**
-     * Pushes multiple actions onto the work list.
-     * They will be executed in the order provided (FIFO).
+     * Pushes multiple actions onto the work list. Land on top of the stack
+     * in the order provided (first element on very top).
      */
     doAll(actions: IRuntimeAction[]): void {
         if (actions.length === 0) return;
-        this._workList.push(...actions);
+        this._workList.unshift(...actions);
     }
 
     /**

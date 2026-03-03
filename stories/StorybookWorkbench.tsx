@@ -171,7 +171,6 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     setHoveredBlockKey,
     selectedBlock,
     documentItems,
-    analyticsData,
     analyticsSegments,
     analyticsGroups,
     selectedAnalyticsIds,
@@ -214,7 +213,6 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
         startTime: execution.startTime,
       },
       analytics: {
-        data: analyticsData,
         segments: analyticsSegments,
         groups: analyticsGroups,
       },
@@ -246,7 +244,6 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     documentItems,
     activeBlockId,
     execution,
-    analyticsData,
     analyticsSegments,
     analyticsGroups,
     runtime
@@ -378,7 +375,6 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
                 selectedSegmentIds={selectedAnalyticsIds}
                 onSelectSegment={toggleAnalyticsSegment}
                 groups={analyticsGroups}
-                rawData={analyticsData}
                 hoveredBlockKey={hoveredBlockKey}
                 onHoverBlockKey={setHoveredBlockKey}
               />

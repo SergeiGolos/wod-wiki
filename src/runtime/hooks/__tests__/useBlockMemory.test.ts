@@ -20,13 +20,20 @@ import { IMemoryEntry } from '../../memory/IMemoryEntry';
 import { TimerState, RoundState, DisplayState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
 
+import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+
 // Mock block factory
 function createMockBlock(initialMemory: Map<string, unknown> = new Map()): IRuntimeBlock {
-    const memoryEntries = new Map<string, MockMemoryEntry>();
+    const memoryLocations: MemoryLocation[] = [];
 
     // Initialize with any provided memory
-    for (const [type, value] of initialMemory) {
-        memoryEntries.set(type, new MockMemoryEntry(type, value));
+    for (const [tag, value] of initialMemory) {
+        if (tag === 'round') {
+            // For rounds, the fragment itself IS the RoundState (it has current/total properties)
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, [value as any]));
+        } else {
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, [{ fragmentType: 0 as any, type: tag, image: '', origin: 'runtime' as any, value }]));
+        }
     }
 
     return {
@@ -36,50 +43,12 @@ function createMockBlock(initialMemory: Map<string, unknown> = new Map()): IRunt
         sourceIds: [],
         context: {} as any,
         executionTiming: {},
-        getMemory: (type: string) => memoryEntries.get(type),
-        hasMemory: (type: string) => memoryEntries.has(type),
-        setMemoryValue: (type: string, value: unknown) => {
-            const existing = memoryEntries.get(type);
-            if (existing) {
-                existing.update(value);
-            } else {
-                memoryEntries.set(type, new MockMemoryEntry(type, value));
-            }
-        },
+        getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag),
+        hasMemory: (tag: MemoryTag) => memoryLocations.some(l => l.tag === tag),
+        pushMemory: (loc: MemoryLocation) => memoryLocations.push(loc),
         // Expose for test manipulation
-        _memoryEntries: memoryEntries
+        _memoryLocations: memoryLocations
     } as unknown as IRuntimeBlock;
-}
-
-// Mock memory entry with subscribe
-class MockMemoryEntry implements IMemoryEntry<string, any> {
-    private listeners = new Set<(val: any, old: any) => void>();
-    private _value: any;
-
-    constructor(public readonly type: string, initialValue: any) {
-        this._value = initialValue;
-    }
-
-    get value() {
-        return this._value;
-    }
-
-    update(newValue: any): void {
-        const oldValue = this._value;
-        this._value = newValue;
-        for (const listener of this.listeners) {
-            listener(newValue, oldValue);
-        }
-    }
-
-    subscribe(listener: (val: any, old: any) => void): () => void {
-        this.listeners.add(listener);
-        return () => this.listeners.delete(listener);
-    }
-
-    dispose(): void {
-        this.listeners.clear();
-    }
 }
 
 describe('useBlockMemory', () => {
@@ -129,7 +98,8 @@ describe('useBlockMemory', () => {
             };
 
             act(() => {
-                (block as any)._memoryEntries.get('time')?.update(updatedState);
+                const loc = (block as any)._memoryLocations.find((l: any) => l.tag === 'time');
+                loc?.update([{ fragmentType: 0 as any, type: 'time', image: '', origin: 'runtime' as any, value: updatedState }]);
             });
 
             expect(result.current).toEqual(updatedState);
@@ -143,19 +113,19 @@ describe('useBlockMemory', () => {
                 role: 'primary'
             };
             const block = createMockBlock(new Map<string, unknown>([['time', timerState]]));
-            const entry = (block as any)._memoryEntries.get('time') as MockMemoryEntry;
+            const entry = (block as any)._memoryLocations.find((l: any) => l.tag === 'time') as MemoryLocation;
 
             const { unmount } = renderHook(() =>
                 useBlockMemory(block, 'time')
             );
 
             // Entry should have a subscriber
-            expect((entry as any).listeners.size).toBe(1);
+            expect((entry as any)._listeners.size).toBe(1);
 
             unmount();
 
             // Subscriber should be removed
-            expect((entry as any).listeners.size).toBe(0);
+            expect((entry as any)._listeners.size).toBe(0);
         });
     });
 });

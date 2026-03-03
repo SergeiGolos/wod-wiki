@@ -4,8 +4,8 @@ import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockContext } from '../../BlockContext';
 import { BlockKey } from '../../../core/models/BlockKey';
 import {
-    TimerBehavior,
-    TimerEndingBehavior,
+    CountdownTimerBehavior,
+    CountupTimerBehavior,
     ChildSelectionBehavior,
     CompletionTimestampBehavior
 } from '../index';
@@ -15,12 +15,12 @@ const mockRuntime: IScriptRuntime = {
     clock: { now: new Date(1000) },
     events: { subscribe: () => ({ unsubscribe: () => {} }) },
     compiler: {} as any,
-    stack: {} as any,
+    stack: { count: 0 } as any,
 } as any;
 
 describe('BlockBuilder Aspect Composers', () => {
     describe('asTimer()', () => {
-        it('should add timer aspect behaviors with completion by default', () => {
+        it('should add countdown timer behavior for direction down', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -38,12 +38,11 @@ describe('BlockBuilder Aspect Composers', () => {
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should have TimerBehavior and TimerEndingBehavior
-            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerEndingBehavior)).toBe(true);
+            // Should have CountdownTimerBehavior
+            expect(behaviors.some((b: any) => b instanceof CountdownTimerBehavior)).toBe(true);
         });
 
-        it('should skip completion behavior when addCompletion is false', () => {
+        it('should add countup timer behavior for direction up', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -53,19 +52,17 @@ describe('BlockBuilder Aspect Composers', () => {
                 .setKey(key)
                 .asTimer({
                     direction: 'up',
-                    addCompletion: false
+                    label: 'Session'
                 });
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
 
-            // Should NOT have TimerEndingBehavior
-            expect(behaviors.some((b: any) => b instanceof TimerEndingBehavior)).toBe(false);
-            // Should still have the other timer behaviors
-            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
+            // Should have CountupTimerBehavior
+            expect(behaviors.some((b: any) => b instanceof CountupTimerBehavior)).toBe(true);
         });
 
-        it('should pass completionConfig to TimerEndingBehavior', () => {
+        it('should respect completesBlock config in asTimer', () => {
             const builder = new BlockBuilder(mockRuntime);
             const context = new BlockContext(mockRuntime, 'test', 'test');
             const key = new BlockKey();
@@ -81,10 +78,10 @@ describe('BlockBuilder Aspect Composers', () => {
 
             const block = builder.build();
             const behaviors = (block as any).behaviors;
-            const timerCompletionBehavior = behaviors.find((b: any) => b instanceof TimerEndingBehavior);
+            const timer = behaviors.find((b: any) => b instanceof CountdownTimerBehavior) as CountdownTimerBehavior;
 
-            expect(timerCompletionBehavior).toBeDefined();
-            // Verify the behavior was added with completion mode wiring
+            expect(timer).toBeDefined();
+            expect((timer as any).config.mode).toBe('reset-interval');
         });
     });
 
@@ -235,7 +232,7 @@ describe('BlockBuilder Aspect Composers', () => {
 
             // Should have universal behaviors PLUS aspect behaviors
             expect(behaviors.some((b: any) => b instanceof CompletionTimestampBehavior)).toBe(true);
-            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof CountupTimerBehavior)).toBe(true);
             // Note: asRepeater() alone doesn't add behaviors; ChildSelectionBehavior is only
             // wired when asContainer() is also called (round config is stored in pendingRoundConfig)
         });
@@ -258,7 +255,7 @@ describe('BlockBuilder Aspect Composers', () => {
             const behaviors = (block as any).behaviors;
 
             // Should have all three aspects
-            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof CountdownTimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof ChildSelectionBehavior)).toBe(true);
         });
 
@@ -278,7 +275,7 @@ describe('BlockBuilder Aspect Composers', () => {
             const behaviors = (block as any).behaviors;
 
             // Should have timer aspect behaviors AND the manually added behavior
-            expect(behaviors.some((b: any) => b instanceof TimerBehavior)).toBe(true);
+            expect(behaviors.some((b: any) => b instanceof CountupTimerBehavior)).toBe(true);
             expect(behaviors.some((b: any) => b instanceof LabelingBehavior)).toBe(true);
         });
     });

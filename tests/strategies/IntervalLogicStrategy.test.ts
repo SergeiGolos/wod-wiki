@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { RuntimeTestBuilder } from '@/testing/harness/RuntimeTestBuilder';
 import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
-import { TimerBehavior, SoundCueBehavior } from '@/runtime/behaviors';
+import { CountdownTimerBehavior, SoundCueBehavior } from '@/runtime/behaviors';
 
 describe('IntervalLogicStrategy', () => {
   it('should compile "1:00 EMOM 10" to an Interval block', () => {
@@ -15,10 +15,10 @@ describe('IntervalLogicStrategy', () => {
 
     expect(block).toBeDefined();
     expect(block.blockType).toBe('EMOM');
-    expect(block.label).toBe('EMOM 10');
+    expect(block.label).toBe('EMOM 1:00 10');
 
     // Now uses aspect-based behaviors
-    expect(block.getBehavior(TimerBehavior)).toBeDefined();
+    expect(block.getBehavior(CountdownTimerBehavior)).toBeDefined();
     // Round tracking is wired via ChildrenStrategy (ChildSelectionBehavior) which is not registered here
     expect(block.getBehavior(SoundCueBehavior)).toBeDefined();
   });

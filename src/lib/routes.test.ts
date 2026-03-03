@@ -114,8 +114,11 @@ describe('routes', () => {
       ).toEqual({ noteId: 'n1', view: 'track', sectionId: 's1' });
     });
 
-    it('returns null for track without sectionId', () => {
-      expect(parseRouteParams({ noteId: 'n1', view: 'track' })).toBeNull();
+    it('parses track without sectionId (selection mode)', () => {
+      expect(parseRouteParams({ noteId: 'n1', view: 'track' })).toEqual({
+        noteId: 'n1',
+        view: 'track',
+      });
     });
 
     it('parses review-all', () => {

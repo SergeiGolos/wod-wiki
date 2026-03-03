@@ -98,6 +98,22 @@ describe('RuntimeBlock Lifecycle', () => {
             );
         });
 
+        it('should handle unmount without event handler cleanup (no per-block handlers)', () => {
+            block.mount(runtime);
+            block.unmount(runtime);
+
+            // No per-block event handlers to unsubscribe — event routing is at runtime level
+            expect(eventBus.register).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('dispose', () => {
+        it('should call behaviors.onDispose', () => {
+            block.mount(runtime);
+            block.dispose(runtime);
+            expect(behavior.onDispose).toHaveBeenCalled();
+        });
+
         it('should dispose memory entries', () => {
             const timerLoc = new MemoryLocation('time', [{
                 fragmentType: FragmentType.Duration,
@@ -109,17 +125,9 @@ describe('RuntimeBlock Lifecycle', () => {
             const disposeSpy = vi.spyOn(timerLoc, 'dispose');
             block.pushMemory(timerLoc);
 
-            block.unmount(runtime);
+            block.dispose(runtime);
             expect(disposeSpy).toHaveBeenCalled();
             expect(block.getMemoryByTag('time')).toHaveLength(0);
-        });
-
-        it('should handle unmount without event handler cleanup (no per-block handlers)', () => {
-            block.mount(runtime);
-            block.unmount(runtime);
-
-            // No per-block event handlers to unsubscribe — event routing is at runtime level
-            expect(eventBus.register).not.toHaveBeenCalled();
         });
     });
 });

@@ -86,7 +86,7 @@ describe('Round Promotion', () => {
             const promotedFrag = promoted![0].fragments[0];
             expect(promotedFrag.fragmentType).toBe(FragmentType.CurrentRound);
             expect(promotedFrag.value).toBe(1);
-            expect(promotedFrag.origin).toBe('execution'); // Default origin
+            expect(promotedFrag.origin).toBe('runtime'); // Default origin
         });
 
         it('should update promoted fragment on next() when dynamic updates enabled', () => {

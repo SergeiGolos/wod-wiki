@@ -97,14 +97,14 @@ describe('LocalStorageContentProvider', () => {
 
     it('should filter by dateRange', async () => {
       const now = Date.now();
-      // Save entries at different "times" by manually setting updatedAt
+      // Save entries at different "times" by manually setting targetDate
       const old = await provider.saveEntry({ title: 'Old', rawContent: '', tags: [] });
       await provider.saveEntry({ title: 'Recent', rawContent: '', tags: [] });
 
-      // Manually set old entry's updatedAt to 10 days ago
+      // Manually set old entry's targetDate to 10 days ago
       const oldEntry = await provider.getEntry(old.id);
       if (oldEntry) {
-        const modified = { ...oldEntry, updatedAt: now - 10 * 86_400_000 };
+        const modified = { ...oldEntry, targetDate: now - 10 * 86_400_000, updatedAt: now - 10 * 86_400_000 };
         mockStorage.setItem(`wodwiki:history:${old.id}`, JSON.stringify(modified));
       }
 
@@ -123,7 +123,7 @@ describe('LocalStorageContentProvider', () => {
       // Set e2 to 30 days ago
       const entry2 = await provider.getEntry(e2.id);
       if (entry2) {
-        const modified = { ...entry2, updatedAt: now - 30 * 86_400_000 };
+        const modified = { ...entry2, targetDate: now - 30 * 86_400_000, updatedAt: now - 30 * 86_400_000 };
         mockStorage.setItem(`wodwiki:history:${e2.id}`, JSON.stringify(modified));
       }
 

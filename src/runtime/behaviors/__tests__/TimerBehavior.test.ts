@@ -13,6 +13,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             key: { toString: () => 'test-block' },
             label: 'Test Block',
             fragments: [],
+            behaviors: [],
             getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag),
             pushMemory: (loc: IMemoryLocation) => memoryLocations.push(loc),
             getAllMemory: () => [...memoryLocations],
@@ -73,13 +74,13 @@ describe('CountdownTimerBehavior', () => {
         ]));
     });
 
-    it('subscribes to tick, pause and resume events on mount', () => {
+    it('subscribes to tick, reset, pause and resume events on mount', () => {
         const ctx = createMockContext();
         const behavior = new CountdownTimerBehavior({ durationMs: 30000 });
 
         behavior.onMount(ctx);
 
-        expect(ctx.subscribe).toHaveBeenCalledTimes(3);
+        expect(ctx.subscribe).toHaveBeenCalledTimes(4);
         expect(ctx.subscribe).toHaveBeenCalledWith('tick', expect.any(Function), { scope: 'bubble' });
     });
 
@@ -101,11 +102,15 @@ describe('CountdownTimerBehavior', () => {
         (ctx.clock as any).now = new Date(5000);
         behavior.onUnmount(ctx);
 
-        expect(ctx.setMemory).toHaveBeenCalledWith('time', expect.objectContaining({
-            spans: expect.arrayContaining([
-                expect.objectContaining({ ended: expect.any(Number) })
-            ])
-        }));
+        expect(ctx.updateMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
+            expect.objectContaining({
+                value: expect.objectContaining({
+                    spans: expect.arrayContaining([
+                        expect.objectContaining({ ended: expect.any(Number) })
+                    ])
+                })
+            })
+        ]));
     });
 
     it('onDispose unsubscribes all listeners', () => {
@@ -119,7 +124,7 @@ describe('CountdownTimerBehavior', () => {
         });
         const behavior = new CountdownTimerBehavior({ durationMs: 30000 });
         behavior.onMount(ctx);
-        expect(unsubscribers.length).toBe(3);
+        expect(unsubscribers.length).toBe(4);
 
         behavior.onDispose(ctx);
 
@@ -175,11 +180,15 @@ describe('CountupTimerBehavior', () => {
         (ctx.clock as any).now = new Date(10000);
         behavior.onUnmount(ctx);
 
-        expect(ctx.setMemory).toHaveBeenCalledWith('time', expect.objectContaining({
-            spans: expect.arrayContaining([
-                expect.objectContaining({ ended: expect.any(Number) })
-            ])
-        }));
+        expect(ctx.updateMemory).toHaveBeenCalledWith('time', expect.arrayContaining([
+            expect.objectContaining({
+                value: expect.objectContaining({
+                    spans: expect.arrayContaining([
+                        expect.objectContaining({ ended: expect.any(Number) })
+                    ])
+                })
+            })
+        ]));
     });
 
     it('onDispose unsubscribes all listeners', () => {

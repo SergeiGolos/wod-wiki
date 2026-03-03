@@ -40,6 +40,7 @@ describe("JIT Compiler Injection", () => {
                 }
                 return [];
             }),
+            behaviors: [],
             // Mock other required props slightly to satisfy TS if needed (though 'as any' covers it)
         } as any;
 
@@ -114,6 +115,7 @@ describe("JIT Compiler Injection", () => {
                 }
                 return [];
             }),
+            behaviors: [],
         } as any;
         (runtime.stack as any).current = parentBlock;
 
