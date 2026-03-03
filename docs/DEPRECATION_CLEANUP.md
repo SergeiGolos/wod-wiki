@@ -8,25 +8,25 @@
 
 ## Summary Table
 
-| # | Item | File(s) | Active callers? | Effort | Risk | Priority |
-|---|------|---------|-----------------|--------|------|----------|
-| 1 | `TVPage` (entire component) | `src/app/pages/TVPage.tsx` | ✅ None remaining | Trivial | None | 🟢 Now |
-| 2 | `useCastManager` hook | `src/hooks/useCastManager.ts` | ✅ None remaining | Trivial | None | 🟢 Now |
-| 3 | `CastManager` class | `src/services/cast/CastManager.ts` | ✅ None remaining | Trivial | None | 🟢 Now |
-| 4 | `tests/harness/index.ts` re-export | `tests/harness/index.ts` | ✅ None remaining | Trivial | None | 🟢 Now |
-| 5 | Runtime lifecycle type aliases | `RuntimeLifecycleContext.ts`, `useRuntimeLifecycle.ts`, `RuntimeLifecycleProvider.tsx`, `RuntimeContext.tsx` | ✅ None remaining | Small | Low | 🟢 Now |
-| 6 | `createDefaultRuntimeFactory()` | `src/runtime/compiler/RuntimeFactory.ts` | ✅ None remaining | Small | None | 🟢 Now |
-| 7 | `ReEntryConfig` type alias | `src/runtime/compiler/BlockBuilder.ts` | ✅ None remaining | Trivial | None | 🟢 Now |
-| 8 | `EventHandlerResponse` type | `src/runtime/contracts/events/IEventHandler.ts` | ✅ None remaining | Trivial | None | 🟢 Now |
-| 9 | `compact` prop on `WodScriptVisualizer` / `RuntimeHistoryLog` | `WodScriptVisualizer.tsx`, `FragmentVisualizer.tsx`, `RuntimeHistoryLog.tsx` | ⚠️ 1 caller: `NotebooksPage.tsx` | Small | Low | 🟡 Soon |
-| 10 | `LeafExitBehavior` + `CompletedBlockPopBehavior` exports | `src/runtime/behaviors/index.ts` | ⚠️ Tests only (`performance.test.ts`, `loop-block.test.ts`) | Medium | Medium | 🟡 Soon |
-| 11 | `ReEntryBehavior` + `RoundsEndBehavior` exports | `src/runtime/behaviors/index.ts` | ⚠️ Tests only (same test files) | Medium | Medium | 🟡 Soon |
-| 12 | `TimerFragment` class | `src/runtime/compiler/fragments/TimerFragment.ts` | ⚠️ Several test files and one story | Medium | Low | 🟡 Soon |
-| 13 | `OutputStatement` proxy props: `.spans`, `.elapsed`, `.total` | `src/core/models/OutputStatement.ts` | ⚠️ `AnalyticsTransformer.ts`, tests | Medium | Medium | 🟠 Later |
-| 14 | `FragmentType.Time` enum value | `src/core/models/CodeFragment.ts` | ⚠️ 3 behavior files still emit it; `FragmentPill.tsx` handles it | Large | High | 🟠 Later |
-| 15 | `FragmentType.Elapsed` / `FragmentType.Total` enum values | `src/core/models/CodeFragment.ts` | ⚠️ Canonical derived types — see note | — | — | ⚪ Re-evaluate |
-| 16 | `getMemory()` / `hasMemory()` / `setMemoryValue()` shims | `RuntimeBlock.ts`, `MockBlock.ts`, `BehaviorContext.ts`, `IRuntimeBlock.ts` | ⚠️ Pervasive (hundreds of call-sites) | Very Large | High | 🔴 Future sprint |
-| 17 | `IRuntimeMemory` EventBus subscription | `src/runtime/contracts/IRuntimeMemory.ts`, `RuntimeMemory.ts` | ⚠️ Needs audit | Medium | Medium | 🟠 Later |
+| #   | Item                                                          | File(s)                                                                                                      | Active callers?                                                  | Effort     | Risk   | Priority         |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- | ---------- | ------ | ---------------- |
+| 1   | `TVPage` (entire component)                                   | `src/app/pages/TVPage.tsx`                                                                                   | ✅ None remaining                                                 | Trivial    | None   | 🟢 Now           |
+| 2   | `useCastManager` hook                                         | `src/hooks/useCastManager.ts`                                                                                | ✅ None remaining                                                 | Trivial    | None   | 🟢 Now           |
+| 3   | `CastManager` class                                           | `src/services/cast/CastManager.ts`                                                                           | ✅ None remaining                                                 | Trivial    | None   | 🟢 Now           |
+| 4   | `tests/harness/index.ts` re-export                            | `tests/harness/index.ts`                                                                                     | ✅ None remaining                                                 | Trivial    | None   | 🟢 Now           |
+| 5   | Runtime lifecycle type aliases                                | `RuntimeLifecycleContext.ts`, `useRuntimeLifecycle.ts`, `RuntimeLifecycleProvider.tsx`, `RuntimeContext.tsx` | ✅ None remaining                                                 | Small      | Low    | 🟢 Now           |
+| 6   | `createDefaultRuntimeFactory()`                               | `src/runtime/compiler/RuntimeFactory.ts`                                                                     | ✅ None remaining                                                 | Small      | None   | 🟢 Now           |
+| 7   | `ReEntryConfig` type alias                                    | `src/runtime/compiler/BlockBuilder.ts`                                                                       | ✅ None remaining                                                 | Trivial    | None   | 🟢 Now           |
+| 8   | `EventHandlerResponse` type                                   | `src/runtime/contracts/events/IEventHandler.ts`                                                              | ✅ None remaining                                                 | Trivial    | None   | 🟢 Now           |
+| 9   | `compact` prop on `WodScriptVisualizer` / `RuntimeHistoryLog` | `WodScriptVisualizer.tsx`, `FragmentVisualizer.tsx`, `RuntimeHistoryLog.tsx`                                 | ⚠️ 1 caller: `NotebooksPage.tsx`                                 | Small      | Low    | 🟡 Soon          |
+| 10  | `LeafExitBehavior` + `CompletedBlockPopBehavior` exports      | `src/runtime/behaviors/index.ts`                                                                             | ⚠️ Tests only (`performance.test.ts`, `loop-block.test.ts`)      | Medium     | Medium | 🟡 Soon          |
+| 11  | `ReEntryBehavior` + `RoundsEndBehavior` exports               | `src/runtime/behaviors/index.ts`                                                                             | ⚠️ Tests only (same test files)                                  | Medium     | Medium | 🟡 Soon          |
+| 12  | `TimerFragment` class                                         | `src/runtime/compiler/fragments/TimerFragment.ts`                                                            | ⚠️ Several test files and one story                              | Medium     | Low    | 🟡 Soon          |
+| 13  | `OutputStatement` proxy props: `.spans`, `.elapsed`, `.total` | `src/core/models/OutputStatement.ts`                                                                         | ⚠️ `AnalyticsTransformer.ts`, tests                              | Medium     | Medium | 🟠 Later         |
+| 14  | `FragmentType.Time` enum value                                | `src/core/models/CodeFragment.ts`                                                                            | ⚠️ 3 behavior files still emit it; `FragmentPill.tsx` handles it | Large      | High   | 🟠 Later         |
+| 15  | `FragmentType.Elapsed` / `FragmentType.Total` enum values     | `src/core/models/CodeFragment.ts`                                                                            | ⚠️ Canonical derived types — see note                            | —          | —      | ⚪ Re-evaluate    |
+| 16  | `getMemory()` / `hasMemory()` / `setMemoryValue()` shims      | `RuntimeBlock.ts`, `MockBlock.ts`, `BehaviorContext.ts`, `IRuntimeBlock.ts`                                  | ⚠️ Pervasive (hundreds of call-sites)                            | Very Large | High   | 🔴 Future sprint |
+| 17  | `IRuntimeMemory` EventBus subscription                        | `src/runtime/contracts/IRuntimeMemory.ts`, `RuntimeMemory.ts`                                                | ⚠️ Needs audit                                                   | Medium     | Medium | 🟠 Later         |
 
 ---
 

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RUNTIME_INTEGRATION_TESTING.md",
+                "file": "architecture/ANALYTICS_SYSTEM_REVIEW.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "RUNTIME_INTEGRATION_TESTING"
+              "title": "ANALYTICS_SYSTEM_REVIEW"
             }
           }
         ]
@@ -180,9 +180,25 @@
       "bases:Create new base": false
     }
   },
-  "active": "f6ff0127789936f8",
+  "active": "4a5f4b86da0fbe68",
   "lastOpenFiles": [
+    "architecture/STORAGE_SCHEMA.md",
+    "architecture/PERSISTENCE_STRATEGY.md",
     "DEPRECATION_CLEANUP.md",
+    "BEHAVIORAL_ARCHITECTURE.md",
+    "Behavior Map.canvas",
+    "diagrams/runtime-state-machine.canvas",
+    "diagrams/domain-model-overview.canvas",
+    "diagrams/behavior-overview.canvas",
+    "diagrams/behavior-memory-matrix.md",
+    "architecture/ANALYTICS_SYSTEM_REVIEW.md",
+    "architecture/output-statement-deep-dive.md",
+    "architecture/review-grid-plan.md",
+    "architecture/time-terminology.md",
+    "architecture/track-ui-binding-adr.md",
+    "architecture/02-solution-strategy.md",
+    "architecture/05-deployment-view.md",
+    "RUNTIME_INTEGRATION_TESTING.md",
     "REMOTE_NAVIGATION_PLAN.md",
     "Untitled.md",
     "Mastering Remote Interaction in Chromecast Web Receiver Applications_ A Professional Guide.md",
@@ -197,24 +213,11 @@
     "tv",
     "system-output-implementation.md",
     "session-state.md",
-    "restructure/post-restructure-bugs/story-7-loop-elapsed-zero.md",
-    "restructure/post-restructure-bugs/story-6-emom-span-erasure.md",
-    "restructure/post-restructure-bugs/story-5-timer-completion.md",
-    "restructure/post-restructure-bugs/story-4-round-tracking.md",
-    "restructure/post-restructure-bugs/story-3-duration-nan.md",
-    "restructure/post-restructure-bugs/story-2-elapsed-total-double-write.md",
-    "restructure/post-restructure-bugs/story-1-remove-timer-column.md",
-    "restructure/post-restructure-bugs/00-overview.md",
-    "restructure/post-restructure-bugs.md",
     "restructure/post-restructure-bugs",
-    "restructure/phase-7-labeling-promotion.md",
-    "restructure/phase-6-report-output.md",
-    "restructure/phase-5-child-selection.md",
     "restructure",
     "code-mirror",
     "TV Navigation and Focus Management Implementation Guide_notes",
     "TV Navigation and Focus Management Implementation Guide_notes.zip",
-    "Unconfirmed 507917.crdownload",
-    "Behavior Map.canvas"
+    "Unconfirmed 507917.crdownload"
   ]
 }

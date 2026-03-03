@@ -13,7 +13,9 @@ import { RegisterEventHandlerAction } from '../../runtime/actions/events/Registe
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
 import { RunningSumProcess } from '../../core/analytics/RunningSumProcess';
-import { SummaryAnalyticsProcess } from '../../core/analytics/SummaryAnalyticsProcess';
+import { RepAnalyticsProcess } from '../../core/analytics/RepAnalyticsProcess';
+import { DistanceAnalyticsProcess } from '../../core/analytics/DistanceAnalyticsProcess';
+import { WeightAnalyticsProcess } from '../../core/analytics/WeightAnalyticsProcess';
 import { FragmentType } from '../../core/models/CodeFragment';
 
 /**
@@ -55,7 +57,9 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             const engine = new AnalyticsEngine();
             engine.addProcess(new RunningSumProcess('repetitions', FragmentType.Rep));
             engine.addProcess(new RunningSumProcess('resistance', FragmentType.Resistance));
-            engine.addProcess(new SummaryAnalyticsProcess());
+            engine.addProcess(new RepAnalyticsProcess());
+            engine.addProcess(new DistanceAnalyticsProcess());
+            engine.addProcess(new WeightAnalyticsProcess());
             runtime.setAnalyticsEngine(engine);
 
             // Cleanup on unmount or runtime change
