@@ -39,6 +39,11 @@ interface IEventBus {
      * Primary entry point for event handling.
      */
     emit(event: IEvent, runtime: IScriptRuntime): void;
+
+    /**
+     * Dispose of the event bus and clean up all registered handlers.
+     */
+    dispose(): void;
 }
 ```
 
@@ -94,7 +99,7 @@ Behaviors should use `IBehaviorContext.subscribe()` which automatically:
 - Provides context for memory access
 
 ```typescript
-class TimerTickBehavior implements IRuntimeBehavior {
+class CountdownTimerBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         ctx.subscribe('tick', (event, tickCtx) => {
             // Handle tick

@@ -23,19 +23,31 @@ Fragments are the atomic data units that flow through the WOD Wiki pipeline. The
 
 ## Fragment Types
 
-| Fragment | Type String | Purpose | Value Type |
-|----------|-------------|---------|------------|
-| [TimerFragment](TimerFragment.md) | `timer` | Duration/countdown values | `number` (ms) |
-| [RepFragment](RepFragment.md) | `rep` | Repetition counts | `number` |
-| [RoundsFragment](RoundsFragment.md) | `rounds` | Round counts | `number \| string` |
-| [ActionFragment](ActionFragment.md) | `action` | Named actions/movements | `string` |
-| [EffortFragment](EffortFragment.md) | `effort` | Effort/intensity zones | `string` |
-| [DistanceFragment](DistanceFragment.md) | `distance` | Distance with units | `{amount, units}` |
-| [ResistanceFragment](ResistanceFragment.md) | `resistance` | Weight/resistance with units | `{amount, units}` |
-| [IncrementFragment](IncrementFragment.md) | `increment` | Ascending/descending markers | `number` (+1/-1) |
-| [GroupFragment](GroupFragment.md) | `group` | Grouping markers | `GroupType` |
-| [TextFragment](TextFragment.md) | `text` | Display text/headings | `{text, level}` |
-| [SoundFragment](SoundFragment.md) | `sound` | Audio cue triggers | `SoundFragmentValue` |
+| Fragment | Type Enum | Purpose | Value Type |
+|----------|-----------|---------|------------|
+| [TimerFragment](TimerFragment.md) | `Duration` | Duration/countdown values | `number` (ms) |
+| [RepFragment](RepFragment.md) | `Rep` | Repetition counts | `number` |
+| [RoundsFragment](RoundsFragment.md) | `Rounds` | Round counts | `number \| string` |
+| [ActionFragment](ActionFragment.md) | `Action` | Named actions/movements | `string` |
+| [EffortFragment](EffortFragment.md) | `Effort` | Effort/intensity zones | `string` |
+| [DistanceFragment](DistanceFragment.md) | `Distance` | Distance with units | `{amount, units}` |
+| [ResistanceFragment](ResistanceFragment.md) | `Resistance` | Weight/resistance with units | `{amount, units}` |
+| [IncrementFragment](IncrementFragment.md) | `Increment` | Ascending/descending markers | `number` (+1/-1) |
+| [GroupFragment](GroupFragment.md) | `Group` | Grouping markers | `GroupType` |
+| [TextFragment](TextFragment.md) | `Text` | Display text/headings | `{text, level}` |
+| [SoundFragment](SoundFragment.md) | `Sound` | Audio cue triggers | `SoundFragmentValue` |
+
+### Additional Fragment Types (no dedicated class)
+
+| Type Enum | Purpose |
+|-----------|---------|
+| `Spans` | Raw TimeSpan[] recordings |
+| `SystemTime` | System Date.now() timestamp |
+| `CurrentRound` | Current round number |
+| `System` | System diagnostic data |
+| `Label` | Display label |
+| `Lap` | Lap marker |
+| `Metric` | Recorded metric value |
 
 ## Core Interface
 
@@ -47,7 +59,6 @@ interface ICodeFragment {
   readonly type: string;                  // Legacy type string
   readonly value?: unknown;               // Parsed/computed value
   readonly image?: string;                // Original text representation
-  readonly meta?: CodeMetadata;           // Source location
   readonly origin?: FragmentOrigin;       // Creation context
   readonly behavior?: MetricBehavior;     // Behavioral grouping
   readonly sourceBlockKey?: string;       // Owning block (runtime)
@@ -69,6 +80,7 @@ Origins describe where and how a fragment was created:
 | `hinted` | Suggestion/hint value | Default rep count |
 | `tracked` | Actively tracked metric | Live rep count |
 | `analyzed` | Derived from analysis | Computed statistics |
+| `execution` | Generated during execution pipeline | Pipeline-generated data |
 
 ## Fragment Categories
 
@@ -103,5 +115,3 @@ Fragments that affect block structure/behavior:
 - [ICodeFragment Contract](../contracts/ICodeFragment.md)
 - [ICodeStatement Contract](../contracts/ICodeStatement.md)
 - [FragmentState Memory](../memory/FragmentState.md)
-- [Parser Layer](../../layers/01-parser-layer.md)
-- [Compiler Layer](../../layers/02-compiler-layer.md)

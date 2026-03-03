@@ -46,73 +46,57 @@ Total elapsed time is calculated by summing all span durations.
 
 ## Behaviors That Write Timer Memory
 
-### TimerInitBehavior
+### CountdownTimerBehavior
 
-**Lifecycle**: `onMount`
+**Lifecycle**: `onMount`, `onUnmount`
 
-Initializes timer state when a timer block is mounted. Timer start is signaled implicitly by the presence of timer memory with an open span—no event is emitted.
-
-```typescript
-// Initializes with configuration
-ctx.setMemory('timer', {
-    direction: config.direction,      // 'up' or 'down'
-    durationMs: config.durationMs,    // Target duration for countdowns
-    spans: [new TimeSpan(now)],       // Starts first span immediately
-    label: config.label ?? ctx.block.label,
-    role: config.role ?? 'primary'
-});
-// No event emission - timer start is implicit from memory allocation
-```
-
-### TimerTickBehavior
-
-**Lifecycle**: `onUnmount`
-
-Closes the active time span when the block is unmounted.
+Opens a span on mount and subscribes to tick/pause/resume events. Closes the span on unmount. Also handles rest injection on `onNext`.
 
 ```typescript
-// On unmount, closes the last open span
-const updatedSpans = timer.spans.map((span, i) => {
-    if (i === timer.spans.length - 1 && span.ended === undefined) {
-        return new TimeSpan(span.started, now);
-    }
-    return span;
-});
-ctx.setMemory('timer', { ...timer, spans: updatedSpans });
+// On mount: opens span and subscribes to events
+ctx.pushMemory('time', [spanFragment]);
+ctx.subscribe('tick', ...);
+ctx.subscribe('pause', ...);
+ctx.subscribe('resume', ...);
 ```
 
-### TimerPauseBehavior
+### CountupTimerBehavior
 
-**Lifecycle**: Event subscription (`timer:pause`, `timer:resume`)
+**Lifecycle**: `onMount`, `onUnmount`
 
-Manages pause/resume by closing and opening spans. State changes are signaled through timer memory, not events.
+Opens a span on mount with pause/resume subscriptions. Closes span on unmount.
+
+### SpanTrackingBehavior
+
+**Lifecycle**: `onMount` (opens span), `onUnmount` (closes span)
+
+Lightweight span-only tracking without tick subscriptions.
+
+### Pause/Resume (via timer behaviors)
+
+Timer behaviors manage pause/resume by closing and opening spans. State changes are signaled through timer memory, not events.
 
 | Event | Action |
 |-------|--------|
-| `timer:pause` | Closes current span (sets `ended` timestamp) |
-| `timer:resume` | Opens new span (adds new `TimeSpan(now)`) |
-
-**Note**: No events are emitted. Pause/resume state is observable through timer memory spans.
+| `pause` | Closes current span (sets `ended` timestamp) |
+| `resume` | Opens new span (adds new TimeSpan) |
 
 ## Behaviors That Read Timer Memory
 
-### TimerCompletionBehavior
+### CountdownTimerBehavior
 
 **Lifecycle**: `onMount` (subscribes to `tick` events)
 
-Monitors countdown timers and marks block complete when duration is reached. Completion is signaled through `markComplete()`, not events.
+Monitors countdown timers and marks block complete when duration is reached. Completion is signaled through `markComplete()`.
 
 ```typescript
-// Calculates elapsed from spans
 const elapsed = calculateElapsed(timer, now);
 if (elapsed >= timer.durationMs) {
     ctx.markComplete('timer-expired');
 }
 ```
 
-**Note**: No events are emitted. Completion reason is stored in CompletionState memory.
-
-### TimerOutputBehavior
+### ReportOutputBehavior
 
 **Lifecycle**: `onMount`, `onUnmount`
 
@@ -121,58 +105,27 @@ Emits structured output for workout history tracking.
 | Phase | Output Type | Content |
 |-------|-------------|---------|
 | `onMount` | `segment` | Timer label and target duration |
-| `onUnmount` | `completion` | Elapsed time formatted as mm:ss |
+| `onUnmount` | `segment` | Elapsed time and completion context |
 
 ### SoundCueBehavior
 
 **Lifecycle**: `onMount` (subscribes to `tick` events)
 
-Plays audio cues at specific countdown thresholds.
-
-```typescript
-// For countdown timers, calculates remaining seconds
-const remainingMs = timer.durationMs - elapsed;
-const remainingSeconds = Math.ceil(remainingMs / 1000);
-
-// Plays configured sounds at threshold seconds
-if (cue.atSeconds?.includes(remainingSeconds)) {
-    ctx.emitEvent({ name: 'sound:play', ... });
-}
-```
-
-### HistoryRecordBehavior
-
-**Lifecycle**: `onUnmount`
-
-Records timer execution data to workout history.
-
-```typescript
-const timer = ctx.getMemory('timer');
-if (timer) {
-    record.elapsedMs = calculateElapsed(timer, now);
-    record.timerDirection = timer.direction;
-    record.timerDurationMs = timer.durationMs;
-}
-```
-
-**Events Emitted**: `history:record`
+Plays audio cues at specific countdown thresholds by emitting milestone outputs
+with SoundFragment data.
 
 ## Usage Example
 
 ```typescript
-// Create a 5-minute countdown timer block
+// Behaviors compose to create a countdown timer block
 const block = new RuntimeBlock('timer-1', {
     behaviors: [
-        new TimerInitBehavior({ 
-            direction: 'down', 
-            durationMs: 5 * 60 * 1000,
-            label: 'Work Interval' 
-        }),
-        new TimerTickBehavior(),
-        new TimerCompletionBehavior(),
-        new TimerPauseBehavior(),
-        new TimerOutputBehavior(),
-        new SoundCueBehavior({ 
+        new CountdownTimerBehavior(),     // Opens span, tick/pause/resume subs, completion check
+        new CompletionTimestampBehavior(), // Records completion timestamp
+        new ExitBehavior(),               // Pops block when complete
+        new LabelingBehavior(),           // Display state
+        new ReportOutputBehavior(),       // Emits segment outputs
+        new SoundCueBehavior({            // Audio cues
             cues: [
                 { sound: 'beep', trigger: 'countdown', atSeconds: [3, 2, 1] }
             ] 

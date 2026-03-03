@@ -1,6 +1,6 @@
 # Block Memory System
 
-The WOD Wiki runtime uses a typed memory system to store state within runtime blocks. Each memory type has a specific purpose and is managed by dedicated behaviors.
+The WOD Wiki runtime uses a **list-based memory** system to store state within runtime blocks. Every memory value is an `ICodeFragment[]` stored in a `MemoryLocation` identified by a `MemoryTag`. Multiple locations with the same tag can coexist on the same block.
 
 ## Memory Types
 
@@ -8,33 +8,79 @@ The WOD Wiki runtime uses a typed memory system to store state within runtime bl
 |------|-----|-------------|---------------|
 | Timer | `'timer'` | Time tracking with spans for pause/resume | [TimerState](TimerState.md) |
 | Round | `'round'` | Iteration counter for loops | [RoundState](RoundState.md) |
+| Children Status | `'children:status'` | Child dispatch tracking | [ChildrenStatusState](ChildrenStatusState.md) |
 | Display | `'display'` | UI presentation state | [DisplayState](DisplayState.md) |
-| Fragment | `'fragment'` | Inherited code fragments | [FragmentState](FragmentState.md) |
+| Fragment | `'fragment'` | Raw fragment groups | [FragmentState](FragmentState.md) |
+| Fragment Display | `'fragment:display'` | Display-resolved fragments | [FragmentDisplayState](FragmentDisplayState.md) |
 | Completion | `'completion'` | Block completion tracking | [CompletionState](CompletionState.md) |
 | Controls | `'controls'` | UI button configurations | [ButtonsState](ButtonsState.md) |
 
 ## Architecture
 
-### Memory Entry Interface
+### Memory Location Interface
 
-All memory entries implement `IMemoryEntry<T, V>`:
+All memory is stored in `IMemoryLocation` instances:
 
 ```typescript
-interface IMemoryEntry<T extends string, V> {
-    readonly type: T;
-    readonly value: V;
-    subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void;
+interface IMemoryLocation {
+    /** Discriminator tag — multiple locations can share the same tag */
+    readonly tag: MemoryTag;
+
+    /** The fragment data stored at this location */
+    readonly fragments: ICodeFragment[];
+
+    /** Subscribe to changes at this location */
+    subscribe(listener: (newValue: ICodeFragment[], oldValue: ICodeFragment[]) => void): () => void;
+
+    /** Update the fragments at this location */
+    update(fragments: ICodeFragment[]): void;
+
+    /** Dispose of this location and notify subscribers */
+    dispose(): void;
 }
 ```
 
-### Reactive Subscriptions
-
-Memory entries support reactive subscriptions for UI updates:
+### Memory Tags
 
 ```typescript
-const unsubscribe = memoryEntry.subscribe((newValue, oldValue) => {
-    // React to changes
-    console.log(`Changed from ${oldValue} to ${newValue}`);
+type MemoryTag =
+    | 'time'                // Time tracking (span fragments)
+    | 'timer'               // Legacy timer state
+    | 'round'               // Iteration counter
+    | 'children:status'     // Child dispatch tracking
+    | 'completion'          // Block completion
+    | 'display'             // UI presentation
+    | 'controls'            // Button configurations
+    | 'fragment'            // Raw fragment groups
+    | 'fragment:display'    // Display-resolved fragments
+    | 'fragment:promote'    // Inherited by child blocks
+    | 'fragment:rep-target' // Rep target fragments
+    | 'fragment:result'     // Collected on block pop
+    | 'fragment:tracked'    // Internal tracking state
+    | 'fragment:label'      // Label fragments
+    | 'fragment:next';      // Preview of next child
+```
+
+### Fragment Visibility Tiers
+
+Fragment-namespaced tags (`fragment:*`) are classified into visibility tiers:
+
+| Tier | Tags | Purpose |
+|------|------|---------|
+| `display` | `fragment:display` | Shown on UI cards |
+| `result` | `fragment:result` | Block output collected on pop |
+| `promote` | `fragment:promote`, `fragment:rep-target` | Inherited by child blocks |
+| `private` | `fragment:tracked`, `fragment:label` | Internal behavior state |
+
+### Reactive Subscriptions
+
+Memory locations support reactive subscriptions for UI updates:
+
+```typescript
+const loc = block.getMemoryByTag('time')[0];
+const unsubscribe = loc.subscribe((newFrags, oldFrags) => {
+    // React to fragment changes
+    updateUI(newFrags);
 });
 
 // Clean up
@@ -43,12 +89,12 @@ unsubscribe();
 
 ### Disposal Notification
 
-When a memory entry is disposed, subscribers receive `(undefined, lastValue)`:
+When a memory location is disposed, subscribers receive `([], lastFragments)`:
 
 ```typescript
-memoryEntry.subscribe((newValue, oldValue) => {
-    if (newValue === undefined) {
-        console.log('Memory entry disposed');
+loc.subscribe((newFrags, oldFrags) => {
+    if (newFrags.length === 0 && oldFrags.length > 0) {
+        console.log('Memory location disposed');
     }
 });
 ```
@@ -59,20 +105,22 @@ Behaviors interact with memory through `IBehaviorContext`:
 
 ```typescript
 interface IBehaviorContext {
-    // Get memory value (read)
-    getMemory<K extends MemoryType>(key: K): MemoryValueOf<K> | undefined;
+    // Primary API (list-based)
+    pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation;
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
+    updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void;
     
-    // Set memory value (write)
-    setMemory<K extends MemoryType>(key: K, value: MemoryValueOf<K>): void;
+    // Deprecated shims (typed, single-value)
+    /** @deprecated */ getMemory<K extends MemoryType>(key: K): MemoryValueOf<K> | undefined;
+    /** @deprecated */ setMemory<K extends MemoryType>(key: K, value: MemoryValueOf<K>): void;
     
-    // Mark block as complete
     markComplete(reason: string): void;
 }
 ```
 
-## Type Safety
+## Type Safety (Legacy API)
 
-The memory system provides compile-time type safety:
+The deprecated typed memory API provides compile-time type safety:
 
 ```typescript
 // TypeScript knows this returns TimerState | undefined
@@ -83,20 +131,19 @@ ctx.setMemory('round', {
     current: 1,
     total: 5
 });
-
-// Type error: 'invalid' is not a valid key
-ctx.setMemory('invalid', { foo: 'bar' }); // ❌
 ```
 
-## Memory Type Registry
+## Memory Type Registry (Legacy)
 
 ```typescript
-type MemoryType = 'timer' | 'round' | 'fragment' | 'completion' | 'display' | 'controls';
+type MemoryType = 'timer' | 'round' | 'children:status' | 'fragment' | 'fragment:display' | 'completion' | 'display' | 'controls';
 
 interface MemoryTypeMap {
     timer: TimerState;
     round: RoundState;
+    'children:status': ChildrenStatusState;
     fragment: FragmentState;
+    'fragment:display': FragmentDisplayState;
     completion: CompletionState;
     display: DisplayState;
     controls: ButtonsState;
@@ -109,14 +156,15 @@ Behaviors interact with memory at specific lifecycle points:
 
 | Lifecycle | Purpose | Common Memory Operations |
 |-----------|---------|--------------------------|
-| `onMount` | Block initialization | Write initial state |
+| `onMount` | Block initialization | Push initial memory locations |
 | `onNext` | Advance/iteration | Update counters, check completion |
 | `onUnmount` | Cleanup | Record history, close spans |
 | `subscribe` | Event handling | React to ticks, user actions |
 
 ## File Locations
 
+- **Memory Location**: `src/runtime/memory/MemoryLocation.ts`
 - **Type Definitions**: `src/runtime/memory/MemoryTypes.ts`
-- **Memory Entries**: `src/runtime/memory/`
+- **Visibility Classification**: `src/runtime/memory/FragmentVisibility.ts`
 - **Behaviors**: `src/runtime/behaviors/`
 - **Context Interface**: `src/runtime/contracts/IBehaviorContext.ts`

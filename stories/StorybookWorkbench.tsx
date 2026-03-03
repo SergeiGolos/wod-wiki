@@ -157,6 +157,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     viewMode,
     setViewMode,
     resetResults,
+    currentEntry,
   } = useWorkbench();
 
   const { isDebugMode } = useDebugMode();
@@ -329,6 +330,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
                 setBlocks={setBlocks}
                 setContent={setContent}
                 provider={provider}
+                sourceNoteId={currentEntry?.id}
               />
             </div>
           </section>

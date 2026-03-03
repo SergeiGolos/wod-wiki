@@ -72,7 +72,7 @@ type BehaviorEventType = 'tick' | 'next' | 'timer:complete' | 'pause' | 'resume'
 Behaviors subscribe to events through `IBehaviorContext`:
 
 ```typescript
-class TimerCompletionBehavior implements IRuntimeBehavior {
+class CountdownTimerBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         ctx.subscribe('tick', (event, tickCtx) => {
             const timer = tickCtx.getMemory('timer');

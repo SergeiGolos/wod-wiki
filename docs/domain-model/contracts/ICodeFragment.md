@@ -6,13 +6,14 @@
 
 ```typescript
 interface ICodeFragment {
-  readonly image?: string;        // Original text representation
-  readonly value?: unknown;       // Parsed value
-  readonly type: string;          // Legacy type string
-  readonly meta?: CodeMetadata;   // Source location
-  readonly fragmentType: FragmentType;  // Typed enum
+  readonly image?: string;              // Original text representation
+  readonly value?: unknown;             // Parsed value
+  readonly type: string;                // Legacy type string (retained for compat)
+  readonly fragmentType: FragmentType;  // Typed enum discriminator
+  readonly behavior?: MetricBehavior;   // Behavioral grouping
   readonly origin?: FragmentOrigin;     // Where fragment came from
-  readonly behavior?: MetricBehavior;
+  readonly sourceBlockKey?: string;     // Block key that created this fragment
+  readonly timestamp?: Date;            // When fragment was created (runtime)
 }
 ```
 
@@ -20,17 +21,34 @@ interface ICodeFragment {
 
 ```typescript
 enum FragmentType {
-  Timer = 'timer',
+  // ── Core time types ──
+  Duration = 'duration',       // Parser-defined planned target (e.g., "5:00" → 300000 ms)
+  Spans = 'spans',             // Raw TimeSpan[] recordings (source of truth for elapsed/total)
+  SystemTime = 'system-time',  // Real system Date.now() when a message is logged
+
+  // ── Deprecated time types ──
+  Time = 'time',               // @deprecated Use Spans
+  Elapsed = 'elapsed',         // @deprecated Calculated from Spans
+  Total = 'total',             // @deprecated Calculated from Spans
+
+  // ── Workout metric types ──
   Rep = 'rep',
   Effort = 'effort',
   Distance = 'distance',
   Rounds = 'rounds',
+  CurrentRound = 'current-round',
   Action = 'action',
   Increment = 'increment',
-  Lap = 'lap',
+  Group = 'group',
   Text = 'text',
   Resistance = 'resistance',
-  Sound = 'sound'
+  Sound = 'sound',
+
+  // ── System/display types ──
+  System = 'system',
+  Label = 'label',
+  Lap = 'lap',
+  Metric = 'metric',
 }
 ```
 
@@ -45,18 +63,21 @@ type FragmentOrigin =
   | 'collected'  // Value has been collected
   | 'hinted'     // Value is a suggestion
   | 'tracked'    // Being actively tracked
-  | 'analyzed';  // Derived from analysis
+  | 'analyzed'   // Derived from analysis
+  | 'execution'; // Generated during execution pipeline
 ```
 
 ## Specialized Fragments
 
 | Fragment | Key Properties |
 |----------|----------------|
-| `TimerFragment` | `value: number`, `direction: 'up' \| 'down'` |
+| `TimerFragment` | `value: number`, `direction: 'up' \| 'down'`, `fragmentType: Duration` |
 | `RepFragment` | `value: number \| number[]` (rep scheme) |
-| `RoundsFragment` | `value: number` |
+| `RoundsFragment` | `value: number \| string` |
 | `ActionFragment` | `value: string`, `isPinned: boolean` |
 | `SoundFragment` | `sound: string`, `trigger: SoundTrigger` |
+| `DistanceFragment` | `value: { amount, units }` |
+| `ResistanceFragment` | `value: { amount, units }` |
 
 ## Related Files
 

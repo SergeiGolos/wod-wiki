@@ -27,7 +27,11 @@ interface IBehaviorContext {
      * Subscribe to runtime events.
      * Automatically cleaned up on block unmount.
      */
-    subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener): Unsubscribe;
+    subscribe(
+        eventType: BehaviorEventType,
+        listener: BehaviorEventListener,
+        options?: SubscribeOptions
+    ): Unsubscribe;
 
     // ═══════════════════════════════════════════════════════════════════
     // Event Emission (Use Sparingly)
@@ -48,14 +52,17 @@ interface IBehaviorContext {
     ): void;
 
     // ═══════════════════════════════════════════════════════════════════
-    // Memory Access
+    // List-Based Memory API
     // ═══════════════════════════════════════════════════════════════════
-    
-    /** Get memory of the specified type */
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
-    
-    /** Set memory of the specified type */
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
+
+    /** Push a new memory location with fragment data */
+    pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation;
+
+    /** Get all memory locations matching the given tag */
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
+
+    /** Update the first matching memory location with new fragment data */
+    updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void;
 
     // ═══════════════════════════════════════════════════════════════════
     // Block Control
@@ -63,6 +70,16 @@ interface IBehaviorContext {
     
     /** Mark the block as complete */
     markComplete(reason?: string): void;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Backward-Compatible Memory API (deprecated)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /** @deprecated Use getMemoryByTag() and read fragment values instead */
+    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
+    
+    /** @deprecated Use pushMemory() or updateMemory() instead */
+    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }
 ```
 
@@ -78,9 +95,23 @@ type BehaviorEventListener = (event: IEvent, ctx: IBehaviorContext) => IRuntimeA
 /** Unsubscribe function */
 type Unsubscribe = () => void;
 
+/** Options for subscribing to events */
+interface SubscribeOptions {
+    /**
+     * Handler scope for this subscription.
+     * - 'active' (default): Only fires when this block is top-of-stack
+     * - 'bubble': Fires when this block is anywhere on the stack
+     * - 'global': Always fires regardless of stack state
+     */
+    scope?: HandlerScope;
+}
+
 /** Output emission options */
 interface OutputOptions {
+    /** Human-readable label for the output */
     label?: string;
+    /** Reason the block completed (propagated to OutputStatement) */
+    completionReason?: string;
 }
 ```
 
@@ -166,9 +197,12 @@ Emit execution records for history/UI/audio systems.
 |-------------|---------|-------------------|
 | `segment` | Timed portion started | onMount |
 | `milestone` | Notable event (sound cue, round) | onMount, onNext |
-| `completion` | Block finished | onUnmount |
-| `label` | Display-only marker | Any |
-| `metric` | Recorded statistic | onUnmount |
+| `system` | Debug/diagnostic output | Any |
+| `event` | External/internal trigger tracking | Any |
+| `group` | Identified segment with children | onMount |
+| `load` | Initial script state | onMount |
+| `compiler` | Behavior configuration/setup | onMount |
+| `analytics` | Analytics engine output | onUnmount |
 
 ```typescript
 // Emit segment on mount
@@ -189,37 +223,59 @@ ctx.emitOutput('completion', [
 
 ### Memory Access
 
+The primary memory API uses `MemoryTag`-based locations where all values are `ICodeFragment[]`:
+
 ```typescript
+pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation
+getMemoryByTag(tag: MemoryTag): IMemoryLocation[]
+updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void
+```
+
+Memory tags are strings from the `MemoryTag` union. Multiple locations with the same tag can coexist on a block.
+
+| Tag | Purpose |
+|-----|---------|
+| `time` | Time tracking (span fragments) |
+| `timer` | Legacy timer state |
+| `round` | Iteration counter |
+| `children:status` | Child dispatch tracking |
+| `completion` | Block completion tracking |
+| `display` | UI presentation state |
+| `controls` | Button configurations |
+| `fragment` | Raw fragment groups |
+| `fragment:display` | Display-resolved fragments |
+| `fragment:promote` | Inherited by child blocks |
+| `fragment:rep-target` | Rep target fragments |
+| `fragment:result` | Output collected on pop |
+| `fragment:tracked` | Internal tracking state |
+| `fragment:label` | Label fragments |
+| `fragment:next` | Preview of next child |
+
+```typescript
+// Push a display row
+ctx.pushMemory('fragment:display', [timerFrag, actionFrag, effortFrag]);
+
+// Read all display memory locations
+const displayLocs = ctx.getMemoryByTag('fragment:display');
+for (const loc of displayLocs) {
+    console.log(loc.fragments);
+}
+
+// Update existing memory
+ctx.updateMemory('time', [updatedTimerFragment]);
+```
+
+#### Deprecated Memory API
+
+The legacy typed memory API is still available but deprecated:
+
+```typescript
+// @deprecated — Use pushMemory/getMemoryByTag/updateMemory instead
 getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined
 setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void
 ```
 
-Type-safe memory access for block state.
-
-| Memory Type | Value Type | Purpose |
-|-------------|------------|---------|
-| `timer` | `TimerState` | Time tracking with spans |
-| `round` | `RoundState` | Iteration counter |
-| `display` | `DisplayState` | UI presentation state |
-| `controls` | `ButtonsState` | Button configurations |
-| `completion` | `CompletionState` | Completion tracking |
-| `fragment` | `FragmentState` | Inherited fragments |
-
-```typescript
-// Initialize timer state
-ctx.setMemory('timer', {
-    direction: 'down',
-    durationMs: 60000,
-    spans: [new TimeSpan(now)],
-    label: 'Work'
-});
-
-// Read timer state
-const timer = ctx.getMemory('timer');
-if (timer && elapsed >= timer.durationMs) {
-    ctx.markComplete('timer-expired');
-}
-```
+Legacy `MemoryType` keys (`'timer'`, `'round'`, `'fragment'`, `'completion'`, `'display'`, `'controls'`, `'children:status'`, `'fragment:display'`) map to typed state interfaces like `TimerState`, `RoundState`, etc.
 
 ### Block Control
 
@@ -249,50 +305,69 @@ class CountdownTimerBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         const now = ctx.clock.now.getTime();
         
-        // Initialize timer state
-        ctx.setMemory('timer', {
-            direction: 'down',
-            durationMs: this.durationMs,
-            spans: [new TimeSpan(now)],
-            label: 'Countdown'
-        });
+        // Push timer fragment to memory
+        ctx.pushMemory('time', [{
+            fragmentType: FragmentType.Duration,
+            value: this.durationMs,
+            origin: 'runtime',
+            type: 'duration',
+            image: formatTime(this.durationMs)
+        }]);
         
         // Subscribe to tick events for completion check
         ctx.subscribe('tick', (event, tickCtx) => {
-            const timer = tickCtx.getMemory('timer');
-            if (!timer) return [];
+            const timerLocs = tickCtx.getMemoryByTag('time');
+            if (timerLocs.length === 0) return [];
             
-            const elapsed = calculateElapsed(timer, tickCtx.clock.now.getTime());
-            if (elapsed >= timer.durationMs) {
+            const elapsed = calculateElapsed(timerLocs[0].fragments, tickCtx.clock.now.getTime());
+            if (elapsed >= this.durationMs) {
                 tickCtx.markComplete('timer-expired');
             }
             return [];
         });
         
+        // Subscribe with bubble scope for parent tracking
+        ctx.subscribe('tick', (event, tickCtx) => {
+            // Track timer even when child blocks are active
+            return [];
+        }, { scope: 'bubble' });
+        
         // Emit segment started
         ctx.emitOutput('segment', [{
-            fragmentType: FragmentType.Timer,
+            fragmentType: FragmentType.Duration,
             value: this.durationMs,
             origin: 'runtime',
+            type: 'duration',
             image: formatTime(this.durationMs)
         }], { label: 'Timer Started' });
         
         return [];
     }
 
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+        return [];
+    }
+
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemory('timer');
-        const elapsed = timer ? calculateElapsed(timer, ctx.clock.now.getTime()) : 0;
+        const timerLocs = ctx.getMemoryByTag('time');
+        const elapsed = timerLocs.length > 0 
+            ? calculateElapsed(timerLocs[0].fragments, ctx.clock.now.getTime())
+            : 0;
         
-        // Emit completion record
-        ctx.emitOutput('completion', [{
-            fragmentType: FragmentType.Timer,
+        // Emit segment with completion context
+        ctx.emitOutput('segment', [{
+            fragmentType: FragmentType.Duration,
             value: elapsed,
             origin: 'runtime',
+            type: 'duration',
             image: formatTime(elapsed)
-        }], { label: 'Timer Complete' });
+        }], { label: 'Timer Complete', completionReason: 'timer-expired' });
         
         return [];
+    }
+
+    onDispose(ctx: IBehaviorContext): void {
+        // No external resources to clean up
     }
 }
 ```

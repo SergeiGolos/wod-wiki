@@ -39,52 +39,35 @@ interface DisplayState {
 
 ## Behaviors That Write Display Memory
 
-### DisplayInitBehavior
+### LabelingBehavior
 
-**Lifecycle**: `onMount`
+**Lifecycle**: `onMount`, `onNext`
 
-Initializes display state when a block is mounted.
+Initializes display state when a block is mounted and updates the `roundDisplay`
+and `label` fields when round state changes.
 
 ```typescript
+// On mount: set initial display
 ctx.setMemory('display', {
     mode: config.mode ?? 'clock',
-    label: config.label ?? ctx.block.label,
+    label: ctx.block.label,
     subtitle: config.subtitle,
     roundDisplay: undefined,
     actionDisplay: config.actionDisplay
 });
-```
 
-**Configuration**:
-```typescript
-interface DisplayInitConfig {
-    mode?: 'clock' | 'timer' | 'countdown' | 'hidden';
-    label?: string;
-    subtitle?: string;
-    actionDisplay?: string;
-}
-```
-
-### RoundDisplayBehavior
-
-**Lifecycle**: `onMount`, `onNext`
-
-Updates the `roundDisplay` field when round state changes.
-
-```typescript
+// On next: update round display
 const round = ctx.getMemory('round');
 const display = ctx.getMemory('display');
-
 const roundDisplay = round.total !== undefined
     ? `Round ${round.current} of ${round.total}`
     : `Round ${round.current}`;
-
 ctx.setMemory('display', { ...display, roundDisplay });
 ```
 
 ## Behaviors That Read Display Memory
 
-### RoundDisplayBehavior
+### LabelingBehavior
 
 Reads existing display state to preserve other fields when updating `roundDisplay`.
 
@@ -113,14 +96,9 @@ function useBlockDisplay(blockId: string) {
 // Create a block with countdown display
 const block = new RuntimeBlock('workout-1', {
     behaviors: [
-        new DisplayInitBehavior({
-            mode: 'countdown',
-            label: 'AMRAP',
-            subtitle: '20 minutes',
-            actionDisplay: 'As Many Rounds As Possible'
-        }),
-        new RoundInitBehavior({ totalRounds: undefined }),
-        new RoundDisplayBehavior()
+        new LabelingBehavior(),             // Manages all display state
+        new ChildSelectionBehavior(),       // Dispatches children, provides round data
+        new CountdownTimerBehavior()        // Timer data informs display mode
     ]
 });
 ```
@@ -131,11 +109,11 @@ Display state is typically composed from multiple sources:
 
 | Field | Source | Update Trigger |
 |-------|--------|----------------|
-| `mode` | `DisplayInitBehavior` | Mount |
-| `label` | `DisplayInitBehavior` | Mount |
-| `subtitle` | `DisplayInitBehavior` | Mount |
-| `roundDisplay` | `RoundDisplayBehavior` | Mount, Next |
-| `actionDisplay` | `DisplayInitBehavior` | Mount |
+| `mode` | `LabelingBehavior` | Mount |
+| `label` | `LabelingBehavior` | Mount |
+| `subtitle` | `LabelingBehavior` | Mount |
+| `roundDisplay` | `LabelingBehavior` | Mount, Next |
+| `actionDisplay` | `LabelingBehavior` | Mount |
 
 ## Related Memory Types
 

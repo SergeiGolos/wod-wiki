@@ -22,64 +22,46 @@ interface RoundState {
 
 ## Behaviors That Write Round Memory
 
-### RoundInitBehavior
+### ChildSelectionBehavior
+
+**Lifecycle**: `onMount`, `onNext`
+
+Manages child dispatch and round advancement. On mount, dispatches the first child.
+On next, dispatches the next child or loops back / inserts rest intervals.
+Writes to both `round` and `children:status` memory.
+
+```typescript
+// On mount: initialize round and dispatch first child
+ctx.pushMemory('round', [roundFragment]);
+// dispatch first child...
+
+// On next: advance round when all children completed
+const round = ctx.getMemoryByTag('round');
+// increment and update...
+```
+
+### ReEntryBehavior (deprecated)
 
 **Lifecycle**: `onMount`
 
-Initializes round state when a looping block is mounted.
+Writes initial round memory. Replaced by `ChildSelectionBehavior`.
 
-```typescript
-ctx.setMemory('round', {
-    current: config.startRound ?? 1,    // Starting round (default: 1)
-    total: config.totalRounds           // undefined for unbounded loops
-});
-```
-
-**Configuration**:
-```typescript
-interface RoundInitConfig {
-    totalRounds?: number;    // undefined = infinite rounds
-    startRound?: number;     // defaults to 1
-}
-```
-
-### RoundAdvanceBehavior
+### RoundsEndBehavior (deprecated)
 
 **Lifecycle**: `onNext`
 
-Increments the round counter when `next()` is called on the block. Round advancement is signaled through memory update, not events.
-
-```typescript
-const round = ctx.getMemory('round');
-ctx.setMemory('round', {
-    current: round.current + 1,
-    total: round.total
-});
-// No event emission - round advancement is observable through memory
-```
-
-**Note**: Use `RoundOutputBehavior` to emit `milestone` outputs for round tracking.
+Safety net that marks complete if round exceeds total. Replaced by `ExitBehavior`.
 
 ## Behaviors That Read Round Memory
 
-### RoundCompletionBehavior
+### ExitBehavior
 
 **Lifecycle**: `onNext`
 
-Checks if rounds are exhausted and marks block complete. Completion is signaled through `markComplete()`, not events.
+Unified completion behavior. Checks if the block is complete (including round exhaustion)
+and produces a pop action.
 
-```typescript
-const round = ctx.getMemory('round');
-
-// Mark complete when current exceeds total
-if (round.total !== undefined && round.current > round.total) {
-    ctx.markComplete('rounds-complete');
-}
-```
-
-> **Note**: Should run AFTER `RoundAdvanceBehavior` in the behavior chain. No events are emitted—completion reason is stored in CompletionState memory.
-
-### RoundDisplayBehavior
+### LabelingBehavior
 
 **Lifecycle**: `onMount`, `onNext`
 
@@ -89,11 +71,9 @@ Updates display memory with formatted round string.
 const roundDisplay = round.total !== undefined
     ? `Round ${round.current} of ${round.total}`
     : `Round ${round.current}`;
-
-ctx.setMemory('display', { ...display, roundDisplay });
 ```
 
-### RoundOutputBehavior
+### ReportOutputBehavior
 
 **Lifecycle**: `onMount`, `onNext`, `onUnmount`
 
@@ -103,35 +83,19 @@ Emits structured output for round tracking.
 |-------|-------------|---------|
 | `onMount` | `segment` | Initial round info |
 | `onNext` | `milestone` | Round advancement notification |
-| `onUnmount` | `completion` | Completed rounds summary |
-
-### HistoryRecordBehavior
-
-**Lifecycle**: `onUnmount`
-
-Records round execution data to workout history.
-
-```typescript
-const round = ctx.getMemory('round');
-if (round) {
-    record.completedRounds = round.current - 1;
-    record.totalRounds = round.total;
-}
-```
-
-**Events Emitted**: `history:record`
+| `onUnmount` | `segment` | Completed rounds summary |
 
 ## Usage Example
 
 ```typescript
-// Create a 5-round EMOM block
+// Create a 5-round looping block
 const block = new RuntimeBlock('emom-1', {
     behaviors: [
-        new RoundInitBehavior({ totalRounds: 5 }),
-        new RoundAdvanceBehavior(),
-        new RoundCompletionBehavior(),
-        new RoundDisplayBehavior(),
-        new RoundOutputBehavior()
+        new ChildSelectionBehavior(),       // Dispatches children, manages rounds
+        new CompletionTimestampBehavior(),   // Records completion timestamp
+        new ExitBehavior(),                 // Pops block when complete
+        new LabelingBehavior(),             // Updates display with round info
+        new ReportOutputBehavior()          // Emits milestone outputs
     ]
 });
 ```
@@ -147,11 +111,11 @@ const block = new RuntimeBlock('emom-1', {
 
 For correct round management, behaviors should be ordered:
 
-1. `RoundInitBehavior` - Initialize state
-2. `RoundAdvanceBehavior` - Increment counter
-3. `RoundCompletionBehavior` - Check for exhaustion
-4. `RoundDisplayBehavior` - Update UI
-5. `RoundOutputBehavior` - Emit tracking output
+1. `ChildSelectionBehavior` - Initialize state, dispatch children, advance rounds
+2. `CompletionTimestampBehavior` - Record completion timestamp
+3. `ExitBehavior` - Check for exhaustion, produce pop action
+4. `LabelingBehavior` - Update display UI
+5. `ReportOutputBehavior` - Emit tracking output
 
 ## Related Memory Types
 

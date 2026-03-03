@@ -54,13 +54,13 @@ const count = roundsFragment?.value; // number | string
 
 RoundsFragment drives these behaviors:
 
-- `RoundInitBehavior`: Initializes round counter
-- `RoundAdvanceBehavior`: Advances to next round
-- `RoundOutputBehavior`: Emits round progress outputs
+- `ChildSelectionBehavior`: Dispatches children per round and advances round counter
+- `LabelingBehavior`: Updates display with round progress
+- `ReportOutputBehavior`: Emits round progress outputs
 
 ## Output Integration
 
-`RoundOutputBehavior` emits fragments for round progress:
+`ReportOutputBehavior` emits fragments for round progress:
 
 ```typescript
 ctx.emitOutput('milestone', [{

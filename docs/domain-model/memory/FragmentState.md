@@ -1,13 +1,13 @@
 # FragmentState Memory
 
-The `fragment` memory type stores a collection of code fragments that should be inherited by child blocks in the runtime hierarchy.
+The `fragment` memory type stores collections of code fragments organized into semantic groups that can be inherited by child blocks in the runtime hierarchy.
 
 ## Type Definition
 
 ```typescript
 interface FragmentState {
-    /** Collection of fragments to be passed down */
-    readonly fragments: readonly ICodeFragment[];
+    /** Fragment groups — each inner array is a semantic group (e.g., per-round fragments) */
+    readonly groups: readonly (readonly ICodeFragment[])[];
 }
 ```
 
@@ -15,7 +15,6 @@ interface FragmentState {
 
 - **Key**: `'fragment'`
 - **Value Type**: `FragmentState`
-- **Concrete Class**: `FragmentMemory` (extends `BaseMemoryEntry`)
 
 ## ICodeFragment Model
 
@@ -24,10 +23,12 @@ Fragments represent parsed workout elements:
 ```typescript
 interface ICodeFragment {
     type: string;                    // Fragment subtype (e.g., 'duration', 'count')
-    fragmentType: FragmentType;      // Category enum (Timer, Rounds, Reps, etc.)
-    value: number | string;          // Parsed value
-    image: string;                   // Original text representation
-    origin: 'parser' | 'runtime';    // Where the fragment came from
+    fragmentType: FragmentType;      // Category enum (Duration, Rounds, Rep, etc.)
+    value?: unknown;                 // Parsed value
+    image?: string;                  // Original text representation
+    origin?: FragmentOrigin;         // Where the fragment came from
+    sourceBlockKey?: string;         // Block that created this fragment
+    timestamp?: Date;                // When created (runtime fragments)
 }
 ```
 
@@ -39,102 +40,58 @@ Fragment memory enables **metric inheritance** in the block hierarchy:
 - Child blocks inherit these fragments without re-parsing
 - Runtime can override or augment inherited fragments
 
-## FragmentMemory API
+### Fragment Groups
 
-```typescript
-class FragmentMemory extends BaseMemoryEntry<'fragment', FragmentState> {
-    constructor(initialFragments: ICodeFragment[] = []);
-    
-    /** Adds a fragment to the collection */
-    addFragment(fragment: ICodeFragment): void;
-    
-    /** Clears all fragments */
-    clear(): void;
-    
-    /** Sets the entire collection of fragments */
-    setFragments(fragments: ICodeFragment[]): void;
-}
+Fragment groups represent semantic groupings from compilation (e.g., per-round,
+per-interval). Each inner array is one group produced by the fragment distributor.
+This preserves the multi-dimensional structure through the entire pipeline:
+
+```
+Parser → Strategy → BlockBuilder → FragmentMemory → RuntimeBlock
 ```
 
 ## Behaviors That Work With Fragment Memory
 
-### SegmentOutputBehavior
+### FragmentPromotionBehavior
+
+**Lifecycle**: `onMount`, `onNext`
+
+Promotes fragments from parent to child blocks. On mount, reads parent fragment
+memory and pushes promoted fragments to child. On next, dynamically updates
+promoted fragments for the next child.
+
+### ReportOutputBehavior
 
 **Lifecycle**: `onMount`, `onUnmount`
 
 Uses fragments from the block for output tracking.
 
 ```typescript
-// Gets fragments from block (which may come from fragment memory)
-const fragments = ctx.block.fragments?.flat() ?? [];
+// Gets fragments from block memory
+const displayLocs = ctx.block.getFragmentMemoryByVisibility('display');
+const fragments = displayLocs.flatMap(loc => loc.fragments);
 
-ctx.emitOutput('segment', fragments as ICodeFragment[], {
-    label: ctx.block.label
-});
-```
-
-### TimerOutputBehavior
-
-**Lifecycle**: `onMount`, `onUnmount`
-
-Creates timer-specific fragments for output.
-
-```typescript
-// Creates a duration fragment from timer state
-const fragments: ICodeFragment[] = [];
-if (timer?.durationMs) {
-    fragments.push({
-        type: 'duration',
-        fragmentType: FragmentType.Timer,
-        value: timer.durationMs,
-        image: formatDuration(timer.durationMs),
-        origin: 'parser'
-    });
-}
-
-ctx.emitOutput('segment', fragments, { label: timer?.label });
-```
-
-### RoundOutputBehavior
-
-**Lifecycle**: `onMount`, `onNext`, `onUnmount`
-
-Creates round-specific fragments for output.
-
-```typescript
-ctx.emitOutput('milestone', [
-    {
-        type: 'count',
-        fragmentType: FragmentType.Rounds,
-        value: round.current,
-        image: `Round ${round.current} of ${round.total}`,
-        origin: 'runtime'
-    }
-], { label });
+ctx.emitOutput('segment', fragments, { label: ctx.block.label });
 ```
 
 ## Usage Example
 
 ```typescript
-// Create a parent block with inherited fragments
-const fragmentMemory = new FragmentMemory([
-    { 
-        type: 'count', 
-        fragmentType: FragmentType.Reps, 
-        value: 10, 
-        image: '10', 
-        origin: 'parser' 
-    },
-    { 
-        type: 'weight', 
-        fragmentType: FragmentType.Load, 
-        value: 135, 
-        image: '135#', 
-        origin: 'parser' 
-    }
-]);
-
-// Child blocks can access these fragments through the hierarchy
+// Fragment groups preserve per-round structure
+const fragmentState: FragmentState = {
+    groups: [
+        // Group 0: round 1 fragments
+        [
+            { fragmentType: FragmentType.Rep, value: 10, type: 'rep', image: '10', origin: 'parser' },
+            { fragmentType: FragmentType.Resistance, value: { amount: 135, units: '#' }, type: 'resistance', image: '135#', origin: 'parser' }
+        ],
+        // Group 1: round 2 fragments
+        [
+            { fragmentType: FragmentType.Rep, value: 8, type: 'rep', image: '8', origin: 'parser' },
+            { fragmentType: FragmentType.Resistance, value: { amount: 155, units: '#' }, type: 'resistance', image: '155#', origin: 'parser' }
+        ]
+    ]
+};
 ```
 
 ## Fragment Inheritance Pattern

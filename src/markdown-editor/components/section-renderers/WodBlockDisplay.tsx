@@ -166,8 +166,12 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
       </div>
 
       {/* Results segment — shows recent completions as a separate box below */}
-      {sourceNoteId && section.id && (
-        <WodBlockResults noteId={sourceNoteId} sectionId={section.id} className="mt-2" />
+      {section.id && (
+        <WodBlockResults 
+          noteId={sourceNoteId || 'static'} 
+          sectionId={section.id} 
+          className="mt-2" 
+        />
       )}
     </>
   );

@@ -144,7 +144,7 @@ function ControlButtons({ blockId }: { blockId: string }) {
 Behaviors subscribe to button events:
 
 ```typescript
-// TimerPauseBehavior subscribes to pause/resume
+// CountdownTimerBehavior subscribes to pause/resume
 ctx.subscribe('timer:pause', (event, ctx) => {
     // Handle pause
 });
@@ -210,7 +210,7 @@ const block = new RuntimeBlock('workout-1', {
                 }
             ]
         }),
-        new TimerPauseBehavior() // Subscribes to timer:pause/resume
+        new CountdownTimerBehavior() // Handles pause/resume event subscriptions
     ]
 });
 ```

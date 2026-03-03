@@ -1,99 +1,229 @@
 # IRuntimeBlock
 
-> Self-contained runtime block with state, events, and lifecycle
+> Runtime block with behavior composition, list-based memory, and lifecycle management
 
-## Definition (Option D - Block-Owned Handlers)
+## Definition
 
 ```typescript
 interface IRuntimeBlock {
-  readonly key: BlockKey;
-  readonly blockType: string;
-  readonly label: string;  // Computed from FragmentType.Label fragment in memory
-  readonly fragments: ICodeFragment[][];
-  readonly sourceIds: number[];
-  
-  // State - typed properties
-  readonly timerState?: {
-    elapsed: number;
-    duration?: number;
-    running: boolean;
-    direction: 'up' | 'down';
-  };
-  
-  readonly roundState?: {
-    current: number;
-    total: number | null; // null = unbounded
-  };
-  
-  // Event system - block-owned
-  on(event: string, handler: EventHandler): () => void;
-  emit(event: string, data?: unknown): void;
-  
-  // Lifecycle
-  mount(): void;
-  next(): void;
-  unmount(): void;  // Clears all handlers
-  dispose(): void;
-  
-  // Completion
-  isComplete(): boolean;
-  markComplete(reason?: string): void;
-  
-  // Behaviors & Fragments
-  getBehavior<T>(type: Constructor<T>): T | undefined;
-  findFragment<T>(type: FragmentType, predicate?): T | undefined;
-  filterFragments<T>(type: FragmentType): T[];
-  hasFragment(type: FragmentType): boolean;
-}
+    // ═══════════════════════════════════════════════════════════════════
+    // Identity
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /** Execution timing metadata (start/completion timestamps) */
+    executionTiming?: BlockLifecycleOptions;
+    
+    /** Unique identifier for this block instance */
+    readonly key: BlockKey;
+    
+    /** Source code location identifiers */
+    readonly sourceIds: number[];
+    
+    /** Type discriminator (Timer, Rounds, Effort, etc.) */
+    readonly blockType?: string;
+    
+    /** Human-readable label (from fragment:display memory or blockType) */
+    readonly label: string;
+    
+    /** Execution context managing memory allocation and cleanup */
+    readonly context: IBlockContext;
 
-type EventHandler = (data?: unknown) => void;
+    // ═══════════════════════════════════════════════════════════════════
+    // Lifecycle
+    // ═══════════════════════════════════════════════════════════════════
+    
+    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
+    next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
+    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
+    dispose(runtime: IScriptRuntime): void;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Behaviors
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /** Get a specific behavior by type */
+    getBehavior<T extends IRuntimeBehavior>(
+        behaviorType: new (...args: any[]) => T
+    ): T | undefined;
+    
+    /** Read-only list of all attached behaviors */
+    readonly behaviors: readonly IRuntimeBehavior[];
+
+    // ═══════════════════════════════════════════════════════════════════
+    // List-Based Memory API
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /** Push a new memory location onto the block's memory list */
+    pushMemory(location: IMemoryLocation): void;
+    
+    /** Get all memory locations matching the given tag */
+    getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
+    
+    /** Get all memory locations owned by this block */
+    getAllMemory(): IMemoryLocation[];
+    
+    /** Get fragment memory locations by visibility tier */
+    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[];
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Completion
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /** Whether this block has completed execution */
+    readonly isComplete: boolean;
+    
+    /** Reason for completion (set by markComplete) */
+    readonly completionReason?: string;
+    
+    /** Mark the block as complete (idempotent) */
+    markComplete(reason?: string): void;
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Backward-Compatible Memory API (deprecated)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /** @deprecated Use getMemoryByTag() instead */
+    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined;
+    
+    /** @deprecated Use getMemoryByTag().length > 0 instead */
+    hasMemory(type: MemoryType): boolean;
+    
+    /** @deprecated Use pushMemory() or BehaviorContext API instead */
+    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
+}
 ```
 
-## Events
+## Supporting Types
 
-| Event | Emitted By | Purpose |
-|-------|------------|---------|
-| `tick` | Clock/Timer behavior | Time update |
-| `stateChange` | Block on mutation | UI re-render |
-| `complete` | Block when done | Trigger pop |
-| `next` | Stack after child completes | Advance logic |
+```typescript
+interface BlockLifecycleOptions {
+    startTime?: Date;
+    completedAt?: Date;
+    now?: Date;
+    clock?: IRuntimeClock;  // Snapshot clock for consistent timing in chains
+}
 
-## UI Binding
+/** Backward-compatible memory entry shape */
+interface IMemoryEntryShim<V = unknown> {
+    readonly value: V;
+    subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void;
+}
+```
+
+## Lifecycle
+
+All lifecycle methods receive `IScriptRuntime` and optional `BlockLifecycleOptions`:
+
+| Method | When Called | Purpose |
+|--------|------------|---------|
+| `mount` | Block pushed onto stack | Initialize state, register events, emit initial outputs |
+| `next` | Child completes, user advance, timer triggers | Advance state, push next child, check completion |
+| `unmount` | Block popped from stack | Emit completion outputs, close spans |
+| `dispose` | After unmount | Final cleanup, release resources |
+
+```
+push(block) → block.mount(runtime, { startTime })
+                     ↓
+              block.next(runtime)  ← child pops / user advance
+                     ↓
+pop(block)  → block.unmount(runtime, { completedAt })
+              block.dispose(runtime)
+```
+
+## Memory System
+
+Blocks use a **list-based memory** system where all values are `ICodeFragment[]`.
+Multiple locations with the same tag can coexist (e.g., multiple display rows).
+
+```typescript
+// Push memory (typically done by behaviors via ctx.pushMemory)
+block.pushMemory(new MemoryLocation('fragment:display', [timerFrag, actionFrag]));
+
+// Read memory by tag
+const timerLocs = block.getMemoryByTag('time');
+const fragments = timerLocs[0]?.fragments ?? [];
+
+// Get display-visible fragment memory
+const displayLocs = block.getFragmentMemoryByVisibility('display');
+
+// Get all memory
+const all = block.getAllMemory();
+```
+
+### Fragment Visibility Tiers
+
+Fragment memory tags (`fragment:*`) are classified into visibility tiers:
+
+| Tier | Tags | Purpose |
+|------|------|---------|
+| `display` | `fragment:display` | Shown on UI cards |
+| `result` | `fragment:result` | Collected on block pop |
+| `promote` | `fragment:promote`, `fragment:rep-target` | Inherited by child blocks |
+| `private` | `fragment:tracked`, `fragment:label` | Internal behavior state |
+
+## UI Integration
+
+UI components observe block memory via subscriptions:
 
 ```typescript
 function TimerDisplay({ block }: { block: IRuntimeBlock }) {
-  const [elapsed, setElapsed] = useState(block.timerState?.elapsed ?? 0);
+  const [fragments, setFragments] = useState<ICodeFragment[]>([]);
   
   useEffect(() => {
-    // Handler auto-cleans when block.unmount() is called
-    return block.on('tick', () => {
-      setElapsed(block.timerState?.elapsed ?? 0);
+    const timerLocs = block.getMemoryByTag('time');
+    if (timerLocs.length === 0) return;
+    
+    setFragments(timerLocs[0].fragments);
+    return timerLocs[0].subscribe((newFrags) => {
+      setFragments(newFrags);
     });
   }, [block]);
   
-  return <span>{formatTime(elapsed)}</span>;
+  const duration = fragments.find(f => f.fragmentType === FragmentType.Duration);
+  return <span>{duration?.image ?? '--:--'}</span>;
 }
 ```
 
-## Testing Blocks Directly
+## Testing
+
+Use `BehaviorTestHarness` and `MockBlock` from `tests/harness/`:
 
 ```typescript
-describe('TimerDisplay', () => {
-  it('updates on tick event', () => {
-    const block = new TimerBlock(60000);  // No stack needed!
+describe('ExitBehavior', () => {
+  let harness: BehaviorTestHarness;
+
+  beforeEach(() => {
+    harness = new BehaviorTestHarness()
+      .withClock(new Date('2024-01-01T12:00:00Z'));
+  });
+
+  it('should pop block when marked complete', () => {
+    const block = new MockBlock('timer', [
+      new CountdownTimerBehavior(),
+      new ExitBehavior()
+    ]);
     
-    render(<TimerDisplay block={block} />);
+    harness.push(block);
+    harness.mount();
+    block.state.isComplete = true;
+    harness.next();
     
-    block.timerState.elapsed = 5000;
-    block.emit('tick');
-    
-    expect(screen.getByText('00:55')).toBeInTheDocument();
+    // ExitBehavior should have produced a pop action
   });
 });
 ```
 
 ## Related Files
 
+- [[IBehaviorContext]] - Context for behavior interaction
+- [[IRuntimeBehavior]] - Behavior lifecycle hooks
 - [[02-compiler-layer|Compiler Layer]] (producer)
 - [[03-runtime-layer|Runtime Layer]] (executor)
 - [[05-ui-layer|UI Layer]] (consumer)
+
+## Source Files
+
+- `src/runtime/contracts/IRuntimeBlock.ts`
+- `src/runtime/contracts/IBlockContext.ts`
+- `src/runtime/memory/MemoryLocation.ts`
+- `src/runtime/memory/MemoryTypes.ts`

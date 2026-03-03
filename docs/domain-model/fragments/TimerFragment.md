@@ -6,7 +6,7 @@
 
 ```typescript
 class TimerFragment implements ICodeFragment {
-  readonly fragmentType = FragmentType.Timer;
+  readonly fragmentType = FragmentType.Duration;
   readonly type: string = "duration";
   readonly origin: FragmentOrigin;
   
@@ -27,7 +27,7 @@ class TimerFragment implements ICodeFragment {
 
 ## Fragment Type
 
-- **Type**: `FragmentType.Timer`
+- **Type**: `FragmentType.Duration`
 - **Legacy Type**: `"duration"`
 - **Origin**: `'parser'` (from source) or `'runtime'` (collectible)
 
@@ -78,7 +78,7 @@ get direction(): 'up' | 'down' {
 `TimerFragment` values are accessed directly via `IFragmentSource`:
 
 ```typescript
-const timerFragment = block.getFragment(FragmentType.Timer);
+const timerFragment = block.getFragment(FragmentType.Duration);
 const durationMs = timerFragment?.value; // number | undefined (ms)
 ```
 
@@ -86,10 +86,10 @@ const durationMs = timerFragment?.value; // number | undefined (ms)
 
 TimerFragment drives these behaviors:
 
-- `TimerInitBehavior`: Initializes timer state from fragment
-- `TimerTickBehavior`: Updates elapsed time on ticks
-- `TimerCompletionBehavior`: Detects timer completion
-- `TimerOutputBehavior`: Emits timer-related outputs
+- `CountdownTimerBehavior`: Countdown timer with tick/pause/resume subscriptions
+- `CountupTimerBehavior`: Count-up timer with span tracking
+- `SpanTrackingBehavior`: Basic span open/close tracking
+- `ReportOutputBehavior`: Emits timer-related outputs
 
 ## Validation
 

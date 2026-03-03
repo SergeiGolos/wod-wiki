@@ -9,44 +9,49 @@ interface IRuntimeBehavior {
     /**
      * Called when the owning block is mounted.
      * Use ctx.subscribe() for events, ctx.emitOutput() for reports,
-     * ctx.setMemory() to initialize state.
+     * ctx.pushMemory() to initialize state.
      */
-    onMount?(ctx: IBehaviorContext): IRuntimeAction[];
+    onMount(ctx: IBehaviorContext): IRuntimeAction[];
 
     /**
      * Called when parent.next() is invoked (child completed or manual advance).
      * Advance internal state (e.g., next round).
      * Call ctx.markComplete() if block is finished.
      */
-    onNext?(ctx: IBehaviorContext): IRuntimeAction[];
+    onNext(ctx: IBehaviorContext): IRuntimeAction[];
 
     /**
      * Called when the block is about to be unmounted.
      * Use ctx.emitOutput() to report final completion.
      * Subscriptions cleaned up automatically after this returns.
      */
-    onUnmount?(ctx: IBehaviorContext): IRuntimeAction[];
+    onUnmount(ctx: IBehaviorContext): IRuntimeAction[];
 
     /**
      * Called when the block is being disposed.
      * Final cleanup hook.
      */
-    onDispose?(ctx: IBehaviorContext): void;
+    onDispose(ctx: IBehaviorContext): void;
 }
 ```
+
+> **Note**: All four hooks are **required** by the interface. Behaviors that don't
+> need a particular hook should return `[]` for action hooks or be a no-op for `onDispose`.
 
 ## Design Philosophy
 
 Behaviors are **composable, single-responsibility units** that attach to runtime blocks. Each behavior handles one aspect of block execution:
 
-| Aspect | Example Behaviors |
-|--------|-------------------|
-| **Time** | `TimerInitBehavior`, `TimerTickBehavior`, `TimerCompletionBehavior` |
-| **Iteration** | `RoundInitBehavior`, `RoundAdvanceBehavior`, `RoundCompletionBehavior` |
-| **Display** | `DisplayInitBehavior`, `RoundDisplayBehavior` |
-| **Output** | `TimerOutputBehavior`, `RoundOutputBehavior`, `SoundCueBehavior` |
+| Aspect | Actual Behaviors |
+|--------|------------------|
+| **Time** | `SpanTrackingBehavior`, `CountupTimerBehavior`, `CountdownTimerBehavior` |
+| **Iteration** | `ChildSelectionBehavior`, `FragmentPromotionBehavior` |
+| **Completion** | `ExitBehavior`, `CompletionTimestampBehavior` |
+| **Display** | `LabelingBehavior` |
+| **Output** | `ReportOutputBehavior`, `SoundCueBehavior` |
 | **Controls** | `ButtonBehavior` |
-| **Completion** | `PopOnNextBehavior`, `PopOnEventBehavior` |
+| **Lifecycle** | `WaitingToStartInjectorBehavior` |
+| **Deprecated** | `ReEntryBehavior`, `RoundsEndBehavior`, `LeafExitBehavior`, `CompletedBlockPopBehavior` |
 
 ## Lifecycle Hooks
 
@@ -152,15 +157,15 @@ Blocks compose multiple behaviors:
 ```typescript
 const timerBlock = new RuntimeBlock(runtime, statementIds, [
     // Time aspect
-    new TimerInitBehavior({ direction: 'down', durationMs: 60000 }),
-    new TimerTickBehavior(),
-    new TimerCompletionBehavior(),
+    new CountdownTimerBehavior(),
+    new SpanTrackingBehavior(),
+    new CompletionTimestampBehavior(),
     
     // Display aspect
-    new DisplayInitBehavior({ mode: 'countdown', label: 'Work' }),
+    new LabelingBehavior(),
     
     // Output aspect
-    new TimerOutputBehavior(),
+    new ReportOutputBehavior(),
     new SoundCueBehavior({ cues: [{ sound: 'beep', trigger: 'countdown', atSeconds: [3,2,1] }] }),
     
     // Controls aspect
@@ -179,10 +184,10 @@ Behaviors execute in array order. Order matters for:
 ```typescript
 // CORRECT ORDER
 [
-    new RoundInitBehavior(),     // 1. Initialize state
-    new RoundAdvanceBehavior(),  // 2. Advance on next
-    new RoundCompletionBehavior(), // 3. Check completion
-    new RoundOutputBehavior()    // 4. Emit outputs
+    new ChildSelectionBehavior(),  // 1. Dispatch children per round
+    new ExitBehavior(),            // 2. Check completion
+    new LabelingBehavior(),        // 3. Update display labels
+    new ReportOutputBehavior()     // 4. Emit outputs
 ]
 ```
 
@@ -190,11 +195,14 @@ Behaviors execute in array order. Order matters for:
 
 | Method | Purpose | Lifecycle |
 |--------|---------|-----------|
-| `ctx.setMemory(type, value)` | Initialize/update state | Any |
-| `ctx.getMemory(type)` | Read current state | Any |
-| `ctx.subscribe(event, listener)` | Listen for events | onMount |
-| `ctx.emitOutput(type, fragments)` | Record execution | Any |
+| `ctx.pushMemory(tag, frags)` | Push new memory location | Any |
+| `ctx.getMemoryByTag(tag)` | Read memory locations | Any |
+| `ctx.updateMemory(tag, frags)` | Update existing memory | Any |
+| `ctx.subscribe(event, listener, opts?)` | Listen for events | onMount |
+| `ctx.emitOutput(type, fragments, opts?)` | Record execution | Any |
 | `ctx.markComplete(reason)` | Signal completion | onMount, onNext |
+| `ctx.getMemory(type)` | @deprecated Read typed state | Any |
+| `ctx.setMemory(type, value)` | @deprecated Write typed state | Any |
 
 ## Testing Behaviors
 
@@ -203,7 +211,7 @@ Use `BehaviorTestHarness` for isolated behavior testing:
 ```typescript
 import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 
-describe('TimerCompletionBehavior', () => {
+describe('CountdownTimerBehavior', () => {
     let harness: BehaviorTestHarness;
 
     beforeEach(() => {
@@ -213,8 +221,8 @@ describe('TimerCompletionBehavior', () => {
 
     it('should mark complete when timer expires', () => {
         const block = new MockBlock('timer', [
-            new TimerInitBehavior({ direction: 'down', durationMs: 5000 }),
-            new TimerCompletionBehavior()
+            new CountdownTimerBehavior(),
+            new CompletionTimestampBehavior()
         ]);
         
         harness.push(block);

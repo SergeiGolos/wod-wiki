@@ -6,27 +6,34 @@
 
 ```typescript
 interface ICodeStatement {
-  id: number;                 // Unique statement ID
-  parent?: number;            // Parent statement ID
-  children: number[][];       // Child groups
-  fragments: ICodeFragment[]; // Parsed fragments
-  isLeaf?: boolean;           // No children
-  meta: CodeMetadata;         // Source location
-  hints?: Set<string>;        // Semantic hints from dialects
+  id: number;                                    // Unique statement ID
+  parent?: number;                               // Parent statement ID
+  children: number[][];                          // Child groups
+  fragments: ICodeFragment[];                    // Parsed fragments
+  isLeaf?: boolean;                              // No children
+  meta: CodeMetadata;                            // Source location
+  fragmentMeta: Map<ICodeFragment, CodeMetadata>; // Per-fragment source locations
+  hints?: Set<string>;                           // Semantic hints from dialects
 }
 ```
 
-## Methods
+## Methods (via CodeStatement base class)
 
 ```typescript
-// Find first fragment of type
-findFragment<T>(type: FragmentType, predicate?): T | undefined
-
-// Get all fragments of type  
-filterFragments<T>(type: FragmentType): T[]
-
-// Check if fragment exists
+// Check if fragment of type exists
 hasFragment(type: FragmentType): boolean
+
+// Get precedence-resolved display fragments
+getDisplayFragments(filter?: FragmentFilter): ICodeFragment[]
+
+// Get first fragment of type (highest precedence)
+getFragment(type: FragmentType): ICodeFragment | undefined
+
+// Get all fragments of type, sorted by origin precedence
+getAllFragmentsByType(type: FragmentType): ICodeFragment[]
+
+// Get raw fragment array (no precedence resolution)
+get rawFragments(): ICodeFragment[]
 ```
 
 ## Hierarchy Example
@@ -48,6 +55,18 @@ children: [[1, 2, 3]]
 // Multiple groups (alternating rounds)
 children: [[1, 2], [3, 4]]  // Group A: [1,2], Group B: [3,4]
 ```
+
+## Fragment Precedence
+
+When multiple fragments of the same type exist (e.g., parser + runtime),
+`getAllFragmentsByType()` sorts by origin precedence (highest first):
+
+| Rank | Origin | Description |
+|------|--------|-------------|
+| 1 | `user` | User-collected values |
+| 2 | `runtime` | Runtime-generated values |
+| 3 | `compiler` | Compiler-synthesized |
+| 4 | `parser` | Original parsed values |
 
 ## Related Files
 

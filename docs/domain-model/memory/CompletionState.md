@@ -26,14 +26,14 @@ interface CompletionState {
 
 | Reason            | Description                  | Trigger                   |
 | ----------------- | ---------------------------- | ------------------------- |
-| `timer-expired`   | Countdown timer reached zero | `TimerCompletionBehavior` |
-| `rounds-complete` | All rounds exhausted         | `RoundCompletionBehavior` |
+| `timer-expired`   | Countdown timer reached zero | `CountdownTimerBehavior`  |
+| `rounds-complete` | All rounds exhausted         | `ExitBehavior`            |
 | `user-advance`    | User manually advanced       | User action               |
 | `manual`          | Programmatically completed   | API call                  |
 
 ## Behaviors That Trigger Completion
 
-### TimerCompletionBehavior
+### CountdownTimerBehavior
 
 **Lifecycle**: `onMount` (subscribes to `tick` events)
 
@@ -47,22 +47,26 @@ if (elapsed >= timer.durationMs) {
 }
 ```
 
-**Events Emitted**: `timer:complete`
+### ExitBehavior (unified completion)
 
-### RoundCompletionBehavior
+**Lifecycle**: `onMount` (subscribes to events for immediate mode), `onNext` (pop logic)
 
-**Lifecycle**: `onNext`
-
-Marks block complete when rounds are exhausted.
+Unified completion behavior that handles block popping. Replaces the deprecated
+`LeafExitBehavior`, `CompletedBlockPopBehavior`, and `RoundsEndBehavior`.
 
 ```typescript
-const round = ctx.getMemory('round');
-if (round.total !== undefined && round.current > round.total) {
-    ctx.markComplete('rounds-complete');
+// On next, checks if block is complete and produces pop action
+if (ctx.block.isComplete) {
+    return [new PopBlockAction(ctx.block.key)];
 }
 ```
 
-**Events Emitted**: `rounds:complete`
+### CompletionTimestampBehavior
+
+**Lifecycle**: `onNext` (records completion timestamp)
+
+Universal invariant behavior that records the timestamp when a block completes.
+Ensures `completedAt` is populated for analytics/history.
 
 ## BehaviorContext API
 
@@ -125,7 +129,7 @@ if (completion?.isComplete) {
 
 ## Zero-Duration Timer Handling
 
-`TimerCompletionBehavior` handles edge case of zero-duration timers:
+`CountdownTimerBehavior` handles edge case of zero-duration timers:
 
 ```typescript
 // On mount, check for immediate completion

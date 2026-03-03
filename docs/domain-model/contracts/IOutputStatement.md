@@ -12,6 +12,15 @@ interface IOutputStatement extends ICodeStatement {
     /** Execution timing — when this output occurred */
     readonly timeSpan: TimeSpan;
     
+    /** @deprecated Access via getFragment(FragmentType.Spans) instead */
+    readonly spans: ReadonlyArray<TimeSpan>;
+    
+    /** @deprecated Access via getFragment(FragmentType.Elapsed)?.value instead */
+    readonly elapsed: number;
+    
+    /** @deprecated Access via getFragment(FragmentType.Total)?.value instead */
+    readonly total: number;
+    
     /** The source statement ID that triggered this output */
     readonly sourceStatementId?: number;
     
@@ -23,22 +32,39 @@ interface IOutputStatement extends ICodeStatement {
     
     /** Runtime-generated fragments with origin: 'runtime' | 'user' */
     readonly fragments: ICodeFragment[];
+    
+    /** Per-fragment source locations */
+    readonly fragmentMeta: Map<ICodeFragment, CodeMetadata>;
+    
+    /** Reason the block completed (propagated from block.completionReason) */
+    readonly completionReason?: string;
 }
 ```
 
 ## Output Types
 
 ```typescript
-type OutputStatementType = 'segment' | 'completion' | 'milestone' | 'label' | 'metric';
+type OutputStatementType = 
+    | 'segment'    // Timed portion of execution (round, effort interval)
+    | 'milestone'  // Notable event (halfway, sound cue, personal record)
+    | 'system'     // Debug/diagnostic output from lifecycle events
+    | 'event'      // External stimuli or internal trigger tracking
+    | 'group'      // Identified segment with children
+    | 'load'       // Initial script state
+    | 'compiler'   // Behavior configuration and setup
+    | 'analytics'; // Output from the analytics engine
 ```
 
 | Type | Purpose | Example |
 |------|---------|---------|
 | `segment` | Timed portion of execution | Round started, effort interval |
-| `completion` | Block finished executing | Timer complete, rounds exhausted |
-| `milestone` | Notable event during execution | Halfway point, sound cue, personal record |
-| `label` | Display-only output | "Rest" indicator, phase marker |
-| `metric` | Recorded statistic | Total reps, average pace |
+| `milestone` | Notable event during execution | Halfway point, sound cue |
+| `system` | Debug/diagnostic lifecycle events | Push, pop, next, event-action |
+| `event` | External or internal trigger tracking | User click, timer event |
+| `group` | Identified segment with children | EMOM group, superset |
+| `load` | Initial script state | Script loaded/compiled |
+| `compiler` | Behavior configuration/setup | Block builder output |
+| `analytics` | Analytics engine output | Aggregated metrics |
 
 ## Design Principle
 
@@ -80,28 +106,32 @@ interface IBehaviorContext {
 
 interface OutputOptions {
     label?: string;
+    completionReason?: string;
 }
 ```
 
 ### Example Usage
 
 ```typescript
-class TimerOutputBehavior implements IRuntimeBehavior {
+class ReportOutputBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         // Emit segment started
         ctx.emitOutput('segment', [
-            { fragmentType: FragmentType.Timer, value: timer.durationMs, origin: 'runtime' }
+            { fragmentType: FragmentType.Duration, value: timer.durationMs, origin: 'runtime', type: 'duration' }
         ], { label: 'Timer Started' });
         return [];
     }
     
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Emit completion with elapsed time
-        ctx.emitOutput('completion', [
-            { fragmentType: FragmentType.Timer, value: elapsed, origin: 'runtime' }
-        ], { label: `Completed: ${formatTime(elapsed)}` });
+        // Emit segment with completion context
+        ctx.emitOutput('segment', [
+            { fragmentType: FragmentType.Duration, value: elapsed, origin: 'runtime', type: 'duration' }
+        ], { label: `Completed`, completionReason: ctx.block.completionReason });
         return [];
     }
+    
+    onNext(ctx: IBehaviorContext): IRuntimeAction[] { return []; }
+    onDispose(ctx: IBehaviorContext): void {}
 }
 ```
 
@@ -145,13 +175,15 @@ Fragments in outputs should have appropriate origins:
 |--------|---------|
 | `runtime` | Generated during execution (elapsed time, computed values) |
 | `user` | Collected from user input (actual reps completed) |
+| `execution` | Generated during the execution pipeline |
 
 ```typescript
 // Runtime-generated elapsed time
 {
-    fragmentType: FragmentType.Timer,
+    fragmentType: FragmentType.Duration,
     value: 45000,
     origin: 'runtime',
+    type: 'duration',
     image: '0:45'
 }
 
@@ -160,9 +192,25 @@ Fragments in outputs should have appropriate origins:
     fragmentType: FragmentType.Rep,
     value: 12,
     origin: 'user',
+    type: 'rep',
     image: '12'
 }
 ```
+
+## Time Data in Outputs
+
+Output statements carry time data primarily through fragments:
+
+| Fragment Type | Purpose |
+|---------------|---------|
+| `FragmentType.Spans` | Raw TimeSpan[] recordings (source of truth) |
+| `FragmentType.Duration` | Planned target from parser |
+| `FragmentType.Elapsed` | @deprecated — Σ(end − start) of active segments |
+| `FragmentType.Total` | @deprecated — lastEnd − firstStart |
+| `FragmentType.SystemTime` | System Date.now() when logged |
+
+The direct properties `spans`, `elapsed`, `total` on `IOutputStatement` are **deprecated proxies**.
+Prefer `getFragment(FragmentType.Elapsed)` etc., or use `getDisplayFragments()` for UI rendering.
 
 ## Output Collection
 

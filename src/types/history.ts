@@ -13,6 +13,7 @@
 
 
 import type { WorkoutResults, Section } from '../markdown-editor/types';
+import type { WorkoutResult } from './storage';
 
 /**
  * A stored workout entry in the history.
@@ -28,8 +29,10 @@ export interface HistoryEntry {
   rawContent: string;                  // Original markdown
 
   // Execution results (optional — present after completion)
-  // Execution results (optional — present after completion)
   results?: WorkoutResults;
+
+  // Extended results (optional — collection of completions)
+  extendedResults?: WorkoutResult[];
 
   // Metadata
   tags: string[];

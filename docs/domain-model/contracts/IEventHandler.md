@@ -66,7 +66,7 @@ eventBus.register('tick', handler, 'runtime', {
 For most use cases, prefer `IBehaviorContext.subscribe()`:
 
 ```typescript
-class TimerCompletionBehavior implements IRuntimeBehavior {
+class CountdownTimerBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         // This internally creates an IEventHandler
         ctx.subscribe('tick', (event, tickCtx) => {

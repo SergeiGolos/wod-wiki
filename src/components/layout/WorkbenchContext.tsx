@@ -227,7 +227,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       setCurrentEntry(null);
 
       if (routeId) {
-        if (provider.mode === 'history') {
+        if (provider.mode === 'history' || provider.mode === 'static') {
           try {
             console.log(`[WorkbenchProvider] Attempting to load entry for ID: ${routeId}`);
             const entry = await provider.getEntry(routeId);
@@ -243,7 +243,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               // Supports friendly name routes like /note/annie/plan.
               historySelectionHook.openEntry(entry.id);
               return;
-            } else {
+            } else if (provider.mode === 'static') {
               // Try loading from static WOD files (fallback)
               const wodContent = getWodContent(routeId);
               if (wodContent) {
@@ -253,13 +253,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
             }
           } catch (err) {
             console.error('[WorkbenchProvider] Failed to load content for ID:', routeId, err);
-          }
-        } else if (provider.mode === 'static' && routeId) {
-          // Static mode with ID (e.g. playground/annie)
-          const wodContent = getWodContent(routeId);
-          if (wodContent) {
-            setContent(wodContent);
-            return;
           }
         }
       } else if (initialActiveEntryId && !historySelectionHook.activeEntryId) {
@@ -574,6 +567,12 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
       if (routeId) {
         provider.updateEntry(routeId, payload)
+          .then(updated => {
+            // Update local state if this is the currently loaded entry
+            if (currentEntry?.id === updated.id) {
+              setCurrentEntry(updated);
+            }
+          })
           .catch(err => console.error('Failed to auto-update workout:', err));
       } else {
         // Auto-tag with active notebook
@@ -587,7 +586,12 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
           tags,
           notes: '',
           targetDate: Date.now()
-        }).catch(err => console.error('Failed to auto-save workout:', err));
+        })
+          .then(saved => {
+            // If we didn't have a routeId, this new entry becomes the current one
+            setCurrentEntry(saved);
+          })
+          .catch(err => console.error('Failed to auto-save workout:', err));
       }
     }
 

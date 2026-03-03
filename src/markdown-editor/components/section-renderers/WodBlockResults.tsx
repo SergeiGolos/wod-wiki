@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { reviewPath } from '@/lib/routes';
 import { useWodBlockResults } from '../../hooks/useWodBlockResults';
 import { Clock, ExternalLink } from 'lucide-react';
+import { useWorkbench } from '@/components/layout/WorkbenchContext';
 
 export interface WodBlockResultsProps {
   /** Note ID (short or full UUID) */
@@ -62,15 +63,24 @@ function formatCompletedDate(timestamp: number): string {
 }
 
 export const WodBlockResults: React.FC<WodBlockResultsProps> = ({
-  noteId,
-  sectionId,
+  noteId: propNoteId,
+  sectionId: propSectionId,
   maxResults = 3,
   className,
 }) => {
-  const { results, loading } = useWodBlockResults(noteId, sectionId);
+  // Try to get IDs from workbench if not provided as props
+  let workbench;
+  try {
+    workbench = useWorkbench();
+  } catch { /* Silent fail if outside provider */ }
+
+  const resolvedNoteId = propNoteId || workbench?.currentEntry?.id;
+  const resolvedSectionId = propSectionId || workbench?.selectedBlockId;
+
+  const { results, loading } = useWodBlockResults(resolvedNoteId, resolvedSectionId);
 
   // Don't render anything if no results or missing IDs
-  if (!noteId || !sectionId || loading || results.length === 0) {
+  if (!resolvedNoteId || !resolvedSectionId || loading || results.length === 0) {
     return null;
   }
 
@@ -94,7 +104,7 @@ export const WodBlockResults: React.FC<WodBlockResultsProps> = ({
       {/* Result entries */}
       <div className="divide-y divide-border/20">
         {visibleResults.map((result) => {
-          const href = `#${reviewPath(noteId, sectionId, result.id)}`;
+          const href = `#${reviewPath(resolvedNoteId, resolvedSectionId, result.id)}`;
           return (
             <a
               key={result.id}
@@ -140,7 +150,7 @@ export const WodBlockResults: React.FC<WodBlockResultsProps> = ({
       {/* More results indicator */}
       {hiddenCount > 0 && (
         <a
-          href={`#${reviewPath(noteId, sectionId)}`}
+          href={`#${reviewPath(resolvedNoteId, resolvedSectionId)}`}
           className="block px-2 py-1 text-[10px] text-muted-foreground/60 hover:text-foreground/70 text-center border-t border-border/20 no-underline"
         >
           +{hiddenCount} more result{hiddenCount !== 1 ? 's' : ''} — view all
