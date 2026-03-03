@@ -405,6 +405,10 @@ const ReceiverApp: React.FC = () => {
     const [now, setNow] = useState(Date.now());
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
+    const transportRef = useRef<WebRtcRpcTransport | null>(null);
+
+    // Persistent signaling instance (lives for the life of the Receiver app)
+    const signalingRef = useRef<ReceiverCastSignaling | null>(null);
 
     // Send event back to browser via the proxy runtime
     const sendEvent = useCallback((eventName: string) => {
@@ -466,7 +470,62 @@ const ReceiverApp: React.FC = () => {
         return () => cancelAnimationFrame(frameId);
     }, []);
 
-    // WebRTC connection via Cast Receiver SDK + ChromecastProxyRuntime
+    /** 
+     * Initialize/Re-initialize the WebRTC transport and ProxyRuntime.
+     * Called whenever a new signaling offer arrives.
+     */
+    const setupTransport = useCallback(() => {
+        if (!signalingRef.current) return;
+
+        console.log('[ReceiverApp] Setting up new transport session…');
+        
+        // 1. Cleanup existing session if active
+        if (transportRef.current) {
+            console.log('[ReceiverApp] Disposing previous transport for new connection');
+            transportRef.current.dispose();
+            transportRef.current = null;
+        }
+        if (runtimeRef.current) {
+            runtimeRef.current.dispose();
+            runtimeRef.current = null;
+        }
+        setProxyRuntime(null);
+
+        // 2. Create new transport + runtime
+        const transport = new WebRtcRpcTransport('answerer', signalingRef.current);
+        const runtime = new ChromecastProxyRuntime(transport);
+        
+        transportRef.current = transport;
+        runtimeRef.current = runtime;
+
+        transport.onConnected(() => {
+            console.log('[ReceiverApp] RPC transport connected');
+            setConnectionStatus('connected');
+            setProxyRuntime(runtime);
+
+            // Subscribe to workbench display mode updates
+            runtime.subscribeToWorkbench((state) => {
+                setWorkbenchState(state);
+            });
+        });
+
+        transport.onDisconnected(() => {
+            console.log('[ReceiverApp] RPC transport disconnected');
+            setConnectionStatus('disconnected');
+            // We don't null out proxyRuntime immediately on disconnect to avoid
+            // flickering the "waiting" screen if the user is about to reconnect.
+            // It will be nulled by the next setupTransport() call.
+        });
+
+        transport.connect().catch((err: unknown) => {
+            console.error('[ReceiverApp] RPC transport connect failed', err);
+            setConnectionStatus('error');
+        });
+
+        return { transport, runtime };
+    }, []);
+
+    // WebRTC connection via Cast Receiver SDK + persistent signaling
     useEffect(() => {
         const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
         if (!castContext) {
@@ -477,9 +536,6 @@ const ReceiverApp: React.FC = () => {
 
         // Start the CAF receiver context FIRST — the custom namespace must be
         // declared in start() before addCustomMessageListener() is called.
-        // If the listener is registered before start(), the Cast SDK may not
-        // deliver messages on that namespace, causing webrtc-offer to be silently
-        // dropped and the WebRTC handshake to time out on the sender side.
         castContext.start({
             customNamespaces: {
                 [CAST_NAMESPACE]: 'JSON',
@@ -499,43 +555,32 @@ const ReceiverApp: React.FC = () => {
             }
         });
 
-        // Create signaling AFTER start() so addCustomMessageListener is attached
-        // to an active namespace and will receive messages correctly.
+        // Create signaling AFTER start(). 
+        // We keep this signaling instance alive for the duration of the app.
         const signaling = new ReceiverCastSignaling(castContext);
-        const transport = new WebRtcRpcTransport('answerer', signaling);
+        signalingRef.current = signaling;
 
-        // Create the proxy runtime — it will receive RPC messages from the transport
-        const runtime = new ChromecastProxyRuntime(transport);
-        runtimeRef.current = runtime;
-
-        transport.onConnected(() => {
-            console.log('[ReceiverApp] RPC transport connected');
-            setConnectionStatus('connected');
-            setProxyRuntime(runtime);
-
-            // Subscribe to workbench display mode updates
-            runtime.subscribeToWorkbench((state) => {
-                setWorkbenchState(state);
-            });
-        });
-
-        transport.onDisconnected(() => {
-            console.log('[ReceiverApp] RPC transport disconnected');
-            setConnectionStatus('disconnected');
-            setProxyRuntime(null);
-        });
-
-        transport.connect().catch((err: unknown) => {
-            console.error('[ReceiverApp] RPC transport connect failed', err);
-            setConnectionStatus('error');
+        // CRITICAL: Reconnection support.
+        // Listen for incoming signals. If we see a 'webrtc-offer', it means a 
+        // sender is trying to start a new session. We trigger setupTransport()
+        // to handle the handshake even if we were already connected to an 
+        // old session (clearing it out first).
+        signaling.onSignal((signal) => {
+            if (signal.type === 'webrtc-offer') {
+                console.log('[ReceiverApp] Received webrtc-offer — triggering transport setup');
+                setupTransport();
+            }
         });
 
         return () => {
-            runtime.dispose();
-            transport.dispose();
+            runtimeRef.current?.dispose();
+            transportRef.current?.dispose();
+            signaling.dispose();
+            signalingRef.current = null;
             runtimeRef.current = null;
+            transportRef.current = null;
         };
-    }, []);
+    }, [setupTransport]);
 
     // Escape/Backspace handler (stop event — not part of spatial navigation)
     useEffect(() => {

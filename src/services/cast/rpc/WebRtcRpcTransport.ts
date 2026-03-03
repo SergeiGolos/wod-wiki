@@ -24,7 +24,7 @@ import type { RpcMessage } from './RpcMessages';
 
 export interface ISignaling {
     send(signal: WebRTCSignalMessage): void;
-    onSignal(handler: (signal: WebRTCSignalMessage) => void): void;
+    onSignal(handler: (signal: WebRTCSignalMessage) => void): () => void;
     dispose(): void;
 }
 
@@ -33,6 +33,7 @@ export interface ISignaling {
 export class WebRtcRpcTransport implements IRpcTransport {
     private pc: RTCPeerConnection;
     private dc: RTCDataChannel | null = null;
+    private signalUnsub: (() => void) | null = null;
     private disposed = false;
 
     private messageHandlers = new Set<(message: RpcMessage) => void>();
@@ -86,7 +87,7 @@ export class WebRtcRpcTransport implements IRpcTransport {
         };
 
         // Wire up incoming signals. We queue them to ensure sequential async processing.
-        this.signaling.onSignal((signal) => {
+        this.signalUnsub = this.signaling.onSignal((signal) => {
             console.log(`[WebRtcRpcTransport:${role}] Incoming signal: ${signal.type}`);
             this.signalQueue = this.signalQueue.then(() => this.handleSignal(signal));
         });
@@ -124,6 +125,9 @@ export class WebRtcRpcTransport implements IRpcTransport {
     dispose(): void {
         if (this.disposed) return;
         this.disposed = true;
+
+        this.signalUnsub?.();
+        this.signalUnsub = null;
 
         // Snapshot and clear handlers BEFORE notifying so that re-entrant
         // calls inside the notification (e.g. cleanupCast → transport.dispose())

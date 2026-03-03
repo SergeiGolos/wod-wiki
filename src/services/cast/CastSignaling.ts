@@ -24,7 +24,7 @@ import type { ISignaling } from './WebRTCTransport';
  * WebRTC signaling payloads with the receiver over the Cast message bus.
  */
 export class SenderCastSignaling implements ISignaling {
-  private handler: ((signal: WebRTCSignalMessage) => void) | null = null;
+  private listeners = new Set<(signal: WebRTCSignalMessage) => void>();
   private boundListener: ((namespace: string, message: string) => void) | null = null;
 
   /**
@@ -41,7 +41,9 @@ export class SenderCastSignaling implements ISignaling {
           ? JSON.parse(message)
           : message) as WebRTCSignalMessage;
         console.log('[SenderCastSignaling] Parsed signal type:', signal.type);
-        this.handler?.(signal);
+        for (const listener of this.listeners) {
+            listener(signal);
+        }
       } catch (err) {
         console.error('[SenderCastSignaling] Failed to parse incoming signal', err);
       }
@@ -63,8 +65,9 @@ export class SenderCastSignaling implements ISignaling {
       );
   }
 
-  onSignal(handler: (signal: WebRTCSignalMessage) => void): void {
-    this.handler = handler;
+  onSignal(handler: (signal: WebRTCSignalMessage) => void): () => void {
+    this.listeners.add(handler);
+    return () => this.listeners.delete(handler);
   }
 
   dispose(): void {
@@ -74,7 +77,7 @@ export class SenderCastSignaling implements ISignaling {
       } catch { /* session may already be gone */ }
       this.boundListener = null;
     }
-    this.handler = null;
+    this.listeners.clear();
   }
 }
 
@@ -85,7 +88,7 @@ export class SenderCastSignaling implements ISignaling {
  * messages from the sender and respond back.
  */
 export class ReceiverCastSignaling implements ISignaling {
-  private handler: ((signal: WebRTCSignalMessage) => void) | null = null;
+  private listeners = new Set<(signal: WebRTCSignalMessage) => void>();
   private senderId: string | null = null;
   private boundListener: ((event: any) => void) | null = null;
 
@@ -104,7 +107,9 @@ export class ReceiverCastSignaling implements ISignaling {
           ? JSON.parse(event.data)
           : event.data) as WebRTCSignalMessage;
         console.log('[ReceiverCastSignaling] Parsed signal type:', signal.type);
-        this.handler?.(signal);
+        for (const listener of this.listeners) {
+            listener(signal);
+        }
       } catch (err) {
         console.error('[ReceiverCastSignaling] Failed to parse incoming signal', err);
       }
@@ -133,8 +138,9 @@ export class ReceiverCastSignaling implements ISignaling {
     }
   }
 
-  onSignal(handler: (signal: WebRTCSignalMessage) => void): void {
-    this.handler = handler;
+  onSignal(handler: (signal: WebRTCSignalMessage) => void): () => void {
+    this.listeners.add(handler);
+    return () => this.listeners.delete(handler);
   }
 
   dispose(): void {
@@ -146,6 +152,6 @@ export class ReceiverCastSignaling implements ISignaling {
       } catch { /* ignore */ }
     }
     this.boundListener = null;
-    this.handler = null;
+    this.listeners.clear();
   }
 }

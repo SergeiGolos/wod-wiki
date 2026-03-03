@@ -28,7 +28,7 @@ export interface ISignaling {
   send(signal: WebRTCSignalMessage): void;
 
   /** Register the handler that receives signals from the remote peer. */
-  onSignal(handler: (signal: WebRTCSignalMessage) => void): void;
+  onSignal(handler: (signal: WebRTCSignalMessage) => void): () => void;
 
   /** Clean up listeners. */
   dispose(): void;
@@ -51,6 +51,7 @@ export class WebRTCTransport {
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel | null = null;
   private listeners = new Map<TransportEvent, Array<(...args: unknown[]) => void>>();
+  private signalUnsub: (() => void) | null = null;
   private disposed = false;
 
   /**
@@ -99,7 +100,7 @@ export class WebRTCTransport {
     };
 
     // Wire up incoming signals (offer/answer/ICE from the remote peer).
-    this.signaling.onSignal((signal) => {
+    this.signalUnsub = this.signaling.onSignal((signal) => {
       console.log(`[WebRTCTransport:${role}] Received signal: ${signal.type}`);
       this.handleSignal(signal);
     });
@@ -202,6 +203,8 @@ export class WebRTCTransport {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.signalUnsub?.();
+    this.signalUnsub = null;
     this.dc?.close();
     this.pc.close();
     this.signaling.dispose();
