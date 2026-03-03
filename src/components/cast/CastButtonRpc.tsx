@@ -124,7 +124,9 @@ export const CastButtonRpc: React.FC = () => {
         if (!btn) return;
 
         const onNativeClick = async () => {
-            if (isCastingRef.current) {
+            // If the SDK thinks we are casting, the button should stop it,
+            // even if our internal WebRTC state (isCasting) is false.
+            if (sdkStateRef.current === 'session-active') {
                 console.log('[CastButtonRpc] Stopping active session');
                 cleanupCast();
                 ChromecastSdk.endSession();
@@ -225,7 +227,8 @@ export const CastButtonRpc: React.FC = () => {
     // State derivation
     const isUnavailable = sdkState === 'unavailable';
     const isAvailable = sdkState === 'ready';
-    const isConnected = isCasting && sdkState === 'session-active';
+    const isConnected = sdkState === 'session-active';
+    const isWebRtcActive = isCasting && isConnected;
     const isCurrentlyConnecting = isConnecting || (sdkState === 'loading');
     const canInteract = isAvailable || isConnected;
 
@@ -252,7 +255,10 @@ export const CastButtonRpc: React.FC = () => {
             title={isConnected ? "Stop Casting" : (isCurrentlyConnecting ? "Connecting..." : "Cast to TV")}
         >
             {isConnected ? (
-                <TvMinimal className="h-5 w-5" />
+                <TvMinimal className={cn(
+                    "h-5 w-5",
+                    !isWebRtcActive && "opacity-50"
+                )} />
             ) : (
                 <Cast className={cn(
                     "h-5 w-5",

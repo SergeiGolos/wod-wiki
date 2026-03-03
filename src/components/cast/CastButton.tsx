@@ -165,8 +165,10 @@ export const CastButton: React.FC = () => {
     ]);
 
     const handleCast = useCallback(async () => {
-        if (isCasting) {
-            // Stop casting
+        // If the SDK thinks we are casting, the button should stop it,
+        // even if our internal WebRTC state (isCasting) is false.
+        if (sdkState === 'session-active') {
+            console.log('[CastButton] Stopping active session');
             transportRef.current?.dispose();
             transportRef.current = null;
             ChromecastSdk.endSession();
@@ -263,12 +265,13 @@ export const CastButton: React.FC = () => {
         } finally {
             setIsConnecting(false);
         }
-    }, [isCasting]);
+    }, [isCasting, sdkState]);
 
     // Handle states: unavailable | available | connecting | connected
     const isUnavailable = sdkState === 'unavailable';
     const isAvailable = sdkState === 'ready';
-    const isConnected = isCasting && sdkState === 'session-active';
+    const isConnected = sdkState === 'session-active';
+    const isWebRtcActive = isCasting && isConnected;
     const isCurrentlyConnecting = isConnecting || (sdkState === 'loading');
 
     if (isUnavailable) {
@@ -293,7 +296,10 @@ export const CastButton: React.FC = () => {
             title={isConnected ? "Stop Casting" : (isCurrentlyConnecting ? "Connecting..." : "Cast to TV")}
         >
             {isConnected ? (
-                <TvMinimal className="h-5 w-5" />
+                <TvMinimal className={cn(
+                    "h-5 w-5",
+                    !isWebRtcActive && "opacity-50"
+                )} />
             ) : (
                 <Cast className={cn(
                     "h-5 w-5",
