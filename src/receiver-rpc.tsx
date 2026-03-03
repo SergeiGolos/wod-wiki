@@ -491,8 +491,17 @@ const ReceiverApp: React.FC = () => {
         }
         setProxyRuntime(null);
 
-        // 2. Create new transport + runtime
-        const transport = new WebRtcRpcTransport('answerer', signalingRef.current);
+        // 2. Create new transport + runtime.
+        // Wrap the shared signaling in a non-disposable facade so that
+        // transport.dispose() cannot kill signalingRef.current and break
+        // reconnection — ReceiverApp owns the signaling lifetime, not the transport.
+        const sharedSignaling = signalingRef.current;
+        const signalingFacade = {
+            send: (s: any) => sharedSignaling.send(s),
+            onSignal: (h: any) => sharedSignaling.onSignal(h),
+            dispose: () => { /* no-op — signaling is owned by ReceiverApp */ },
+        };
+        const transport = new WebRtcRpcTransport('answerer', signalingFacade as any);
         const runtime = new ChromecastProxyRuntime(transport);
         
         transportRef.current = transport;
@@ -510,11 +519,20 @@ const ReceiverApp: React.FC = () => {
         });
 
         transport.onDisconnected(() => {
-            console.log('[ReceiverApp] RPC transport disconnected');
+            console.log('[ReceiverApp] RPC transport disconnected — returning to waiting screen');
             setConnectionStatus('disconnected');
-            // We don't null out proxyRuntime immediately on disconnect to avoid
-            // flickering the "waiting" screen if the user is about to reconnect.
-            // It will be nulled by the next setupTransport() call.
+            // Return to waiting screen immediately so the user can see the
+            // receiver is ready for a new connection.
+            setProxyRuntime(null);
+            // Clean up refs only if they still point to this session's objects
+            // (setupTransport() may have already replaced them).
+            if (runtimeRef.current === runtime) {
+                runtimeRef.current.dispose();
+                runtimeRef.current = null;
+            }
+            if (transportRef.current === transport) {
+                transportRef.current = null;
+            }
         });
 
         transport.connect().catch((err: unknown) => {

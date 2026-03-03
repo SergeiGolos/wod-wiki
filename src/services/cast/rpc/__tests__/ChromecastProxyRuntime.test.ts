@@ -149,6 +149,85 @@ describe('ChromecastProxyRuntime', () => {
 
             expect(snapshots).toHaveLength(0);
         });
+
+        it('should reuse ProxyBlock instances across updates (block cache)', () => {
+            // Push block-1
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'push',
+                blocks: [createSerializedBlock('block-1', { label: 'First' })],
+                depth: 1,
+                clockTime: Date.now(),
+            });
+            const firstInstance = proxy.stack.current;
+            expect(firstInstance?.label).toBe('First');
+
+            // Receive another snapshot for the same block key — should update in-place
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'push',
+                blocks: [createSerializedBlock('block-1', { label: 'First', isComplete: true })],
+                depth: 1,
+                clockTime: Date.now(),
+            });
+            const secondInstance = proxy.stack.current;
+
+            // Same object reference — update was in-place
+            expect(secondInstance).toBe(firstInstance);
+            expect(secondInstance?.isComplete).toBe(true);
+        });
+
+        it('should evict blocks from cache when they leave the stack', () => {
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'push',
+                blocks: [createSerializedBlock('block-a')],
+                depth: 1,
+                clockTime: Date.now(),
+            });
+
+            // Block leaves the stack
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'pop',
+                blocks: [],
+                depth: 0,
+                clockTime: Date.now(),
+            });
+
+            // Re-add with same key — should be a NEW instance
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'push',
+                blocks: [createSerializedBlock('block-a', { label: 'Reused' })],
+                depth: 1,
+                clockTime: Date.now(),
+            });
+
+            // This just verifies it doesn't throw and the stack is correct
+            expect(proxy.stack.current?.key.toString()).toBe('block-a');
+            expect(proxy.stack.current?.label).toBe('Reused');
+        });
+
+        it('should clear block cache on clear snapshot', () => {
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'push',
+                blocks: [createSerializedBlock('c1')],
+                depth: 1,
+                clockTime: Date.now(),
+            });
+
+            transport._receive({
+                type: 'rpc-stack-update',
+                snapshotType: 'clear',
+                blocks: [],
+                depth: 0,
+                clockTime: Date.now(),
+            });
+
+            expect(proxy.stack.count).toBe(0);
+        });
     });
 
     // ── Output subscription ─────────────────────────────────────────────────
@@ -171,6 +250,40 @@ describe('ChromecastProxyRuntime', () => {
             expect(outputs).toHaveLength(1);
             expect(outputs[0].sourceBlockKey).toBe('block-1');
             expect(outputs[0].outputType).toBe('segment');
+        });
+
+        it('should use pre-computed elapsed from rpc-output message', () => {
+            const outputs: any[] = [];
+            proxy.subscribeToOutput(o => outputs.push(o));
+
+            transport._receive({
+                type: 'rpc-output',
+                outputType: 'segment',
+                sourceBlockKey: 'b1',
+                stackLevel: 0,
+                fragments: [],
+                timeSpan: { started: 1000, ended: 6000 },
+                elapsed: 5000,
+            });
+
+            expect(outputs[0].elapsed).toBe(5000);
+        });
+
+        it('should compute elapsed from timeSpan when elapsed field is absent', () => {
+            const outputs: any[] = [];
+            proxy.subscribeToOutput(o => outputs.push(o));
+
+            transport._receive({
+                type: 'rpc-output',
+                outputType: 'segment',
+                sourceBlockKey: 'b1',
+                stackLevel: 0,
+                fragments: [],
+                timeSpan: { started: 1000, ended: 3000 },
+                // no elapsed field
+            } as any);
+
+            expect(outputs[0].elapsed).toBe(2000);
         });
 
         it('should accumulate outputs in getOutputStatements', () => {

@@ -55,8 +55,8 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
 
     /**
      * Compute a structural fingerprint that excludes timer elapsed values.
-     * Only structural changes (block list, labels, completion) trigger a send.
-     * Timer spans are included (so span count / start changes are detected)
+     * Only structural changes (block list, labels, completion, fragment tiers, behaviors)
+     * trigger a send. Timer spans are included (so span count / start changes are detected)
      * but accumulated elapsed is NOT — the receiver interpolates locally.
      */
     private computeFingerprint(message: {
@@ -68,7 +68,11 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
             isComplete: boolean;
             timer: { isRunning: boolean; spans: Array<{ started: number }>; durationMs?: number } | null;
             displayFragments: unknown[][];
+            promoteFragments?: unknown[][];
+            resultFragments?: unknown[][];
+            privateFragments?: Record<string, unknown[][]>;
             nextFragments?: unknown[];
+            behaviorsMetadata?: Array<{ name: string }>;
         }>;
         depth: number;
     }): string {
@@ -86,13 +90,20 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
                     `timer:${block.timer.isRunning}:${block.timer.spans.length}:${block.timer.durationMs}:${block.timer.spans[0]?.started ?? ''}`,
                 );
             }
-            // Include fragment structure but not fragment values that change on tick
+            // Include fragment tier counts so added/removed rows trigger a re-send
             parts.push(`frags:${block.displayFragments.length}`);
+            parts.push(`promote:${block.promoteFragments?.length ?? 0}`);
+            parts.push(`result:${block.resultFragments?.length ?? 0}`);
+            const privateTags = Object.keys(block.privateFragments ?? {}).sort().join(',');
+            parts.push(`private:${privateTags}`);
             // Include next-preview fragment content so Up Next changes trigger a re-send
             const nextSig = block.nextFragments
                 ?.map((f: any) => `${f.fragmentType ?? f.type ?? ''}:${f.image ?? f.value ?? ''}`)
                 .join(',') ?? '';
             parts.push(`next:${nextSig}`);
+            // Behavior names (rarely change but should trigger re-send if they do)
+            const behaviorSig = block.behaviorsMetadata?.map(b => b.name).join(',') ?? '';
+            parts.push(`behaviors:${behaviorSig}`);
         }
 
         return parts.join('|');

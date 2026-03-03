@@ -1,9 +1,12 @@
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
+import { ICodeFragment } from '@/core/models/CodeFragment';
+import { MemoryTag } from '@/runtime/memory/MemoryLocation';
 import {
     SerializedBlock,
     SerializedTimer,
+    SerializedBehavior,
     RpcStackUpdate,
     RpcOutputStatement,
 } from './RpcMessages';
@@ -65,20 +68,47 @@ function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
 /**
  * Serialize an IRuntimeBlock into a JSON-safe SerializedBlock.
  *
- * Extracts only the data needed for rendering on the receiver:
- * - Identity fields (key, blockType, label)
- * - Display-tier fragment memory as ICodeFragment[][] rows
- * - Timer state (spans for local interpolation)
- * - Completion state
+ * Extracts all fragment visibility tiers, timer state, behavior metadata,
+ * and completion state — giving the receiver full parity with the browser UI.
  */
 export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
+    // ── Display tier ──────────────────────────────────────────────────────
     const displayLocs = block.getFragmentMemoryByVisibility('display');
     const displayFragments = displayLocs.map(loc => loc.fragments);
 
-    // Extract 'Up Next' preview fragments from fragment:next memory.
-    // Walk all fragment:next locations and collect all fragments.
+    // ── Promote tier ──────────────────────────────────────────────────────
+    // fragment:promote and fragment:rep-target locations
+    const promoteLocs = block.getFragmentMemoryByVisibility('promote');
+    const promoteFragments: ICodeFragment[][] = promoteLocs.map(loc => loc.fragments);
+
+    // ── Result tier ───────────────────────────────────────────────────────
+    const resultLocs = block.getFragmentMemoryByVisibility('result');
+    const resultFragments: ICodeFragment[][] = resultLocs.map(loc => loc.fragments);
+
+    // ── Private tier ──────────────────────────────────────────────────────
+    // Group private locations by tag: Record<tag, ICodeFragment[][]>
+    const privateLocs = block.getFragmentMemoryByVisibility('private');
+    const privateFragments: Record<MemoryTag, ICodeFragment[][]> = {} as Record<MemoryTag, ICodeFragment[][]>;
+    for (const loc of privateLocs) {
+        if (!privateFragments[loc.tag]) {
+            privateFragments[loc.tag] = [];
+        }
+        privateFragments[loc.tag].push(loc.fragments);
+    }
+
+    // ── 'Up Next' preview ─────────────────────────────────────────────────
     const nextLocs = block.getMemoryByTag('fragment:next');
     const nextFragments = nextLocs.flatMap(loc => loc.fragments);
+
+    // ── Behavior metadata ─────────────────────────────────────────────────
+    let behaviorsMetadata: SerializedBehavior[] | undefined;
+    try {
+        if (block.behaviors && block.behaviors.length > 0) {
+            behaviorsMetadata = block.behaviors.map(b => ({ name: b.constructor.name }));
+        }
+    } catch {
+        // Defensive: some stubs may not implement .behaviors
+    }
 
     return {
         key: block.key.toString(),
@@ -88,8 +118,12 @@ export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
         isComplete: block.isComplete,
         completionReason: block.completionReason,
         displayFragments,
+        promoteFragments: promoteFragments.length > 0 ? promoteFragments : undefined,
+        resultFragments: resultFragments.length > 0 ? resultFragments : undefined,
+        privateFragments: Object.keys(privateFragments).length > 0 ? privateFragments : undefined,
         timer: extractTimer(block),
         nextFragments,
+        behaviorsMetadata,
     };
 }
 
@@ -111,6 +145,10 @@ export function serializeStackSnapshot(snapshot: StackSnapshot): RpcStackUpdate 
  * Serialize an IOutputStatement into an RpcOutputStatement message.
  */
 export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
+    const started = output.timeSpan.started;
+    const ended = output.timeSpan.ended;
+    const elapsed = ended !== undefined ? ended - started : 0;
+
     return {
         type: 'rpc-output',
         outputType: output.outputType,
@@ -118,9 +156,7 @@ export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
         stackLevel: output.stackLevel,
         fragments: output.fragments,
         completionReason: output.completionReason,
-        timeSpan: {
-            started: output.timeSpan.started,
-            ended: output.timeSpan.ended,
-        },
+        timeSpan: { started, ended },
+        elapsed,
     };
 }

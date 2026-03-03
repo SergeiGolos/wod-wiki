@@ -1,8 +1,18 @@
 import { ICodeFragment } from '@/core/models/CodeFragment';
+import { MemoryTag } from '@/runtime/memory/MemoryLocation';
 
 // ============================================================================
 // Serialized Block — lightweight representation of an IRuntimeBlock
 // ============================================================================
+
+/**
+ * Serialized behavior descriptor — name-only snapshot of an IRuntimeBehavior.
+ * Used on the receiver for debug inspection (Behaviors tab in BlockDebugDialog).
+ */
+export interface SerializedBehavior {
+    /** Runtime class name of the behavior (e.g. 'CountdownTimerBehavior') */
+    name: string;
+}
 
 /**
  * Serialized timer span (start/end in epoch ms).
@@ -33,6 +43,8 @@ export interface SerializedTimer {
  * Contains only what the receiver workbench needs to render:
  * - Identity (key, blockType, label)
  * - Display state (fragment rows, timer, completion)
+ * - All fragment visibility tiers (display, promote, result, private)
+ * - Behavior metadata for debug inspection
  * - No methods, no references to runtime internals
  */
 export interface SerializedBlock {
@@ -46,6 +58,26 @@ export interface SerializedBlock {
     /** Fragment rows from getFragmentMemoryByVisibility('display') */
     displayFragments: ICodeFragment[][];
 
+    /**
+     * Fragment rows from getFragmentMemoryByVisibility('promote').
+     * Inherited by child blocks during JIT compilation.
+     * Grouped by memory location (one array per location).
+     */
+    promoteFragments?: ICodeFragment[][];
+
+    /**
+     * Fragment rows from getFragmentMemoryByVisibility('result').
+     * Block output fragments collected on unmount/completion.
+     */
+    resultFragments?: ICodeFragment[][];
+
+    /**
+     * Private fragment locations, keyed by memory tag.
+     * Groups multiple locations per tag: Record<tag, ICodeFragment[][]>
+     * (e.g. fragment:label → [[LabelFragment]], fragment:tracked → [[...], [...]])
+     */
+    privateFragments?: Record<MemoryTag, ICodeFragment[][]>;
+
     /** Timer state (if the block has a timer memory location) */
     timer: SerializedTimer | null;
 
@@ -56,6 +88,13 @@ export interface SerializedBlock {
      * Optional for backwards compatibility with test fixtures created before this field.
      */
     nextFragments?: ICodeFragment[];
+
+    /**
+     * Behavior metadata — name-only descriptors for each attached behavior.
+     * Used by BlockDebugDialog's Behaviors tab on the receiver.
+     * Optional for backwards compatibility.
+     */
+    behaviorsMetadata?: SerializedBehavior[];
 }
 
 // ============================================================================
@@ -84,6 +123,8 @@ export interface RpcOutputStatement {
     fragments: ICodeFragment[];
     completionReason?: string;
     timeSpan: { started: number; ended?: number };
+    /** Pre-computed elapsed duration in ms (ended - started, or 0 if still running). */
+    elapsed?: number;
 }
 
 export interface RpcEvent {

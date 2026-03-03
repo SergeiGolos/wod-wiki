@@ -124,25 +124,251 @@ describe('ProxyBlock', () => {
         });
     });
 
-    describe('memory location (static)', () => {
-        it('subscribe should return no-op unsubscribe', () => {
+    describe('memory location (reactive)', () => {
+        it('subscribe should receive future updates', () => {
             const block = new ProxyBlock(createSerializedBlock({
-                displayFragments: [[{ type: 'text' } as any]],
+                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
             }));
             const locations = block.getFragmentMemoryByVisibility('display');
-            const unsub = locations[0].subscribe(() => {});
-            expect(typeof unsub).toBe('function');
-            expect(() => unsub()).not.toThrow();
+            const received: ICodeFragment[][] = [];
+            const unsub = locations[0].subscribe((nv) => received.push(nv));
+
+            // Trigger an update via ProxyBlock.update()
+            block.update(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Changed' } as any]],
+            }));
+
+            expect(received).toHaveLength(1);
+            expect(received[0][0].image).toBe('Changed');
+
+            unsub();
         });
 
-        it('update should be no-op', () => {
+        it('update() should update fragment content in-place', () => {
             const block = new ProxyBlock(createSerializedBlock({
                 displayFragments: [[{ type: 'text', image: 'Run' } as any]],
             }));
             const loc = block.getFragmentMemoryByVisibility('display')[0];
-            loc.update([{ type: 'text', image: 'Changed' } as any]);
-            // Should not change since it's static
-            expect(loc.fragments[0].image).toBe('Run');
+
+            block.update(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Changed' } as any]],
+            }));
+
+            expect(loc.fragments[0].image).toBe('Changed');
+        });
+
+        it('unsubscribe should stop receiving updates', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+            }));
+            const locations = block.getFragmentMemoryByVisibility('display');
+            const received: ICodeFragment[][] = [];
+            const unsub = locations[0].subscribe((nv) => received.push(nv));
+            unsub();
+
+            block.update(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Changed' } as any]],
+            }));
+
+            expect(received).toHaveLength(0);
+        });
+    });
+
+    describe('promote / result / private fragment tiers', () => {
+        it('should return promote fragments via getFragmentMemoryByVisibility', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                promoteFragments: [[{ type: 'reps', image: '21' } as any]],
+            }));
+            const locs = block.getFragmentMemoryByVisibility('promote');
+            expect(locs).toHaveLength(1);
+            expect(locs[0].fragments[0].image).toBe('21');
+        });
+
+        it('should return result fragments via getFragmentMemoryByVisibility', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                resultFragments: [[{ type: 'time', image: '5:00' } as any]],
+            }));
+            const locs = block.getFragmentMemoryByVisibility('result');
+            expect(locs).toHaveLength(1);
+            expect(locs[0].fragments[0].image).toBe('5:00');
+        });
+
+        it('should return private fragments via getFragmentMemoryByVisibility', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                privateFragments: {
+                    'fragment:label': [[{ type: 'label', image: 'Round 1' } as any]],
+                } as any,
+            }));
+            const locs = block.getFragmentMemoryByVisibility('private');
+            expect(locs).toHaveLength(1);
+            expect(locs[0].fragments[0].image).toBe('Round 1');
+        });
+
+        it('should return private fragments via getMemoryByTag with private tag', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                privateFragments: {
+                    'fragment:label': [[{ type: 'label', image: 'MyLabel' } as any]],
+                } as any,
+            }));
+            const locs = block.getMemoryByTag('fragment:label' as any);
+            expect(locs).toHaveLength(1);
+            expect(locs[0].fragments[0].image).toBe('MyLabel');
+        });
+
+        it('getAllMemory should include all tiers plus timer and next', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+                promoteFragments: [[{ type: 'reps', image: '21' } as any]],
+                resultFragments: [[{ type: 'time', image: '5:00' } as any]],
+                privateFragments: {
+                    'fragment:label': [[{ type: 'label', image: 'L' } as any]],
+                } as any,
+                timer: {
+                    format: 'mm:ss',
+                    direction: 'down',
+                    spans: [],
+                    isRunning: false,
+                    durationMs: 60000,
+                },
+                nextFragments: [{ type: 'effort', image: 'Squats' } as any],
+            }));
+
+            const all = block.getAllMemory();
+            // display(1) + promote(1) + result(1) + private(1) + timer(1) + next(1) = 6
+            expect(all).toHaveLength(6);
+        });
+
+        it('should update promote tier in-place on update()', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                promoteFragments: [[{ type: 'reps', image: '21' } as any]],
+            }));
+            const locs = block.getFragmentMemoryByVisibility('promote');
+            const received: ICodeFragment[][] = [];
+            locs[0].subscribe(nv => received.push(nv));
+
+            block.update(createSerializedBlock({
+                promoteFragments: [[{ type: 'reps', image: '15' } as any]],
+            }));
+
+            expect(received).toHaveLength(1);
+            expect(received[0][0].image).toBe('15');
+        });
+    });
+
+    describe('behavior metadata', () => {
+        it('should expose empty behaviors array when no metadata', () => {
+            const block = new ProxyBlock(createSerializedBlock());
+            expect(block.behaviors).toHaveLength(0);
+        });
+
+        it('should expose stub behaviors with correct names', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                behaviorsMetadata: [
+                    { name: 'CountdownTimerBehavior' },
+                    { name: 'RepSchemeBehavior' },
+                ],
+            }));
+            expect(block.behaviors).toHaveLength(2);
+            expect(block.behaviors[0].constructor.name).toBe('StubBehavior');
+            // Names are stored on the stub
+            expect((block.behaviors[0] as any).name).toBe('CountdownTimerBehavior');
+            expect((block.behaviors[1] as any).name).toBe('RepSchemeBehavior');
+        });
+
+        it('should update behaviors on update()', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                behaviorsMetadata: [{ name: 'OldBehavior' }],
+            }));
+            expect(block.behaviors).toHaveLength(1);
+
+            block.update(createSerializedBlock({
+                behaviorsMetadata: [{ name: 'NewBehavior1' }, { name: 'NewBehavior2' }],
+            }));
+
+            expect(block.behaviors).toHaveLength(2);
+            expect((block.behaviors[0] as any).name).toBe('NewBehavior1');
+        });
+    });
+
+    describe('update() in-place reactivity', () => {
+        it('should update isComplete in-place', () => {
+            const block = new ProxyBlock(createSerializedBlock({ isComplete: false }));
+            expect(block.isComplete).toBe(false);
+
+            block.update(createSerializedBlock({ isComplete: true, completionReason: 'timer-expired' }));
+
+            expect(block.isComplete).toBe(true);
+            expect(block.completionReason).toBe('timer-expired');
+        });
+
+        it('should update timer location in-place and fire subscribers', () => {
+            const timer: SerializedTimer = {
+                format: 'mm:ss',
+                direction: 'down',
+                spans: [{ started: 1000 }],
+                isRunning: true,
+                durationMs: 60000,
+            };
+            const block = new ProxyBlock(createSerializedBlock({ timer }));
+            const timerLocs = block.getMemoryByTag('time' as any);
+            const received: ICodeFragment[][] = [];
+            timerLocs[0].subscribe(nv => received.push(nv));
+
+            block.update(createSerializedBlock({
+                timer: { ...timer, spans: [{ started: 1000, ended: 5000 }], isRunning: false },
+            }));
+
+            expect(received).toHaveLength(1);
+            const state = received[0][0].value as any;
+            expect(state.spans[0].ended).toBe(5000);
+        });
+
+        it('should update next-preview in-place and fire subscribers', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                nextFragments: [{ type: 'effort', image: 'Run' } as any],
+            }));
+            const nextLocs = block.getMemoryByTag('fragment:next' as any);
+            const received: ICodeFragment[][] = [];
+            nextLocs[0].subscribe(nv => received.push(nv));
+
+            block.update(createSerializedBlock({
+                nextFragments: [{ type: 'effort', image: 'Bike' } as any],
+            }));
+
+            expect(received).toHaveLength(1);
+            expect(received[0][0].image).toBe('Bike');
+        });
+
+        it('should grow display locations when count increases', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Row1' } as any]],
+            }));
+            expect(block.getFragmentMemoryByVisibility('display')).toHaveLength(1);
+
+            block.update(createSerializedBlock({
+                displayFragments: [
+                    [{ type: 'text', image: 'Row1' } as any],
+                    [{ type: 'text', image: 'Row2' } as any],
+                ],
+            }));
+
+            expect(block.getFragmentMemoryByVisibility('display')).toHaveLength(2);
+        });
+
+        it('should shrink display locations when count decreases', () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                displayFragments: [
+                    [{ type: 'text', image: 'Row1' } as any],
+                    [{ type: 'text', image: 'Row2' } as any],
+                ],
+            }));
+            expect(block.getFragmentMemoryByVisibility('display')).toHaveLength(2);
+
+            block.update(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Row1' } as any]],
+            }));
+
+            expect(block.getFragmentMemoryByVisibility('display')).toHaveLength(1);
         });
     });
 

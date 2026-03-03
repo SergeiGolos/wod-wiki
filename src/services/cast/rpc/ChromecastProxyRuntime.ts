@@ -165,6 +165,13 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     private transportUnsub: (() => void) | null = null;
     private disposed = false;
 
+    /**
+     * Cache of active ProxyBlock instances keyed by block key string.
+     * Allows update()-in-place when new RPC snapshots arrive for the same block,
+     * preserving subscriber connections held by timer and fragment hooks.
+     */
+    private blockCache = new Map<string, ProxyBlock>();
+
     // Workbench display state (from rpc-workbench-update)
     private _workbenchState: WorkbenchDisplayState = { mode: 'idle' };
     private workbenchListeners = new Set<WorkbenchStateListener>();
@@ -272,6 +279,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.outputListeners.clear();
         this.workbenchListeners.clear();
         this.outputs = [];
+        this.blockCache.clear();
     }
 
     // ── RPC message handling ────────────────────────────────────────────────
@@ -308,12 +316,32 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             for (const listener of this.outputListeners) {
                 listener(null as any);
             }
+            // Clear cached blocks — the stack is fully reset
+            this.blockCache.clear();
         }
 
         let blocks: ProxyBlock[];
         try {
-            // Hydrate ProxyBlocks from serialized data
-            blocks = message.blocks.map(sb => new ProxyBlock(sb));
+            // Update existing ProxyBlocks in-place so subscribers keep their connections,
+            // or create new ProxyBlocks for blocks arriving on the stack for the first time.
+            blocks = message.blocks.map(sb => {
+                const existing = this.blockCache.get(sb.key);
+                if (existing) {
+                    existing.update(sb);
+                    return existing;
+                }
+                const newBlock = new ProxyBlock(sb);
+                this.blockCache.set(sb.key, newBlock);
+                return newBlock;
+            });
+
+            // Evict blocks that are no longer on the stack
+            const currentKeys = new Set(message.blocks.map(b => b.key));
+            for (const key of this.blockCache.keys()) {
+                if (!currentKeys.has(key)) {
+                    this.blockCache.delete(key);
+                }
+            }
         } catch (err) {
             console.error('[ChromecastProxyRuntime] Failed to hydrate ProxyBlocks from snapshot — snapshot dropped', err);
             return;
@@ -363,7 +391,12 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             completionReason: message.completionReason,
             timeSpan: new TimeSpan(message.timeSpan.started, message.timeSpan.ended),
             spans: [],
-            elapsed: 0,
+            // Use the pre-computed elapsed from the browser; fall back to span difference
+            elapsed: message.elapsed ?? (
+                message.timeSpan.ended !== undefined
+                    ? message.timeSpan.ended - message.timeSpan.started
+                    : 0
+            ),
             total: 0,
             // ICodeStatement fields (minimal stubs)
             type: 'output',

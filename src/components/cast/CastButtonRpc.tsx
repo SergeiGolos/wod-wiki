@@ -44,6 +44,8 @@ export const CastButtonRpc: React.FC = () => {
     isCastingRef.current = isCasting;
     const sdkStateRef = useRef(sdkState);
     sdkStateRef.current = sdkState;
+    const isDisconnectingRef = useRef(false);
+    isDisconnectingRef.current = isDisconnecting;
 
     // Initialize SDK on mount
     useEffect(() => {
@@ -128,7 +130,7 @@ export const CastButtonRpc: React.FC = () => {
             // If the SDK thinks we are casting, the button should stop it,
             // even if our internal WebRTC state (isCasting) is false.
             if (sdkStateRef.current === 'session-active') {
-                if (isDisconnecting) return;
+                if (isDisconnectingRef.current) return;
 
                 console.log('[CastButtonRpc] Stopping active session');
                 setIsDisconnecting(true);
