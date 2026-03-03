@@ -7,6 +7,7 @@ import { IRuntimeClock } from './IRuntimeClock';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IEvent } from './events/IEvent';
+import { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
 
 /**
  * Listener callback for output statement events.
@@ -144,6 +145,12 @@ export interface IScriptRuntime {
      * ```
      */
     subscribeToStack(observer: StackObserver): Unsubscribe;
+
+    /**
+     * Set the analytics engine for the runtime.
+     * The engine will process each output statement as it is added.
+     */
+    setAnalyticsEngine(engine: IAnalyticsEngine): void;
 
     dispose(): void;
 }

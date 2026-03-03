@@ -19,6 +19,7 @@ import { PopBlockAction } from './actions/stack/PopBlockAction';
 import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
+import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -48,6 +49,8 @@ export class ScriptRuntime implements IScriptRuntime {
 
     // The current execution context for the "turn"
     private _activeContext: ExecutionContext | null = null;
+
+    private _analyticsEngine: IAnalyticsEngine | null = null;
 
     public get tracker(): any {
         return this.options.tracker;
@@ -207,15 +210,23 @@ export class ScriptRuntime implements IScriptRuntime {
      * Used by BehaviorContext to emit outputs at any lifecycle point.
      */
     public addOutput(output: IOutputStatement): void {
-        this._outputStatements.push(output);
+        const processedOutput = this._analyticsEngine ? this._analyticsEngine.run(output) : output;
+        this._outputStatements.push(processedOutput);
 
         for (const listener of this._outputListeners) {
             try {
-                listener(output);
+                listener(processedOutput);
             } catch (err) {
                 console.error('[RT] Output listener error:', err);
             }
         }
+    }
+
+    /**
+     * Set the analytics engine for the runtime.
+     */
+    public setAnalyticsEngine(engine: IAnalyticsEngine): void {
+        this._analyticsEngine = engine;
     }
 
     // ========== Stack Observer API ==========
@@ -253,6 +264,15 @@ export class ScriptRuntime implements IScriptRuntime {
     public dispose(): void {
         // Stop the clock
         this.clock.stop();
+
+        // Finalize analytics before disposing everything else
+        if (this._analyticsEngine) {
+            const finalOutputs = this._analyticsEngine.finalize();
+            for (const output of finalOutputs) {
+                this.addOutput(output);
+            }
+            this._analyticsEngine = null;
+        }
 
         // Properly unmount and dispose each block (top-down)
         while (this.stack.count > 0) {

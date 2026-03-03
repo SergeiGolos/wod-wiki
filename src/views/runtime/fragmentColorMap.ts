@@ -16,7 +16,8 @@ export type FragmentType =
   | 'spans'
   | 'elapsed'
   | 'total'
-  | 'system-time';
+  | 'system-time'
+  | 'metric';
 
 export type FragmentColorMap = {
   readonly [key in FragmentType]: string;
@@ -42,6 +43,7 @@ export const fragmentColorMap: FragmentColorMap = {
   elapsed: 'bg-sky-100 border-sky-200 text-sky-800 dark:bg-sky-900/50 dark:border-sky-800 dark:text-sky-100',
   total: 'bg-slate-100 border-slate-200 text-slate-800 dark:bg-slate-900/50 dark:border-slate-800 dark:text-slate-100',
   'system-time': 'bg-zinc-100 border-zinc-200 text-zinc-800 dark:bg-zinc-900/50 dark:border-zinc-800 dark:text-zinc-100',
+  metric: 'bg-orange-100 border-orange-200 text-orange-800 dark:bg-orange-900/50 dark:border-orange-800 dark:text-orange-100',
 };
 
 /**
@@ -75,6 +77,7 @@ const fragmentIconMap: Record<string, string> = {
   'spans': '📊',
   'total': '🕐',
   'system-time': '🖥️',
+  'metric': '📈',
 };
 
 /**

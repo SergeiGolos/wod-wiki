@@ -115,4 +115,5 @@ export enum FragmentType {
   System = 'system',
   Label = 'label',
   Lap = 'lap',
+  Metric = 'metric',
 }

@@ -28,6 +28,7 @@ export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
   FragmentType.Resistance,
   FragmentType.Action,
   FragmentType.Increment,
+  FragmentType.Metric,
   FragmentType.Group,
   FragmentType.System,
 ];
@@ -45,6 +46,7 @@ const DEFAULT_VISIBLE_COLUMNS: FragmentType[] = [
   FragmentType.Resistance,
   FragmentType.Action,
   FragmentType.Increment,
+  FragmentType.Metric,
 ];
 
 /**
@@ -55,7 +57,7 @@ export const DEFAULT_PRESET: GridViewPreset = {
   id: 'default',
   label: 'Default',
   filters: {
-    outputTypes: ['segment', 'milestone', 'group'],
+    outputTypes: ['segment', 'milestone', 'group', 'analytics'],
   },
   visibleColumns: DEFAULT_VISIBLE_COLUMNS,
   isDefault: true,
@@ -264,6 +266,7 @@ function isNumericFragmentType(ft: FragmentType): boolean {
     case FragmentType.Rounds:
     case FragmentType.Resistance:
     case FragmentType.Increment:
+    case FragmentType.Metric:
       return true;
     default:
       return false;

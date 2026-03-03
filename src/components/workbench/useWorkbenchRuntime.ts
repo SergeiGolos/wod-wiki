@@ -11,6 +11,9 @@ import { IEvent } from '../../runtime/contracts/events/IEvent';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RegisterEventHandlerAction } from '../../runtime/actions/events/RegisterEventHandlerAction';
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
+import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
+import { RunningSumProcess } from '../../core/analytics/RunningSumProcess';
+import { FragmentType } from '../../core/models/CodeFragment';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -46,6 +49,12 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             // Register the handler
             const action = new RegisterEventHandlerAction(audioHandler, 'global');
             action.do(runtime);
+
+            // Setup Analytics Engine
+            const engine = new AnalyticsEngine();
+            engine.addProcess(new RunningSumProcess('repetitions', FragmentType.Rep));
+            engine.addProcess(new RunningSumProcess('resistance', FragmentType.Resistance));
+            runtime.setAnalyticsEngine(engine);
 
             // Cleanup on unmount or runtime change
             return () => {

@@ -130,7 +130,7 @@ class ChromecastSdkClass {
         ctx.setOptions({
             receiverApplicationId: appId,
             autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
-            resumeSavedSession: false,
+            resumeSavedSession: true,
         });
 
         // Listen for session state changes

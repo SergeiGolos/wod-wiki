@@ -96,18 +96,23 @@ export function usePrimaryTimer(): StackTimerEntry | undefined {
     return useMemo(() => {
         if (timers.length === 0) return undefined;
 
-        const leaf = timers[timers.length - 1];
+        // Blocks are delivered in leaf→root order (index 0 = top of stack / leaf,
+        // index last = bottom of stack / root). timers mirrors that order.
+        const leaf = timers[0];
 
         // Rest blocks always become the pinned timer when pushed.
         // Their countdown should override any parent's pinned timer.
         if (leaf.block.blockType === 'Rest') return leaf;
 
-        // Find the lowest (root-closest / first in array) pinned timer.
-        // Parent blocks pin their timer so it stays visible while children execute.
-        const pinned = timers.find(t => t.isPinned);
+        // Find the lowest (root-closest / LAST in array) pinned timer.
+        // Parent blocks (AMRAP, EMOM) pin their countdown so it stays visible
+        // while child exercises execute beneath them.
+        // Search from root end (last index) toward leaf so the root-closest pinned
+        // timer is returned when multiple blocks are pinned.
+        const pinned = [...timers].reverse().find(t => t.isPinned);
         if (pinned) return pinned;
 
-        // Fallback: leaf timer (top of stack = last in array)
+        // Fallback: leaf timer (top of stack = index 0 in leaf→root order)
         return leaf;
     }, [timers]);
 }

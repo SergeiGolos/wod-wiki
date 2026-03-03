@@ -299,6 +299,17 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     }
 
     private handleStackUpdate(message: RpcStackUpdate): void {
+        // When the browser clears the stack (workout reset / new session start),
+        // purge any accumulated output statements from the previous session so
+        // the left-panel completion history doesn't bleed across sessions.
+        if (message.snapshotType === 'clear') {
+            this.outputs = [];
+            // Notify output subscribers so useOutputStatements re-fetches (→ empty).
+            for (const listener of this.outputListeners) {
+                listener(null as any);
+            }
+        }
+
         let blocks: ProxyBlock[];
         try {
             // Hydrate ProxyBlocks from serialized data
