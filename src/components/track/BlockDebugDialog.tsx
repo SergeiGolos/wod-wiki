@@ -140,7 +140,7 @@ const StatementsTab: React.FC<{ statements: ICodeStatement[] }> = ({ statements 
                     </div>
                     <div className="py-0.5">
                         <MetricSourceRow
-                            metric={stmt.metrics}
+                            metrics={stmt.metrics}
                             size="compact"
                         />
                     </div>
@@ -213,7 +213,7 @@ const MemoryTab: React.FC<{ block: IRuntimeBlock; locations: ReturnType<IRuntime
                     </div>
                     <div className="py-0.5">
                         <MetricSourceRow
-                            metric={loc.metrics}
+                            metrics={loc.metrics}
                             size="compact"
                         />
                     </div>

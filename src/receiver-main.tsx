@@ -201,7 +201,7 @@ const RemoteVisualStatePanel: React.FC<{
             )}>
               <div className="flex flex-col gap-0.5 p-3">
                 <MetricSourceRow
-                  metric={lookahead.metrics}
+                  metrics={lookahead.metrics}
                   size="compact"
                 />
               </div>

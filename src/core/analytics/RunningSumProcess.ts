@@ -11,18 +11,18 @@ export class RunningSumProcess implements IAnalyticsProcess {
     public readonly id = 'running-sum';
     private total = 0;
     private metricType: string;
-    private metricType: MetricType;
+    private filterType: MetricType;
 
-    constructor(metricType: string = 'repetitions', metricType: MetricType = MetricType.Rep) {
+    constructor(metricType: string = 'repetitions', filterType: MetricType = MetricType.Rep) {
         this.metricType = metricType;
-        this.metricType = metricType;
+        this.filterType = filterType;
     }
 
     process(output: IOutputStatement): IOutputStatement {
         // Only process segments that have the metric we are tracking
         if (output.outputType === 'segment') {
-            const metrics = output.getDisplayMetrics({ types: [this.metricType] });
-            for (const frag of metric) {
+            const metrics = output.getDisplayMetrics({ types: [this.filterType] });
+            for (const frag of metrics) {
                 if (typeof frag.value === 'number') {
                     this.total += frag.value;
                 }

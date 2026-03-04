@@ -390,7 +390,7 @@ export const LookaheadView: React.FC<{
                 {/* Fragment rows — rendered like a workout block card */}
                 <div className="flex flex-col gap-0.5 p-3">
                     <MetricSourceRow
-                        metric={preview.metrics}
+                        metrics={preview.metrics}
                         size="compact"
                         isLeaf={false}
                     />

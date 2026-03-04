@@ -873,7 +873,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
                         </td>
                         <td className="p-2">
                           <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * COLUMN_INDENT_REM}rem` : '0' }}>
-                            <MetricVisualizer metric={statement.metrics} />
+                            <MetricVisualizer metrics={statement.metrics} />
                           </div>
                         </td>
                       </tr>

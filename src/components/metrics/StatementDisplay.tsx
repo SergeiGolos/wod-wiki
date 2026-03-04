@@ -65,7 +65,7 @@ export const StatementDisplay: React.FC<StatementDisplayProps> = ({
     <div className={containerClass} onClick={onClick}>
       <div className="flex-1 min-w-0">
         <MetricVisualizer
-          metric={statement.metrics || []}
+          metrics={statement.metrics || []}
           className={compact ? 'gap-0.5' : 'gap-1'}
         />
       </div>
@@ -187,7 +187,7 @@ export const BlockDisplay: React.FC<BlockDisplayProps> = ({
       {metrics && metrics.length > 0 && (
         <div className="flex-1 min-w-0">
           <MetricVisualizer
-            metric={metrics}
+            metrics={metrics}
             className={compact ? 'gap-0.5' : 'gap-1'}
           />
         </div>
@@ -221,17 +221,17 @@ export interface MetricListProps {
  * MetricList - Simple list of colored metrics tags
  */
 export const MetricList: React.FC<MetricListProps> = ({
-  metric,
+  metrics,
   compact = false,
   className
 }) => {
-  if (!metric || metrics.length === 0) {
+  if (!metrics || metrics.length === 0) {
     return null;
   }
 
   return (
     <MetricVisualizer
-      metric={metric}
+      metrics={metrics}
       className={cn(compact ? 'gap-0.5' : 'gap-1', className)}
     />
   );

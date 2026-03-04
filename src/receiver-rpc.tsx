@@ -194,7 +194,7 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                         )}>
                             <div className="flex flex-col gap-0.5 p-3">
                                 <MetricSourceRow
-                                    metric={nextPreview.metrics}
+                                    metrics={nextPreview.metrics}
                                     size="compact"
                                     isLeaf={false}
                                 />

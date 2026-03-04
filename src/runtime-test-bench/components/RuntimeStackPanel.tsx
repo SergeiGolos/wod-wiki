@@ -98,7 +98,7 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
                 ))}
               </div>
             ) : block.metrics && block.metrics.length > 0 ? (
-              <MetricVisualizer metric={block.metrics} className="gap-0.5" />
+              <MetricVisualizer metrics={block.metrics} className="gap-0.5" />
             ) : block.metrics && Object.keys(block.metrics).length > 0 ? (
               <div className="flex gap-1 text-[10px] text-muted-foreground">
                 {Object.entries(block.metrics).slice(0, 3).map(([key, value]) => (

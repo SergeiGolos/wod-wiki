@@ -27,7 +27,7 @@ export interface MetricVisualizerProps {
  * with color-coded visualization and icons.
  */
 export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
-  metric,
+  metrics,
   error,
   className = '',
   size = 'normal',
@@ -41,14 +41,14 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
     return metrics.filter(metric => {
       // 1. Check Name Overrides (Highest Priority)
       // Value can be string or object, so we convert to string safely for key lookup
-      const valueKey = String(metrics.value || '').toLowerCase();
+      const valueKey = String(metric.value || '').toLowerCase();
       // Also check type as name for things like 'ellapsed-time' if strictly named that way in data
       // For now assume value or metricType might be used as key? 
       // User said: "overrides by name by specific metric type 'rep' 'ellapsed-time'"
       // Assuming 'ellapsed-time' is a value or specific type? 
       // Let's check both value and type against nameOverrides for flexibility.
 
-      const typeKey = (metrics.metricType || metrics.type).toLowerCase();
+      const typeKey = (metric.metricType || metric.type).toLowerCase();
 
       if (filter.nameOverrides) {
         if (valueKey in filter.nameOverrides) {
@@ -69,7 +69,7 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
       // If allowedOrigins is defined, metrics MUST have a matching origin.
       // If metric has NO origin, we assume 'parser' (default).
       if (filter.allowedOrigins) {
-        const origin = metrics.origin || 'parser';
+        const origin = metric.origin || 'parser';
         const isAllowed = filter.allowedOrigins.includes(origin as any);
         return isAllowed;
       }
@@ -163,7 +163,7 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
               currentStyle.padding,
               currentStyle.text
             )}
-            title={`${type.toUpperCase()}: ${JSON.stringify(metrics.value, null, 2)}`}
+            title={`${type.toUpperCase()}: ${JSON.stringify(metric.value, null, 2)}`}
           >
             {icon && <span className={currentStyle.icon}>{icon}</span>}
             <span>{tokenValue}</span>

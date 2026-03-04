@@ -16,7 +16,7 @@ const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
             <td className="p-3 align-top text-sm text-gray-500 w-24">{range}</td>
             <td className="p-3">
                 <div style={{ paddingLeft }}>
-                    <MetricVisualizer metric={statement.metrics} />
+                    <MetricVisualizer metrics={statement.metrics} />
                 </div>
             </td>
         </tr>

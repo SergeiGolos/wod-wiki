@@ -72,7 +72,7 @@ export function useNextPreview(): NextPreview | null {
             // Collect metrics from all metrics:next locations
             const metrics = nextLocs.flatMap(loc => loc.metrics);
             if (metrics.length > 0) {
-                return { metric, block };
+                return { metrics, block };
             }
         }
 
