@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'bun:test';
-import { FragmentType, ICodeFragment } from '../../../core/models/CodeFragment';
+import { MetricType, IMetric } from '../../../core/models/Metric';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
 import { LabelingBehavior } from '../LabelingBehavior';
-import { CurrentRoundFragment } from '../../compiler/fragments/CurrentRoundFragment';
+import { CurrentRoundMetric } from '../../compiler/metrics/CurrentRoundMetric';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
     const memoryLocations: IMemoryLocation[] = [];
@@ -12,7 +12,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         block: {
             key: { toString: () => 'test-block' },
             label: 'Fallback Label',
-            fragments: [],
+            metrics: [],
             completionReason: undefined,
             getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(location => location.tag === tag),
             getAllMemory: () => [...memoryLocations],
@@ -26,19 +26,19 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         markComplete: vi.fn(),
         getMemory: vi.fn(),
         setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
-            const location = new MemoryLocation(tag, fragments);
+        pushMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
+            const location = new MemoryLocation(tag, metrics);
             memoryLocations.push(location);
             return location;
         }),
-        updateMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
             const location = memoryLocations.find(loc => loc.tag === tag);
             if (location) {
-                location.update(fragments);
+                location.update(metrics);
                 return;
             }
 
-            memoryLocations.push(new MemoryLocation(tag, fragments));
+            memoryLocations.push(new MemoryLocation(tag, metrics));
         }),
         ...overrides
     } as unknown as IBehaviorContext;
@@ -48,12 +48,12 @@ function getDisplayTextByRole(ctx: IBehaviorContext, role: string): string | und
     const location = ctx.block.getMemoryByTag('display')[0];
     if (!location) return undefined;
 
-    const fragment = location.fragments.find(fragment => {
-        const value = fragment.value as { role?: string } | undefined;
+    const metric = location.metrics.find(m => {
+        const value = m.value as { role?: string } | undefined;
         return value?.role === role;
     });
 
-    return (fragment?.value as { text?: string } | undefined)?.text;
+    return (metric?.value as { text?: string } | undefined)?.text;
 }
 
 describe('LabelingBehavior', () => {
@@ -75,7 +75,7 @@ describe('LabelingBehavior', () => {
         expect(getDisplayTextByRole(ctx, 'label')).toBe('Fallback Label');
     });
 
-    it('sets subtitle fragment', () => {
+    it('sets subtitle metrics', () => {
         const ctx = createMockContext();
         const behavior = new LabelingBehavior({ subtitle: 'Warm-up' });
 
@@ -84,7 +84,7 @@ describe('LabelingBehavior', () => {
         expect(getDisplayTextByRole(ctx, 'subtitle')).toBe('Warm-up');
     });
 
-    it('sets actionDisplay fragment', () => {
+    it('sets actionDisplay metrics', () => {
         const ctx = createMockContext();
         const behavior = new LabelingBehavior({ actionDisplay: 'Run' });
 
@@ -105,12 +105,12 @@ describe('LabelingBehavior', () => {
 
         const location = ctx.block.getMemoryByTag('display')[0];
         expect(location).toBeDefined();
-        expect(location.fragments).toHaveLength(3);
+        expect(location.metrics).toHaveLength(3);
     });
 
     it('shows round display when round memory is present', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundFragment(2, 5, 'test-block', new Date())]);
+        ctx.pushMemory('round', [new CurrentRoundMetric(2, 5, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'Rounds' });
         behavior.onMount(ctx);
@@ -129,7 +129,7 @@ describe('LabelingBehavior', () => {
 
     it('formats unbounded rounds as "Round X"', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundFragment(3, undefined, 'test-block', new Date())]);
+        ctx.pushMemory('round', [new CurrentRoundMetric(3, undefined, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'AMRAP' });
         behavior.onMount(ctx);
@@ -139,34 +139,34 @@ describe('LabelingBehavior', () => {
 
     it('updates round display on next()', () => {
         const ctx = createMockContext();
-        const roundLocation = ctx.pushMemory('round', [new CurrentRoundFragment(1, 3, 'test-block', new Date())]);
+        const roundLocation = ctx.pushMemory('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'Rounds' });
         behavior.onMount(ctx);
 
-        roundLocation.update([new CurrentRoundFragment(2, 3, 'test-block', new Date())]);
+        roundLocation.update([new CurrentRoundMetric(2, 3, 'test-block', new Date())]);
 
         behavior.onNext(ctx);
 
         expect(getDisplayTextByRole(ctx, 'round')).toBe('Round 2 of 3');
     });
 
-    it('does not accumulate duplicate round fragments', () => {
+    it('does not accumulate duplicate round metrics', () => {
         const ctx = createMockContext();
-        const roundLocation = ctx.pushMemory('round', [new CurrentRoundFragment(1, 3, 'test-block', new Date())]);
+        const roundLocation = ctx.pushMemory('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ label: 'Rounds' });
         behavior.onMount(ctx);
 
-        roundLocation.update([new CurrentRoundFragment(2, 3, 'test-block', new Date())]);
+        roundLocation.update([new CurrentRoundMetric(2, 3, 'test-block', new Date())]);
         behavior.onNext(ctx);
 
-        roundLocation.update([new CurrentRoundFragment(3, 3, 'test-block', new Date())]);
+        roundLocation.update([new CurrentRoundMetric(3, 3, 'test-block', new Date())]);
         behavior.onNext(ctx);
 
         const display = ctx.block.getMemoryByTag('display')[0];
-        const roundFragments = display.fragments.filter(fragment => {
-            const value = fragment.value as { role?: string } | undefined;
+        const roundFragments = display.metrics.filter(metric => {
+            const value = metric.value as { role?: string } | undefined;
             return value?.role === 'round';
         });
 
@@ -175,7 +175,7 @@ describe('LabelingBehavior', () => {
 
     it('supports custom round formatter', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundFragment(2, 4, 'test-block', new Date())]);
+        ctx.pushMemory('round', [new CurrentRoundMetric(2, 4, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({
             roundFormat: (current, total) => `Set ${current}/${total ?? '?'}`
@@ -188,7 +188,7 @@ describe('LabelingBehavior', () => {
 
     it('respects showRoundDisplay=false even when round memory exists', () => {
         const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundFragment(1, 5, 'test-block', new Date())]);
+        ctx.pushMemory('round', [new CurrentRoundMetric(1, 5, 'test-block', new Date())]);
 
         const behavior = new LabelingBehavior({ showRoundDisplay: false });
         behavior.onMount(ctx);

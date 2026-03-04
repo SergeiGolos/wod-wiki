@@ -1,7 +1,7 @@
 /**
- * Runtime utilities for fragment operations
+ * Runtime utilities for metrics operations
  */
 
 export {
   fragmentsToLabel
-} from './fragmentUtils';
+} from './metricUtils';

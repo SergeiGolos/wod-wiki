@@ -1,4 +1,4 @@
-import { ICodeFragment } from '@/core/models/CodeFragment';
+import { IMetric } from '@/core/models/Metric';
 import { MemoryTag } from '@/runtime/memory/MemoryLocation';
 
 // ============================================================================
@@ -42,8 +42,8 @@ export interface SerializedTimer {
  *
  * Contains only what the receiver workbench needs to render:
  * - Identity (key, blockType, label)
- * - Display state (fragment rows, timer, completion)
- * - All fragment visibility tiers (display, promote, result, private)
+ * - Display state (metrics rows, timer, completion)
+ * - All metric visibility tiers (display, promote, result, private)
  * - Behavior metadata for debug inspection
  * - No methods, no references to runtime internals
  */
@@ -55,39 +55,39 @@ export interface SerializedBlock {
     isComplete: boolean;
     completionReason?: string;
 
-    /** Fragment rows from getFragmentMemoryByVisibility('display') */
-    displayFragments: ICodeFragment[][];
+    /** Fragment rows from getMetricMemoryByVisibility('display') */
+    displayFragments: IMetric[][];
 
     /**
-     * Fragment rows from getFragmentMemoryByVisibility('promote').
+     * Fragment rows from getMetricMemoryByVisibility('promote').
      * Inherited by child blocks during JIT compilation.
      * Grouped by memory location (one array per location).
      */
-    promoteFragments?: ICodeFragment[][];
+    promoteFragments?: IMetric[][];
 
     /**
-     * Fragment rows from getFragmentMemoryByVisibility('result').
-     * Block output fragments collected on unmount/completion.
+     * Fragment rows from getMetricMemoryByVisibility('result').
+     * Block output metric collected on unmount/completion.
      */
-    resultFragments?: ICodeFragment[][];
+    resultFragments?: IMetric[][];
 
     /**
-     * Private fragment locations, keyed by memory tag.
-     * Groups multiple locations per tag: Record<tag, ICodeFragment[][]>
-     * (e.g. fragment:label → [[LabelFragment]], fragment:tracked → [[...], [...]])
+     * Private metrics locations, keyed by memory tag.
+     * Groups multiple locations per tag: Record<tag, IMetric[][]>
+     * (e.g. metric:label → [[LabelMetric]], metric:tracked → [[...], [...]])
      */
-    privateFragments?: Record<MemoryTag, ICodeFragment[][]>;
+    privateFragments?: Record<MemoryTag, IMetric[][]>;
 
     /** Timer state (if the block has a timer memory location) */
     timer: SerializedTimer | null;
 
     /**
-     * "Up Next" preview fragments from the block's fragment:next memory.
+     * "Up Next" preview metrics from the block's metrics:next memory.
      * Used by useNextPreview() on the receiver to render the Up Next panel.
      * Empty array when no next-preview is available.
      * Optional for backwards compatibility with test fixtures created before this field.
      */
-    nextFragments?: ICodeFragment[];
+    nextFragments?: IMetric[];
 
     /**
      * Behavior metadata — name-only descriptors for each attached behavior.
@@ -120,7 +120,7 @@ export interface RpcOutputStatement {
     outputType: string;
     sourceBlockKey: string;
     stackLevel: number;
-    fragments: ICodeFragment[];
+    metrics: IMetric[];
     completionReason?: string;
     timeSpan: { started: number; ended?: number };
     /** Pre-computed elapsed duration in ms (ended - started, or 0 if still running). */

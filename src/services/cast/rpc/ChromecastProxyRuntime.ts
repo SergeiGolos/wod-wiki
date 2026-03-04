@@ -168,7 +168,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     /**
      * Cache of active ProxyBlock instances keyed by block key string.
      * Allows update()-in-place when new RPC snapshots arrive for the same block,
-     * preserving subscriber connections held by timer and fragment hooks.
+     * preserving subscriber connections held by timer and metrics hooks.
      */
     private blockCache = new Map<string, ProxyBlock>();
 
@@ -386,8 +386,8 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             outputType: message.outputType as any,
             sourceBlockKey: message.sourceBlockKey,
             stackLevel: message.stackLevel,
-            fragments: message.fragments,
-            fragmentMeta: new Map(),
+            metrics: message.metrics,
+            metricMeta: new Map(),
             completionReason: message.completionReason,
             timeSpan: new TimeSpan(message.timeSpan.started, message.timeSpan.ended),
             spans: [],
@@ -402,10 +402,10 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             type: 'output',
             sourceIds: [],
             children: [],
-            getAllFragmentsByType: () => [],
+            getAllMetricsByType: () => [],
             getFragment: () => undefined,
-            getDisplayFragments: () => message.fragments,
-            getFragmentsByOrigin: () => message.fragments,
+            getDisplayMetrics: () => message.metrics,
+            getFragmentsByOrigin: () => message.metrics,
         } as any;
 
         this.addOutput(output);

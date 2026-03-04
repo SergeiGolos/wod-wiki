@@ -26,7 +26,7 @@ import { ReportOutputBehavior } from '../../ReportOutputBehavior';
 import { LabelingBehavior } from '../../LabelingBehavior';
 import { ChildSelectionBehavior } from '../../ChildSelectionBehavior';
 import { RoundState } from '../../../memory/MemoryTypes';
-import { CurrentRoundFragment } from '../../../compiler/fragments/CurrentRoundFragment';
+import { CurrentRoundMetric } from '../../../compiler/metrics/CurrentRoundMetric';
 
 describe('Loop Block Integration', () => {
     let runtime: MockRuntime;
@@ -44,9 +44,9 @@ describe('Loop Block Integration', () => {
      * we drive it manually.
      */
     function simulateRoundAdvance(ctx: IBehaviorContext) {
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         if (!round) return;
-        const frag = new CurrentRoundFragment(
+        const frag = new CurrentRoundMetric(
             round.current + 1,
             round.total,
             'test-block',
@@ -168,12 +168,12 @@ describe('Loop Block Integration', () => {
             advanceBehaviors(behaviors, ctx); // Round 3 > 2, complete
             unmountBehaviors(behaviors, ctx);
 
-            // Completion output now emitted with elapsed/total/spans fragments
+            // Completion output now emitted with elapsed/total/spans metrics
             const completions = findOutputs(runtime, 'completion');
             expect(completions.length).toBe(1);
 
             const completion = completions[0];
-            const hasSpans = (completion.fragments as any[]).some(f => f.fragmentType === 'spans');
+            const hasSpans = (completion.metrics as any[]).some(f => f.metricType === 'spans');
             expect(hasSpans).toBe(true);
         });
 

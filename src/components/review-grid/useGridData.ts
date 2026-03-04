@@ -5,14 +5,14 @@
  * GridRow[] / GridColumn[] ready for table rendering.
  *
  * Responsibilities:
- * - Pivot fragments from each segment into column-keyed cells
- * - Merge user overrides on top of runtime fragments
+ * - Pivot metrics from each segment into column-keyed cells
+ * - Merge user overrides on top of runtime metric
  * - Apply preset filters, column filters, and global search
  * - Apply sorting (single or multi-column)
  */
 
 import { useMemo } from 'react';
-import { FragmentType, type ICodeFragment } from '@/core/models/CodeFragment';
+import { MetricType, type IMetric } from '@/core/models/Metric';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type {
   GridRow,
@@ -31,7 +31,7 @@ export interface UseGridDataOptions {
   /** Analytics segments produced by AnalyticsTransformer */
   segments: Segment[];
   /** User-supplied overrides keyed by sourceBlockKey */
-  userOutputOverrides: Map<string, ICodeFragment[]>;
+  userOutputOverrides: Map<string, IMetric[]>;
   /** Active preset id */
   presetId: string;
   /** Whether the workbench is in debug mode */
@@ -66,41 +66,41 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
   const preset = useMemo(() => getPreset(presetId), [presetId]);
 
-  // 1. Identify which fragment types actually exist in the data
+  // 1. Identify which metrics types actually exist in the data
   //    (We check both runtime segments AND user overrides)
-  const activeFragmentTypes = useMemo(() => {
-    const types = new Set<FragmentType>();
+  const activeMetricTypes = useMemo(() => {
+    const types = new Set<MetricType>();
 
-    const addType = (ft: FragmentType) => {
-      // Guard: skip undefined/null fragmentType (defensive against malformed fragments)
+    const addType = (ft: MetricType) => {
+      // Guard: skip undefined/null metricType (defensive against malformed metric)
       if (ft == null) return;
       // Redirection: Label, Text, and CurrentRound are now part of Effort column
-      if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
-        types.add(FragmentType.Effort);
+      if (ft === MetricType.Label || ft === MetricType.Text || ft === MetricType.CurrentRound) {
+        types.add(MetricType.Effort);
         return;
       }
       // Noise suppression: Sound is hidden
-      if (ft === FragmentType.Sound) return;
+      if (ft === MetricType.Sound) return;
       
-      // Elapsed and Total are now combined into a fixed column, suppress as fragments
-      if (ft === FragmentType.Elapsed || ft === FragmentType.Total) return;
+      // Elapsed and Total are now combined into a fixed column, suppress as metrics
+      if (ft === MetricType.Elapsed || ft === MetricType.Total) return;
       
       types.add(ft);
     };
 
     // Check runtime segments
     for (const seg of segments) {
-      if (seg.fragments) {
-        for (const f of seg.fragments) {
-          addType(f.fragmentType);
+      if (seg.metrics) {
+        for (const f of seg.metrics) {
+          addType(f.metricType);
         }
       }
     }
 
     // Check user overrides
-    for (const fragments of userOutputOverrides.values()) {
-      for (const f of fragments) {
-        addType(f.fragmentType);
+    for (const metrics of userOutputOverrides.values()) {
+      for (const f of metric) {
+        addType(f.metricType);
       }
     }
 
@@ -112,41 +112,41 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     () => {
       const cols = buildAllColumns(preset, isDebugMode);
 
-      // Filter: Only keep fragment columns that have data
+      // Filter: Only keep metrics columns that have data
       const activeCols = cols.filter((col) => {
-        // Always keep structural columns (no fragmentType)
-        if (!col.fragmentType) return true;
+        // Always keep structural columns (no metricType)
+        if (!col.metricType) return true;
 
         // Strict debug check: 'system' columns are hidden unless in debug mode
-        if (col.fragmentType === FragmentType.System && !isDebugMode) {
+        if (col.metricType === MetricType.System && !isDebugMode) {
           return false;
         }
 
-        // EXCEPTION: Always keep structural columns (no fragmentType)
+        // EXCEPTION: Always keep structural columns (no metricType)
         // or specifically requested columns like Timestamp/Spans/Effort
         if (
-          !col.fragmentType ||
+          !col.metricType ||
           col.id === FIXED_COLUMN_IDS.TIMESTAMP ||
           col.id === FIXED_COLUMN_IDS.SPANS ||
-          col.fragmentType === FragmentType.Effort
+          col.metricType === MetricType.Effort
         ) {
           return true;
         }
 
-        // Only keep fragment columns if that type exists in the data
-        return activeFragmentTypes.has(col.fragmentType);
+        // Only keep metrics columns if that type exists in the data
+        return activeMetricTypes.has(col.metricType);
       });
 
-      // Map: Force visibility for active fragment columns (auto-select)
+      // Map: Force visibility for active metrics columns (auto-select)
       // and apply graph tags
       const mappedCols = activeCols.map((col) => {
         let newCol = { ...col };
 
-        // If it's an active fragment column, ensure it's visible by default
-        if (col.fragmentType && activeFragmentTypes.has(col.fragmentType)) {
-          // System fragment columns only auto-show in debug mode
-          // (Does not affect Timestamp/Spans as they use different FragmentTypes)
-          if (col.fragmentType === FragmentType.System) {
+        // If it's an active metrics column, ensure it's visible by default
+        if (col.metricType && activeMetricTypes.has(col.metricType)) {
+          // System metric columns only auto-show in debug mode
+          // (Does not affect Timestamp/Spans as they use different MetricTypes)
+          if (col.metricType === MetricType.System) {
             newCol.visible = isDebugMode;
           } else {
             newCol.visible = true;
@@ -163,23 +163,23 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
       // 3. Identify and add "orphan" columns
       // (Fragment types present in data but not in ALL_FRAGMENT_COLUMNS)
-      const knownTypes = new Set(mappedCols.map(c => c.fragmentType).filter(Boolean));
+      const knownTypes = new Set(mappedCols.map(c => c.metricType).filter(Boolean));
 
-      const orphanTypes = Array.from(activeFragmentTypes).filter(ft => {
+      const orphanTypes = Array.from(activeMetricTypes).filter(ft => {
         if (knownTypes.has(ft)) return false;
         
         // Strict suppression for system types that shouldn't auto-appear
-        if (ft === FragmentType.System && !isDebugMode) return false;
+        if (ft === MetricType.System && !isDebugMode) return false;
         
-        // Elapsed and Total are now combined into a fixed column, suppress as fragments
-        if (ft === FragmentType.Elapsed || ft === FragmentType.Total) return false;
+        // Elapsed and Total are now combined into a fixed column, suppress as metrics
+        if (ft === MetricType.Elapsed || ft === MetricType.Total) return false;
         
         return true;
       });
 
       const orphanCols: GridColumn[] = orphanTypes.map(ft => ({
         id: ft,
-        fragmentType: ft,
+        metricType: ft,
         label: ft.charAt(0).toUpperCase() + ft.slice(1),
         sortable: true,
         filterable: true,
@@ -190,7 +190,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
       return [...mappedCols, ...orphanCols];
     },
-    [preset, isDebugMode, graphTaggedColumns, activeFragmentTypes],
+    [preset, isDebugMode, graphTaggedColumns, activeMetricTypes],
   );
 
   // Merge filter: preset filters + user overrides
@@ -220,7 +220,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 // ─── Row Construction ──────────────────────────────────────────
 
 /**
- * Convert Segment[] into GridRow[], pivoting fragments into cells.
+ * Convert Segment[] into GridRow[], pivoting metrics into cells.
  * User overrides are merged into the cell data.
  */
 interface SegmentWithContext extends Segment {
@@ -229,14 +229,14 @@ interface SegmentWithContext extends Segment {
 
 function segmentsToRows(
   segments: Segment[],
-  userOverrides: Map<string, ICodeFragment[]>,
+  userOverrides: Map<string, IMetric[]>,
 ): GridRow[] {
   return segments.map((seg, idx) => {
-    const cells = new Map<FragmentType, GridCell>();
+    const cells = new Map<MetricType, GridCell>();
 
-    // Group runtime fragments by FragmentType
-    if (seg.fragments) {
-      for (const frag of seg.fragments) {
+    // Group runtime metrics by MetricType
+    if (seg.metrics) {
+      for (const frag of seg.metrics) {
         groupFragmentIntoCell(cells, frag);
       }
     }
@@ -252,7 +252,7 @@ function segmentsToRows(
 
     // Mark cells that contain user overrides
     for (const [, cell] of cells) {
-      (cell as { hasUserOverride: boolean }).hasUserOverride = cell.fragments.some(
+      (cell as { hasUserOverride: boolean }).hasUserOverride = cell.metrics.some(
         (f) => f.origin === 'user',
       );
     }
@@ -289,33 +289,33 @@ function extractBlockKey(seg: Segment): string | undefined {
 }
 
 /**
- * Group a single fragment into the cells map.
- * EXCEPTION: Label fragments are merged into the Effort cell to compose them
- * in one column. Sound fragments are ignored.
+ * Group a single metrics into the cells map.
+ * EXCEPTION: Label metric are merged into the Effort cell to compose them
+ * in one column. Sound metric are ignored.
  */
 function groupFragmentIntoCell(
-  cells: Map<FragmentType, GridCell>,
-  frag: ICodeFragment,
+  cells: Map<MetricType, GridCell>,
+  frag: IMetric,
 ): void {
-  let ft = frag.fragmentType;
+  let ft = frag.metricType;
 
   // Composed columns: Combine Label, Text, and CurrentRound into Effort
-  if (ft === FragmentType.Label || ft === FragmentType.Text || ft === FragmentType.CurrentRound) {
-    ft = FragmentType.Effort;
+  if (ft === MetricType.Label || ft === MetricType.Text || ft === MetricType.CurrentRound) {
+    ft = MetricType.Effort;
   }
 
   // Hide noise: Sounds are no longer displayed in the grid
-  if (ft === FragmentType.Sound) {
+  if (ft === MetricType.Sound) {
     return;
   }
 
   const existing = cells.get(ft);
   if (existing) {
     // Mutably append — safe because we've just allocated these arrays
-    (existing.fragments as ICodeFragment[]).push(frag);
+    (existing.metrics as IMetric[]).push(frag);
   } else {
     cells.set(ft, {
-      fragments: [frag],
+      metrics: [frag],
       hasUserOverride: false,
     });
   }
@@ -336,12 +336,12 @@ function applyFilters(
     result = result.filter((r) => allowed.has(r.outputType));
   }
 
-  // Filter by fragment origin
+  // Filter by metrics origin
   if (filter.origins && filter.origins.length > 0) {
     const allowed = new Set(filter.origins);
     result = result.filter((r) => {
       for (const [, cell] of r.cells) {
-        if (cell.fragments.some((f) => f.origin && allowed.has(f.origin))) {
+        if (cell.metrics.some((f) => f.origin && allowed.has(f.origin))) {
           return true;
         }
       }
@@ -382,10 +382,10 @@ function rowMatchesSearch(row: GridRow, needle: string): boolean {
   if (row.outputType.toLowerCase().includes(needle)) return true;
   if (row.completionReason?.toLowerCase().includes(needle)) return true;
 
-  // Check fragment cells
+  // Check metrics cells
   for (const [, cell] of row.cells) {
-    for (const frag of cell.fragments) {
-      const text = fragmentToText(frag);
+    for (const frag of cell.metrics) {
+      const text = metricToText(frag);
       if (text.toLowerCase().includes(needle)) return true;
     }
   }
@@ -448,13 +448,13 @@ function getSortValue(row: GridRow, col: GridColumn): string | number {
       return row.absoluteStartTime ?? 0;
   }
 
-  // Fragment columns — sort by first fragment's value
-  if (col.fragmentType) {
-    const cell = row.cells.get(col.fragmentType);
-    if (!cell || cell.fragments.length === 0) return '';
-    const first = cell.fragments[0];
+  // Fragment columns — sort by first metrics's value
+  if (col.metricType) {
+    const cell = row.cells.get(col.metricType);
+    if (!cell || cell.metrics.length === 0) return '';
+    const first = cell.metrics[0];
     if (typeof first.value === 'number') return first.value;
-    return fragmentToText(first);
+    return metricToText(first);
   }
 
   return '';
@@ -494,19 +494,19 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
       return String(row.absoluteStartTime);
   }
 
-  if (col.fragmentType) {
-    const cell = row.cells.get(col.fragmentType);
+  if (col.metricType) {
+    const cell = row.cells.get(col.metricType);
     if (!cell) return '';
-    return cell.fragments.map(fragmentToText).join(', ');
+    return cell.metrics.map(metricToText).join(', ');
   }
 
   return '';
 }
 
 /**
- * Convert a fragment to its display text.
+ * Convert a metrics to its display text.
  */
-function fragmentToText(frag: ICodeFragment): string {
+function metricToText(frag: IMetric): string {
   if (frag.image) return frag.image;
   if (frag.value !== undefined && frag.value !== null) {
     if (typeof frag.value === 'object') {

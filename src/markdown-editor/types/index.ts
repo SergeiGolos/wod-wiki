@@ -5,7 +5,7 @@
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { MdTimerRuntime } from '../../parser/md-timer';
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMetric } from '../../core/models/Metric';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { MetricBehavior } from '../../types/MetricBehavior';
 export * from './section';
@@ -47,14 +47,14 @@ export interface ParseError {
 }
 
 /**
- * Workout metric fragment collected during execution.
- * Uses unified ICodeFragment format with MetricBehavior for consistency.
+ * Workout metrics metrics collected during execution.
+ * Uses unified IMetric format with MetricBehavior for consistency.
  * 
  * Replaces legacy WorkoutMetric ad-hoc format in Phase 3.
  */
 export interface WorkoutMetricFragment {
-  /** The code fragment representing this metric */
-  fragment: ICodeFragment;
+  /** The code metrics representing this metrics */
+  metric: IMetric;
   /** Behavior classification (Collected, Recorded, etc.) */
   behavior?: MetricBehavior;
   /** Timestamp when collected */
@@ -63,7 +63,7 @@ export interface WorkoutMetricFragment {
 
 /**
  * Results from a completed workout.
- * Uses fragment-based metrics for unified representation.
+ * Uses metric-based metrics for unified representation.
  */
 export interface WorkoutResults {
   /** When workout started */
@@ -84,7 +84,7 @@ export interface WorkoutResults {
   /** Reps completed (for rep-based workouts) */
   repsCompleted?: number;
 
-  /** Metrics collected from runtime (fragment-based format) */
+  /** Metrics collected from runtime (metrics-based format) */
   metrics: WorkoutMetricFragment[];
 
   /** The detailed runtime logs (splits, reps) */

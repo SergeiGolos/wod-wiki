@@ -7,7 +7,7 @@ import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
 import { WodScript } from '@/parser/WodScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';
-import { ICodeFragment } from '@/core/models/CodeFragment';
+import { IMetric } from '@/core/models/Metric';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { DialectRegistry } from '@/services/DialectRegistry';
@@ -31,8 +31,8 @@ export interface WorkoutReport {
   restTaken: number;
   /** Whether the workout is complete */
   isComplete: boolean;
-  /** All fragments collected during execution */
-  fragments: ICodeFragment[][];
+  /** All metrics collected during execution */
+  metrics: IMetric[][];
   /** All output statements generated during execution */
   outputs: IOutputStatement[];
 }
@@ -56,7 +56,7 @@ export class WorkoutTestHarness {
   private _partialReps = 0;
   private _restTaken = 0;
   private _exerciseReps: Record<string, number> = {};
-  private _collectedFragments: ICodeFragment[][] = [];
+  private _collectedFragments: IMetric[][] = [];
   private _mockClock: MockClock;
 
   constructor(
@@ -213,7 +213,7 @@ export class WorkoutTestHarness {
       totalReps: { ...this._exerciseReps },
       restTaken: this._restTaken,
       isComplete: this.isComplete(),
-      fragments: this._collectedFragments,
+      metrics: this._collectedFragments,
       outputs: this.runtime.getOutputStatements()
     };
   }
@@ -259,10 +259,10 @@ export class WorkoutTestHarness {
   private _collectFragments(): void {
     const current = this.currentBlock;
     if (!current) return;
-    const displayLocs = current.getMemoryByTag('fragment:display');
+    const displayLocs = current.getMemoryByTag('metric:display');
     if (displayLocs.length > 0) {
       for (const loc of displayLocs) {
-        this._collectedFragments.push(loc.fragments);
+        this._collectedFragments.push(loc.metrics);
       }
     }
   }

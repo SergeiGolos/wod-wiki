@@ -7,9 +7,9 @@ import { Clock, CheckCircle2, ListTree, Timer, Eye, ArrowUpCircle, Lock, Table2 
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
 import { formatTimeMMSS } from '../../lib/formatTime';
-import { FragmentSourceRow } from '../fragments/FragmentSourceRow';
-import { ICodeFragment } from '@/core/models/CodeFragment';
-import { FragmentVisibility, VISIBILITY_LABELS } from '@/runtime/memory/FragmentVisibility';
+import { MetricSourceRow } from '../metrics/MetricSourceRow';
+import { IMetric } from '@/core/models/Metric';
+import { MetricVisibility, VISIBILITY_LABELS } from '@/runtime/memory/MetricVisibility';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import { BlockDebugDialog } from './BlockDebugDialog';
@@ -63,19 +63,19 @@ export const HistorySummaryView: React.FC<{
 // Visibility badge for debug mode
 // ============================================================================
 
-const VISIBILITY_ICON_MAP: Record<FragmentVisibility, React.ElementType> = {
+const VISIBILITY_ICON_MAP: Record<MetricVisibility, React.ElementType> = {
     display: Eye,
     promote: ArrowUpCircle,
     private: Lock,
 };
 
-const VISIBILITY_COLOR_MAP: Record<FragmentVisibility, string> = {
+const VISIBILITY_COLOR_MAP: Record<MetricVisibility, string> = {
     display: 'text-green-500',
     promote: 'text-blue-500',
     private: 'text-amber-500',
 };
 
-const VisibilityBadge: React.FC<{ visibility: FragmentVisibility }> = ({ visibility }) => {
+const VisibilityBadge: React.FC<{ visibility: MetricVisibility }> = ({ visibility }) => {
     const Icon = VISIBILITY_ICON_MAP[visibility];
     return (
         <span
@@ -112,38 +112,38 @@ const StackBlockItem: React.FC<{
     const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
     // Subscribe to round state for dynamic round label (updates reactively as rounds advance)
     const roundDisplay = useRoundDisplay(block);
-    const [displayRows, setDisplayRows] = useState<ICodeFragment[][]>([]);
-    const [promoteRows, setPromoteRows] = useState<ICodeFragment[][]>([]);
-    const [privateRows, setPrivateRows] = useState<ICodeFragment[][]>([]);
+    const [displayRows, setDisplayRows] = useState<IMetric[][]>([]);
+    const [promoteRows, setPromoteRows] = useState<IMetric[][]>([]);
+    const [privateRows, setPrivateRows] = useState<IMetric[][]>([]);
     const [debugDialogOpen, setDebugDialogOpen] = useState(false);
 
-    // Subscribe to fragment memory by visibility tier
+    // Subscribe to metrics memory by visibility tier
     useEffect(() => {
         const updateRows = () => {
             // Display tier — always collected
-            const displayLocs = block.getFragmentMemoryByVisibility('display');
-            setDisplayRows(displayLocs.map(loc => loc.fragments));
+            const displayLocs = block.getMetricMemoryByVisibility('display');
+            setDisplayRows(displayLocs.map(loc => loc.metrics));
 
             if (debug) {
                 // Promote & private tiers — only in debug mode
-                const promoteLocs = block.getFragmentMemoryByVisibility('promote');
-                setPromoteRows(promoteLocs.map(loc => loc.fragments));
+                const promoteLocs = block.getMetricMemoryByVisibility('promote');
+                setPromoteRows(promoteLocs.map(loc => loc.metrics));
 
-                const privateLocs = block.getFragmentMemoryByVisibility('private');
-                setPrivateRows(privateLocs.map(loc => loc.fragments));
+                const privateLocs = block.getMetricMemoryByVisibility('private');
+                setPrivateRows(privateLocs.map(loc => loc.metrics));
             }
         };
 
         updateRows();
 
-        // Subscribe to all fragment memory locations for reactivity
+        // Subscribe to all metrics memory locations for reactivity
         const allLocs = debug
             ? [
-                ...block.getFragmentMemoryByVisibility('display'),
-                ...block.getFragmentMemoryByVisibility('promote'),
-                ...block.getFragmentMemoryByVisibility('private'),
+                ...block.getMetricMemoryByVisibility('display'),
+                ...block.getMetricMemoryByVisibility('promote'),
+                ...block.getMetricMemoryByVisibility('private'),
             ]
-            : block.getFragmentMemoryByVisibility('display');
+            : block.getMetricMemoryByVisibility('display');
 
         const unsubscribes = allLocs.map(loc =>
             loc.subscribe(() => updateRows())
@@ -155,10 +155,10 @@ const StackBlockItem: React.FC<{
     // Only show timer if there are active or completed time spans (it's a time tracker)
     const hasTime = timeSpans.length > 0;
 
-    /** Render a visibility-tagged section of fragment rows */
+    /** Render a visibility-tagged section of metrics rows */
     const renderFragmentSection = (
-        rows: ICodeFragment[][],
-        visibility: FragmentVisibility,
+        rows: IMetric[][],
+        visibility: MetricVisibility,
         showBadge: boolean,
         isLeaf: boolean
     ) => {
@@ -167,9 +167,9 @@ const StackBlockItem: React.FC<{
             <div className="flex flex-col gap-0.5">
                 {showBadge && <VisibilityBadge visibility={visibility} />}
                 {rows.map((row, rowIdx) => (
-                    <FragmentSourceRow
+                    <MetricSourceRow
                         key={`${visibility}-${rowIdx}`}
-                        fragments={row}
+                        metrics={row}
                         size={isLeaf ? "normal" : "compact"}
                         isLeaf={isLeaf}
                     />
@@ -203,7 +203,7 @@ const StackBlockItem: React.FC<{
                                     {(block.blockType !== 'SessionRoot' && roundDisplay) ? roundDisplay.label : block.label}
                                 </span>
                             )}
-                            {/* Leaf: show display fragments inline, or fall back to label if no fragments */}
+                            {/* Leaf: show display metrics inline, or fall back to label if no metrics */}
                             {isLeaf && displayRows.length > 0 && (
                                 <div className="flex items-center flex-wrap gap-0.5 min-w-0 font-bold text-foreground text-base">
                                     {renderFragmentSection(displayRows, 'display', false, isLeaf)}
@@ -253,7 +253,7 @@ const StackBlockItem: React.FC<{
                     )}
                 </div>
 
-                {/* Fragment rows — non-leaf blocks only (leaf fragments are inline in the header) */}
+                {/* Fragment rows — non-leaf blocks only (leaf metrics are inline in the header) */}
                 {!isLeaf && displayRows.length > 0 && (
                     <div className="flex flex-col gap-1 px-3 pb-2">
                         {renderFragmentSection(displayRows, 'display', debug, isLeaf)}
@@ -389,8 +389,8 @@ export const LookaheadView: React.FC<{
             )}>
                 {/* Fragment rows — rendered like a workout block card */}
                 <div className="flex flex-col gap-0.5 p-3">
-                    <FragmentSourceRow
-                        fragments={preview.fragments}
+                    <MetricSourceRow
+                        metric={preview.metrics}
                         size="compact"
                         isLeaf={false}
                     />

@@ -8,7 +8,7 @@
  * @see docs/planning-output-statements/index.md
  */
 import { IOutputStatement, OutputStatementType } from '@/core/models/OutputStatement';
-import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
+import { IMetric, MetricType } from '@/core/models/Metric';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 
@@ -25,9 +25,9 @@ export interface TracedOutput {
   /** Stack depth when emitted */
   stackLevel: number;
   /** Fragment types present */
-  fragmentTypes: FragmentType[];
+  metricTypes: MetricType[];
   /** Fragment summaries for debugging */
-  fragmentSummary: string[];
+  metricSummary: string[];
   /** The raw output statement */
   raw: IOutputStatement;
 }
@@ -41,10 +41,10 @@ export interface ExpectedOutput {
   outputType?: OutputStatementType;
   /** Expected stack level */
   stackLevel?: number;
-  /** Expected fragment types (subset match) */
-  fragmentTypes?: FragmentType[];
-  /** Expected fragment type (any match) */
-  hasFragmentType?: FragmentType;
+  /** Expected metrics types (subset match) */
+  metricTypes?: MetricType[];
+  /** Expected metric type (any match) */
+  hasMetricType?: MetricType;
   /** Custom predicate for advanced matching */
   predicate?: (output: TracedOutput) => boolean;
 }
@@ -111,9 +111,9 @@ export class OutputTracingHarness {
     return this._outputs.filter(o => o.sourceBlockKey === blockKey);
   }
 
-  /** Get outputs that contain a specific fragment type */
-  withFragment(fragmentType: FragmentType): TracedOutput[] {
-    return this._outputs.filter(o => o.fragmentTypes.includes(fragmentType));
+  /** Get outputs that contain a specific metrics type */
+  withFragment(metricType: MetricType): TracedOutput[] {
+    return this._outputs.filter(o => o.metricTypes.includes(metricType));
   }
 
   // ========== Assertions ==========
@@ -154,19 +154,19 @@ export class OutputTracingHarness {
         );
       }
 
-      if (exp.fragmentTypes) {
-        for (const ft of exp.fragmentTypes) {
-          if (!actual.fragmentTypes.includes(ft)) {
+      if (exp.metricTypes) {
+        for (const ft of exp.metricTypes) {
+          if (!actual.metricTypes.includes(ft)) {
             errors.push(
-              `Output[${i}]: expected fragment type '${ft}' not found in [${actual.fragmentTypes.join(', ')}]`
+              `Output[${i}]: expected metrics type '${ft}' not found in [${actual.metricTypes.join(', ')}]`
             );
           }
         }
       }
 
-      if (exp.hasFragmentType && !actual.fragmentTypes.includes(exp.hasFragmentType)) {
+      if (exp.hasMetricType && !actual.metricTypes.includes(exp.hasMetricType)) {
         errors.push(
-          `Output[${i}]: expected to contain fragment type '${exp.hasFragmentType}' but found [${actual.fragmentTypes.join(', ')}]`
+          `Output[${i}]: expected to contain metrics type '${exp.hasMetricType}' but found [${actual.metricTypes.join(', ')}]`
         );
       }
 
@@ -257,14 +257,14 @@ export class OutputTracingHarness {
   // ========== Private ==========
 
   private _trace(output: IOutputStatement): TracedOutput {
-    const fragments: ICodeFragment[] = output.fragments ?? [];
+    const metrics: IMetric[] = output.metrics ?? [];
     return {
       index: this._outputs.length,
       outputType: output.outputType,
       sourceBlockKey: output.sourceBlockKey ?? 'unknown',
       stackLevel: output.stackLevel ?? 0,
-      fragmentTypes: fragments.map(f => f.fragmentType),
-      fragmentSummary: fragments.map(f => `${FragmentType[f.fragmentType] ?? f.fragmentType}:${f.image ?? ''}`),
+      metricTypes: metrics.map(f => f.metricType),
+      metricSummary: metrics.map(f => `${MetricType[f.metricType] ?? f.metricType}:${f.image ?? ''}`),
       raw: output,
     };
   }
@@ -273,7 +273,7 @@ export class OutputTracingHarness {
     if (this._outputs.length === 0) return '  (no outputs)';
     return this._outputs
       .map(o => {
-        const frags = o.fragmentSummary.join(', ') || 'none';
+        const frags = o.metricSummary.join(', ') || 'none';
         return `  [${o.index}] ${o.outputType.padEnd(12)} level=${o.stackLevel} block=${o.sourceBlockKey} frags=[${frags}]`;
       })
       .join('\n');

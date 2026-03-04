@@ -5,7 +5,7 @@ import { IEventBus } from '../contracts/events/IEventBus';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { MemoryLocation } from '../memory/MemoryLocation';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 
 describe('RuntimeBlock Lifecycle', () => {
     let runtime: IScriptRuntime;
@@ -116,12 +116,12 @@ describe('RuntimeBlock Lifecycle', () => {
 
         it('should dispose memory entries', () => {
             const timerLoc = new MemoryLocation('time', [{
-                fragmentType: FragmentType.Duration,
+                metricType: MetricType.Duration,
                 type: 'duration',
                 image: '',
                 origin: 'runtime',
                 value: { direction: 'up', spans: [] },
-            } as ICodeFragment]);
+            } as IMetric]);
             const disposeSpy = vi.spyOn(timerLoc, 'dispose');
             block.pushMemory(timerLoc);
 

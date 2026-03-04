@@ -1,12 +1,12 @@
 import React, { useCallback } from 'react';
 import { RuntimeStackPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
-import { FragmentVisualizer } from '../../components/fragments';
+import { MetricVisualizer } from '../../components/metrics';
 
 /**
  * RuntimeStackPanel component - displays hierarchical runtime block execution
  * Shows workout structure with active/complete status, metrics, and highlighting
- * Uses FragmentVisualizer for consistent metric display across all panels
+ * Uses MetricVisualizer for consistent metric display across all panels
  */
 export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
   blocks,
@@ -83,22 +83,22 @@ export const RuntimeStackPanel: React.FC<RuntimeStackPanelProps> = ({
           {block.label}
         </span>
 
-        {/* Metrics - Use FragmentVisualizer if fragments available, else fall back to legacy */}
+        {/* Metrics - Use MetricVisualizer if metrics available, else fall back to legacy */}
         {showMetrics && (
           <div className="flex-1 min-w-0">
-            {block.fragmentGroups && block.fragmentGroups.length > 1 ? (
+            {block.metricGroups && block.metricGroups.length > 1 ? (
               <div className="flex flex-col">
-                {block.fragmentGroups.filter(g => g.length > 0).map((group, i, arr) => (
+                {block.metricGroups.filter(g => g.length > 0).map((group, i, arr) => (
                   <div
                     key={i}
                     className={`${i < arr.length - 1 ? 'border-b border-border/20 pb-0.5 mb-0.5' : ''}`}
                   >
-                    <FragmentVisualizer fragments={[...group]} className="gap-0.5" />
+                    <MetricVisualizer metrics={[...group]} className="gap-0.5" />
                   </div>
                 ))}
               </div>
-            ) : block.fragments && block.fragments.length > 0 ? (
-              <FragmentVisualizer fragments={block.fragments} className="gap-0.5" />
+            ) : block.metrics && block.metrics.length > 0 ? (
+              <MetricVisualizer metric={block.metrics} className="gap-0.5" />
             ) : block.metrics && Object.keys(block.metrics).length > 0 ? (
               <div className="flex gap-1 text-[10px] text-muted-foreground">
                 {Object.entries(block.metrics).slice(0, 3).map(([key, value]) => (

@@ -12,8 +12,8 @@ import { useNextPreview } from '@/runtime/hooks/useNextPreview';
  *
  * Produces a JSON-serializable snapshot that mirrors everything the Track panel shows:
  * - timerStack (primary + secondary timers with accumulatedMs)
- * - displayRows (ALL stack blocks with label, fragments, per-block timer — no filtering)
- * - lookahead (next block's fragments)
+ * - displayRows (ALL stack blocks with label, metrics, per-block timer — no filtering)
+ * - lookahead (next block's metric)
  * - subLabel (from label resolution logic)
  *
  * Unlike useStackDisplayRows() (which filters blocks), this renders ALL blocks on the
@@ -30,13 +30,13 @@ const DisplaySyncBridgeContent: React.FC = () => {
   const allTimers = useStackTimers();
   const nextPreview = useNextPreview();
 
-  // 2. Subscribe to fragment memory changes on ALL blocks (like StackBlockItem does)
-  const [fragmentVersion, setFragmentVersion] = useState(0);
+  // 2. Subscribe to metrics memory changes on ALL blocks (like StackBlockItem does)
+  const [metricVersion, setFragmentVersion] = useState(0);
   useEffect(() => {
     const unsubscribes: (() => void)[] = [];
     for (const block of blocks) {
-      // Subscribe to display-tier fragment memory
-      const displayLocs = block.getFragmentMemoryByVisibility('display');
+      // Subscribe to display-tier metrics memory
+      const displayLocs = block.getMetricMemoryByVisibility('display');
       for (const loc of displayLocs) {
         unsubscribes.push(loc.subscribe(() => setFragmentVersion(v => v + 1)));
       }
@@ -102,9 +102,9 @@ const DisplaySyncBridgeContent: React.FC = () => {
       const blockKey = block.key.toString();
       const timer = blockTimerMap.get(blockKey);
 
-      // Read fragment:display memory for this block (same as StackBlockItem)
-      const displayLocs = block.getFragmentMemoryByVisibility('display');
-      const rows = displayLocs.map(loc => loc.fragments);
+      // Read metrics:display memory for this block (same as StackBlockItem)
+      const displayLocs = block.getMetricMemoryByVisibility('display');
+      const rows = displayLocs.map(loc => loc.metrics);
 
       return {
         blockKey,
@@ -112,7 +112,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
         label: block.label,
         isLeaf: index === orderedBlocks.length - 1,
         depth: index,
-        rows,            // ICodeFragment[][] — serializable
+        rows,            // IMetric[][] — serializable
         timer: timer || null,
       };
     });
@@ -132,7 +132,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
 
     // 7. Serialize lookahead (next block preview)
     const lookahead = nextPreview ? {
-      fragments: nextPreview.fragments,
+      metrics: nextPreview.metrics,
     } : null;
 
     setDisplayState({
@@ -144,7 +144,7 @@ const DisplaySyncBridgeContent: React.FC = () => {
       totalElapsedMs: execution.elapsedTime,
       isRunning: execution.status === 'running',
     } as any);
-  }, [blocks, primaryTimerEntry, secondaryTimers, allTimers, nextPreview, fragmentVersion, execution.status, execution.elapsedTime, now]);
+  }, [blocks, primaryTimerEntry, secondaryTimers, allTimers, nextPreview, metricVersion, execution.status, execution.elapsedTime, now]);
 
   return null;
 };

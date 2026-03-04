@@ -1,9 +1,9 @@
 import { ICodeStatement } from './CodeStatement';
-import { ICodeFragment, FragmentType } from './CodeFragment';
+import { IMetric, MetricType } from './Metric';
 import { CodeMetadata } from './CodeMetadata';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
-import { IFragmentSource, FragmentFilter } from '../contracts/IFragmentSource';
-import { resolveFragmentPrecedence, ORIGIN_PRECEDENCE } from '../utils/fragmentPrecedence';
+import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
+import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrecedence';
 
 /**
  * Output statement types indicating what kind of result this represents.
@@ -28,16 +28,16 @@ export type OutputStatementType = 'segment' | 'milestone' | 'system' | 'event' |
  * 
  * ## Time terminology (docs/architecture/time-terminology.md)
  *
- * The canonical time data lives in the **fragments** array:
- * - `FragmentType.Spans`   — **Time**: raw TimeSpan[] recordings the block tracks
- * - `FragmentType.Elapsed` — **Elapsed**: Σ(end − start) per span (active time)
- * - `FragmentType.Total`   — **Total**: lastEnd − firstStart (wall-clock bracket)
- * - `FragmentType.Duration` — **Duration**: parser-defined planned target
- * - `FragmentType.SystemTime` — **TimeStamp**: system Date.now() when logged
+ * The canonical time data lives in the **metrics** array:
+ * - `MetricType.Spans`   — **Time**: raw TimeSpan[] recordings the block tracks
+ * - `MetricType.Elapsed` — **Elapsed**: Σ(end − start) per span (active time)
+ * - `MetricType.Total`   — **Total**: lastEnd − firstStart (wall-clock bracket)
+ * - `MetricType.Duration` — **Duration**: parser-defined planned target
+ * - `MetricType.SystemTime` — **TimeStamp**: system Date.now() when logged
  *
  * The direct properties `spans`, `elapsed`, `total` are **deprecated proxies**
- * kept for backward compatibility. Prefer `getFragment(FragmentType.Elapsed)`,
- * etc., or use `getDisplayFragments()` for UI rendering.
+ * kept for backward compatibility. Prefer `getMetric(MetricType.Elapsed)`,
+ * etc., or use `getDisplayMetrics()` for UI rendering.
  */
 export interface IOutputStatement extends ICodeStatement {
     /** The type of output this statement represents */
@@ -49,9 +49,9 @@ export interface IOutputStatement extends ICodeStatement {
     /**
      * **Time** — raw TimeSpan[] from the block's timer memory.
      * 
-     * @deprecated Access via `getFragment(FragmentType.Spans)` or
-     * `getAllFragmentsByType(FragmentType.Spans)` instead.
-     * This property is a convenience proxy over the SpansFragment.
+     * @deprecated Access via `getMetric(MetricType.Spans)` or
+     * `getAllMetricsByType(MetricType.Spans)` instead.
+     * This property is a convenience proxy over the SpansMetric.
      * 
      * @see docs/architecture/time-terminology.md
      */
@@ -60,8 +60,8 @@ export interface IOutputStatement extends ICodeStatement {
     /**
      * **Elapsed** — pause-aware active time in milliseconds.
      * 
-     * @deprecated Access via `getFragment(FragmentType.Elapsed)?.value` instead.
-     * This property is a convenience proxy computed from SpansFragment data.
+     * @deprecated Access via `getMetric(MetricType.Elapsed)?.value` instead.
+     * This property is a convenience proxy computed from SpansMetric data.
      * 
      * @see docs/architecture/time-terminology.md
      */
@@ -70,8 +70,8 @@ export interface IOutputStatement extends ICodeStatement {
     /**
      * **Total** — wall-clock bracket in milliseconds.
      * 
-     * @deprecated Access via `getFragment(FragmentType.Total)?.value` instead.
-     * This property is a convenience proxy computed from SpansFragment data.
+     * @deprecated Access via `getMetric(MetricType.Total)?.value` instead.
+     * This property is a convenience proxy computed from SpansMetric data.
      * 
      * @see docs/architecture/time-terminology.md
      */
@@ -94,10 +94,10 @@ export interface IOutputStatement extends ICodeStatement {
      * Fragments on IOutputStatement are runtime-generated.
      * They should have `origin: 'runtime'` or `origin: 'user'`.
      */
-    readonly fragments: ICodeFragment[];
+    readonly metrics: IMetric[];
 
-    /** Metadata mapping for fragments. Each fragment can have an optional associated meta object. */
-    readonly fragmentMeta: Map<ICodeFragment, CodeMetadata>;
+    /** Metadata mapping for metrics. Each metrics can have an optional associated meta object. */
+    readonly metricMeta: Map<IMetric, CodeMetadata>;
 
     /**
      * The reason this block completed, if applicable.
@@ -117,8 +117,8 @@ export interface IOutputStatement extends ICodeStatement {
 /**
  * Options for creating an OutputStatement.
  * 
- * Time data should be provided primarily through `fragments` (SpansFragment,
- * ElapsedFragment, TotalFragment). The `spans` option is a **deprecated**
+ * Time data should be provided primarily through `metrics` (SpansMetric,
+ * ElapsedMetric, TotalMetric). The `spans` option is a **deprecated**
  * convenience — it populates the legacy `OutputStatement.spans` property
  * and is used to compute the deprecated `.elapsed` / `.total` proxies.
  */
@@ -130,7 +130,7 @@ export interface OutputStatementOptions {
     timeSpan: TimeSpan;
 
     /**
-     * @deprecated Pass time data via SpansFragment in `fragments` instead.
+     * @deprecated Pass time data via SpansMetric in `metrics` instead.
      * Raw time spans from the block's timer memory.
      * When provided, the deprecated `elapsed` and `total` properties are
      * computed from these spans.
@@ -146,11 +146,11 @@ export interface OutputStatementOptions {
     /** The source statement ID (optional) */
     sourceStatementId?: number;
 
-    /** Runtime-collected fragments */
-    fragments?: ICodeFragment[];
+    /** Runtime-collected metrics */
+    metrics?: IMetric[];
 
-    /** Map of fragment to metadata */
-    fragmentMeta?: Map<ICodeFragment, CodeMetadata>;
+    /** Map of metrics to metadata */
+    metricMeta?: Map<IMetric, CodeMetadata>;
 
     /** Reason the block completed (e.g., 'user-advance', 'forced-pop') */
     completionReason?: string;
@@ -170,11 +170,11 @@ export interface OutputStatementOptions {
  * Created by the runtime when a block unmounts.
  *
  * Direct time properties (`spans`, `elapsed`, `total`) are **deprecated
- * proxies** — canonical data lives in the `fragments` array as
- * SpansFragment, ElapsedFragment, and TotalFragment.
- * Use `getFragment()` / `getDisplayFragments()` for new code.
+ * proxies** — canonical data lives in the `metrics` array as
+ * SpansMetric, ElapsedMetric, and TotalMetric.
+ * Use `getMetric()` / `getDisplayMetrics()` for new code.
  */
-export class OutputStatement implements IOutputStatement, IFragmentSource {
+export class OutputStatement implements IOutputStatement, IMetricSource {
     private static nextId = 1000000; // Start at a high number to avoid collision with parsed statement IDs
 
     readonly id: number;
@@ -182,26 +182,26 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     readonly timeSpan: TimeSpan;
 
     /**
-     * @deprecated Use `getFragment(FragmentType.Spans)` instead.
-     * Convenience proxy over SpansFragment data.
+     * @deprecated Use `getMetric(MetricType.Spans)` instead.
+     * Convenience proxy over SpansMetric data.
      */
     readonly spans: ReadonlyArray<TimeSpan>;
 
     readonly sourceStatementId?: number;
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
-    readonly fragments: ICodeFragment[];
-    readonly fragmentMeta: Map<ICodeFragment, CodeMetadata>;
+    readonly metrics: IMetric[];
+    readonly metricMeta: Map<IMetric, CodeMetadata>;
 
     /**
-     * @deprecated Use `getFragment(FragmentType.Elapsed)?.value` instead.
-     * Convenience proxy computed from SpansFragment data.
+     * @deprecated Use `getMetric(MetricType.Elapsed)?.value` instead.
+     * Convenience proxy computed from SpansMetric data.
      */
     readonly elapsed: number;
 
     /**
-     * @deprecated Use `getFragment(FragmentType.Total)?.value` instead.
-     * Convenience proxy computed from SpansFragment data.
+     * @deprecated Use `getMetric(MetricType.Total)?.value` instead.
+     * Convenience proxy computed from SpansMetric data.
      */
     readonly total: number;
 
@@ -220,8 +220,8 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
         this.sourceBlockKey = options.sourceBlockKey;
         this.sourceStatementId = options.sourceStatementId;
         this.stackLevel = options.stackLevel;
-        this.fragments = options.fragments ?? [];
-        this.fragmentMeta = options.fragmentMeta ?? new Map();
+        this.metrics = options.metrics ?? [];
+        this.metricMeta = options.metricMeta ?? new Map();
         this.completionReason = options.completionReason;
         this.parent = options.parent;
         this.children = options.children ?? [];
@@ -236,47 +236,47 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // IFragmentSource implementation
+    // IMetricSource implementation
     // ═══════════════════════════════════════════════════════════════
 
     /**
-     * Get display-ready fragments after precedence resolution.
-     * For each FragmentType present, returns fragments from the highest-
+     * Get display-ready metrics after precedence resolution.
+     * For each MetricType present, returns metric from the highest-
      * precedence origin tier.
      */
-    getDisplayFragments(filter?: FragmentFilter): ICodeFragment[] {
-        let frags = this.fragments;
+    getDisplayMetrics(filter?: MetricFilter): IMetric[] {
+        let frags = this.metrics;
         if (filter?.types) {
             const types = new Set(filter.types);
-            frags = frags.filter(f => types.has(f.fragmentType));
+            frags = frags.filter(f => types.has(f.metricType));
         }
         if (filter?.excludeTypes) {
             const exclude = new Set(filter.excludeTypes);
-            frags = frags.filter(f => !exclude.has(f.fragmentType));
+            frags = frags.filter(f => !exclude.has(f.metricType));
         }
         if (filter?.origins) {
             const origins = new Set(filter.origins);
             frags = frags.filter(f => f.origin !== undefined && origins.has(f.origin));
         }
-        return resolveFragmentPrecedence(frags);
+        return resolveMetricPrecedence(frags);
     }
 
     /**
-     * Get the highest-precedence single fragment of a given type.
+     * Get the highest-precedence single metrics of a given type.
      */
-    getFragment(type: FragmentType): ICodeFragment | undefined {
-        const matches = this.fragments.filter(f => f.fragmentType === type);
+    getMetric(type: MetricType): IMetric | undefined {
+        const matches = this.metrics.filter(f => f.metricType === type);
         if (matches.length === 0) return undefined;
-        const resolved = resolveFragmentPrecedence(matches);
+        const resolved = resolveMetricPrecedence(matches);
         return resolved[0];
     }
 
     /**
-     * Get ALL fragments of a given type, sorted by precedence (highest first).
-     * Unlike `getFragment()`, this returns every tier, not just the winning one.
+     * Get ALL metrics of a given type, sorted by precedence (highest first).
+     * Unlike `getMetric()`, this returns every tier, not just the winning one.
      */
-    getAllFragmentsByType(type: FragmentType): ICodeFragment[] {
-        const matches = this.fragments.filter(f => f.fragmentType === type);
+    getAllMetricsByType(type: MetricType): IMetric[] {
+        const matches = this.metrics.filter(f => f.metricType === type);
         // Sort by precedence rank (lowest = highest precedence = first)
         return [...matches].sort((a, b) => {
             const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
@@ -286,18 +286,18 @@ export class OutputStatement implements IOutputStatement, IFragmentSource {
     }
 
     /**
-     * Check if any fragment of this type exists.
+     * Check if any metrics of this type exists.
      */
-    hasFragment(type: FragmentType): boolean {
-        return this.fragments.some(f => f.fragmentType === type);
+    hasMetric(type: MetricType): boolean {
+        return this.metrics.some(f => f.metricType === type);
     }
 
     /**
-     * Raw, unfiltered fragments. No precedence resolution.
+     * Raw, unfiltered metrics. No precedence resolution.
      * Returns a defensive copy so mutations don't affect internal state.
      */
-    get rawFragments(): ICodeFragment[] {
-        return [...this.fragments];
+    get rawMetrics(): IMetric[] {
+        return [...this.metrics];
     }
 
     // ═══════════════════════════════════════════════════════════════

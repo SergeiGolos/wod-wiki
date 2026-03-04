@@ -29,7 +29,7 @@ import type { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/u
 import type { WodBlock } from '../../markdown-editor/types';
 import type { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
-import type { ICodeFragment } from '../../core/models/CodeFragment';
+import type { IMetric } from '../../core/models/Metric';
 import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
@@ -76,8 +76,8 @@ interface WorkbenchSyncState {
   lastSelectedAnalyticsId: number | null;
 
   // --- Review Grid ---
-  /** User-supplied fragment overrides keyed by sourceBlockKey */
-  userOutputOverrides: Map<string, ICodeFragment[]>;
+  /** User-supplied metrics overrides keyed by sourceBlockKey */
+  userOutputOverrides: Map<string, IMetric[]>;
   /** Active grid view preset id ('default' | 'debug' | custom) */
   gridViewPreset: string;
 
@@ -119,7 +119,7 @@ interface WorkbenchSyncActions {
   toggleAnalyticsSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
 
   // --- Review Grid Actions ---
-  setUserOverride: (blockKey: string, fragments: ICodeFragment[]) => void;
+  setUserOverride: (blockKey: string, metrics: IMetric[]) => void;
   clearUserOverride: (blockKey: string) => void;
   setGridViewPreset: (presetId: string) => void;
   setHoveredBlockKey: (key: string | null) => void;
@@ -229,9 +229,9 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
     };
   }),
 
-  setUserOverride: (blockKey, fragments) => set((state) => {
+  setUserOverride: (blockKey, metrics) => set((state) => {
     const next = new Map(state.userOutputOverrides);
-    next.set(blockKey, fragments);
+    next.set(blockKey, metrics);
     return { userOutputOverrides: next };
   }),
 

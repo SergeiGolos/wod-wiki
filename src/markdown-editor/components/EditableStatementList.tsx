@@ -5,7 +5,7 @@
 
 import React, { useMemo } from 'react';
 import { ICodeStatement } from '../../core/models/CodeStatement';
-import { StatementDisplay } from '../../components/fragments/StatementDisplay';
+import { StatementDisplay } from '../../components/metrics/StatementDisplay';
 import { useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandStrategy } from '../../components/command-palette/types';
 
@@ -119,7 +119,7 @@ const StatementGroupItem: React.FC<{
  * Helper to check if a statement is a link (starts with +)
  */
 function isLinkStatement(statement: ICodeStatement): boolean {
-  return statement.fragments.some(f => f.type === 'lap' && f.value === 'compose');
+  return statement.metrics.some(f => f.type === 'lap' && f.value === 'compose');
 }
 
 /**
@@ -245,26 +245,26 @@ function getDepth(stmt: ICodeStatement, allStatements: Map<number, ICodeStatemen
  * Extract displayable text from a code statement
  */
 function getStatementText(statement: ICodeStatement): string {
-  const fragments = statement.fragments || [];
+  const metrics = statement.metrics || [];
   
-  if (fragments.length === 0) {
+  if (metrics.length === 0) {
     return '(empty statement)';
   }
 
   const parts: string[] = [];
   
-  fragments.forEach(fragment => {
+  metrics.forEach(metric => {
     // Use image if available (this is the original text token)
-    if (fragment.image) {
-      parts.push(fragment.image);
+    if (metric.image) {
+      parts.push(metric.image);
       return;
     }
     
     // Otherwise, try to extract meaningful value
-    if (fragment.value !== undefined) {
-      if (typeof fragment.value === 'object') {
+    if (metric.value !== undefined) {
+      if (typeof metric.value === 'object') {
         // For complex values, try to extract key properties
-        const val = fragment.value as any;
+        const val = metric.value as any;
         if (val.duration !== undefined) {
           parts.push(formatDuration(val.duration));
         } else if (val.count !== undefined) {
@@ -275,7 +275,7 @@ function getStatementText(statement: ICodeStatement): string {
           parts.push(JSON.stringify(val));
         }
       } else {
-        parts.push(String(fragment.value));
+        parts.push(String(metric.value));
       }
     }
   });

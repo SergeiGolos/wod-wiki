@@ -4,7 +4,7 @@ import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
-import { ICodeFragment } from '../core/models/CodeFragment';
+import { IMetric } from '../core/models/Metric';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
@@ -93,7 +93,7 @@ export class BehaviorContext implements IBehaviorContext {
 
     emitOutput(
         type: OutputStatementType,
-        fragments: ICodeFragment[],
+        metrics: IMetric[],
         _options?: OutputOptions
     ): void {
         const now = this.clock.now;
@@ -111,7 +111,7 @@ export class BehaviorContext implements IBehaviorContext {
         let timerSpans: TimeSpan[] = [];
 
         if (timerLocations.length > 0) {
-            const timerFragments = timerLocations[0].fragments;
+            const timerFragments = timerLocations[0].metrics;
             if (timerFragments.length > 0) {
                 const timerValue = timerFragments[0].value as { spans?: TimeSpan[] } | undefined;
                 if (timerValue?.spans && timerValue.spans.length > 0) {
@@ -122,18 +122,18 @@ export class BehaviorContext implements IBehaviorContext {
             }
         }
 
-        // If the caller provided no fragments, pull display fragments from the
-        // block's fragment:display memory so the output carries the source
-        // label, effort, rep, etc. fragments that the UI needs to render.
-        let effectiveFragments = fragments;
+        // If the caller provided no metrics, pull display metrics from the
+        // block's metrics:display memory so the output carries the source
+        // label, effort, rep, etc. metrics that the UI needs to render.
+        let effectiveFragments = metrics;
         if (effectiveFragments.length === 0) {
-            const displayLocations = this.block.getMemoryByTag('fragment:display');
+            const displayLocations = this.block.getMemoryByTag('metric:display');
             if (displayLocations.length > 0) {
-                effectiveFragments = [...displayLocations[0].fragments];
+                effectiveFragments = [...displayLocations[0].metrics];
             }
         }
 
-        // Tag fragments with source block and timestamp
+        // Tag metrics with source block and timestamp
         const taggedFragments = effectiveFragments.map(f => ({
             ...f,
             sourceBlockKey: f.sourceBlockKey ?? this.block.key.toString(),
@@ -149,7 +149,7 @@ export class BehaviorContext implements IBehaviorContext {
             sourceBlockKey: this.block.key.toString(),
             sourceStatementId: this.block.sourceIds?.[0],
             stackLevel: this.stackLevel,
-            fragments: taggedFragments,
+            metrics: taggedFragments,
             completionReason: _options?.completionReason,
         });
 
@@ -168,8 +168,8 @@ export class BehaviorContext implements IBehaviorContext {
     // List-Based Memory API
     // ============================================================================
 
-    pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation {
-        const location = new MemoryLocation(tag, fragments);
+    pushMemory(tag: MemoryTag, metrics: IMetric[]): IMemoryLocation {
+        const location = new MemoryLocation(tag, metrics);
         this.block.pushMemory(location);
         return location;
     }
@@ -178,10 +178,10 @@ export class BehaviorContext implements IBehaviorContext {
         return this.block.getMemoryByTag(tag);
     }
 
-    updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void {
+    updateMemory(tag: MemoryTag, metrics: IMetric[]): void {
         const locations = this.block.getMemoryByTag(tag);
         if (locations.length > 0) {
-            locations[0].update(fragments);
+            locations[0].update(metrics);
         }
     }
 
@@ -190,49 +190,49 @@ export class BehaviorContext implements IBehaviorContext {
     // ============================================================================
 
     /**
-     * @deprecated Use block.getMemoryByTag() and read fragment values instead.
-     * Returns the typed value from the first matching memory location's first fragment.
+     * @deprecated Use block.getMemoryByTag() and read metrics values instead.
+     * Returns the typed value from the first matching memory location's first metrics.
      */
     getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
         const tag = type as string as MemoryTag;
         const locations = this.block.getMemoryByTag(tag);
         if (locations.length === 0) return undefined;
         const loc = locations[0];
-        if (loc.fragments.length === 0) return undefined;
-        // Special case: 'round' memory uses CurrentRoundFragment which stores
+        if (loc.metrics.length === 0) return undefined;
+        // Special case: 'round' memory uses CurrentRoundMetric which stores
         // .current and .total as direct fields (value is just the current number).
         // Synthesize RoundState for backward compat with getMemory('round') callers.
         if (type === 'round') {
-            const frag = loc.fragments[0] as unknown as { current?: number; total?: number };
+            const frag = loc.metrics[0] as unknown as { current?: number; total?: number };
             if (frag?.current !== undefined) {
                 return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
             }
             return undefined;
         }
-        // For typed memory (timer, round, etc.), value is in the first fragment's .value
-        return loc.fragments[0]?.value as MemoryValueOf<T>;
+        // For typed memory (timer, round, etc.), value is in the first metrics's .value
+        return loc.metrics[0]?.value as MemoryValueOf<T>;
     }
 
     /**
      * @deprecated Use pushMemory() or updateMemory() instead.
-     * Updates the first matching location's fragment value, or creates a new one.
+     * Updates the first matching location's metrics value, or creates a new one.
      */
     setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
         const tag = type as string as MemoryTag;
         const locations = this.block.getMemoryByTag(tag);
         if (locations.length > 0) {
             const loc = locations[0];
-            if (loc.fragments.length > 0) {
-                const updated = loc.fragments.map((f, i) =>
+            if (loc.metrics.length > 0) {
+                const updated = loc.metrics.map((f, i) =>
                     i === 0 ? { ...f, value } : f
                 );
                 loc.update(updated);
             } else {
-                loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
             }
         } else {
             // Create a new location with the value
-            this.pushMemory(tag, [{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+            this.pushMemory(tag, [{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
         }
     }
 

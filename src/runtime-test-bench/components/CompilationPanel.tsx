@@ -1,7 +1,7 @@
 import React from 'react';
 import { CompilationPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
-import { FragmentVisualizer } from '../../components/fragments';
+import { MetricVisualizer } from '../../components/metrics';
 
 /**
  * CompilationPanel component - displays compilation output with tabbed interface
@@ -67,7 +67,7 @@ export const CompilationPanel: React.FC<CompilationPanelProps> = ({
                       [{columnStart}-{columnEnd}]
                     </td>
                     <td className="px-4 py-3 border-b border-gray-100">
-                      <FragmentVisualizer fragments={statement.fragments} />
+                      <MetricVisualizer metric={statement.metrics} />
                     </td>
                   </tr>
                 );

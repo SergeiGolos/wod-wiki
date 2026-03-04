@@ -87,7 +87,7 @@ export interface IScriptRuntime {
      * ```typescript
      * const unsubscribe = runtime.subscribeToOutput((output) => {
      *   console.log(`Block ${output.sourceBlockKey} completed:`, output.outputType);
-     *   console.log('Fragments:', output.fragments);
+     *   console.log('Fragments:', output.metrics);
      * });
      * ```
      */
@@ -111,7 +111,7 @@ export interface IScriptRuntime {
      *   outputType: 'completion',
      *   timeSpan: new TimeSpan(start, end),
      *   sourceBlockKey: block.key.toString(),
-     *   fragments: [],
+     *   metrics: [],
      * }));
      * ```
      */

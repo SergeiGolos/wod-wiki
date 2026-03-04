@@ -1,8 +1,8 @@
 import { ExerciseDefinitionService } from '../../../services';
 import { IProjectionEngine } from './IProjectionEngine';
 import { ProjectionResult } from './ProjectionResult';
-import { FragmentType } from '../../../core/models/CodeFragment';
-import type { ICodeFragment } from '../../../core/models/CodeFragment';
+import { MetricType } from '../../../core/models/Metric';
+import type { IMetric } from '../../../core/models/Metric';
 
 /**
  * Central service for running analytical projections on runtime metrics.
@@ -11,7 +11,7 @@ import type { ICodeFragment } from '../../../core/models/CodeFragment';
  * exercise definition lookup, and registered projection engines to produce
  * a comprehensive analysis of workout performance.
  * 
- * Phase 4 Cleanup: Simplified to use fragment-based path exclusively.
+ * Phase 4 Cleanup: Simplified to use metrics-based path exclusively.
  */
 export class AnalysisService {
   private engines: IProjectionEngine[] = [];
@@ -36,26 +36,26 @@ export class AnalysisService {
   }
 
   /**
-   * Run all registered projection engines on the provided fragments.
+   * Run all registered projection engines on the provided metrics.
    * 
-   * This is the fragment-based projection method introduced in Phase 2.
-   * Groups fragments by exercise ID (from metadata) and runs projections for each group.
+   * This is the metrics-based projection method introduced in Phase 2.
+   * Groups metrics by exercise ID (from metadata) and runs projections for each group.
    * 
-   * @param fragments Array of code fragments to analyze
+   * @param metrics Array of code metrics to analyze
    * @returns Array of projection results from all engines
    */
-  public runAllProjectionsFromFragments(fragments: ICodeFragment[]): ProjectionResult[] {
+  public runAllProjectionsFromFragments(metrics: IMetric[]): ProjectionResult[] {
     if (!this.exerciseService) {
       return [];
     }
 
     const results: ProjectionResult[] = [];
 
-    // Group fragments by exercise ID (from metadata)
-    const fragmentsByExercise = this.groupFragmentsByExercise(fragments);
+    // Group metrics by exercise ID (from metadata)
+    const metricByExercise = this.groupFragmentsByExercise(metrics);
 
     // Run projections for each exercise
-    for (const [exerciseId, exerciseFragments] of fragmentsByExercise.entries()) {
+    for (const [exerciseId, exerciseFragments] of metricByExercise.entries()) {
       const definition = this.exerciseService.findById(exerciseId);
 
       if (!definition) {
@@ -73,32 +73,32 @@ export class AnalysisService {
   }
 
   /**
-   * Group fragments by exercise ID for targeted analysis.
+   * Group metrics by exercise ID for targeted analysis.
    * 
-   * Exercise ID is extracted from Effort fragments. Fragments are grouped
-   * based on the most recently encountered Effort fragment before them.
+   * Exercise ID is extracted from Effort metrics. Fragments are grouped
+   * based on the most recently encountered Effort metrics before them.
    * 
-   * @param fragments Array of code fragments
-   * @returns Map of exercise ID to fragments
+   * @param metrics Array of code metrics
+   * @returns Map of exercise ID to metrics
    */
-  private groupFragmentsByExercise(fragments: ICodeFragment[]): Map<string, ICodeFragment[]> {
-    const grouped = new Map<string, ICodeFragment[]>();
+  private groupFragmentsByExercise(metrics: IMetric[]): Map<string, IMetric[]> {
+    const grouped = new Map<string, IMetric[]>();
     let currentExerciseId: string | null = null;
 
-    for (const fragment of fragments) {
-      // Check if this is an Effort fragment (contains exercise ID)
-      if (fragment.fragmentType === FragmentType.Effort && typeof fragment.value === 'string') {
-        currentExerciseId = fragment.value;
+    for (const metric of metrics) {
+      // Check if this is an Effort metric (contains exercise ID)
+      if (metric.metricType === MetricType.Effort && typeof metric.value === 'string') {
+        currentExerciseId = metric.value;
         // Initialize array for this exercise if not exists
         if (!grouped.has(currentExerciseId)) {
           grouped.set(currentExerciseId, []);
         }
-        continue; // Don't include the Effort fragment itself
+        continue; // Don't include the Effort metric itself
       }
 
-      // Add fragment to current exercise group
+      // Add metric to current exercise group
       if (currentExerciseId) {
-        grouped.get(currentExerciseId)!.push(fragment);
+        grouped.get(currentExerciseId)!.push(metric);
       }
     }
 

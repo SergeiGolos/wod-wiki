@@ -2,7 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import type { ButtonConfig } from '../memory/MemoryTypes';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 
 // Re-export types for consumers
 export type { ButtonConfig };
@@ -30,7 +30,7 @@ export interface ControlsConfig {
  *
  * The UI should:
  * 1. Subscribe to `controls` memory changes
- * 2. Render buttons based on action fragments
+ * 2. Render buttons based on action metrics
  * 3. Emit `button.eventName` when user clicks a button
  *
  * @example
@@ -47,9 +47,9 @@ export class ButtonBehavior implements IRuntimeBehavior {
     constructor(private config: ControlsConfig) { }
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
-        // Create action fragments for each button
-        const fragments: ICodeFragment[] = this.config.buttons.map(button => ({
-            fragmentType: FragmentType.Action,
+        // Create action metrics for each button
+        const metrics: IMetric[] = this.config.buttons.map(button => ({
+            metricType: MetricType.Action,
             type: 'action',
             image: button.label,
             origin: 'runtime',
@@ -65,9 +65,9 @@ export class ButtonBehavior implements IRuntimeBehavior {
             timestamp: ctx.clock.now,
         }));
 
-        // Push action fragments to list-based memory
-        if (fragments.length > 0) {
-            ctx.pushMemory('controls', fragments);
+        // Push action metrics to list-based memory
+        if (metrics.length > 0) {
+            ctx.pushMemory('controls', metrics);
         }
 
         return [];
@@ -101,7 +101,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
         if (controlsLocs.length === 0) return;
 
         const loc = controlsLocs[0];
-        const updatedFragments = loc.fragments.map(f => {
+        const updatedFragments = loc.metrics.map(f => {
             const btn = f.value as ButtonConfig;
             if (btn.id === buttonId) {
                 return { ...f, value: { ...btn, ...updates } };

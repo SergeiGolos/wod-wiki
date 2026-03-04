@@ -28,7 +28,7 @@ const createMockBlock = (
         unmount: vi.fn().mockReturnValue([]),
         dispose: vi.fn(),
         isComplete: false,
-        fragments: [],
+        metrics: [],
         memoryMap: new Map(),
         getBehavior: vi.fn(),
         behaviors: [],

@@ -28,7 +28,7 @@ import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import { usePrimaryTimer, useSecondaryTimers, useStackTimers } from '@/runtime/hooks/useStackDisplay';
 import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
+import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { calculateDuration } from '@/lib/timeUtils';
@@ -109,8 +109,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                             const blockKey = block.key.toString();
                             const timer = blockTimerMap.get(blockKey);
                             const isLeaf = index === orderedBlocks.length - 1;
-                            const displayLocs = block.getFragmentMemoryByVisibility('display');
-                            const rows = displayLocs.map(loc => loc.fragments);
+                            const displayLocs = block.getMetricMemoryByVisibility('display');
+                            const rows = displayLocs.map(loc => loc.metrics);
                             // Show completed children immediately after the parent block
                             const childLevel = index + 1;
 
@@ -150,9 +150,9 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                                             {rows.length > 0 && (
                                                 <div className="flex flex-col gap-0.5 px-3 pb-2">
                                                     {rows.map((row, rowIdx) => (
-                                                        <FragmentSourceRow
+                                                        <MetricSourceRow
                                                             key={rowIdx}
-                                                            fragments={row}
+                                                            metrics={row}
                                                             size={isLeaf ? "normal" : "compact"}
                                                             isLeaf={isLeaf}
                                                         />
@@ -193,8 +193,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                             "bg-card/50 border-border/60 hover:bg-card/80"
                         )}>
                             <div className="flex flex-col gap-0.5 p-3">
-                                <FragmentSourceRow
-                                    fragments={nextPreview.fragments}
+                                <MetricSourceRow
+                                    metric={nextPreview.metrics}
                                     size="compact"
                                     isLeaf={false}
                                 />

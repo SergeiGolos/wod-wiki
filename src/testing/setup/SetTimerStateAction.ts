@@ -66,8 +66,8 @@ export class SetTimerStateAction implements ITestSetupAction {
     // Try 'time:state' then 'time'
     const timeLoc = block.getMemoryByTag('time:state' as any)[0] ?? block.getMemoryByTag('time' as any)[0];
 
-    if (timeLoc?.fragments[0]) {
-      const currentValue = timeLoc.fragments[0].value;
+    if (timeLoc?.metrics[0]) {
+      const currentValue = timeLoc.metrics[0].value;
       const newValue = typeof currentValue === 'object' && currentValue !== null
         ? { ...currentValue }
         : {};
@@ -93,7 +93,7 @@ export class SetTimerStateAction implements ITestSetupAction {
         (newValue as any).started = this.params.isStarted;
       }
 
-      timeLoc.update([{ ...timeLoc.fragments[0], value: newValue }]);
+      timeLoc.update([{ ...timeLoc.metrics[0], value: newValue }]);
       return; // Found and set, done
     }
 

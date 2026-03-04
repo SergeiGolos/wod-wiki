@@ -1,15 +1,15 @@
 /**
- * useUserOverrides — CRUD hook for user-supplied fragment overrides.
+ * useUserOverrides — CRUD hook for user-supplied metrics overrides.
  *
  * Wraps the Zustand store actions (`setUserOverride`, `clearUserOverride`)
  * with convenience helpers for adding, updating, and removing individual
- * user fragments keyed by `sourceBlockKey`.
+ * user metrics keyed by `sourceBlockKey`.
  *
  * Optionally persists overrides to localStorage for session survival.
  */
 
 import { useCallback, useEffect } from 'react';
-import { FragmentType, type ICodeFragment } from '@/core/models/CodeFragment';
+import { MetricType, type IMetric } from '@/core/models/Metric';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 
 const STORAGE_KEY = 'wod-wiki:userOutputOverrides';
@@ -18,13 +18,13 @@ const STORAGE_KEY = 'wod-wiki:userOutputOverrides';
 
 export interface UseUserOverridesReturn {
   /** Current override map (from store) */
-  overrides: Map<string, ICodeFragment[]>;
+  overrides: Map<string, IMetric[]>;
 
-  /** Add or replace a single user fragment for a block+fragmentType */
-  setOverride: (blockKey: string, fragmentType: FragmentType, value: unknown, image?: string) => void;
+  /** Add or replace a single user metrics for a block+metricType */
+  setOverride: (blockKey: string, metricType: MetricType, value: unknown, image?: string) => void;
 
-  /** Remove a specific fragment type override for a block */
-  removeOverride: (blockKey: string, fragmentType: FragmentType) => void;
+  /** Remove a specific metrics type override for a block */
+  removeOverride: (blockKey: string, metricType: MetricType) => void;
 
   /** Clear all overrides for a block */
   clearBlock: (blockKey: string) => void;
@@ -72,15 +72,15 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
   // ── Actions ───────────────────────────────────────────────
 
   const setOverride = useCallback(
-    (blockKey: string, fragmentType: FragmentType, value: unknown, image?: string) => {
+    (blockKey: string, metricType: MetricType, value: unknown, image?: string) => {
       const existing = overrides.get(blockKey) ?? [];
 
-      // Replace any existing fragment of the same type, keep others
-      const filtered = existing.filter((f) => f.fragmentType !== fragmentType);
+      // Replace any existing metrics of the same type, keep others
+      const filtered = existing.filter((f) => f.metricType !== metricType);
 
-      const newFragment: ICodeFragment = {
-        type: fragmentType,
-        fragmentType,
+      const newFragment: IMetric = {
+        type: metricType,
+        metricType,
         value,
         image: image ?? (value !== undefined ? String(value) : undefined),
         origin: 'user',
@@ -94,11 +94,11 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
   );
 
   const removeOverride = useCallback(
-    (blockKey: string, fragmentType: FragmentType) => {
+    (blockKey: string, metricType: MetricType) => {
       const existing = overrides.get(blockKey);
       if (!existing) return;
 
-      const filtered = existing.filter((f) => f.fragmentType !== fragmentType);
+      const filtered = existing.filter((f) => f.metricType !== metricType);
       if (filtered.length === 0) {
         storeClear(blockKey);
       } else {
@@ -129,7 +129,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
 
 interface SerializedFragment {
   type: string;
-  fragmentType: FragmentType;
+  metricType: MetricType;
   value?: unknown;
   image?: string;
   origin?: string;
@@ -137,10 +137,10 @@ interface SerializedFragment {
   timestamp?: string;
 }
 
-function serializeFragment(f: ICodeFragment): SerializedFragment {
+function serializeFragment(f: IMetric): SerializedFragment {
   return {
     type: f.type,
-    fragmentType: f.fragmentType,
+    metricType: f.metricType,
     value: f.value,
     image: f.image,
     origin: f.origin,
@@ -149,13 +149,13 @@ function serializeFragment(f: ICodeFragment): SerializedFragment {
   };
 }
 
-function deserializeFragment(s: SerializedFragment): ICodeFragment {
+function deserializeFragment(s: SerializedFragment): IMetric {
   return {
     type: s.type,
-    fragmentType: s.fragmentType,
+    metricType: s.metricType,
     value: s.value,
     image: s.image,
-    origin: (s.origin as ICodeFragment['origin']) ?? 'user',
+    origin: (s.origin as IMetric['origin']) ?? 'user',
     sourceBlockKey: s.sourceBlockKey,
     timestamp: s.timestamp ? new Date(s.timestamp) : undefined,
   };

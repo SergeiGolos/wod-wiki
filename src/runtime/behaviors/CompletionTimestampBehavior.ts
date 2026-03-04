@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 
 /**
  * CompletionTimestampBehavior records when a block is marked as complete.
@@ -28,8 +28,8 @@ export class CompletionTimestampBehavior implements IRuntimeBehavior {
             this.wasComplete = true;
 
             // Push completion timestamp to memory
-            const completionFragment: ICodeFragment = {
-                fragmentType: FragmentType.SystemTime,  // System timestamp, not a duration or time state
+            const completionFragment: IMetric = {
+                metricType: MetricType.SystemTime,  // System timestamp, not a duration or time state
                 type: 'completion',
                 image: this.completionTime.toISOString(),
                 origin: 'runtime',

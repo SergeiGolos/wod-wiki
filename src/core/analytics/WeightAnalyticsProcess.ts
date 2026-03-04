@@ -1,6 +1,6 @@
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { FragmentType } from '../models/CodeFragment';
+import { MetricType } from '../models/Metric';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 /**
@@ -16,11 +16,11 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
 
-        const elapsed = output.getFragment(FragmentType.Elapsed)?.value as number ?? 0;
+        const elapsed = output.getMetric(MetricType.Elapsed)?.value as number ?? 0;
         this.totalElapsed += elapsed;
 
         // Get reps count for this segment
-        const repFrags = output.getDisplayFragments({ types: [FragmentType.Rep] });
+        const repFrags = output.getDisplayMetrics({ types: [MetricType.Rep] });
         let segmentReps = 0;
         for (const frag of repFrags) {
             if (typeof frag.value === 'number') {
@@ -29,7 +29,7 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
         }
 
         // Get weight for this segment (total volume = reps * weight)
-        const resistanceFrags = output.getDisplayFragments({ types: [FragmentType.Resistance] });
+        const resistanceFrags = output.getDisplayMetrics({ types: [MetricType.Resistance] });
         let segmentWeight = 0;
         for (const frag of resistanceFrags) {
             const amount = (frag.value as any)?.amount;
@@ -42,7 +42,7 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
         if (segmentWeight > 0) {
             this.totalWeight += segmentWeight;
 
-            const effort = output.getFragment(FragmentType.Effort)?.value as string;
+            const effort = output.getMetric(MetricType.Effort)?.value as string;
             if (effort) {
                 this.weightByEffort.set(effort, (this.weightByEffort.get(effort) ?? 0) + segmentWeight);
             }
@@ -81,9 +81,9 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(timestamp.getTime(), timestamp.getTime()),
             sourceBlockKey: 'weight-analytics',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: type,
                     image: `${label}: ${displayValue}`,
                     value: value,
@@ -91,7 +91,7 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
                     timestamp: timestamp
                 },
                 {
-                    fragmentType: FragmentType.Label,
+                    metricType: MetricType.Label,
                     type: 'summary',
                     image: `${label}: ${displayValue}`,
                     value: `${label}: ${displayValue}`,
@@ -108,9 +108,9 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(timestamp.getTime(), timestamp.getTime()),
             sourceBlockKey: 'weight-analytics',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Effort,
+                    metricType: MetricType.Effort,
                     type: 'effort',
                     image: effort,
                     value: effort,
@@ -118,7 +118,7 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
                     timestamp: timestamp
                 },
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: 'effort_weight',
                     image: `Total Weight (${effort}): ${weight.toFixed(2)}`,
                     value: weight,

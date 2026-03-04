@@ -8,7 +8,7 @@ import { ICodeStatement } from '@/core/models/CodeStatement';
 
 describe('For Time Child Single Pass Test', () => {
     it('should run children only once for For Time (Unbound Timer)', () => {
-        // "For Time" is implied if we have a timer fragment but no duration?
+        // "For Time" is implied if we have a timer metrics but no duration?
         // Actually, GenericTimerStrategy implies "For Time" if direction is UP and no duration?
         // But MD Timer parser requires duration for 20:00.
         // How do we express "For Time" in WOD syntax without explicit duration?
@@ -16,10 +16,10 @@ describe('For Time Child Single Pass Test', () => {
         // But here we want to trigger GenericTimerStrategy to produce UnboundTimerBehavior.
 
         // If we use `0:00` maybe? Or just `[:For Time]`?
-        // GenericTimerStrategy matches `FragmentType.Duration`.
-        // `[:For Time]` produces an Action fragment, NOT a Timer fragment usually.
+        // GenericTimerStrategy matches `MetricType.Duration`.
+        // `[:For Time]` produces an Action metric, NOT a Timer metric usually.
 
-        // However, `GenericTimerStrategy` matches `statements[0].hasFragment(FragmentType.Duration)`.
+        // However, `GenericTimerStrategy` matches `statements[0].hasMetric(MetricType.Duration)`.
 
         // If I write `0:00`, it parses as Timer with value 0.
         // `GenericTimerStrategy`:

@@ -1,6 +1,6 @@
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { FragmentType } from '../models/CodeFragment';
+import { MetricType } from '../models/Metric';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 /**
@@ -15,10 +15,10 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
 
-        const elapsed = output.getFragment(FragmentType.Elapsed)?.value as number ?? 0;
+        const elapsed = output.getMetric(MetricType.Elapsed)?.value as number ?? 0;
         this.totalElapsed += elapsed;
 
-        const distanceFrags = output.getDisplayFragments({ types: [FragmentType.Distance] });
+        const distanceFrags = output.getDisplayMetrics({ types: [MetricType.Distance] });
         let segmentDistance = 0;
         for (const frag of distanceFrags) {
             const amount = (frag.value as any)?.amount;
@@ -30,7 +30,7 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
         if (segmentDistance > 0) {
             this.totalDistance += segmentDistance;
 
-            const effort = output.getFragment(FragmentType.Effort)?.value as string;
+            const effort = output.getMetric(MetricType.Effort)?.value as string;
             if (effort) {
                 this.distanceByEffort.set(effort, (this.distanceByEffort.get(effort) ?? 0) + segmentDistance);
             }
@@ -69,9 +69,9 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(timestamp.getTime(), timestamp.getTime()),
             sourceBlockKey: 'distance-analytics',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: type,
                     image: `${label}: ${displayValue}`,
                     value: value,
@@ -79,7 +79,7 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
                     timestamp: timestamp
                 },
                 {
-                    fragmentType: FragmentType.Label,
+                    metricType: MetricType.Label,
                     type: 'summary',
                     image: `${label}: ${displayValue}`,
                     value: `${label}: ${displayValue}`,
@@ -96,9 +96,9 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(timestamp.getTime(), timestamp.getTime()),
             sourceBlockKey: 'distance-analytics',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Effort,
+                    metricType: MetricType.Effort,
                     type: 'effort',
                     image: effort,
                     value: effort,
@@ -106,7 +106,7 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
                     timestamp: timestamp
                 },
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: 'effort_distance',
                     image: `Total Distance (${effort}): ${dist.toFixed(2)}`,
                     value: dist,

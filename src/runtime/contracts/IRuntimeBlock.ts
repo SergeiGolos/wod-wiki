@@ -6,7 +6,7 @@ import { IRuntimeBehavior } from './IRuntimeBehavior';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
-import { FragmentVisibility } from '../memory/FragmentVisibility';
+import { MetricVisibility } from '../memory/MetricVisibility';
 
 /**
  * Backward-compatible memory entry shape.
@@ -84,8 +84,8 @@ export interface IRuntimeBlock {
 
     /**
      * Human-readable label for the block.
-     * Computed from the block's Label fragment in fragment:display memory.
-     * Falls back to blockType or 'Block' if no Label fragment exists.
+     * Computed from the block's Label metrics in metrics:display memory.
+     * Falls back to blockType or 'Block' if no Label metric exists.
      * e.g., "Round 1 of 3", "21 Reps", "For Time"
      */
     readonly label: string;
@@ -205,27 +205,27 @@ export interface IRuntimeBlock {
     getAllMemory(): IMemoryLocation[];
 
     /**
-     * Get all fragment memory locations matching a given visibility tier.
+     * Get all metrics memory locations matching a given visibility tier.
      *
-     * Fragment tags follow the `fragment:*` namespace convention and are
+     * Fragment tags follow the `metrics:*` namespace convention and are
      * classified into three visibility tiers: `'display'`, `'promote'`,
      * and `'private'`. This method filters all memory locations to those
-     * with fragment tags belonging to the specified tier.
+     * with metrics tags belonging to the specified tier.
      *
      * @param visibility The visibility tier to filter by
      * @returns Array of memory locations in the requested tier
      *
      * @example
      * ```typescript
-     * // Get fragments visible in the UI card
-     * const displayLocs = block.getFragmentMemoryByVisibility('display');
+     * // Get metrics visible in the UI card
+     * const displayLocs = block.getMetricMemoryByVisibility('display');
      *
      * // Get all tiers for debug view
      * const all = (['display', 'promote', 'private'] as const)
-     *   .flatMap(v => block.getFragmentMemoryByVisibility(v));
+     *   .flatMap(v => block.getMetricMemoryByVisibility(v));
      * ```
      */
-    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[];
+    getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[];
 
     /**
      * Indicates whether this block has completed execution.
@@ -278,7 +278,7 @@ export interface IRuntimeBlock {
     /**
      * @deprecated Use pushMemory() or the BehaviorContext API instead.
      * Backward-compatible shim that updates the first matching memory location's
-     * fragment value, or creates a new location if none exists.
+     * metrics value, or creates a new location if none exists.
      */
     setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

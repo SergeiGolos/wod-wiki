@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'bun:test';
 import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { CountupTimerBehavior } from '../CountupTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../core/models/Metric';
 import { MemoryTag, MemoryLocation, IMemoryLocation } from '../../memory/MemoryLocation';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
@@ -12,7 +12,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         block: {
             key: { toString: () => 'test-block' },
             label: 'Test Block',
-            fragments: [],
+            metrics: [],
             behaviors: [],
             getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag),
             pushMemory: (loc: IMemoryLocation) => memoryLocations.push(loc),
@@ -28,26 +28,26 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
         getMemory: vi.fn((type: string) => {
             const locs = memoryLocations.filter(l => l.tag === type);
-            if (locs.length > 0 && locs[0].fragments.length > 0) {
-                return locs[0].fragments[0].value;
+            if (locs.length > 0 && locs[0].metrics.length > 0) {
+                return locs[0].metrics[0].value;
             }
             return undefined;
         }),
         setMemory: vi.fn((type: string, value: any) => {
             const locs = memoryLocations.filter(l => l.tag === type);
-            if (locs.length > 0 && locs[0].fragments.length > 0) {
-                (locs[0].fragments[0] as any).value = value;
+            if (locs.length > 0 && locs[0].metrics.length > 0) {
+                (locs[0].metrics[0] as any).value = value;
             }
         }),
-        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
+        pushMemory: vi.fn((tag: string, metrics: IMetric[]) => {
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, metrics));
         }),
-        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
             const locs = memoryLocations.filter(l => l.tag === tag);
             if (locs.length > 0) {
-                locs[0].update(fragments);
+                locs[0].update(metrics);
             } else {
-                memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
+                memoryLocations.push(new MemoryLocation(tag as MemoryTag, metrics));
             }
         }),
     } as unknown as IBehaviorContext;

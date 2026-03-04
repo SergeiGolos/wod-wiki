@@ -8,7 +8,7 @@ import { LeafExitBehavior } from '../LeafExitBehavior';
 import { ButtonBehavior } from '../ButtonBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../core/models/Metric';
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
     const memoryLocations: IMemoryLocation[] = [];
@@ -17,7 +17,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         block: {
             key: { toString: () => 'test-block' },
             label: 'Test Block',
-            fragments: [],
+            metrics: [],
             getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag),
             pushMemory: (loc: IMemoryLocation) => memoryLocations.push(loc),
             getAllMemory: () => [...memoryLocations],
@@ -31,30 +31,30 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         markComplete: vi.fn(),
         getMemory: vi.fn((type: string) => {
             const locs = memoryLocations.filter(l => l.tag === type);
-            if (locs.length > 0 && locs[0].fragments.length > 0) {
+            if (locs.length > 0 && locs[0].metrics.length > 0) {
                 // Special case: synthesize RoundState for 'round' memory
                 if (type === 'round') {
-                    const frag = locs[0].fragments[0] as unknown as { current?: number; total?: number };
+                    const frag = locs[0].metrics[0] as unknown as { current?: number; total?: number };
                     if (frag?.current !== undefined) {
                         return { current: frag.current, total: frag.total };
                     }
                     return undefined;
                 }
-                return locs[0].fragments[0].value;
+                return locs[0].metrics[0].value;
             }
             return undefined;
         }),
         getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
         setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
+        pushMemory: vi.fn((tag: string, metrics: IMetric[]) => {
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, metrics));
         }),
-        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
             const locs = memoryLocations.filter(l => l.tag === tag);
             if (locs.length > 0) {
-                locs[0].update(fragments);
+                locs[0].update(metrics);
             } else {
-                memoryLocations.push(new MemoryLocation(tag as MemoryTag, fragments));
+                memoryLocations.push(new MemoryLocation(tag as MemoryTag, metrics));
             }
         }),
         ...overrides
@@ -249,7 +249,7 @@ describe('Controls Aspect Behaviors', () => {
 
             behavior.onMount(ctx);
 
-            // Controls state is pushed as fragments to memory, not emitted as event
+            // Controls state is pushed as metrics to memory, not emitted as event
             expect(ctx.pushMemory).toHaveBeenCalledWith('controls', expect.arrayContaining([
                 expect.objectContaining({
                     value: expect.objectContaining({ id: 'next' })

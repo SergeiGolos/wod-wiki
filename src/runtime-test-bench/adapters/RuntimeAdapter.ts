@@ -2,7 +2,7 @@ import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, Mem
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMetric } from '../../core/models/Metric';
 import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
 
 /**
@@ -67,13 +67,13 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       const isActive = index === blocks.length - 1; // Top of stack is active
       const status = this.determineBlockStatus(isActive);
 
-      // Extract fragments from source statements if available
-      const fragments = this.extractBlockFragments(runtime, block);
+      // Extract metrics from source statements if available
+      const metrics = this.extractBlockFragments(runtime, block);
 
-      // Extract fragment groups from block memory for multi-line display
-      const displayLocs = block.getMemoryByTag('fragment:display');
-      const fragmentGroups = displayLocs.length > 1
-        ? displayLocs.map(loc => [...loc.fragments])
+      // Extract metrics groups from block memory for multi-line display
+      const displayLocs = block.getMemoryByTag('metric:display');
+      const metricGroups = displayLocs.length > 1
+        ? displayLocs.map(loc => [...loc.metrics])
         : undefined;
 
       return {
@@ -89,8 +89,8 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         isComplete: status === 'complete',
         status,
         metrics: {}, // TODO: Extract actual metrics
-        fragments,
-        fragmentGroups,
+        metrics,
+        metricGroups,
         sourceIds: block.sourceIds,
         lineNumber: block.sourceIds.length > 0 ? block.sourceIds[0] : undefined,
         metadata: {
@@ -103,9 +103,9 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   }
 
   /**
-   * Extracts fragments from block's source statements for unified visualization
+   * Extracts metrics from block's source statements for unified visualization
    */
-  private extractBlockFragments(_runtime: IScriptRuntime, block: IRuntimeBlock): ICodeFragment[] | undefined {
+  private extractBlockFragments(_runtime: IScriptRuntime, block: IRuntimeBlock): IMetric[] | undefined {
     // Try to get statements from runtime's compilation context
     if (!block.sourceIds || block.sourceIds.length === 0) {
       return undefined;
@@ -142,8 +142,8 @@ export class RuntimeAdapter implements IRuntimeAdapter {
 
       for (const loc of locations) {
         const tag = loc.tag;
-        // The value is usually in the first fragment for legacy behaviors
-        const value = loc.fragments.length > 0 ? loc.fragments[0].value : undefined;
+        // The value is usually in the first metrics for legacy behaviors
+        const value = loc.metrics.length > 0 ? loc.metrics[0].value : undefined;
 
         const memoryType = this.mapMemoryType(tag);
         const entryId = `${blockKey}-${tag}`;

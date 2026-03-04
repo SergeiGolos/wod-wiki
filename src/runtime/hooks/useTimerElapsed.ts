@@ -70,7 +70,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   
   // Subscribe to block-level timer memory
   const [timerState, setTimerState] = useState<TimerState | undefined>(() => {
-    return block?.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+    return block?.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
   });
   
   // Subscribe to stack changes to update block reference
@@ -79,7 +79,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
       const foundBlock = runtime.stack.blocks.find(b => b.key.toString() === blockKey);
       if (foundBlock) {
         const timerLoc = foundBlock.getMemoryByTag('time')[0];
-        setTimerState(timerLoc?.fragments[0]?.value as TimerState | undefined);
+        setTimerState(timerLoc?.metrics[0]?.value as TimerState | undefined);
       } else {
         setTimerState(undefined);
       }
@@ -95,7 +95,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     }
     
     const timerLoc = block.getMemoryByTag('time')[0];
-    setTimerState(timerLoc?.fragments[0]?.value as TimerState | undefined);
+    setTimerState(timerLoc?.metrics[0]?.value as TimerState | undefined);
     
     if (timerLoc) {
       const unsubscribe = timerLoc.subscribe((newFrags) => {

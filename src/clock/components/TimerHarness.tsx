@@ -90,7 +90,7 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
 
     // Get timer state from the block's typed memory
     const timerLoc = newBlock.getMemoryByTag('time')[0];
-    let currentState = timerLoc?.fragments[0]?.value as TimerState | undefined;
+    let currentState = timerLoc?.metrics[0]?.value as TimerState | undefined;
 
     // Configure timer state based on props
     if (currentState) {
@@ -110,13 +110,13 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
 
     // Update timer state with configured spans
       const timeLoc = newBlock.getMemoryByTag('time')[0];
-      if (timeLoc?.fragments[0]) {
-        timeLoc.update([{ ...timeLoc.fragments[0], value: { ...currentState, spans } }]);
+      if (timeLoc?.metrics[0]) {
+        timeLoc.update([{ ...timeLoc.metrics[0], value: { ...currentState, spans } }]);
       }
 
       // Refresh current state
       const updatedLoc = newBlock.getMemoryByTag('time')[0];
-      currentState = updatedLoc?.fragments[0]?.value as TimerState | undefined;
+      currentState = updatedLoc?.metrics[0]?.value as TimerState | undefined;
     }
 
     return {
@@ -175,10 +175,10 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
   const handleReset = useCallback(() => {
     // Reset clears all spans and starts fresh
     const timeLoc = block.getMemoryByTag('time')[0];
-    if (timeLoc?.fragments[0]) {
-      const current = timeLoc.fragments[0].value as TimerState | undefined;
+    if (timeLoc?.metrics[0]) {
+      const current = timeLoc.metrics[0].value as TimerState | undefined;
       if (current) {
-        timeLoc.update([{ ...timeLoc.fragments[0], value: { ...current, spans: [] } }]);
+        timeLoc.update([{ ...timeLoc.metrics[0], value: { ...current, spans: [] } }]);
       }
     }
     setRecalcTrigger(prev => prev + 1);

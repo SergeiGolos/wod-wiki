@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { MockJitCompiler } from '../MockJitCompiler';
 import { MockBlock } from '../MockBlock';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
+import { IMetric, MetricType } from '@/core/models/Metric';
 import { CodeMetadata } from '@/core/models/CodeMetadata';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 
@@ -13,31 +13,31 @@ class TestStatement implements ICodeStatement {
   id: number;
   parent?: number;
   children: number[][] = [];
-  fragments: ICodeFragment[];
+  metrics: IMetric[];
   meta: CodeMetadata;
   isLeaf?: boolean;
   hints?: Set<string>;
 
-  constructor(config: { id: number; fragments?: ICodeFragment[]; meta?: CodeMetadata }) {
+  constructor(config: { id: number; metrics?: IMetric[]; meta?: CodeMetadata }) {
     this.id = config.id;
-    this.fragments = config.fragments ?? [];
+    this.metrics = config.metrics ?? [];
     this.meta = config.meta ?? { line: 1, column: 1, offset: 0, length: 0 };
   }
 
-  hasFragment(type: FragmentType): boolean {
-    return this.fragments.some(f => f.fragmentType === type);
+  hasMetric(type: MetricType): boolean {
+    return this.metrics.some(f => f.metricType === type);
   }
 }
 
 /**
- * Simple test fragment for testing
+ * Simple test metrics for testing
  */
-class TestFragment implements ICodeFragment {
-  fragmentType: FragmentType;
+class TestFragment implements IMetric {
+  metricType: MetricType;
   origin: 'parser' | 'behavior' | 'strategy' = 'parser';
 
-  constructor(type: FragmentType) {
-    this.fragmentType = type;
+  constructor(type: MetricType) {
+    this.metricType = type;
   }
 }
 
@@ -105,13 +105,13 @@ describe('MockJitCompiler', () => {
       const timerBlock = new MockBlock('timer-test', []);
       
       mockJit.whenMatches(
-        (stmts) => stmts.some(s => s.hasFragment('timer')),
+        (stmts) => stmts.some(s => s.hasMetric('timer')),
         timerBlock
       );
 
       const timerStatement = new TestStatement({
         id: 1,
-        fragments: [new TestFragment('timer')]
+        metrics: [new TestFragment('timer')]
       });
 
       const result = mockJit.compile([timerStatement], mockRuntime);
@@ -171,7 +171,7 @@ describe('MockJitCompiler', () => {
 
       const statement = new TestStatement({
         id: 1,
-        fragments: [new TestFragment('timer')]
+        metrics: [new TestFragment('timer')]
       });
 
       const result = mockJit.compile([statement], mockRuntime);
@@ -188,7 +188,7 @@ describe('MockJitCompiler', () => {
 
       const statement = new TestStatement({
         id: 1,
-        fragments: [new TestFragment('timer')]
+        metrics: [new TestFragment('timer')]
       });
 
       const result = mockJit.compile([statement], mockRuntime);
@@ -201,7 +201,7 @@ describe('MockJitCompiler', () => {
       
       mockJit.whenTextContains('not-present-text', timerBlock);
 
-      const statement = new TestStatement({ id: 1, fragments: [] });
+      const statement = new TestStatement({ id: 1, metrics: [] });
 
       const result = mockJit.compile([statement], mockRuntime);
 

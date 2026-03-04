@@ -4,7 +4,7 @@ import { IRuntimeBehavior } from '@/runtime/contracts';
 import { BlockLifecycleOptions, IRuntimeBlock } from '@/runtime/contracts';
 import { IScriptRuntime } from '@/runtime/contracts';
 import { IBlockContext } from '@/runtime/contracts';
-import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
+import { IMetric, MetricType } from '@/core/models/Metric';
 import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
 import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
@@ -13,7 +13,7 @@ import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, Unsubscribe
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { OutputStatementType } from '@/core/models/OutputStatement';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
-import { FragmentVisibility, getFragmentVisibility } from '@/runtime/memory/FragmentVisibility';
+import { MetricVisibility, getMetricVisibility } from '@/runtime/memory/MetricVisibility';
 
 /**
  * Minimal stub context for MockBlock
@@ -92,7 +92,7 @@ class MockBehaviorContext implements IBehaviorContext {
     return () => {};
   }
 
-  emitOutput(_type: OutputStatementType, _fragments: ICodeFragment[], _options?: { label?: string }): void {
+  emitOutput(_type: OutputStatementType, _metrics: IMetric[], _options?: { label?: string }): void {
     // Mock: no-op output emission
   }
 
@@ -106,8 +106,8 @@ class MockBehaviorContext implements IBehaviorContext {
     const locations = this._mockBlock.getMemoryByTag(tag);
     if (locations.length > 0) {
       const loc = locations[0];
-      if (loc.fragments.length > 0) {
-        return loc.fragments[0]?.value as MemoryValueOf<T>;
+      if (loc.metrics.length > 0) {
+        return loc.metrics[0]?.value as MemoryValueOf<T>;
       }
       return undefined;
     }
@@ -122,13 +122,13 @@ class MockBehaviorContext implements IBehaviorContext {
     const locations = this._mockBlock.getMemoryByTag(tag);
     if (locations.length > 0) {
       const loc = locations[0];
-      if (loc.fragments.length > 0) {
-        const updated = loc.fragments.map((f, i) =>
+      if (loc.metrics.length > 0) {
+        const updated = loc.metrics.map((f, i) =>
           i === 0 ? { ...f, value } : f
         );
         loc.update(updated);
       } else {
-        loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+        loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
       }
       return;
     }
@@ -145,18 +145,18 @@ class MockBehaviorContext implements IBehaviorContext {
     return this._mockBlock.getMemoryByTag(tag);
   }
 
-  pushMemory(_tag: string, _fragments: ICodeFragment[]): IMemoryLocation {
+  pushMemory(_tag: string, _metrics: IMetric[]): IMemoryLocation {
     // Create a real MemoryLocation and push it to the MockBlock
-    const location = new MemoryLocation(_tag as MemoryTag, _fragments);
+    const location = new MemoryLocation(_tag as MemoryTag, _metrics);
     this._mockBlock.pushMemory(location);
     return location;
   }
 
-  updateMemory(_tag: string, _fragments: ICodeFragment[]): void {
+  updateMemory(_tag: string, _metrics: IMetric[]): void {
     // Update the first matching location on the MockBlock
     const locations = this._mockBlock.getMemoryByTag(_tag as MemoryTag);
     if (locations.length > 0) {
-      locations[0].update(_fragments);
+      locations[0].update(_metrics);
     }
   }
 
@@ -189,8 +189,8 @@ export interface MockBlockConfig {
   label?: string;
   /** Source statement IDs */
   sourceIds?: number[];
-  /** Pre-configured fragments */
-  fragments?: ICodeFragment[][];
+  /** Pre-configured metrics */
+  metrics?: IMetric[][];
   /** Custom state object accessible in conditions */
   state?: Record<string, any>;
 }
@@ -203,17 +203,17 @@ export class MockBlock implements IRuntimeBlock {
   readonly sourceIds: number[];
   readonly blockType: string;
   readonly context: IBlockContext;
-  readonly fragments: ICodeFragment[][];
+  readonly metrics: IMetric[][];
   executionTiming: BlockLifecycleOptions = {};
 
   /**
-   * Computed label derived from the block's Label fragment in memory.
+   * Computed label derived from the block's Label metrics in memory.
    * Falls back to blockType → 'Block'.
    */
   get label(): string {
     for (const loc of this._memory) {
-      for (const frag of loc.fragments) {
-        if (frag.fragmentType === FragmentType.Label) {
+      for (const frag of loc.metrics) {
+        if (frag.metricType === MetricType.Label) {
           return frag.image || frag.value?.toString() || this.blockType || 'Block';
         }
       }
@@ -268,18 +268,18 @@ export class MockBlock implements IRuntimeBlock {
     this.blockType = resolvedConfig.blockType ?? 'MockBlock';
     this.sourceIds = resolvedConfig.sourceIds ?? [];
 
-    // Store label as a Label fragment in memory (matching RuntimeBlock pattern)
+    // Store label as a Label metrics in memory (matching RuntimeBlock pattern)
     const labelText = resolvedConfig.label ?? this.blockType;
     if (labelText) {
-      this._memory.push(new MemoryLocation('fragment:label', [{
-        fragmentType: FragmentType.Label,
+      this._memory.push(new MemoryLocation('metric:label', [{
+        metricType: MetricType.Label,
         type: 'label',
         image: labelText,
         origin: 'config',
         value: labelText
-      } as ICodeFragment]));
+      } as IMetric]));
     }
-    this.fragments = resolvedConfig.fragments ?? [];
+    this.metrics = resolvedConfig.metrics ?? [];
     this.context = new MockBlockContext(this.key.toString());
     this.state = resolvedConfig.state ?? {};
   }
@@ -407,10 +407,10 @@ export class MockBlock implements IRuntimeBlock {
   }
 
   /**
-   * Get all fragment memory locations matching a given visibility tier.
+   * Get all metrics memory locations matching a given visibility tier.
    */
-  getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[] {
-    return this._memory.filter(loc => getFragmentVisibility(loc.tag) === visibility);
+  getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[] {
+    return this._memory.filter(loc => getMetricVisibility(loc.tag) === visibility);
   }
 
   // ============================================================================
@@ -442,8 +442,8 @@ export class MockBlock implements IRuntimeBlock {
       const loc = locations[0];
       return {
         get value(): MemoryValueOf<T> {
-          if (loc.fragments.length === 0) return undefined as unknown as MemoryValueOf<T>;
-          return loc.fragments[0]?.value as MemoryValueOf<T>;
+          if (loc.metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
+          return loc.metrics[0]?.value as MemoryValueOf<T>;
         },
         subscribe(listener: (nv: any, ov: any) => void): () => void {
           return loc.subscribe((newFrags, oldFrags) => {
@@ -471,13 +471,13 @@ export class MockBlock implements IRuntimeBlock {
     const locations = this._memory.filter(loc => loc.tag === tag);
     if (locations.length > 0) {
       const loc = locations[0];
-      if (loc.fragments.length > 0) {
-        const updated = loc.fragments.map((f, i) =>
+      if (loc.metrics.length > 0) {
+        const updated = loc.metrics.map((f, i) =>
           i === 0 ? { ...f, value } : f
         );
         loc.update(updated);
       } else {
-        loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+        loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
       }
       return;
     }

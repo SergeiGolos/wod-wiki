@@ -4,7 +4,7 @@
 
 import type { ScriptRuntime as RealScriptRuntime } from '../../runtime/ScriptRuntime';
 import type { ICodeStatement } from '../../core/models/CodeStatement';
-import type { ICodeFragment } from '../../core/models/CodeFragment';
+import type { IMetric } from '../../core/models/Metric';
 
 // ============================================================================
 // 1. UI STATE LAYER
@@ -181,15 +181,15 @@ export interface RuntimeStackBlock {
   status: BlockStatus;
 
   // Metrics (legacy format)
-  metrics?: Record<string, MetricValue>;
+  metric: Record<string, MetricValue>;
 
   // Fragments for unified visualization (new format)
-  // These are the pre-defined metrics in fragment format for consistent display
-  fragments?: ICodeFragment[];
+  // These are the pre-defined metrics in metric format for consistent display
+  metrics?: IMetric[];
 
   // Fragment groups for multi-line display (from FragmentMemory)
-  // Each inner array is a semantic group (e.g., per-round fragments from + linked statements)
-  fragmentGroups?: ICodeFragment[][];
+  // Each inner array is a semantic group (e.g., per-round metrics from + linked statements)
+  metricGroups?: IMetric[][];
 
   // Source
   sourceIds: number[];
@@ -557,7 +557,7 @@ export interface NextEvent {
 }
 
 export interface CodeStatement extends ICodeStatement {
-  // Extending ICodeStatement which has: id, parent, children, fragments, isLeaf, meta
+  // Extending ICodeStatement which has: id, parent, children, metrics, isLeaf, meta
 }
 
 export interface SearchCriteria {

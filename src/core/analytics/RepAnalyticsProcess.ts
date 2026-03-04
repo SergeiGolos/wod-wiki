@@ -1,6 +1,6 @@
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { FragmentType } from '../models/CodeFragment';
+import { MetricType } from '../models/Metric';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 /**
@@ -15,10 +15,10 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
 
-        const elapsed = output.getFragment(FragmentType.Elapsed)?.value as number ?? 0;
+        const elapsed = output.getMetric(MetricType.Elapsed)?.value as number ?? 0;
         this.totalElapsed += elapsed;
 
-        const reps = output.getDisplayFragments({ types: [FragmentType.Rep] });
+        const reps = output.getDisplayMetrics({ types: [MetricType.Rep] });
         let segmentReps = 0;
         for (const frag of reps) {
             if (typeof frag.value === 'number') {
@@ -29,7 +29,7 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
         if (segmentReps > 0) {
             this.totalReps += segmentReps;
 
-            const effort = output.getFragment(FragmentType.Effort)?.value as string;
+            const effort = output.getMetric(MetricType.Effort)?.value as string;
             if (effort) {
                 this.repsByEffort.set(effort, (this.repsByEffort.get(effort) ?? 0) + segmentReps);
             }
@@ -68,9 +68,9 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(timestamp.getTime(), timestamp.getTime()),
             sourceBlockKey: 'rep-analytics',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: type,
                     image: `${label}: ${displayValue}`,
                     value: value,
@@ -78,7 +78,7 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
                     timestamp: timestamp
                 },
                 {
-                    fragmentType: FragmentType.Label,
+                    metricType: MetricType.Label,
                     type: 'summary',
                     image: `${label}: ${displayValue}`,
                     value: `${label}: ${displayValue}`,
@@ -95,9 +95,9 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(timestamp.getTime(), timestamp.getTime()),
             sourceBlockKey: 'rep-analytics',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Effort,
+                    metricType: MetricType.Effort,
                     type: 'effort',
                     image: effort,
                     value: effort,
@@ -105,7 +105,7 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
                     timestamp: timestamp
                 },
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: 'effort_reps',
                     image: `Total Reps (${effort}): ${count}`,
                     value: count,

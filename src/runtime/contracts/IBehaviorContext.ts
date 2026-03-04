@@ -2,7 +2,7 @@ import { IEvent } from './events/IEvent';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IRuntimeClock } from './IRuntimeClock';
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMetric } from '../../core/models/Metric';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
@@ -182,25 +182,25 @@ export interface IBehaviorContext {
      * - onUnmount: 'completion' final results
      * 
      * @param type The type of output ('segment', 'milestone', 'completion', 'metric', 'label')
-     * @param fragments The data fragments that make up this output
+     * @param metrics The data metrics that make up this output
      * @param options Optional metadata (label)
      * 
      * @example
      * ```typescript
      * // Emit a segment for round 3
      * ctx.emitOutput('segment', [
-     *   { fragmentType: FragmentType.Rounds, value: 3, origin: 'runtime' }
+     *   { metricType: MetricType.Rounds, value: 3, origin: 'runtime' }
      * ], { label: 'Round 3 of 5' });
      * 
      * // Emit completion with elapsed time
      * ctx.emitOutput('completion', [
-     *   { fragmentType: FragmentType.Duration, value: elapsed, origin: 'runtime' }
+     *   { metricType: MetricType.Duration, value: elapsed, origin: 'runtime' }
      * ], { label: 'Completed' });
      * ```
      */
     emitOutput(
         type: OutputStatementType,
-        fragments: ICodeFragment[],
+        metrics: IMetric[],
         options?: OutputOptions
     ): void;
 
@@ -213,25 +213,25 @@ export interface IBehaviorContext {
     // ============================================================================
 
     /**
-     * Push a new memory location with fragment data onto the block's memory list.
+     * Push a new memory location with metrics data onto the block's memory list.
      *
      * This creates a new MemoryLocation internally and returns it for potential updates.
      * Multiple locations with the same tag can coexist on the same block.
      *
-     * @param tag The memory tag (e.g., 'timer', 'fragment:display')
-     * @param fragments The fragment array to store at this location
+     * @param tag The memory tag (e.g., 'timer', 'metric:display')
+     * @param metric The metric array to store at this location
      * @returns The created memory location for optional further manipulation
      *
      * @example
      * ```typescript
-     * // Push timer fragment
+     * // Push timer metrics
      * ctx.pushMemory('time', [timerFragment]);
      *
-     * // Push display row (fragment:display)
-     * ctx.pushMemory('fragment:display', [timerFrag, actionFrag, effortFrag]);
+     * // Push display row (metrics:display)
+     * ctx.pushMemory('metric:display', [timerFrag, actionFrag, effortFrag]);
      * ```
      */
-    pushMemory(tag: MemoryTag, fragments: ICodeFragment[]): IMemoryLocation;
+    pushMemory(tag: MemoryTag, metrics: IMetric[]): IMemoryLocation;
 
     /**
      * Get all memory locations matching the given tag.
@@ -241,21 +241,21 @@ export interface IBehaviorContext {
     getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
 
     /**
-     * Update the first matching memory location with new fragment data.
+     * Update the first matching memory location with new metrics data.
      *
      * Convenience method for updating existing memory without managing references.
      * If no location with the given tag exists, this is a no-op.
      *
      * @param tag The memory tag to update
-     * @param fragments The new fragment array
+     * @param metrics The new metrics array
      *
      * @example
      * ```typescript
-     * // Update timer fragment with new elapsed time
-     * ctx.updateMemory('time', [updatedTimerFragment]);
+     * // Update timer metrics with new elapsed time
+     * ctx.updateMemory('time', [updatedTimerMetric]);
      * ```
      */
-    updateMemory(tag: MemoryTag, fragments: ICodeFragment[]): void;
+    updateMemory(tag: MemoryTag, metrics: IMetric[]): void;
 
     // ============================================================================
     // Block Control
@@ -276,14 +276,14 @@ export interface IBehaviorContext {
     // ============================================================================
 
     /**
-     * @deprecated Use block.getMemoryByTag() and read fragment values instead.
-     * Returns the typed value from the first matching memory location's first fragment.
+     * @deprecated Use block.getMemoryByTag() and read metrics values instead.
+     * Returns the typed value from the first matching memory location's first metric.
      */
     getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
 
     /**
      * @deprecated Use pushMemory() or updateMemory() instead.
-     * Updates the first matching memory location's fragment value, or creates a new one.
+     * Updates the first matching memory location's metrics value, or creates a new one.
      */
     setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

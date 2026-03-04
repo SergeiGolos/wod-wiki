@@ -2,7 +2,7 @@
  * ReviewGrid — Main grid component.
  *
  * Replaces both ReviewPanelIndex + ReviewPanelPrimary with a single
- * full-width data grid that pivots IOutputStatement fragments into columns.
+ * full-width data grid that pivots IOutputStatement metrics into columns.
  *
  * Manages local UI state (sort, column filters, search, column visibility,
  * filter row visibility, graph tags) and delegates data transformation to
@@ -12,7 +12,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import type { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
+import type { IMetric, MetricType } from '@/core/models/Metric';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';
 import { getPreset } from './gridPresets';
@@ -38,7 +38,7 @@ export interface ReviewGridProps {
   /** Analytics groups (reserved for Phase 3 graph panel) */
   groups: AnalyticsGroup[];
   /** User override map from the store */
-  userOutputOverrides?: Map<string, ICodeFragment[]>;
+  userOutputOverrides?: Map<string, IMetric[]>;
   /** Active grid preset id from the store */
   gridViewPreset?: string;
   /** Callback to update the preset in the store */
@@ -81,14 +81,14 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   const [overrideDialog, setOverrideDialog] = useState<{
     isOpen: boolean;
     blockKey: string;
-    fragmentType: FragmentType;
+    metricType: MetricType;
     anchorRect: DOMRect | null;
-    existingFragments: ICodeFragment[];
+    existingFragments: IMetric[];
     existingUserValue?: string;
   }>({
     isOpen: false,
     blockKey: '',
-    fragmentType: 'Time' as FragmentType,
+    metricType: 'Time' as MetricType,
     anchorRect: null,
     existingFragments: [],
   });
@@ -249,11 +249,11 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   );
 
   const handleCellDoubleClick = useCallback(
-    (blockKey: string, fragmentType: FragmentType, anchorRect: DOMRect) => {
-      // Find existing fragments for context
+    (blockKey: string, metricType: MetricType, anchorRect: DOMRect) => {
+      // Find existing metric for context
       const row = rows.find((r) => r.sourceBlockKey === blockKey);
-      const cell = row?.cells.get(fragmentType);
-      const existingFragments = cell?.fragments ?? [];
+      const cell = row?.cells.get(metricType);
+      const existingFragments = cell?.metrics ?? [];
 
       // Check for existing user override value
       const userFrag = existingFragments.find((f) => f.origin === 'user');
@@ -262,7 +262,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
       setOverrideDialog({
         isOpen: true,
         blockKey,
-        fragmentType,
+        metricType,
         anchorRect,
         existingFragments,
         existingUserValue,
@@ -273,16 +273,16 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
   const handleOverrideSave = useCallback(
     (value: string, image?: string) => {
-      setOverride(overrideDialog.blockKey, overrideDialog.fragmentType, value, image);
+      setOverride(overrideDialog.blockKey, overrideDialog.metricType, value, image);
       setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
     },
-    [overrideDialog.blockKey, overrideDialog.fragmentType, setOverride],
+    [overrideDialog.blockKey, overrideDialog.metricType, setOverride],
   );
 
   const handleOverrideRemove = useCallback(() => {
-    removeOverride(overrideDialog.blockKey, overrideDialog.fragmentType);
+    removeOverride(overrideDialog.blockKey, overrideDialog.metricType);
     setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
-  }, [overrideDialog.blockKey, overrideDialog.fragmentType, removeOverride]);
+  }, [overrideDialog.blockKey, overrideDialog.metricType, removeOverride]);
 
   const handleOverrideClose = useCallback(() => {
     setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
@@ -362,7 +362,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
       <UserOverrideDialog
         isOpen={overrideDialog.isOpen}
         blockKey={overrideDialog.blockKey}
-        fragmentType={overrideDialog.fragmentType}
+        metricType={overrideDialog.metricType}
         existingFragments={overrideDialog.existingFragments}
         existingUserValue={overrideDialog.existingUserValue}
         anchorRect={overrideDialog.anchorRect ?? undefined}

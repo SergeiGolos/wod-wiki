@@ -4,7 +4,7 @@ import { BlockKey } from "../../core/models/BlockKey";
 import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
-import { ICodeFragment, FragmentType } from "../../core/models/CodeFragment";
+import { IMetric, MetricType } from "../../core/models/Metric";
 import { MemoryLocation } from "../memory/MemoryLocation";
 import { RestBlock } from "../blocks/RestBlock";
 import { PushBlockAction } from "../actions/stack/PushBlockAction";
@@ -49,7 +49,7 @@ export class BlockBuilder {
     private key: BlockKey | undefined;
     private label: string = "";
     private blockType: string = "Block";
-    private fragments: ICodeFragment[][] | undefined;
+    private metrics: IMetric[][] | undefined;
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
@@ -135,8 +135,8 @@ export class BlockBuilder {
         return this;
     }
 
-    setFragments(fragments: ICodeFragment[][]): BlockBuilder {
-        this.fragments = fragments;
+    setFragments(metrics: IMetric[][]): BlockBuilder {
+        this.metrics = metrics;
         return this;
     }
 
@@ -273,26 +273,26 @@ export class BlockBuilder {
             this.context,
             this.key,
             this.blockType
-            // label is NOT passed here — it's pushed as a Label fragment below
+            // label is NOT passed here — it's pushed as a Label metrics below
         );
 
-        // Push fragment memory preserving group structure from strategies
-        if (this.fragments && this.fragments.length > 0) {
-            // Push each fragment group as a separate 'fragment:display' location
-            for (const group of this.fragments) {
-                block.pushMemory(new MemoryLocation('fragment:display', group));
+        // Push metrics memory preserving group structure from strategies
+        if (this.metrics && this.metrics.length > 0) {
+            // Push each metric group as a separate 'metric:display' location
+            for (const group of this.metrics) {
+                block.pushMemory(new MemoryLocation('metric:display', group));
             }
         }
 
-        // Push label as a Label fragment in dedicated memory location
+        // Push label as a Label metrics in dedicated memory location
         if (this.label) {
-            block.pushMemory(new MemoryLocation('fragment:label', [{
-                fragmentType: FragmentType.Label,
+            block.pushMemory(new MemoryLocation('metric:label', [{
+                metricType: MetricType.Label,
                 type: 'label',
                 image: this.label,
                 origin: 'compiler',
                 value: this.label,
-            } as ICodeFragment]));
+            } as IMetric]));
         }
 
         return block;

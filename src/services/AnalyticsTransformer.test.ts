@@ -3,7 +3,7 @@ import { getAnalyticsFromRuntime, AnalyticsTransformer, SegmentWithMetadata } fr
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { TimeSpan } from '../runtime/models/TimeSpan';
 import { IOutputStatement, OutputStatementType } from '../core/models/OutputStatement';
-import { FragmentType, ICodeFragment } from '../core/models/CodeFragment';
+import { MetricType, IMetric } from '../core/models/Metric';
 
 // Helper to create mock output statements
 function createMockOutput(options: {
@@ -13,7 +13,7 @@ function createMockOutput(options: {
   ended?: number;
   sourceBlockKey?: string;
   stackLevel?: number;
-  fragments?: ICodeFragment[];
+  metrics?: IMetric[];
   hints?: string[];
 }): IOutputStatement {
   const now = Date.now();
@@ -27,7 +27,7 @@ function createMockOutput(options: {
     total: timeSpan.duration,
     sourceBlockKey: options.sourceBlockKey ?? 'block-1',
     stackLevel: options.stackLevel ?? 0,
-    fragments: options.fragments ?? [],
+    metrics: options.metrics ?? [],
     hints: options.hints ? new Set(options.hints) : undefined,
     sourceStatementId: undefined,
     meta: { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' },
@@ -61,7 +61,7 @@ describe('AnalyticsTransformer', () => {
           outputType: 'segment',
           started: startTime,
           ended: startTime + 60000,
-          fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Warmup', image: 'Warmup' }]
+          metrics: [{ type: 'effort', metricType: MetricType.Effort, value: 'Warmup', image: 'Warmup' }]
         })
       ];
 
@@ -84,21 +84,21 @@ describe('AnalyticsTransformer', () => {
           outputType: 'load',
           started: startTime,
           ended: startTime,
-          fragments: [{ type: 'load', fragmentType: FragmentType.Label, value: 'Load', image: 'Load' }]
+          metrics: [{ type: 'load', metricType: MetricType.Label, value: 'Load', image: 'Load' }]
         }),
         createMockOutput({
           id: 2,
           outputType: 'segment',
           started: startTime,
           ended: startTime + 60000,
-          fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Work', image: 'Work' }]
+          metrics: [{ type: 'effort', metricType: MetricType.Effort, value: 'Work', image: 'Work' }]
         }),
         createMockOutput({
           id: 3,
           outputType: 'system',
           started: startTime + 60000,
           ended: startTime + 60000,
-          fragments: [{ type: 'lifecycle', fragmentType: FragmentType.System, value: 'pop', image: 'pop' }]
+          metrics: [{ type: 'lifecycle', metricType: MetricType.System, value: 'pop', image: 'pop' }]
         })
       ];
 
@@ -130,7 +130,7 @@ describe('AnalyticsTransformer', () => {
           outputType: 'segment',
           started: startTime,
           ended: startTime + 1200000,
-          fragments: [{ type: 'amrap', fragmentType: FragmentType.Duration, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
+          metrics: [{ type: 'amrap', metricType: MetricType.Duration, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
           hints: ['amrap', 'time_bound']
         });
 
@@ -150,7 +150,7 @@ describe('AnalyticsTransformer', () => {
           started: spanStart,
           ended: spanEnd,
           sourceBlockKey: 'timed-block',
-          fragments: [{ type: 'effort', fragmentType: FragmentType.Effort, value: 'Run', image: 'Run' }],
+          metrics: [{ type: 'effort', metricType: MetricType.Effort, value: 'Run', image: 'Run' }],
         });
         // Inject real spans (TimeSpan objects use epoch ms)
         (output as any).spans = [new TimeSpan(spanStart, spanEnd)];
@@ -180,7 +180,7 @@ describe('AnalyticsTransformer', () => {
           started: startTime,
           ended: startTime + 10000,
           sourceBlockKey: 'my-block-uuid',
-          fragments: [],
+          metrics: [],
         });
         (output as any).completionReason = 'timer-expired';
 
@@ -192,13 +192,13 @@ describe('AnalyticsTransformer', () => {
         expect(ctx?.completionReason).toBe('timer-expired');
       });
 
-      it('should handle missing fragment images by defaulting to sourceBlockKey', () => {
+      it('should handle missing metrics images by defaulting to sourceBlockKey', () => {
         const startTime = Date.now();
         const output = createMockOutput({
           started: startTime,
           ended: startTime + 1000,
           sourceBlockKey: 'test-block',
-          fragments: []
+          metrics: []
         });
 
         const segments = transformer.fromOutputStatements([output]);

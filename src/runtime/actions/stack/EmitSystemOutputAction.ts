@@ -1,11 +1,11 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../core/models/Metric';
 import { OutputStatement } from '../../../core/models/OutputStatement';
 import { TimeSpan } from '../../models/TimeSpan';
 
 /**
- * Structured data carried by system output fragments.
+ * Structured data carried by system output metrics.
  */
 interface SystemOutputValue {
   /** The lifecycle event that triggered this output */
@@ -31,8 +31,8 @@ interface SystemOutputValue {
  *
  * ## Fragment Encoding
  *
- * Each system output carries a single fragment:
- * - fragmentType: FragmentType.System
+ * Each system output carries a single metrics:
+ * - metricType: MetricType.System
  * - type: 'lifecycle' | 'event-action'
  * - image: human-readable message
  * - value: SystemOutputValue with structured data
@@ -42,12 +42,12 @@ export class EmitSystemOutputAction implements IRuntimeAction {
   readonly type = 'emit-system-output';
 
   /**
-   * @param message Human-readable description (becomes fragment.image)
+   * @param message Human-readable description (becomes metrics.image)
    * @param event   Which lifecycle event triggered this output
    * @param blockKey The block key involved
    * @param blockLabel Optional human-readable block label
    * @param stackLevel Stack depth at time of emission
-   * @param extra Additional key-value data to include in the fragment value
+   * @param extra Additional key-value data to include in the metrics value
    */
   constructor(
     private readonly message: string,
@@ -68,8 +68,8 @@ export class EmitSystemOutputAction implements IRuntimeAction {
       ...this.extra
     };
 
-    const fragment: ICodeFragment = {
-      fragmentType: FragmentType.System,
+    const metric: IMetric = {
+      metricType: MetricType.System,
       type: this.event === 'event-action' ? 'event-action' : 'lifecycle',
       image: this.message,
       value,
@@ -82,7 +82,7 @@ export class EmitSystemOutputAction implements IRuntimeAction {
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       sourceBlockKey: this.blockKey,
       stackLevel: this.stackLevel ?? runtime.stack.count,
-      fragments: [fragment],
+      metrics: [metric],
     });
 
     runtime.addOutput(output);

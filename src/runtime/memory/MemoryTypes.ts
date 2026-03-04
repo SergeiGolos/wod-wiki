@@ -1,4 +1,4 @@
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMetric } from '../../core/models/Metric';
 import { TimeSpan } from '../models/TimeSpan';
 
 /**
@@ -62,27 +62,27 @@ export interface ChildrenStatusState {
  * Fragment state stored in memory.
  * 
  * Fragment groups represent semantic groupings from compilation (e.g., per-round,
- * per-interval). Each inner array is one group produced by the fragment distributor.
+ * per-interval). Each inner array is one group produced by the metrics distributor.
  * This preserves the multi-dimensional structure through the entire pipeline:
- * Parser → Strategy → BlockBuilder → FragmentMemory → RuntimeBlock.fragments
+ * Parser → Strategy → BlockBuilder → FragmentMemory → RuntimeBlock.metrics
  */
 export interface FragmentState {
-    /** Fragment groups — each inner array is a semantic group (e.g., per-round fragments) */
-    readonly groups: readonly (readonly ICodeFragment[])[];
+    /** Fragment groups — each inner array is a semantic group (e.g., per-round metrics) */
+    readonly groups: readonly (readonly IMetric[])[];
 }
 
 /**
- * Display-ready fragment state stored in memory.
+ * Display-ready metrics state stored in memory.
  * 
- * Produced by applying precedence resolution to raw fragment groups.
- * The `resolved` array contains fragments after per-type precedence
+ * Produced by applying precedence resolution to raw metrics groups.
+ * The `resolved` array contains metric after per-type precedence
  * selection (user > runtime > compiler > parser).
  */
 export interface FragmentDisplayState {
-    /** All raw fragments flattened from groups (before precedence) */
-    readonly fragments: readonly ICodeFragment[];
-    /** Precedence-resolved fragments ready for display */
-    readonly resolved: readonly ICodeFragment[];
+    /** All raw metrics flattened from groups (before precedence) */
+    readonly metrics: readonly IMetric[];
+    /** Precedence-resolved metric ready for display */
+    readonly resolved: readonly IMetric[];
 }
 
 /**
@@ -174,7 +174,7 @@ export interface ButtonsState {
 /**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'children:status' | 'fragment' | 'fragment:display' | 'completion' | 'display' | 'controls';
+export type MemoryType = 'timer' | 'round' | 'children:status' |   'metrics' | 'metric:display' | 'completion' | 'display' | 'controls';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
@@ -187,8 +187,8 @@ export interface MemoryTypeMap {
     timer: TimerState;
     round: RoundState;
     'children:status': ChildrenStatusState;
-    fragment: FragmentState;
-    'fragment:display': FragmentDisplayState;
+    metrics: FragmentState;
+    'metric:display': FragmentDisplayState;
     completion: CompletionState;
     display: DisplayState;
     controls: ButtonsState;

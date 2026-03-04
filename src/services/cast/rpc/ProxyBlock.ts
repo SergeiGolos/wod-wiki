@@ -5,16 +5,16 @@ import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
 import { IMemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
 import { MemoryType, MemoryValueOf, TimerState } from '@/runtime/memory/MemoryTypes';
-import { FragmentVisibility } from '@/runtime/memory/FragmentVisibility';
+import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 import { BlockKey } from '@/core/models/BlockKey';
-import { ICodeFragment, FragmentType } from '@/core/models/CodeFragment';
+import { IMetric, MetricType } from '@/core/models/Metric';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import type { SerializedBlock } from './RpcMessages';
 
 // ── ReactiveMemoryLocation ──────────────────────────────────────────────────
 
 /**
- * A live IMemoryLocation backed by a mutable fragment array.
+ * A live IMemoryLocation backed by a mutable metrics array.
  *
  * Unlike the old StaticMemoryLocation (no-op subscribe), this implementation
  * fires all registered listeners whenever `update()` is called. This allows
@@ -23,32 +23,32 @@ import type { SerializedBlock } from './RpcMessages';
  * stack message arrives for the same block.
  */
 export class ReactiveMemoryLocation implements IMemoryLocation {
-    private _fragments: ICodeFragment[];
-    private listeners = new Set<(nv: ICodeFragment[], ov: ICodeFragment[]) => void>();
+    private _metrics: IMetric[];
+    private listeners = new Set<(nv: IMetric[], ov: IMetric[]) => void>();
 
     constructor(
         readonly tag: MemoryTag,
-        fragments: ICodeFragment[],
+        metrics: IMetric[],
     ) {
-        this._fragments = fragments;
+        this._metrics = metrics;
     }
 
-    get fragments(): ICodeFragment[] { return this._fragments; }
+    get metrics(): IMetric[] { return this._metrics; }
 
-    subscribe(listener: (nv: ICodeFragment[], ov: ICodeFragment[]) => void): () => void {
+    subscribe(listener: (nv: IMetric[], ov: IMetric[]) => void): () => void {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     }
 
     /**
-     * Replace the stored fragments and notify all subscribers.
+     * Replace the stored metrics and notify all subscribers.
      * Called by ProxyBlock.update() when a new RPC snapshot arrives for this block.
      */
-    update(fragments: ICodeFragment[]): void {
-        const old = this._fragments;
-        this._fragments = fragments;
+    update(metrics: IMetric[]): void {
+        const old = this._metric;
+        this._metrics = metrics;
         for (const listener of this.listeners) {
-            listener(fragments, old);
+            listener(metrics, old);
         }
     }
 
@@ -92,7 +92,7 @@ const PROXY_CONTEXT = {
  * ProxyBlock — a reactive, read-only IRuntimeBlock hydrated from a SerializedBlock.
  *
  * Used on the Chromecast receiver to represent blocks received over the RPC channel.
- * Exposes the same identity, fragment memory (all visibility tiers), timer data, and
+ * Exposes the same identity, metrics memory (all visibility tiers), timer data, and
  * behavior metadata that shared workbench components need for rendering.
  *
  * ### Reactivity
@@ -125,7 +125,7 @@ export class ProxyBlock implements IRuntimeBlock {
     private displayLocations: ReactiveMemoryLocation[];
     private promoteLocations: ReactiveMemoryLocation[];
     private resultLocations: ReactiveMemoryLocation[];
-    /** Map<tag, ReactiveMemoryLocation[]> for private-tier fragments */
+    /** Map<tag, ReactiveMemoryLocation[]> for private-tier metrics */
     private privateLocationMap: Map<MemoryTag, ReactiveMemoryLocation[]>;
 
     // ── Timer ────────────────────────────────────────────────────────────────
@@ -145,10 +145,10 @@ export class ProxyBlock implements IRuntimeBlock {
         // Hydrate behaviors (name-only stubs)
         this.behaviors = this.buildBehaviors(serialized);
 
-        // Hydrate fragment tiers
-        this.displayLocations = this.buildLocations(serialized.displayFragments, 'fragment:display');
-        this.promoteLocations = this.buildLocations(serialized.promoteFragments ?? [], 'fragment:promote');
-        this.resultLocations  = this.buildLocations(serialized.resultFragments ?? [], 'fragment:result');
+        // Hydrate metrics tiers
+        this.displayLocations = this.buildLocations(serialized.displayFragments, 'metric:display');
+        this.promoteLocations = this.buildLocations(serialized.promoteFragments ?? [], 'metric:promote');
+        this.resultLocations  = this.buildLocations(serialized.resultFragments ?? [], 'metric:result');
         this.privateLocationMap = this.buildPrivateMap(serialized.privateFragments ?? {});
 
         // Hydrate timer
@@ -157,7 +157,7 @@ export class ProxyBlock implements IRuntimeBlock {
         // Hydrate next-preview
         const nextFrags = serialized.nextFragments ?? [];
         this.nextLocation = nextFrags.length > 0
-            ? new ReactiveMemoryLocation('fragment:next', nextFrags)
+            ? new ReactiveMemoryLocation('metric:next', nextFrags)
             : null;
     }
 
@@ -179,15 +179,15 @@ export class ProxyBlock implements IRuntimeBlock {
         // Rebuild behaviors if metadata changed
         (this as any).behaviors = this.buildBehaviors(serialized);
 
-        // Sync all fragment tiers in-place
-        this.syncLocations(this.displayLocations, serialized.displayFragments, 'fragment:display');
-        this.syncLocations(this.promoteLocations, serialized.promoteFragments ?? [], 'fragment:promote');
-        this.syncLocations(this.resultLocations,  serialized.resultFragments ?? [], 'fragment:result');
+        // Sync all metrics tiers in-place
+        this.syncLocations(this.displayLocations, serialized.displayFragments, 'metric:display');
+        this.syncLocations(this.promoteLocations, serialized.promoteFragments ?? [], 'metric:promote');
+        this.syncLocations(this.resultLocations,  serialized.resultFragments ?? [], 'metric:result');
         this.syncPrivateMap(serialized.privateFragments ?? {});
 
         // Update timer
         if (serialized.timer) {
-            const timerFragments = this.buildTimerFragments(serialized.timer);
+            const timerFragments = this.buildTimerMetrics(serialized.timer);
             if (this.timerLocation) {
                 this.timerLocation.update(timerFragments);
             } else {
@@ -206,7 +206,7 @@ export class ProxyBlock implements IRuntimeBlock {
             if (this.nextLocation) {
                 this.nextLocation.update(nextFrags);
             } else {
-                this.nextLocation = new ReactiveMemoryLocation('fragment:next', nextFrags);
+                this.nextLocation = new ReactiveMemoryLocation('metric:next', nextFrags);
             }
         } else if (this.nextLocation) {
             this.nextLocation.dispose();
@@ -216,7 +216,7 @@ export class ProxyBlock implements IRuntimeBlock {
 
     // ── Memory API ──────────────────────────────────────────────────────────
 
-    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[] {
+    getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[] {
         switch (visibility) {
             case 'display': return this.displayLocations;
             case 'promote': return this.promoteLocations;
@@ -235,11 +235,11 @@ export class ProxyBlock implements IRuntimeBlock {
 
     getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
         switch (tag) {
-            case 'fragment:display':  return this.displayLocations;
-            case 'fragment:promote':  return this.promoteLocations;
-            case 'fragment:result':   return this.resultLocations;
+            case 'metric:display':  return this.displayLocations;
+            case 'metric:promote':  return this.promoteLocations;
+            case 'metric:result':   return this.resultLocations;
             case 'time':              return this.timerLocation ? [this.timerLocation] : [];
-            case 'fragment:next':     return this.nextLocation ? [this.nextLocation] : [];
+            case 'metric:next':     return this.nextLocation ? [this.nextLocation] : [];
             default:
                 return this.privateLocationMap.get(tag) ?? [];
         }
@@ -306,21 +306,21 @@ export class ProxyBlock implements IRuntimeBlock {
         return serialized.behaviorsMetadata.map(meta => new StubBehavior(meta.name));
     }
 
-    private buildLocations(fragmentGroups: ICodeFragment[][], tag: MemoryTag): ReactiveMemoryLocation[] {
-        return fragmentGroups.map(fragments => new ReactiveMemoryLocation(tag, fragments));
+    private buildLocations(metricGroups: IMetric[][], tag: MemoryTag): ReactiveMemoryLocation[] {
+        return metricGroups.map(metrics => new ReactiveMemoryLocation(tag, metrics));
     }
 
-    private buildPrivateMap(privateFragments: Record<string, ICodeFragment[][]>): Map<MemoryTag, ReactiveMemoryLocation[]> {
+    private buildPrivateMap(privateFragments: Record<string, IMetric[][]>): Map<MemoryTag, ReactiveMemoryLocation[]> {
         const map = new Map<MemoryTag, ReactiveMemoryLocation[]>();
-        for (const [tag, fragmentGroups] of Object.entries(privateFragments)) {
-            map.set(tag as MemoryTag, fragmentGroups.map(
-                fragments => new ReactiveMemoryLocation(tag as MemoryTag, fragments)
+        for (const [tag, metricGroups] of Object.entries(privateFragments)) {
+            map.set(tag as MemoryTag, metricGroups.map(
+                metrics => new ReactiveMemoryLocation(tag as MemoryTag, metrics)
             ));
         }
         return map;
     }
 
-    private buildTimerFragments(timer: NonNullable<SerializedBlock['timer']>): ICodeFragment[] {
+    private buildTimerMetrics(timer: NonNullable<SerializedBlock['timer']>): IMetric[] {
         const spans = timer.spans.map(s => new TimeSpan(s.started, s.ended));
         const timerState: TimerState = {
             spans,
@@ -331,7 +331,7 @@ export class ProxyBlock implements IRuntimeBlock {
         };
         return [{
             type: 'time',
-            fragmentType: FragmentType.Time,
+            metricType: MetricType.Time,
             image: '',
             origin: 'runtime' as any,
             value: timerState,
@@ -339,16 +339,16 @@ export class ProxyBlock implements IRuntimeBlock {
     }
 
     private buildTimerLocation(timer: NonNullable<SerializedBlock['timer']>): ReactiveMemoryLocation {
-        return new ReactiveMemoryLocation('time', this.buildTimerFragments(timer));
+        return new ReactiveMemoryLocation('time', this.buildTimerMetrics(timer));
     }
 
     /**
-     * Sync a list of reactive locations with new fragment data, growing or shrinking
+     * Sync a list of reactive locations with new metrics data, growing or shrinking
      * the list as needed without losing existing subscriber connections.
      */
     private syncLocations(
         locations: ReactiveMemoryLocation[],
-        newGroups: ICodeFragment[][],
+        newGroups: IMetric[][],
         tag: MemoryTag,
     ): void {
         // Grow if needed
@@ -368,18 +368,18 @@ export class ProxyBlock implements IRuntimeBlock {
     /**
      * Sync the private location map from a new privateFragments record.
      */
-    private syncPrivateMap(newPrivate: Record<string, ICodeFragment[][]>): void {
+    private syncPrivateMap(newPrivate: Record<string, IMetric[][]>): void {
         const newTags = new Set(Object.keys(newPrivate) as MemoryTag[]);
 
         // Update / add tags
-        for (const [tag, fragmentGroups] of Object.entries(newPrivate)) {
+        for (const [tag, metricGroups] of Object.entries(newPrivate)) {
             const existing = this.privateLocationMap.get(tag as MemoryTag);
             if (existing) {
-                this.syncLocations(existing, fragmentGroups, tag as MemoryTag);
+                this.syncLocations(existing, metricGroups, tag as MemoryTag);
             } else {
                 this.privateLocationMap.set(
                     tag as MemoryTag,
-                    fragmentGroups.map(f => new ReactiveMemoryLocation(tag as MemoryTag, f))
+                    metricGroups.map(f => new ReactiveMemoryLocation(tag as MemoryTag, f))
                 );
             }
         }

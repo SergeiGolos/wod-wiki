@@ -179,7 +179,7 @@ describe('AMRAP Pattern Integration', () => {
             const milestones = findOutputs(runtime, 'milestone');
             // Filter for round milestones (exclude sound cues)
             const roundMilestones = milestones.filter(m =>
-                (m.fragments as any[]).some(f => f.fragmentType === 'current-round')
+                (m.metrics as any[]).some(f => f.metricType === 'current-round')
             );
             // 1 initial milestone on mount + 2 from onNext advances
             expect(roundMilestones.length).toBe(3);
@@ -211,7 +211,7 @@ describe('AMRAP Pattern Integration', () => {
             // Mount should trigger start sound output (system type - not shown in review logs)
             let milestones = findOutputs(runtime, 'system');
             let startSounds = milestones.filter(m =>
-                (m.fragments as any[]).some(f => f.sound === 'start')
+                (m.metrics as any[]).some(f => f.sound === 'start')
             );
             expect(startSounds.length).toBeGreaterThanOrEqual(1);
 
@@ -222,7 +222,7 @@ describe('AMRAP Pattern Integration', () => {
             // Unmount should trigger complete sound output
             milestones = findOutputs(runtime, 'system');
             let completeSounds = milestones.filter(m =>
-                (m.fragments as any[]).some(f => f.sound === 'complete')
+                (m.metrics as any[]).some(f => f.sound === 'complete')
             );
             expect(completeSounds.length).toBeGreaterThanOrEqual(1);
         });

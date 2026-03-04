@@ -1,36 +1,36 @@
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { FragmentType, ICodeFragment } from '../models/CodeFragment';
+import { MetricType, IMetric } from '../models/Metric';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 /**
  * RunningSumProcess - Tracks a numeric metric across all segments and adds
- * a 'total' fragment to each segment.
+ * a 'total' metrics to each segment.
  */
 export class RunningSumProcess implements IAnalyticsProcess {
     public readonly id = 'running-sum';
     private total = 0;
     private metricType: string;
-    private fragmentType: FragmentType;
+    private metricType: MetricType;
 
-    constructor(metricType: string = 'repetitions', fragmentType: FragmentType = FragmentType.Rep) {
+    constructor(metricType: string = 'repetitions', metricType: MetricType = MetricType.Rep) {
         this.metricType = metricType;
-        this.fragmentType = fragmentType;
+        this.metricType = metricType;
     }
 
     process(output: IOutputStatement): IOutputStatement {
         // Only process segments that have the metric we are tracking
         if (output.outputType === 'segment') {
-            const fragments = output.getDisplayFragments({ types: [this.fragmentType] });
-            for (const frag of fragments) {
+            const metrics = output.getDisplayMetrics({ types: [this.metricType] });
+            for (const frag of metric) {
                 if (typeof frag.value === 'number') {
                     this.total += frag.value;
                 }
             }
 
-            // Add a "running total" fragment to this output
-            output.fragments.push({
-                fragmentType: FragmentType.Metric,
+            // Add a "running total" metrics to this output
+            output.metrics.push({
+                metricType: MetricType.Metric,
                 type: `total_${this.metricType}`,
                 image: `Total ${this.metricType}: ${this.total}`,
                 value: this.total,
@@ -49,9 +49,9 @@ export class RunningSumProcess implements IAnalyticsProcess {
             timeSpan: new TimeSpan(now.getTime(), now.getTime()),
             sourceBlockKey: 'analytics-engine',
             stackLevel: 0,
-            fragments: [
+            metrics: [
                 {
-                    fragmentType: FragmentType.Metric,
+                    metricType: MetricType.Metric,
                     type: `final_total_${this.metricType}`,
                     image: `Final Total ${this.metricType}: ${this.total}`,
                     value: this.total,
@@ -59,7 +59,7 @@ export class RunningSumProcess implements IAnalyticsProcess {
                     timestamp: now
                 },
                 {
-                    fragmentType: FragmentType.Label,
+                    metricType: MetricType.Label,
                     type: 'summary',
                     image: `Workout Summary: ${this.total} ${this.metricType} completed.`,
                     value: `Workout Summary: ${this.total} ${this.metricType} completed.`,

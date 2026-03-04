@@ -1,36 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../core/models/Metric';
 import { MemoryLocation, IMemoryLocation } from '../../memory/MemoryLocation';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { FragmentPromotionBehavior } from '../FragmentPromotionBehavior';
+import { MetricPromotionBehavior } from '../MetricPromotionBehavior';
 
 // --- Test Context Setup ---
 
 function createMockContext(overrides: any = {}): IBehaviorContext & { memoryStore: Map<string, IMemoryLocation[]> } {
     const memoryStore = new Map<string, IMemoryLocation[]>();
 
-    const pushMemory = vi.fn((tag: string, fragments: ICodeFragment[]) => {
-        const loc = new MemoryLocation(tag as any, fragments);
+    const pushMemory = vi.fn((tag: string, metrics: IMetric[]) => {
+        const loc = new MemoryLocation(tag as any, metrics);
         const existing = memoryStore.get(tag) || [];
         existing.push(loc);
         memoryStore.set(tag, existing);
         return loc;
     });
 
-    const updateMemory = vi.fn((tag: string, fragments: ICodeFragment[]) => {
+    const updateMemory = vi.fn((tag: string, metrics: IMetric[]) => {
         const matching = memoryStore.get(tag);
         if (matching && matching.length > 0) {
-            matching[0].update(fragments);
+            matching[0].update(metrics);
         }
     });
 
     const getMemoryByTag = vi.fn((tag: string) => memoryStore.get(tag) || []);
 
-    // Add getFragmentMemoryByVisibility stub if needed
-    const getFragmentMemoryByVisibility = vi.fn((visibility: string) => {
+    // Add getMetricMemoryByVisibility stub if needed
+    const getMetricMemoryByVisibility = vi.fn((visibility: string) => {
         if (visibility === 'promote') {
-            return memoryStore.get('fragment:promote') || [];
+            return memoryStore.get('metric:promote') || [];
         }
         return [];
     });
@@ -38,7 +38,7 @@ function createMockContext(overrides: any = {}): IBehaviorContext & { memoryStor
     const mockBlock = {
         key: { toString: () => 'test-block' },
         getMemoryByTag,
-        getFragmentMemoryByVisibility,
+        getMetricMemoryByVisibility,
         getAllMemory: vi.fn(() => Array.from(memoryStore.values()).flat()),
         getBehavior: vi.fn(), // Placeholder
     };
@@ -56,22 +56,22 @@ function createMockContext(overrides: any = {}): IBehaviorContext & { memoryStor
 
 describe('Round Promotion', () => {
 
-    describe('FragmentPromotionBehavior', () => {
-        it('should promote fragment from source tag to "fragment:promote"', () => {
+    describe('MetricPromotionBehavior', () => {
+        it('should promote metric from source tag to "metric:promote"', () => {
             const ctx = createMockContext();
 
-            // Seed a source fragment
+            // Seed a source metrics
             const roundFragment = {
-                fragmentType: FragmentType.CurrentRound,
+                metricType: MetricType.CurrentRound,
                 value: 1,
                 origin: 'runtime',
                 type: 'current-round'
             } as any;
             ctx.pushMemory('round', [roundFragment]);
 
-            const behavior = new FragmentPromotionBehavior({
+            const behavior = new MetricPromotionBehavior({
                 promotions: [{
-                    fragmentType: FragmentType.CurrentRound,
+                    metricType: MetricType.CurrentRound,
                     sourceTag: 'round'
                 }]
             });
@@ -79,30 +79,30 @@ describe('Round Promotion', () => {
             behavior.onMount(ctx);
 
             // Verify promotion
-            const promoted = ctx.memoryStore.get('fragment:promote');
+            const promoted = ctx.memoryStore.get('metric:promote');
             expect(promoted).toBeDefined();
             expect(promoted!.length).toBe(1);
 
-            const promotedFrag = promoted![0].fragments[0];
-            expect(promotedFrag.fragmentType).toBe(FragmentType.CurrentRound);
+            const promotedFrag = promoted![0].metrics[0];
+            expect(promotedFrag.metricType).toBe(MetricType.CurrentRound);
             expect(promotedFrag.value).toBe(1);
             expect(promotedFrag.origin).toBe('runtime'); // Default origin
         });
 
-        it('should update promoted fragment on next() when dynamic updates enabled', () => {
+        it('should update promoted metrics on next() when dynamic updates enabled', () => {
             const ctx = createMockContext();
 
             // Seed initial state
             const roundLoc = ctx.pushMemory('round', [{
-                fragmentType: FragmentType.CurrentRound,
+                metricType: MetricType.CurrentRound,
                 value: 1,
                 origin: 'runtime',
                 type: 'current-round'
             } as any]);
 
-            const behavior = new FragmentPromotionBehavior({
+            const behavior = new MetricPromotionBehavior({
                 promotions: [{
-                    fragmentType: FragmentType.CurrentRound,
+                    metricType: MetricType.CurrentRound,
                     sourceTag: 'round',
                     enableDynamicUpdates: true
                 }]
@@ -112,7 +112,7 @@ describe('Round Promotion', () => {
 
             // Change source state
             roundLoc.update([{
-                fragmentType: FragmentType.CurrentRound,
+                metricType: MetricType.CurrentRound,
                 value: 2,
                 origin: 'runtime',
                 type: 'current-round'
@@ -122,8 +122,8 @@ describe('Round Promotion', () => {
             behavior.onNext(ctx);
 
             // Verify update
-            const promoted = ctx.memoryStore.get('fragment:promote');
-            expect(promoted![0].fragments[0].value).toBe(2);
+            const promoted = ctx.memoryStore.get('metric:promote');
+            expect(promoted![0].metrics[0].value).toBe(2);
         });
     });
 });

@@ -8,4 +8,4 @@ export { RuntimeBuilder } from './RuntimeBuilder';
 export * from './strategies';
 
 // Fragments
-export * from './fragments';
+export * from './metrics';

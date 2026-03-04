@@ -4,7 +4,7 @@ import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { TimerState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
 import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
-import { ICodeFragment } from '../../../core/models/CodeFragment';
+import { IMetric } from '../../../core/models/Metric';
 
 function createMockContext(overrides: {
     timerState?: TimerState;
@@ -13,9 +13,9 @@ function createMockContext(overrides: {
 } = {}): IBehaviorContext {
     const memoryLocations: MemoryLocation[] = [];
     if (overrides.timerState) {
-        // Store timer state as fragment.value under 'time' tag
+        // Store timer state as metrics.value under 'time' tag
         memoryLocations.push(new MemoryLocation('time', [{
-            fragmentType: 0 as any, type: 'time', image: '', origin: 'runtime' as any,
+            metricType: 0 as any, type: 'time', image: '', origin: 'runtime' as any,
             value: overrides.timerState
         }]));
     }
@@ -24,7 +24,7 @@ function createMockContext(overrides: {
         block: {
             key: { toString: () => 'test-block' },
             label: 'Test Block',
-            fragments: [],
+            metrics: [],
             isComplete: overrides.isComplete ?? false,
             getMemoryByTag: () => [],
         },
@@ -37,14 +37,14 @@ function createMockContext(overrides: {
         getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
         getMemory: vi.fn(),
         setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            const loc = new MemoryLocation(tag as MemoryTag, fragments);
+        pushMemory: vi.fn((tag: string, metrics: IMetric[]) => {
+            const loc = new MemoryLocation(tag as MemoryTag, metrics);
             memoryLocations.push(loc);
             return loc;
         }),
-        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
             const loc = memoryLocations.find(l => l.tag === tag);
-            if (loc) loc.update(fragments);
+            if (loc) loc.update(metrics);
         }),
     } as unknown as IBehaviorContext;
 }

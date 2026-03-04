@@ -6,7 +6,7 @@
  */
 
 import type { CodeMetadata } from '@/core/models/CodeMetadata';
-import type { ICodeFragment } from '@/core/models/CodeFragment';
+import type { IMetric } from '@/core/models/Metric';
 
 /**
  * Parser error information
@@ -37,7 +37,7 @@ export interface ICodeStatement {
   id: number;
   parent?: number;
   children: number[][];
-  fragments: ICodeFragment[];
+  metrics: IMetric[];
   isLeaf?: boolean;
   meta: CodeMetadata;
 }
@@ -65,9 +65,9 @@ export interface IDuration {
 }
 
 /**
- * Types of code fragments that can appear in workout scripts
+ * Types of code metrics that can appear in workout scripts
  */
-export enum FragmentType {
+export enum MetricType {
   Time = 'time',
   Duration = 'duration',
   Rep = 'rep',
@@ -106,6 +106,6 @@ export type { Duration } from '@/core/models/Duration';
 export type { CodeMetadata } from '@/core/models/CodeMetadata';
 
 /**
- * Re-export ICodeFragment
+ * Re-export IMetric
  */
-export type { ICodeFragment } from '@/core/models/CodeFragment';
+export type { IMetric } from '@/core/models/Metric';

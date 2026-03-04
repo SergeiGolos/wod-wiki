@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExecutionSnapshot } from '../types/interfaces';
 import { IOutputStatement } from '../../core/models/OutputStatement';
-import { fragmentsToLabel } from '../../runtime/utils/fragmentUtils';
+import { metricsToLabel } from '../../runtime/utils/metricUtils';
 
 interface ResultsTableProps {
   snapshot: ExecutionSnapshot | null;
@@ -23,13 +23,13 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
     return <div className="p-4 text-gray-500">No execution history recorded</div>;
   }
 
-  // Helper to format metrics from fragments
+  // Helper to format metrics from metric
   const formatMetric = (output: IOutputStatement) => {
-    const flat = output.fragments;
+    const flat = output.metrics;
     const parts = [];
 
     for (const f of flat) {
-      if (f.value !== undefined && f.image && f.fragmentType !== 'effort' && f.fragmentType !== 'action' && f.fragmentType !== 'rounds' && f.fragmentType !== 'current-round' && f.fragmentType !== 'time') {
+      if (f.value !== undefined && f.image && f.metricType !== 'effort' && f.metricType !== 'action' && f.metricType !== 'rounds' && f.metricType !== 'current-round' && f.metricType !== 'time') {
         parts.push(f.image);
       }
     }
@@ -67,8 +67,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
                 block.key === output.sourceBlockKey && block.lineNumber === highlightedLine
               );
 
-            const label = fragmentsToLabel(output.fragments);
-            const type = output.fragments.find(f => f.fragmentType === 'rounds' || f.fragmentType === 'current-round' || f.fragmentType === 'duration' || f.fragmentType === 'effort')?.type || 'group';
+            const label = metricsToLabel(output.metrics);
+            const type = output.metrics.find(f => f.metricType === 'rounds' || f.metricType === 'current-round' || f.metricType === 'duration' || f.metricType === 'effort')?.type || 'group';
             const isOpen = output.timeSpan && !output.timeSpan.ended;
 
             return (

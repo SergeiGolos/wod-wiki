@@ -330,9 +330,9 @@ export class BehaviorTestHarness {
         if (typeof currentBlock.getMemoryByTag === 'function') {
           const loc = currentBlock.getMemoryByTag(type as any)[0];
           if (loc) {
-            const frag = loc.fragments[0];
+            const frag = loc.metrics[0];
             if (frag) {
-              // 'round' tag: fragment itself is the RoundState
+              // 'round' tag: metrics itself is the RoundState
               if (type === 'round') return frag as unknown as T;
               return frag.value as T;
             }

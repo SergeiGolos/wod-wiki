@@ -83,7 +83,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
 
         const systemOutputs = findOutputs(runtime, 'system');
         const startBeeps = systemOutputs.filter(m =>
-            (m.fragments as any[]).some(f => f.sound === 'start-beep')
+            (m.metrics as any[]).some(f => f.sound === 'start-beep')
         );
         expect(startBeeps.length).toBeGreaterThanOrEqual(1);
     });
@@ -144,13 +144,13 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         runtime.clock.advance(45000);
         unmountBehaviors(behaviors, ctx);
 
-        // Completion output now emitted with elapsed/total/spans fragments
+        // Completion output now emitted with elapsed/total/spans metrics
         const completions = findOutputs(runtime, 'completion');
         expect(completions.length).toBe(1);
 
         const completion = completions[0];
-        const hasElapsed = (completion.fragments as any[]).some(f => f.fragmentType === 'elapsed');
-        const hasSpans = (completion.fragments as any[]).some(f => f.fragmentType === 'spans');
+        const hasElapsed = (completion.metrics as any[]).some(f => f.metricType === 'elapsed');
+        const hasSpans = (completion.metrics as any[]).some(f => f.metricType === 'spans');
         expect(hasElapsed).toBe(true);
         expect(hasSpans).toBe(true);
     });
@@ -165,7 +165,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
 
         const systemOutputs = findOutputs(runtime, 'system');
         const completeBeeps = systemOutputs.filter(m =>
-            (m.fragments as any[]).some(f => f.sound === 'completion-beep')
+            (m.metrics as any[]).some(f => f.sound === 'completion-beep')
         );
         expect(completeBeeps.length).toBeGreaterThanOrEqual(1);
     });

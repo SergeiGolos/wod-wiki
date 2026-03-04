@@ -1,4 +1,4 @@
-// Type definitions for fragment visualization components
+// Type definitions for metrics visualization components
 
 export interface ParseError {
   /** Human-readable error message */

@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
+import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 
 export interface ReEntryConfig {
     /** Total number of rounds (undefined for unbounded) */
@@ -15,7 +15,7 @@ export interface ReEntryConfig {
  *
  * ## Aspect: Iteration
  *
- * Owns round initialization by writing CurrentRoundFragment to the
+ * Owns round initialization by writing CurrentRoundMetric to the
  * `round` memory tag. Round advancement is handled by
  * ChildSelectionBehavior when it completes a cycle of children,
  * keeping each behavior self-contained without ordering dependencies.
@@ -27,7 +27,7 @@ export class ReEntryBehavior implements IRuntimeBehavior {
         const current = this.config.startRound ?? 1;
         const total = this.config.totalRounds;
 
-        const roundFragment = new CurrentRoundFragment(
+        const roundFragment = new CurrentRoundMetric(
             current,
             total,
             ctx.block.key.toString(),

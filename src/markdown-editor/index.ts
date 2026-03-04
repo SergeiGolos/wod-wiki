@@ -44,8 +44,8 @@ export type { WodBlockManagerProps } from './components/WodBlockManager';
 
 // ContextPanel has been removed - use WorkoutContextPanel from '@/components/workout/WorkoutContextPanel' instead
 
-export { FragmentEditor } from './components/FragmentEditor';
-export type { FragmentEditorProps } from './components/FragmentEditor';
+export { MetricEditor } from './components/MetricEditor';
+export type { MetricEditorProps } from './components/MetricEditor';
 
 // Widgets
 export { ReactMonacoWidget } from './widgets/ReactMonacoWidget';

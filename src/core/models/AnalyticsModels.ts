@@ -42,6 +42,6 @@ export interface Segment {
   lane: number;
   /** Raw time spans from the output statement (seconds relative to workout start) */
   spans?: { started: number; ended?: number }[];
-  /** Optional fragments carried from runtime spans for visualization */
-  fragments?: import('./CodeFragment').ICodeFragment[];
+  /** Optional metrics carried from runtime spans for visualization */
+  metrics?: import('./Metric').IMetric[];
 }

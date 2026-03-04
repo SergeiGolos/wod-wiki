@@ -256,7 +256,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
       const lines = leafItem.displayRows
         .map(row => row
           .filter(f => {
-            const type = (f.type || f.fragmentType || '').toLowerCase();
+            const type = (f.type || f.metricType || '').toLowerCase();
             const image = f.image || '';
             if (type === 'group' && (image === '+' || image === '-')) return false;
             return type !== 'lap';

@@ -5,48 +5,48 @@
  * The active preset is driven by the workbench debug toggle.
  */
 
-import { FragmentType } from '@/core/models/CodeFragment';
+import { MetricType } from '@/core/models/Metric';
 import type { GridViewPreset, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
-import { getFragmentIcon } from '@/views/runtime/fragmentColorMap';
+import { getMetricIcon } from '@/views/runtime/metricColorMap';
 
 // ─── Preset Definitions ───────────────────────────────────────
 
 /**
- * All available fragment-type columns.
+ * All available metrics-type columns.
  * Order here determines default column order in the grid.
  *
  * NOTE: Elapsed, Total, and Spans are EXCLUDED here because
  * they are handled as FIXED_COLUMNS with special rendering and ordering.
  */
-export const ALL_FRAGMENT_COLUMNS: FragmentType[] = [
-  FragmentType.Effort,
-  FragmentType.Duration,
-  FragmentType.Rep,
-  FragmentType.Rounds,
-  FragmentType.Distance,
-  FragmentType.Resistance,
-  FragmentType.Action,
-  FragmentType.Increment,
-  FragmentType.Metric,
-  FragmentType.Group,
-  FragmentType.System,
+export const ALL_FRAGMENT_COLUMNS: MetricType[] = [
+  MetricType.Effort,
+  MetricType.Duration,
+  MetricType.Rep,
+  MetricType.Rounds,
+  MetricType.Distance,
+  MetricType.Resistance,
+  MetricType.Action,
+  MetricType.Increment,
+  MetricType.Metric,
+  MetricType.Group,
+  MetricType.System,
 ];
 
 /**
  * Fragment columns shown in the default (non-debug) view.
  * Excludes System, Sound, Group, Text which are typically noise or merged.
  */
-const DEFAULT_VISIBLE_COLUMNS: FragmentType[] = [
-  FragmentType.Effort,
-  FragmentType.Duration,
-  FragmentType.Rep,
-  FragmentType.Rounds,
-  FragmentType.Distance,
-  FragmentType.Resistance,
-  FragmentType.Action,
-  FragmentType.Increment,
-  FragmentType.Metric,
+const DEFAULT_VISIBLE_COLUMNS: MetricType[] = [
+  MetricType.Effort,
+  MetricType.Duration,
+  MetricType.Rep,
+  MetricType.Rounds,
+  MetricType.Distance,
+  MetricType.Resistance,
+  MetricType.Action,
+  MetricType.Increment,
+  MetricType.Metric,
 ];
 
 /**
@@ -103,7 +103,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: false,
     isGraphed: false,
     visible: true,
-    fragmentType: FragmentType.SystemTime,
+    metricType: MetricType.SystemTime,
   },
   {
     id: FIXED_COLUMN_IDS.SPANS,
@@ -113,7 +113,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: false,
     isGraphed: false,
     visible: true,
-    fragmentType: FragmentType.Spans,
+    metricType: MetricType.Spans,
   },
   {
     id: FIXED_COLUMN_IDS.INDEX,
@@ -172,34 +172,34 @@ export const FIXED_COLUMNS: GridColumn[] = [
 ];
 
 /**
- * Build fragment-type column definitions for the given preset.
+ * Build metrics-type column definitions for the given preset.
  */
 export function buildFragmentColumns(preset: GridViewPreset): GridColumn[] {
   return ALL_FRAGMENT_COLUMNS.map((ft) => ({
     id: ft,
-    fragmentType: ft,
+    metricType: ft,
     label: ft.charAt(0).toUpperCase() + ft.slice(1),
-    icon: getFragmentIcon(ft) ?? undefined,
+    icon: getMetricIcon(ft) ?? undefined,
     sortable: true,
     filterable: true,
-    graphable: isNumericFragmentType(ft),
+    graphable: isNumericMetricType(ft),
     isGraphed: false,
     visible: preset.visibleColumns.includes(ft),
   }));
 }
 
 /**
- * Build the complete column set (fixed + fragment) for a preset.
+ * Build the complete column set (fixed + metrics) for a preset.
  * In debug mode, the stackLevel and completionReason columns become visible.
  */
 export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): GridColumn[] {
   // Helpers to find columns by ID or Type
   const getFixed = (id: string) => FIXED_COLUMNS.find(c => c.id === id)!;
-  const getFragmentCol = (type: FragmentType) => {
-    return buildFragmentColumns(preset).find(c => c.fragmentType === type);
+  const getFragmentCol = (type: MetricType) => {
+    return buildFragmentColumns(preset).find(c => c.metricType === type);
   }
 
-  const fragmentCols = buildFragmentColumns(preset);
+  const metricCols = buildFragmentColumns(preset);
 
   // Define strict order based on mode
   const order: GridColumn[] = [];
@@ -227,19 +227,19 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
 
   if (isDebugMode) {
     // 4. System Fragment (Debug Only)
-    const sysCol = getFragmentCol(FragmentType.System);
+    const sysCol = getFragmentCol(MetricType.System);
     add(sysCol ? { ...sysCol, visible: true } : undefined);
   }
 
   // 3/5. Effort (Primary Descriptor) - ALWAYS next to timestamps
-  add(getFragmentCol(FragmentType.Effort));
+  add(getFragmentCol(MetricType.Effort));
 
   // 4/6. Text (Secondary Descriptor)
-  add(getFragmentCol(FragmentType.Text));
+  add(getFragmentCol(MetricType.Text));
 
   // 5/7. All other Fragments (Data)
   // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
-  fragmentCols.forEach(col => add(col));
+  metricCols.forEach(col => add(col));
 
   // 6/8. Meta Stats (Elapsed/Total) - Moved to end "after a certain point"
   add(getFixed(FIXED_COLUMN_IDS.ELAPSED_TOTAL));
@@ -253,20 +253,20 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
 }
 
 /**
- * Whether a fragment type holds numeric values suitable for graphing.
+ * Whether a metrics type holds numeric values suitable for graphing.
  */
-function isNumericFragmentType(ft: FragmentType): boolean {
+function isNumericMetricType(ft: MetricType): boolean {
   switch (ft) {
-    case FragmentType.Spans:
-    case FragmentType.Elapsed:
-    case FragmentType.Duration:
-    case FragmentType.Total:
-    case FragmentType.Rep:
-    case FragmentType.Distance:
-    case FragmentType.Rounds:
-    case FragmentType.Resistance:
-    case FragmentType.Increment:
-    case FragmentType.Metric:
+    case MetricType.Spans:
+    case MetricType.Elapsed:
+    case MetricType.Duration:
+    case MetricType.Total:
+    case MetricType.Rep:
+    case MetricType.Distance:
+    case MetricType.Rounds:
+    case MetricType.Resistance:
+    case MetricType.Increment:
+    case MetricType.Metric:
       return true;
     default:
       return false;

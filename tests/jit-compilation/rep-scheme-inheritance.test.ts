@@ -7,7 +7,7 @@ import {
     disposeSession,
     type SessionTestContext,
 } from './helpers/session-test-utils';
-import { FragmentType } from '@/core/models/CodeFragment';
+import { MetricType } from '@/core/models/Metric';
 
 describe('Rep-Scheme Inheritance', () => {
     let ctx: SessionTestContext;
@@ -29,9 +29,9 @@ describe('Rep-Scheme Inheritance', () => {
         let pushups = ctx.runtime.stack.current;
         expect(pushups?.label).toContain('pushups');
         
-        let repFragment = pushups?.getMemoryByTag('fragment:display')
-            .flatMap(loc => loc.fragments)
-            .find(f => f.fragmentType === FragmentType.Rep);
+        let repFragment = pushups?.getMemoryByTag('metric:display')
+            .flatMap(loc => loc.metrics)
+            .find(f => f.metricType === MetricType.Rep);
         
         // Check inherited rep via memory
         expect(repFragment?.value).toBe(21);
@@ -40,9 +40,9 @@ describe('Rep-Scheme Inheritance', () => {
         
         let situps = ctx.runtime.stack.current;
         expect(situps?.label).toContain('situps');
-        repFragment = situps?.getMemoryByTag('fragment:display')
-            .flatMap(loc => loc.fragments)
-            .find(f => f.fragmentType === FragmentType.Rep);
+        repFragment = situps?.getMemoryByTag('metric:display')
+            .flatMap(loc => loc.metrics)
+            .find(f => f.metricType === MetricType.Rep);
         expect(repFragment?.value).toBe(21);
 
         userNext(ctx); // situps complete -> Round 2 starts, pushups pushed
@@ -50,34 +50,34 @@ describe('Rep-Scheme Inheritance', () => {
         // --- Round 2 (15 reps) ---
         pushups = ctx.runtime.stack.current;
         expect(pushups?.label).toContain('pushups');
-        repFragment = pushups?.getMemoryByTag('fragment:display')
-            .flatMap(loc => loc.fragments)
-            .find(f => f.fragmentType === FragmentType.Rep);
+        repFragment = pushups?.getMemoryByTag('metric:display')
+            .flatMap(loc => loc.metrics)
+            .find(f => f.metricType === MetricType.Rep);
         
         // This used to be stale (21)
         expect(repFragment?.value).toBe(15);
 
         userNext(ctx); // pushups complete -> situps pushed
         situps = ctx.runtime.stack.current;
-        repFragment = situps?.getMemoryByTag('fragment:display')
-            .flatMap(loc => loc.fragments)
-            .find(f => f.fragmentType === FragmentType.Rep);
+        repFragment = situps?.getMemoryByTag('metric:display')
+            .flatMap(loc => loc.metrics)
+            .find(f => f.metricType === MetricType.Rep);
         expect(repFragment?.value).toBe(15);
 
         userNext(ctx); // situps complete -> Round 3 starts, pushups pushed
 
         // --- Round 3 (9 reps) ---
         pushups = ctx.runtime.stack.current;
-        repFragment = pushups?.getMemoryByTag('fragment:display')
-            .flatMap(loc => loc.fragments)
-            .find(f => f.fragmentType === FragmentType.Rep);
+        repFragment = pushups?.getMemoryByTag('metric:display')
+            .flatMap(loc => loc.metrics)
+            .find(f => f.metricType === MetricType.Rep);
         expect(repFragment?.value).toBe(9);
 
         userNext(ctx); // pushups complete -> situps pushed
         situps = ctx.runtime.stack.current;
-        repFragment = situps?.getMemoryByTag('fragment:display')
-            .flatMap(loc => loc.fragments)
-            .find(f => f.fragmentType === FragmentType.Rep);
+        repFragment = situps?.getMemoryByTag('metric:display')
+            .flatMap(loc => loc.metrics)
+            .find(f => f.metricType === MetricType.Rep);
         expect(repFragment?.value).toBe(9);
 
         userNext(ctx); // situps complete -> Rounds block complete -> Session complete

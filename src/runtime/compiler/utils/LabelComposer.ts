@@ -1,5 +1,5 @@
 import { ICodeStatement } from "../../../core/models/CodeStatement";
-import { FragmentType, ICodeFragment } from "../../../core/models/CodeFragment";
+import { MetricType, IMetric } from "../../../core/models/Metric";
 
 export interface LabelOptions {
   includeMetric?: boolean;
@@ -30,16 +30,16 @@ export class LabelComposer {
     } = options;
 
     const allFragments = statements
-      .flatMap(s => s.fragments)
+      .flatMap(s => s.metrics)
       .filter(f => f.origin !== 'runtime');
 
     if (allFragments.length === 0) return defaultLabel;
 
-    // 1. Check for explicit Label fragment
-    const explicitLabel = allFragments.find(f => f.fragmentType === FragmentType.Label);
+    // 1. Check for explicit Label metrics
+    const explicitLabel = allFragments.find(f => f.metricType === MetricType.Label);
     if (explicitLabel) return explicitLabel.image || explicitLabel.value?.toString() || defaultLabel;
 
-    const metric = includeMetric ? this.getPrimaryMetric(allFragments) : undefined;
+    const metrics = includeMetric ? this.getPrimaryMetric(allFragments) : undefined;
     const logic = includeLogic ? this.getLogicKeyword(statements, allFragments) : undefined;
     const identity = includeIdentity ? this.getIdentityText(allFragments) : undefined;
     const attributes = includeAttributes ? this.getAttributesText(allFragments) : undefined;
@@ -48,10 +48,10 @@ export class LabelComposer {
 
     if (format === 'logic-first') {
         if (logic) parts.push(logic);
-        if (metric) parts.push(metric);
+        if (metrics) parts.push(metrics);
         if (identity) parts.push(identity);
         if (attributes) parts.push(attributes);
-    } else if (format === 'metric-first') {
+    } else if (format === 'metrics-first') {
         if (metric) parts.push(metric);
         if (logic) parts.push(logic);
         if (identity) parts.push(identity);
@@ -63,14 +63,14 @@ export class LabelComposer {
         if (attributes) parts.push(attributes);
     }
 
-    // Fallback: If no structured parts, join all non-runtime fragments
+    // Fallback: If no structured parts, join all non-runtime metrics
     if (parts.length === 0) {
       return allFragments
         .filter(f => {
             if (!f.image) return false;
             // Filter out structural symbols from fallback label
-            const type = f.fragmentType || f.type;
-            return type !== FragmentType.Lap && type !== FragmentType.Group && type !== 'lap' && type !== 'group';
+            const type = f.metricType || f.type;
+            return type !== MetricType.Lap && type !== MetricType.Group && type !== 'lap' && type !== 'group';
         })
         .map(f => f.image)
         .join(" ") || defaultLabel;
@@ -79,30 +79,30 @@ export class LabelComposer {
     return parts.join(" ").trim().replace(/\s+/g, ' ');
   }
 
-  private static getPrimaryMetric(fragments: ICodeFragment[]): string | undefined {
+  private static getPrimaryMetric(metrics: IMetric[]): string | undefined {
     // Priority 1: Rounds sequence (21-15-9) or Rounds count
-    const rounds = fragments.find(f => f.fragmentType === FragmentType.Rounds);
+    const rounds = metrics.find(f => f.metricType === MetricType.Rounds);
     if (rounds && rounds.image) return rounds.image;
 
     // Priority 2: Duration (5:00, :30)
-    const duration = fragments.find(f => f.fragmentType === FragmentType.Duration);
+    const duration = metrics.find(f => f.metricType === MetricType.Duration);
     if (duration && duration.image) return duration.image;
 
-    // Note: We don't use Rep fragments here if they are part of the identity (e.g. "100 Swings")
+    // Note: We don't use Rep metrics here if they are part of the identity (e.g. "100 Swings")
     // Unless there is NO identity.
     return undefined;
   }
 
-  private static getLogicKeyword(statements: ICodeStatement[], fragments: ICodeFragment[]): string | undefined {
+  private static getLogicKeyword(statements: ICodeStatement[], metrics: IMetric[]): string | undefined {
     // Check hints first (from Dialect analysis)
     if (statements.some(s => s.hints?.has('workout.amrap'))) return 'AMRAP';
     if (statements.some(s => s.hints?.has('workout.emom'))) return 'EMOM';
     if (statements.some(s => s.hints?.has('workout.tabata'))) return 'TABATA';
     if (statements.some(s => s.hints?.has('workout.for_time'))) return 'FOR TIME';
 
-    // Fallback: Check for keywords in fragments
+    // Fallback: Check for keywords in metrics
     const keywords = ['AMRAP', 'EMOM', 'TABATA', 'FOR TIME'];
-    for (const frag of fragments) {
+    for (const frag of metrics) {
       const val = (frag.image || frag.value?.toString() || "").toUpperCase();
       if (keywords.includes(val)) return val;
     }
@@ -110,15 +110,15 @@ export class LabelComposer {
     return undefined;
   }
 
-  private static getIdentityText(fragments: ICodeFragment[]): string | undefined {
+  private static getIdentityText(metrics: IMetric[]): string | undefined {
     const logicKeywords = ['AMRAP', 'EMOM', 'TABATA', 'FOR TIME'];
     
-    // Filter fragments that contribute to the identity
+    // Filter metrics that contribute to the identity
     // We include Reps here if they are interleaved (e.g. "100 KB Swings")
-    const identityFragments = fragments.filter(f => {
-      if (f.fragmentType === FragmentType.Duration || f.fragmentType === FragmentType.Rounds || 
-          f.fragmentType === FragmentType.Resistance || f.fragmentType === FragmentType.Distance ||
-          f.fragmentType === FragmentType.Lap || f.fragmentType === FragmentType.Group) {
+    const identityFragments = metrics.filter(f => {
+      if (f.metricType === MetricType.Duration || f.metricType === MetricType.Rounds || 
+          f.metricType === MetricType.Resistance || f.metricType === MetricType.Distance ||
+          f.metricType === MetricType.Lap || f.metricType === MetricType.Group) {
           return false;
       }
       const val = (f.image || f.value?.toString() || "").toUpperCase();
@@ -129,10 +129,10 @@ export class LabelComposer {
     return identityFragments.map(f => f.image).join(" ").trim();
   }
 
-  private static getAttributesText(fragments: ICodeFragment[]): string | undefined {
-    const attrFragments = fragments.filter(f => 
-      f.fragmentType === FragmentType.Resistance || 
-      f.fragmentType === FragmentType.Distance
+  private static getAttributesText(metrics: IMetric[]): string | undefined {
+    const attrFragments = metrics.filter(f => 
+      f.metricType === MetricType.Resistance || 
+      f.metricType === MetricType.Distance
     );
 
     if (attrFragments.length === 0) return undefined;

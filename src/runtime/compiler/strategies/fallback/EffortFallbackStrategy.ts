@@ -2,7 +2,7 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
+import { MetricType } from "@/core/models/Metric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { LabelComposer } from "../../utils/LabelComposer";
@@ -32,8 +32,8 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         
         // Check if ANY statement has timer, rounds, or children
-        const hasTimer = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'));
-        const hasRounds = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime'));
+        const hasTimer = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Duration && f.origin !== 'runtime'));
+        const hasRounds = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Rounds && f.origin !== 'runtime'));
         const hasChildren = statements.some(s => s.children && s.children.length > 0);
         
         return !hasTimer && !hasRounds && !hasChildren;
@@ -63,14 +63,14 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             addCompletion: false // Manual advance only
         });
 
-        // Filter out runtime-generated fragments from all statements
-        const fragmentsPerStatement = statements.map(s => 
-            s.fragments.filter(f => f.origin !== 'runtime')
+        // Filter out runtime-generated metrics from all statements
+        const metricPerStatement = statements.map(s => 
+            s.metrics.filter(f => f.origin !== 'runtime')
         ).filter(group => group.length > 0);
 
-        // Set fragments to ensure fragment:display memory is allocated
-        if (fragmentsPerStatement.length > 0) {
-            builder.setFragments(fragmentsPerStatement);
+        // Set metrics to ensure metrics:display memory is allocated
+        if (metricPerStatement.length > 0) {
+            builder.setFragments(metricPerStatement);
         }
 
         // =====================================================================

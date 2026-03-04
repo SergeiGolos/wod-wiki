@@ -1,5 +1,5 @@
 /**
- * Classifies the intent of a fragment or metric so engines can
+ * Classifies the intent of a metrics or metrics so engines can
  * distinguish defined script data from hints, collected inputs,
  * runtime recordings, and analytics calculations.
  */

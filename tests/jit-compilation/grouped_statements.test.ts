@@ -5,7 +5,7 @@ import { EffortFallbackStrategy } from '../../src/runtime/compiler/strategies/fa
 import { ChildrenStrategy } from '../../src/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
 import { IScriptRuntime } from '../../src/runtime/contracts/IScriptRuntime';
-import { FragmentType } from '../../src/core/models/CodeFragment';
+import { MetricType } from '../../src/core/models/Metric';
 import { createMockClock } from '../../src/runtime/RuntimeClock';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { RuntimeStack } from '../../src/runtime/RuntimeStack';
@@ -29,7 +29,7 @@ describe('Grouped Statements Compilation', () => {
         });
     };
 
-    it('compiles grouped statements (+) into a single block with fragments from all statements', () => {
+    it('compiles grouped statements (+) into a single block with metrics from all statements', () => {
         const script = `
 (3 rounds):
   - 10 Burpees
@@ -58,13 +58,13 @@ describe('Grouped Statements Compilation', () => {
         expect(block!.sourceIds).toContain(childStatements[0].id);
         expect(block!.sourceIds).toContain(childStatements[1].id);
 
-        // Check fragments in block memory
-        const displayFragments = block!.getMemoryByTag('fragment:display').flatMap(loc => loc.fragments);
+        // Check metrics in block memory
+        const displayFragments = block!.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
         
-        const reps = displayFragments.filter(f => f.fragmentType === FragmentType.Rep);
-        const efforts = displayFragments.filter(f => f.fragmentType === FragmentType.Effort);
+        const reps = displayFragments.filter(f => f.metricType === MetricType.Rep);
+        const efforts = displayFragments.filter(f => f.metricType === MetricType.Effort);
 
-        // Should contain fragments from BOTH statements
+        // Should contain metrics from BOTH statements
         expect(reps).toHaveLength(2);
         expect(efforts).toHaveLength(2);
     });
@@ -98,8 +98,8 @@ describe('Grouped Statements Compilation', () => {
         // Burpees: 10 reps, Pushups: 20 reps. Total 30 reps.
         // Burpees ratio: 1/3 (20s), Pushups ratio: 2/3 (40s)
         
-        const burpeesElapsed = burpees.fragments.find(f => f.fragmentType === FragmentType.Elapsed)?.value;
-        const pushupsElapsed = pushups.fragments.find(f => f.fragmentType === FragmentType.Elapsed)?.value;
+        const burpeesElapsed = burpees.metrics.find(f => f.metricType === MetricType.Elapsed)?.value;
+        const pushupsElapsed = pushups.metrics.find(f => f.metricType === MetricType.Elapsed)?.value;
 
         expect(burpeesElapsed).toBe(20000);
         expect(pushupsElapsed).toBe(40000);

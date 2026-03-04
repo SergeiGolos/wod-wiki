@@ -1,6 +1,6 @@
 import type { Exercise } from '../../../exercise';
 import type { ProjectionResult } from './ProjectionResult';
-import type { ICodeFragment } from '../../../core/models/CodeFragment';
+import type { IMetric } from '../../../core/models/Metric';
 
 /**
  * Interface for projection engines that analyze runtime metrics.
@@ -11,7 +11,7 @@ import type { ICodeFragment } from '../../../core/models/CodeFragment';
  * Each engine implements a specific type of analysis (e.g., volume, power, intensity)
  * and can be registered with the AnalysisService to run as part of a projection suite.
  * 
- * Engines work directly with ICodeFragment for metrics analysis.
+ * Engines work directly with IMetric for metrics analysis.
  * paths for metrics consolidation.
  */
 export interface IProjectionEngine {
@@ -19,15 +19,15 @@ export interface IProjectionEngine {
   readonly name: string;
 
   /**
-   * Calculate projections from code fragments.
+   * Calculate projections from code metrics.
    * 
-   * This is the fragment-based calculation method introduced in Phase 2.
-   * Engines must work directly with fragments.
+   * This is the metrics-based calculation method introduced in Phase 2.
+   * Engines must work directly with metric.
    * 
-   * @param fragments Array of code fragments to analyze
+   * @param metrics Array of code metrics to analyze
    * @param exerciseId The exercise identifier
    * @param definition Exercise definition providing context
    * @returns Array of projection results (may be empty if analysis not applicable)
    */
-  calculateFromFragments(fragments: ICodeFragment[], exerciseId: string, definition: Exercise): ProjectionResult[];
+  calculateFromFragments(metrics: IMetric[], exerciseId: string, definition: Exercise): ProjectionResult[];
 }

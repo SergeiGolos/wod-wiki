@@ -2,11 +2,11 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
-import { DurationFragment } from "../../fragments/DurationFragment";
+import { MetricType } from "@/core/models/Metric";
+import { DurationMetric } from "../../metrics/DurationMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -18,7 +18,7 @@ import {
 } from "../../../behaviors";
 
 /**
- * GenericTimerStrategy handles blocks with timer fragments.
+ * GenericTimerStrategy handles blocks with timer metrics.
  *
  * Uses aspect composer methods:
  * - .asTimer() - Time tracking (countdown or countup)
@@ -30,9 +30,9 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
 
-        // Match if duration fragment exists in ANY statement, ignoring runtime-generated ones
-        return statements.some(s => s.fragments.some(
-            f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
+        // Match if duration metrics exists in ANY statement, ignoring runtime-generated ones
+        return statements.some(s => s.metrics.some(
+            f => f.metricType === MetricType.Duration && f.origin !== 'runtime'
         ));
     }
 
@@ -42,13 +42,13 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             return;
         }
 
-        const firstStatementWithTimer = statements.find(s => s.fragments.some(
-            f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
+        const firstStatementWithTimer = statements.find(s => s.metrics.some(
+            f => f.metricType === MetricType.Duration && f.origin !== 'runtime'
         )) || statements[0];
         
-        const timerFragment = firstStatementWithTimer.fragments.find(
-            f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'
-        ) as DurationFragment | undefined;
+        const timerFragment = firstStatementWithTimer.metrics.find(
+            f => f.metricType === MetricType.Duration && f.origin !== 'runtime'
+        ) as DurationMetric | undefined;
 
         const direction = timerFragment?.direction || 'up';
         const durationMs = timerFragment?.value || undefined;
@@ -69,12 +69,12 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             .setLabel(label)
             .setSourceIds(statements.map(s => s.id));
 
-        const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = statements.flatMap(s => 
-            distribute(s.fragments || [], "Timer")
+        const distributor = new PassthroughMetricDistributor();
+        const metricGroups = statements.flatMap(s => 
+            distribute(s.metrics || [], "Timer")
         ).filter(group => group.length > 0);
         
-        builder.setFragments(fragmentGroups);
+        builder.setFragments(metricGroups);
 
         // =====================================================================
         // Specific Behaviors - Added BEFORE aspects to ensure correct execution order
@@ -139,8 +139,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
     }
 }
 
-// Keep the logic-heavy fragment distribution local to the strategy
-function distribute(fragments: any[], type: string): any[][] {
-    const distributor = new PassthroughFragmentDistributor();
-    return distributor.distribute(fragments, type);
+// Keep the logic-heavy metrics distribution local to the strategy
+function distribute(metrics: any[], type: string): any[][] {
+    const distributor = new PassthroughMetricDistributor();
+    return distributor.distribute(metrics, type);
 }

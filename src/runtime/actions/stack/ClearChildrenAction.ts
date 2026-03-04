@@ -55,7 +55,7 @@ export class ClearChildrenAction implements IRuntimeAction {
             const popAction = new PopBlockAction();
             // Execute pop inline — the pop action will handle:
             // - marking incomplete blocks as forced-pop
-            // - running unmount lifecycle (fragment emission)
+            // - running unmount lifecycle (metrics emission)
             // - disposing the block
             // We collect any unmount side-effect actions but discard
             // the NextAction that PopBlockAction normally queues (we'll

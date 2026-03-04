@@ -110,10 +110,10 @@ export interface IDisplayCardEntry {
   subtitle?: string;
 
   /** 
-   * For 'active-block' type: the metrics/fragments to display 
-   * These should match the format used by FragmentVisualizer
+   * For 'active-block' type: the metrics/metric to display 
+   * These should match the format used by MetricVisualizer
    */
-  metrics?: IDisplayMetric[];
+  metric: IDisplayMetric[];
 
   /**
    * Optional grouped metrics for multi-row display.
@@ -142,7 +142,7 @@ export interface IDisplayCardEntry {
 
 /**
  * Metric to display on an active block card.
- * Mirrors the fragment display format for consistency.
+ * Mirrors the metrics display format for consistency.
  */
 export interface IDisplayMetric {
   /** Type of metric (e.g., 'reps', 'weight', 'distance') */
@@ -151,7 +151,7 @@ export interface IDisplayMetric {
   /** Display value */
   value: string | number;
 
-  /** Original fragment image/text */
+  /** Original metrics image/text */
   image?: string;
 
   /** Unit label (e.g., 'lbs', 'm', 'cal') */

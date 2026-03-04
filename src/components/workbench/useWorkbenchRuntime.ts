@@ -16,7 +16,7 @@ import { RunningSumProcess } from '../../core/analytics/RunningSumProcess';
 import { RepAnalyticsProcess } from '../../core/analytics/RepAnalyticsProcess';
 import { DistanceAnalyticsProcess } from '../../core/analytics/DistanceAnalyticsProcess';
 import { WeightAnalyticsProcess } from '../../core/analytics/WeightAnalyticsProcess';
-import { FragmentType } from '../../core/models/CodeFragment';
+import { MetricType } from '../../core/models/Metric';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -55,8 +55,8 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
 
             // Setup Analytics Engine
             const engine = new AnalyticsEngine();
-            engine.addProcess(new RunningSumProcess('repetitions', FragmentType.Rep));
-            engine.addProcess(new RunningSumProcess('resistance', FragmentType.Resistance));
+            engine.addProcess(new RunningSumProcess('repetitions', MetricType.Rep));
+            engine.addProcess(new RunningSumProcess('resistance', MetricType.Resistance));
             engine.addProcess(new RepAnalyticsProcess());
             engine.addProcess(new DistanceAnalyticsProcess());
             engine.addProcess(new WeightAnalyticsProcess());

@@ -1,7 +1,7 @@
 import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
-import { ICodeFragment } from '@/core/models/CodeFragment';
+import { IMetric } from '@/core/models/Metric';
 import { MemoryTag } from '@/runtime/memory/MemoryLocation';
 import {
     SerializedBlock,
@@ -16,7 +16,7 @@ import {
  * Returns null if the block has no timer.
  *
  * Timer behaviors (CountupTimerBehavior, CountdownTimerBehavior, SpanTrackingBehavior)
- * all use ctx.pushMemory('time', [fragment]) where the fragment's .value holds a
+ * all use ctx.pushMemory('time', [metrics]) where the metrics's .value holds a
  * full TimerState object.  The tag is 'time', not 'timer'.
  */
 function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
@@ -25,12 +25,12 @@ function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
     if (timerLocs.length === 0) return null;
 
     const timerLoc = timerLocs[0];
-    const fragments = timerLoc.fragments;
-    if (fragments.length === 0) return null;
+    const metrics = timerLoc.metrics;
+    if (metrics.length === 0) return null;
 
     // CountupTimerBehavior / CountdownTimerBehavior store the full TimerState as
-    // the first fragment's .value field.
-    const state = fragments[0]?.value as {
+    // the first metrics's .value field.
+    const state = metrics[0]?.value as {
         spans?: Array<{ started: number; ended?: number }>;
         direction?: 'up' | 'down';
         durationMs?: number;
@@ -68,37 +68,37 @@ function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
 /**
  * Serialize an IRuntimeBlock into a JSON-safe SerializedBlock.
  *
- * Extracts all fragment visibility tiers, timer state, behavior metadata,
+ * Extracts all metrics visibility tiers, timer state, behavior metadata,
  * and completion state — giving the receiver full parity with the browser UI.
  */
 export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
     // ── Display tier ──────────────────────────────────────────────────────
-    const displayLocs = block.getFragmentMemoryByVisibility('display');
-    const displayFragments = displayLocs.map(loc => loc.fragments);
+    const displayLocs = block.getMetricMemoryByVisibility('display');
+    const displayFragments = displayLocs.map(loc => loc.metrics);
 
     // ── Promote tier ──────────────────────────────────────────────────────
-    // fragment:promote and fragment:rep-target locations
-    const promoteLocs = block.getFragmentMemoryByVisibility('promote');
-    const promoteFragments: ICodeFragment[][] = promoteLocs.map(loc => loc.fragments);
+    // metrics:promote and metrics:rep-target locations
+    const promoteLocs = block.getMetricMemoryByVisibility('promote');
+    const promoteFragments: IMetric[][] = promoteLocs.map(loc => loc.metrics);
 
     // ── Result tier ───────────────────────────────────────────────────────
-    const resultLocs = block.getFragmentMemoryByVisibility('result');
-    const resultFragments: ICodeFragment[][] = resultLocs.map(loc => loc.fragments);
+    const resultLocs = block.getMetricMemoryByVisibility('result');
+    const resultFragments: IMetric[][] = resultLocs.map(loc => loc.metrics);
 
     // ── Private tier ──────────────────────────────────────────────────────
-    // Group private locations by tag: Record<tag, ICodeFragment[][]>
-    const privateLocs = block.getFragmentMemoryByVisibility('private');
-    const privateFragments: Record<MemoryTag, ICodeFragment[][]> = {} as Record<MemoryTag, ICodeFragment[][]>;
+    // Group private locations by tag: Record<tag, IMetric[][]>
+    const privateLocs = block.getMetricMemoryByVisibility('private');
+    const privateFragments: Record<MemoryTag, IMetric[][]> = {} as Record<MemoryTag, IMetric[][]>;
     for (const loc of privateLocs) {
         if (!privateFragments[loc.tag]) {
             privateFragments[loc.tag] = [];
         }
-        privateFragments[loc.tag].push(loc.fragments);
+        privateFragments[loc.tag].push(loc.metrics);
     }
 
     // ── 'Up Next' preview ─────────────────────────────────────────────────
-    const nextLocs = block.getMemoryByTag('fragment:next');
-    const nextFragments = nextLocs.flatMap(loc => loc.fragments);
+    const nextLocs = block.getMemoryByTag('metric:next');
+    const nextFragments = nextLocs.flatMap(loc => loc.metrics);
 
     // ── Behavior metadata ─────────────────────────────────────────────────
     let behaviorsMetadata: SerializedBehavior[] | undefined;
@@ -154,7 +154,7 @@ export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
         outputType: output.outputType,
         sourceBlockKey: output.sourceBlockKey,
         stackLevel: output.stackLevel,
-        fragments: output.fragments,
+        metrics: output.metrics,
         completionReason: output.completionReason,
         timeSpan: { started, ended },
         elapsed,

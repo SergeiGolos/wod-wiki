@@ -65,8 +65,8 @@ export class SetEffortStateAction implements ITestSetupAction {
     for (const memoryType of memoryTypes) {
       const loc = block.getMemoryByTag(memoryType as any)[0];
 
-      if (loc?.fragments[0]) {
-        const currentValue = loc.fragments[0].value;
+      if (loc?.metrics[0]) {
+        const currentValue = loc.metrics[0].value;
         let newValue: any;
 
         // Handle different memory shapes
@@ -95,7 +95,7 @@ export class SetEffortStateAction implements ITestSetupAction {
           };
         }
 
-        loc.update([{ ...loc.fragments[0], value: newValue }]);
+        loc.update([{ ...loc.metrics[0], value: newValue }]);
         return; // Found and set, done
       }
     }

@@ -16,7 +16,7 @@ import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
-import { ICodeFragment, FragmentType } from '../core/models/CodeFragment';
+import { IMetric, MetricType } from '../core/models/Metric';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
@@ -402,7 +402,7 @@ export class ScriptRuntime implements IScriptRuntime {
         const now = this.clock.now;
         const block = event.block;
 
-        // Build structured data for the fragment value
+        // Build structured data for the metrics value
         interface SystemOutputValue {
             event: 'push' | 'pop';
             blockKey: string;
@@ -432,9 +432,9 @@ export class ScriptRuntime implements IScriptRuntime {
             value.completionReason = completionReason;
         }
 
-        // Create the fragment
-        const fragment: ICodeFragment = {
-            fragmentType: FragmentType.System,
+        // Create the metrics
+        const metric: IMetric = {
+            metricType: MetricType.System,
             type: 'lifecycle',
             image: event.type === 'push'
                 ? `push: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}]`
@@ -450,15 +450,15 @@ export class ScriptRuntime implements IScriptRuntime {
             timeSpan: new TimeSpan(now.getTime(), now.getTime()),
             sourceBlockKey: block.key.toString(),
             stackLevel: event.depth,
-            fragments: [fragment],
+            metrics: [metric],
         });
 
         this.addOutput(output);
     }
 
     private emitSegmentOutputFromResultMemory(block: IRuntimeBlock, stackDepth: number): void {
-        const resultLocs = block.getMemoryByTag('fragment:result');
-        const displayLocs = block.getMemoryByTag('fragment:display');
+        const resultLocs = block.getMemoryByTag('metric:result');
+        const displayLocs = block.getMemoryByTag('metric:display');
 
         if (resultLocs.length === 0) {
             return;
@@ -466,19 +466,19 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // If we have multiple result groups, emit one segment for each
         for (let i = 0; i < resultLocs.length; i++) {
-            const resultFragments = resultLocs[i].fragments ?? [];
+            const resultFragments = resultLocs[i].metrics ?? [];
             
-            // Match with corresponding display fragments if available
+            // Match with corresponding display metrics if available
             // (Assumes 1:1 pairing from ReportOutputBehavior)
-            const sourceFragments = displayLocs[i]?.fragments ?? [];
+            const sourceFragments = displayLocs[i]?.metrics ?? [];
 
             // 2. Merge: Runtime results override source definitions (for same type)
-            const resultTypes = new Set(resultFragments.map(f => f.fragmentType));
-            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.fragmentType));
+            const resultTypes = new Set(resultFragments.map(f => f.metricType));
+            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.metricType));
 
-            const fragments = [...effectiveSourceFragments, ...resultFragments];
+            const metrics = [...effectiveSourceFragments, ...resultFragments];
 
-            if (fragments.length === 0) {
+            if (metrics.length === 0) {
                 continue;
             }
 
@@ -489,7 +489,7 @@ export class ScriptRuntime implements IScriptRuntime {
             const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
 
             // Extract internal timer spans if available
-            const spans = this.extractSpansFromResultFragments(fragments);
+            const spans = this.extractSpansFromResultFragments(metrics);
 
             const output = new OutputStatement({
                 outputType: 'segment',
@@ -498,17 +498,17 @@ export class ScriptRuntime implements IScriptRuntime {
                 sourceBlockKey: block.key.toString(),
                 sourceStatementId: block.sourceIds?.[i] ?? block.sourceIds?.[0],
                 stackLevel: stackDepth,
-                fragments,
+                metrics,
             });
 
             this.addOutput(output);
         }
     }
 
-    private extractSpansFromResultFragments(fragments: ICodeFragment[]): TimeSpan[] {
-        const spansFragment = fragments.find(
-            fragment => fragment.fragmentType === FragmentType.Spans || fragment.type === 'spans'
-        ) as (ICodeFragment & { spans?: unknown }) | undefined;
+    private extractSpansFromResultFragments(metrics: IMetric[]): TimeSpan[] {
+        const spansFragment = metrics.find(
+            metric => metric.metricType === MetricType.Spans || metric.type === 'spans'
+        ) as (IMetric & { spans?: unknown }) | undefined;
 
         if (!spansFragment) {
             return [];
@@ -546,16 +546,16 @@ export class ScriptRuntime implements IScriptRuntime {
         for (const stmt of this.script.statements) {
             const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset + 1);
 
-            // Start with the parsed fragments from the statement
-            const fragments: ICodeFragment[] = stmt.fragments ? [...stmt.fragments] : [];
+            // Start with the parsed metrics from the statement
+            const metrics: IMetric[] = stmt.metrics ? [...stmt.metrics] : [];
 
-            // Add a Label fragment for the raw text if one doesn't exist? 
+            // Add a Label metrics for the raw text if one doesn't exist? 
             // Or just always add it as the "Source" representation?
-            // The existing code created a valid 'Label' fragment. Let's keep it but maybe ensuring it doesn't duplicate if 'Text' exists?
+            // The existing code created a valid 'Label' metrics. Let's keep it but maybe ensuring it doesn't duplicate if 'Text' exists?
             // For 'load', having the raw text as a Label is useful for the "Name" column.
 
-            fragments.push({
-                fragmentType: FragmentType.Label,
+            metrics.push({
+                metricType: MetricType.Label,
                 type: 'load',
                 image: rawText || 'Statement',
                 value: rawText,
@@ -582,7 +582,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 sourceBlockKey: 'root',
                 sourceStatementId: stmt.id,
                 stackLevel: logicalDepth,
-                fragments
+                metrics
             });
 
             this.addOutput(output);
@@ -594,9 +594,9 @@ export class ScriptRuntime implements IScriptRuntime {
         const currentBlock = this.stack.current;
         const blockKey = currentBlock?.key.toString() ?? 'root';
 
-        const fragments: ICodeFragment[] = [
+        const metrics: IMetric[] = [
             {
-                fragmentType: FragmentType.System,
+                metricType: MetricType.System,
                 type: 'event',
                 image: `event: ${event.name}`,
                 value: {
@@ -615,7 +615,7 @@ export class ScriptRuntime implements IScriptRuntime {
             timeSpan: new TimeSpan(now.getTime(), now.getTime()),
             sourceBlockKey: blockKey,
             stackLevel: this.stack.count,
-            fragments
+            metrics
         });
 
         this.addOutput(output);
@@ -624,9 +624,9 @@ export class ScriptRuntime implements IScriptRuntime {
     private emitCompilerOutput(block: IRuntimeBlock): void {
         // Emit behavior configuration/compiler info
         const now = this.clock.now;
-        const fragments: ICodeFragment[] = [
+        const metrics: IMetric[] = [
             {
-                fragmentType: FragmentType.Label,
+                metricType: MetricType.Label,
                 type: 'compiler',
                 image: `Behaviors: ${block.behaviors.map(b => b.constructor.name).join(', ')}`,
                 value: block.behaviors.map(b => b.constructor.name),
@@ -640,7 +640,7 @@ export class ScriptRuntime implements IScriptRuntime {
             timeSpan: new TimeSpan(now.getTime(), now.getTime()),
             sourceBlockKey: block.key.toString(),
             stackLevel: this.stack.count, // technically it's about to be pushed, so maybe count + 1? or current count is fine as pre-push
-            fragments
+            metrics
         });
 
         this.addOutput(output);

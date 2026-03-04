@@ -9,7 +9,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         block: {
             key: { toString: () => 'test-block' },
             label: 'Test Block',
-            fragments: []
+            metrics: []
         },
         clock: { now: new Date(1000) },
         stackLevel: 0,

@@ -1,18 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSnapshotBlocks } from './useStackSnapshot';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMetric } from '../../core/models/Metric';
 
 /**
  * Result of the next-preview resolution.
  *
- * `fragments` contains the display fragments for the next child that
+ * `metrics` contains the display metrics for the next child that
  * will be pushed by the deepest block on the stack that has a
- * `fragment:next` memory location.
+ * `metrics:next` memory location.
  */
 export interface NextPreview {
     /** Fragments describing the next child to be executed */
-    fragments: ICodeFragment[];
+    metrics: IMetric[];
     /** The block that owns this preview (the parent that will push the child) */
     block: IRuntimeBlock;
 }
@@ -21,10 +21,10 @@ export interface NextPreview {
  * Hook that resolves the "Up Next" preview from the runtime stack.
  *
  * Walks the stack from leaf (index 0) to root, finding the first block
- * that has a non-empty `fragment:next` memory location. This gives the
+ * that has a non-empty `metrics:next` memory location. This gives the
  * deepest (most specific) preview of what's coming next.
  *
- * The hook subscribes to `fragment:next` memory changes on all stack
+ * The hook subscribes to `metrics:next` memory changes on all stack
  * blocks, so it re-renders when the preview updates (e.g., after a
  * child completes and the next child is queued).
  *
@@ -36,7 +36,7 @@ export interface NextPreview {
  *   const preview = useNextPreview();
  *   if (!preview) return <span>End of session</span>;
  *
- *   return <FragmentSourceRow fragments={preview.fragments} />;
+ *   return <MetricSourceRow metric={preview.metrics} />;
  * }
  * ```
  */
@@ -44,12 +44,12 @@ export function useNextPreview(): NextPreview | null {
     const blocks = useSnapshotBlocks();
     const [version, setVersion] = useState(0);
 
-    // Subscribe to fragment:next memory changes on all blocks
+    // Subscribe to metrics:next memory changes on all blocks
     useEffect(() => {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const nextLocs = block.getMemoryByTag('fragment:next');
+            const nextLocs = block.getMemoryByTag('metric:next');
             for (const loc of nextLocs) {
                 const unsub = loc.subscribe(() => {
                     setVersion(v => v + 1);
@@ -66,13 +66,13 @@ export function useNextPreview(): NextPreview | null {
     return useMemo(() => {
         // Walk leaf-to-root (blocks[0] is leaf, blocks[length-1] is root)
         for (const block of blocks) {
-            const nextLocs = block.getMemoryByTag('fragment:next');
+            const nextLocs = block.getMemoryByTag('metric:next');
             if (nextLocs.length === 0) continue;
 
-            // Collect fragments from all fragment:next locations
-            const fragments = nextLocs.flatMap(loc => loc.fragments);
-            if (fragments.length > 0) {
-                return { fragments, block };
+            // Collect metrics from all metrics:next locations
+            const metrics = nextLocs.flatMap(loc => loc.metrics);
+            if (metrics.length > 0) {
+                return { metric, block };
             }
         }
 

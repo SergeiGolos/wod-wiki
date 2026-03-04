@@ -17,7 +17,7 @@ export class RoundsEndBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         if (!round) {
             return [];
         }

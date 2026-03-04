@@ -2,21 +2,21 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
-import { RoundsFragment } from "../../fragments/RoundsFragment";
+import { MetricType } from "@/core/models/Metric";
+import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
-    FragmentPromotionBehavior,
+    MetricPromotionBehavior,
     LabelingBehavior
 } from "../../../behaviors";
 
 /**
- * GenericLoopStrategy handles blocks with round/iteration fragments.
+ * GenericLoopStrategy handles blocks with round/iteration metrics.
  *
  * Uses aspect composer methods:
  * - .asRepeater() - Iteration/round management with completion
@@ -27,7 +27,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        return statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Rounds));
+        return statements.some(s => s.metrics.some(f => f.metricType === MetricType.Rounds));
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -36,13 +36,13 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             return;
         }
 
-        const firstStatementWithRounds = statements.find(s => s.fragments.some(
-            f => f.fragmentType === FragmentType.Rounds
+        const firstStatementWithRounds = statements.find(s => s.metrics.some(
+            f => f.metricType === MetricType.Rounds
         )) || statements[0];
 
-        const roundsFragment = firstStatementWithRounds.fragments.find(
-            f => f.fragmentType === FragmentType.Rounds
-        ) as RoundsFragment | undefined;
+        const roundsFragment = firstStatementWithRounds.metrics.find(
+            f => f.metricType === MetricType.Rounds
+        ) as RoundsMetric | undefined;
 
         if (!roundsFragment) return;
 
@@ -54,11 +54,11 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             totalRounds = roundsFragment.value;
         }
 
-        // Collect individual RepFragments from ALL statements to build a rep scheme.
-        // The parser creates separate RepFragment instances (e.g., 21-15-9 becomes
-        // three RepFragments with values 21, 15, 9) alongside a RoundsFragment.
+        // Collect individual RepMetrics from ALL statements to build a rep scheme.
+        // The parser creates separate RepMetric instances (e.g., 21-15-9 becomes
+        // three RepMetrics with values 21, 15, 9) alongside a RoundsMetric.
         const repFragments = statements.flatMap(s => 
-            s.fragments.filter(f => f.fragmentType === FragmentType.Rep && typeof f.value === 'number')
+            s.metrics.filter(f => f.metricType === MetricType.Rep && typeof f.value === 'number')
         ).map(f => f.value as number);
 
         if (repFragments.length > 0) {
@@ -85,12 +85,12 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             .setLabel(label)
             .setSourceIds(statements.map(s => s.id));
 
-        const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = statements.flatMap(s => 
-            distributor.distribute(s.fragments || [], "Rounds")
+        const distributor = new PassthroughMetricDistributor();
+        const metricGroups = statements.flatMap(s => 
+            distributor.distribute(s.metrics || [], "Rounds")
         ).filter(group => group.length > 0);
         
-        builder.setFragments(fragmentGroups);
+        builder.setFragments(metricGroups);
 
         // =====================================================================
         // ASPECT COMPOSERS - High-level composition
@@ -112,8 +112,8 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         }));
 
         // Promotion Aspect - Share internal state with children
-        // Use execution origin to override parser-based text fragments
-        builder.addBehavior(new FragmentPromotionBehavior({
+        // Use execution origin to override parser-based text metrics
+        builder.addBehavior(new MetricPromotionBehavior({
             repScheme,
             promotions: []
         }));
