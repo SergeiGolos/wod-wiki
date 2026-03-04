@@ -9,6 +9,7 @@
 
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
+import { Attachment } from '../../types/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 const STATIC_ID = 'static';
@@ -24,6 +25,7 @@ export class StaticContentProvider implements IContentProvider {
   };
 
   private entry: HistoryEntry;
+  private attachments: Map<string, Attachment[]> = new Map();
 
   constructor(initialContent: string) {
     const now = Date.now();
@@ -88,6 +90,7 @@ export class StaticContentProvider implements IContentProvider {
     if (patch.results) {
         const resultId = patch.resultId || uuidv4();
         const currentResults = this.entry.extendedResults || [];
+        console.log(`[StaticProvider] Appending result ${resultId} to extendedResults (prev count: ${currentResults.length})`);
         
         // Wrap raw results into the WorkoutResult storage format
         const newResult = {
@@ -101,6 +104,7 @@ export class StaticContentProvider implements IContentProvider {
         
         nextEntry.results = patch.results; // Keep latest for compat
         nextEntry.extendedResults = [...currentResults, newResult];
+        console.log(`[StaticProvider] Updated entry now has ${nextEntry.extendedResults.length} total completions`);
     }
 
     this.entry = nextEntry;
@@ -109,5 +113,36 @@ export class StaticContentProvider implements IContentProvider {
 
   async deleteEntry(_id: string): Promise<void> {
     // No-op for static singleton
+  }
+
+  // --- Attachments ---
+
+  async getAttachments(noteId: string): Promise<Attachment[]> {
+    return this.attachments.get(noteId) || [];
+  }
+
+  async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
+    const id = uuidv4();
+    const now = Date.now();
+    const fullAttachment: Attachment = {
+      ...attachment,
+      id,
+      noteId,
+      createdAt: now,
+    } as Attachment;
+
+    const current = this.attachments.get(noteId) || [];
+    this.attachments.set(noteId, [...current, fullAttachment]);
+    
+    return fullAttachment;
+  }
+
+  async deleteAttachment(id: string): Promise<void> {
+    for (const [noteId, atts] of this.attachments.entries()) {
+      if (atts.some(a => a.id === id)) {
+        this.attachments.set(noteId, atts.filter(a => a.id !== id));
+        break;
+      }
+    }
   }
 }

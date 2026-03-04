@@ -9,9 +9,12 @@
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import { v4 as uuidv4 } from 'uuid';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
+import { Attachment } from '../../types/storage';
 import { matchesId } from '../../lib/idUtils';
 
 const KEY_PREFIX = 'wodwiki:history:';
+const ATT_PREFIX = 'wodwiki:attachment:';
+const NOTE_ATT_PREFIX = 'wodwiki:note-attachments:';
 const SCHEMA_VERSION = 1;
 
 function generateId(): string {
@@ -170,5 +173,63 @@ export class LocalStorageContentProvider implements IContentProvider {
 
   async deleteEntry(id: string): Promise<void> {
     localStorage.removeItem(`${KEY_PREFIX}${id}`);
+  }
+
+  // --- Attachments ---
+
+  async getAttachments(noteId: string): Promise<Attachment[]> {
+    const idsRaw = localStorage.getItem(`${NOTE_ATT_PREFIX}${noteId}`);
+    if (!idsRaw) return [];
+    
+    const ids = JSON.parse(idsRaw) as string[];
+    const attachments: Attachment[] = [];
+    
+    for (const id of ids) {
+      const attRaw = localStorage.getItem(`${ATT_PREFIX}${id}`);
+      if (attRaw) {
+        attachments.push(JSON.parse(attRaw) as Attachment);
+      }
+    }
+    
+    return attachments;
+  }
+
+  async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
+    const id = uuidv4();
+    const now = Date.now();
+    const fullAttachment: Attachment = {
+      ...attachment,
+      id,
+      noteId,
+      createdAt: now,
+    } as Attachment;
+
+    // Save attachment data
+    localStorage.setItem(`${ATT_PREFIX}${id}`, JSON.stringify(fullAttachment));
+    
+    // Update note-to-attachment index
+    const idsRaw = localStorage.getItem(`${NOTE_ATT_PREFIX}${noteId}`);
+    const ids = idsRaw ? JSON.parse(idsRaw) as string[] : [];
+    localStorage.setItem(`${NOTE_ATT_PREFIX}${noteId}`, JSON.stringify([...ids, id]));
+    
+    return fullAttachment;
+  }
+
+  async deleteAttachment(id: string): Promise<void> {
+    const attRaw = localStorage.getItem(`${ATT_PREFIX}${id}`);
+    if (!attRaw) return;
+    
+    const attachment = JSON.parse(attRaw) as Attachment;
+    const noteId = attachment.noteId;
+    
+    // Remove data
+    localStorage.removeItem(`${ATT_PREFIX}${id}`);
+    
+    // Update index
+    const idsRaw = localStorage.getItem(`${NOTE_ATT_PREFIX}${noteId}`);
+    if (idsRaw) {
+      const ids = JSON.parse(idsRaw) as string[];
+      localStorage.setItem(`${NOTE_ATT_PREFIX}${noteId}`, JSON.stringify(ids.filter(i => i !== id)));
+    }
   }
 }

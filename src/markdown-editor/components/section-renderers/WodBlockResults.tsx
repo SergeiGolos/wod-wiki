@@ -8,7 +8,6 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { reviewPath } from '@/lib/routes';
 import { useWodBlockResults } from '../../hooks/useWodBlockResults';
 import { Clock, ExternalLink } from 'lucide-react';
 import { useWorkbench } from '@/components/layout/WorkbenchContext';
@@ -74,6 +73,7 @@ export const WodBlockResults: React.FC<WodBlockResultsProps> = ({
     workbench = useWorkbench();
   } catch { /* Silent fail if outside provider */ }
 
+  const navigation = workbench?.navigation;
   const resolvedNoteId = propNoteId || workbench?.currentEntry?.id;
   const resolvedSectionId = propSectionId || workbench?.selectedBlockId;
 
@@ -104,11 +104,16 @@ export const WodBlockResults: React.FC<WodBlockResultsProps> = ({
       {/* Result entries */}
       <div className="divide-y divide-border/20">
         {visibleResults.map((result) => {
-          const href = `#${reviewPath(resolvedNoteId, resolvedSectionId, result.id)}`;
           return (
-            <a
+            <div
               key={result.id}
-              href={href}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (navigation && resolvedNoteId) {
+                  workbench?.setViewMode('review');
+                  navigation.goToReview(resolvedNoteId, resolvedSectionId, result.id);
+                }
+              }}
               className={cn(
                 'flex items-center gap-2 px-2 py-1 text-[11px] transition-colors',
                 'hover:bg-accent/50 group cursor-pointer no-underline',
@@ -142,19 +147,24 @@ export const WodBlockResults: React.FC<WodBlockResultsProps> = ({
 
               {/* Review link icon */}
               <ExternalLink className="h-3 w-3 text-muted-foreground/40 group-hover:text-foreground/60 shrink-0" />
-            </a>
+            </div>
           );
         })}
       </div>
 
       {/* More results indicator */}
       {hiddenCount > 0 && (
-        <a
-          href={`#${reviewPath(resolvedNoteId, resolvedSectionId)}`}
-          className="block px-2 py-1 text-[10px] text-muted-foreground/60 hover:text-foreground/70 text-center border-t border-border/20 no-underline"
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            if (navigation && resolvedNoteId) {
+              navigation.goToReview(resolvedNoteId, resolvedSectionId);
+            }
+          }}
+          className="block px-2 py-1 text-[10px] text-muted-foreground/60 hover:text-foreground/70 text-center border-t border-border/20 cursor-pointer"
         >
           +{hiddenCount} more result{hiddenCount !== 1 ? 's' : ''} — view all
-        </a>
+        </div>
       )}
     </div>
   );

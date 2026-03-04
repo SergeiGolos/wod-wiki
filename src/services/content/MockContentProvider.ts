@@ -1,6 +1,7 @@
 import { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import { v4 as uuidv4 } from 'uuid';
 import { HistoryEntry, ProviderCapabilities, EntryQuery } from '../../types/history';
+import { Attachment } from '../../types/storage';
 
 /**
  * MockContentProvider
@@ -20,6 +21,7 @@ export class MockContentProvider implements IContentProvider {
     };
 
     private entries: Map<string, HistoryEntry> = new Map();
+    private attachments: Map<string, Attachment[]> = new Map();
 
     constructor(initialEntries: HistoryEntry[] = []) {
         initialEntries.forEach(entry => this.entries.set(entry.id, entry));
@@ -105,5 +107,36 @@ export class MockContentProvider implements IContentProvider {
 
     async deleteEntry(id: string): Promise<void> {
         this.entries.delete(id);
+    }
+
+    // --- Attachments ---
+
+    async getAttachments(noteId: string): Promise<Attachment[]> {
+        return this.attachments.get(noteId) || [];
+    }
+
+    async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
+        const id = uuidv4();
+        const now = Date.now();
+        const fullAttachment: Attachment = {
+            ...attachment,
+            id,
+            noteId,
+            createdAt: now,
+        } as Attachment;
+
+        const current = this.attachments.get(noteId) || [];
+        this.attachments.set(noteId, [...current, fullAttachment]);
+        
+        return fullAttachment;
+    }
+
+    async deleteAttachment(id: string): Promise<void> {
+        for (const [noteId, atts] of this.attachments.entries()) {
+            if (atts.some(a => a.id === id)) {
+                this.attachments.set(noteId, atts.filter(a => a.id !== id));
+                break;
+            }
+        }
     }
 }

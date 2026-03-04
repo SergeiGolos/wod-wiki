@@ -7,6 +7,7 @@
  */
 
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from './history';
+import { Attachment } from './storage';
 
 /**
  * Content provider mode — the highest-level branching point in the system.
@@ -33,4 +34,9 @@ export interface IContentProvider {
   cloneEntry(sourceId: string, targetDate?: number): Promise<HistoryEntry>;
   updateEntry(id: string, patch: Partial<Pick<HistoryEntry, 'rawContent' | 'results' | 'tags' | 'notes' | 'title' | 'clonedIds' | 'targetDate'>> & { sectionId?: string; resultId?: string }): Promise<HistoryEntry>;
   deleteEntry(id: string): Promise<void>;
+
+  // Attachments
+  getAttachments(noteId: string): Promise<Attachment[]>;
+  saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment>;
+  deleteAttachment(id: string): Promise<void>;
 }

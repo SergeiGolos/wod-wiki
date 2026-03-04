@@ -58,12 +58,16 @@ export function useWodBlockResults(
           r => r.sectionId === sectionId || r.segmentId === sectionId
         );
         
+        console.log(`[useWodBlockResults] Found ${inMemoryMatches.length} in-memory results for section: ${sectionId} (Total in currentEntry: ${extendedResults.length})`);
+        
         if (inMemoryMatches.length > 0) {
           if (!cancelled) {
             setResults(inMemoryMatches.sort((a, b) => b.completedAt - a.completedAt));
             setLoading(false);
             return;
           }
+        } else {
+            console.log(`[useWodBlockResults] No in-memory matches for section: ${sectionId}. Section IDs in extendedResults:`, extendedResults.map(r => r.sectionId));
         }
       }
 

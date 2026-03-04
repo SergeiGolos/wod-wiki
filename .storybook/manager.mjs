@@ -5,6 +5,7 @@ import { addons } from 'storybook/manager-api';
 // whether the panel is shown (getIsPanelShown checks height > 0).
 addons.setConfig({
   showPanel: false,
+  showToolbar: false,
   bottomPanelHeight: 0,
   rightPanelWidth: 0,
 });

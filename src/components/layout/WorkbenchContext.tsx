@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { planPath, trackPath, reviewPath } from '@/lib/routes';
+import { useLocation } from 'react-router-dom';
 import { WodBlock, WorkoutResults, Section } from '../../markdown-editor/types';
 import type { ViewMode } from './panel-system/ResponsiveViewport';
 import type { PanelLayoutState } from './panel-system/types';
@@ -18,6 +17,10 @@ import { parseDocumentSections, matchSectionIds } from '../../markdown-editor/ut
 import { parseWodBlock } from '../../markdown-editor/utils/parseWodBlock';
 import { sharedParser } from '../../parser/parserInstance';
 import type { Section as EditorSection } from '../../markdown-editor/types/section'; import { indexedDBService } from '../../services/db/IndexedDBService';
+import { INavigationProvider } from '@/types/navigation';
+import { useReactRouterNavigation } from '@/hooks/useReactRouterNavigation';
+import { fileProcessor } from '../../services/attachments/FileProcessor';
+
 /**
  * WorkbenchContext - Manages document state and view navigation
  *
@@ -60,6 +63,9 @@ interface WorkbenchContextState {
   // Content Provider
   provider: IContentProvider;
 
+  // Navigation Provider
+  navigation: INavigationProvider;
+
   // Content Provider Mode
   contentMode: ContentProviderMode;
 
@@ -76,6 +82,9 @@ interface WorkbenchContextState {
   // Active entry
   currentEntry: HistoryEntry | null;
 
+  // Attachments
+  attachments: import('../../types/storage').Attachment[];
+
   // Actions
   setContent: (content: string) => void;
   setBlocks: (blocks: WodBlock[]) => void;
@@ -89,6 +98,10 @@ interface WorkbenchContextState {
   // Panel Layout Actions
   expandPanel: (viewId: string, panelId: string) => void;
   collapsePanel: (viewId: string) => void;
+
+  // Attachment Actions
+  addAttachment: (file: File) => Promise<void>;
+  deleteAttachment: (id: string) => Promise<void>;
 }
 
 const WorkbenchContext = createContext<WorkbenchContextState | undefined>(undefined);
@@ -108,6 +121,7 @@ interface WorkbenchProviderProps {
   initialViewMode?: ViewMode;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
+  navigation?: INavigationProvider;
 }
 
 export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
@@ -117,32 +131,30 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   initialViewMode,
   mode: _mode = 'static',
   provider: externalProvider,
+  navigation: externalNavigation,
 }) => {
-  // Guard viewMode setter: navigate to the new route
-  const navigate = useNavigate();
-  const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId, view: legacyView } = useParams<{
-    noteId?: string; sectionId?: string; resultId?: string; view?: string;
-  }>();
-  const { pathname, search, hash, state: locationState } = useLocation();
+  // Use provided navigation or default to a hook-based one
+  const defaultNavigation = useReactRouterNavigation();
+  const navigation = externalNavigation ?? defaultNavigation;
 
-  // Derive routeView from the URL path segments (explicit routes) or legacy :view param
-  const routeView = useMemo(() => {
-    // Check explicit path patterns first (checking both pathname and hash for robustness)
-    const fullPath = pathname + hash + search;
-    if (fullPath.match(/\/plan(\/|$)/)) return 'plan';
-    if (fullPath.match(/\/track(\/|$)/)) return 'track';
-    if (fullPath.match(/\/review(\/|$)/)) return 'review';
-    // Fall back to legacy :view param for backward compat
-    return legacyView;
-  }, [pathname, hash, search, legacyView]);
+  // Derive route context from the navigation state
+  const { noteId: routeId, sectionId: routeSectionId, resultId: routeResultId, view: viewMode } = navigation.state;
+  const routeView = viewMode;
+
+  const { pathname, search, hash, state: locationState } = useLocation();
 
   // Resolve provider: use external if given, else auto-create from mode + initialContent
   const provider = useMemo(() => externalProvider ?? new StaticContentProvider(propInitialContent), [externalProvider, propInitialContent]);
   const resolvedMode = provider.mode;
 
-  // Document State
+  // State Declarations
   const [content, setContent] = useState(propInitialContent);
   const [sections, setSectionsState] = useState<Section[] | null>(null);
+  const [blocks, setBlocksState] = useState<WodBlock[]>([]);
+  const [attachments, setAttachments] = useState<import('../../types/storage').Attachment[]>([]);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
+
   const contentRef = useRef(content);
   useEffect(() => { contentRef.current = content; }, [content]);
 
@@ -225,6 +237,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       setBlocksState([]);
       setSectionsState(null);
       setCurrentEntry(null);
+      setAttachments([]);
 
       if (routeId) {
         if (provider.mode === 'history' || provider.mode === 'static') {
@@ -238,6 +251,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               setSectionsState(entry.sections || null);
               lastSavedContent.current = entry.rawContent; // Sync ref so we don't auto-save immediately
               setSaveState('idle'); // Reset any lingering save state
+
+              // Load attachments
+              const atts = await provider.getAttachments(entry.id);
+              setAttachments(atts);
 
               // Ensure visual selection matches the resolved entry.
               // Supports friendly name routes like /note/annie/plan.
@@ -266,16 +283,21 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     loadContent();
   }, [routeId, propInitialContent, provider, historySelectionHook.openEntry, initialActiveEntryId]);
 
+  // Refetch attachments on addition or deletion
+  const refreshAttachments = useCallback(async () => {
+    const targetId = currentEntry?.id || routeId;
+    if (targetId) {
+      const atts = await provider.getAttachments(targetId);
+      setAttachments(atts);
+    }
+  }, [currentEntry?.id, routeId, provider]);
 
-  const [blocks, setBlocksState] = useState<WodBlock[]>([]);
+
   const setBlocks = useCallback((newBlocks: WodBlock[]) => {
     // Allow external updates (e.g. from SectionEditor) to reflect changes immediately
     // before the debounced content update triggers a re-parse.
     setBlocksState(newBlocks);
   }, []);
-
-  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [currentEntry, setCurrentEntry] = useState<HistoryEntry | null>(null);
 
   // --- Load route-specific result for review view ---
   // When the URL contains a sectionId (and optionally resultId), load the
@@ -379,32 +401,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
-  // Derive viewMode from route
-  const viewMode = useMemo(() => {
-    // Priority 1: Direct route parameters
-    if (routeView === 'plan' || routeView === 'track' || routeView === 'review' || routeView === 'analyze' || routeView === 'history') {
-      return routeView as ViewMode;
-    }
-
-    // Priority 2: Forced initial mode for static/storybook setups
-    const isStorybook = pathname.includes('iframe.html');
-    const isRootOrPlayground = pathname === '/' || pathname === '/history' || pathname.startsWith('/playground') || isStorybook;
-    if (initialViewMode && (isRootOrPlayground || !routeView)) {
-      return initialViewMode;
-    }
-
-    // Priority 3: Root redirects
-    if (pathname === '/' || pathname.startsWith('/history') || isStorybook) {
-      if (!routeId && resolvedMode === 'static') return 'plan';
-      return 'history';
-    }
-
-    // Priority 4: Default based on ID
-    if (routeId || pathname.startsWith('/playground')) return 'plan';
-
-    return resolvedMode === 'history' ? 'history' : 'plan';
-  }, [pathname, hash, search, routeView, routeId, resolvedMode, initialViewMode]);
-
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
 
@@ -476,7 +472,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
           console.log(`[WorkbenchContext] Block shifted. Healing ID: ${selectedBlockId} -> ${match.id}`);
           setSelectedBlockId(match.id);
           if (routeId) {
-            navigate(trackPath(routeId, match.id), { replace: true });
+            navigation.goToTrack(routeId, match.id);
           }
           return;
         }
@@ -484,9 +480,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
       // If hash matching also fails, the link is truly broken
       console.log(`[WorkbenchContext] Block NOT found for ID: ${selectedBlockId}. Redirecting to Track selection with notfound route.`);
-      navigate(trackPath(routeId || '', 'notfound'), { replace: true });
+      navigation.goToTrack(routeId || '', 'notfound');
     }
-  }, [blocks, selectedBlockId, routeId, navigate, viewMode, routeSectionId, currentEntry?.id]);
+  }, [blocks, selectedBlockId, routeId, navigation, viewMode, routeSectionId, currentEntry?.id]);
 
   // Derive strip mode from content mode + selection state
   const stripMode: StripMode = useMemo(() => {
@@ -509,27 +505,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       return; // Safety guard — these views don't exist in static mode
     }
 
-    if (newMode === 'history') {
-      navigate('/');
-    } else if (routeId) {
-      // Use typed path builders for plan/track/review
-      if (newMode === 'plan') {
-        navigate(planPath(routeId));
-      } else if (newMode === 'track' && routeSectionId) {
-        navigate(trackPath(routeId, routeSectionId));
-      } else if (newMode === 'review') {
-        navigate(reviewPath(routeId, routeSectionId, routeResultId));
-      } else {
-        // Fallback for analyze or other modes
-        navigate(`/note/${routeId}/${newMode}`);
-      }
-    } else if (pathname.startsWith('/playground')) {
-      navigate(`/playground/${newMode}`);
-    } else {
-      // Fallback if no ID but trying to go to a workout view (e.g. Storybook)
-      navigate(`/${newMode}`);
-    }
-  }, [resolvedMode, navigate, routeId, routeSectionId, routeResultId, pathname]);
+    navigation.goTo(newMode, { noteId: routeId });
+  }, [resolvedMode, navigation, routeId]);
 
   const selectBlock = useCallback((id: string | null) => {
     setSelectedBlockId(id);
@@ -538,42 +515,41 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const startWorkout = useCallback((block: WodBlock) => {
     setSelectedBlockId(block.id);
     // Navigate to track view with the block's id as the section identifier
-    if (routeId) {
-      navigate(trackPath(routeId, block.id));
-    } else if (pathname.startsWith('/playground')) {
-      navigate(`/playground/track/${block.id}`);
-    } else {
-      // Fallback for Storybook/Embedded
-      navigate(`/track/${block.id}`);
-    }
-  }, [routeId, navigate, pathname]);
+    navigation.goToTrack(routeId || 'static', block.id);
+  }, [routeId, navigation]);
 
   const completeWorkout = useCallback((result: WorkoutResults) => {
     const resultId = uuidv4(); // Generate deterministic ID for this result
+    const latestContent = contentRef.current;
+    console.log(`[WorkbenchContext] Workout complete. Generated resultId: ${resultId} for section: ${selectedBlockId}. Content length: ${latestContent.length}`);
 
     // Auto-save in BACKGROUND if provider supports writing
     // We do NOT wait for this to finish to avoid blocking the UI
     if (provider.capabilities.canWrite) {
-      const titleMatch = content.match(/^#\s+(.+)$/m);
+      const titleMatch = latestContent.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1].trim() : 'Untitled Session';
 
       const payload = {
         title,
-        rawContent: content,
+        rawContent: latestContent,
         results: result, // Pass full result object
         sectionId: selectedBlockId ?? undefined, // Link result to the WOD section
         resultId, // Pass the ID we generated
       };
 
-      if (routeId) {
-        provider.updateEntry(routeId, payload)
+      if (routeId || provider.mode === 'static') {
+        const targetId = routeId || 'static';
+        console.log(`[WorkbenchContext] Updating provider entry ${targetId}...`);
+        provider.updateEntry(targetId, payload)
           .then(updated => {
+            console.log(`[WorkbenchContext] Provider updated. extendedResults count: ${updated.extendedResults?.length || 0}`);
             // Update local state if this is the currently loaded entry
-            if (currentEntry?.id === updated.id) {
+            if (currentEntry?.id === updated.id || provider.mode === 'static') {
+              console.log('[WorkbenchContext] Syncing currentEntry state with provider update');
               setCurrentEntry(updated);
             }
           })
-          .catch(err => console.error('Failed to auto-update workout:', err));
+          .catch(err => console.error('[WorkbenchContext] Failed to auto-update workout:', err));
       } else {
         // Auto-tag with active notebook
         const tags: string[] = [];
@@ -599,21 +575,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
     // Navigate to Review with the specific result ID IMMEDIATELY
     // Pass the result object in state so the destination can use it without waiting for IDB
-    if (routeId) {
-      navigate(reviewPath(routeId, selectedBlockId ?? undefined, resultId), {
-        state: { result }
-      });
-    } else if (pathname.startsWith('/playground')) {
-      navigate(`/playground/review/${selectedBlockId ?? ''}`);
-    } else {
-      // Fallback for Storybook/Embedded
-      if (selectedBlockId) {
-        navigate(`/review/${selectedBlockId}/${resultId}`, { state: { result } });
-      } else {
-        navigate(`/review`, { state: { result } });
-      }
-    }
-  }, [provider, content, routeId, selectedBlockId, navigate, pathname]);
+    navigation.goToReview(routeId || 'static', selectedBlockId ?? undefined, resultId);
+  }, [provider, content, routeId, selectedBlockId, navigation]);
 
   const resetResults = useCallback(() => {
     setResults([]);
@@ -661,6 +624,33 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     });
   }, []);
 
+  const addAttachment = useCallback(async (file: File) => {
+    const targetId = currentEntry?.id || routeId;
+    if (!targetId || !provider.capabilities.canWrite) return;
+
+    console.log(`[WorkbenchContext] Processing attachment: ${file.name}`);
+    const metadata = await fileProcessor.process(file);
+
+    console.log(`[WorkbenchContext] Saving attachment to entry ${targetId}`);
+    await provider.saveAttachment(targetId, {
+      mimeType: metadata.mimeType,
+      label: metadata.label,
+      data: metadata.data,
+      timeSpan: metadata.timeSpan || { start: Date.now(), end: Date.now() },
+    });
+    
+    // Trigger a re-load of the entry or just fire an event
+    await refreshAttachments();
+    console.log('[WorkbenchContext] Attachment saved successfully');
+  }, [currentEntry?.id, routeId, provider, refreshAttachments]);
+
+  const deleteAttachment = useCallback(async (id: string) => {
+    if (!provider.capabilities.canWrite) return;
+    await provider.deleteAttachment(id);
+    await refreshAttachments();
+    console.log(`[WorkbenchContext] Attachment ${id} deleted`);
+  }, [provider, refreshAttachments]);
+
   const value = useMemo(() => ({
     content,
     sections,
@@ -674,12 +664,14 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     saveState,
     panelLayouts,
     provider,
+    navigation,
     contentMode: resolvedMode,
     stripMode,
     historySelection,
     historyEntries,
     setHistoryEntries,
     currentEntry,
+    attachments,
     setContent,
     setBlocks,
     setActiveBlockId,
@@ -690,6 +682,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     resetResults,
     expandPanel,
     collapsePanel,
+    addAttachment,
+    deleteAttachment,
   }), [
     content,
     blocks,
@@ -702,12 +696,14 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     saveState,
     panelLayouts,
     provider,
+    navigation,
     resolvedMode,
     stripMode,
     historySelection,
     historyEntries,
     setHistoryEntries,
     currentEntry,
+    attachments,
     selectBlock,
     setViewMode,
     startWorkout,
@@ -715,6 +711,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     resetResults,
     expandPanel,
     collapsePanel,
+    addAttachment,
+    deleteAttachment,
   ]);
 
   return (

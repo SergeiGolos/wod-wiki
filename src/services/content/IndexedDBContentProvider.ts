@@ -10,7 +10,7 @@ import { toShortId } from '../../lib/idUtils';
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '../db/IndexedDBService';
-import { Note, NoteSegment, WorkoutResult, SegmentDataType } from '../../types/storage';
+import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
 import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
 import { Section, SectionType } from '../../markdown-editor/types/section';
 
@@ -372,5 +372,28 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     async deleteEntry(id: string): Promise<void> {
         await indexedDBService.deleteNote(id);
+    }
+
+    // --- Attachments ---
+
+    async getAttachments(noteId: string): Promise<Attachment[]> {
+        return indexedDBService.getAttachmentsForNote(noteId);
+    }
+
+    async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
+        const id = uuidv4();
+        const now = Date.now();
+        const fullAttachment: Attachment = {
+            ...attachment,
+            id,
+            noteId,
+            createdAt: now,
+        } as Attachment;
+        await indexedDBService.saveAttachment(fullAttachment);
+        return fullAttachment;
+    }
+
+    async deleteAttachment(id: string): Promise<void> {
+        await indexedDBService.deleteAttachment(id);
     }
 }

@@ -60,6 +60,10 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
     }
   };
 
+  if (section.id) {
+    console.log(`[WodBlockDisplay] Rendering ${section.id} with sourceNoteId: ${sourceNoteId}`);
+  }
+
   return (
     <>
       <div
