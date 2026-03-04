@@ -22,7 +22,7 @@ export class SimpleMetricSource implements IMetricSource {
     }
 
     getDisplayMetrics(filter?: MetricFilter): IMetric[] {
-        return resolveMetricPrecedence([...this._metric], filter);
+        return resolveMetricPrecedence([...this._metrics], filter);
     }
 
     getMetric(type: MetricType): IMetric | undefined {
@@ -31,7 +31,7 @@ export class SimpleMetricSource implements IMetricSource {
     }
 
     getAllMetricsByType(type: MetricType): IMetric[] {
-        const ofType = this._metric.filter(f => f.metricType === type);
+        const ofType = this._metrics.filter(f => f.metricType === type);
         if (ofType.length === 0) return [];
         return [...ofType].sort((a, b) => {
             const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
@@ -41,10 +41,10 @@ export class SimpleMetricSource implements IMetricSource {
     }
 
     hasMetric(type: MetricType): boolean {
-        return this._metric.some(f => f.metricType === type);
+        return this._metrics.some(f => f.metricType === type);
     }
 
     get rawMetrics(): IMetric[] {
-        return [...this._metric];
+        return [...this._metrics];
     }
 }
