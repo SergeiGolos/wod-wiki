@@ -22,12 +22,12 @@ interface MetricPillProps {
  * - User-origin metric get a dashed border + italic text + `(u)` suffix.
  * - Tooltip shows full metadata on hover.
  */
-export const MetricPill: React.FC<MetricPillProps> = ({ metrics }) => {
+export const MetricPill: React.FC<MetricPillProps> = ({ metric }) => {
   const colorClasses = getMetricColorClasses(metric.metricType);
   const isUser = metric.origin === 'user';
   const displayText = metricDisplayText(metric);
 
-  const tooltip = buildTooltip(metrics);
+  const tooltip = buildTooltip(metric);
 
   return (
     <span
