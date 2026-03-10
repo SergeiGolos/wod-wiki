@@ -32,8 +32,8 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         
         // Check if ANY statement has timer, rounds, or children
-        const hasTimer = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Duration && f.origin !== 'runtime'));
-        const hasRounds = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Rounds && f.origin !== 'runtime'));
+        const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration && f.origin !== 'runtime'));
+        const hasRounds = statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds && f.origin !== 'runtime'));
         const hasChildren = statements.some(s => s.children && s.children.length > 0);
         
         return !hasTimer && !hasRounds && !hasChildren;

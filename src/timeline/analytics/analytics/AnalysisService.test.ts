@@ -85,14 +85,12 @@ describe('AnalysisService', () => {
 
       const metrics: IMetric[] = [
         {
-          type: 'effort',
-          metricType: MetricType.Effort,
+          type: MetricType.Effort,
           value: 'Bench Press',
           image: 'Bench Press',
         },
         {
-          type: 'rep',
-          metricType: MetricType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
       ];
@@ -118,13 +116,11 @@ describe('AnalysisService', () => {
 
       const metrics: IMetric[] = [
         {
-          type: 'effort',
-          metricType: MetricType.Effort,
+          type: MetricType.Effort,
           value: 'Bench Press',
         },
         {
-          type: 'rep',
-          metricType: MetricType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
       ];
@@ -148,8 +144,7 @@ describe('AnalysisService', () => {
       // Fragment without Effort metrics before it
       const metrics: IMetric[] = [
         {
-          type: 'rep',
-          metricType: MetricType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
       ];

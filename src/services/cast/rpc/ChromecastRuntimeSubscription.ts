@@ -98,7 +98,7 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
             parts.push(`private:${privateTags}`);
             // Include next-preview metrics content so Up Next changes trigger a re-send
             const nextSig = block.nextFragments
-                ?.map((f: any) => `${f.metricType ?? f.type ?? ''}:${f.image ?? f.value ?? ''}`)
+                ?.map((f: any) => `${f.type ?? f.type ?? ''}:${f.image ?? f.value ?? ''}`)
                 .join(',') ?? '';
             parts.push(`next:${nextSig}`);
             // Behavior names (rarely change but should trigger re-send if they do)

@@ -1,5 +1,4 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * CurrentRoundMetric represents the live round counter during execution.
@@ -25,10 +24,8 @@ import { MetricBehavior } from "../../../types/MetricBehavior";
  * new CurrentRoundMetric(3, undefined, 'block-key', new Date())
  */
 export class CurrentRoundMetric implements IMetric {
-  readonly type: string = "current-round";
-  readonly metricType = MetricType.CurrentRound;
-  readonly origin: MetricOrigin = 'runtime';
-  readonly behavior: MetricBehavior = MetricBehavior.Recorded;
+  readonly type = MetricType.CurrentRound;
+  readonly origin: MetricOrigin = 'tracked';
   readonly value: number;
   readonly image: string;
 

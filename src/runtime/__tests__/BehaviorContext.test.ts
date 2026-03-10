@@ -143,10 +143,9 @@ describe('BehaviorContext', () => {
     describe('emitOutput', () => {
         it('should create an output statement and add to runtime', () => {
             const metric: IMetric = {
-                metricType: MetricType.Duration,
+                type: MetricType.Duration,
                 image: '1:00',
-                origin: 'runtime',
-                type: 'test'
+                origin: 'runtime'
             };
 
             ctx.emitOutput('segment', [metric], { label: 'Test Output' });
@@ -173,10 +172,9 @@ describe('BehaviorContext', () => {
 
         it('should tag metrics with sourceBlockKey if not provided', () => {
             const metric: IMetric = {
-                metricType: MetricType.Duration,
+                type: MetricType.Duration,
                 image: '2:00',
-                origin: 'runtime',
-                type: ''
+                origin: 'runtime'
             };
 
             ctx.emitOutput('milestone', [metric], {});

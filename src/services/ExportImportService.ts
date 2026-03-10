@@ -101,7 +101,7 @@ function statementsToCSV(entry: HistoryEntry): string {
                                 stmt.meta?.line ?? null,
                                 metrics.type,
                                 metric.value !== undefined ? JSON.stringify(metric.value) : null,
-                                metric.behavior ?? null,
+                                metric.origin ?? null,
                             ]);
                         }
                     } else {
@@ -163,7 +163,7 @@ function resultsToCSV(entry: HistoryEntry): string {
                     result.completed,
                     metrics.metrics.type,
                     metric.metric.value !== undefined ? JSON.stringify(metric.metric.value) : null,
-                    metric.behavior ?? null,
+                    metric.origin ?? null,
                     metric.timestamp ?? null,
                 ]);
             }

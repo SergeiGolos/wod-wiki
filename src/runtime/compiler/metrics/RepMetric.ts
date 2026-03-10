@@ -1,5 +1,4 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export class RepMetric implements IMetric {
   readonly value?: number;
@@ -19,10 +18,8 @@ export class RepMetric implements IMetric {
     this.image = reps !== undefined ? reps.toString() : '?';
     // If reps is undefined, this is a collectible metrics from user input
     this.origin = reps === undefined ? 'user' : 'parser';
-    this.behavior = reps === undefined ? MetricBehavior.Hint : MetricBehavior.Defined;
+    this.origin = reps === undefined ? 'hinted' : 'parser';
   }
-  readonly type: string = "rep";
-  readonly metricType = MetricType.Rep;
-  readonly behavior: MetricBehavior;
+  readonly type = MetricType.Rep;
 } 
 

@@ -75,19 +75,19 @@ export function resolveMetricPrecedence(
             filtered = filtered.filter(f => filter.origins!.includes(f.origin ?? 'parser'));
         }
         if (filter.types) {
-            filtered = filtered.filter(f => filter.types!.includes(f.metricType));
+            filtered = filtered.filter(f => filter.types!.includes(f.type));
         }
         if (filter.excludeTypes) {
-            filtered = filtered.filter(f => !filter.excludeTypes!.includes(f.metricType));
+            filtered = filtered.filter(f => !filter.excludeTypes!.includes(f.type));
         }
     }
 
     // Step 2: Group by MetricType
     const byType = new Map<MetricType, IMetric[]>();
     for (const f of filtered) {
-        const group = byType.get(f.metricType) ?? [];
+        const group = byType.get(f.type) ?? [];
         group.push(f);
-        byType.set(f.metricType, group);
+        byType.set(f.type, group);
     }
 
     // Step 3: For each type, take highest-precedence tier

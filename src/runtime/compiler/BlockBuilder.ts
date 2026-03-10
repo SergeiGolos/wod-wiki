@@ -287,8 +287,7 @@ export class BlockBuilder {
         // Push label as a Label metrics in dedicated memory location
         if (this.label) {
             block.pushMemory(new MemoryLocation('metric:label', [{
-                metricType: MetricType.Label,
-                type: 'label',
+                type: MetricType.Label,
                 image: this.label,
                 origin: 'compiler',
                 value: this.label,

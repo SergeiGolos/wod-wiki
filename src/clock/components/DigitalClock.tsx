@@ -18,7 +18,7 @@ export interface DigitalClockProps {
   /** Current round number */
   currentRound?: number;
   /** Optional metrics to display */
-  metric: Array<{
+  metrics?: Array<{
     label: string;
     value: string | number;
     unit?: string;

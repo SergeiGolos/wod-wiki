@@ -19,7 +19,7 @@ const resolveTemplate = (template: string, data: CollectionSpan) => {
 
 // Helper to extract value from metrics
 const getFragmentValue = (metrics: IMetric[], type: string): { value?: number; unit?: string } | undefined => {
-  const metrics = metrics.find(f => f.type === type);
+  const metric = metrics.find(f => f.type === type);
   if (!metric) return undefined;
   const value = metric.value as { amount?: number; value?: number; units?: string } | undefined;
   return {

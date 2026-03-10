@@ -5,9 +5,6 @@
  * representing workout scripts, code statements, and basic data structures.
  */
 
-import type { CodeMetadata } from '@/core/models/CodeMetadata';
-import type { IMetric } from '@/core/models/Metric';
-
 /**
  * Parser error information
  */
@@ -30,17 +27,7 @@ export interface IScript {
   getAt(index: number): ICodeStatement | undefined;
 }
 
-/**
- * Represents a single code statement in a workout script
- */
-export interface ICodeStatement {
-  id: number;
-  parent?: number;
-  children: number[][];
-  metrics: IMetric[];
-  isLeaf?: boolean;
-  meta: CodeMetadata;
-}
+export type { ICodeStatement } from '@/core/models/CodeStatement';
 
 /**
  * Unique identifier for runtime blocks
@@ -99,6 +86,8 @@ export type { BlockKey } from '@/core/models/BlockKey';
  * Re-export Duration class
  */
 export type { Duration } from '@/core/models/Duration';
+
+import type { ICodeStatement } from '@/core/models/CodeStatement';
 
 /**
  * Re-export CodeMetadata

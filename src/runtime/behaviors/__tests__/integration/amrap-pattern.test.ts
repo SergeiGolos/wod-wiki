@@ -179,7 +179,7 @@ describe('AMRAP Pattern Integration', () => {
             const milestones = findOutputs(runtime, 'milestone');
             // Filter for round milestones (exclude sound cues)
             const roundMilestones = milestones.filter(m =>
-                (m.metrics as any[]).some(f => f.metricType === 'current-round')
+                (m.metrics as any[]).some(f => f.type === 'current-round')
             );
             // 1 initial milestone on mount + 2 from onNext advances
             expect(roundMilestones.length).toBe(3);

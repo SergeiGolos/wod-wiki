@@ -1,6 +1,5 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
 import { formatDuration } from "../../time/calculateElapsed";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * **Total** (Runtime layer)
@@ -23,10 +22,8 @@ import { MetricBehavior } from "../../../types/MetricBehavior";
  * // (the 100ms paused gap IS included)
  */
 export class TotalMetric implements IMetric {
-  readonly type: string = "total";
-  readonly metricType = MetricType.Total;
-  readonly origin: MetricOrigin = 'collected';
-  readonly behavior: MetricBehavior = MetricBehavior.Calculated;
+  readonly type = MetricType.Total;
+  readonly origin: MetricOrigin = 'analyzed';
 
   /**
    * @param value Total wall-clock time in milliseconds

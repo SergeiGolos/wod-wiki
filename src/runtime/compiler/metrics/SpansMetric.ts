@@ -1,6 +1,5 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
 import { TimeSpan } from "../../models/TimeSpan";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * **Time / Spans** (Block layer)
@@ -24,10 +23,8 @@ import { MetricBehavior } from "../../../types/MetricBehavior";
  * - **TimeStamp** = system Date.now() when a message is logged
  */
 export class SpansMetric implements IMetric {
-  readonly type: string = "spans";
-  readonly metricType = MetricType.Spans;
-  readonly origin: MetricOrigin = 'runtime';
-  readonly behavior: MetricBehavior = MetricBehavior.Recorded;
+  readonly type = MetricType.Spans;
+  readonly origin: MetricOrigin = 'tracked';
 
   /**
    * @param spans Array of TimeSpan objects recording clock start/stop events

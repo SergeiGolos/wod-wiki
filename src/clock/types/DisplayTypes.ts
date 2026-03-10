@@ -113,7 +113,7 @@ export interface IDisplayCardEntry {
    * For 'active-block' type: the metrics/metric to display 
    * These should match the format used by MetricVisualizer
    */
-  metric: IDisplayMetric[];
+  metrics: IDisplayMetric[];
 
   /**
    * Optional grouped metrics for multi-row display.

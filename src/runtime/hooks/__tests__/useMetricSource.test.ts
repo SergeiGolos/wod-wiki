@@ -19,7 +19,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
     } as any as IScriptRuntime;
 
     function createFragment(type: string, fragType: MetricType, value: unknown, origin: string = 'parser'): IMetric {
-        return { type, metricType: fragType, value, origin } as IMetric;
+        return { type: fragType, value, origin } as IMetric;
     }
 
     function buildBlock(metricGroups: IMetric[][]) {
@@ -47,7 +47,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             const locations = block.getMemoryByTag('metric:display');
             expect(locations).toHaveLength(1);
             expect(locations[0].metrics).toHaveLength(1);
-            expect(locations[0].metrics[0].metricType).toBe(MetricType.Duration);
+            expect(locations[0].metrics[0].type).toBe(MetricType.Duration);
         });
 
         it("should return correct metric values", () => {
@@ -78,7 +78,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             const block = buildBlock([[timerFrag, actionFrag, repFrag]]);
 
             const locations = block.getMemoryByTag('metric:display');
-            const timersOnly = locations[0].metrics.filter(f => f.metricType === MetricType.Duration);
+            const timersOnly = locations[0].metrics.filter(f => f.type === MetricType.Duration);
             expect(timersOnly).toHaveLength(1);
             expect(timersOnly[0].value).toBe(60000);
         });
@@ -113,10 +113,10 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             const block = buildBlock([[rep21, rep15, rep9, action]]);
 
             const locations = block.getMemoryByTag('metric:display');
-            const reps = locations[0].metrics.filter(f => f.metricType === MetricType.Rep);
+            const reps = locations[0].metrics.filter(f => f.type === MetricType.Rep);
             expect(reps).toHaveLength(3);
 
-            const actions = locations[0].metrics.filter(f => f.metricType === MetricType.Action);
+            const actions = locations[0].metrics.filter(f => f.type === MetricType.Action);
             expect(actions).toHaveLength(1);
         });
 
@@ -143,7 +143,7 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             const block = buildBlock([[runtimeRep, userRep]]);
 
             const locations = block.getMemoryByTag('metric:display');
-            const reps = locations[0].metrics.filter(f => f.metricType === MetricType.Rep);
+            const reps = locations[0].metrics.filter(f => f.type === MetricType.Rep);
             expect(reps).toHaveLength(2);
 
             const userFrags = reps.filter(f => f.origin === 'user');
@@ -208,8 +208,8 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
 
             const locations = block.getMemoryByTag('metric:display');
             expect(locations).toHaveLength(2);
-            expect(locations[0].metrics[0].metricType).toBe(MetricType.Duration);
-            expect(locations[1].metrics[0].metricType).toBe(MetricType.Action);
+            expect(locations[0].metrics[0].type).toBe(MetricType.Duration);
+            expect(locations[1].metrics[0].type).toBe(MetricType.Action);
         });
 
         it("should support building stack display entries from memory locations", () => {
@@ -232,8 +232,8 @@ describe("Phase 4: Fragment Source Access from Blocks", () => {
             expect(entries[1].isLeaf).toBe(true);
             expect(entries[0].depth).toBe(0);
             expect(entries[1].depth).toBe(1);
-            expect(entries[0].metrics[0].metricType).toBe(MetricType.Duration);
-            expect(entries[1].metrics[0].metricType).toBe(MetricType.Action);
+            expect(entries[0].metrics[0].type).toBe(MetricType.Duration);
+            expect(entries[1].metrics[0].type).toBe(MetricType.Action);
         });
     });
 });

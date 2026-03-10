@@ -23,7 +23,7 @@ export const HistorySummaryView: React.FC<{
     outputs: IOutputStatement[];
 }> = ({ outputs }) => {
     // Filter for completed items (usually blocks/segments)
-    const completedItems = outputs.filter(o => o.outputType === 'completion');
+    const completedItems = outputs.filter(o => o.outputType === 'segment');
 
     // Calculate total duration from spans or fallback to timeSpan
     // Using 'elapsed' property from OutputStatement if available, or manual calc
@@ -67,12 +67,14 @@ const VISIBILITY_ICON_MAP: Record<MetricVisibility, React.ElementType> = {
     display: Eye,
     promote: ArrowUpCircle,
     private: Lock,
+    result: CheckCircle2,
 };
 
 const VISIBILITY_COLOR_MAP: Record<MetricVisibility, string> = {
     display: 'text-green-500',
     promote: 'text-blue-500',
     private: 'text-amber-500',
+    result: 'text-purple-500',
 };
 
 const VisibilityBadge: React.FC<{ visibility: MetricVisibility }> = ({ visibility }) => {
@@ -100,11 +102,10 @@ const VisibilityBadge: React.FC<{ visibility: MetricVisibility }> = ({ visibilit
 
 const StackBlockItem: React.FC<{
     block: IRuntimeBlock;
-    index: number;
     isLeaf: boolean;
-    isRoot: boolean;
+    isRoot?: boolean;
     debug?: boolean;
-}> = ({ block, index, isLeaf, isRoot, debug: debugProp }) => {
+}> = ({ block, isLeaf, debug: debugProp }) => {
     // Consume debug context directly as fallback if prop not passed
     const { isDebugMode } = useDebugMode();
     const debug = debugProp ?? isDebugMode;
@@ -177,8 +178,6 @@ const StackBlockItem: React.FC<{
             </div>
         );
     };
-
-    const hasFragments = displayRows.length > 0 || (debug && (promoteRows.length > 0 || privateRows.length > 0));
 
     return (
         <div
@@ -300,7 +299,7 @@ export const RuntimeStackView: React.FC<{
 
     // Helper to render history summary for a specific level
     const renderHistorySummary = (level: number) => {
-        const levelOutputs = outputs.filter(o => o.stackLevel === level && o.outputType === 'completion');
+        const levelOutputs = outputs.filter(o => o.stackLevel === level && o.outputType === 'segment');
 
         if (levelOutputs.length === 0) return null;
 
@@ -336,7 +335,6 @@ export const RuntimeStackView: React.FC<{
         <div className="flex flex-col gap-1 relative">
             {visibleBlocks.map((block, index) => {
                 const isLeaf = index === visibleBlocks.length - 1; // Last item is the active leaf
-                const isRoot = index === 0; // First item is root
 
                 // Level: Root is 0, Children of Root are 1.
                 // We want to show history for children of THIS block.
@@ -348,9 +346,7 @@ export const RuntimeStackView: React.FC<{
                         {/* Block Card */}
                         <StackBlockItem
                             block={block}
-                            index={index}
                             isLeaf={isLeaf}
-                            isRoot={isRoot}
                             debug={debug}
                         />
 

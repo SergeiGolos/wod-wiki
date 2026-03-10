@@ -1,5 +1,4 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * @deprecated Use DurationMetric instead. TimerMetric is a legacy alias
@@ -33,8 +32,7 @@ export class TimerMetric implements IMetric {
       this.seconds = 0;
       this.original = undefined;
       this.value = undefined;
-      this.origin = 'runtime';
-      this.behavior = MetricBehavior.Hint;
+      this.origin = 'hinted';
     } else {
       const digits = this.image
         .split(":")
@@ -68,7 +66,6 @@ export class TimerMetric implements IMetric {
 
       this.value = this.original;
       this.origin = 'parser';
-      this.behavior = MetricBehavior.Defined;
     }
   }
 
@@ -77,9 +74,7 @@ export class TimerMetric implements IMetric {
   readonly minutes: number;
   readonly seconds: number;
   readonly original: number | undefined; // in ms
-  readonly type: string = "duration";
-  readonly metricType = MetricType.Duration;
-  readonly behavior: MetricBehavior;
+  readonly type = MetricType.Duration;
 
   /**
    * Determines the intended timer direction based on value and modifiers.

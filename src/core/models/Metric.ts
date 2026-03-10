@@ -1,5 +1,3 @@
-import { MetricBehavior } from "../../types/MetricBehavior";
-
 /**
  * Origin of a metrics - where it was created and its current state.
  * 
@@ -29,16 +27,9 @@ export type MetricOrigin =
 export interface IMetric {
   readonly image?: string;
   readonly value?: unknown;
-  readonly type: string; // Retained for now, will be replaced by metricType
-  readonly metricType: MetricType;
-  /** Behavioral grouping describing the intent of the metric. */
-  readonly behavior?: MetricBehavior;
-
-  /**
-   * Origin of this metrics - where it was created and its current state.
-   * Defaults to 'parser' for backwards compatibility.
-   */
-  readonly origin?: MetricOrigin;
+  readonly type: MetricType;
+  readonly origin: MetricOrigin;
+  readonly unit?: string;
 
   /**
    * Block key that created/owns this metrics.

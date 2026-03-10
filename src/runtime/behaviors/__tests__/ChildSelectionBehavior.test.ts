@@ -15,7 +15,7 @@ function createMockContext(overrides: {
     if (overrides.timerState) {
         // Store timer state as metrics.value under 'time' tag
         memoryLocations.push(new MemoryLocation('time', [{
-            metricType: 0 as any, type: 'time', image: '', origin: 'runtime' as any,
+            type: 0 as any, image: '', origin: 'runtime' as any,
             value: overrides.timerState
         }]));
     }

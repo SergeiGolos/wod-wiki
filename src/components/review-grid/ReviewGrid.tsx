@@ -81,14 +81,14 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   const [overrideDialog, setOverrideDialog] = useState<{
     isOpen: boolean;
     blockKey: string;
-    metricType: MetricType;
+    type: MetricType;
     anchorRect: DOMRect | null;
     existingFragments: IMetric[];
     existingUserValue?: string;
   }>({
     isOpen: false,
     blockKey: '',
-    metricType: 'Time' as MetricType,
+    type: 'Time' as MetricType,
     anchorRect: null,
     existingFragments: [],
   });
@@ -262,7 +262,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
       setOverrideDialog({
         isOpen: true,
         blockKey,
-        metricType,
+        type: metricType,
         anchorRect,
         existingFragments,
         existingUserValue,
@@ -273,16 +273,16 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
   const handleOverrideSave = useCallback(
     (value: string, image?: string) => {
-      setOverride(overrideDialog.blockKey, overrideDialog.metricType, value, image);
+      setOverride(overrideDialog.blockKey, overrideDialog.type, value, image);
       setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
     },
-    [overrideDialog.blockKey, overrideDialog.metricType, setOverride],
+    [overrideDialog.blockKey, overrideDialog.type, setOverride],
   );
 
   const handleOverrideRemove = useCallback(() => {
-    removeOverride(overrideDialog.blockKey, overrideDialog.metricType);
+    removeOverride(overrideDialog.blockKey, overrideDialog.type);
     setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
-  }, [overrideDialog.blockKey, overrideDialog.metricType, removeOverride]);
+  }, [overrideDialog.blockKey, overrideDialog.type, removeOverride]);
 
   const handleOverrideClose = useCallback(() => {
     setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
@@ -362,7 +362,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
       <UserOverrideDialog
         isOpen={overrideDialog.isOpen}
         blockKey={overrideDialog.blockKey}
-        metricType={overrideDialog.metricType}
+        metricType={overrideDialog.type}
         existingFragments={overrideDialog.existingFragments}
         existingUserValue={overrideDialog.existingUserValue}
         anchorRect={overrideDialog.anchorRect ?? undefined}

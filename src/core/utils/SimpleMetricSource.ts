@@ -31,7 +31,7 @@ export class SimpleMetricSource implements IMetricSource {
     }
 
     getAllMetricsByType(type: MetricType): IMetric[] {
-        const ofType = this._metrics.filter(f => f.metricType === type);
+        const ofType = this._metrics.filter(f => f.type === type);
         if (ofType.length === 0) return [];
         return [...ofType].sort((a, b) => {
             const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
@@ -41,7 +41,7 @@ export class SimpleMetricSource implements IMetricSource {
     }
 
     hasMetric(type: MetricType): boolean {
-        return this._metrics.some(f => f.metricType === type);
+        return this._metrics.some(f => f.type === type);
     }
 
     get rawMetrics(): IMetric[] {

@@ -14,7 +14,7 @@ export class RunningSumProcess implements IAnalyticsProcess {
     private filterType: MetricType;
 
     constructor(metricType: string = 'repetitions', filterType: MetricType = MetricType.Rep) {
-        this.metricType = metricType;
+        this.type = metricType;
         this.filterType = filterType;
     }
 
@@ -30,9 +30,8 @@ export class RunningSumProcess implements IAnalyticsProcess {
 
             // Add a "running total" metrics to this output
             output.metrics.push({
-                metricType: MetricType.Metric,
-                type: `total_${this.metricType}`,
-                image: `Total ${this.metricType}: ${this.total}`,
+                type: MetricType.Metric,
+                image: `Total ${this.type}: ${this.total}`,
                 value: this.total,
                 origin: 'runtime',
                 timestamp: new Date()
@@ -51,18 +50,16 @@ export class RunningSumProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    metricType: MetricType.Metric,
-                    type: `final_total_${this.metricType}`,
-                    image: `Final Total ${this.metricType}: ${this.total}`,
+                    type: MetricType.Metric,
+                    image: `Final Total ${this.type}: ${this.total}`,
                     value: this.total,
                     origin: 'runtime',
                     timestamp: now
                 },
                 {
-                    metricType: MetricType.Label,
-                    type: 'summary',
-                    image: `Workout Summary: ${this.total} ${this.metricType} completed.`,
-                    value: `Workout Summary: ${this.total} ${this.metricType} completed.`,
+                    type: MetricType.Label,
+                    image: `Workout Summary: ${this.total} ${this.type} completed.`,
+                    value: `Workout Summary: ${this.total} ${this.type} completed.`,
                     origin: 'runtime',
                     timestamp: now
                 }

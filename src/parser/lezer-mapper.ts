@@ -241,14 +241,14 @@ function mergeFragments(pairs: { metrics: any, meta: CodeMetadata }[]): { metric
         };
         if (next.metrics instanceof ResistanceMetric && (next.metrics.value as any).amount === undefined) {
           current = { 
-              metrics: new ResistanceMetric(current.metrics.reps, next.metrics.units), 
+              metrics: new ResistanceMetric(current.metrics.reps, next.metrics.unit), 
               meta: mergedMeta 
           };
           continue;
         }
         if (next.metrics instanceof DistanceMetric && (next.metrics.value as any).amount === undefined) {
           current = { 
-              metrics: new DistanceMetric(current.metrics.reps, next.metrics.units), 
+              metrics: new DistanceMetric(current.metrics.reps, next.metrics.unit), 
               meta: mergedMeta 
           };
           continue;
@@ -276,7 +276,7 @@ function groupChildrenByGroupMetrics(childIds: number[], allBlocks: ICodeStateme
 
   for (const childId of childIds) {
     const childBlock = blocksById.get(childId);
-    const groupFragment = childBlock?.metrics.find(f => f.metricType === MetricType.Group) as GroupMetric;
+    const groupFragment = childBlock?.metrics.find(f => f.type === MetricType.Group) as GroupMetric;
     const type = groupFragment?.group || 'repeat';
 
     if (type === 'compose' && groups.length > 0) {

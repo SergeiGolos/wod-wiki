@@ -11,10 +11,10 @@ describe('MetricVisualizer Component Contract', () => {
       // This test will FAIL - component doesn't exist yet
       // When implemented, MetricVisualizer should group metrics by metricType
       const mockFragments: IMetric[] = [
-        { type: 'duration', metricType: 'duration' as MetricType, value: '10:00' },
-        { type: 'duration', metricType: 'duration' as MetricType, value: '5:00' },
-        { type: 'rep', metricType: 'rep' as MetricType, value: '10' },
-        { type: 'action', metricType: 'action' as MetricType, value: 'push-ups' },
+        { type: 'time' as MetricType, value: '10:00', origin: 'parser' },
+        { type: 'rep' as MetricType, value: 5, origin: 'parser' },
+        { type: 'resistance' as MetricType, value: '135', unit: 'lbs', origin: 'parser' },
+        { type: 'action' as MetricType, value: 'Clean and Jerk', origin: 'parser' }
       ];
 
       // Component should group metrics: 2 timers in one group, 1 rep in another, 1 action in another
@@ -49,9 +49,9 @@ describe('MetricVisualizer Component Contract', () => {
     it('should display individual metrics values within groups', () => {
       // This test will FAIL - component doesn't exist yet
       const mockFragment: IMetric = {
-        type: 'duration',
-        metricType: 'duration' as MetricType,
+        type: 'duration' as MetricType,
         value: '10:00',
+        origin: 'parser'
       };
 
       expect(mockFragment.value).toBe('10:00');

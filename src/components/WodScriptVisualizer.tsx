@@ -63,11 +63,11 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
     return statements.map((statement): FragmentSourceEntry => {
       const depth = calculateDepth(statement, statementMap);
       const isLinked = statement.metrics.some(
-        f => f.metricType === MetricType.Group && f.image === '+'
+        f => f.type === MetricType.Group && f.image === '+'
       );
       const hasChildren = statement.children && statement.children.length > 0;
       const hasTimerOrRounds = statement.metrics.some(
-        f => f.metricType === MetricType.Duration || f.metricType === MetricType.Rounds
+        f => f.type === MetricType.Duration || f.type === MetricType.Rounds
       );
       const isHeader = hasChildren && hasTimerOrRounds;
 

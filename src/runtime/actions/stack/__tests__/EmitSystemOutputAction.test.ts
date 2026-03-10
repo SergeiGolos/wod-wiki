@@ -63,8 +63,7 @@ describe('EmitSystemOutputAction', () => {
         expect(output.metrics).toHaveLength(1);
 
         const metric = output.metrics[0];
-        expect(metric.metricType).toBe(MetricType.System);
-        expect(metric.type).toBe('lifecycle');
+        expect(metric.type).toBe(MetricType.System);
         expect(metric.image).toBe('push: Test');
         expect(metric.origin).toBe('runtime');
         expect(metric.value.event).toBe('push');
@@ -77,7 +76,8 @@ describe('EmitSystemOutputAction', () => {
 
         const output = (runtime.addOutput as any).mock.calls[0][0];
         const metric = output.metrics[0];
-        expect(metric.type).toBe('event-action');
+        expect(metric.type).toBe(MetricType.System);
+        expect(metric.value.event).toBe('event-action');
     });
 
     it('should include extra data in metrics value', () => {

@@ -228,11 +228,11 @@ export class BehaviorContext implements IBehaviorContext {
                 );
                 loc.update(updated);
             } else {
-                loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
             }
         } else {
             // Create a new location with the value
-            this.pushMemory(tag, [{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+            this.pushMemory(tag, [{ type: 0, image: '', origin: 'runtime', value } as any]);
         }
     }
 

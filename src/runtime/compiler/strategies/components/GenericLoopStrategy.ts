@@ -27,7 +27,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        return statements.some(s => s.metrics.some(f => f.metricType === MetricType.Rounds));
+        return statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds));
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -37,11 +37,11 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         }
 
         const firstStatementWithRounds = statements.find(s => s.metrics.some(
-            f => f.metricType === MetricType.Rounds
+            f => f.type === MetricType.Rounds
         )) || statements[0];
 
         const roundsFragment = firstStatementWithRounds.metrics.find(
-            f => f.metricType === MetricType.Rounds
+            f => f.type === MetricType.Rounds
         ) as RoundsMetric | undefined;
 
         if (!roundsFragment) return;
@@ -58,7 +58,7 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
         // The parser creates separate RepMetric instances (e.g., 21-15-9 becomes
         // three RepMetrics with values 21, 15, 9) alongside a RoundsMetric.
         const repFragments = statements.flatMap(s => 
-            s.metrics.filter(f => f.metricType === MetricType.Rep && typeof f.value === 'number')
+            s.metrics.filter(f => f.type === MetricType.Rep && typeof f.value === 'number')
         ).map(f => f.value as number);
 
         if (repFragments.length > 0) {

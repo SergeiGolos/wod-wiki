@@ -51,7 +51,7 @@ export class JitCompiler {
           
           for (const df of dynamicFragments) {
             // Deduplicate: Dynamic promotions take precedence over memory-based ones
-            const existingIndex = promotedFragments.findIndex(f => f.metricType === df.metricType);
+            const existingIndex = promotedFragments.findIndex(f => f.type === df.type);
             if (existingIndex !== -1) {
               promotedFragments[existingIndex] = df;
             } else {

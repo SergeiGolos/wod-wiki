@@ -48,7 +48,7 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
       // Assuming 'ellapsed-time' is a value or specific type? 
       // Let's check both value and type against nameOverrides for flexibility.
 
-      const typeKey = (metric.metricType || metric.type).toLowerCase();
+      const typeKey = (metric.type || metric.type).toLowerCase();
 
       if (filter.nameOverrides) {
         if (valueKey in filter.nameOverrides) {

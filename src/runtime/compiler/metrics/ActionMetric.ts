@@ -1,5 +1,4 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 export interface ActionMetricOptions {
   /** Original text inside the action fence (after the colon) */
@@ -17,7 +16,6 @@ export class ActionMetric implements IMetric {
   readonly name: string;
   readonly isPinned: boolean;
   readonly origin: MetricOrigin = 'parser';
-  readonly behavior: MetricBehavior = MetricBehavior.Defined;
 
   constructor(action: string, options: ActionMetricOptions = {}) {
     // Preserve backward compatibility: "action" arg is the normalized name when options not provided
@@ -29,7 +27,6 @@ export class ActionMetric implements IMetric {
     this.image = this.raw;
   }
 
-  readonly type: string = "action";
-  readonly metricType = MetricType.Action;
+  readonly type = MetricType.Action;
 }
 

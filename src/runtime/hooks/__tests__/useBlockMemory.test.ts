@@ -32,7 +32,7 @@ function createMockBlock(initialMemory: Map<string, unknown> = new Map()): IRunt
             // For rounds, the metrics itself IS the RoundState (it has current/total properties)
             memoryLocations.push(new MemoryLocation(tag as MemoryTag, [value as any]));
         } else {
-            memoryLocations.push(new MemoryLocation(tag as MemoryTag, [{ metricType: 0 as any, type: tag, image: '', origin: 'runtime' as any, value }]));
+            memoryLocations.push(new MemoryLocation(tag as MemoryTag, [{ type: 0 as any, image: '', origin: 'runtime' as any, value }]));
         }
     }
 
@@ -99,7 +99,7 @@ describe('useBlockMemory', () => {
 
             act(() => {
                 const loc = (block as any)._memoryLocations.find((l: any) => l.tag === 'time');
-                loc?.update([{ metricType: 0 as any, type: 'time', image: '', origin: 'runtime' as any, value: updatedState }]);
+                loc?.update([{ type: 0 as any, image: '', origin: 'runtime' as any, value: updatedState }]);
             });
 
             expect(result.current).toEqual(updatedState);

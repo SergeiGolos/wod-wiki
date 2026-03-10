@@ -71,7 +71,7 @@ describe('ExecutionContextTestBuilder', () => {
         .build();
 
       // Create a statement that contains 'duration' when serialized
-      const statement = { id: 1, metrics: [{ metricType: 'duration' }], children: [], meta: {} } as any;
+      const statement = { id: 1, metrics: [{ type: 'duration' }], children: [], meta: {} } as any;
       const result = harness.mockJit.compile([statement], harness.runtime);
 
       expect(result).toBe(timerBlock);

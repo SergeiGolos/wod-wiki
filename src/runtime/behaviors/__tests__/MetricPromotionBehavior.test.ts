@@ -74,14 +74,14 @@ describe('MetricPromotionBehavior', () => {
         ctx.pushMemory('round', [new CurrentRoundMetric(1, 5, 'test-block', new Date())]);
 
         const behavior = new MetricPromotionBehavior({
-            promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round' }]
+            promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round' }]
         });
 
         behavior.onMount(ctx);
 
         const promoted = ctx.memoryStore.get('metric:promote')?.[0]?.metrics;
         expect(promoted).toBeDefined();
-        expect(promoted?.[0].metricType).toBe(MetricType.CurrentRound);
+        expect(promoted?.[0].type).toBe(MetricType.CurrentRound);
         expect(promoted?.[0].origin).toBe('runtime');
     });
 
@@ -91,7 +91,7 @@ describe('MetricPromotionBehavior', () => {
 
         const behavior = new MetricPromotionBehavior({
             promotions: [{
-                metricType: MetricType.CurrentRound,
+                type: MetricType.CurrentRound,
                 sourceTag: 'round',
                 origin: 'runtime'
             }]
@@ -106,7 +106,7 @@ describe('MetricPromotionBehavior', () => {
     it('skips promotion when source metrics is not found', () => {
         const ctx = createMockContext();
         const behavior = new MetricPromotionBehavior({
-            promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round' }]
+            promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round' }]
         });
 
         behavior.onMount(ctx);
@@ -119,7 +119,7 @@ describe('MetricPromotionBehavior', () => {
         const roundLocation = ctx.pushMemory('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
 
         const behavior = new MetricPromotionBehavior({
-            promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round' }]
+            promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round' }]
         });
 
         behavior.onMount(ctx);
@@ -137,7 +137,7 @@ describe('MetricPromotionBehavior', () => {
 
         const behavior = new MetricPromotionBehavior({
             promotions: [{
-                metricType: MetricType.CurrentRound,
+                type: MetricType.CurrentRound,
                 sourceTag: 'round',
                 enableDynamicUpdates: true
             }]
@@ -187,8 +187,7 @@ describe('MetricPromotionBehavior', () => {
         const ctx = createMockContext();
         ctx.pushMemory('round', [new CurrentRoundMetric(1, 2, 'test-block', new Date())]);
         ctx.pushMemory(  'metric', [{
-            metricType: MetricType.Rep,
-            type: 'rep',
+            type: MetricType.Rep,
             origin: 'parser',
             value: 10,
             image: '10'
@@ -196,15 +195,15 @@ describe('MetricPromotionBehavior', () => {
 
         const behavior = new MetricPromotionBehavior({
             promotions: [
-                { metricType: MetricType.CurrentRound, sourceTag: 'round' },
-                { metricType: MetricType.Rep, sourceTag:   'metric' }
+                { type: MetricType.CurrentRound, sourceTag: 'round' },
+                { type: MetricType.Rep, sourceTag:   'metric' }
             ]
         });
 
         behavior.onMount(ctx);
 
         const promoted = ctx.memoryStore.get('metric:promote')?.[0]?.metrics ?? [];
-        expect(promoted.filter(metric => metric.metricType === MetricType.CurrentRound)).toHaveLength(1);
-        expect(promoted.filter(metric => metric.metricType === MetricType.Rep)).toHaveLength(1);
+        expect(promoted.filter(metric => metric.type === MetricType.CurrentRound)).toHaveLength(1);
+        expect(promoted.filter(metric => metric.type === MetricType.Rep)).toHaveLength(1);
     });
 });

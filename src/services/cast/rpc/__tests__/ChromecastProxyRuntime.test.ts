@@ -48,7 +48,7 @@ function createSerializedBlock(key: string, overrides?: Partial<SerializedBlock>
         label: 'Run',
         sourceIds: [1],
         isComplete: false,
-        displayFragments: [[{ type: 'text', metricType: 'label' as any, image: 'Run' } as any]],
+        displayFragments: [[{ type: 'label' as any, image: 'Run' } as any]],
         timer: null,
         ...overrides,
     };

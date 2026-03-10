@@ -78,7 +78,7 @@ export interface GridColumn {
   /** Unique column identifier */
   readonly id: string;
   /** Associated metrics type (undefined for fixed columns) */
-  readonly metricType?: MetricType;
+  readonly type?: MetricType;
   /** Display label */
   readonly label: string;
   /** Optional icon/emoji */

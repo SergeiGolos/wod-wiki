@@ -12,8 +12,7 @@ function createMockContext(overrides: {
 
     if (overrides.roundState) {
         const roundFragment: IMetric = {
-            metricType: MetricType.CurrentRound,
-            type: 'current-round',
+            type: MetricType.CurrentRound,
             image: `Round ${overrides.roundState.current}`,
             origin: 'runtime',
             value: overrides.roundState,

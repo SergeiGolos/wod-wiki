@@ -23,8 +23,7 @@ export class SpanTrackingBehavior implements IRuntimeBehavior {
         const label = ctx.block.label;
 
         const metric: IMetric = {
-            metricType: MetricType.Time,
-            type: 'time',
+            type: MetricType.Time,
             image: '0:00',
             origin: 'runtime',
             value: {

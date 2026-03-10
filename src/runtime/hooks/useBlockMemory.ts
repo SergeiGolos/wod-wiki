@@ -296,9 +296,9 @@ export function useFragmentSource(block: IRuntimeBlock | undefined): IMetricSour
         return {
             id: block.key.toString(),
             getDisplayMetrics: () => allFragments,
-            getFragment: (type) => allFragments.find(f => f.metricType === type),
-            getAllMetricsByType: (type) => allFragments.filter(f => f.metricType === type),
-            hasFragment: (type) => allFragments.some(f => f.metricType === type),
+            getFragment: (type) => allFragments.find(f => f.type === type),
+            getAllMetricsByType: (type) => allFragments.filter(f => f.type === type),
+            hasFragment: (type) => allFragments.some(f => f.type === type),
             rawMetrics: allFragments,
         } as IMetricSource;
     // eslint-disable-next-line react-hooks/exhaustive-deps

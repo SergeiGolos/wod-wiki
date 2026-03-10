@@ -8,7 +8,7 @@ import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
 
 function makeRoundLocation(round: RoundState): MemoryLocation {
     // Round metrics are the roundState itself (cast pattern)
-    return new MemoryLocation('round', [{ ...round, metricType: MetricType.CurrentRound, type: 'current-round', image: '', origin: 'runtime' as any } as any]);
+    return new MemoryLocation('round', [{ ...round, type: MetricType.CurrentRound, image: '', origin: 'runtime' as any } as any]);
 }
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
@@ -153,8 +153,7 @@ describe('MetricPromotionBehavior repScheme', () => {
             expect(ctx.pushMemory).toHaveBeenCalledWith(
                 'metric:rep-target',
                 [expect.objectContaining({
-                    metricType: MetricType.Rep,
-                    type: 'rep',
+                    type: MetricType.Rep,
                     value: 21,
                     image: '21',
                     origin: 'runtime',

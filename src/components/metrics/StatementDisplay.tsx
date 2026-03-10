@@ -89,7 +89,7 @@ export interface BlockDisplayProps {
   blockType: string;
 
   /** Pre-defined metrics from the block */
-  metric: IMetric[];
+  metrics?: IMetric[];
 
   /** Status of the block */
   status?: 'pending' | 'active' | 'running' | 'complete';

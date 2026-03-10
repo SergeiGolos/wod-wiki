@@ -97,8 +97,7 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
 
     private createFragment(ctx: IBehaviorContext, state: TimerState): IMetric {
         return {
-            metricType: MetricType.Time,
-            type: 'time',
+            type: MetricType.Time,
             image: '0:00',
             origin: 'runtime',
             value: state,

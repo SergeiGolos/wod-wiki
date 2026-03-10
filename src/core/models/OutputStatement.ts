@@ -39,7 +39,8 @@ export type OutputStatementType = 'segment' | 'milestone' | 'system' | 'event' |
  * kept for backward compatibility. Prefer `getMetric(MetricType.Elapsed)`,
  * etc., or use `getDisplayMetrics()` for UI rendering.
  */
-export interface IOutputStatement extends ICodeStatement {
+export interface IOutputStatement extends ICodeStatement, IMetricSource {
+    readonly id: number;
     /** The type of output this statement represents */
     readonly outputType: OutputStatementType;
 
@@ -232,7 +233,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
         this.total = this.calculateTotal();
 
         // Placeholder metadata — OutputStatements are runtime-generated, not parsed.
-        this.meta = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' };
+        this.meta = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0 };
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -248,11 +249,11 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
         let frags = this.metrics;
         if (filter?.types) {
             const types = new Set(filter.types);
-            frags = frags.filter(f => types.has(f.metricType));
+            frags = frags.filter(f => types.has(f.type));
         }
         if (filter?.excludeTypes) {
             const exclude = new Set(filter.excludeTypes);
-            frags = frags.filter(f => !exclude.has(f.metricType));
+            frags = frags.filter(f => !exclude.has(f.type));
         }
         if (filter?.origins) {
             const origins = new Set(filter.origins);
@@ -265,7 +266,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      * Get the highest-precedence single metrics of a given type.
      */
     getMetric(type: MetricType): IMetric | undefined {
-        const matches = this.metrics.filter(f => f.metricType === type);
+        const matches = this.metrics.filter(f => f.type === type);
         if (matches.length === 0) return undefined;
         const resolved = resolveMetricPrecedence(matches);
         return resolved[0];
@@ -276,7 +277,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      * Unlike `getMetric()`, this returns every tier, not just the winning one.
      */
     getAllMetricsByType(type: MetricType): IMetric[] {
-        const matches = this.metrics.filter(f => f.metricType === type);
+        const matches = this.metrics.filter(f => f.type === type);
         // Sort by precedence rank (lowest = highest precedence = first)
         return [...matches].sort((a, b) => {
             const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
@@ -289,7 +290,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      * Check if any metrics of this type exists.
      */
     hasMetric(type: MetricType): boolean {
-        return this.metrics.some(f => f.metricType === type);
+        return this.metrics.some(f => f.type === type);
     }
 
     /**

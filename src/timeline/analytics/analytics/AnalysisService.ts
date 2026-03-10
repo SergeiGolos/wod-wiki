@@ -87,7 +87,7 @@ export class AnalysisService {
 
     for (const metric of metrics) {
       // Check if this is an Effort metric (contains exercise ID)
-      if (metric.metricType === MetricType.Effort && typeof metric.value === 'string') {
+      if (metric.type === MetricType.Effort && typeof metric.value === 'string') {
         currentExerciseId = metric.value;
         // Initialize array for this exercise if not exists
         if (!grouped.has(currentExerciseId)) {

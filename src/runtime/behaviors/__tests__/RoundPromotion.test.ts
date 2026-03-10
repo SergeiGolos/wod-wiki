@@ -62,16 +62,15 @@ describe('Round Promotion', () => {
 
             // Seed a source metrics
             const roundFragment = {
-                metricType: MetricType.CurrentRound,
+                type: MetricType.CurrentRound,
                 value: 1,
-                origin: 'runtime',
-                type: 'current-round'
+                origin: 'runtime'
             } as any;
             ctx.pushMemory('round', [roundFragment]);
 
             const behavior = new MetricPromotionBehavior({
                 promotions: [{
-                    metricType: MetricType.CurrentRound,
+                    type: MetricType.CurrentRound,
                     sourceTag: 'round'
                 }]
             });
@@ -84,7 +83,7 @@ describe('Round Promotion', () => {
             expect(promoted!.length).toBe(1);
 
             const promotedFrag = promoted![0].metrics[0];
-            expect(promotedFrag.metricType).toBe(MetricType.CurrentRound);
+            expect(promotedFrag.type).toBe(MetricType.CurrentRound);
             expect(promotedFrag.value).toBe(1);
             expect(promotedFrag.origin).toBe('runtime'); // Default origin
         });
@@ -94,15 +93,14 @@ describe('Round Promotion', () => {
 
             // Seed initial state
             const roundLoc = ctx.pushMemory('round', [{
-                metricType: MetricType.CurrentRound,
+                type: MetricType.CurrentRound,
                 value: 1,
-                origin: 'runtime',
-                type: 'current-round'
+                origin: 'runtime'
             } as any]);
 
             const behavior = new MetricPromotionBehavior({
                 promotions: [{
-                    metricType: MetricType.CurrentRound,
+                    type: MetricType.CurrentRound,
                     sourceTag: 'round',
                     enableDynamicUpdates: true
                 }]
@@ -112,10 +110,9 @@ describe('Round Promotion', () => {
 
             // Change source state
             roundLoc.update([{
-                metricType: MetricType.CurrentRound,
+                type: MetricType.CurrentRound,
                 value: 2,
-                origin: 'runtime',
-                type: 'current-round'
+                origin: 'runtime'
             } as any]);
 
             // Execute onNext

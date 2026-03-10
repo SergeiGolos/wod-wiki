@@ -20,7 +20,7 @@ export class CrossFitDialect implements IDialect {
    */
   private hasKeyword(metrics: IMetric[], keyword: string): boolean {
     return metrics.some(f =>
-      (f.metricType === MetricType.Action || f.metricType === MetricType.Effort) &&
+      (f.type === MetricType.Action || f.type === MetricType.Effort) &&
       typeof f.value === 'string' &&
       f.value.toUpperCase().includes(keyword)
     );
@@ -58,8 +58,8 @@ export class CrossFitDialect implements IDialect {
     // - Timer specifies interval duration (defaults to 60s if not specified)
     // - Children are executed within each interval
     if (!isEmom && !isAmrap) {
-      const hasRounds = metrics.some(f => f.metricType === MetricType.Rounds);
-      const hasTimer = metrics.some(f => f.metricType === MetricType.Duration);
+      const hasRounds = metrics.some(f => f.type === MetricType.Rounds);
+      const hasTimer = metrics.some(f => f.type === MetricType.Duration);
       const hasChildStatements = this.hasChildren(statement);
 
       if (hasRounds && hasTimer && hasChildStatements) {

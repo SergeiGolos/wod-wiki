@@ -191,7 +191,7 @@ describe('DialectRegistry', () => {
           const metrics = statement.metrics || [];
           
           const hasEmom = metrics.some(f =>
-            (f.metricType === MetricType.Action || f.metricType === MetricType.Effort) &&
+            (f.type === MetricType.Action || f.type === MetricType.Effort) &&
             typeof f.value === 'string' &&
             f.value.toUpperCase().includes('EMOM')
           );
@@ -211,8 +211,8 @@ describe('DialectRegistry', () => {
       const statement: ICodeStatement = {
         id: 1,
         metrics: [
-          { metricType: MetricType.Action, value: 'EMOM 10', type: 'action' },
-          { metricType: MetricType.Duration, value: 60000, type: 'duration' }
+          { type: MetricType.Action, value: 'EMOM 10' },
+          { type: MetricType.Duration, value: 60000 }
         ]
       } as any;
       

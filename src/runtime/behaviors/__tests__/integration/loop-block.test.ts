@@ -173,7 +173,7 @@ describe('Loop Block Integration', () => {
             expect(completions.length).toBe(1);
 
             const completion = completions[0];
-            const hasSpans = (completion.metrics as any[]).some(f => f.metricType === 'spans');
+            const hasSpans = (completion.metrics as any[]).some(f => f.type === 'spans');
             expect(hasSpans).toBe(true);
         });
 

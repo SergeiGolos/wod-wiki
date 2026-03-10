@@ -68,10 +68,10 @@ describe('OutputStatement implements IMetricSource', () => {
 
             // Timer: runtime wins over parser. Action: only parser exists.
             expect(result).toHaveLength(2);
-            const timer = result.find(f => f.metricType === MetricType.Duration);
+            const timer = result.find(f => f.type === MetricType.Duration);
             expect(timer?.origin).toBe('runtime');
             expect(timer?.value).toBe(432000);
-            const action = result.find(f => f.metricType === MetricType.Action);
+            const action = result.find(f => f.type === MetricType.Action);
             expect(action?.origin).toBe('parser');
         });
 
@@ -88,7 +88,7 @@ describe('OutputStatement implements IMetricSource', () => {
             ]));
             const result = output.getDisplayMetrics({ types: [MetricType.Rep] });
             expect(result).toHaveLength(1);
-            expect(result[0].metricType).toBe(MetricType.Rep);
+            expect(result[0].type).toBe(MetricType.Rep);
         });
 
         it('should apply excludeTypes filter', () => {
@@ -99,7 +99,7 @@ describe('OutputStatement implements IMetricSource', () => {
             ]));
             const result = output.getDisplayMetrics({ excludeTypes: [MetricType.Duration] });
             expect(result).toHaveLength(2);
-            expect(result.every(f => f.metricType !== MetricType.Duration)).toBe(true);
+            expect(result.every(f => f.type !== MetricType.Duration)).toBe(true);
         });
 
         it('should apply origin filter', () => {

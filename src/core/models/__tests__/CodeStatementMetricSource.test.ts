@@ -75,10 +75,10 @@ describe('CodeStatement implements IMetricSource', () => {
 
             // Timer should resolve to runtime (higher precedence), Action stays parser
             expect(result).toHaveLength(2);
-            const timer = result.find(f => f.metricType === MetricType.Duration);
+            const timer = result.find(f => f.type === MetricType.Duration);
             expect(timer?.origin).toBe('runtime');
             expect(timer?.value).toBe('live-07:23');
-            const action = result.find(f => f.metricType === MetricType.Action);
+            const action = result.find(f => f.type === MetricType.Action);
             expect(action?.origin).toBe('parser');
         });
 
@@ -91,7 +91,7 @@ describe('CodeStatement implements IMetricSource', () => {
             const stmt = new TestCodeStatement(1, metrics);
             const result = stmt.getDisplayMetrics({ types: [MetricType.Duration, MetricType.Action] });
             expect(result).toHaveLength(2);
-            expect(result.every(f => f.metricType !== MetricType.Rep)).toBe(true);
+            expect(result.every(f => f.type !== MetricType.Rep)).toBe(true);
         });
 
         it('should apply excludeTypes filter', () => {
@@ -103,7 +103,7 @@ describe('CodeStatement implements IMetricSource', () => {
             const stmt = new TestCodeStatement(1, metrics);
             const result = stmt.getDisplayMetrics({ excludeTypes: [MetricType.Duration] });
             expect(result).toHaveLength(2);
-            expect(result.every(f => f.metricType !== MetricType.Duration)).toBe(true);
+            expect(result.every(f => f.type !== MetricType.Duration)).toBe(true);
         });
 
         it('should apply origin filter', () => {

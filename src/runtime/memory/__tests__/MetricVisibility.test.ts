@@ -113,8 +113,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
 
     function createFragment(tag: string, value: unknown): IMetric {
         return {
-            metricType: MetricType.Duration,
-            type: tag,
+            type: MetricType.Duration,
             image: '',
             origin: 'runtime',
             value,

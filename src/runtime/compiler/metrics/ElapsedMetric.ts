@@ -1,6 +1,5 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
 import { formatDuration } from "../../time/calculateElapsed";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * **Elapsed** (Runtime layer)
@@ -21,10 +20,8 @@ import { MetricBehavior } from "../../../types/MetricBehavior";
  * // (the 100ms paused gap between spans is excluded)
  */
 export class ElapsedMetric implements IMetric {
-  readonly type: string = "elapsed";
-  readonly metricType = MetricType.Elapsed;
-  readonly origin: MetricOrigin = 'collected';
-  readonly behavior: MetricBehavior = MetricBehavior.Calculated;
+  readonly type = MetricType.Elapsed;
+  readonly origin: MetricOrigin = 'analyzed';
 
   /**
    * @param value Elapsed time in milliseconds

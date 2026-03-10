@@ -11,22 +11,19 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
     } as any as IScriptRuntime;
 
     const timerFragment: IMetric = {
-        type: 'duration',
-        metricType: MetricType.Duration,
+        type: MetricType.Duration,
         value: 60000,
         origin: 'parser'
     };
 
     const actionFragment: IMetric = {
-        type: 'action',
-        metricType: MetricType.Action,
+        type: MetricType.Action,
         value: 'Run',
         origin: 'parser'
     };
 
     const repFragment: IMetric = {
-        type: 'rep',
-        metricType: MetricType.Rep,
+        type: MetricType.Rep,
         value: 21,
         origin: 'parser'
     };
@@ -105,7 +102,7 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
         expect(locations).toHaveLength(1);
         expect(locations[0].metrics).toHaveLength(3);
 
-        const types = locations[0].metrics.map(f => f.metricType);
+        const types = locations[0].metrics.map(f => f.type);
         expect(types).toContain(MetricType.Duration);
         expect(types).toContain(MetricType.Action);
         expect(types).toContain(MetricType.Rep);
@@ -139,14 +136,12 @@ describe("BlockBuilder Fragment Memory Allocation", () => {
 
     it("should preserve metrics origins across parser and runtime", () => {
         const parserTimer: IMetric = {
-            type: 'duration',
-            metricType: MetricType.Duration,
+            type: MetricType.Duration,
             value: 600000,
             origin: 'parser'
         };
         const runtimeTimer: IMetric = {
-            type: 'duration',
-            metricType: MetricType.Duration,
+            type: MetricType.Duration,
             value: 432000,
             origin: 'runtime'
         };

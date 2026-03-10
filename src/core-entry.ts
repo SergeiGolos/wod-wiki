@@ -20,9 +20,7 @@ export type { IOutputStatement } from './core/models/OutputStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 
 // Parser
-export * from './parser/timer.parser';
-export * from './parser/timer.tokens';
-export * from './parser/timer.visitor';
+export { sharedParser } from './parser/parserInstance';
 
 // Runtime engine
 export { ScriptRuntime } from './runtime/ScriptRuntime';

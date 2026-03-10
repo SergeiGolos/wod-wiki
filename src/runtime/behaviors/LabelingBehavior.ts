@@ -92,8 +92,7 @@ export class LabelingBehavior implements IRuntimeBehavior {
         role: 'label' | 'subtitle' | 'action' | 'round'
     ): IMetric {
         return {
-            metricType: MetricType.Text,
-            type: 'text',
+            type: MetricType.Text,
             image: text,
             origin: 'runtime',
             value: { text, role },

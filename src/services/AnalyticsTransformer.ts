@@ -24,14 +24,14 @@ function extractMetricsFromFragments(metricGroups: IMetric[][]): Record<string, 
   for (const f of flat) {
     if (f.value !== undefined && typeof f.value === 'number') {
       let key = f.type;
-      if (f.metricType === 'rep') key = 'repetitions';
-      if (f.metricType === 'distance') key = 'distance';
-      if (f.metricType === 'resistance') key = 'resistance';
+      if (f.type === 'rep') key = 'repetitions';
+      if (f.type === 'distance') key = 'distance';
+      if (f.type === 'resistance') key = 'resistance';
 
       let val = f.value;
       // Convert time-based metrics (except elapsed/total which are handled separately)
       // from milliseconds to seconds for consistency in the analytics data points.
-      if (f.metricType === 'duration' || f.type === 'duration') {
+      if (f.type === 'duration' || f.type === 'duration') {
         // Duration (intent) is now handled as a top-level segment property,
         // we don't want it in the dynamic metrics map to avoid double-counting
         // or unit confusion in the performance graphs.
@@ -81,7 +81,7 @@ export class AnalyticsTransformer {
       const outputMetrics = output.metrics ? [...output.metrics] : [];
 
       // Intent: parser-defined duration (if any)
-      const durationFrag = outputMetrics.find(f => f.metricType === 'duration');
+      const durationFrag = outputMetrics.find(f => f.type === 'duration');
       const intentDuration = durationFrag?.value !== undefined ? (durationFrag.value as number) / 1000 : undefined;
 
       // Real Time: pause-aware elapsed time and wall-clock total
@@ -95,11 +95,11 @@ export class AnalyticsTransformer {
       const extractedMetrics = extractMetricsFromFragments([outputMetrics]);
 
       const nameFragment = outputMetrics.find(f =>
-        f.metricType === 'effort' ||
-        f.metricType === 'action' ||
-        f.metricType === 'duration' ||
-        f.metricType === 'rounds' ||
-        f.metricType === 'current-round'
+        f.type === 'effort' ||
+        f.type === 'action' ||
+        f.type === 'duration' ||
+        f.type === 'rounds' ||
+        f.type === 'current-round'
       );
       const label = nameFragment?.image || output.sourceBlockKey;
       const type = nameFragment?.type || output.outputType;

@@ -139,8 +139,8 @@ function getNumericValue(
 
   // Fragment columns — find first numeric value
   const col = columns.find((c) => c.id === columnId);
-  if (col?.metricType) {
-    const cell = row.cells.get(col.metricType);
+  if (col?.type) {
+    const cell = row.cells.get(col.type);
     if (cell) {
       for (const frag of cell.metrics) {
         if (typeof frag.value === 'number') return frag.value;
@@ -157,8 +157,8 @@ function getNumericValue(
  * Assign a distinct color to each column based on its metrics type.
  */
 function getColorForColumn(col: GridColumn): string {
-  if (col.metricType) {
-    return FRAGMENT_GRAPH_COLORS[col.metricType] ?? '#888888';
+  if (col.type) {
+    return FRAGMENT_GRAPH_COLORS[col.type] ?? '#888888';
   }
 
   // Fixed columns
@@ -189,12 +189,12 @@ const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
  * Unit label for graph Y-axis.
  */
 function getUnitForColumn(col: GridColumn): string {
-  if (!col.metricType) {
+  if (!col.type) {
     if (col.id === FIXED_COLUMN_IDS.ELAPSED_TOTAL) return 'ms';
     return '';
   }
 
-  switch (col.metricType) {
+  switch (col.type) {
     case MetricType.Time:
       return 'ms';
     case MetricType.Rep:

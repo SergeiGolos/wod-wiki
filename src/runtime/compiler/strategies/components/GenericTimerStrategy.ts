@@ -32,7 +32,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 
         // Match if duration metrics exists in ANY statement, ignoring runtime-generated ones
         return statements.some(s => s.metrics.some(
-            f => f.metricType === MetricType.Duration && f.origin !== 'runtime'
+            f => f.type === MetricType.Duration && f.origin !== 'runtime'
         ));
     }
 
@@ -43,11 +43,11 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         }
 
         const firstStatementWithTimer = statements.find(s => s.metrics.some(
-            f => f.metricType === MetricType.Duration && f.origin !== 'runtime'
+            f => f.type === MetricType.Duration && f.origin !== 'runtime'
         )) || statements[0];
         
         const timerFragment = firstStatementWithTimer.metrics.find(
-            f => f.metricType === MetricType.Duration && f.origin !== 'runtime'
+            f => f.type === MetricType.Duration && f.origin !== 'runtime'
         ) as DurationMetric | undefined;
 
         const direction = timerFragment?.direction || 'up';

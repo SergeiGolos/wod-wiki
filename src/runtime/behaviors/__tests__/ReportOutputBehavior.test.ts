@@ -67,15 +67,13 @@ describe('ReportOutputBehavior', () => {
 
     it('emits segment output on mount with merged display + state metrics', () => {
         const displayFragment = {
-            metricType: MetricType.Label,
-            type: 'label',
+            type: MetricType.Label,
             image: 'AMRAP',
             origin: 'parser' as const,
             value: undefined,
         };
         const roundFragment = {
-            metricType: MetricType.CurrentRound,
-            type: 'current-round',
+            type: MetricType.CurrentRound,
             image: 'Round 1 of 3',
             origin: 'runtime' as const,
             value: 1,
@@ -107,15 +105,13 @@ describe('ReportOutputBehavior', () => {
 
     it('deduplicates overlapping metrics types when merging display + state', () => {
         const parserTimerMetric = {
-            metricType: MetricType.Duration,
-            type: 'time',
+            type: MetricType.Duration,
             image: '20:00',
             origin: 'parser' as const,
             value: 1200000,
         };
         const runtimeTimerMetric = {
-            metricType: MetricType.Duration,
-            type: 'time',
+            type: MetricType.Duration,
             image: '20:00',
             origin: 'runtime' as const,
             value: { direction: 'down', durationMs: 1200000 },
@@ -134,7 +130,7 @@ describe('ReportOutputBehavior', () => {
         behavior.onMount(ctx);
 
         const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-        const timerFragments = emittedFragments.filter((f: any) => f.type === 'time');
+        const timerFragments = emittedFragments.filter((f: any) => f.type === MetricType.Duration);
         expect(timerFragments).toHaveLength(1);
         expect(timerFragments[0].origin).toBe('parser');
     });
@@ -144,7 +140,7 @@ describe('ReportOutputBehavior', () => {
         const roundState: RoundState = { current: 1, total: 3 };
         const ctx = createMockContext({
             tagFragments: {
-                round: [{ ...roundState, metricType: MetricType.CurrentRound, type: 'current-round', value: 1 }]
+                round: [{ ...roundState, type: MetricType.CurrentRound, value: 1 }]
             }
         });
 
@@ -153,7 +149,7 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'milestone',
             expect.arrayContaining([
-                expect.objectContaining({ metricType: MetricType.CurrentRound, current: 1, total: 3 }),
+                expect.objectContaining({ type: MetricType.CurrentRound, current: 1, total: 3 }),
             ]),
             expect.objectContaining({ label: 'Round 1 of 3' })
         );
@@ -164,7 +160,7 @@ describe('ReportOutputBehavior', () => {
         const roundState: RoundState = { current: 1, total: 1 };
         const ctx = createMockContext({
             tagFragments: {
-                round: [{ ...roundState, metricType: MetricType.CurrentRound, type: 'current-round', value: 1 }]
+                round: [{ ...roundState, type: MetricType.CurrentRound, value: 1 }]
             }
         });
 
@@ -180,7 +176,7 @@ describe('ReportOutputBehavior', () => {
         // Mount with round 1 to initialize lastEmittedRound
         const mountCtx = createMockContext({
             tagFragments: {
-                round: [{ ...round1, metricType: MetricType.CurrentRound, type: 'current-round', value: 1 }]
+                round: [{ ...round1, type: MetricType.CurrentRound, value: 1 }]
             }
         });
         behavior.onMount(mountCtx);
@@ -189,7 +185,7 @@ describe('ReportOutputBehavior', () => {
         const round2: RoundState = { current: 2, total: 5 };
         const ctx = createMockContext({
             tagFragments: {
-                round: [{ ...round2, metricType: MetricType.CurrentRound, type: 'current-round', value: 2 }]
+                round: [{ ...round2, type: MetricType.CurrentRound, value: 2 }]
             }
         });
 
@@ -198,7 +194,7 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'milestone',
             expect.arrayContaining([
-                expect.objectContaining({ metricType: MetricType.CurrentRound, current: 2, total: 5 }),
+                expect.objectContaining({ type: MetricType.CurrentRound, current: 2, total: 5 }),
             ]),
             expect.objectContaining({ label: 'Round 2 of 5' })
         );
@@ -210,7 +206,7 @@ describe('ReportOutputBehavior', () => {
         // Mount emits milestone for round 2 and sets lastEmittedRound
         const mountCtx = createMockContext({
             tagFragments: {
-                round: [{ ...round2, metricType: MetricType.CurrentRound, type: 'current-round', value: 2 }]
+                round: [{ ...round2, type: MetricType.CurrentRound, value: 2 }]
             }
         });
         behavior.onMount(mountCtx);
@@ -218,7 +214,7 @@ describe('ReportOutputBehavior', () => {
         // onNext with same round should not emit again
         const ctx = createMockContext({
             tagFragments: {
-                round: [{ ...round2, metricType: MetricType.CurrentRound, type: 'current-round', value: 2 }]
+                round: [{ ...round2, type: MetricType.CurrentRound, value: 2 }]
             }
         });
 
@@ -240,8 +236,7 @@ describe('ReportOutputBehavior', () => {
         const ctx = createMockContext({
             tagFragments: {
                 time: [{
-                    metricType: MetricType.Duration,
-                    type: 'time',
+                    type: MetricType.Duration,
                     image: '2:00',
                     origin: 'runtime',
                     value: timer,
@@ -254,18 +249,18 @@ describe('ReportOutputBehavior', () => {
         expect(ctx.pushMemory).toHaveBeenCalledWith(
             'metric:result',
             expect.arrayContaining([
-                expect.objectContaining({ metricType: MetricType.Elapsed, value: 800 }),
-                expect.objectContaining({ metricType: MetricType.Total, value: 1000 }),
-                expect.objectContaining({ metricType: MetricType.Spans }),
-                expect.objectContaining({ metricType: MetricType.SystemTime }),
+                expect.objectContaining({ type: MetricType.Elapsed, value: 800 }),
+                expect.objectContaining({ type: MetricType.Total, value: 1000 }),
+                expect.objectContaining({ type: MetricType.Spans }),
+                expect.objectContaining({ type: MetricType.SystemTime }),
             ])
         );
 
         expect(ctx.emitOutput).toHaveBeenCalledWith(
             'completion',
             expect.arrayContaining([
-                expect.objectContaining({ metricType: MetricType.Elapsed, value: 800 }),
-                expect.objectContaining({ metricType: MetricType.Total, value: 1000 }),
+                expect.objectContaining({ type: MetricType.Elapsed, value: 800 }),
+                expect.objectContaining({ type: MetricType.Total, value: 1000 }),
             ]),
             expect.objectContaining({ label: 'Workout' })
         );
@@ -278,7 +273,7 @@ describe('ReportOutputBehavior', () => {
         behavior.onUnmount(ctx);
 
         const resultFragments = (ctx.pushMemory as any).mock.calls[0][1];
-        const spans = resultFragments.find((f: any) => f.metricType === MetricType.Spans);
+        const spans = resultFragments.find((f: any) => f.type === MetricType.Spans);
         expect(spans).toBeDefined();
         expect(spans.spans).toHaveLength(1);
         expect(spans.spans[0].started).toBe(spans.spans[0].ended);

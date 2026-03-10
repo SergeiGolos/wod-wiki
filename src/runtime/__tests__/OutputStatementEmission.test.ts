@@ -233,8 +233,7 @@ describe('ScriptRuntime Output Statements', () => {
 
             const resultFragments: IMetric[] = [
                 {
-                    type: 'spans',
-                    metricType: MetricType.Spans,
+                    type: MetricType.Spans,
                     image: '1 span',
                     origin: 'runtime',
                     value: [new TimeSpan(1000, 1600)],
@@ -254,7 +253,7 @@ describe('ScriptRuntime Output Statements', () => {
             const segment = outputs.find(o => o.outputType === 'segment' && o.sourceBlockKey === block.key.toString());
             expect(segment).toBeDefined();
             expect(segment?.sourceStatementId).toBe(77);
-            expect(segment?.metrics.some(f => f.metricType === MetricType.Spans)).toBe(true);
+            expect(segment?.metrics.some(f => f.type === MetricType.Spans)).toBe(true);
         });
 
         it('should include timeSpan with start and end times', () => {
@@ -276,7 +275,7 @@ describe('ScriptRuntime Output Statements', () => {
 
         it('should include metrics from the block', () => {
             const metrics: IMetric[][] = [[
-                { type: 'effort', metricType: MetricType.Effort, value: 'Push-ups', image: 'Push-ups' }
+                { type: MetricType.Effort, value: 'Push-ups', image: 'Push-ups' }
             ]];
 
             const listener = vi.fn();

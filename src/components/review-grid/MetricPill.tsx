@@ -23,7 +23,7 @@ interface MetricPillProps {
  * - Tooltip shows full metadata on hover.
  */
 export const MetricPill: React.FC<MetricPillProps> = ({ metric }) => {
-  const colorClasses = getMetricColorClasses(metric.metricType);
+  const colorClasses = getMetricColorClasses(metric.type);
   const isUser = metric.origin === 'user';
   const displayText = metricDisplayText(metric);
 
@@ -52,10 +52,10 @@ export const MetricPill: React.FC<MetricPillProps> = ({ metric }) => {
 function metricDisplayText(frag: IMetric): string {
   // Specialized formatting for time-based metric (values are in milliseconds)
   if (
-    (frag.metricType === MetricType.Duration ||
-      frag.metricType === MetricType.Time ||
-      frag.metricType === MetricType.Elapsed ||
-      frag.metricType === MetricType.Total) &&
+    (frag.type === MetricType.Duration ||
+      frag.type === MetricType.Time ||
+      frag.type === MetricType.Elapsed ||
+      frag.type === MetricType.Total) &&
     typeof frag.value === 'number'
   ) {
     return formatDurationSmart(frag.value);
@@ -82,11 +82,11 @@ function metricDisplayText(frag: IMetric): string {
  */
 function buildTooltip(frag: IMetric): string {
   const parts: string[] = [];
-  parts.push(`Type: ${frag.metricType}`);
+  parts.push(`Type: ${frag.type}`);
   if (frag.value !== undefined) parts.push(`Value: ${frag.value}`);
   if (frag.origin) parts.push(`Origin: ${frag.origin}`);
   if (frag.sourceBlockKey) parts.push(`Block: ${frag.sourceBlockKey}`);
   if (frag.timestamp) parts.push(`Time: ${frag.timestamp.toISOString()}`);
-  if (frag.behavior) parts.push(`Behavior: ${frag.behavior}`);
+  if (frag.origin) parts.push(`Behavior: ${frag.origin}`);
   return parts.join('\n');
 }

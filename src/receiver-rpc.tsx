@@ -558,9 +558,20 @@ const ReceiverApp: React.FC = () => {
             customNamespaces: {
                 [CAST_NAMESPACE]: 'JSON',
             },
+            // Prevent the CAF SDK from consuming D-Pad / media key events
+            // so they propagate to our spatial navigation handler.
+            disableIdleTimeout: true,
         });
         setConnectionStatus('cast-ready');
         console.log('[ReceiverApp] castContext.start() called — namespace registered');
+
+        // ── Diagnostic: log ALL key events reaching the page ──────────
+        // This capture-phase listener fires before anything else and logs
+        // key info to the console (visible in chrome://inspect remote debug).
+        // Remove once D-Pad navigation is confirmed working on device.
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            console.log(`[KeyDiag] key=${e.key} code=${e.code} keyCode=${e.keyCode} type=${e.type}`);
+        }, true);
 
         castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
             console.log('[ReceiverApp] Cast Receiver READY');
@@ -609,8 +620,9 @@ const ReceiverApp: React.FC = () => {
                 flash();
             }
         };
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
+        // Capture phase so we intercept before Cast SDK consumes the event
+        document.addEventListener('keydown', handleEscape, true);
+        return () => document.removeEventListener('keydown', handleEscape, true);
     }, [sendEvent, flash]);
 
     // Waiting screen (not yet connected)

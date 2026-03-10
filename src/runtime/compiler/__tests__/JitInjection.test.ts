@@ -75,7 +75,7 @@ describe("JIT Compiler Injection", () => {
 
         const metrics = injectedFragments[0]; // Injected should be first (appended to empty)
         expect(metrics).toBeDefined();
-        expect(metrics.metricType).toBe(MetricType.Duration);
+        expect(metrics.type).toBe(MetricType.Duration);
         expect((metrics as TimerMetric).image).toBe("60");
     });
 

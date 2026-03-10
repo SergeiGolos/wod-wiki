@@ -76,11 +76,10 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
       const existing = overrides.get(blockKey) ?? [];
 
       // Replace any existing metrics of the same type, keep others
-      const filtered = existing.filter((f) => f.metricType !== metricType);
+      const filtered = existing.filter((f) => f.type !== metricType);
 
       const newFragment: IMetric = {
         type: metricType,
-        metricType,
         value,
         image: image ?? (value !== undefined ? String(value) : undefined),
         origin: 'user',
@@ -98,7 +97,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
       const existing = overrides.get(blockKey);
       if (!existing) return;
 
-      const filtered = existing.filter((f) => f.metricType !== metricType);
+      const filtered = existing.filter((f) => f.type !== metricType);
       if (filtered.length === 0) {
         storeClear(blockKey);
       } else {
@@ -128,8 +127,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
 // ─── Serialization helpers (for localStorage) ─────────────────
 
 interface SerializedFragment {
-  type: string;
-  metricType: MetricType;
+  type: MetricType;
   value?: unknown;
   image?: string;
   origin?: string;
@@ -140,7 +138,6 @@ interface SerializedFragment {
 function serializeFragment(f: IMetric): SerializedFragment {
   return {
     type: f.type,
-    metricType: f.metricType,
     value: f.value,
     image: f.image,
     origin: f.origin,
@@ -152,7 +149,6 @@ function serializeFragment(f: IMetric): SerializedFragment {
 function deserializeFragment(s: SerializedFragment): IMetric {
   return {
     type: s.type,
-    metricType: s.metricType,
     value: s.value,
     image: s.image,
     origin: (s.origin as IMetric['origin']) ?? 'user',

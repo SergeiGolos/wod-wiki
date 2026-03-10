@@ -79,8 +79,8 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
       }
 
       const isHeader = metrics.some(f =>
-        f.metricType === MetricType.Duration ||
-        f.metricType === MetricType.Rounds ||
+        f.type === MetricType.Duration ||
+        f.type === MetricType.Rounds ||
         HEADER_TYPES.has(f.type.toLowerCase())
       );
 
@@ -94,7 +94,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
         endTime: output.timeSpan.ended,
         label: metrics
           .filter(f => {
-            const type = (f.type || f.metricType || '').toLowerCase();
+            const type = (f.type || f.type || '').toLowerCase();
             const image = f.image || '';
             if (type === 'group' && (image === '+' || image === '-')) return false;
             return type !== 'lap';

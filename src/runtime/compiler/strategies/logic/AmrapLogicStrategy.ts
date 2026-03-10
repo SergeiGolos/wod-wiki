@@ -35,7 +35,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         const hasTimer = statements.some(s => s.hasMetric(MetricType.Duration));
         const hasRounds = statements.some(s => s.hasMetric(MetricType.Rounds));
         const hasRoundsKeyword = statements.some(s => s.metrics.some(
-            f => (f.metricType === MetricType.Effort || f.metricType === MetricType.Action)
+            f => (f.type === MetricType.Effort || f.type === MetricType.Action)
                 && typeof f.value === 'string'
                 && (f.value.toLowerCase() === 'rounds' || f.value.toLowerCase() === 'amrap')
         ));
@@ -47,7 +47,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         const firstStatementWithTimer = statements.find(s => s.hasMetric(MetricType.Duration)) || statements[0];
         
         const timerFragment = firstStatementWithTimer.metrics.find(
-            f => f.metricType === MetricType.Duration
+            f => f.type === MetricType.Duration
         ) as DurationMetric | undefined;
         const durationMs = timerFragment?.value || 0;
 

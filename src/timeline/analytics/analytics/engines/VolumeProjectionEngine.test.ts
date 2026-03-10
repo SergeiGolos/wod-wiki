@@ -19,13 +19,11 @@ describe('VolumeProjectionEngine', () => {
     test('should calculate volume from rep and resistance metrics', () => {
       const metrics: IMetric[] = [
         {
-          type: 'rep',
-          metricType: MetricType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
         {
-          type: 'resistance',
-          metricType: MetricType.Resistance,
+          type: MetricType.Resistance,
           value: 100,
         },
       ];
@@ -42,11 +40,11 @@ describe('VolumeProjectionEngine', () => {
     test('should calculate volume from multiple sets', () => {
       const metrics: IMetric[] = [
         // Set 1
-        { type: 'rep', metricType: MetricType.Rep, value: 10 },
-        { type: 'resistance', metricType: MetricType.Resistance, value: 100 },
+        { type: MetricType.Rep, value: 10 },
+        { type: MetricType.Resistance, value: 100 },
         // Set 2
-        { type: 'rep', metricType: MetricType.Rep, value: 8 },
-        { type: 'resistance', metricType: MetricType.Resistance, value: 120 },
+        { type: MetricType.Rep, value: 8 },
+        { type: MetricType.Resistance, value: 120 },
       ];
 
       const results = engine.calculateFromFragments(metrics, 'bench-press', mockExercise);
@@ -63,7 +61,7 @@ describe('VolumeProjectionEngine', () => {
 
     test('should return empty array when no valid rep/resistance pairs', () => {
       const metrics: IMetric[] = [
-        { type: 'rep', metricType: MetricType.Rep, value: 10 },
+        { type: MetricType.Rep, value: 10 },
         // Missing resistance
       ];
 

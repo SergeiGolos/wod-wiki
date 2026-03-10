@@ -1,5 +1,4 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { MetricBehavior } from "../../../types/MetricBehavior";
 
 /**
  * **TimeStamp** (Runtime layer)
@@ -19,10 +18,8 @@ import { MetricBehavior } from "../../../types/MetricBehavior";
  * - **TimeStamp** = real Date.now() time — this metrics
  */
 export class SystemTimeMetric implements IMetric {
-  readonly type: string = "system-time";
-  readonly metricType = MetricType.SystemTime;
-  readonly origin: MetricOrigin = 'runtime';
-  readonly behavior: MetricBehavior = MetricBehavior.Recorded;
+  readonly type = MetricType.SystemTime;
+  readonly origin: MetricOrigin = 'tracked';
 
   /**
    * @param value The real system time as a Date object

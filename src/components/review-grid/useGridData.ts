@@ -90,17 +90,17 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
     // Check runtime segments
     for (const seg of segments) {
-      if (seg.metrics) {
-        for (const f of seg.metrics) {
-          addType(f.metricType);
+      if (seg.metrics && Array.isArray(seg.metrics)) {
+        for (const f of (seg.metrics as unknown as IMetric[])) {
+          addType(f.type);
         }
       }
     }
 
     // Check user overrides
     for (const metrics of userOutputOverrides.values()) {
-      for (const f of metric) {
-        addType(f.metricType);
+      for (const f of metrics) {
+        addType(f.type);
       }
     }
 
@@ -115,26 +115,26 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
       // Filter: Only keep metrics columns that have data
       const activeCols = cols.filter((col) => {
         // Always keep structural columns (no metricType)
-        if (!col.metricType) return true;
+        if (!col.type) return true;
 
         // Strict debug check: 'system' columns are hidden unless in debug mode
-        if (col.metricType === MetricType.System && !isDebugMode) {
+        if (col.type === MetricType.System && !isDebugMode) {
           return false;
         }
 
         // EXCEPTION: Always keep structural columns (no metricType)
         // or specifically requested columns like Timestamp/Spans/Effort
         if (
-          !col.metricType ||
+          !col.type ||
           col.id === FIXED_COLUMN_IDS.TIMESTAMP ||
           col.id === FIXED_COLUMN_IDS.SPANS ||
-          col.metricType === MetricType.Effort
+          col.type === MetricType.Effort
         ) {
           return true;
         }
 
         // Only keep metrics columns if that type exists in the data
-        return activeMetricTypes.has(col.metricType);
+        return activeMetricTypes.has(col.type);
       });
 
       // Map: Force visibility for active metrics columns (auto-select)
@@ -143,10 +143,10 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
         let newCol = { ...col };
 
         // If it's an active metrics column, ensure it's visible by default
-        if (col.metricType && activeMetricTypes.has(col.metricType)) {
+        if (col.type && activeMetricTypes.has(col.type)) {
           // System metric columns only auto-show in debug mode
           // (Does not affect Timestamp/Spans as they use different MetricTypes)
-          if (col.metricType === MetricType.System) {
+          if (col.type === MetricType.System) {
             newCol.visible = isDebugMode;
           } else {
             newCol.visible = true;
@@ -163,7 +163,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
       // 3. Identify and add "orphan" columns
       // (Fragment types present in data but not in ALL_FRAGMENT_COLUMNS)
-      const knownTypes = new Set(mappedCols.map(c => c.metricType).filter(Boolean));
+      const knownTypes = new Set(mappedCols.map(c => c.type).filter(Boolean));
 
       const orphanTypes = Array.from(activeMetricTypes).filter(ft => {
         if (knownTypes.has(ft)) return false;
@@ -179,7 +179,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
       const orphanCols: GridColumn[] = orphanTypes.map(ft => ({
         id: ft,
-        metricType: ft,
+        type: ft,
         label: ft.charAt(0).toUpperCase() + ft.slice(1),
         sortable: true,
         filterable: true,
@@ -235,8 +235,8 @@ function segmentsToRows(
     const cells = new Map<MetricType, GridCell>();
 
     // Group runtime metrics by MetricType
-    if (seg.metrics) {
-      for (const frag of seg.metrics) {
+    if (seg.metrics && Array.isArray(seg.metrics)) {
+      for (const frag of (seg.metrics as unknown as IMetric[])) {
         groupFragmentIntoCell(cells, frag);
       }
     }
@@ -297,7 +297,7 @@ function groupFragmentIntoCell(
   cells: Map<MetricType, GridCell>,
   frag: IMetric,
 ): void {
-  let ft = frag.metricType;
+  let ft = frag.type;
 
   // Composed columns: Combine Label, Text, and CurrentRound into Effort
   if (ft === MetricType.Label || ft === MetricType.Text || ft === MetricType.CurrentRound) {
@@ -449,8 +449,8 @@ function getSortValue(row: GridRow, col: GridColumn): string | number {
   }
 
   // Fragment columns — sort by first metrics's value
-  if (col.metricType) {
-    const cell = row.cells.get(col.metricType);
+  if (col.type) {
+    const cell = row.cells.get(col.type);
     if (!cell || cell.metrics.length === 0) return '';
     const first = cell.metrics[0];
     if (typeof first.value === 'number') return first.value;
@@ -494,8 +494,8 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
       return String(row.absoluteStartTime);
   }
 
-  if (col.metricType) {
-    const cell = row.cells.get(col.metricType);
+  if (col.type) {
+    const cell = row.cells.get(col.type);
     if (!cell) return '';
     return cell.metrics.map(metricToText).join(', ');
   }

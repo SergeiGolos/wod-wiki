@@ -116,7 +116,7 @@ export function wodDecorations(options: WodDecorationsOptions = {}): Extension {
                          if (absLineNo <= view.state.doc.lines) {
                             const absLine = view.state.doc.line(absLineNo);
                             const pos = absLine.from + meta.columnStart;
-                            const emoji = getEmojiForFragment(frag.metricType);
+                            const emoji = getEmojiForFragment(frag.type);
                             if (emoji) {
                                 builder.add(pos, pos, Decoration.widget({
                                     side: -1, // before

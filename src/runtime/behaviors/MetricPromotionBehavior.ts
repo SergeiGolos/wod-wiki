@@ -66,8 +66,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             
             if (reps !== undefined) {
                 metrics.push({
-                    metricType: MetricType.Rep,
-                    type: 'rep',
+                    type: MetricType.Rep,
                     image: reps.toString(),
                     origin: 'runtime',
                     value: reps,
@@ -143,8 +142,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
         this._lastPromotedRound = round;
 
         const repFragment: IMetric = {
-            metricType: MetricType.Rep,
-            type: 'rep',
+            type: MetricType.Rep,
             image: reps.toString(),
             origin: 'runtime',
             value: reps,
@@ -171,7 +169,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             if (location.tag === 'metric:promote' || location.tag === 'metric:rep-target') continue;
             if (rule.sourceTag && location.tag !== rule.sourceTag) continue;
 
-            const match = location.metrics.find(metric => metric.metricType === rule.metricType);
+            const match = location.metrics.find(metric => metric.type === rule.type);
             if (match) return match;
         }
 
@@ -187,7 +185,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
         }
 
         const current = existing[0].metrics.filter(
-            currentFragment => currentFragment.metricType !== metric.metricType
+            currentFragment => currentFragment.type !== metric.type
         );
 
         ctx.updateMemory('metric:promote', [...current, metric]);

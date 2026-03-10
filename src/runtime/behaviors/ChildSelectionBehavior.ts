@@ -337,7 +337,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         if (childLoc?.metrics[0]) {
             ctx.updateMemory('children:status', [{...childLoc.metrics[0], value: status}]);
         } else {
-            ctx.pushMemory('children:status', [{metricType: 0 as any, type: 'children:status', image: '', origin: 'runtime' as any, value: status}]);
+            ctx.pushMemory('children:status', [{type: 0 as any, image: '', origin: 'runtime' as any, value: status}]);
         }
     }
 

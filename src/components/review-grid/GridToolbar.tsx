@@ -50,7 +50,7 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
   visibleRows,
 }) => {
   // Only show metrics columns in the visibility toggles
-  const metricColumns = columns.filter((c) => c.metricType);
+  const metricColumns = columns.filter((c) => c.type);
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-muted/10 dark:bg-muted/5">
@@ -91,7 +91,7 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
       {/* Column visibility chips */}
       <div className="flex flex-wrap items-center gap-1">
         {metricColumns.map((col) => {
-          const icon = col.metricType ? getMetricIcon(col.metricType) : null;
+          const icon = col.type ? getMetricIcon(col.type) : null;
           return (
             <button
               key={col.id}

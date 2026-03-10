@@ -71,16 +71,14 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    metricType: MetricType.Metric,
-                    type: type,
+                    type: MetricType.Metric,
                     image: `${label}: ${displayValue}`,
                     value: value,
                     origin: 'runtime',
                     timestamp: timestamp
                 },
                 {
-                    metricType: MetricType.Label,
-                    type: 'summary',
+                    type: MetricType.Label,
                     image: `${label}: ${displayValue}`,
                     value: `${label}: ${displayValue}`,
                     origin: 'runtime',
@@ -98,16 +96,14 @@ export class DistanceAnalyticsProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    metricType: MetricType.Effort,
-                    type: 'effort',
+                    type: MetricType.Effort,
                     image: effort,
                     value: effort,
                     origin: 'runtime',
                     timestamp: timestamp
                 },
                 {
-                    metricType: MetricType.Metric,
-                    type: 'effort_distance',
+                    type: MetricType.Metric,
                     image: `Total Distance (${effort}): ${dist.toFixed(2)}`,
                     value: dist,
                     origin: 'runtime',

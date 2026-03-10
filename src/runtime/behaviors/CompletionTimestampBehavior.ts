@@ -29,8 +29,7 @@ export class CompletionTimestampBehavior implements IRuntimeBehavior {
 
             // Push completion timestamp to memory
             const completionFragment: IMetric = {
-                metricType: MetricType.SystemTime,  // System timestamp, not a duration or time state
-                type: 'completion',
+                type: MetricType.SystemTime,  // System timestamp, not a duration or time state
                 image: this.completionTime.toISOString(),
                 origin: 'runtime',
                 value: {

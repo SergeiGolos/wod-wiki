@@ -230,7 +230,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
             if (childLoc?.metrics[0]) {
                 ctx.updateMemory('children:status', [{...childLoc.metrics[0], value: newChildStatus}]);
             } else {
-                ctx.pushMemory('children:status', [{metricType: 0 as any, type: 'children:status', image: '', origin: 'runtime' as any, value: newChildStatus}]);
+                ctx.pushMemory('children:status', [{type: 0 as any, image: '', origin: 'runtime' as any, value: newChildStatus}]);
             }
         }
     }
@@ -248,8 +248,7 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
 
     private createFragment(ctx: IBehaviorContext, state: TimerState): IMetric {
         return {
-            metricType: MetricType.Time,
-            type: 'time',
+            type: MetricType.Time,
             image: formatDuration(state.durationMs),
             origin: 'runtime',
             value: state,

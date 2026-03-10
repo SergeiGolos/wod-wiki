@@ -243,12 +243,16 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
                 e.key === 'Accept' ||
                 e.key === ' ' ||
                 e.keyCode === 13 ||
-                e.keyCode === 23 ||
+                e.keyCode === 23 ||   // DPAD_CENTER
                 e.keyCode === 32;
 
             const isPlayPause =
                 e.key === 'MediaPlayPause' ||
-                e.keyCode === 179;
+                e.key === 'MediaPlay' ||
+                e.key === 'MediaPause' ||
+                e.keyCode === 179 ||  // MediaPlayPause
+                e.keyCode === 126 ||  // MEDIA_PLAY (Android)
+                e.keyCode === 127;    // MEDIA_PAUSE (Android)
 
             if (isSelect || isPlayPause) {
                 e.preventDefault();
@@ -263,8 +267,10 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
             }
         };
 
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        // Use capture phase on document so we intercept key events BEFORE
+        // the Cast Receiver SDK's own handlers can consume them.
+        document.addEventListener('keydown', handleKeyDown, true);
+        return () => document.removeEventListener('keydown', handleKeyDown, true);
     }, [enabled, onSelect]);
 
     // ── Public API ──────────────────────────────────────────────────────────

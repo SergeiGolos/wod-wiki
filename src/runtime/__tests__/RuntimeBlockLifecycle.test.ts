@@ -116,8 +116,7 @@ describe('RuntimeBlock Lifecycle', () => {
 
         it('should dispose memory entries', () => {
             const timerLoc = new MemoryLocation('time', [{
-                metricType: MetricType.Duration,
-                type: 'duration',
+                type: MetricType.Duration,
                 image: '',
                 origin: 'runtime',
                 value: { direction: 'up', spans: [] },

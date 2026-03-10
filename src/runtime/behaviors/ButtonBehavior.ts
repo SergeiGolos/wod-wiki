@@ -49,8 +49,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         // Create action metrics for each button
         const metrics: IMetric[] = this.config.buttons.map(button => ({
-            metricType: MetricType.Action,
-            type: 'action',
+            type: MetricType.Action,
             image: button.label,
             origin: 'runtime',
             value: {

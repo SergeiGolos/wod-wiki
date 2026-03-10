@@ -103,7 +103,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: false,
     isGraphed: false,
     visible: true,
-    metricType: MetricType.SystemTime,
+    type: MetricType.SystemTime,
   },
   {
     id: FIXED_COLUMN_IDS.SPANS,
@@ -113,7 +113,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
     graphable: false,
     isGraphed: false,
     visible: true,
-    metricType: MetricType.Spans,
+    type: MetricType.Spans,
   },
   {
     id: FIXED_COLUMN_IDS.INDEX,
@@ -177,7 +177,7 @@ export const FIXED_COLUMNS: GridColumn[] = [
 export function buildFragmentColumns(preset: GridViewPreset): GridColumn[] {
   return ALL_FRAGMENT_COLUMNS.map((ft) => ({
     id: ft,
-    metricType: ft,
+    type: ft,
     label: ft.charAt(0).toUpperCase() + ft.slice(1),
     icon: getMetricIcon(ft) ?? undefined,
     sortable: true,
@@ -196,7 +196,7 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
   // Helpers to find columns by ID or Type
   const getFixed = (id: string) => FIXED_COLUMNS.find(c => c.id === id)!;
   const getFragmentCol = (type: MetricType) => {
-    return buildFragmentColumns(preset).find(c => c.metricType === type);
+    return buildFragmentColumns(preset).find(c => c.type === type);
   }
 
   const metricCols = buildFragmentColumns(preset);

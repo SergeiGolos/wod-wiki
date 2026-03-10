@@ -434,8 +434,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Create the metrics
         const metric: IMetric = {
-            metricType: MetricType.System,
-            type: 'lifecycle',
+            type: MetricType.System,
             image: event.type === 'push'
                 ? `push: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}]`
                 : `pop: ${block.label ?? block.blockType ?? 'Block'} [${block.key.toString().slice(0, 8)}] reason=${(block as any).completionReason ?? 'normal'}`,
@@ -473,8 +472,8 @@ export class ScriptRuntime implements IScriptRuntime {
             const sourceFragments = displayLocs[i]?.metrics ?? [];
 
             // 2. Merge: Runtime results override source definitions (for same type)
-            const resultTypes = new Set(resultFragments.map(f => f.metricType));
-            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.metricType));
+            const resultTypes = new Set(resultFragments.map(f => f.type));
+            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.type));
 
             const metrics = [...effectiveSourceFragments, ...resultFragments];
 
@@ -507,7 +506,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private extractSpansFromResultFragments(metrics: IMetric[]): TimeSpan[] {
         const spansFragment = metrics.find(
-            metric => metric.metricType === MetricType.Spans || metric.type === 'spans'
+            metric => metric.type === MetricType.Spans || metric.type === 'spans'
         ) as (IMetric & { spans?: unknown }) | undefined;
 
         if (!spansFragment) {
@@ -555,8 +554,7 @@ export class ScriptRuntime implements IScriptRuntime {
             // For 'load', having the raw text as a Label is useful for the "Name" column.
 
             metrics.push({
-                metricType: MetricType.Label,
-                type: 'load',
+                type: MetricType.Label,
                 image: rawText || 'Statement',
                 value: rawText,
                 origin: 'runtime',
@@ -596,8 +594,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
         const metrics: IMetric[] = [
             {
-                metricType: MetricType.System,
-                type: 'event',
+                type: MetricType.System,
                 image: `event: ${event.name}`,
                 value: {
                     name: event.name,
@@ -626,8 +623,7 @@ export class ScriptRuntime implements IScriptRuntime {
         const now = this.clock.now;
         const metrics: IMetric[] = [
             {
-                metricType: MetricType.Label,
-                type: 'compiler',
+                type: MetricType.Label,
                 image: `Behaviors: ${block.behaviors.map(b => b.constructor.name).join(', ')}`,
                 value: block.behaviors.map(b => b.constructor.name),
                 origin: 'runtime',

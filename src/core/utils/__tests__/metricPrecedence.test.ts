@@ -87,8 +87,7 @@ describe('selectBestTier', () => {
 
     it('treats undefined origin as parser (tier 3)', () => {
         const noOrigin: IMetric = {
-            type: 'duration',
-            metricType: MetricType.Duration,
+            type: MetricType.Duration,
             value: 60,
         };
         const withOrigin = frag(MetricType.Duration, 'compiler', 120);
@@ -123,11 +122,11 @@ describe('resolveMetricPrecedence', () => {
 
         expect(result).toHaveLength(2);
 
-        const timer = result.find(f => f.metricType === MetricType.Duration);
+        const timer = result.find(f => f.type === MetricType.Duration);
         expect(timer?.origin).toBe('runtime');
         expect(timer?.value).toBe('elapsed');
 
-        const action = result.find(f => f.metricType === MetricType.Action);
+        const action = result.find(f => f.type === MetricType.Action);
         expect(action?.origin).toBe('parser');
         expect(action?.value).toBe('Thrusters');
     });
@@ -163,7 +162,7 @@ describe('resolveMetricPrecedence', () => {
             types: [MetricType.Duration, MetricType.Rep],
         });
         expect(result).toHaveLength(2);
-        expect(result.some(f => f.metricType === MetricType.Action)).toBe(false);
+        expect(result.some(f => f.type === MetricType.Action)).toBe(false);
     });
 
     it('excludes types', () => {
@@ -176,7 +175,7 @@ describe('resolveMetricPrecedence', () => {
             excludeTypes: [MetricType.Text],
         });
         expect(result).toHaveLength(2);
-        expect(result.some(f => f.metricType === MetricType.Text)).toBe(false);
+        expect(result.some(f => f.type === MetricType.Text)).toBe(false);
     });
 
     it('combines filter and precedence', () => {
@@ -192,10 +191,10 @@ describe('resolveMetricPrecedence', () => {
         });
         expect(result).toHaveLength(2);
 
-        const timer = result.find(f => f.metricType === MetricType.Duration);
+        const timer = result.find(f => f.type === MetricType.Duration);
         expect(timer?.origin).toBe('runtime');
 
-        const rep = result.find(f => f.metricType === MetricType.Rep);
+        const rep = result.find(f => f.type === MetricType.Rep);
         expect(rep?.origin).toBe('compiler');
     });
 
@@ -214,11 +213,11 @@ describe('resolveMetricPrecedence', () => {
         ];
         const result = resolveMetricPrecedence(metrics);
 
-        const reps = result.filter(f => f.metricType === MetricType.Rep);
+        const reps = result.filter(f => f.type === MetricType.Rep);
         expect(reps).toHaveLength(3);
         expect(reps.map(f => f.value)).toEqual([21, 15, 9]);
 
-        const actions = result.filter(f => f.metricType === MetricType.Action);
+        const actions = result.filter(f => f.type === MetricType.Action);
         expect(actions).toHaveLength(2);
     });
 

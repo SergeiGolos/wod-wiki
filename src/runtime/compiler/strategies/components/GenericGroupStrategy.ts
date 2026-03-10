@@ -31,8 +31,8 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         
         // Match if ANY statement has children but NO statement has timer/rounds
         const hasChildren = statements.some(s => s.children && s.children.length > 0);
-        const hasTimer = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Duration && f.origin !== 'runtime'));
-        const hasRounds = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Rounds && f.origin !== 'runtime'));
+        const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration && f.origin !== 'runtime'));
+        const hasRounds = statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds && f.origin !== 'runtime'));
         
         return hasChildren && !hasTimer && !hasRounds;
     }

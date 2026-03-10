@@ -117,7 +117,7 @@ describe('MetricContainer', () => {
         it('resolve applies precedence resolution', () => {
             const resolved = container.resolve();
             // Rep: runtime wins over parser, so only runtime Rep kept
-            const reps = resolved.filter(m => m.metricType === MetricType.Rep);
+            const reps = resolved.filter(m => m.type === MetricType.Rep);
             expect(reps).toHaveLength(1);
             expect(reps[0].origin).toBe('runtime');
         });
@@ -125,7 +125,7 @@ describe('MetricContainer', () => {
         it('resolve with filter restricts by type', () => {
             const resolved = container.resolve({ types: [MetricType.Rep] });
             expect(resolved).toHaveLength(1);
-            expect(resolved[0].metricType).toBe(MetricType.Rep);
+            expect(resolved[0].type).toBe(MetricType.Rep);
         });
     });
 
@@ -157,7 +157,7 @@ describe('MetricContainer', () => {
         });
 
         it('remove removes matching metrics and returns them', () => {
-            const removed = container.remove(m => m.metricType === MetricType.Rep);
+            const removed = container.remove(m => m.type === MetricType.Rep);
             expect(removed).toHaveLength(1);
             expect(removed[0].value).toBe(10);
             expect(container.length).toBe(1);
@@ -165,7 +165,7 @@ describe('MetricContainer', () => {
         });
 
         it('remove returns empty array when nothing matches', () => {
-            const removed = container.remove(m => m.metricType === MetricType.Sound);
+            const removed = container.remove(m => m.type === MetricType.Sound);
             expect(removed).toHaveLength(0);
             expect(container.length).toBe(2);
         });
@@ -287,7 +287,7 @@ describe('MetricContainer', () => {
                 makeMetric(MetricType.Rep, 10),
                 makeMetric(MetricType.Effort, 'Run'),
             ]);
-            expect(c.filter(m => m.metricType === MetricType.Rep)).toHaveLength(1);
+            expect(c.filter(m => m.type === MetricType.Rep)).toHaveLength(1);
         });
 
         it('map transforms metrics', () => {
@@ -308,8 +308,8 @@ describe('MetricContainer', () => {
 
         it('some returns true if any match', () => {
             const c = new MetricContainer([makeMetric(MetricType.Rep, 10)]);
-            expect(c.some(m => m.metricType === MetricType.Rep)).toBe(true);
-            expect(c.some(m => m.metricType === MetricType.Sound)).toBe(false);
+            expect(c.some(m => m.type === MetricType.Rep)).toBe(true);
+            expect(c.some(m => m.type === MetricType.Sound)).toBe(false);
         });
 
         it('every returns true if all match', () => {
@@ -317,7 +317,7 @@ describe('MetricContainer', () => {
                 makeMetric(MetricType.Rep, 10),
                 makeMetric(MetricType.Rep, 15),
             ]);
-            expect(c.every(m => m.metricType === MetricType.Rep)).toBe(true);
+            expect(c.every(m => m.type === MetricType.Rep)).toBe(true);
             expect(c.every(m => m.value === 10)).toBe(false);
         });
 

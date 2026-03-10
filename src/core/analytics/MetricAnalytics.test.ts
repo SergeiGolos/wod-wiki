@@ -18,18 +18,18 @@ describe('Metric Analytics Processes', () => {
                 stackLevel: 1,
                 timeSpan: new TimeSpan(now.getTime(), now.getTime() + 10000), // 10s
                 metrics: [
-                    { metricType: MetricType.Elapsed, type: 'elapsed', value: 10000, origin: 'runtime' },
-                    { metricType: MetricType.Rep, type: 'rep', value: 20, origin: 'runtime' },
-                    { metricType: MetricType.Effort, type: 'effort', value: 'hard', origin: 'parser' }
+                    { type: MetricType.Elapsed, value: 10000, origin: 'runtime' },
+                    { type: MetricType.Rep, value: 20, origin: 'runtime' },
+                    { type: MetricType.Effort, value: 'hard', origin: 'parser' }
                 ]
             });
 
             process.process(segment);
             const results = process.finalize();
 
-            expect(results.some(o => o.metrics.some(f => f.type === 'total_reps' && f.value === 20))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === 'effort_reps' && f.value === 20))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === 'reps_per_second' && f.value === 2))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 20))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.image?.includes('Total Reps (hard)') && f.value === 20))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.image?.includes('Reps per Second') && f.value === 2))).toBe(true);
         });
     });
 
@@ -42,18 +42,18 @@ describe('Metric Analytics Processes', () => {
                 stackLevel: 1,
                 timeSpan: new TimeSpan(now.getTime(), now.getTime() + 10000), // 10s
                 metrics: [
-                    { metricType: MetricType.Elapsed, type: 'elapsed', value: 10000, origin: 'runtime' },
-                    { metricType: MetricType.Distance, type: 'distance', value: { amount: 100, units: 'm' }, origin: 'runtime' },
-                    { metricType: MetricType.Effort, type: 'effort', value: 'easy', origin: 'parser' }
+                    { type: MetricType.Elapsed, value: 10000, origin: 'runtime' },
+                    { type: MetricType.Distance, value: { amount: 100, units: 'm' }, origin: 'runtime' },
+                    { type: MetricType.Effort, value: 'easy', origin: 'parser' }
                 ]
             });
 
             process.process(segment);
             const results = process.finalize();
 
-            expect(results.some(o => o.metrics.some(f => f.type === 'total_distance' && f.value === 100))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === 'effort_distance' && f.value === 100))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === 'distance_per_second' && f.value === 10))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 100 && f.image?.includes('Total Distance')))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 100 && f.image?.includes('Total Distance (easy)')))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 10 && f.image?.includes('Distance per Second')))).toBe(true);
         });
     });
 
@@ -66,10 +66,10 @@ describe('Metric Analytics Processes', () => {
                 stackLevel: 1,
                 timeSpan: new TimeSpan(now.getTime(), now.getTime() + 10000), // 10s
                 metrics: [
-                    { metricType: MetricType.Elapsed, type: 'elapsed', value: 10000, origin: 'runtime' },
-                    { metricType: MetricType.Rep, type: 'rep', value: 10, origin: 'runtime' },
-                    { metricType: MetricType.Resistance, type: 'resistance', value: { amount: 50, units: 'kg' }, origin: 'runtime' },
-                    { metricType: MetricType.Effort, type: 'effort', value: 'hard', origin: 'parser' }
+                    { type: MetricType.Elapsed, value: 10000, origin: 'runtime' },
+                    { type: MetricType.Rep, value: 10, origin: 'runtime' },
+                    { type: MetricType.Resistance, value: { amount: 50, units: 'kg' }, origin: 'runtime' },
+                    { type: MetricType.Effort, value: 'hard', origin: 'parser' }
                 ]
             });
 
@@ -77,9 +77,9 @@ describe('Metric Analytics Processes', () => {
             const results = process.finalize();
 
             // Total Volume = 10 reps * 50kg = 500
-            expect(results.some(o => o.metrics.some(f => f.type === 'total_weight' && f.value === 500))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === 'effort_weight' && f.value === 500))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === 'weight_per_second' && f.value === 50))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 500 && f.image?.includes('Total Weight')))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 500 && f.image?.includes('Total Weight (hard)')))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 50 && f.image?.includes('Weight per Second')))).toBe(true);
         });
     });
 });

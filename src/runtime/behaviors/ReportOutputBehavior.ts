@@ -143,9 +143,9 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     private mergeFragments(displayFragments: IMetric[], stateFragments: IMetric[]): IMetric[] {
-        const displayTypes = new Set(displayFragments.map(f => `${f.metricType}:${f.type}`));
+        const displayTypes = new Set(displayFragments.map(f => `${f.type}:${f.type}`));
         const uniqueStateFragments = stateFragments.filter(
-            f => !displayTypes.has(`${f.metricType}:${f.type}`)
+            f => !displayTypes.has(`${f.type}:${f.type}`)
         );
         return [...displayFragments, ...uniqueStateFragments];
     }
@@ -250,7 +250,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // 1. Calculate weights for each group based on reps
         const weights = groups.map(group => {
             const reps = group
-                .filter(f => f.metricType === MetricType.Rep && typeof f.value === 'number')
+                .filter(f => f.type === MetricType.Rep && typeof f.value === 'number')
                 .reduce((sum, f) => sum + (f.value as number), 0);
             return reps > 0 ? reps : 1; // Default to 1 if no reps
         });

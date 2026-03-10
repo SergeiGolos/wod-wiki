@@ -60,7 +60,7 @@ export class MetricContainer implements Iterable<IMetric> {
      * (best first).
      */
     getByType(type: MetricType): IMetric[] {
-        const ofType = this._metrics.filter(m => m.metricType === type);
+        const ofType = this._metrics.filter(m => m.type === type);
         if (ofType.length <= 1) return ofType;
         return [...ofType].sort((a, b) => {
             const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
@@ -79,7 +79,7 @@ export class MetricContainer implements Iterable<IMetric> {
 
     /** Whether any metric of the given type exists. */
     has(type: MetricType): boolean {
-        return this._metrics.some(m => m.metricType === type);
+        return this._metrics.some(m => m.type === type);
     }
 
     /**
@@ -128,7 +128,7 @@ export class MetricContainer implements Iterable<IMetric> {
      * Returns the removed metrics.
      */
     removeByType(type: MetricType): IMetric[] {
-        return this.remove(m => m.metricType === type);
+        return this.remove(m => m.type === type);
     }
 
     /** Remove all metrics. */
@@ -168,13 +168,13 @@ export class MetricContainer implements Iterable<IMetric> {
         // Group incoming by MetricType
         const byType = new Map<MetricType, IMetric[]>();
         for (const m of incoming) {
-            const group = byType.get(m.metricType) ?? [];
+            const group = byType.get(m.type) ?? [];
             group.push(m);
-            byType.set(m.metricType, group);
+            byType.set(m.type, group);
         }
 
         for (const [type, incomingGroup] of byType) {
-            const existing = this._metrics.filter(m => m.metricType === type);
+            const existing = this._metrics.filter(m => m.type === type);
 
             if (existing.length === 0) {
                 // No existing metrics of this type — add all incoming
@@ -191,7 +191,7 @@ export class MetricContainer implements Iterable<IMetric> {
 
             if (incomingRank < existingRank) {
                 // Incoming has better precedence — replace existing
-                this._metrics = this._metrics.filter(m => m.metricType !== type);
+                this._metrics = this._metrics.filter(m => m.type !== type);
                 this._metrics.push(...incomingGroup);
             } else if (incomingRank === existingRank) {
                 // Same precedence — append (multi-metric-per-type)
@@ -250,7 +250,7 @@ export class MetricContainer implements Iterable<IMetric> {
     /** Useful for debugging. */
     toString(): string {
         return `MetricContainer(${this._metrics.length})[${
-            this._metrics.map(m => m.metricType).join(', ')
+            this._metrics.map(m => m.type).join(', ')
         }]`;
     }
 }

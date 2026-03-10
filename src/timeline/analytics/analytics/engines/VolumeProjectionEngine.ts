@@ -48,9 +48,9 @@ export class VolumeProjectionEngine implements IProjectionEngine {
     let currentResistance: number | undefined;
 
     for (const metric of metrics) {
-      if (metric.metricType === MetricType.Rep && typeof metric.value === 'number') {
+      if (metric.type === MetricType.Rep && typeof metric.value === 'number') {
         currentReps = metric.value;
-      } else if (metric.metricType === MetricType.Resistance && typeof metric.value === 'number') {
+      } else if (metric.type === MetricType.Resistance && typeof metric.value === 'number') {
         currentResistance = metric.value;
       }
 

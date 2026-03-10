@@ -106,7 +106,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         get label(): string {
             for (const loc of memoryList) {
                 for (const frag of loc.metrics) {
-                    if (frag.metricType === MetricType.Label) {
+                    if (frag.type === MetricType.Label) {
                         return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
                     }
                 }
@@ -164,7 +164,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
                 if (loc.metrics.length > 0) {
                     loc.update(loc.metrics.map((f, i) => i === 0 ? { ...f, value } : f));
                 } else {
-                    loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
                 }
             } else {
                 memoryMap.set(type, value);
@@ -176,8 +176,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
     const labelText = config.label ?? config.blockType ?? 'Test Block';
     if (labelText) {
         memoryList.push(new MemoryLocation('metric:label', [{
-            metricType: MetricType.Label,
-            type: 'label',
+            type: MetricType.Label,
             image: labelText,
             origin: 'config',
             value: labelText
@@ -241,7 +240,7 @@ export function createIntegrationContext(
                 if (loc.metrics.length > 0) {
                     loc.update(loc.metrics.map((f, i) => i === 0 ? { ...f, value } : f));
                 } else {
-                    loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
                 }
             } else {
                 block.memory.set(type, value);

@@ -127,8 +127,8 @@ describe('Timer Block Integration', () => {
 
             // Completion output should contain elapsed and spans metrics
             const completion = completionOutputs[0];
-            const hasElapsed = (completion.metrics as any[]).some(f => f.metricType === 'elapsed');
-            const hasSpans = (completion.metrics as any[]).some(f => f.metricType === 'spans');
+            const hasElapsed = (completion.metrics as any[]).some(f => f.type === 'elapsed');
+            const hasSpans = (completion.metrics as any[]).some(f => f.type === 'spans');
             expect(hasElapsed).toBe(true);
             expect(hasSpans).toBe(true);
         });

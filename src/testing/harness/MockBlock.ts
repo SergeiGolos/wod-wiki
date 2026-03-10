@@ -128,7 +128,7 @@ class MockBehaviorContext implements IBehaviorContext {
         );
         loc.update(updated);
       } else {
-        loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+        loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
       }
       return;
     }
@@ -213,7 +213,7 @@ export class MockBlock implements IRuntimeBlock {
   get label(): string {
     for (const loc of this._memory) {
       for (const frag of loc.metrics) {
-        if (frag.metricType === MetricType.Label) {
+        if (frag.type === MetricType.Label) {
           return frag.image || frag.value?.toString() || this.blockType || 'Block';
         }
       }
@@ -272,8 +272,7 @@ export class MockBlock implements IRuntimeBlock {
     const labelText = resolvedConfig.label ?? this.blockType;
     if (labelText) {
       this._memory.push(new MemoryLocation('metric:label', [{
-        metricType: MetricType.Label,
-        type: 'label',
+        type: MetricType.Label,
         image: labelText,
         origin: 'config',
         value: labelText
@@ -477,7 +476,7 @@ export class MockBlock implements IRuntimeBlock {
         );
         loc.update(updated);
       } else {
-        loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+        loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
       }
       return;
     }

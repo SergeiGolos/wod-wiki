@@ -70,16 +70,14 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    metricType: MetricType.Metric,
-                    type: type,
+                    type: MetricType.Metric,
                     image: `${label}: ${displayValue}`,
                     value: value,
                     origin: 'runtime',
                     timestamp: timestamp
                 },
                 {
-                    metricType: MetricType.Label,
-                    type: 'summary',
+                    type: MetricType.Label,
                     image: `${label}: ${displayValue}`,
                     value: `${label}: ${displayValue}`,
                     origin: 'runtime',
@@ -97,16 +95,14 @@ export class RepAnalyticsProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    metricType: MetricType.Effort,
-                    type: 'effort',
+                    type: MetricType.Effort,
                     image: effort,
                     value: effort,
                     origin: 'runtime',
                     timestamp: timestamp
                 },
                 {
-                    metricType: MetricType.Metric,
-                    type: 'effort_reps',
+                    type: MetricType.Metric,
                     image: `Total Reps (${effort}): ${count}`,
                     value: count,
                     origin: 'runtime',

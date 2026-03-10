@@ -36,7 +36,7 @@ export class LabelComposer {
     if (allFragments.length === 0) return defaultLabel;
 
     // 1. Check for explicit Label metrics
-    const explicitLabel = allFragments.find(f => f.metricType === MetricType.Label);
+    const explicitLabel = allFragments.find(f => f.type === MetricType.Label);
     if (explicitLabel) return explicitLabel.image || explicitLabel.value?.toString() || defaultLabel;
 
     const metrics = includeMetric ? this.getPrimaryMetric(allFragments) : undefined;
@@ -69,7 +69,7 @@ export class LabelComposer {
         .filter(f => {
             if (!f.image) return false;
             // Filter out structural symbols from fallback label
-            const type = f.metricType || f.type;
+            const type = f.type || f.type;
             return type !== MetricType.Lap && type !== MetricType.Group && type !== 'lap' && type !== 'group';
         })
         .map(f => f.image)
@@ -81,11 +81,11 @@ export class LabelComposer {
 
   private static getPrimaryMetric(metrics: IMetric[]): string | undefined {
     // Priority 1: Rounds sequence (21-15-9) or Rounds count
-    const rounds = metrics.find(f => f.metricType === MetricType.Rounds);
+    const rounds = metrics.find(f => f.type === MetricType.Rounds);
     if (rounds && rounds.image) return rounds.image;
 
     // Priority 2: Duration (5:00, :30)
-    const duration = metrics.find(f => f.metricType === MetricType.Duration);
+    const duration = metrics.find(f => f.type === MetricType.Duration);
     if (duration && duration.image) return duration.image;
 
     // Note: We don't use Rep metrics here if they are part of the identity (e.g. "100 Swings")
@@ -116,9 +116,9 @@ export class LabelComposer {
     // Filter metrics that contribute to the identity
     // We include Reps here if they are interleaved (e.g. "100 KB Swings")
     const identityFragments = metrics.filter(f => {
-      if (f.metricType === MetricType.Duration || f.metricType === MetricType.Rounds || 
-          f.metricType === MetricType.Resistance || f.metricType === MetricType.Distance ||
-          f.metricType === MetricType.Lap || f.metricType === MetricType.Group) {
+      if (f.type === MetricType.Duration || f.type === MetricType.Rounds || 
+          f.type === MetricType.Resistance || f.type === MetricType.Distance ||
+          f.type === MetricType.Lap || f.type === MetricType.Group) {
           return false;
       }
       const val = (f.image || f.value?.toString() || "").toUpperCase();
@@ -131,8 +131,8 @@ export class LabelComposer {
 
   private static getAttributesText(metrics: IMetric[]): string | undefined {
     const attrFragments = metrics.filter(f => 
-      f.metricType === MetricType.Resistance || 
-      f.metricType === MetricType.Distance
+      f.type === MetricType.Resistance || 
+      f.type === MetricType.Distance
     );
 
     if (attrFragments.length === 0) return undefined;

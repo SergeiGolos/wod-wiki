@@ -149,8 +149,8 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
         expect(completions.length).toBe(1);
 
         const completion = completions[0];
-        const hasElapsed = (completion.metrics as any[]).some(f => f.metricType === 'elapsed');
-        const hasSpans = (completion.metrics as any[]).some(f => f.metricType === 'spans');
+        const hasElapsed = (completion.metrics as any[]).some(f => f.type === 'elapsed');
+        const hasSpans = (completion.metrics as any[]).some(f => f.type === 'spans');
         expect(hasElapsed).toBe(true);
         expect(hasSpans).toBe(true);
     });

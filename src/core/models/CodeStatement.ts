@@ -28,7 +28,7 @@ export abstract class CodeStatement implements ICodeStatement, IMetricSource {
   // ── IMetricSource ─────────────────────────────────────────────
 
   hasMetric(type: MetricType): boolean {
-    return this.metrics.some(f => f.metricType === type);
+    return this.metrics.some(f => f.type === type);
   }
 
   getDisplayMetrics(filter?: MetricFilter): IMetric[] {
@@ -41,7 +41,7 @@ export abstract class CodeStatement implements ICodeStatement, IMetricSource {
   }
 
   getAllMetricsByType(type: MetricType): IMetric[] {
-    const ofType = this.metrics.filter(f => f.metricType === type);
+    const ofType = this.metrics.filter(f => f.type === type);
     if (ofType.length === 0) return [];
 
     // Sort by precedence (highest first = lowest rank number first)

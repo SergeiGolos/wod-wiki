@@ -7,9 +7,8 @@
  * Part of Phase 1 metrics consolidation: Fragment-based architecture.
  */
 
-import { IMetric, MetricType } from '../../core/models/Metric';
+import { IMetric, MetricType, MetricOrigin } from '../../core/models/Metric';
 import { IDisplayMetric } from '../types/DisplayTypes';
-import { MetricBehavior } from '../../types/MetricBehavior';
 
 /**
  * Convert a single IMetric to IDisplayMetric for display rendering.
@@ -22,7 +21,7 @@ export function metricToDisplayData(metric: IMetric): IDisplayMetric {
   const displayImage = metric.image || formatFragmentValue(metric);
 
   return {
-    type: metric.metricType,
+    type: metric.type,
     value: metric.value as string | number,
     image: displayImage,
     unit: getFragmentUnit(metric),
@@ -35,7 +34,7 @@ export function metricToDisplayData(metric: IMetric): IDisplayMetric {
  * Optionally filter by behavior (e.g., only show Collected or Recorded metrics).
  * 
  * @param metrics Array of code metrics (can be flat or nested)
- * @param behaviorFilter Optional filter to include only specific behaviors
+ * @param originFilter Optional filter to include only specific origins
  * @returns Array of display metrics
  * 
  * @example
@@ -43,13 +42,13 @@ export function metricToDisplayData(metric: IMetric): IDisplayMetric {
  * // Get all collected and recorded metrics for display
  * const displayMetrics = metricsToDisplayData(
  *   block.metrics,
- *   [MetricBehavior.Collected, MetricBehavior.Recorded]
+ *   ['collected', 'tracked']
  * );
  * ```
  */
 export function metricsToDisplayData(
   metrics: IMetric[] | IMetric[][],
-  behaviorFilter?: MetricBehavior[]
+  originFilter?: MetricOrigin[]
 ): IDisplayMetric[] {
   // Flatten if nested
   const flat = Array.isArray(metrics[0])
@@ -58,9 +57,9 @@ export function metricsToDisplayData(
 
   // Filter by behavior if specified
   let filtered = flat;
-  if (behaviorFilter && behaviorFilter.length > 0) {
+  if (originFilter && originFilter.length > 0) {
     filtered = flat.filter(f =>
-      f.behavior && behaviorFilter.includes(f.behavior)
+      f.origin && originFilter.includes(f.origin)
     );
   }
 
@@ -79,8 +78,8 @@ export function getCollectedDisplayMetrics(
   metrics: IMetric[] | IMetric[][]
 ): IDisplayMetric[] {
   return metricsToDisplayData(metrics, [
-    MetricBehavior.Collected,
-    MetricBehavior.Recorded,
+    'collected',
+    'tracked',
   ]);
 }
 
@@ -99,7 +98,7 @@ function formatFragmentValue(metric: IMetric): string {
   const value = metric.value;
 
   // Handle different metric types
-  switch (metric.metricType) {
+  switch (metric.type) {
     case MetricType.Duration:
     case MetricType.Duration:
     case MetricType.Elapsed:
@@ -146,7 +145,7 @@ function formatFragmentValue(metric: IMetric): string {
  * @returns Unit string or empty string
  */
 function getFragmentUnit(metric: IMetric): string | undefined {
-  switch (metric.metricType) {
+  switch (metric.type) {
     case MetricType.Rep:
       return 'reps';
     case MetricType.Resistance:

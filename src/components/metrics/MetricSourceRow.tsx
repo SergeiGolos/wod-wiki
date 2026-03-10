@@ -206,7 +206,7 @@ export const MetricSourceRow: React.FC<MetricSourceRowProps> = ({
                     <div className="flex flex-col">
                         {metricGroups
                             .map(group => group.filter(f => {
-                                const type = (f.type || f.metricType || '').toLowerCase();
+                                const type = (f.type || f.type || '').toLowerCase();
                                 const image = f.image || '';
                                 if (type === 'group' && (image === '+' || image === '-')) return false;
                                 return type !== 'lap';

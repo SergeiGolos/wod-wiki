@@ -61,7 +61,7 @@ describe('AnalyticsTransformer', () => {
           outputType: 'segment',
           started: startTime,
           ended: startTime + 60000,
-          metrics: [{ type: 'effort', metricType: MetricType.Effort, value: 'Warmup', image: 'Warmup' }]
+          metrics: [{ type: MetricType.Effort, value: 'Warmup', image: 'Warmup' }]
         })
       ];
 
@@ -84,21 +84,21 @@ describe('AnalyticsTransformer', () => {
           outputType: 'load',
           started: startTime,
           ended: startTime,
-          metrics: [{ type: 'load', metricType: MetricType.Label, value: 'Load', image: 'Load' }]
+          metrics: [{ type: MetricType.Label, value: 'Load', image: 'Load' }]
         }),
         createMockOutput({
           id: 2,
           outputType: 'segment',
           started: startTime,
           ended: startTime + 60000,
-          metrics: [{ type: 'effort', metricType: MetricType.Effort, value: 'Work', image: 'Work' }]
+          metrics: [{ type: MetricType.Effort, value: 'Work', image: 'Work' }]
         }),
         createMockOutput({
           id: 3,
           outputType: 'system',
           started: startTime + 60000,
           ended: startTime + 60000,
-          metrics: [{ type: 'lifecycle', metricType: MetricType.System, value: 'pop', image: 'pop' }]
+          metrics: [{ type: MetricType.System, value: 'pop', image: 'pop' }]
         })
       ];
 
@@ -130,7 +130,7 @@ describe('AnalyticsTransformer', () => {
           outputType: 'segment',
           started: startTime,
           ended: startTime + 1200000,
-          metrics: [{ type: 'amrap', metricType: MetricType.Duration, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
+          metrics: [{ type: MetricType.Duration, value: '20:00 AMRAP', image: '20:00 AMRAP' }],
           hints: ['amrap', 'time_bound']
         });
 
@@ -150,7 +150,7 @@ describe('AnalyticsTransformer', () => {
           started: spanStart,
           ended: spanEnd,
           sourceBlockKey: 'timed-block',
-          metrics: [{ type: 'effort', metricType: MetricType.Effort, value: 'Run', image: 'Run' }],
+          metrics: [{ type: MetricType.Effort, value: 'Run', image: 'Run' }],
         });
         // Inject real spans (TimeSpan objects use epoch ms)
         (output as any).spans = [new TimeSpan(spanStart, spanEnd)];

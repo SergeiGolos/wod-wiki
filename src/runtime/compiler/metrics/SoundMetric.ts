@@ -1,6 +1,4 @@
 import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
-import { MetricBehavior } from "../../../types/MetricBehavior";
-
 /**
  * Trigger types for when a sound should play.
  */
@@ -21,12 +19,10 @@ export type SoundTrigger = 'mount' | 'unmount' | 'countdown' | 'complete';
  * ```
  */
 export class SoundMetric implements IMetric {
-    readonly type: string = 'sound';
-    readonly metricType = MetricType.Sound;
+    readonly type = MetricType.Sound;
     readonly origin: MetricOrigin;
     readonly value: SoundMetricValue;
     readonly image: string;
-    readonly behavior: MetricBehavior = MetricBehavior.Recorded;
 
     constructor(
         /** Sound identifier or URL */
@@ -41,7 +37,7 @@ export class SoundMetric implements IMetric {
             origin?: MetricOrigin;
         } = {}
     ) {
-        this.origin = options.origin ?? 'runtime';
+        this.origin = options.origin ?? 'tracked';
         this.value = {
             sound,
             trigger,

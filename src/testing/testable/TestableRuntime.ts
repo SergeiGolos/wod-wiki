@@ -161,7 +161,7 @@ class StubBlock implements IRuntimeBlock {
   get label(): string {
     for (const loc of this._memory) {
       for (const frag of loc.metrics) {
-        if ((frag as any).metricType === MetricType.Label) {
+        if ((frag as any).type === MetricType.Label) {
           return frag.image || (frag.value as any)?.toString() || this.blockType || 'Block';
         }
       }
@@ -186,8 +186,7 @@ class StubBlock implements IRuntimeBlock {
     const labelText = config.label ?? config.key;
     if (labelText) {
       this._memory.push(new MemoryLocation('metric:label', [{
-        metricType: MetricType.Label,
-        type: 'label',
+        type: MetricType.Label,
         image: labelText,
         origin: 'config',
         value: labelText

@@ -64,11 +64,11 @@ export const GridRow: React.FC<GridRowProps> = ({
         <React.Fragment key={col.id}>
           {renderFixedCell(col, row) ?? (
             <GridCell
-              cell={col.metricType ? row.cells.get(col.metricType) : undefined}
-              metricType={col.metricType}
+              cell={col.type ? row.cells.get(col.type) : undefined}
+              metricType={col.type}
               blockKey={row.sourceBlockKey}
               indent={
-                (col.metricType === MetricType.System || col.metricType === MetricType.Effort)
+                (col.type === MetricType.System || col.type === MetricType.Effort)
                   ? row.stackLevel
                   : 0
               }

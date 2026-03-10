@@ -25,7 +25,7 @@ class TestStatement implements ICodeStatement {
   }
 
   hasMetric(type: MetricType): boolean {
-    return this.metrics.some(f => f.metricType === type);
+    return this.metrics.some(f => f.type === type);
   }
 }
 
@@ -37,7 +37,7 @@ class TestFragment implements IMetric {
   origin: 'parser' | 'behavior' | 'strategy' = 'parser';
 
   constructor(type: MetricType) {
-    this.metricType = type;
+    this.type = type;
   }
 }
 

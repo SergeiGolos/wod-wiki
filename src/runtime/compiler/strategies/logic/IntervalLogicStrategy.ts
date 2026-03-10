@@ -34,12 +34,12 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has timer and (hint or EMOM keyword)
-        const hasTimer = statements.some(s => s.metrics.some(f => f.metricType === MetricType.Duration));
+        const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration));
         const isInterval = statements.some(s => s.hints?.has('behavior.repeating_interval') ?? false);
 
         // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version
         const hasEmomAction = statements.some(s => s.metrics.some(
-            f => (f.metricType === MetricType.Action || f.metricType === MetricType.Effort)
+            f => (f.type === MetricType.Action || f.type === MetricType.Effort)
                 && typeof f.value === 'string'
                 && f.value.toLowerCase() === 'emom'
         ));
@@ -48,15 +48,15 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         const firstStatementWithTimer = statements.find(s => s.metrics.some(
-            f => f.metricType === MetricType.Duration
+            f => f.type === MetricType.Duration
         )) || statements[0];
 
         const timerFragment = firstStatementWithTimer.metrics.find(
-            f => f.metricType === MetricType.Duration
+            f => f.type === MetricType.Duration
         ) as DurationMetric | undefined;
 
         const roundsFragment = statements.flatMap(s => s.metrics).find(
-            f => f.metricType === MetricType.Rounds
+            f => f.type === MetricType.Rounds
         ) as RoundsMetric | undefined;
 
         const intervalMs = timerFragment?.value || 60000; // Default 1 minute

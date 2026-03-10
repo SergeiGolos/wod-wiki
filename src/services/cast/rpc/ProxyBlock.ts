@@ -330,8 +330,7 @@ export class ProxyBlock implements IRuntimeBlock {
             role: timer.role,
         };
         return [{
-            type: 'time',
-            metricType: MetricType.Time,
+            type: MetricType.Time,
             image: '',
             origin: 'runtime' as any,
             value: timerState,

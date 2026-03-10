@@ -69,8 +69,7 @@ export class EmitSystemOutputAction implements IRuntimeAction {
     };
 
     const metric: IMetric = {
-      metricType: MetricType.System,
-      type: this.event === 'event-action' ? 'event-action' : 'lifecycle',
+      type: MetricType.System,
       image: this.message,
       value,
       origin: 'runtime',

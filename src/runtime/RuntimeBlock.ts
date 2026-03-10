@@ -48,7 +48,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Check all memory locations for a Label metrics
         for (const loc of this._memory) {
             for (const frag of loc.metrics) {
-                if (frag.metricType === MetricType.Label) {
+                if (frag.type === MetricType.Label) {
                     return frag.image || frag.value?.toString() || this.blockType || 'Block';
                 }
             }
@@ -99,8 +99,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         // Store label as a Label metrics in memory (only if explicitly provided)
         if (label) {
             this._memory.push(new MemoryLocation('metric:label', [{
-                metricType: MetricType.Label,
-                type: 'label',
+                type: MetricType.Label,
                 image: label,
                 origin: 'compiler',
                 value: label,
@@ -230,12 +229,12 @@ export class RuntimeBlock implements IRuntimeBlock {
                 loc.update(updated);
             } else {
                 // Create a new metrics with the value
-                loc.update([{ metricType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
             }
         } else {
             // Push a new location with the value
             const location = new MemoryLocation(tag, [
-                { metricType: 0, type: tag, image: '', origin: 'runtime', value } as any
+                { type: 0, image: '', origin: 'runtime', value } as any
             ]);
             this._memory.push(location);
         }
@@ -500,8 +499,7 @@ export class RuntimeBlock implements IRuntimeBlock {
 
         // Create the metrics
         const metric: IMetric = {
-            metricType: MetricType.System,
-            type: 'lifecycle',
+            type: MetricType.System,
             image: `next: ${this.label ?? this.blockType ?? 'Block'} [${this.key.toString().slice(0, 8)}]`,
             value,
             origin: 'runtime',

@@ -29,8 +29,8 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
             // For 'round': metrics is the roundState itself (cast pattern)
             // For 'time': metric has .value = timerState
             const frag: IMetric = tag === 'round'
-                ? { ...value, metricType: MetricType.CurrentRound, type: 'current-round', image: '', origin: 'runtime' as any } as any
-                : { metricType: 0 as any, type: tag, image: '', origin: 'runtime' as any, value };
+                ? { ...value, type: MetricType.CurrentRound, image: '', origin: 'runtime' as any } as any
+                : { type: 0 as any, image: '', origin: 'runtime' as any, value };
             const existing = memoryLocations.get(tag);
             if (existing) {
                 existing.update([frag]);
@@ -87,7 +87,7 @@ describe('CountdownTimerBehavior - Round Increment', () => {
 
         expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
             expect.objectContaining({
-                metricType: MetricType.CurrentRound,
+                type: MetricType.CurrentRound,
                 value: 2
             })
         ]));

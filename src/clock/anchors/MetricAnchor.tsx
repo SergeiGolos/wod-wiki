@@ -24,7 +24,7 @@ const aggregateFragments = (
   metricType?: string, 
   aggregator: 'sum' | 'avg' | 'min' | 'max' | 'count' = 'sum'
 ) => {
-  if (!metric || metrics.length === 0) return 0;
+  if (!metrics || metrics.length === 0) return 0;
   
   const allFragments = metrics.flat();
   const filtered = metricType 

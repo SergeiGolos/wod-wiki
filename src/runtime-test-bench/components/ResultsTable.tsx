@@ -29,7 +29,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
     const parts = [];
 
     for (const f of flat) {
-      if (f.value !== undefined && f.image && f.metricType !== 'effort' && f.metricType !== 'action' && f.metricType !== 'rounds' && f.metricType !== 'current-round' && f.metricType !== 'time') {
+      if (f.value !== undefined && f.image && f.type !== 'effort' && f.type !== 'action' && f.type !== 'rounds' && f.type !== 'current-round' && f.type !== 'time') {
         parts.push(f.image);
       }
     }
@@ -68,7 +68,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
               );
 
             const label = metricsToLabel(output.metrics);
-            const type = output.metrics.find(f => f.metricType === 'rounds' || f.metricType === 'current-round' || f.metricType === 'duration' || f.metricType === 'effort')?.type || 'group';
+            const type = output.metrics.find(f => f.type === 'rounds' || f.type === 'current-round' || f.type === 'duration' || f.type === 'effort')?.type || 'group';
             const isOpen = output.timeSpan && !output.timeSpan.ended;
 
             return (

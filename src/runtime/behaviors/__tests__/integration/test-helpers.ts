@@ -103,7 +103,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         get label(): string {
             for (const loc of memoryLocations) {
                 for (const frag of loc.metrics) {
-                    if (frag.metricType === MetricType.Label) {
+                    if (frag.type === MetricType.Label) {
                         return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
                     }
                 }
@@ -132,8 +132,7 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
     const labelText = config.label ?? config.blockType ?? 'Test Block';
     if (labelText) {
         memoryLocations.push(new MemoryLocation('metric:label', [{
-            metricType: MetricType.Label,
-            type: 'label',
+            type: MetricType.Label,
             image: labelText,
             origin: 'config',
             value: labelText
@@ -212,8 +211,7 @@ export function createIntegrationContext(
             const locations = block.getMemoryByTag(tag);
             if (locations.length > 0) {
                 const metric: IMetric = {
-                    metricType: 0 as any,
-                    type: tag,
+                    type: 0 as any,
                     image: '',
                     origin: 'runtime',
                     value,
@@ -223,8 +221,7 @@ export function createIntegrationContext(
                 locations[0].update([metric]);
             } else {
                 const metric: IMetric = {
-                    metricType: 0 as any,
-                    type: tag,
+                    type: 0 as any,
                     image: '',
                     origin: 'runtime',
                     value,
