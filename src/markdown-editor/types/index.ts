@@ -45,17 +45,19 @@ export interface ParseError {
   excerpt?: string;
 }
 
+import { MetricOrigin } from '../../core/models/Metric';
+
 /**
  * Workout metrics metrics collected during execution.
- * Uses unified IMetric format with MetricBehavior for consistency.
+ * Uses unified IMetric format with MetricOrigin for consistency.
  * 
  * Replaces legacy WorkoutMetric ad-hoc format in Phase 3.
  */
 export interface WorkoutMetricFragment {
   /** The code metrics representing this metrics */
   metric: IMetric;
-  /** Behavior classification (Collected, Recorded, etc.) */
-  behavior?: MetricBehavior;
+  /** Origin classification (Collected, Recorded, etc.) */
+  origin?: MetricOrigin;
   /** Timestamp when collected */
   timestamp?: number;
 }
