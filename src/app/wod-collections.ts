@@ -6,8 +6,8 @@
  * Uses Vite's import.meta.glob feature to discover files at build time.
  */
 
-// Glob all markdown files inside wod/ subdirectories (recursive)
-const collectionModules = import.meta.glob('../../wod/**/*.md', {
+// Glob all markdown files inside wod/ — both nested and root-level
+const collectionModules = import.meta.glob(['../../wod/**/*.md', '../../wod/*.md'], {
     query: '?raw',
     eager: true,
     import: 'default',
