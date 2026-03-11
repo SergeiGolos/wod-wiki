@@ -461,15 +461,31 @@ const ReceiverApp: React.FC = () => {
     });
 
     // Local clock for smooth timer interpolation
+    // Uses the proxy runtime's clock sync offset to match sender's elapsed time
     useEffect(() => {
         let frameId: number;
         const tick = () => {
-            setNow(Date.now());
+            // Use the sender's clock time (adjusted for drift) instead of local Date.now()
+            const senderNow = runtimeRef.current?.getSenderClockTimeMs() ?? Date.now();
+            setNow(senderNow);
             frameId = requestAnimationFrame(tick);
         };
         tick();
         return () => cancelAnimationFrame(frameId);
     }, []);
+
+    // Expose the sender's clock time globally for useTimerDisplay hook access
+    useEffect(() => {
+        const updateClock = () => {
+            (window as any).__chromecast_senderClockTimeMs = runtimeRef.current?.getSenderClockTimeMs?.bind(runtimeRef.current) ?? (() => Date.now());
+        };
+        updateClock();
+
+        // Update whenever proxyRuntime changes
+        const cleanup = () => (window as any).__chromecast_senderClockTimeMs = undefined;
+
+        return cleanup;
+    }, [proxyRuntime]);
 
     /** 
      * Initialize/Re-initialize the WebRTC transport and ProxyRuntime.

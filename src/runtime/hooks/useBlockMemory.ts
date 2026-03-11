@@ -151,7 +151,18 @@ export interface TimerDisplayValues {
  */
 export function useTimerDisplay(block: IRuntimeBlock | undefined): TimerDisplayValues | null {
     const timer = useTimerState(block);
-    const [now, setNow] = useState(Date.now());
+
+    // Get the sender's clock time if available (Chromecast receiver), otherwise use local clock
+    // We check for the global window property set by the receiver during Chromecast sessions
+    const getNow = (): number => {
+        // Check if we're in a Chromecast receiver context
+        if (typeof (window as any).__chromecast_senderClockTimeMs === 'function') {
+            return (window as any).__chromecast_senderClockTimeMs();
+        }
+        return Date.now();
+    };
+
+    const [now, setNow] = useState(getNow());
 
     // Determine if timer is running (last span has no end time)
     const isRunning = useMemo(() => {
@@ -169,7 +180,7 @@ export function useTimerDisplay(block: IRuntimeBlock | undefined): TimerDisplayV
 
         const tick = () => {
             if (running) {
-                setNow(Date.now());
+                setNow(getNow());
                 animationFrameId = requestAnimationFrame(tick);
             }
         };

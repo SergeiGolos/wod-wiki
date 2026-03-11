@@ -24,6 +24,7 @@ import { ChromecastEventProvider } from '@/services/cast/rpc/ChromecastEventProv
 import { CAST_APP_ID, hasCustomCastAppId } from '@/services/cast/config';
 import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';
 import { cn } from '@/lib/utils';
+import { ClockSyncService } from '@/services/cast/rpc/ClockSync';
 
 const CHROMECAST_SUBSCRIPTION_ID = 'chromecast';
 
@@ -38,6 +39,7 @@ export const CastButtonRpc: React.FC = () => {
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
     const eventProviderRef = useRef<ChromecastEventProvider | null>(null);
     const buttonRef = useRef<HTMLButtonElement | null>(null);
+    const clockSyncRef = useRef<ClockSyncService | null>(null);
 
     // Track state in refs for the native event listener closure
     const isCastingRef = useRef(false);
@@ -90,6 +92,11 @@ export const CastButtonRpc: React.FC = () => {
         const eventProvider = eventProviderRef.current;
         eventProviderRef.current = null;
         eventProvider?.dispose();
+
+        // Clean up clock sync service
+        const clockSync = clockSyncRef.current;
+        clockSyncRef.current = null;
+        clockSync?.dispose();
 
         transport?.dispose();
         setCastTransport(null);
@@ -178,6 +185,20 @@ export const CastButtonRpc: React.FC = () => {
                 transportRef.current = transport;
 
                 await transport.connect();
+
+                // Perform clock synchronization to account for clock drift between devices
+                try {
+                    const clockSync = new ClockSyncService(transport);
+                    clockSyncRef.current = clockSync;
+
+                    console.log('[CastButtonRpc] Starting clock synchronization...');
+                    const result = await clockSync.sync();
+                    console.log(`[CastButtonRpc] Clock sync complete: offset=${result.offsetMs.toFixed(2)}ms, avg RTT=${result.avgRttMs.toFixed(2)}ms`);
+                } catch (err) {
+                    console.error('[CastButtonRpc] Clock sync failed:', err);
+                    // Don't fail the cast if sync fails — timers will still work
+                    // with default (unsynchronized) behavior
+                }
 
                 const eventProvider = new ChromecastEventProvider(transport);
                 eventProviderRef.current = eventProvider;
