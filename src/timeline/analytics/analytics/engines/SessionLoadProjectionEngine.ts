@@ -49,6 +49,7 @@ export class SessionLoadProjectionEngine implements IProjectionEngine {
       name: 'Training Load',
       value: sessionLoad,
       unit: 'AU',
+      metricType: MetricType.Load,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       metadata: { sRPE, durationMinutes: totalElapsedMs / 60000 },
     }];

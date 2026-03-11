@@ -28,6 +28,7 @@ export class RepProjectionEngine implements IProjectionEngine {
       name: 'Total Reps',
       value: totalReps,
       unit: 'reps',
+      metricType: MetricType.Rep,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
     }];
   }

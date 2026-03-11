@@ -99,7 +99,8 @@ export class AnalyticsTransformer {
         f.type === 'action' ||
         f.type === 'duration' ||
         f.type === 'rounds' ||
-        f.type === 'current-round'
+        f.type === 'current-round' ||
+        f.type === 'label'
       );
       const label = nameFragment?.image || output.sourceBlockKey;
       const type = nameFragment?.type || output.outputType;

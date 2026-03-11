@@ -72,7 +72,7 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
             blockType: string;
             label: string;
             isComplete: boolean;
-            timer: { isRunning: boolean; spans: Array<{ started: number }>; durationMs?: number } | null;
+            timer: { isRunning: boolean; spans: Array<{ started: number }>; durationMs?: number; role?: string } | null;
             displayFragments: unknown[][];
             promoteFragments?: unknown[][];
             resultFragments?: unknown[][];
@@ -93,7 +93,7 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
             );
             if (block.timer) {
                 parts.push(
-                    `timer:${block.timer.isRunning}:${block.timer.spans.length}:${block.timer.durationMs}:${block.timer.spans[0]?.started ?? ''}`,
+                    `timer:${block.timer.isRunning}:${block.timer.spans.length}:${block.timer.durationMs}:${block.timer.spans[0]?.started ?? ''}:${block.timer.role ?? ''}`,
                 );
             }
             // Include metrics tier counts so added/removed rows trigger a re-send

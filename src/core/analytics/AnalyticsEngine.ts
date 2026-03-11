@@ -6,8 +6,10 @@ import { IOutputStatement } from '../models/OutputStatement';
  *
  * Each process is purely stateless and segment-local: it reads the current
  * statement's metrics (including those added by earlier processes) and pushes
- * additional derived metrics back. Aggregation belongs in the projection
- * pipeline (AnalysisService / IProjectionEngine).
+ * additional derived metrics back onto `output.metrics`.
+ *
+ * Aggregation processes can also be added here, which accumulate state
+ * across multiple segments and emit summary statements when finalize() is called.
  */
 export class AnalyticsEngine implements IAnalyticsEngine {
     private processes: IAnalyticsProcess[] = [];
@@ -30,5 +32,20 @@ export class AnalyticsEngine implements IAnalyticsEngine {
             }
         }
         return currentOutput;
+    }
+
+    /**
+     * Finalize all processes and collect any summary output statements.
+     */
+    finalize(): IOutputStatement[] {
+        const results: IOutputStatement[] = [];
+        for (const process of this.processes) {
+            try {
+                results.push(...process.finalize());
+            } catch (err) {
+                console.error(`[AnalyticsEngine] Error finalizing process '${process.id}':`, err);
+            }
+        }
+        return results;
     }
 }

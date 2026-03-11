@@ -14,7 +14,7 @@ import { WodScript } from '@/parser/WodScript';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
 import type { IRpcTransport } from './IRpcTransport';
-import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcTrackerUpdate } from './RpcMessages';
+import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcTrackerUpdate, RpcClockSyncResponse } from './RpcMessages';
 import { ProxyBlock } from './ProxyBlock';
 
 // ── Stub implementations ────────────────────────────────────────────────────
@@ -182,6 +182,14 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     private _workbenchState: WorkbenchDisplayState = { mode: 'idle' };
     private workbenchListeners = new Set<WorkbenchStateListener>();
 
+    /**
+     * Clock synchronization state.
+     * Stores the offset between receiver's clock and sender's clock.
+     * Used to calculate accurate elapsed time on the receiver.
+     * Positive offset means receiver's clock is ahead of sender's.
+     */
+    private clockOffsetMs: number = 0;
+
     constructor(private readonly transport: IRpcTransport) {
         this.proxyStack = new ProxyStack();
         this.proxyEventBus = new ProxyEventBus();
@@ -247,6 +255,37 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
 
     /** Current workbench display state (mode + optional preview/review data). */
     get workbenchState(): WorkbenchDisplayState { return this._workbenchState; }
+
+    /**
+     * Get the sender's clock time, adjusted for the measured offset.
+     * This allows the receiver to calculate elapsed time that matches the sender.
+     *
+     * @returns The sender's clock time as a Date
+     */
+    getSenderClockTime(): Date {
+        return new Date(Date.now() - this.clockOffsetMs);
+    }
+
+    /**
+     * Get the sender's clock time as epoch milliseconds.
+     * Used by timer calculations to match sender's elapsed time.
+     *
+     * @returns The sender's clock time in milliseconds since epoch
+     */
+    getSenderClockTimeMs(): number {
+        return Date.now() - this.clockOffsetMs;
+    }
+
+    /**
+     * Set the clock offset from sync result.
+     * Called when browser sends clock-sync-result after the initial handshake.
+     *
+     * @param offsetMs Clock offset in milliseconds (positive = receiver is ahead)
+     */
+    setClockOffset(offsetMs: number): void {
+        this.clockOffsetMs = offsetMs;
+        console.log(`[ChromecastProxyRuntime] Clock offset set to ${offsetMs}ms`);
+    }
 
     getOutputStatements(): IOutputStatement[] {
         return [...this.outputs];
@@ -314,6 +353,12 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
 
     private handleRpcMessage(message: RpcMessage): void {
         switch (message.type) {
+            case 'rpc-clock-sync-request':
+                this.handleClockSyncRequest(message);
+                break;
+            case 'rpc-clock-sync-result':
+                this.handleClockSyncResult(message);
+                break;
             case 'rpc-stack-update':
                 this.handleStackUpdate(message);
                 break;
@@ -480,5 +525,27 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         for (const listener of this.workbenchListeners) {
             listener(this._workbenchState);
         }
+    }
+
+    /**
+     * Handle clock sync request from browser.
+     * Respond with our current timestamp and echo the request timestamp.
+     */
+    private handleClockSyncRequest(message: { type: 'rpc-clock-sync-request'; timestamp: number }): void {
+        const response: RpcClockSyncResponse = {
+            type: 'rpc-clock-sync-response',
+            requestTimestamp: message.timestamp,
+            receiverTimestamp: Date.now(),
+        };
+        this.transport.send(response);
+    }
+
+    /**
+     * Handle clock sync result from browser.
+     * Browser calculates the offset using RTT and sends it back.
+     */
+    private handleClockSyncResult(message: { type: 'rpc-clock-sync-result'; offsetMs: number; rttMs: number }): void {
+        this.setClockOffset(message.offsetMs);
+        console.log(`[ChromecastProxyRuntime] Clock sync complete — offset: ${message.offsetMs}ms, RTT: ${message.rttMs}ms`);
     }
 }

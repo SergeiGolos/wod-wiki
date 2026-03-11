@@ -180,6 +180,42 @@ export interface RpcTrackerUpdate {
 }
 
 /**
+ * Clock synchronization request sent by browser on connection.
+ * Used to calculate clock offset between sender and receiver.
+ */
+export interface RpcClockSyncRequest {
+    type: 'rpc-clock-sync-request';
+    /** Browser's timestamp when this request was sent */
+    timestamp: number;
+}
+
+/**
+ * Clock synchronization response from receiver.
+ * Receiver includes its own timestamp and echoes back the request timestamp.
+ * Browser uses this to calculate RTT and clock offset.
+ */
+export interface RpcClockSyncResponse {
+    type: 'rpc-clock-sync-response';
+    /** Original request timestamp from browser (for RTT calculation) */
+    requestTimestamp: number;
+    /** Receiver's timestamp when this response was sent */
+    receiverTimestamp: number;
+}
+
+/**
+ * Clock sync result sent by browser back to receiver.
+ * Contains the calculated clock offset (receiver's clock minus sender's clock).
+ * Receiver uses this to adjust elapsed time calculations.
+ */
+export interface RpcClockSyncResult {
+    type: 'rpc-clock-sync-result';
+    /** Clock offset in milliseconds (positive = receiver is ahead, negative = receiver is behind) */
+    offsetMs: number;
+    /** Round-trip time in milliseconds (for debugging/reliability) */
+    rttMs: number;
+}
+
+/**
  * Union of all RPC message types sent over the DataChannel.
  */
 export type RpcMessage =
@@ -188,4 +224,7 @@ export type RpcMessage =
     | RpcTrackerUpdate
     | RpcEvent
     | RpcDispose
-    | RpcWorkbenchUpdate;
+    | RpcWorkbenchUpdate
+    | RpcClockSyncRequest
+    | RpcClockSyncResponse
+    | RpcClockSyncResult;

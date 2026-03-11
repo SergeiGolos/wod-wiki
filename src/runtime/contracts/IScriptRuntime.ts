@@ -168,5 +168,11 @@ export interface IScriptRuntime {
      */
     setAnalyticsEngine(engine: IAnalyticsEngine): void;
 
+    /**
+     * Finalize the analytics engine and return any summary output statements.
+     * These statements are also automatically added to the runtime's internal list.
+     */
+    finalizeAnalytics(): IOutputStatement[];
+
     dispose(): void;
 }

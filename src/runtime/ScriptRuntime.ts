@@ -136,6 +136,31 @@ export class ScriptRuntime implements IScriptRuntime {
             this._activeContext.execute(action);
         } finally {
             this._activeContext = null;
+            // After the full execution turn settles (push + mount + child pushes all done),
+            // re-notify stack observers with the current state. This ensures blocks that
+            // set up timer memory during mount() are serialized with correct timer data.
+            // Without this, leaf blocks (no children pushed on mount) would have timer:null
+            // in the Chromecast snapshot because push fires before mount initializes memory.
+            this._notifyStackSettled();
+        }
+    }
+
+    private _notifyStackSettled(): void {
+        if (this._stackObservers.size === 0) return;
+        const blocks = this.stack.blocks;
+        if (blocks.length === 0) return;
+        const snapshot: StackSnapshot = {
+            type: 'initial',
+            blocks,
+            depth: blocks.length,
+            clockTime: this.clock.now,
+        };
+        for (const observer of this._stackObservers) {
+            try {
+                observer(snapshot);
+            } catch (err) {
+                console.error('[RT] Stack observer error (settled):', err);
+            }
         }
     }
 
@@ -260,6 +285,29 @@ export class ScriptRuntime implements IScriptRuntime {
      */
     public setAnalyticsEngine(engine: IAnalyticsEngine): void {
         this._analyticsEngine = engine;
+    }
+
+    /**
+     * Finalize the analytics engine and return any summary output statements.
+     */
+    public finalizeAnalytics(): IOutputStatement[] {
+        if (!this._analyticsEngine) return [];
+
+        const summaryOutputs = this._analyticsEngine.finalize();
+        for (const output of summaryOutputs) {
+            // We bypass addOutput here to avoid running the enrichment chain on 
+            // summary statements that are already fully processed.
+            this._outputStatements.push(output);
+
+            for (const listener of this._outputListeners) {
+                try {
+                    listener(output);
+                } catch (err) {
+                    console.error('[RT] Finalize output listener error:', err);
+                }
+            }
+        }
+        return summaryOutputs;
     }
 
     // ========== Stack Observer API ==========

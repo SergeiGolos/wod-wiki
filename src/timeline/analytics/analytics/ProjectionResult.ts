@@ -1,3 +1,4 @@
+import type { MetricType } from '../../../core/models/Metric';
 import type { TimeSpan } from '../../../core/models/CollectionSpan';
 
 /**
@@ -15,6 +16,9 @@ export interface ProjectionResult {
   
   /** Unit of measurement (e.g., "kg", "watts", "calories") */
   unit: string;
+
+  /** Associated metric type for UI categorization (optional) */
+  metricType?: MetricType | string;
   
   /** Time span over which this projection was calculated */
   timeSpan: TimeSpan;

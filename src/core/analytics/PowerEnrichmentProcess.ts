@@ -56,4 +56,8 @@ export class PowerEnrichmentProcess implements IAnalyticsProcess {
 
         return output;
     }
+
+    finalize(): IOutputStatement[] {
+        return [];
+    }
 }

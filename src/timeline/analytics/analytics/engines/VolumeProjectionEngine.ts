@@ -76,6 +76,7 @@ export class VolumeProjectionEngine implements IProjectionEngine {
       name: "Total Volume",
       value: totalVolume,
       unit: "kg",
+      metricType: MetricType.Volume,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       metadata: {
         exerciseName: definition.name,
@@ -116,6 +117,7 @@ export class VolumeProjectionEngine implements IProjectionEngine {
       name: 'Volume Load',
       value: totalVolume,
       unit: 'kg',
+      metricType: MetricType.Volume,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
     }];
   }

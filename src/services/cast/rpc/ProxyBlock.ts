@@ -45,7 +45,7 @@ export class ReactiveMemoryLocation implements IMemoryLocation {
      * Called by ProxyBlock.update() when a new RPC snapshot arrives for this block.
      */
     update(metrics: IMetric[]): void {
-        const old = this._metric;
+        const old = this._metrics;
         this._metrics = metrics;
         for (const listener of this.listeners) {
             listener(metrics, old);

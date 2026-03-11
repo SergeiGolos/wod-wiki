@@ -77,4 +77,8 @@ export class PaceEnrichmentProcess implements IAnalyticsProcess {
 
         return output;
     }
+
+    finalize(): IOutputStatement[] {
+        return [];
+    }
 }

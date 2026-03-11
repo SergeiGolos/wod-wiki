@@ -111,6 +111,9 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     // save output statements and navigate to review automatically.
     useEffect(() => {
         if (execution.status === 'completed' && execution.startTime) {
+            // Finalize summary metrics before completion
+            runtime?.finalizeAnalytics();
+
             completeWorkout({
                 startTime: execution.startTime,
                 endTime: Date.now(),
@@ -130,6 +133,9 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     const handlePause = () => execution.pause();
     const handleStop = () => {
         execution.stop();
+        // Finalize summary metrics before completion
+        runtime?.finalizeAnalytics();
+        
         completeWorkout({
             startTime: execution.startTime || Date.now(),
             endTime: Date.now(),

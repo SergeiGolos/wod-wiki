@@ -249,7 +249,7 @@ const ReceiverTimerPanel: React.FC<{
     // exercise (e.g. "21 Thrusters") rather than the session root's generic
     // "Session" string. Fall back to the timer's own label when it's more
     // descriptive (AMRAP countdown, etc.) or when there's only one block.
-    const leafLabel = blocks.at(-1)?.label;
+    const leafLabel = blocks[0]?.label;
     const timerLabel = (leafLabel && leafLabel !== primaryTimerEntry?.timer.label)
         ? leafLabel
         : (primaryTimerEntry?.timer.label || 'Session');

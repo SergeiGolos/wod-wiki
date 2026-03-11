@@ -47,7 +47,9 @@ export class MetMinuteProjectionEngine implements IProjectionEngine {
       name: 'Energy',
       value: Math.round(totalMetMinutes),
       unit: 'MET-min',
+      metricType: MetricType.Work,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
     }];
+
   }
 }

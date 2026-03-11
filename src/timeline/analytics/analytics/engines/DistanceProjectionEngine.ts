@@ -35,6 +35,7 @@ export class DistanceProjectionEngine implements IProjectionEngine {
       name: 'Total Distance',
       value: totalDistance,
       unit,
+      metricType: MetricType.Distance,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
     }];
   }

@@ -52,9 +52,7 @@ export const GridCell: React.FC<GridCellProps> = ({ cell, metricType, blockKey, 
         />
       )}
 
-      {(!cell || cell.metrics.length === 0) ? (
-        <span className="text-muted-foreground/40 text-xs">—</span>
-      ) : (
+      {cell && cell.metrics.length > 0 && (
         cell.metrics.map((frag, idx) => (
           <MetricPill key={idx} metric={frag} />
         ))
@@ -65,7 +63,7 @@ export const GridCell: React.FC<GridCellProps> = ({ cell, metricType, blockKey, 
   return (
     <td
       ref={tdRef}
-      className={`py-1 px-2 cursor-cell ${(!cell || cell.metrics.length === 0) ? 'text-center' : ''}`}
+      className="py-1 px-2 cursor-cell"
       onDoubleClick={handleDoubleClick}
     >
       {content}

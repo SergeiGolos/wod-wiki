@@ -1,8 +1,9 @@
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
-import { IOutputStatement } from '../models/OutputStatement';
-import { IMetric } from '../models/Metric';
+import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
+import { IMetric, MetricType } from '../models/Metric';
 import { AnalysisService } from '../../timeline/analytics/analytics/AnalysisService';
 import { RuntimeStackTracker } from '../../runtime/contracts/IRuntimeOptions';
+import { TimeSpan } from '../../runtime/models/TimeSpan';
 
 /**
  * ProjectionSyncProcess - Bridges the projection pipeline into the real-time tracker.
@@ -46,5 +47,40 @@ export class ProjectionSyncProcess implements IAnalyticsProcess {
     }
 
     return output;
+  }
+
+  finalize(): IOutputStatement[] {
+    const workoutResults = this.analysisService.runWorkoutProjections(this.allMetrics);
+    const exerciseResults = this.analysisService.runAllProjectionsFromFragments(this.allMetrics);
+
+    const now = Date.now();
+    return [...workoutResults, ...exerciseResults].map(result => {
+      // Create a Label metric for the result name so it appears as a row title
+      const metrics: IMetric[] = [
+        {
+          type: MetricType.Label,
+          image: result.name,
+          value: result.name,
+          origin: 'analyzed',
+          timestamp: new Date(now)
+        },
+        {
+          type: (result.metricType as MetricType) || MetricType.Metric,
+          image: `${result.value} ${result.unit}`,
+          value: result.value,
+          unit: result.unit,
+          origin: 'analyzed',
+          timestamp: new Date(now)
+        }
+      ];
+
+      return new OutputStatement({
+        outputType: 'analytics',
+        timeSpan: new TimeSpan(now, now),
+        sourceBlockKey: 'analytics-summary',
+        stackLevel: 0,
+        metrics
+      });
+    });
   }
 }
