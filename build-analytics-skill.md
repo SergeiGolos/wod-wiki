@@ -80,7 +80,7 @@ The analytics pipeline supports two fundamentally different roles. **Never mix t
 | Cross-segment mutable state  | ✅ Yes — accumulates totals        | ❌ None                          |
 | `process()` modifies segment | ❌ Returns output **unmodified**   | ✅ Pushes derived metrics         |
 | `finalize()` creates records | ✅ Emits summary `'analytics'`     | Always returns `[]`              |
-| Built-in examples            | `RepAnalyticsProcess`             | `SpeedEnrichmentProcess`         |
+| Built-in examples            | `RepProjectionEngine`             | `PaceEnrichmentProcess`          |
 
 ---
 
@@ -174,8 +174,7 @@ export class CustomRatioEnrichmentProcess implements IEnrichmentProcess {
 
 | Class | Formula | Output metric |
 |-------|---------|---------------|
-| `SpeedEnrichmentProcess` | distance ÷ elapsed → **m/s** | Speed + Pace (min/km) |
-| `RepRateEnrichmentProcess` | reps ÷ elapsed → **reps/min** | Rep rate |
+| `PaceEnrichmentProcess` | (reps or distance) ÷ elapsed | Pace (multiple units) |
 | `PowerEnrichmentProcess` | (reps × weight) ÷ elapsed → **kg/s** | Strength power proxy |
 | `MetMinuteProcess` | MET × minutes → **MET-min** | Per-segment energy cost |
 

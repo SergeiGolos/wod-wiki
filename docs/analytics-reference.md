@@ -31,8 +31,7 @@ Two calculation paths per engine:
 
 ```typescript
 // Pipeline A — enrichment processes (chain in order)
-engine.addProcess(new SpeedEnrichmentProcess());
-engine.addProcess(new RepRateEnrichmentProcess());
+engine.addProcess(new PaceEnrichmentProcess());
 engine.addProcess(new PowerEnrichmentProcess());
 
 // Pipeline B bridge — accumulates metrics, runs projections, writes to tracker
@@ -49,25 +48,15 @@ engine.addProcess(new ProjectionSyncProcess(projectionService, runtime.tracker))
 
 ## Pipeline A — Enrichment Processes
 
-### SpeedEnrichmentProcess
-**File:** [src/core/analytics/SpeedEnrichmentProcess.ts](../src/core/analytics/SpeedEnrichmentProcess.ts)
+### PaceEnrichmentProcess
+**File:** [src/core/analytics/PaceEnrichmentProcess.ts](../src/core/analytics/PaceEnrichmentProcess.ts)
 
 | Aspect | Details |
 |--------|---------|
-| **Triggers on** | Segment with `MetricType.Distance` + `MetricType.Elapsed` |
-| **Adds to segment** | `Speed (m/s)` = distance ÷ elapsedSeconds |
+| **Triggers on** | Segment with (`MetricType.Rep` OR `MetricType.Distance`) + `MetricType.Elapsed` |
+| **Adds to segment** | `Pace (reps/min)` = reps ÷ elapsedMinutes |
+| | `Pace (m/s)` = distance ÷ elapsedSeconds |
 | | `Pace (min/km)` = elapsedMinutes ÷ distanceKm |
-| **Metric origin** | `'analyzed'` |
-
----
-
-### RepRateEnrichmentProcess
-**File:** [src/core/analytics/RepRateEnrichmentProcess.ts](../src/core/analytics/RepRateEnrichmentProcess.ts)
-
-| Aspect | Details |
-|--------|---------|
-| **Triggers on** | Segment with `MetricType.Rep` + `MetricType.Elapsed` |
-| **Adds to segment** | `Rep Rate (reps/min)` = reps ÷ elapsedMinutes |
 | **Metric origin** | `'analyzed'` |
 
 ---
@@ -167,8 +156,7 @@ Runtime emits segment
         ▼
   AnalyticsEngine.run(segment)
         │
-        ├─► SpeedEnrichmentProcess.process()   ─► adds Speed + Pace metrics
-        ├─► RepRateEnrichmentProcess.process()  ─► adds Rep Rate metric
+        ├─► PaceEnrichmentProcess.process()    ─► adds Pace metrics
         ├─► PowerEnrichmentProcess.process()    ─► adds Power metric
         └─► ProjectionSyncProcess.process()
                 │
@@ -245,8 +233,7 @@ RunningSumProcess('resistance', MetricType.Resistance)
 RepAnalyticsProcess
 DistanceAnalyticsProcess
 WeightAnalyticsProcess
-SpeedEnrichmentProcess
-RepRateEnrichmentProcess
+PaceEnrichmentProcess
 PowerEnrichmentProcess
 VolumeLoadProcess
 MetMinuteProcess
@@ -403,31 +390,18 @@ TrackerSyncProcess
 
 These implement `IEnrichmentProcess`. They are **stateless** (no cross-segment accumulation), add metrics directly onto each segment that qualifies, and their `finalize()` always returns `[]`.
 
-### SpeedEnrichmentProcess
+### PaceEnrichmentProcess
 
-**File:** [src/core/analytics/SpeedEnrichmentProcess.ts](../src/core/analytics/SpeedEnrichmentProcess.ts)
-
-| Aspect | Details |
-|--------|---------|
-| **Triggers on** | Segment containing `MetricType.Distance` + `MetricType.Elapsed` |
-| **Decoration** | YES — adds TWO `MetricType.Metric` values to the segment (`origin: 'analyzed'`): |
-| | 1. **Speed (m/s)** = `distance / elapsedSeconds` |
-| | 2. **Pace (min/km)** = `elapsedMinutes / distanceKm` |
-| **Finalized output** | None |
-
----
-
-### RepRateEnrichmentProcess
-
-**File:** [src/core/analytics/RepRateEnrichmentProcess.ts](../src/core/analytics/RepRateEnrichmentProcess.ts)
+**File:** [src/core/analytics/PaceEnrichmentProcess.ts](../src/core/analytics/PaceEnrichmentProcess.ts)
 
 | Aspect | Details |
 |--------|---------|
-| **Triggers on** | Segment containing `MetricType.Rep` + `MetricType.Elapsed` |
-| **Decoration** | YES — adds ONE `MetricType.Metric` value to the segment (`origin: 'analyzed'`): |
-| | **Rep Rate (reps/min)** = `totalReps / (elapsedMs / 60000)` |
+| **Triggers on** | Segment containing (`MetricType.Rep` OR `MetricType.Distance`) + `MetricType.Elapsed` |
+| **Decoration** | YES — adds `MetricType.Metric` values with type `'pace'` to the segment (`origin: 'analyzed'`): |
+| | 1. **Pace (reps/min)** = `reps / elapsedMinutes` |
+| | 2. **Pace (m/s)** = `distance / elapsedSeconds` |
+| | 3. **Pace (min/km)** = `elapsedMinutes / distanceKm` |
 | **Finalized output** | None |
-| **Notes** | Sums all Rep metrics within the single segment before dividing |
 
 ---
 

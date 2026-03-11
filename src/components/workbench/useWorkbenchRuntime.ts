@@ -12,8 +12,7 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RegisterEventHandlerAction } from '../../runtime/actions/events/RegisterEventHandlerAction';
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
-import { SpeedEnrichmentProcess } from '../../core/analytics/SpeedEnrichmentProcess';
-import { RepRateEnrichmentProcess } from '../../core/analytics/RepRateEnrichmentProcess';
+import { PaceEnrichmentProcess } from '../../core/analytics/PaceEnrichmentProcess';
 import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
 import { ProjectionSyncProcess } from '../../core/analytics/ProjectionSyncProcess';
 import { AnalysisService } from '../../timeline/analytics/analytics/AnalysisService';
@@ -62,8 +61,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             // Pipeline A: stateless per-segment enrichment — derives metrics from
             // values already on the segment. Processes chain in registration order.
             const engine = new AnalyticsEngine();
-            engine.addProcess(new SpeedEnrichmentProcess());      // distance + elapsed → speed, pace
-            engine.addProcess(new RepRateEnrichmentProcess());     // reps + elapsed → reps/min
+            engine.addProcess(new PaceEnrichmentProcess());        // reps/distance + elapsed → pace (multiple units)
             engine.addProcess(new PowerEnrichmentProcess());       // reps + resistance + elapsed → power
 
             // Pipeline B: projection engines aggregate across all segments and push
