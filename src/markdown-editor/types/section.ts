@@ -9,6 +9,7 @@
  *  - title: Special first section — editing updates the note title.
  *  - markdown: Free-form markdown content rendered as rich text.
  *  - wod: Fenced code block (```` ```wod ````, ```` ```log ````, ```` ```plan ````).
+ *  - frontmatter: YAML front matter between `---` delimiters, rendered as table or embed.
  */
 
 import type { WodBlock } from './index';
@@ -21,7 +22,10 @@ export type WodDialect = 'wod' | 'log' | 'plan';
 export const VALID_WOD_DIALECTS: WodDialect[] = ['wod', 'log', 'plan'];
 
 /** Section types the editor can parse and render */
-export type SectionType = 'title' | 'markdown' | 'wod';
+export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter';
+
+/** Typed front matter subtypes — determines embed renderer */
+export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | 'file';
 
 /**
  * A single section in the document — the atomic unit of display and editing.
@@ -56,6 +60,12 @@ export interface Section {
 
   /** Associated WodBlock (only when type === 'wod') */
   wodBlock?: WodBlock;
+
+  /** Front matter key-value pairs (only when type === 'frontmatter') */
+  properties?: Record<string, string>;
+
+  /** Typed front matter subtype (only when type === 'frontmatter') */
+  frontmatterType?: FrontMatterSubtype;
 
   /** Section version (increments on content change or soft-delete) */
   version: number;

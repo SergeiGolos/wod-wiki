@@ -7,7 +7,7 @@
  * Workout: Fran — (21-15-9) Thrusters 95lb / Pullups
  * Pattern: SessionRoot > WaitingToStart > Loop(21-15-9) > [Thrusters, Pullups]×3
  *
- * Key difference from fixed-round: rep count changes per round via repScheme fragment.
+ * Key difference from fixed-round: rep count changes per round via repScheme metrics.
  *
  * @see docs/planning-output-statements/for-time-rep-scheme.md
  */

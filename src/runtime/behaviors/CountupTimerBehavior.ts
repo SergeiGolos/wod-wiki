@@ -3,7 +3,7 @@ import { IBehaviorContext, Unsubscribe } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 
 export interface CountupTimerConfig {
     /** Human-readable label shown in the display layer */
@@ -52,9 +52,9 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
             ctx.subscribe('timer:pause' as any, (_event, pCtx) => {
                 if (this.isPaused) return [];
                 const timeLoc = pCtx.getMemoryByTag('time')[0];
-                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
-                if (!timer || !timeLoc?.fragments[0]) return [];
-                pCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: closeCurrentSpan(timer.spans, pCtx.clock.now.getTime())}}]);
+                const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.metrics[0]) return [];
+                pCtx.updateMemory('time', [{...timeLoc.metrics[0], value: {...timer, spans: closeCurrentSpan(timer.spans, pCtx.clock.now.getTime())}}]);
                 this.isPaused = true;
                 return [];
             })
@@ -65,9 +65,9 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
             ctx.subscribe('timer:resume' as any, (_event, rCtx) => {
                 if (!this.isPaused) return [];
                 const timeLoc = rCtx.getMemoryByTag('time')[0];
-                const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
-                if (!timer || !timeLoc?.fragments[0]) return [];
-                rCtx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: [...timer.spans, new TimeSpan(rCtx.clock.now.getTime())]}}]);
+                const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
+                if (!timer || !timeLoc?.metrics[0]) return [];
+                rCtx.updateMemory('time', [{...timeLoc.metrics[0], value: {...timer, spans: [...timer.spans, new TimeSpan(rCtx.clock.now.getTime())]}}]);
                 this.isPaused = false;
                 return [];
             })
@@ -82,9 +82,9 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
         const timeLoc = ctx.getMemoryByTag('time')[0];
-        const timer = timeLoc?.fragments[0]?.value as TimerState | undefined;
-        if (!timer || timer.spans.length === 0 || !timeLoc?.fragments[0]) return [];
-        ctx.updateMemory('time', [{...timeLoc.fragments[0], value: {...timer, spans: closeCurrentSpan(timer.spans, ctx.clock.now.getTime())}}]);
+        const timer = timeLoc?.metrics[0]?.value as TimerState | undefined;
+        if (!timer || timer.spans.length === 0 || !timeLoc?.metrics[0]) return [];
+        ctx.updateMemory('time', [{...timeLoc.metrics[0], value: {...timer, spans: closeCurrentSpan(timer.spans, ctx.clock.now.getTime())}}]);
         return [];
     }
 
@@ -95,10 +95,9 @@ export class CountupTimerBehavior implements IRuntimeBehavior {
         this.subscriptions.length = 0;
     }
 
-    private createFragment(ctx: IBehaviorContext, state: TimerState): ICodeFragment {
+    private createFragment(ctx: IBehaviorContext, state: TimerState): IMetric {
         return {
-            fragmentType: FragmentType.Time,
-            type: 'time',
+            type: MetricType.Time,
             image: '0:00',
             origin: 'runtime',
             value: state,

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { ICodeStatement } from '../core/models/CodeStatement';
-import { FragmentSourceList } from './fragments/FragmentSourceList';
-import { FragmentSourceEntry, FragmentSourceStatus } from './fragments/FragmentSourceRow';
-import { IFragmentSource } from '../core/contracts/IFragmentSource';
-import { FragmentType } from '../core/models/CodeFragment';
+import { MetricSourceList } from './metrics/MetricSourceList';
+import { FragmentSourceEntry, FragmentSourceStatus } from './metrics/MetricSourceRow';
+import { IMetricSource } from '../core/contracts/IMetricSource';
+import { MetricType } from '../core/models/Metric';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
 
 export interface WodScriptVisualizerProps {
@@ -56,27 +56,27 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   className,
   maxHeight
 }) => {
-  // Convert statements to FragmentSourceEntry[] — statements implement IFragmentSource
+  // Convert statements to FragmentSourceEntry[] — statements implement IMetricSource
   const entries = useMemo(() => {
     const statementMap = new Map(statements.map(s => [s.id, s]));
 
     return statements.map((statement): FragmentSourceEntry => {
       const depth = calculateDepth(statement, statementMap);
-      const isLinked = statement.fragments.some(
-        f => f.fragmentType === FragmentType.Group && f.image === '+'
+      const isLinked = statement.metrics.some(
+        f => f.type === MetricType.Group && f.image === '+'
       );
       const hasChildren = statement.children && statement.children.length > 0;
-      const hasTimerOrRounds = statement.fragments.some(
-        f => f.fragmentType === FragmentType.Duration || f.fragmentType === FragmentType.Rounds
+      const hasTimerOrRounds = statement.metrics.some(
+        f => f.type === MetricType.Duration || f.type === MetricType.Rounds
       );
       const isHeader = hasChildren && hasTimerOrRounds;
 
       return {
-        source: statement as unknown as IFragmentSource,
+        source: statement as unknown as IMetricSource,
         depth,
         isHeader,
         isLinked,
-        label: statement.fragments.map(f => f.image || '').join(' ').trim() || undefined,
+        label: statement.metrics.map(f => f.image || '').join(' ').trim() || undefined,
         status: 'pending' as FragmentSourceStatus,
       };
     });
@@ -92,7 +92,7 @@ export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
   }, [entries, selectedLine]);
 
   return (
-    <FragmentSourceList
+    <MetricSourceList
       entries={entries}
       activeItemId={activeItemId}
       size={size}

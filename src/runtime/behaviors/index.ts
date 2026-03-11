@@ -35,8 +35,8 @@ export { ReEntryBehavior } from './ReEntryBehavior';
 export type { ReEntryConfig } from './ReEntryBehavior';
 /** @deprecated Safety net is now built into ChildSelectionBehavior */
 export { RoundsEndBehavior } from './RoundsEndBehavior';
-export { FragmentPromotionBehavior } from './FragmentPromotionBehavior';
-export type { FragmentPromotionConfig, PromotionRule } from './FragmentPromotionBehavior';
+export { MetricPromotionBehavior } from './MetricPromotionBehavior';
+export type { MetricPromotionConfig, PromotionRule } from './MetricPromotionBehavior';
 
 // ============================================================================
 // Completion Aspect

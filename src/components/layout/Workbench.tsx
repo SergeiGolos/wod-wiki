@@ -456,7 +456,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   ]);
 
   return (
-    <>
+    <React.Fragment>
       <div 
         className="h-screen w-screen flex flex-col overflow-hidden bg-background relative"
       >
@@ -702,3 +702,55 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             </button>
           </div>
         </div>
+
+        <div className="flex-1 min-h-0 overflow-hidden relative">
+          <ResponsiveViewport
+            views={viewDescriptors}
+            currentView={viewMode}
+            onViewChange={setViewMode}
+            panelLayouts={panelLayouts}
+          />
+          <NoteDetailsPanel
+            isOpen={isDetailsOpen}
+            onClose={() => setIsDetailsOpen(false)}
+            entry={currentEntry}
+            provider={provider}
+            onEntryUpdate={(updated) => setCurrentEntry(updated)}
+            onClone={async (targetDate?: number) => {
+              if (routeId && provider.mode === 'history') {
+                const cloned = await provider.cloneEntry(routeId, targetDate);
+                navigate(planPath(cloned.id));
+              }
+            }}
+          />
+        </div>
+      </div >
+      <CommandPalette />
+    </React.Fragment>
+  );
+};
+
+export const Workbench: React.FC<WorkbenchProps> = (props) => {
+
+  return (
+    <CommandProvider>
+      <WorkbenchProvider
+        initialContent={props.initialContent}
+        initialActiveEntryId={props.initialActiveEntryId}
+        initialViewMode={props.initialViewMode}
+        mode={props.mode}
+        provider={props.provider}
+      >
+        <RuntimeLifecycleProvider factory={runtimeFactory}>
+          <WorkbenchSyncBridge>
+            <WorkbenchCastBridge />
+            <DisplaySyncBridge />
+            <WorkbenchContent {...props} />
+          </WorkbenchSyncBridge>
+        </RuntimeLifecycleProvider>
+      </WorkbenchProvider>
+    </CommandProvider>
+  );
+};
+
+export default Workbench;

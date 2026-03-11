@@ -18,8 +18,8 @@ describe('WodScript ID Type Consistency', () => {
       id: 1,
       parent: undefined,
       children: [[2], [3]], // Updated to grouped format
-      fragments: [],
-      fragmentMeta: new Map(),
+      metrics: [],
+      metricMeta: new Map(),
       isLeaf: false,
       meta: mockMeta
     },
@@ -27,8 +27,8 @@ describe('WodScript ID Type Consistency', () => {
       id: 2,
       parent: 1,
       children: [],
-      fragments: [],
-      fragmentMeta: new Map(),
+      metrics: [],
+      metricMeta: new Map(),
       isLeaf: true,
       meta: mockMeta
     },
@@ -36,8 +36,8 @@ describe('WodScript ID Type Consistency', () => {
       id: 3,
       parent: 1,
       children: [],
-      fragments: [],
-      fragmentMeta: new Map(),
+      metrics: [],
+      metricMeta: new Map(),
       isLeaf: true,
       meta: mockMeta
     }

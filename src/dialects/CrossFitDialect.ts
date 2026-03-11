@@ -1,6 +1,6 @@
 import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { FragmentType, ICodeFragment } from "../core/models/CodeFragment";
+import { MetricType, IMetric } from "../core/models/Metric";
 
 /**
  * CrossFit dialect for recognizing CrossFit-specific workout patterns.
@@ -16,11 +16,11 @@ export class CrossFitDialect implements IDialect {
   name = 'CrossFit Dialect';
 
   /**
-   * Check if any Action or Effort fragment contains a keyword (case-insensitive)
+   * Check if any Action or Effort metrics contains a keyword (case-insensitive)
    */
-  private hasKeyword(fragments: ICodeFragment[], keyword: string): boolean {
-    return fragments.some(f =>
-      (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
+  private hasKeyword(metrics: IMetric[], keyword: string): boolean {
+    return metrics.some(f =>
+      (f.type === MetricType.Action || f.type === MetricType.Effort) &&
       typeof f.value === 'string' &&
       f.value.toUpperCase().includes(keyword)
     );
@@ -35,10 +35,10 @@ export class CrossFitDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const fragments = statement.fragments || [];
+    const metrics = statement.metrics || [];
 
     // Check for AMRAP - time-bound workout
-    const isAmrap = this.hasKeyword(fragments, 'AMRAP');
+    const isAmrap = this.hasKeyword(metrics, 'AMRAP');
     if (isAmrap) {
       hints.push('behavior.time_bound');
       hints.push('workout.amrap');
@@ -46,7 +46,7 @@ export class CrossFitDialect implements IDialect {
 
     // Check for EMOM - repeating interval workout
     // Explicit EMOM keyword
-    const isEmom = this.hasKeyword(fragments, 'EMOM');
+    const isEmom = this.hasKeyword(metrics, 'EMOM');
     if (isEmom) {
       hints.push('behavior.repeating_interval');
       hints.push('workout.emom');
@@ -58,8 +58,8 @@ export class CrossFitDialect implements IDialect {
     // - Timer specifies interval duration (defaults to 60s if not specified)
     // - Children are executed within each interval
     if (!isEmom && !isAmrap) {
-      const hasRounds = fragments.some(f => f.fragmentType === FragmentType.Rounds);
-      const hasTimer = fragments.some(f => f.fragmentType === FragmentType.Duration);
+      const hasRounds = metrics.some(f => f.type === MetricType.Rounds);
+      const hasTimer = metrics.some(f => f.type === MetricType.Duration);
       const hasChildStatements = this.hasChildren(statement);
 
       if (hasRounds && hasTimer && hasChildStatements) {
@@ -70,13 +70,13 @@ export class CrossFitDialect implements IDialect {
     }
 
     // Check for FOR TIME - time-bound workout with completion goal
-    if (this.hasKeyword(fragments, 'FOR TIME')) {
+    if (this.hasKeyword(metrics, 'FOR TIME')) {
       hints.push('behavior.time_bound');
       hints.push('workout.for_time');
     }
 
     // Check for TABATA - high-intensity interval protocol
-    if (this.hasKeyword(fragments, 'TABATA')) {
+    if (this.hasKeyword(metrics, 'TABATA')) {
       hints.push('behavior.repeating_interval');
       hints.push('workout.tabata');
     }

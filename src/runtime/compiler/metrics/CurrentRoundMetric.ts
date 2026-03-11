@@ -1,0 +1,51 @@
+import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
+
+/**
+ * CurrentRoundMetric represents the live round counter during execution.
+ *
+ * This is a **runtime** metrics — it is NOT set by the parser. It tracks
+ * which round the block is currently executing (e.g., "Round 2 of 5").
+ *
+ * ## Relationship to RoundsMetric
+ * - **RoundsMetric** (parser-origin) = the plan: how many rounds total
+ *   (e.g., `(3)` → count = 3, or `(21-15-9)` → count = 3).
+ * - **CurrentRoundMetric** (runtime-origin) = recorded progress: which
+ *   round is currently active.
+ *
+ * ## Relationship to re-entry behaviors
+ * Created by the Re-Entry / Round output aspect on mount and each `onNext()`.
+ * Written to `round` memory tag alongside timer milestone outputs.
+ *
+ * @example
+ * // Round 2 of 5
+ * new CurrentRoundMetric(2, 5, 'block-key', new Date())
+ *
+ * // Round 3 (unbounded — AMRAP)
+ * new CurrentRoundMetric(3, undefined, 'block-key', new Date())
+ */
+export class CurrentRoundMetric implements IMetric {
+  readonly type = MetricType.CurrentRound;
+  readonly origin: MetricOrigin = 'tracked';
+  readonly value: number;
+  readonly image: string;
+
+  /**
+   * @param current The current round number (1-based)
+   * @param total Total number of planned rounds (undefined for unbounded)
+   * @param sourceBlockKey Block that owns this round counter
+   * @param timestamp When this metrics was created
+   * @param customImage Optional custom image string (e.g., "Completed 3 Round(s)")
+   */
+  constructor(
+    readonly current: number,
+    readonly total: number | undefined,
+    readonly sourceBlockKey?: string,
+    readonly timestamp?: Date,
+    customImage?: string
+  ) {
+    this.value = current;
+    this.image = customImage ?? (total !== undefined
+      ? `Round ${current} of ${total}`
+      : `Round ${current}`);
+  }
+}

@@ -8,7 +8,8 @@ import { UpdateNextPreviewAction } from '../actions/stack/UpdateNextPreviewActio
 import { ChildrenStatusState, RoundState, TimerState } from '../memory/MemoryTypes';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { RestBlock } from '../blocks/RestBlock';
-import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
+import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
+import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 
 export type ChildSelectionLoopCondition = 'always' | 'timer-active' | 'rounds-remaining';
 
@@ -108,30 +109,33 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         this.restState = 'idle';
         this.dispatchedOnLastNext = false;
 
+        const actions: IRuntimeAction[] = [];
+
         // Initialize round state if configured (absorbed from ReEntryBehavior)
         if (this.config.startRound !== undefined) {
-            ctx.pushMemory('round', [new CurrentRoundFragment(
+            const blockId = ctx.block.key.toString();
+            ctx.pushMemory('round', [new CurrentRoundMetric(
                 this.config.startRound,
                 this.config.totalRounds,
-                ctx.block.key.toString(),
+                blockId,
                 ctx.clock.now,
             )]);
+            actions.push(new TrackRoundAction(blockId, this.config.startRound, this.config.totalRounds));
         }
 
         // Handle interval timer resets for EMOM synchronization
         if (this.config.injectRest) {
             ctx.subscribe('timer:complete' as any, (_event, _ctx) => {
                 // Interval over — advance round and reset for the next cycle
-                this.advanceRound(ctx);
+                const advanceActions = this.advanceRound(ctx);
                 this.childIndex = 0;
                 this.restState = 'idle';
                 this.writeChildrenStatus(ctx);
-                return [];
+                return advanceActions;
             }, { scope: 'active' });
         }
 
         if (this.config.skipOnMount) {
-            const actions: IRuntimeAction[] = [];
             if (this.totalChildren > 0) {
                 actions.push(this.createNextPreview(ctx, this.config.childGroups[0]));
             }
@@ -141,12 +145,12 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
         if (this.totalChildren === 0) {
             this.writeChildrenStatus(ctx);
-            return [];
+            return actions;
         }
 
-        const actions = this.dispatchNext(ctx);
+        const dispatchActions = this.dispatchNext(ctx);
         this.writeChildrenStatus(ctx);
-        return actions;
+        return [...actions, ...dispatchActions];
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
@@ -158,11 +162,13 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return actions;
         }
 
+        const actions: IRuntimeAction[] = [];
+
         // Safety net: catch round overshot (absorbed from RoundsEndBehavior).
         // ChildSelectionBehavior.shouldLoop() handles the normal exhaustion path;
         // this guard catches the edge case where current advances past total externally.
         if (this.config.startRound !== undefined) {
-            const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+            const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
             if (round?.total !== undefined && round.current > round.total) {
                 ctx.markComplete('rounds-exhausted');
                 this.writeChildrenStatus(ctx);
@@ -176,7 +182,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             // For EMOM (injectRest = true), we only advance the round AFTER the rest block pops.
             // This keeps us in the correct round during the rest period.
             if (this.config.injectRest) {
-                this.advanceRound(ctx);
+                actions.push(...this.advanceRound(ctx));
                 this.childIndex = 0;
                 
                 // If this next was manual (rest timer didn't expire yet),
@@ -205,23 +211,23 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             if (this.shouldInjectRest(ctx)) {
                 this.restState = 'pending';
                 const restDurationMs = this.getRemainingCountdownMs(ctx);
-                const actions: IRuntimeAction[] = [
+                const loopActions: IRuntimeAction[] = [
                     new PushRestBlockAction(restDurationMs, 'Rest'),
                     this.createNextPreview(ctx, this.config.childGroups[0])
                 ];
                 this.restState = 'active';
                 this.writeChildrenStatus(ctx);
-                return actions;
+                return [...actions, ...loopActions];
             }
 
             // No rest, so advance round and reset index immediately for the next cycle (AMRAP pattern).
-            this.advanceRound(ctx);
+            actions.push(...this.advanceRound(ctx));
             this.childIndex = 0;
         }
 
-        const actions = this.dispatchNext(ctx);
+        const dispatchActions = this.dispatchNext(ctx);
         this.writeChildrenStatus(ctx);
-        return actions;
+        return [...actions, ...dispatchActions];
     }
 
     onUnmount(_ctx: IBehaviorContext): IRuntimeAction[] {
@@ -271,7 +277,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
         }
 
         if (condition === 'timer-active') {
-            const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+            const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
             if (!timer) {
                 return false;
             }
@@ -283,7 +289,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return true;
         }
 
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         if (!round) {
             return false;
         }
@@ -298,7 +304,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             return false;
         }
 
-        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return false;
         }
@@ -316,7 +322,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
     }
 
     private getRemainingCountdownMs(ctx: IBehaviorContext): number {
-        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
         if (!timer || timer.direction !== 'down' || !timer.durationMs) {
             return 0;
         }
@@ -334,33 +340,38 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             allCompleted: this.allChildrenCompleted,
         };
         const childLoc = ctx.getMemoryByTag('children:status')[0];
-        if (childLoc?.fragments[0]) {
-            ctx.updateMemory('children:status', [{...childLoc.fragments[0], value: status}]);
+        if (childLoc?.metrics[0]) {
+            ctx.updateMemory('children:status', [{...childLoc.metrics[0], value: status}]);
         } else {
-            ctx.pushMemory('children:status', [{fragmentType: 0 as any, type: 'children:status', image: '', origin: 'runtime' as any, value: status}]);
+            ctx.pushMemory('children:status', [{type: 0 as any, image: '', origin: 'runtime' as any, value: status}]);
         }
     }
 
     /**
-     * Advance the round counter in block memory.
+     * Advance the round counter in block memory and emit tracker action.
      *
      * Called by this behavior when a complete cycle of children finishes
      * and shouldLoop() returns true. This keeps round tracking
      * self-contained within ChildSelectionBehavior — no dependency on
      * ReEntryBehavior's onNext() or behavior execution ordering.
      */
-    private advanceRound(ctx: IBehaviorContext): void {
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
-        if (!round) return;
+    private advanceRound(ctx: IBehaviorContext): IRuntimeAction[] {
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
+        if (!round) return [];
 
-        const roundFragment = new CurrentRoundFragment(
-            round.current + 1,
-            round.total,
-            ctx.block.key.toString(),
+        const blockId = ctx.block.key.toString();
+        const nextRound = round.current + 1;
+        const total = round.total;
+
+        const roundFragment = new CurrentRoundMetric(
+            nextRound,
+            total,
+            blockId,
             ctx.clock.now,
         );
 
         ctx.updateMemory('round', [roundFragment]);
+        return [new TrackRoundAction(blockId, nextRound, total)];
     }
 
     private createNextPreview(ctx: IBehaviorContext, nextGroup?: number[]): UpdateNextPreviewAction {

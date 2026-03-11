@@ -1,7 +1,7 @@
 import { IProjectionEngine } from '../IProjectionEngine';
 import { Exercise } from '../../../../exercise';
 import { ProjectionResult } from '../ProjectionResult';
-import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../../core/models/Metric';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -10,7 +10,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Volume is calculated as: repetitions × resistance (weight)
  * This is a fundamental metric for strength training analysis.
  * 
- * Phase 4 Cleanup: Simplified to use fragment-based path exclusively.
+ * Phase 4 Cleanup: Simplified to use metrics-based path exclusively.
  * 
  * @example
  * ```typescript
@@ -22,36 +22,36 @@ export class VolumeProjectionEngine implements IProjectionEngine {
   public readonly name = "VolumeProjectionEngine";
 
   /**
-   * Calculate volume from code fragments.
+   * Calculate volume from code metrics.
    * 
-   * Extracts repetitions and resistance from fragments and calculates
+   * Extracts repetitions and resistance from metrics and calculates
    * total volume.
    * 
    * **Fragment Pairing:**
    * Fragments are processed sequentially. A set is calculated when both
-   * Rep and Resistance fragments are encountered.
+   * Rep and Resistance metrics are encountered.
    * 
-   * @param fragments Array of code fragments for a single exercise
+   * @param metrics Array of code metrics for a single exercise
    * @param exerciseId Exercise identifier
    * @param definition Exercise definition
    * @returns Array with single volume projection result, or empty if no valid data
    */
-  calculateFromFragments(fragments: ICodeFragment[], _exerciseId: string, definition: Exercise): ProjectionResult[] {
-    if (fragments.length === 0) return [];
+  calculateFromFragments(metrics: IMetric[], _exerciseId: string, definition: Exercise): ProjectionResult[] {
+    if (metrics.length === 0) return [];
 
     let totalVolume = 0;
     let hasValidData = false;
     let totalSets = 0;
 
-    // Group fragments into sets (count rep/resistance pairs)
+    // Group metrics into sets (count rep/resistance pairs)
     let currentReps: number | undefined;
     let currentResistance: number | undefined;
 
-    for (const fragment of fragments) {
-      if (fragment.fragmentType === FragmentType.Rep && typeof fragment.value === 'number') {
-        currentReps = fragment.value;
-      } else if (fragment.fragmentType === FragmentType.Resistance && typeof fragment.value === 'number') {
-        currentResistance = fragment.value;
+    for (const metric of metrics) {
+      if (metric.type === MetricType.Rep && typeof metric.value === 'number') {
+        currentReps = metric.value;
+      } else if (metric.type === MetricType.Resistance && typeof metric.value === 'number') {
+        currentResistance = metric.value;
       }
 
       // Calculate volume when we have both values
@@ -80,8 +80,43 @@ export class VolumeProjectionEngine implements IProjectionEngine {
       metadata: {
         exerciseName: definition.name,
         totalSets,
-        source: 'fragments',
+        source: 'metrics',
       }
+    }];
+  }
+
+  /**
+   * Workout-level volume: sum reps × resistance across ALL exercises.
+   */
+  calculateFromWorkout(metrics: IMetric[]): ProjectionResult[] {
+    let totalVolume = 0;
+    let currentReps: number | undefined;
+    let currentResistance: number | undefined;
+
+    for (const m of metrics) {
+      if (m.type === MetricType.Rep && typeof m.value === 'number') {
+        currentReps = m.value;
+      } else if (m.type === MetricType.Resistance) {
+        const val = m.value as any;
+        const amount = typeof val?.amount === 'number' ? val.amount : (typeof val === 'number' ? val : undefined);
+        if (amount !== undefined) currentResistance = amount;
+      }
+
+      if (currentReps !== undefined && currentResistance !== undefined) {
+        totalVolume += currentReps * currentResistance;
+        currentReps = undefined;
+        currentResistance = undefined;
+      }
+    }
+
+    if (totalVolume === 0) return [];
+
+    const now = new Date();
+    return [{
+      name: 'Volume Load',
+      value: totalVolume,
+      unit: 'kg',
+      timeSpan: new TimeSpan(now.getTime(), now.getTime()),
     }];
   }
 }

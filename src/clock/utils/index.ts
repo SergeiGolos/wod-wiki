@@ -2,4 +2,4 @@
  * Clock utilities
  */
 
-export * from './fragmentsToDisplayMetrics';
+export * from './metricsToDisplayData';

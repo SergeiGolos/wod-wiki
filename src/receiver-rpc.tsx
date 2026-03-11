@@ -28,7 +28,8 @@ import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import { usePrimaryTimer, useSecondaryTimers, useStackTimers } from '@/runtime/hooks/useStackDisplay';
 import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
+import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
+import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { calculateDuration } from '@/lib/timeUtils';
@@ -109,8 +110,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                             const blockKey = block.key.toString();
                             const timer = blockTimerMap.get(blockKey);
                             const isLeaf = index === orderedBlocks.length - 1;
-                            const displayLocs = block.getFragmentMemoryByVisibility('display');
-                            const rows = displayLocs.map(loc => loc.fragments);
+                            const displayLocs = block.getMetricMemoryByVisibility('display');
+                            const rows = displayLocs.map(loc => loc.metrics);
                             // Show completed children immediately after the parent block
                             const childLevel = index + 1;
 
@@ -150,9 +151,9 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                                             {rows.length > 0 && (
                                                 <div className="flex flex-col gap-0.5 px-3 pb-2">
                                                     {rows.map((row, rowIdx) => (
-                                                        <FragmentSourceRow
+                                                        <MetricSourceRow
                                                             key={rowIdx}
-                                                            fragments={row}
+                                                            metrics={row}
                                                             size={isLeaf ? "normal" : "compact"}
                                                             isLeaf={isLeaf}
                                                         />
@@ -193,8 +194,8 @@ const ReceiverStackPanel: React.FC<{ localNow: number }> = ({ localNow }) => {
                             "bg-card/50 border-border/60 hover:bg-card/80"
                         )}>
                             <div className="flex flex-col gap-0.5 p-3">
-                                <FragmentSourceRow
-                                    fragments={nextPreview.fragments}
+                                <MetricSourceRow
+                                    metrics={nextPreview.metrics}
                                     size="compact"
                                     isLeaf={false}
                                 />
@@ -558,9 +559,20 @@ const ReceiverApp: React.FC = () => {
             customNamespaces: {
                 [CAST_NAMESPACE]: 'JSON',
             },
+            // Prevent the CAF SDK from consuming D-Pad / media key events
+            // so they propagate to our spatial navigation handler.
+            disableIdleTimeout: true,
         });
         setConnectionStatus('cast-ready');
         console.log('[ReceiverApp] castContext.start() called — namespace registered');
+
+        // ── Diagnostic: log ALL key events reaching the page ──────────
+        // This capture-phase listener fires before anything else and logs
+        // key info to the console (visible in chrome://inspect remote debug).
+        // Remove once D-Pad navigation is confirmed working on device.
+        document.addEventListener('keydown', (e: KeyboardEvent) => {
+            console.log(`[KeyDiag] key=${e.key} code=${e.code} keyCode=${e.keyCode} type=${e.type}`);
+        }, true);
 
         castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
             console.log('[ReceiverApp] Cast Receiver READY');
@@ -609,8 +621,9 @@ const ReceiverApp: React.FC = () => {
                 flash();
             }
         };
-        window.addEventListener('keydown', handleEscape);
-        return () => window.removeEventListener('keydown', handleEscape);
+        // Capture phase so we intercept before Cast SDK consumes the event
+        document.addEventListener('keydown', handleEscape, true);
+        return () => document.removeEventListener('keydown', handleEscape, true);
     }, [sendEvent, flash]);
 
     // Waiting screen (not yet connected)
@@ -669,6 +682,9 @@ const ReceiverApp: React.FC = () => {
 
                     {/* Right Column: Timer & Controls */}
                     <div className="w-1/2 flex flex-col bg-background transition-all duration-300">
+                        <div className="p-4 pt-6">
+                            <MetricTrackerCard />
+                        </div>
                         <ReceiverTimerPanel localNow={now} onEvent={sendEvent} getFocusProps={getFocusProps} />
                         <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                             {connectionStatus}

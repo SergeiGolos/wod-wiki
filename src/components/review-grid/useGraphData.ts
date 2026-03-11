@@ -10,7 +10,7 @@
  */
 
 import { useMemo } from 'react';
-import { FragmentType } from '@/core/models/CodeFragment';
+import { MetricType } from '@/core/models/Metric';
 import type { AnalyticsGraphConfig } from '@/core/models/AnalyticsModels';
 import type { GridRow, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
@@ -119,8 +119,8 @@ function buildDataPoints(
 
 /**
  * Extract a numeric value from a row for a given column.
- * Fixed columns return their scalar value; fragment columns return
- * the first numeric fragment value (or 0).
+ * Fixed columns return their scalar value; metrics columns return
+ * the first numeric metric value (or 0).
  */
 function getNumericValue(
   row: GridRow,
@@ -139,10 +139,10 @@ function getNumericValue(
 
   // Fragment columns — find first numeric value
   const col = columns.find((c) => c.id === columnId);
-  if (col?.fragmentType) {
-    const cell = row.cells.get(col.fragmentType);
+  if (col?.type) {
+    const cell = row.cells.get(col.type);
     if (cell) {
-      for (const frag of cell.fragments) {
+      for (const frag of cell.metrics) {
         if (typeof frag.value === 'number') return frag.value;
       }
     }
@@ -154,11 +154,11 @@ function getNumericValue(
 // ─── Helpers ───────────────────────────────────────────────────
 
 /**
- * Assign a distinct color to each column based on its fragment type.
+ * Assign a distinct color to each column based on its metrics type.
  */
 function getColorForColumn(col: GridColumn): string {
-  if (col.fragmentType) {
-    return FRAGMENT_GRAPH_COLORS[col.fragmentType] ?? '#888888';
+  if (col.type) {
+    return FRAGMENT_GRAPH_COLORS[col.type] ?? '#888888';
   }
 
   // Fixed columns
@@ -171,41 +171,41 @@ function getColorForColumn(col: GridColumn): string {
 }
 
 /**
- * Hex colors for graph lines per fragment type.
- * These complement the Tailwind classes in fragmentColorMap.
+ * Hex colors for graph lines per metrics type.
+ * These complement the Tailwind classes in metricColorMap.
  */
 const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
-  [FragmentType.Time]: '#3b82f6',      // blue
-  [FragmentType.Rep]: '#22c55e',        // green
-  [FragmentType.Effort]: '#eab308',     // yellow
-  [FragmentType.Distance]: '#14b8a6',   // teal
-  [FragmentType.Rounds]: '#a855f7',     // purple
-  [FragmentType.Resistance]: '#ef4444', // red
-  [FragmentType.Increment]: '#6366f1',  // indigo
-  [FragmentType.Action]: '#ec4899',     // pink
+  [MetricType.Time]: '#3b82f6',      // blue
+  [MetricType.Rep]: '#22c55e',        // green
+  [MetricType.Effort]: '#eab308',     // yellow
+  [MetricType.Distance]: '#14b8a6',   // teal
+  [MetricType.Rounds]: '#a855f7',     // purple
+  [MetricType.Resistance]: '#ef4444', // red
+  [MetricType.Increment]: '#6366f1',  // indigo
+  [MetricType.Action]: '#ec4899',     // pink
 };
 
 /**
  * Unit label for graph Y-axis.
  */
 function getUnitForColumn(col: GridColumn): string {
-  if (!col.fragmentType) {
+  if (!col.type) {
     if (col.id === FIXED_COLUMN_IDS.ELAPSED_TOTAL) return 'ms';
     return '';
   }
 
-  switch (col.fragmentType) {
-    case FragmentType.Time:
+  switch (col.type) {
+    case MetricType.Time:
       return 'ms';
-    case FragmentType.Rep:
+    case MetricType.Rep:
       return 'reps';
-    case FragmentType.Distance:
+    case MetricType.Distance:
       return 'm';
-    case FragmentType.Rounds:
+    case MetricType.Rounds:
       return 'rounds';
-    case FragmentType.Resistance:
+    case MetricType.Resistance:
       return 'kg';
-    case FragmentType.Increment:
+    case MetricType.Increment:
       return 'Δ';
     default:
       return '';

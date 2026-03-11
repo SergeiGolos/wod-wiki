@@ -11,8 +11,8 @@ export type { IRuntimeOptions, RuntimeStackOptions, RuntimeStackHooks, RuntimeSt
 export type { IBlockContext } from './IBlockContext';
 export type { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
 export type { IAnchorValue } from './IAnchorValue';
-export type { IDistributedFragments } from './IDistributedFragments';
-export { PassthroughFragmentDistributor } from './IDistributedFragments';
+export type { IDistributedMetrics } from './IDistributedMetrics';
+export { PassthroughMetricDistributor } from './IDistributedMetrics';
 
 // Subscription & Event Provider interfaces
 export type { IRuntimeSubscription } from './IRuntimeSubscription';

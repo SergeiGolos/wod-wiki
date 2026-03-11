@@ -10,9 +10,9 @@ import { vi, expect } from 'bun:test';
 import { IRuntimeBlock, IRuntimeBehavior } from '../contracts';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { MemoryTypeMap, TimerState, MemoryType, RoundState } from '../memory/MemoryTypes';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
-import { FragmentVisibility, getFragmentVisibility } from '../memory/FragmentVisibility';
+import { MetricVisibility, getMetricVisibility } from '../memory/MetricVisibility';
 
 
 /**
@@ -48,7 +48,7 @@ export class MockClock {
 export interface MockRuntime {
     clock: MockClock;
     events: Array<{ name: string; data: unknown; timestamp: number }>;
-    outputs: Array<{ type: string; fragments: unknown[]; metadata: unknown }>;
+    outputs: Array<{ type: string; metrics: unknown[]; metadata: unknown }>;
     completionReason: string | undefined;
     subscriptions: Map<string, Array<(event: unknown, ctx: IBehaviorContext) => unknown[]>>;
 }
@@ -72,9 +72,9 @@ export function createMockRuntime(startTime: number = 0): MockRuntime {
 export interface MockBlock {
     key: { toString: () => string };
     blockType: string;
-    /** Computed label derived from fragment:label memory. */
+    /** Computed label derived from metrics:label memory. */
     readonly label: string;
-    fragments: unknown[][];
+    metrics: unknown[][];
     memory: Map<MemoryType, unknown>;
     /** List-based memory storage for new API */
     _memoryList: IMemoryLocation[];
@@ -84,8 +84,8 @@ export interface MockBlock {
     getMemoryByTag(tag: MemoryTag): IMemoryLocation[];
     /** Get all memory locations */
     getAllMemory(): IMemoryLocation[];
-    /** Get fragment memory by visibility tier */
-    getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[];
+    /** Get metrics memory by visibility tier */
+    getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[];
     /** Backward-compat shim */
     getMemory<T extends MemoryType>(type: T): any;
     /** Backward-compat shim */
@@ -105,15 +105,15 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         blockType: config.blockType ?? 'Test',
         get label(): string {
             for (const loc of memoryList) {
-                for (const frag of loc.fragments) {
-                    if (frag.fragmentType === FragmentType.Label) {
+                for (const frag of loc.metrics) {
+                    if (frag.type === MetricType.Label) {
                         return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
                     }
                 }
             }
             return block.blockType || 'Block';
         },
-        fragments: config.fragments ?? [],
+        metrics: config.metrics ?? [],
         memory: memoryMap,
         _memoryList: memoryList,
         pushMemory(location: IMemoryLocation): void {
@@ -125,8 +125,8 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         getAllMemory(): IMemoryLocation[] {
             return [...memoryList];
         },
-        getFragmentMemoryByVisibility(visibility: FragmentVisibility): IMemoryLocation[] {
-            return memoryList.filter(loc => getFragmentVisibility(loc.tag) === visibility);
+        getMetricMemoryByVisibility(visibility: MetricVisibility): IMemoryLocation[] {
+            return memoryList.filter(loc => getMetricVisibility(loc.tag) === visibility);
         },
         getMemory<T extends MemoryType>(type: T): any {
             const tag = type as string as MemoryTag;
@@ -135,8 +135,8 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
                 const loc = locations[0];
                 return {
                     get value() {
-                        if (loc.fragments.length === 0) return undefined;
-                        return loc.fragments[0]?.value;
+                        if (loc.metrics.length === 0) return undefined;
+                        return loc.metrics[0]?.value;
                     },
                     subscribe(listener: (nv: any, ov: any) => void): () => void {
                         return loc.subscribe((nf, of_) => {
@@ -161,10 +161,10 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
             const locations = memoryList.filter(loc => loc.tag === tag);
             if (locations.length > 0) {
                 const loc = locations[0];
-                if (loc.fragments.length > 0) {
-                    loc.update(loc.fragments.map((f, i) => i === 0 ? { ...f, value } : f));
+                if (loc.metrics.length > 0) {
+                    loc.update(loc.metrics.map((f, i) => i === 0 ? { ...f, value } : f));
                 } else {
-                    loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
                 }
             } else {
                 memoryMap.set(type, value);
@@ -172,16 +172,15 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         },
     };
 
-    // Store label as a Label fragment in memory list
+    // Store label as a Label metrics in memory list
     const labelText = config.label ?? config.blockType ?? 'Test Block';
     if (labelText) {
-        memoryList.push(new MemoryLocation('fragment:label', [{
-            fragmentType: FragmentType.Label,
-            type: 'label',
+        memoryList.push(new MemoryLocation('metric:label', [{
+            type: MetricType.Label,
             image: labelText,
             origin: 'config',
             value: labelText
-        } as ICodeFragment]));
+        } as IMetric]));
     }
 
     return block;
@@ -214,8 +213,8 @@ export function createIntegrationContext(
             });
         },
 
-        emitOutput(type: string, fragments: unknown[], metadata: unknown) {
-            runtime.outputs.push({ type, fragments, metadata });
+        emitOutput(type: string, metrics: unknown[], metadata: unknown) {
+            runtime.outputs.push({ type, metric, metadata });
         },
 
         markComplete(reason: string) {
@@ -226,8 +225,8 @@ export function createIntegrationContext(
             // Check list-based memory first
             const tag = type as string as MemoryTag;
             const locations = block._memoryList.filter(loc => loc.tag === tag);
-            if (locations.length > 0 && locations[0].fragments.length > 0) {
-                return locations[0].fragments[0]?.value as MemoryTypeMap[T];
+            if (locations.length > 0 && locations[0].metrics.length > 0) {
+                return locations[0].metrics[0]?.value as MemoryTypeMap[T];
             }
             return block.memory.get(type) as MemoryTypeMap[T] | undefined;
         },
@@ -238,18 +237,18 @@ export function createIntegrationContext(
             const locations = block._memoryList.filter(loc => loc.tag === tag);
             if (locations.length > 0) {
                 const loc = locations[0];
-                if (loc.fragments.length > 0) {
-                    loc.update(loc.fragments.map((f, i) => i === 0 ? { ...f, value } : f));
+                if (loc.metrics.length > 0) {
+                    loc.update(loc.metrics.map((f, i) => i === 0 ? { ...f, value } : f));
                 } else {
-                    loc.update([{ fragmentType: 0, type: tag, image: '', origin: 'runtime', value } as any]);
+                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
                 }
             } else {
                 block.memory.set(type, value);
             }
         },
 
-        pushMemory(tag: string, fragments: ICodeFragment[]): IMemoryLocation {
-            const location = new MemoryLocation(tag as MemoryTag, fragments);
+        pushMemory(tag: string, metrics: IMetric[]): IMemoryLocation {
+            const location = new MemoryLocation(tag as MemoryTag, metric);
             block.pushMemory(location);
             return location;
         },
@@ -258,10 +257,10 @@ export function createIntegrationContext(
             return block.getMemoryByTag(tag);
         },
 
-        updateMemory(tag: string, fragments: ICodeFragment[]): void {
+        updateMemory(tag: string, metrics: IMetric[]): void {
             const locations = block.getMemoryByTag(tag as MemoryTag);
             if (locations.length > 0) {
-                locations[0].update(fragments);
+                locations[0].update(metrics);
             }
         }
     } as IBehaviorContext;
@@ -408,6 +407,6 @@ export function findEvents(runtime: MockRuntime, name: string): Array<{ name: st
 /**
  * Finds outputs by type.
  */
-export function findOutputs(runtime: MockRuntime, type: string): Array<{ type: string; fragments: unknown[]; metadata: unknown }> {
+export function findOutputs(runtime: MockRuntime, type: string): Array<{ type: string; metrics: unknown[]; metadata: unknown }> {
     return runtime.outputs.filter(o => o.type === type);
 }

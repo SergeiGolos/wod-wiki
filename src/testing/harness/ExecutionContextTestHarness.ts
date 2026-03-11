@@ -21,7 +21,7 @@ function createMockStatement(config: { id: number; source?: string }): ICodeStat
     id: config.id,
     parent: undefined,
     children: [],
-    fragments: [],
+    metrics: [],
     isLeaf: true,
     meta: {
       line: config.id,

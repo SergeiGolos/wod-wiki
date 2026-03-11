@@ -2,8 +2,8 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState } from '../memory/MemoryTypes';
-import { SoundFragment } from '../compiler/fragments/SoundFragment';
-import type { SoundTrigger } from '../compiler/fragments/SoundFragment';
+import { SoundMetric } from '../compiler/metrics/SoundMetric';
+import type { SoundTrigger } from '../compiler/metrics/SoundMetric';
 
 export interface SoundCue {
     /** Sound identifier or URL */
@@ -24,7 +24,7 @@ export interface SoundCueConfig {
  * 
  * ## Aspect: Output (Audio)
  * 
- * Emits 'system' outputs with SoundFragment that audio systems can observe.
+ * Emits 'system' outputs with SoundMetric that audio systems can observe.
  * Sound outputs are tracked as system events so they do not appear in the
  * user-facing review/logs page — only in the debug view.
  * This follows the principle that behaviors emit outputs, not events.
@@ -38,11 +38,11 @@ export interface SoundCueConfig {
  * ## Audio System Integration
  * 
  * Audio systems should subscribe to outputs (via runtime output stream) and
- * filter for SoundFragment to play audio cues:
+ * filter for SoundMetric to play audio cues:
  * 
  * ```typescript
  * runtime.outputs$.subscribe(output => {
- *   const soundFragments = output.fragments.filter(f => f.fragmentType === FragmentType.Sound);
+ *   const soundFragments = output.metrics.filter(f => f.metricType === MetricType.Sound);
  *   for (const sf of soundFragments) {
  *     audioPlayer.play(sf.value.sound);
  *   }
@@ -57,7 +57,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
         for (const cue of this.config.cues) {
             if (cue.trigger === 'mount') {
                 ctx.emitOutput('system', [
-                    new SoundFragment(cue.sound, 'mount')
+                    new SoundMetric(cue.sound, 'mount')
                 ], { label: `Sound: ${cue.sound}` });
             }
         }
@@ -69,7 +69,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
             const playedSeconds = new Set<number>();
 
             ctx.subscribe('tick', (_event, tickCtx) => {
-                const timer = tickCtx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+                const timer = tickCtx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
                 if (!timer || timer.direction !== 'down' || !timer.durationMs) return [];
 
                 // Calculate remaining seconds using TimeSpan properties
@@ -87,7 +87,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
                     if (cue.atSeconds?.includes(remainingSeconds) && !playedSeconds.has(remainingSeconds)) {
                         playedSeconds.add(remainingSeconds);
                         tickCtx.emitOutput('system', [
-                            new SoundFragment(cue.sound, 'countdown', { atSecond: remainingSeconds })
+                            new SoundMetric(cue.sound, 'countdown', { atSecond: remainingSeconds })
                         ], { label: `Countdown: ${remainingSeconds}s` });
                     }
                 }
@@ -108,7 +108,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
         for (const cue of this.config.cues) {
             if (cue.trigger === 'unmount' || cue.trigger === 'complete') {
                 ctx.emitOutput('system', [
-                    new SoundFragment(cue.sound, cue.trigger)
+                    new SoundMetric(cue.sound, cue.trigger)
                 ], { label: `Sound: ${cue.sound}` });
             }
         }

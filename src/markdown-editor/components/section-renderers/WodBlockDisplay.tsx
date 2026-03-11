@@ -2,7 +2,7 @@
  * WodBlockDisplay
  * 
  * Read-only renderer for WOD block sections.
- * Renders parsed statements using existing fragment display components
+ * Renders parsed statements using existing metrics display components
  * when available, or falls back to raw content for unparsed blocks.
  * 
  * Includes a play button for launching workout execution.
@@ -12,7 +12,7 @@ import React, { useMemo } from 'react';
 import type { Section } from '../../types/section';
 import type { WodBlock } from '../../types';
 import { SECTION_LINE_HEIGHT } from '../SectionContainer';
-import { StatementDisplay } from '@/components/fragments/StatementDisplay';
+import { StatementDisplay } from '@/components/metrics/StatementDisplay';
 import { Play, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AddWodToNoteDropdown } from '@/components/workbench/AddWodToNoteDropdown';
@@ -132,7 +132,7 @@ export const WodBlockDisplay: React.FC<WodBlockDisplayProps> = ({
         {/* Block content */}
         <div className="px-2">
           {hasParsedStatements ? (
-            // Render parsed statements with fragment visualization, including hierarchy and grouping
+            // Render parsed statements with metrics visualization, including hierarchy and grouping
             <WodStatementList statements={wodBlock!.statements!} />
           ) : hasErrors ? (
             // Show raw content + error indicator
@@ -282,7 +282,7 @@ interface LinkedGroup {
 }
 
 function isLinkStatement(statement: ICodeStatement): boolean {
-  return statement.fragments.some(f => f.type === 'lap' && f.value === 'compose');
+  return statement.metrics.some(f => f.type === 'lap' && f.value === 'compose');
 }
 
 function getDepth(stmt: ICodeStatement, allStatements: Map<number, ICodeStatement>): number {

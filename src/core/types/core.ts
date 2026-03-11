@@ -5,9 +5,6 @@
  * representing workout scripts, code statements, and basic data structures.
  */
 
-import type { CodeMetadata } from '@/core/models/CodeMetadata';
-import type { ICodeFragment } from '@/core/models/CodeFragment';
-
 /**
  * Parser error information
  */
@@ -30,17 +27,7 @@ export interface IScript {
   getAt(index: number): ICodeStatement | undefined;
 }
 
-/**
- * Represents a single code statement in a workout script
- */
-export interface ICodeStatement {
-  id: number;
-  parent?: number;
-  children: number[][];
-  fragments: ICodeFragment[];
-  isLeaf?: boolean;
-  meta: CodeMetadata;
-}
+export type { ICodeStatement } from '@/core/models/CodeStatement';
 
 /**
  * Unique identifier for runtime blocks
@@ -65,9 +52,9 @@ export interface IDuration {
 }
 
 /**
- * Types of code fragments that can appear in workout scripts
+ * Types of code metrics that can appear in workout scripts
  */
-export enum FragmentType {
+export enum MetricType {
   Time = 'time',
   Duration = 'duration',
   Rep = 'rep',
@@ -100,12 +87,14 @@ export type { BlockKey } from '@/core/models/BlockKey';
  */
 export type { Duration } from '@/core/models/Duration';
 
+import type { ICodeStatement } from '@/core/models/CodeStatement';
+
 /**
  * Re-export CodeMetadata
  */
 export type { CodeMetadata } from '@/core/models/CodeMetadata';
 
 /**
- * Re-export ICodeFragment
+ * Re-export IMetric
  */
-export type { ICodeFragment } from '@/core/models/CodeFragment';
+export type { IMetric } from '@/core/models/Metric';

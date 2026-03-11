@@ -3,7 +3,7 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
 import { WodWiki } from '../../src/editor/WodWiki';
 import { IScript } from '../../src/WodScript';
-import { FragmentVisualizer } from '../../src/components/fragments';
+import { MetricVisualizer } from '../../src/components/metrics';
 
 const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
     const lineNumber = statement.meta?.line ?? 'N/A';
@@ -16,7 +16,7 @@ const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
             <td className="p-3 align-top text-sm text-gray-500 w-24">{range}</td>
             <td className="p-3">
                 <div style={{ paddingLeft }}>
-                    <FragmentVisualizer fragments={statement.fragments} />
+                    <MetricVisualizer metrics={statement.metrics} />
                 </div>
             </td>
         </tr>

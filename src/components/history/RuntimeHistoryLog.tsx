@@ -1,10 +1,10 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-import { FragmentSourceList } from '@/components/fragments/FragmentSourceList';
-import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/fragments/FragmentSourceRow';
-import { IFragmentSource } from '@/core/contracts/IFragmentSource';
-import { FragmentType } from '@/core/models/CodeFragment';
+import { MetricSourceList } from '@/components/metrics/MetricSourceList';
+import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/metrics/MetricSourceRow';
+import { IMetricSource } from '@/core/contracts/IMetricSource';
+import { MetricType } from '@/core/models/Metric';
 import { VisualizerSize } from '@/core/models/DisplayItem';
 
 export interface RuntimeHistoryLogProps {
@@ -69,32 +69,32 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
     if (!runtime) return { entries: [] as FragmentSourceEntry[], activeItemId: null };
     void updateVersion; // Dependency to force re-calc for timers
 
-    // Convert output statements directly — they implement IFragmentSource
+    // Convert output statements directly — they implement IMetricSource
     let displayEntries: FragmentSourceEntry[] = outputs.map((output): FragmentSourceEntry => {
-      const fragments = output.fragments.flat();
+      const metrics = output.metrics.flat();
 
       let status: FragmentSourceStatus = 'completed';
       if (output.outputType === 'segment') {
         status = 'active';
       }
 
-      const isHeader = fragments.some(f =>
-        f.fragmentType === FragmentType.Duration ||
-        f.fragmentType === FragmentType.Rounds ||
+      const isHeader = metrics.some(f =>
+        f.type === MetricType.Duration ||
+        f.type === MetricType.Rounds ||
         HEADER_TYPES.has(f.type.toLowerCase())
       );
 
       return {
-        source: output as unknown as IFragmentSource,
+        source: output as unknown as IMetricSource,
         depth: output.stackLevel,
         isHeader,
         status,
         duration: output.elapsed,
         startTime: output.timeSpan.started,
         endTime: output.timeSpan.ended,
-        label: fragments
+        label: metrics
           .filter(f => {
-            const type = (f.type || f.fragmentType || '').toLowerCase();
+            const type = (f.type || f.type || '').toLowerCase();
             const image = f.image || '';
             if (type === 'group' && (image === '+' || image === '-')) return false;
             return type !== 'lap';
@@ -128,7 +128,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
   }, [runtime, outputs, updateVersion, showActive, externalEntries]);
 
   return (
-    <FragmentSourceList
+    <MetricSourceList
       entries={entries}
       activeItemId={activeItemId || highlightedBlockKey || undefined}
       selectedIds={selectedIds}

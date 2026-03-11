@@ -4,14 +4,14 @@ import { ExerciseDefinitionService } from '../../../repositories/workout/Exercis
 import type { IProjectionEngine } from './IProjectionEngine';
 import type { Exercise } from '../../../exercise.d';
 import { Level, Category } from '../../../exercise.d';
-import { FragmentType } from '../../../core/models/CodeFragment';
-import type { ICodeFragment } from '../../../core/models/CodeFragment';
+import { MetricType } from '../../../core/models/Metric';
+import type { IMetric } from '../../../core/models/Metric';
 
 // Mock projection engine for testing
 class MockProjectionEngine implements IProjectionEngine {
   readonly name = 'MockEngine';
 
-  calculateFromFragments(_fragments: ICodeFragment[], _exerciseId: string, _definition: Exercise) {
+  calculateFromFragments(_metrics: IMetric[], _exerciseId: string, _definition: Exercise) {
     return [{
       name: 'Mock Result',
       value: 100,
@@ -79,36 +79,34 @@ describe('AnalysisService', () => {
   });
 
   describe('runAllProjectionsFromFragments()', () => {
-    test('should run fragment-based projections', () => {
+    test('should run metrics-based projections', () => {
       const engine = new MockProjectionEngine();
       service.registerEngine(engine);
 
-      const fragments: ICodeFragment[] = [
+      const metrics: IMetric[] = [
         {
-          type: 'effort',
-          fragmentType: FragmentType.Effort,
+          type: MetricType.Effort,
           value: 'Bench Press',
           image: 'Bench Press',
         },
         {
-          type: 'rep',
-          fragmentType: FragmentType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
       ];
 
-      const results = service.runAllProjectionsFromFragments(fragments);
+      const results = service.runAllProjectionsFromFragments(metrics);
       expect(results).toHaveLength(1);
       expect(results[0].name).toBe('Mock Result');
       expect(results[0].value).toBe(100);
     });
 
-    test('should group fragments by exercise', () => {
+    test('should group metrics by exercise', () => {
       let capturedExerciseId: string | undefined;
 
       const engine: IProjectionEngine = {
         name: 'CaptureEngine',
-        calculateFromFragments: (_fragments, exerciseId) => {
+        calculateFromFragments: (_metrics, exerciseId) => {
           capturedExerciseId = exerciseId;
           return [];
         },
@@ -116,24 +114,22 @@ describe('AnalysisService', () => {
 
       service.registerEngine(engine);
 
-      const fragments: ICodeFragment[] = [
+      const metrics: IMetric[] = [
         {
-          type: 'effort',
-          fragmentType: FragmentType.Effort,
+          type: MetricType.Effort,
           value: 'Bench Press',
         },
         {
-          type: 'rep',
-          fragmentType: FragmentType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
       ];
 
-      service.runAllProjectionsFromFragments(fragments);
+      service.runAllProjectionsFromFragments(metrics);
       expect(capturedExerciseId).toBe('Bench Press');
     });
 
-    test('should skip fragments without a preceding effort fragment', () => {
+    test('should skip metrics without a preceding effort metrics', () => {
       let callCount = 0;
       const engine: IProjectionEngine = {
         name: 'TestEngine',
@@ -145,16 +141,15 @@ describe('AnalysisService', () => {
 
       service.registerEngine(engine);
 
-      // Fragment without Effort fragment before it
-      const fragments: ICodeFragment[] = [
+      // Fragment without Effort metrics before it
+      const metrics: IMetric[] = [
         {
-          type: 'rep',
-          fragmentType: FragmentType.Rep,
+          type: MetricType.Rep,
           value: 10,
         },
       ];
 
-      service.runAllProjectionsFromFragments(fragments);
+      service.runAllProjectionsFromFragments(metrics);
       expect(callCount).toBe(0);
     });
   });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { CollectionSpan } from '../../core/models/CollectionSpan';
-import type { ICodeFragment } from '../../core/models/CodeFragment';
+import type { IMetric } from '../../core/models/Metric';
 
 interface MetricAnchorProps {
   span?: CollectionSpan;
@@ -9,9 +9,9 @@ interface MetricAnchorProps {
   aggregator?: 'sum' | 'avg' | 'min' | 'max' | 'count';
 }
 
-// Helper to extract numeric values from fragments
-const extractFragmentValue = (fragment: ICodeFragment): number | undefined => {
-  const value = fragment.value as { amount?: number; value?: number } | number | undefined;
+// Helper to extract numeric values from metrics
+const extractFragmentValue = (metric: IMetric): number | undefined => {
+  const value = metric.value as { amount?: number; value?: number } | number | undefined;
   if (typeof value === 'number') return value;
   if (typeof value === 'object' && value !== null) {
     return value.amount ?? value.value;
@@ -20,13 +20,13 @@ const extractFragmentValue = (fragment: ICodeFragment): number | undefined => {
 };
 
 const aggregateFragments = (
-  fragments: ICodeFragment[][] | undefined, 
+  metrics: IMetric[][] | undefined, 
   metricType?: string, 
   aggregator: 'sum' | 'avg' | 'min' | 'max' | 'count' = 'sum'
 ) => {
-  if (!fragments || fragments.length === 0) return 0;
+  if (!metrics || metrics.length === 0) return 0;
   
-  const allFragments = fragments.flat();
+  const allFragments = metrics.flat();
   const filtered = metricType 
     ? allFragments.filter(f => f.type === metricType) 
     : allFragments;
@@ -60,7 +60,7 @@ export const MetricAnchor: React.FC<MetricAnchorProps> = ({ span, sourceId: _sou
     return <div>-</div>;
   }
 
-  const aggregatedValue = aggregateFragments(span.fragments, metricType, aggregator);
+  const aggregatedValue = aggregateFragments(span.metrics, metricType, aggregator);
 
   return (
     <div>

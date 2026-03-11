@@ -1,4 +1,4 @@
-import { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
+import { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { SnapshotClock } from './RuntimeClock';
 import { Unsubscribe, StackObserver } from './contracts/IRuntimeStack';
@@ -7,6 +7,7 @@ import { IEvent } from './contracts/events/IEvent';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
 import { EmitSystemOutputAction } from './actions/stack/EmitSystemOutputAction';
+import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
 
 /**
  * ExecutionContext manages a "turn" of execution.
@@ -70,6 +71,14 @@ export class ExecutionContext implements IScriptRuntime {
 
     addOutput(output: IOutputStatement): void {
         this._runtime.addOutput(output);
+    }
+
+    subscribeToTracker(listener: TrackerListener): Unsubscribe {
+        return this._runtime.subscribeToTracker(listener);
+    }
+
+    setAnalyticsEngine(engine: IAnalyticsEngine): void {
+        this._runtime.setAnalyticsEngine(engine);
     }
 
     subscribeToStack(observer: StackObserver): Unsubscribe {
@@ -173,4 +182,3 @@ export class ExecutionContext implements IScriptRuntime {
         }
     }
 }
-

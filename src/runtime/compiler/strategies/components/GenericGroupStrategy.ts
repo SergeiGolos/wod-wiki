@@ -4,8 +4,8 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
-import { FragmentType } from "@/core/models/CodeFragment";
+import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { MetricType } from "@/core/models/Metric";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // New aspect-based behaviors
@@ -31,8 +31,8 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
         
         // Match if ANY statement has children but NO statement has timer/rounds
         const hasChildren = statements.some(s => s.children && s.children.length > 0);
-        const hasTimer = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Duration && f.origin !== 'runtime'));
-        const hasRounds = statements.some(s => s.fragments.some(f => f.fragmentType === FragmentType.Rounds && f.origin !== 'runtime'));
+        const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration && f.origin !== 'runtime'));
+        const hasRounds = statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds && f.origin !== 'runtime'));
         
         return hasChildren && !hasTimer && !hasRounds;
     }
@@ -59,12 +59,12 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
                .setLabel(label)
                .setSourceIds(statements.map(s => s.id));
 
-        const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = statements.flatMap(s => 
-            distributor.distribute(s.fragments || [], "Group")
+        const distributor = new PassthroughMetricDistributor();
+        const metricGroups = statements.flatMap(s => 
+            distributor.distribute(s.metrics || [], "Group")
         ).filter(group => group.length > 0);
         
-        builder.setFragments(fragmentGroups);
+        builder.setFragments(metricGroups);
 
         // =====================================================================
         // Display Aspect

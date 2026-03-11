@@ -9,7 +9,7 @@ function createMockContext(overrides: {
 } = {}): IBehaviorContext {
     const memoryLocations: MemoryLocation[] = [];
     if (overrides.round) {
-        // Store round state as the fragment itself (cast to RoundState)
+        // Store round state as the metrics itself (cast to RoundState)
         memoryLocations.push(new MemoryLocation('round', [overrides.round as any]));
     }
 
@@ -17,7 +17,7 @@ function createMockContext(overrides: {
         block: {
             key: { toString: () => 'round-block' },
             label: 'Rounds',
-            fragments: [],
+            metrics: [],
             isComplete: overrides.isComplete ?? false,
         },
         clock: { now: new Date(0) },

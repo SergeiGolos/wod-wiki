@@ -2,11 +2,11 @@ import { IRuntimeBlockStrategy } from "../../../contracts/IRuntimeBlockStrategy"
 import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
-import { FragmentType } from "@/core/models/CodeFragment";
-import { DurationFragment } from "../../fragments/DurationFragment";
+import { MetricType } from "@/core/models/Metric";
+import { DurationMetric } from "../../metrics/DurationMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughFragmentDistributor } from "../../../contracts/IDistributedFragments";
+import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -32,10 +32,10 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
         if (!statements || statements.length === 0) return false;
         
         // Match if ANY statement has timer and ANY statement has rounds/amrap keyword
-        const hasTimer = statements.some(s => s.hasFragment(FragmentType.Duration));
-        const hasRounds = statements.some(s => s.hasFragment(FragmentType.Rounds));
-        const hasRoundsKeyword = statements.some(s => s.fragments.some(
-            f => (f.fragmentType === FragmentType.Effort || f.fragmentType === FragmentType.Action)
+        const hasTimer = statements.some(s => s.hasMetric(MetricType.Duration));
+        const hasRounds = statements.some(s => s.hasMetric(MetricType.Rounds));
+        const hasRoundsKeyword = statements.some(s => s.metrics.some(
+            f => (f.type === MetricType.Effort || f.type === MetricType.Action)
                 && typeof f.value === 'string'
                 && (f.value.toLowerCase() === 'rounds' || f.value.toLowerCase() === 'amrap')
         ));
@@ -44,11 +44,11 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
-        const firstStatementWithTimer = statements.find(s => s.hasFragment(FragmentType.Duration)) || statements[0];
+        const firstStatementWithTimer = statements.find(s => s.hasMetric(MetricType.Duration)) || statements[0];
         
-        const timerFragment = firstStatementWithTimer.fragments.find(
-            f => f.fragmentType === FragmentType.Duration
-        ) as DurationFragment | undefined;
+        const timerFragment = firstStatementWithTimer.metrics.find(
+            f => f.type === MetricType.Duration
+        ) as DurationMetric | undefined;
         const durationMs = timerFragment?.value || 0;
 
         // Block metadata
@@ -67,12 +67,12 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
             .setLabel(label)
             .setSourceIds(statements.map(s => s.id));
 
-        const distributor = new PassthroughFragmentDistributor();
-        const fragmentGroups = statements.flatMap(s => 
-            distributor.distribute(s.fragments || [], "AMRAP")
+        const distributor = new PassthroughMetricDistributor();
+        const metricGroups = statements.flatMap(s => 
+            distributor.distribute(s.metrics || [], "AMRAP")
         ).filter(group => group.length > 0);
         
-        builder.setFragments(fragmentGroups);
+        builder.setFragments(metricGroups);
 
         // =====================================================================
         // ASPECT COMPOSERS - High-level composition

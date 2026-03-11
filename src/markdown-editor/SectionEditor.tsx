@@ -14,7 +14,7 @@ import type { WodBlock } from './types';
 import type { Section, SectionType, WodDialect } from './types/section';
 import { useSectionDocument } from './hooks/useSectionDocument';
 import { SectionContainer } from './components/SectionContainer';
-import { MarkdownDisplay, WodBlockDisplay } from './components/section-renderers';
+import { MarkdownDisplay, WodBlockDisplay, FrontMatterDisplay } from './components/section-renderers';
 import { SectionEditView } from './components/SectionEditView';
 import { WodSectionEditor } from './components/WodSectionEditor';
 import { SectionAddBar, type NewSectionType } from './components/SectionAddBar';
@@ -89,6 +89,8 @@ const SectionDisplayRenderer: React.FC<{
     case 'title':
     case 'markdown':
       return <MarkdownDisplay section={section} startLineNumber={startLineNumber} gutterWidth={gutterWidth} />;
+    case 'frontmatter':
+      return <FrontMatterDisplay section={section} startLineNumber={startLineNumber} gutterWidth={gutterWidth} />;
     case 'wod':
       return (
         <WodBlockDisplay
@@ -173,6 +175,13 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
         else if (targetAfterId) insertSectionAfter(targetAfterId, '');
         else onContentChange?.('');
         break;
+      case 'frontmatter': {
+        const fmContent = '---\n\n---';
+        if (isPrepend) prependSection(fmContent);
+        else if (targetAfterId) insertSectionAfter(targetAfterId, fmContent);
+        else onContentChange?.(fmContent);
+        break;
+      }
       case 'wod':
       case 'log':
       case 'plan': {
@@ -335,8 +344,8 @@ export const SectionEditor: React.FC<SectionEditorProps> = ({
 
             {visibleSections.map((section) => {
               const isActive = section.id === activeSectionId;
-              const isMarkdown = section.type === 'markdown' || section.type === 'title';
-              const suppressGutter = !isActive && isMarkdown;
+              const hasInlineGutter = section.type === 'markdown' || section.type === 'title' || section.type === 'frontmatter';
+              const suppressGutter = !isActive && hasInlineGutter;
               
               return (
                 <React.Fragment key={section.id}>

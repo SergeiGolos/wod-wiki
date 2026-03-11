@@ -1,12 +1,12 @@
-import type { ICodeFragment } from './CodeFragment';
+import type { IMetric } from './Metric';
 
 /**
- * CollectionSpan represents a span of time with associated fragment data.
+ * CollectionSpan represents a span of time with associated metrics data.
  * Used by UI components to display workout segment information.
  */
 export interface CollectionSpan {
-    /** Array of fragment groups for display */
-    fragments?: ICodeFragment[][];
+    /** Array of metrics groups for display */
+    metrics?: IMetric[][];
     
     /** Associated block key */
     blockKey?: string;

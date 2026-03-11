@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { JitCompiler } from '../../JitCompiler';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import { CodeStatement } from '@/core/models/CodeStatement';
-import { TimerFragment } from '../../fragments/TimerFragment';
-import { RoundsFragment } from '../../fragments/RoundsFragment';
+import { TimerMetric } from '../../metrics/TimerMetric';
+import { RoundsMetric } from '../../metrics/RoundsMetric';
 import { AmrapLogicStrategy } from '../logic/AmrapLogicStrategy';
 import { IntervalLogicStrategy } from '../logic/IntervalLogicStrategy';
 import { GenericTimerStrategy } from '../components/GenericTimerStrategy';
@@ -31,7 +31,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
     let compiler: JitCompiler;
 
     // Mock Fragments for testing
-    class MockTimerFragment extends TimerFragment {
+    class MockTimerMetric extends TimerMetric {
         constructor(ms: number, forceUp: boolean = false) {
             const meta = new CodeMetadata(0, 0, 0, 0);
             super('0:00', meta, forceUp);
@@ -41,7 +41,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
         }
     }
 
-    class MockRoundsFragment extends RoundsFragment {
+    class MockRoundsMetric extends RoundsMetric {
         constructor(val: number) {
             super('0', new CodeMetadata(0, 0, 0, 0));
             (this as any).value = val;
@@ -67,9 +67,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should include ChildSelectionBehavior in compiled AMRAP block', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(600000, true), // 10 min countdown
-                new MockRoundsFragment(1)
+            statement.metrics = [
+                new MockTimerMetric(600000, true), // 10 min countdown
+                new MockRoundsMetric(1)
             ];
             statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
             statement.children = [new CodeStatement()];
@@ -83,9 +83,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should have ChildSelectionBehavior alongside timer behaviors', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(1200000, true), // 20 min
-                new MockRoundsFragment(1)
+            statement.metrics = [
+                new MockTimerMetric(1200000, true), // 20 min
+                new MockRoundsMetric(1)
             ];
             statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
             statement.children = [new CodeStatement()];
@@ -99,9 +99,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should have child selection behavior for container execution', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(600000, true),
-                new MockRoundsFragment(1)
+            statement.metrics = [
+                new MockTimerMetric(600000, true),
+                new MockRoundsMetric(1)
             ];
             statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
             statement.children = [new CodeStatement()];
@@ -113,9 +113,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should have unbounded rounds (AMRAP pattern)', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(600000, true),
-                new MockRoundsFragment(1)
+            statement.metrics = [
+                new MockTimerMetric(600000, true),
+                new MockRoundsMetric(1)
             ];
             statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
             statement.children = [new CodeStatement()];
@@ -133,9 +133,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should include sound cues', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(600000, true),
-                new MockRoundsFragment(1)
+            statement.metrics = [
+                new MockTimerMetric(600000, true),
+                new MockRoundsMetric(1)
             ];
             statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
             statement.children = [new CodeStatement()];
@@ -147,9 +147,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should include segment output', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(600000, true),
-                new MockRoundsFragment(1)
+            statement.metrics = [
+                new MockTimerMetric(600000, true),
+                new MockRoundsMetric(1)
             ];
             statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
             statement.children = [new CodeStatement()];
@@ -172,9 +172,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should include ChildSelectionBehavior in compiled EMOM block', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(60000), // 1 min interval
-                new MockRoundsFragment(10)    // 10 rounds
+            statement.metrics = [
+                new MockTimerMetric(60000), // 1 min interval
+                new MockRoundsMetric(10)    // 10 rounds
             ];
             statement.hints = new Set(['behavior.repeating_interval']);
             statement.children = [new CodeStatement()];
@@ -188,9 +188,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should have ChildSelectionBehavior alongside timer behaviors', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(60000),
-                new MockRoundsFragment(10)
+            statement.metrics = [
+                new MockTimerMetric(60000),
+                new MockRoundsMetric(10)
             ];
             statement.hints = new Set(['behavior.repeating_interval']);
             statement.children = [new CodeStatement()];
@@ -204,9 +204,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should have bounded rounds (EMOM pattern)', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(60000),
-                new MockRoundsFragment(10)
+            statement.metrics = [
+                new MockTimerMetric(60000),
+                new MockRoundsMetric(10)
             ];
             statement.hints = new Set(['behavior.repeating_interval']);
             statement.children = [new CodeStatement()];
@@ -222,9 +222,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should have child behaviors when children are present', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(60000),
-                new MockRoundsFragment(10)
+            statement.metrics = [
+                new MockTimerMetric(60000),
+                new MockRoundsMetric(10)
             ];
             statement.hints = new Set(['behavior.repeating_interval']);
             statement.children = [new CodeStatement()];
@@ -236,9 +236,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should include sound cues', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(60000),
-                new MockRoundsFragment(10)
+            statement.metrics = [
+                new MockTimerMetric(60000),
+                new MockRoundsMetric(10)
             ];
             statement.hints = new Set(['behavior.repeating_interval']);
 
@@ -249,9 +249,9 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
 
         it('should include segment output', () => {
             const statement = new CodeStatement();
-            statement.fragments = [
-                new MockTimerFragment(60000),
-                new MockRoundsFragment(10)
+            statement.metrics = [
+                new MockTimerMetric(60000),
+                new MockRoundsMetric(10)
             ];
             statement.hints = new Set(['behavior.repeating_interval']);
 

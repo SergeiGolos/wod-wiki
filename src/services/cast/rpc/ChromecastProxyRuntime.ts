@@ -1,4 +1,4 @@
-import { IScriptRuntime, OutputListener } from '@/runtime/contracts/IScriptRuntime';
+import { IScriptRuntime, OutputListener, TrackerListener } from '@/runtime/contracts/IScriptRuntime';
 import { IRuntimeStack, Unsubscribe, StackSnapshot, StackObserver, StackListener, StackEvent } from '@/runtime/contracts/IRuntimeStack';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
@@ -7,13 +7,14 @@ import { IEventBus, EventCallback, EventHandlerOptions } from '@/runtime/contrac
 import { IEvent } from '@/runtime/contracts/events/IEvent';
 import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 import { IOutputStatement } from '@/core/models/OutputStatement';
-import { RuntimeStackOptions } from '@/runtime/contracts/IRuntimeOptions';
+import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate, TrackerSnapshot } from '@/runtime/contracts/IRuntimeOptions';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { BlockKey } from '@/core/models/BlockKey';
 import { WodScript } from '@/parser/WodScript';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
+import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
 import type { IRpcTransport } from './IRpcTransport';
-import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate } from './RpcMessages';
+import type { RpcMessage, RpcStackUpdate, RpcOutputStatement, RpcWorkbenchUpdate, RpcTrackerUpdate } from './RpcMessages';
 import { ProxyBlock } from './ProxyBlock';
 
 // ── Stub implementations ────────────────────────────────────────────────────
@@ -156,19 +157,24 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     readonly jit: JitCompiler = null as any; // Not available on proxy
     readonly clock: IRuntimeClock;
     readonly errors: never[] = [];
+    readonly tracker: RuntimeStackTracker;
 
     private proxyStack: ProxyStack;
     private proxyEventBus: ProxyEventBus;
     private stackObservers = new Set<StackObserver>();
     private outputListeners = new Set<OutputListener>();
+    private trackerListeners = new Set<TrackerListener>();
     private outputs: IOutputStatement[] = [];
     private transportUnsub: (() => void) | null = null;
     private disposed = false;
 
+    // Track real-time tracker state on the proxy
+    private trackerState: TrackerSnapshot = { metrics: {}, rounds: {} };
+
     /**
      * Cache of active ProxyBlock instances keyed by block key string.
      * Allows update()-in-place when new RPC snapshots arrive for the same block,
-     * preserving subscriber connections held by timer and fragment hooks.
+     * preserving subscriber connections held by timer and metrics hooks.
      */
     private blockCache = new Map<string, ProxyBlock>();
 
@@ -182,6 +188,11 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.stack = this.proxyStack;
         this.eventBus = this.proxyEventBus;
         this.clock = new ProxyClock();
+
+        this.tracker = {
+            onUpdate: (callback: TrackerListener) => this.subscribeToTracker(callback),
+            getSnapshot: () => ({ ...this.trackerState })
+        };
 
         // Listen for incoming RPC messages from the browser
         this.transportUnsub = this.transport.onMessage((message: RpcMessage) => {
@@ -206,6 +217,22 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     subscribeToOutput(listener: OutputListener): Unsubscribe {
         this.outputListeners.add(listener);
         return () => this.outputListeners.delete(listener);
+    }
+
+    /**
+     * Subscribe to real-time tracker updates.
+     */
+    subscribeToTracker(listener: TrackerListener): Unsubscribe {
+        this.trackerListeners.add(listener);
+        return () => this.trackerListeners.delete(listener);
+    }
+
+    /**
+     * Set the analytics engine for the runtime.
+     * No-op on proxy — analytics processing happens on the browser.
+     */
+    setAnalyticsEngine(_engine: IAnalyticsEngine): void {
+        // No-op
     }
 
     /**
@@ -277,6 +304,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         this.proxyEventBus.dispose();
         this.stackObservers.clear();
         this.outputListeners.clear();
+        this.trackerListeners.clear();
         this.workbenchListeners.clear();
         this.outputs = [];
         this.blockCache.clear();
@@ -291,6 +319,9 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
                 break;
             case 'rpc-output':
                 this.handleOutput(message);
+                break;
+            case 'rpc-tracker-update':
+                this.handleTrackerUpdate(message);
                 break;
             case 'rpc-workbench-update':
                 this.handleWorkbenchUpdate(message);
@@ -318,6 +349,8 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             }
             // Clear cached blocks — the stack is fully reset
             this.blockCache.clear();
+            // Also reset tracker state
+            this.trackerState = { metrics: {}, rounds: {} };
         }
 
         let blocks: ProxyBlock[];
@@ -386,8 +419,8 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             outputType: message.outputType as any,
             sourceBlockKey: message.sourceBlockKey,
             stackLevel: message.stackLevel,
-            fragments: message.fragments,
-            fragmentMeta: new Map(),
+            metrics: message.metrics,
+            metricMeta: new Map(),
             completionReason: message.completionReason,
             timeSpan: new TimeSpan(message.timeSpan.started, message.timeSpan.ended),
             spans: [],
@@ -402,13 +435,40 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             type: 'output',
             sourceIds: [],
             children: [],
-            getAllFragmentsByType: () => [],
+            getAllMetricsByType: () => [],
             getFragment: () => undefined,
-            getDisplayFragments: () => message.fragments,
-            getFragmentsByOrigin: () => message.fragments,
+            getDisplayMetrics: () => message.metrics,
+            getFragmentsByOrigin: () => message.metrics,
         } as any;
 
         this.addOutput(output);
+    }
+
+    private handleTrackerUpdate(message: RpcTrackerUpdate): void {
+        const update = message.update as TrackerUpdate;
+        
+        // Update local proxy state
+        if (update.type === 'metric') {
+            const blockId = update.blockId;
+            const key = update.key!;
+            const blockMetrics = this.trackerState.metrics[blockId] || {};
+            this.trackerState.metrics[blockId] = {
+                ...blockMetrics,
+                [key]: { value: update.value, unit: update.unit }
+            };
+        } else if (update.type === 'round') {
+            this.trackerState.rounds[update.blockId] = { 
+                current: update.current!, 
+                total: update.total 
+            };
+        } else if (update.type === 'snapshot') {
+            this.trackerState = { ...update.snapshot };
+        }
+
+        // Notify listeners
+        for (const listener of this.trackerListeners) {
+            listener(update);
+        }
     }
 
     private handleWorkbenchUpdate(message: RpcWorkbenchUpdate): void {

@@ -3,7 +3,7 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 
 /**
  * SpanTrackingBehavior records the wall-clock time a block was active.
@@ -22,9 +22,8 @@ export class SpanTrackingBehavior implements IRuntimeBehavior {
         const now = ctx.clock.now.getTime();
         const label = ctx.block.label;
 
-        const fragment: ICodeFragment = {
-            fragmentType: FragmentType.Time,
-            type: 'time',
+        const metric: IMetric = {
+            type: MetricType.Time,
             image: '0:00',
             origin: 'runtime',
             value: {
@@ -38,7 +37,7 @@ export class SpanTrackingBehavior implements IRuntimeBehavior {
             timestamp: ctx.clock.now,
         };
 
-        ctx.pushMemory('time', [fragment]);
+        ctx.pushMemory('time', [metric]);
         return [];
     }
 
@@ -48,13 +47,13 @@ export class SpanTrackingBehavior implements IRuntimeBehavior {
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
         const timeLoc = ctx.getMemoryByTag('time')[0];
-        const timerState = timeLoc?.fragments[0]?.value as TimerState | undefined;
-        if (!timerState || timerState.spans.length === 0 || !timeLoc?.fragments[0]) return [];
+        const timerState = timeLoc?.metrics[0]?.value as TimerState | undefined;
+        if (!timerState || timerState.spans.length === 0 || !timeLoc?.metrics[0]) return [];
 
         const now = ctx.clock.now.getTime();
         const closedSpans = closeCurrentSpan(timerState.spans, now);
 
-        ctx.updateMemory('time', [{...timeLoc.fragments[0], value: { ...timerState, spans: closedSpans }}]);
+        ctx.updateMemory('time', [{...timeLoc.metrics[0], value: { ...timerState, spans: closedSpans }}]);
         return [];
     }
 

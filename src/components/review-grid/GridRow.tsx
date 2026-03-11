@@ -2,12 +2,12 @@
  * GridRow — Row renderer for the review grid.
  *
  * Renders one table row per GridRow, mapping visible columns to cells.
- * Fixed columns render their scalar values directly; fragment columns
+ * Fixed columns render their scalar values directly; metrics columns
  * delegate to GridCell for multi-pill rendering.
  */
 
 import React from 'react';
-import { FragmentType } from '@/core/models/CodeFragment';
+import { MetricType } from '@/core/models/Metric';
 import type { GridRow as GridRowData, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
 import { GridCell } from './GridCell';
@@ -26,8 +26,8 @@ interface GridRowProps {
   isHovered: boolean;
   /** Callback when the mouse enters/leaves row */
   onHover: (blockKey: string | null) => void;
-  /** Callback when a fragment cell is double-clicked for override editing */
-  onCellDoubleClick?: (blockKey: string, fragmentType: FragmentType, anchorRect: DOMRect) => void;
+  /** Callback when a metrics cell is double-clicked for override editing */
+  onCellDoubleClick?: (blockKey: string, metricType: MetricType, anchorRect: DOMRect) => void;
 }
 
 /**
@@ -64,11 +64,11 @@ export const GridRow: React.FC<GridRowProps> = ({
         <React.Fragment key={col.id}>
           {renderFixedCell(col, row) ?? (
             <GridCell
-              cell={col.fragmentType ? row.cells.get(col.fragmentType) : undefined}
-              fragmentType={col.fragmentType}
+              cell={col.type ? row.cells.get(col.type) : undefined}
+              metricType={col.type}
               blockKey={row.sourceBlockKey}
               indent={
-                (col.fragmentType === FragmentType.System || col.fragmentType === FragmentType.Effort)
+                (col.type === MetricType.System || col.type === MetricType.Effort)
                   ? row.stackLevel
                   : 0
               }
@@ -82,7 +82,7 @@ export const GridRow: React.FC<GridRowProps> = ({
 };
 
 /**
- * Render a fixed (non-fragment) column cell, or return null to fall through
+ * Render a fixed (non-metrics) column cell, or return null to fall through
  * to the GridCell renderer.
  */
 function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | null {

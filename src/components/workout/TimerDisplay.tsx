@@ -23,6 +23,7 @@ import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
 import { calculateDuration } from '../../lib/timeUtils';
 
 import { TimerStackView } from './TimerStackView';
+import { MetricTrackerCard } from '../track/MetricTrackerCard';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -256,7 +257,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
       const lines = leafItem.displayRows
         .map(row => row
           .filter(f => {
-            const type = (f.type || f.fragmentType || '').toLowerCase();
+            const type = (f.type || f.type || '').toLowerCase();
             const image = f.image || '';
             if (type === 'group' && (image === '+' || image === '-')) return false;
             return type !== 'lap';
@@ -299,51 +300,54 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   }, [primaryTimerEntry, activeTimerEntry, mainLabel, activeElapsed]);
 
   return (
-    <TimerStackView
-      // Use our calculated elapsed time from the active selection
-      elapsedMs={activeElapsed}
-      // Pass other props
-      hasActiveBlock={props.hasActiveBlock}
-      onStart={props.onStart}
-      onPause={props.onPause}
-      onStop={props.onStop}
-      onNext={props.onNext}
-      actions={actions.length > 0 ? actions : undefined}
-      onAction={(eventName, payload) => {
-        // Dispatch the event to the runtime's event bus.
-        // For 'next' events, this goes through NextEventHandler → NextAction
-        // which handles block advancement directly.
-        runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
+    <div className="flex flex-col gap-4">
+      <MetricTrackerCard />
+      <TimerStackView
+        // Use our calculated elapsed time from the active selection
+        elapsedMs={activeElapsed}
+        // Pass other props
+        hasActiveBlock={props.hasActiveBlock}
+        onStart={props.onStart}
+        onPause={props.onPause}
+        onStop={props.onStop}
+        onNext={props.onNext}
+        actions={actions.length > 0 ? actions : undefined}
+        onAction={(eventName, payload) => {
+          // Dispatch the event to the runtime's event bus.
+          // For 'next' events, this goes through NextEventHandler → NextAction
+          // which handles block advancement directly.
+          runtime.handle({ name: eventName, timestamp: new Date(), data: payload });
 
-        // For non-runtime events, delegate to the appropriate prop callback.
-        // Note: 'next' is NOT delegated to props.onNext() because the
-        // runtime.handle() call above already advances the block. Calling
-        // props.onNext() would double-dispatch and skip a block.
-        switch (eventName) {
-          case 'timer:pause':
-            props.onPause?.();
-            break;
-          case 'timer:resume':
-          case 'timer:start':
-            props.onStart?.();
-            break;
-          case 'workout:stop':
-            props.onStop?.();
-            break;
-        }
-      }}
-      // If any timer is running, the display should look alive
-      isRunning={isAnyTimerRunning}
+          // For non-runtime events, delegate to the appropriate prop callback.
+          // Note: 'next' is NOT delegated to props.onNext() because the
+          // runtime.handle() call above already advances the block. Calling
+          // props.onNext() would double-dispatch and skip a block.
+          switch (eventName) {
+            case 'timer:pause':
+              props.onPause?.();
+              break;
+            case 'timer:resume':
+            case 'timer:start':
+              props.onStart?.();
+              break;
+            case 'workout:stop':
+              props.onStop?.();
+              break;
+          }
+        }}
+        // If any timer is running, the display should look alive
+        isRunning={isAnyTimerRunning}
 
-      primaryTimer={displayTimerEntry}
-      subLabel={subLabel}
-      subLabels={subLabels}
-      secondaryTimers={secondaryTimerEntries}
-      stackItems={stackItems}
-      compact={props.compact}
-      focusedBlockId={focusedBlockId}
-      timerStates={timerStates}
-    />
+        primaryTimer={displayTimerEntry}
+        subLabel={subLabel}
+        subLabels={subLabels}
+        secondaryTimers={secondaryTimerEntries}
+        stackItems={stackItems}
+        compact={props.compact}
+        focusedBlockId={focusedBlockId}
+        timerStates={timerStates}
+      />
+    </div>
   );
 };
 

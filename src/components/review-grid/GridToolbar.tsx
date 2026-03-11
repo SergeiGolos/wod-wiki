@@ -12,7 +12,7 @@
 import React from 'react';
 import type { GridColumn, GridViewPreset } from './types';
 import { GRID_PRESETS } from './gridPresets';
-import { getFragmentIcon } from '@/views/runtime/fragmentColorMap';
+import { getMetricIcon } from '@/views/runtime/metricColorMap';
 
 interface GridToolbarProps {
   /** Currently active preset */
@@ -49,8 +49,8 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
   totalRows,
   visibleRows,
 }) => {
-  // Only show fragment columns in the visibility toggles
-  const fragmentColumns = columns.filter((c) => c.fragmentType);
+  // Only show metrics columns in the visibility toggles
+  const metricColumns = columns.filter((c) => c.type);
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-muted/10 dark:bg-muted/5">
@@ -90,8 +90,8 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
 
       {/* Column visibility chips */}
       <div className="flex flex-wrap items-center gap-1">
-        {fragmentColumns.map((col) => {
-          const icon = col.fragmentType ? getFragmentIcon(col.fragmentType) : null;
+        {metricColumns.map((col) => {
+          const icon = col.type ? getMetricIcon(col.type) : null;
           return (
             <button
               key={col.id}

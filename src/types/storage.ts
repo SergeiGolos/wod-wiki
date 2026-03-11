@@ -109,7 +109,7 @@ export interface AnalyticsDataPoint {
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult
 
-    metricType: string;   // 'total_reps', 'avg_hr', 'pace', etc.
+    type: string;   // 'total_reps', 'avg_hr', 'pace', etc.
     value: number | any;
     unit?: string;
     label: string;        // Human readable, e.g. "Average Heart Rate"

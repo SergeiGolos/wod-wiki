@@ -48,7 +48,7 @@ function createSerializedBlock(key: string, overrides?: Partial<SerializedBlock>
         label: 'Run',
         sourceIds: [1],
         isComplete: false,
-        displayFragments: [[{ type: 'text', fragmentType: 'label' as any, image: 'Run' } as any]],
+        displayFragments: [[{ type: 'label' as any, image: 'Run' } as any]],
         timer: null,
         ...overrides,
     };
@@ -242,7 +242,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'block-1',
                 stackLevel: 0,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: Date.now(), ended: Date.now() + 1000 },
             };
             transport._receive(msg);
@@ -261,7 +261,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'b1',
                 stackLevel: 0,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: 1000, ended: 6000 },
                 elapsed: 5000,
             });
@@ -278,7 +278,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'b1',
                 stackLevel: 0,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: 1000, ended: 3000 },
                 // no elapsed field
             } as any);
@@ -292,7 +292,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'b1',
                 stackLevel: 0,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: 0, ended: 1 },
             });
             transport._receive({
@@ -300,7 +300,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'b2',
                 stackLevel: 1,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: 1, ended: 2 },
             });
 
@@ -318,7 +318,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'b',
                 stackLevel: 0,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: 0 },
             });
 
@@ -409,7 +409,7 @@ describe('ChromecastProxyRuntime', () => {
                 outputType: 'segment',
                 sourceBlockKey: 'b',
                 stackLevel: 0,
-                fragments: [],
+                metrics: [],
                 timeSpan: { started: 0 },
             });
             proxy.dispose();

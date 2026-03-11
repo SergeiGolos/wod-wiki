@@ -1,5 +1,6 @@
 import { StackSnapshot } from './IRuntimeStack';
 import { IOutputStatement } from '../../core/models/OutputStatement';
+import { TrackerUpdate } from './IRuntimeOptions';
 
 /**
  * A subscription that receives runtime state updates.
@@ -25,6 +26,11 @@ export interface IRuntimeSubscription {
      * Called when an output statement is emitted (block unmount, milestone, etc.).
      */
     onOutput(output: IOutputStatement): void;
+
+    /**
+     * Called when a real-time tracker update occurs (reps, rounds).
+     */
+    onTrackerUpdate(update: TrackerUpdate): void;
 
     /**
      * Clean up resources held by this subscription (unsubscribe listeners, close channels, etc.).

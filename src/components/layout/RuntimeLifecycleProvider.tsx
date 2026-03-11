@@ -1,25 +1,3 @@
-/**
- * RuntimeLifecycleProvider - React context for managing ScriptRuntime lifecycle
- * 
- * This provider manages the full lifecycle of ScriptRuntime instances:
- * - Runtime creation via IRuntimeFactory
- * - Automatic disposal when runtime changes
- * - Clean lifecycle management
- * 
- * For simple runtime injection (passing a pre-created IScriptRuntime to children),
- * use ScriptRuntimeProvider from '@/runtime/context/RuntimeContext' instead.
- * 
- * Usage:
- * ```tsx
- * <RuntimeLifecycleProvider factory={runtimeFactory}>
- *   <App />
- * </RuntimeLifecycleProvider>
- * 
- * // In child components:
- * const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
- * ```
- */
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
@@ -28,6 +6,7 @@ import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLi
 import { SubscriptionManager } from '../../runtime/subscriptions/SubscriptionManager';
 import { LocalRuntimeSubscription } from '../../runtime/subscriptions/LocalRuntimeSubscription';
 import { SubscriptionManagerContext } from './SubscriptionManagerContext';
+import { WorkoutTracker } from '../../runtime/tracking/WorkoutTracker';
 
 export { useRuntimeLifecycle } from './useRuntimeLifecycle';
 
@@ -130,8 +109,12 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
         }
       }
 
+      // Create a new tracker for the new workout session
+      const tracker = new WorkoutTracker();
+
       // Now create the new runtime and update state.
-      const newRuntime = factoryRef.current.createRuntime(block) as ScriptRuntime | null;
+      // Pass the tracker in the options
+      const newRuntime = factoryRef.current.createRuntime(block, { tracker }) as ScriptRuntime | null;
       currentRuntimeRef.current = newRuntime;
       setRuntime(newRuntime);
 

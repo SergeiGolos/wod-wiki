@@ -3,7 +3,7 @@ import { ReEntryBehavior } from '../ReEntryBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../core/models/Metric';
 
 function createMockContext(overrides: {
     roundState?: { current: number; total: number | undefined };
@@ -11,9 +11,8 @@ function createMockContext(overrides: {
     const memoryLocations: IMemoryLocation[] = [];
 
     if (overrides.roundState) {
-        const roundFragment: ICodeFragment = {
-            fragmentType: FragmentType.CurrentRound,
-            type: 'current-round',
+        const roundFragment: IMetric = {
+            type: MetricType.CurrentRound,
             image: `Round ${overrides.roundState.current}`,
             origin: 'runtime',
             value: overrides.roundState,
@@ -24,7 +23,7 @@ function createMockContext(overrides: {
     const block = {
         key: { toString: () => 'test-block' },
         label: 'Test Block',
-        fragments: [],
+        metrics: [],
         getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
         pushMemory: vi.fn((loc: IMemoryLocation) => memoryLocations.push(loc)),
         getAllMemory: vi.fn(() => [...memoryLocations]),
@@ -40,15 +39,15 @@ function createMockContext(overrides: {
         markComplete: vi.fn(),
         getMemory: vi.fn(),
         setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
-            const loc = new MemoryLocation(tag, fragments);
+        pushMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
+            const loc = new MemoryLocation(tag, metrics);
             memoryLocations.push(loc);
             return loc;
         }),
-        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
             const locs = memoryLocations.filter(l => l.tag === tag);
             if (locs.length > 0) {
-                locs[0].update(fragments);
+                locs[0].update(metrics);
             }
         })
     } as unknown as IBehaviorContext;
@@ -62,7 +61,7 @@ describe('ReEntryBehavior', () => {
 
             behavior.onMount(ctx);
 
-            const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
+            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.value).toBe(1);
         });
 
@@ -72,7 +71,7 @@ describe('ReEntryBehavior', () => {
 
             behavior.onMount(ctx);
 
-            const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
+            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.value).toBe(3);
         });
 
@@ -82,17 +81,17 @@ describe('ReEntryBehavior', () => {
 
             behavior.onMount(ctx);
 
-            const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
+            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.value).toBe(1);
         });
 
-        it('creates CurrentRoundFragment with sourceBlockKey and timestamp', () => {
+        it('creates CurrentRoundMetric with sourceBlockKey and timestamp', () => {
             const behavior = new ReEntryBehavior({ totalRounds: 3, startRound: 2 });
             const ctx = createMockContext();
 
             behavior.onMount(ctx);
 
-            const round = ctx.block.getMemoryByTag('round')[0]?.fragments[0] as any;
+            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.sourceBlockKey).toBe('test-block');
             expect(round?.timestamp).toEqual(new Date(1000));
         });

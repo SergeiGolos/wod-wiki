@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { ICodeFragment, FragmentType } from '../../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../../core/models/Metric';
 import { MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
 import { TimerState, RoundState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
@@ -26,11 +26,11 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         markComplete: vi.fn(),
         // setMemory is used in tests to seed data — store as MemoryLocation
         setMemory: vi.fn((tag: MemoryTag, value: any) => {
-            // For 'round': fragment is the roundState itself (cast pattern)
-            // For 'time': fragment has .value = timerState
-            const frag: ICodeFragment = tag === 'round'
-                ? { ...value, fragmentType: FragmentType.CurrentRound, type: 'current-round', image: '', origin: 'runtime' as any } as any
-                : { fragmentType: 0 as any, type: tag, image: '', origin: 'runtime' as any, value };
+            // For 'round': metrics is the roundState itself (cast pattern)
+            // For 'time': metric has .value = timerState
+            const frag: IMetric = tag === 'round'
+                ? { ...value, type: MetricType.CurrentRound, image: '', origin: 'runtime' as any } as any
+                : { type: 0 as any, image: '', origin: 'runtime' as any, value };
             const existing = memoryLocations.get(tag);
             if (existing) {
                 existing.update([frag]);
@@ -40,24 +40,24 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         }),
         getMemory: vi.fn((tag: MemoryTag) => {
             const loc = memoryLocations.get(tag);
-            if (!loc || loc.fragments.length === 0) return undefined;
-            return tag === 'round' ? loc.fragments[0] : loc.fragments[0].value;
+            if (!loc || loc.metrics.length === 0) return undefined;
+            return tag === 'round' ? loc.metrics[0] : loc.metrics[0].value;
         }),
         getMemoryByTag: vi.fn((tag: MemoryTag) => {
             const loc = memoryLocations.get(tag);
             return loc ? [loc] : [];
         }),
-        pushMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
-            const loc = new MemoryLocation(tag, fragments);
+        pushMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
+            const loc = new MemoryLocation(tag, metrics);
             memoryLocations.set(tag, loc);
             return loc;
         }),
-        updateMemory: vi.fn((tag: MemoryTag, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
             const loc = memoryLocations.get(tag);
             if (loc) {
-                loc.update(fragments);
+                loc.update(metrics);
             } else {
-                memoryLocations.set(tag, new MemoryLocation(tag, fragments));
+                memoryLocations.set(tag, new MemoryLocation(tag, metrics));
             }
         }),
     } as unknown as IBehaviorContext;
@@ -87,7 +87,7 @@ describe('CountdownTimerBehavior - Round Increment', () => {
 
         expect(ctx.updateMemory).toHaveBeenCalledWith('round', expect.arrayContaining([
             expect.objectContaining({
-                fragmentType: FragmentType.CurrentRound,
+                type: MetricType.CurrentRound,
                 value: 2
             })
         ]));

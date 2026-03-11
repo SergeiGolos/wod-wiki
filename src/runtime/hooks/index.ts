@@ -17,7 +17,7 @@
  * - `usePrimaryTimer` - The timer pinned to the main display (lowest pinned, or leaf)
  * - `useSecondaryTimers` - All non-primary timers for context display
  * - `useActiveControls` - Aggregated buttons from all stack blocks
- * - `useStackFragmentSources` - Stack blocks as IFragmentSource[] (preferred)
+ * - `useStackFragmentSources` - Stack blocks as IMetricSource[] (preferred)
  *
  * ### Behavior-Based Hooks (For Single Block Access)
  * These hooks work directly with `IRuntimeBlock` objects and access memory
@@ -30,7 +30,7 @@
  * - `useDisplayState` - Get display state from a block
  * - `useTimerDisplay` - Formatted timer display with 60fps animation
  * - `useRoundDisplay` - Formatted round display values
- * - `useFragmentSource` - Get IFragmentSource from a block's fragment:display memory
+ * - `useFragmentSource` - Get IMetricSource from a block's metrics:display memory
  *
  * ### Memory Reference Hooks
  * Low-level hook for subscribing to typed memory references.
@@ -68,6 +68,7 @@
 export { useStackSnapshot, useSnapshotBlocks, useSnapshotCurrentBlock } from './useStackSnapshot';
 export { useOutputStatements } from './useOutputStatements';
 export { useNextPreview, type NextPreview } from './useNextPreview';
+export { useWorkoutTracker } from './useWorkoutTracker';
 
 // Stack-driven display hooks (preferred for Clock UI)
 export {

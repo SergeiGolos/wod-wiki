@@ -2,19 +2,19 @@ import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import * as terms from "../grammar/parser.terms";
 import { ICodeStatement, ParsedCodeStatement } from "../core/models/CodeStatement";
-import { FragmentType } from "../core/models/CodeFragment";
+import { MetricType } from "../core/models/Metric";
 import { CodeMetadata } from "../core/models/CodeMetadata";
 
-import { RepFragment } from "../runtime/compiler/fragments/RepFragment";
-import { DurationFragment } from "../runtime/compiler/fragments/DurationFragment";
-import { DistanceFragment } from "../runtime/compiler/fragments/DistanceFragment";
-import { ResistanceFragment } from "../runtime/compiler/fragments/ResistanceFragment";
-import { ActionFragment } from "../runtime/compiler/fragments/ActionFragment";
-import { TextFragment } from "../runtime/compiler/fragments/TextFragment";
-import { RoundsFragment } from "../runtime/compiler/fragments/RoundsFragment";
-import { IncrementFragment } from "../runtime/compiler/fragments/IncrementFragment";
-import { GroupFragment } from "../runtime/compiler/fragments/GroupFragment";
-import { EffortFragment } from "../runtime/compiler/fragments/EffortFragment";
+import { RepMetric } from "../runtime/compiler/metrics/RepMetric";
+import { DurationMetric } from "../runtime/compiler/metrics/DurationMetric";
+import { DistanceMetric } from "../runtime/compiler/metrics/DistanceMetric";
+import { ResistanceMetric } from "../runtime/compiler/metrics/ResistanceMetric";
+import { ActionMetric } from "../runtime/compiler/metrics/ActionMetric";
+import { TextMetric } from "../runtime/compiler/metrics/TextMetric";
+import { RoundsMetric } from "../runtime/compiler/metrics/RoundsMetric";
+import { IncrementMetric } from "../runtime/compiler/metrics/IncrementMetric";
+import { GroupMetric } from "../runtime/compiler/metrics/GroupMetric";
+import { EffortMetric } from "../runtime/compiler/metrics/EffortMetric";
 
 export type GroupType = 'round' | 'compose' | 'repeat';
 
@@ -30,7 +30,7 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
     enter(node) {
       if (node.name === "Block") {
         const statement = new ParsedCodeStatement();
-        const fragmentPairs: { fragment: any, meta: CodeMetadata }[] = [];
+        const metricPairs: { metrics: any, meta: CodeMetadata }[] = [];
         
         let cursor = node.node.cursor();
         if (cursor.firstChild()) {
@@ -50,27 +50,27 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
             switch (child.type.id) {
               case terms.Lap: {
                 const type: GroupType = text === "+" ? 'compose' : 'round';
-                fragmentPairs.push({ fragment: new GroupFragment(type, text), meta });
+                metricPairs.push({ metrics: new GroupMetric(type, text), meta });
                 break;
               }
               case terms.Fragment: {
-                const fragmentNode = child.firstChild;
-                if (!fragmentNode) break;
+                const metricNode = child.firstChild;
+                if (!metricNode) break;
                 
-                const fragText = source.slice(fragmentNode.from, fragmentNode.to);
+                const fragText = source.slice(metricNode.from, metricNode.to);
                 const fragMeta: CodeMetadata = {
-                  line: state.doc.lineAt(fragmentNode.from).number,
-                  startOffset: fragmentNode.from,
-                  endOffset: fragmentNode.to,
-                  columnStart: fragmentNode.from - state.doc.lineAt(fragmentNode.from).from,
-                  columnEnd: fragmentNode.to - state.doc.lineAt(fragmentNode.from).from,
-                  length: fragmentNode.to - fragmentNode.from,
+                  line: state.doc.lineAt(metricNode.from).number,
+                  startOffset: metricNode.from,
+                  endOffset: metricNode.to,
+                  columnStart: metricNode.from - state.doc.lineAt(metricNode.from).from,
+                  columnEnd: metricNode.to - state.doc.lineAt(metricNode.from).from,
+                  length: metricNode.to - metricNode.from,
                   raw: fragText
                 };
 
-                switch (fragmentNode.type.id) {
+                switch (metricNode.type.id) {
                   case terms.Duration: {
-                    const trend = fragmentNode.getChild(terms.Trend);
+                    const trend = metricNode.getChild(terms.Trend);
                     const forceCountUp = !!trend;
                     // Check for '*' inject-rest modifier
                     const hasInjectRest = fragText.includes('*');
@@ -78,29 +78,29 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                       if (!statement.hints) statement.hints = new Set();
                       statement.hints.add('behavior.inject_rest');
                     }
-                    const timerNode = fragmentNode.getChild(terms.Timer) || fragmentNode.getChild(terms.CollectibleTimer);
+                    const timerNode = metricNode.getChild(terms.Timer) || metricNode.getChild(terms.CollectibleTimer);
                     if (timerNode) {
                       const timerText = source.slice(timerNode.from, timerNode.to);
-                      fragmentPairs.push({ fragment: new DurationFragment(timerText, forceCountUp), meta: fragMeta });
+                      metricPairs.push({ metrics: new DurationMetric(timerText, forceCountUp), meta: fragMeta });
                     }
                     break;
                   }
                   case terms.Rounds: {
-                    const sequence = fragmentNode.getChild(terms.Sequence);
+                    const sequence = metricNode.getChild(terms.Sequence);
                     if (sequence) {
                       const numbers = source.slice(sequence.from, sequence.to).split('-').map(n => parseInt(n.trim()));
                       if (numbers.length === 1) {
-                        fragmentPairs.push({ fragment: new RoundsFragment(numbers[0]), meta: fragMeta });
+                        metricPairs.push({ metrics: new RoundsMetric(numbers[0]), meta: fragMeta });
                       } else {
-                        fragmentPairs.push({ fragment: new RoundsFragment(numbers.length), meta: fragMeta });
+                        metricPairs.push({ metrics: new RoundsMetric(numbers.length), meta: fragMeta });
                         for (const n of numbers) {
-                          fragmentPairs.push({ fragment: new RepFragment(n), meta: fragMeta });
+                          metricPairs.push({ metrics: new RepMetric(n), meta: fragMeta });
                         }
                       }
                     } else {
-                      const label = fragmentNode.getChild(terms.Identifier);
+                      const label = metricNode.getChild(terms.Identifier);
                       if (label) {
-                        fragmentPairs.push({ fragment: new RoundsFragment(source.slice(label.from, label.to)), meta: fragMeta });
+                        metricPairs.push({ metrics: new RoundsMetric(source.slice(label.from, label.to)), meta: fragMeta });
                       }
                     }
                     break;
@@ -108,35 +108,35 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                   case terms.Action: {
                     // Extract name from [:Name]
                     const actionText = fragText.substring(2, fragText.length - 1).trim();
-                    fragmentPairs.push({ fragment: new ActionFragment(actionText, { raw: actionText }), meta: fragMeta });
+                    metricPairs.push({ metrics: new ActionMetric(actionText, { raw: actionText }), meta: fragMeta });
                     break;
                   }
                   case terms.Text: {
                     const content = fragText.substring(2).trim();
-                    fragmentPairs.push({ fragment: new TextFragment(content, undefined), meta: fragMeta });
+                    metricPairs.push({ metrics: new TextMetric(content, undefined), meta: fragMeta });
                     break;
                   }
                   case terms.Quantity: {
-                    const hasAtSign = !!fragmentNode.getChild(terms.AtSign);
-                    const hasWeight = !!fragmentNode.getChild(terms.WeightUnit);
-                    const hasDistance = !!fragmentNode.getChild(terms.DistanceUnit);
-                    const numNode = fragmentNode.getChild(terms.Number);
+                    const hasAtSign = !!metricNode.getChild(terms.AtSign);
+                    const hasWeight = !!metricNode.getChild(terms.WeightUnit);
+                    const hasDistance = !!metricNode.getChild(terms.DistanceUnit);
+                    const numNode = metricNode.getChild(terms.Number);
                     
                     const value = numNode ? parseFloat(source.slice(numNode.from, numNode.to)) : undefined;
-                    const unitNode = fragmentNode.getChild(terms.WeightUnit) || fragmentNode.getChild(terms.DistanceUnit);
+                    const unitNode = metricNode.getChild(terms.WeightUnit) || metricNode.getChild(terms.DistanceUnit);
                     const unit = unitNode ? source.slice(unitNode.from, unitNode.to) : "";
 
                     if (hasWeight || hasAtSign) {
-                      fragmentPairs.push({ fragment: new ResistanceFragment(value, unit), meta: fragMeta });
+                      metricPairs.push({ metrics: new ResistanceMetric(value, unit), meta: fragMeta });
                     } else if (hasDistance) {
-                      fragmentPairs.push({ fragment: new DistanceFragment(value, unit), meta: fragMeta });
+                      metricPairs.push({ metrics: new DistanceMetric(value, unit), meta: fragMeta });
                     } else {
-                      fragmentPairs.push({ fragment: new RepFragment(value), meta: fragMeta });
+                      metricPairs.push({ metrics: new RepMetric(value), meta: fragMeta });
                     }
                     break;
                   }
                   case terms.Effort: {
-                    fragmentPairs.push({ fragment: new EffortFragment(fragText), meta: fragMeta });
+                    metricPairs.push({ metrics: new EffortMetric(fragText), meta: fragMeta });
                     break;
                   }
                 }
@@ -146,9 +146,9 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
           } while (cursor.nextSibling());
         }
 
-        const mergedPairs = mergeFragments(fragmentPairs);
-        statement.fragments = mergedPairs.map(p => p.fragment);
-        statement.fragmentMeta = new Map(mergedPairs.map(p => [p.fragment, p.meta]));
+        const mergedPairs = mergeFragments(metricPairs);
+        statement.metrics = mergedPairs.map(p => p.metrics);
+        statement.metricMeta = new Map(mergedPairs.map(p => [p.metrics, p.meta]));
         
         statement.meta = {
           line: state.doc.lineAt(node.from).number,
@@ -188,7 +188,7 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
   // Finalize children and leaf status
   for (const block of blocks) {
     const flatChildren = parentChildMap.get(block.id) || [];
-    block.children = groupChildrenByGroupFragments(flatChildren, blocks);
+    block.children = groupChildrenByGroupMetrics(flatChildren, blocks);
     block.isLeaf = block.children.length === 0;
   }
 
@@ -196,20 +196,20 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
 }
 
 /**
- * Merges adjacent fragments that should have been parsed as a single fragment.
+ * Merges adjacent metrics that should have been parsed as a single metrics.
  * Handles overlaps like Rep + ResistanceUnit -> Resistance.
  */
-function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragment: any, meta: CodeMetadata }[] {
+function mergeFragments(pairs: { metrics: any, meta: CodeMetadata }[]): { metrics: any, meta: CodeMetadata }[] {
   if (pairs.length < 2) return pairs;
 
-  const result: { fragment: any, meta: CodeMetadata }[] = [];
+  const result: { metrics: any, meta: CodeMetadata }[] = [];
   let current = pairs[0];
 
   for (let i = 1; i < pairs.length; i++) {
     const next = pairs[i];
 
-    // Merge adjacent Effort fragments
-    if (current.fragment instanceof EffortFragment && next.fragment instanceof EffortFragment) {
+    // Merge adjacent Effort metrics
+    if (current.metrics instanceof EffortMetric && next.metrics instanceof EffortMetric) {
       // If they are separated only by whitespace or nothing
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) { // allow one space
@@ -221,7 +221,7 @@ function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragm
           raw: current.meta.raw + (gap === 1 ? " " : "") + next.meta.raw
         };
         current = { 
-            fragment: new EffortFragment(current.fragment.effort + (gap === 1 ? " " : "") + next.fragment.effort), 
+            metrics: new EffortMetric(current.metrics.effort + (gap === 1 ? " " : "") + next.metrics.effort), 
             meta: mergedMeta 
         };
         continue;
@@ -229,7 +229,7 @@ function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragm
     }
 
     // Merge Rep + ResistanceUnit or DistanceUnit
-    if (current.fragment instanceof RepFragment && (next.fragment instanceof ResistanceFragment || next.fragment instanceof DistanceFragment)) {
+    if (current.metrics instanceof RepMetric && (next.metrics instanceof ResistanceMetric || next.metrics instanceof DistanceMetric)) {
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) { // allow one space
          const mergedMeta: CodeMetadata = {
@@ -239,16 +239,16 @@ function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragm
           length: next.meta.endOffset - current.meta.startOffset,
           raw: current.meta.raw + (gap === 1 ? " " : "") + next.meta.raw
         };
-        if (next.fragment instanceof ResistanceFragment && (next.fragment.value as any).amount === undefined) {
+        if (next.metrics instanceof ResistanceMetric && (next.metrics.value as any).amount === undefined) {
           current = { 
-              fragment: new ResistanceFragment(current.fragment.reps, next.fragment.units), 
+              metrics: new ResistanceMetric(current.metrics.reps, next.metrics.unit), 
               meta: mergedMeta 
           };
           continue;
         }
-        if (next.fragment instanceof DistanceFragment && (next.fragment.value as any).amount === undefined) {
+        if (next.metrics instanceof DistanceMetric && (next.metrics.value as any).amount === undefined) {
           current = { 
-              fragment: new DistanceFragment(current.fragment.reps, next.fragment.units), 
+              metrics: new DistanceMetric(current.metrics.reps, next.metrics.unit), 
               meta: mergedMeta 
           };
           continue;
@@ -265,10 +265,10 @@ function mergeFragments(pairs: { fragment: any, meta: CodeMetadata }[]): { fragm
 }
 
 /**
- * Groups consecutive compose group fragments together.
+ * Groups consecutive compose group metrics together.
  * Logic matching timer.visitor.ts.
  */
-function groupChildrenByGroupFragments(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
+function groupChildrenByGroupMetrics(childIds: number[], allBlocks: ICodeStatement[]): number[][] {
   if (childIds.length === 0) return [];
 
   const blocksById = new Map(allBlocks.map(b => [b.id, b]));
@@ -276,7 +276,7 @@ function groupChildrenByGroupFragments(childIds: number[], allBlocks: ICodeState
 
   for (const childId of childIds) {
     const childBlock = blocksById.get(childId);
-    const groupFragment = childBlock?.fragments.find(f => f.fragmentType === FragmentType.Group) as GroupFragment;
+    const groupFragment = childBlock?.metrics.find(f => f.type === MetricType.Group) as GroupMetric;
     const type = groupFragment?.group || 'repeat';
 
     if (type === 'compose' && groups.length > 0) {

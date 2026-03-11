@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from 'bun:test';
-import { FragmentPromotionBehavior } from '../FragmentPromotionBehavior';
+import { MetricPromotionBehavior } from '../MetricPromotionBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { FragmentType, ICodeFragment } from '../../../core/models/CodeFragment';
+import { MetricType, IMetric } from '../../../core/models/Metric';
 import { RoundState } from '../../memory/MemoryTypes';
 import { IRepSource } from '../../contracts/behaviors/IRepSource';
 import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
 
 function makeRoundLocation(round: RoundState): MemoryLocation {
-    // Round fragments are the roundState itself (cast pattern)
-    return new MemoryLocation('round', [{ ...round, fragmentType: FragmentType.CurrentRound, type: 'current-round', image: '', origin: 'runtime' as any } as any]);
+    // Round metrics are the roundState itself (cast pattern)
+    return new MemoryLocation('round', [{ ...round, type: MetricType.CurrentRound, image: '', origin: 'runtime' as any } as any]);
 }
 
 function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
@@ -18,7 +18,7 @@ function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehavior
         block: {
             key: { toString: () => 'loop-block' },
             label: 'Loop',
-            fragments: [],
+            metrics: [],
             completionReason: undefined,
             getMemoryByTag: vi.fn(() => []),
         },
@@ -72,12 +72,12 @@ function withMutableRound(initial: RoundState) {
     };
 }
 
-describe('FragmentPromotionBehavior repScheme', () => {
+describe('MetricPromotionBehavior repScheme', () => {
     // ── IRepSource contract ──────────────────────────────────────────
 
     describe('IRepSource — getRepsForRound', () => {
         it('should return correct reps for 1-based round index', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
 
             expect(behavior.getRepsForRound(1)).toBe(21);
             expect(behavior.getRepsForRound(2)).toBe(15);
@@ -85,7 +85,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
         });
 
         it('should wrap around when round exceeds scheme length', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
 
             // Round 4 → scheme[0] = 21
             expect(behavior.getRepsForRound(4)).toBe(21);
@@ -96,13 +96,13 @@ describe('FragmentPromotionBehavior repScheme', () => {
         });
 
         it('should return undefined for empty rep scheme', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [], promotions: [] });
 
             expect(behavior.getRepsForRound(1)).toBeUndefined();
         });
 
         it('should handle single-element scheme', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [10], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [10], promotions: [] });
 
             expect(behavior.getRepsForRound(1)).toBe(10);
             expect(behavior.getRepsForRound(2)).toBe(10);
@@ -112,13 +112,13 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
     describe('IRepSource — getRepsForCurrentRound', () => {
         it('should return first rep value before any mount', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
 
             expect(behavior.getRepsForCurrentRound()).toBe(21);
         });
 
         it('should return reps for last promoted round after mount', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext(withRoundState({ current: 2, total: 3 }));
 
             behavior.onMount(ctx);
@@ -131,7 +131,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
     describe('IRepSource — repScheme property', () => {
         it('should expose readonly copy of rep scheme', () => {
             const original = [21, 15, 9];
-            const behavior = new FragmentPromotionBehavior({ repScheme: original, promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: original, promotions: [] });
 
             expect(behavior.repScheme).toEqual([21, 15, 9]);
 
@@ -144,17 +144,16 @@ describe('FragmentPromotionBehavior repScheme', () => {
     // ── onMount ──────────────────────────────────────────────────────
 
     describe('onMount — promotes reps for initial round', () => {
-        it('should push rep fragment to fragment:rep-target on mount', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+        it('should push rep metrics to metrics:rep-target on mount', () => {
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext(withRoundState({ current: 1, total: 3 }));
 
             behavior.onMount(ctx);
 
             expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({
-                    fragmentType: FragmentType.Rep,
-                    type: 'rep',
+                    type: MetricType.Rep,
                     value: 21,
                     image: '21',
                     origin: 'runtime',
@@ -163,32 +162,32 @@ describe('FragmentPromotionBehavior repScheme', () => {
         });
 
         it('should use round 1 when no round memory exists', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext(); // no round state
 
             behavior.onMount(ctx);
 
             // Defaults to round 1 → scheme[0] = 21
             expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 21 })]
             );
         });
 
         it('should promote reps for non-first round on mount', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext(withRoundState({ current: 2, total: 3 }));
 
             behavior.onMount(ctx);
 
             expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 15, image: '15' })]
             );
         });
 
         it('should not push memory when rep scheme is empty', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [], promotions: [] });
             const ctx = createMockContext(withRoundState({ current: 1, total: 3 }));
 
             behavior.onMount(ctx);
@@ -197,7 +196,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
         });
 
         it('should return empty actions on mount', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext(withRoundState({ current: 1, total: 3 }));
 
             const actions = behavior.onMount(ctx);
@@ -210,16 +209,16 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
     describe('onNext — promotes reps on round change', () => {
         it('should update rep-target when round advances', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const { setRound, overrides } = withMutableRound({ current: 1, total: 3 });
             const ctx = createMockContext({
                 ...overrides,
                 block: {
                     key: { toString: () => 'loop-block' },
                     label: 'Loop',
-                    fragments: [],
+                    metrics: [],
                     completionReason: undefined,
-                    getMemoryByTag: vi.fn(() => [{ tag: 'fragment:rep-target', fragments: [] }]),
+                    getMemoryByTag: vi.fn(() => [{ tag: 'metric:rep-target', metrics: [] }]),
                 },
             } as unknown as Partial<IBehaviorContext>);
 
@@ -232,13 +231,13 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
             // Should update (not push) because rep-target already exists
             expect(ctx.updateMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 15, image: '15' })]
             );
         });
 
         it('should NOT promote when round has not changed', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const { overrides } = withMutableRound({ current: 1, total: 3 });
             const ctx = createMockContext(overrides);
 
@@ -255,7 +254,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
         });
 
         it('should NOT promote when no round memory exists', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext();
 
             behavior.onNext(ctx);
@@ -265,7 +264,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
         });
 
         it('should handle full round-robin cycle over multiple advances', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const { setRound, overrides } = withMutableRound({ current: 1, total: 6 });
             let repTargetPushed = false;
             const ctx = createMockContext({
@@ -273,10 +272,10 @@ describe('FragmentPromotionBehavior repScheme', () => {
                 block: {
                     key: { toString: () => 'loop-block' },
                     label: 'Loop',
-                    fragments: [],
+                    metrics: [],
                     completionReason: undefined,
                     getMemoryByTag: vi.fn(() =>
-                        repTargetPushed ? [{ tag: 'fragment:rep-target', fragments: [] }] : []
+                        repTargetPushed ? [{ tag: 'metric:rep-target', metrics: [] }] : []
                     ),
                 },
                 pushMemory: vi.fn(() => { repTargetPushed = true; }),
@@ -285,7 +284,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             // Mount: round 1 → 21 (pushMemory because rep-target doesn't exist yet)
             behavior.onMount(ctx);
             expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 21 })]
             );
 
@@ -293,7 +292,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             setRound({ current: 2, total: 6 });
             behavior.onNext(ctx);
             expect(ctx.updateMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 15 })]
             );
 
@@ -301,7 +300,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             setRound({ current: 3, total: 6 });
             behavior.onNext(ctx);
             expect(ctx.updateMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 9 })]
             );
 
@@ -309,7 +308,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             setRound({ current: 4, total: 6 });
             behavior.onNext(ctx);
             expect(ctx.updateMemory).toHaveBeenLastCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({ value: 21 })]
             );
         });
@@ -319,14 +318,14 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
     describe('onUnmount / onDispose', () => {
         it('should return empty actions on unmount', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext();
 
             expect(behavior.onUnmount(ctx)).toEqual([]);
         });
 
         it('should not throw on dispose', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
+            const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
             const ctx = createMockContext();
 
             expect(() => behavior.onDispose(ctx)).not.toThrow();
@@ -335,9 +334,9 @@ describe('FragmentPromotionBehavior repScheme', () => {
 
     // ── Fragment shape ───────────────────────────────────────────────
 
-    describe('emitted fragment shape', () => {
-        it('should include sourceBlockKey and timestamp in fragment', () => {
-            const behavior = new FragmentPromotionBehavior({ repScheme: [10], promotions: [] });
+    describe('emitted metrics shape', () => {
+        it('should include sourceBlockKey and timestamp in metric', () => {
+            const behavior = new MetricPromotionBehavior({ repScheme: [10], promotions: [] });
             const clockTime = new Date('2024-06-15T10:00:00Z');
             const ctx = createMockContext({
                 ...withRoundState({ current: 1, total: 1 }),
@@ -347,7 +346,7 @@ describe('FragmentPromotionBehavior repScheme', () => {
             behavior.onMount(ctx);
 
             expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'fragment:rep-target',
+                'metric:rep-target',
                 [expect.objectContaining({
                     sourceBlockKey: 'loop-block',
                     timestamp: clockTime,

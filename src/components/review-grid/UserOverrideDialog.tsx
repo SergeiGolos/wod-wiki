@@ -1,8 +1,8 @@
 /**
  * UserOverrideDialog — Popover/modal for entering user override values.
  *
- * Opened by double-clicking a fragment cell in the grid.
- * Allows the user to enter a value that creates an ICodeFragment
+ * Opened by double-clicking a metrics cell in the grid.
+ * Allows the user to enter a value that creates an IMetric
  * with `origin: 'user'`, stored in the override map.
  *
  * Features:
@@ -13,8 +13,8 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FragmentType, type ICodeFragment } from '@/core/models/CodeFragment';
-import { getFragmentColorClasses, getFragmentIcon } from '@/views/runtime/fragmentColorMap';
+import { MetricType, type IMetric } from '@/core/models/Metric';
+import { getMetricColorClasses, getMetricIcon } from '@/views/runtime/metricColorMap';
 
 // ─── Props ─────────────────────────────────────────────────────
 
@@ -23,18 +23,18 @@ export interface UserOverrideDialogProps {
   isOpen: boolean;
   /** The block key of the row being edited */
   blockKey: string;
-  /** The fragment type (column) being edited */
-  fragmentType: FragmentType;
-  /** Existing fragments in the cell (for context display) */
-  existingFragments: ICodeFragment[];
+  /** The metrics type (column) being edited */
+  metricType: MetricType;
+  /** Existing metric in the cell (for context display) */
+  existingFragments: IMetric[];
   /** Existing user override value (if any) */
   existingUserValue?: unknown;
   /** Position anchor (relative to viewport) */
   anchorRect?: DOMRect;
   /** Callback to save the override */
-  onSave: (blockKey: string, fragmentType: FragmentType, value: unknown, image?: string) => void;
+  onSave: (blockKey: string, metricType: MetricType, value: unknown, image?: string) => void;
   /** Callback to remove the override */
-  onRemove: (blockKey: string, fragmentType: FragmentType) => void;
+  onRemove: (blockKey: string, metricType: MetricType) => void;
   /** Callback to close the dialog */
   onClose: () => void;
 }
@@ -44,7 +44,7 @@ export interface UserOverrideDialogProps {
 export const UserOverrideDialog: React.FC<UserOverrideDialogProps> = ({
   isOpen,
   blockKey,
-  fragmentType,
+  metricType,
   existingFragments,
   existingUserValue,
   anchorRect,
@@ -102,14 +102,14 @@ export const UserOverrideDialog: React.FC<UserOverrideDialogProps> = ({
     const numValue = Number(inputValue.trim());
     const value = !isNaN(numValue) && inputValue.trim() !== '' ? numValue : inputValue.trim();
 
-    onSave(blockKey, fragmentType, value, String(value));
+    onSave(blockKey, metricType, value, String(value));
     onClose();
-  }, [inputValue, blockKey, fragmentType, onSave, onClose]);
+  }, [inputValue, blockKey, metricType, onSave, onClose]);
 
   const handleRemove = useCallback(() => {
-    onRemove(blockKey, fragmentType);
+    onRemove(blockKey, metricType);
     onClose();
-  }, [blockKey, fragmentType, onRemove, onClose]);
+  }, [blockKey, metricType, onRemove, onClose]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -123,11 +123,11 @@ export const UserOverrideDialog: React.FC<UserOverrideDialogProps> = ({
 
   if (!isOpen) return null;
 
-  const icon = getFragmentIcon(fragmentType);
-  const colorClasses = getFragmentColorClasses(fragmentType);
+  const icon = getMetricIcon(metricType);
+  const colorClasses = getMetricColorClasses(metricType);
   const hasUserOverride = existingUserValue !== undefined;
 
-  // Existing runtime (non-user) fragments for context
+  // Existing runtime (non-user) metrics for context
   const runtimeFragments = existingFragments.filter((f) => f.origin !== 'user');
 
   // Position the dialog near the anchor cell
@@ -160,7 +160,7 @@ export const UserOverrideDialog: React.FC<UserOverrideDialogProps> = ({
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
           {icon && <span className="text-sm">{icon}</span>}
-          <span className="text-sm font-medium capitalize">{fragmentType}</span>
+          <span className="text-sm font-medium capitalize">{metricType}</span>
           <span className="text-[10px] text-muted-foreground ml-auto truncate max-w-[100px]" title={blockKey}>
             {blockKey}
           </span>
@@ -192,7 +192,7 @@ export const UserOverrideDialog: React.FC<UserOverrideDialogProps> = ({
             ref={inputRef}
             type="text"
             className="w-full px-2 py-1.5 text-sm rounded border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40"
-            placeholder={`Enter ${fragmentType} value…`}
+            placeholder={`Enter ${metricType} value…`}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}

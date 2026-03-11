@@ -41,7 +41,7 @@ class RuntimeLoggerImpl {
         event: 'color: #a855f7; font-weight: bold',     // purple
         memory: 'color: #f59e0b; font-weight: bold',    // amber
         action: 'color: #6366f1; font-weight: normal',  // indigo
-        behavior: 'color: #64748b; font-weight: normal', // slate
+        origin: 'color: #64748b; font-weight: normal', // slate
     };
 
     constructor() {

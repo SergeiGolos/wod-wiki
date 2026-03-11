@@ -11,7 +11,7 @@ import {
 import { RangeSetBuilder, StateField, StateEffect, Extension } from "@codemirror/state";
 import { WodBlock } from "../../../markdown-editor/types";
 import { detectWodBlocks } from "../../../markdown-editor/utils/blockDetection";
-import { FragmentType } from "../../../core/models/CodeFragment";
+import { MetricType } from "../../../core/models/Metric";
 
 // Effect to update blocks in state
 export const setWodBlocks = StateEffect.define<WodBlock[]>();
@@ -107,8 +107,8 @@ export function wodDecorations(options: WodDecorationsOptions = {}): Extension {
         // Inlay hints for non-active blocks
         if (!isActive && block.statements) {
              for (const stmt of block.statements) {
-                 for (const frag of stmt.fragments) {
-                     const meta = stmt.fragmentMeta?.get(frag);
+                 for (const frag of stmt.metrics) {
+                     const meta = stmt.metricMeta?.get(frag);
                      if (meta) {
                          // meta.line is 1-based relative to block content line 1
                          // block content line 1 is doc line block.startLine + 2
@@ -116,7 +116,7 @@ export function wodDecorations(options: WodDecorationsOptions = {}): Extension {
                          if (absLineNo <= view.state.doc.lines) {
                             const absLine = view.state.doc.line(absLineNo);
                             const pos = absLine.from + meta.columnStart;
-                            const emoji = getEmojiForFragment(frag.fragmentType);
+                            const emoji = getEmojiForFragment(frag.type);
                             if (emoji) {
                                 builder.add(pos, pos, Decoration.widget({
                                     side: -1, // before
@@ -158,14 +158,14 @@ export function wodDecorations(options: WodDecorationsOptions = {}): Extension {
   return [wodBlocksField, plugin, wodGutter];
 }
 
-function getEmojiForFragment(type: FragmentType): string | null {
+function getEmojiForFragment(type: MetricType): string | null {
     switch (type) {
-        case FragmentType.Duration: return '⏱️';
-        case FragmentType.Resistance: return '💪';
-        case FragmentType.Rep: return '×';
-        case FragmentType.Rounds: return '🔄';
-        case FragmentType.Action: return '▶️';
-        case FragmentType.Distance: return '📏';
+        case MetricType.Duration: return '⏱️';
+        case MetricType.Resistance: return '💪';
+        case MetricType.Rep: return '×';
+        case MetricType.Rounds: return '🔄';
+        case MetricType.Action: return '▶️';
+        case MetricType.Distance: return '📏';
         default: return null;
     }
 }

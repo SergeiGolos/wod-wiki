@@ -12,8 +12,8 @@ import { IRuntimeBlock } from '../../../contracts/IRuntimeBlock';
 import { MemoryType, MemoryTypeMap, TimerState, RoundState, DisplayState } from '../../../memory/MemoryTypes';
 import { TimeSpan } from '../../../models/TimeSpan';
 import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../../memory/MemoryLocation';
-import { ICodeFragment, FragmentType } from '../../../../core/models/CodeFragment';
-import { CurrentRoundFragment } from '../../../compiler/fragments/CurrentRoundFragment';
+import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { CurrentRoundMetric } from '../../../compiler/metrics/CurrentRoundMetric';
 import { RoundState } from '../../../memory/MemoryTypes';
 
 /**
@@ -49,7 +49,7 @@ export class MockClock {
 export interface MockRuntime {
     clock: MockClock;
     events: Array<{ name: string; data: unknown; timestamp: number }>;
-    outputs: Array<{ type: string; fragments: unknown[]; metadata: unknown }>;
+    outputs: Array<{ type: string; metrics: unknown[]; metadata: unknown }>;
     completionReason: string | undefined;
     subscriptions: Map<string, Array<(event: unknown, ctx: IBehaviorContext) => unknown[]>>;
 }
@@ -73,9 +73,9 @@ export function createMockRuntime(startTime: number = 0): MockRuntime {
 export interface MockBlock {
     key: { toString: () => string };
     blockType: string;
-    /** Computed label derived from fragment:label memory. */
+    /** Computed label derived from metrics:label memory. */
     readonly label: string;
-    fragments: unknown[][];
+    metrics: unknown[][];
     memory: Map<MemoryType, unknown>;
     /** Read-only list of behaviors (new requirement for some behaviors) */
     behaviors: readonly IRuntimeBehavior[];
@@ -102,15 +102,15 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         blockType: config.blockType ?? 'Test',
         get label(): string {
             for (const loc of memoryLocations) {
-                for (const frag of loc.fragments) {
-                    if (frag.fragmentType === FragmentType.Label) {
+                for (const frag of loc.metrics) {
+                    if (frag.type === MetricType.Label) {
                         return frag.image || (frag.value as any)?.toString() || block.blockType || 'Block';
                     }
                 }
             }
             return block.blockType || 'Block';
         },
-        fragments: config.fragments ?? [],
+        metrics: config.metrics ?? [],
         memory: config.memory ?? new Map(),
         behaviors: config.behaviors ?? [],
         _memoryLocations: memoryLocations,
@@ -128,16 +128,15 @@ export function createMockBlock(config: Partial<MockBlock> = {}): MockBlock {
         }
     };
 
-    // Store label as a Label fragment in memory list
+    // Store label as a Label metrics in memory list
     const labelText = config.label ?? config.blockType ?? 'Test Block';
     if (labelText) {
-        memoryLocations.push(new MemoryLocation('fragment:label', [{
-            fragmentType: FragmentType.Label,
-            type: 'label',
+        memoryLocations.push(new MemoryLocation('metric:label', [{
+            type: MetricType.Label,
             image: labelText,
             origin: 'config',
             value: labelText
-        } as ICodeFragment]));
+        } as IMetric]));
     }
 
     return block;
@@ -173,8 +172,8 @@ export function createIntegrationContext(
             });
         },
 
-        emitOutput(type: string, fragments: unknown[], metadata: unknown) {
-            runtime.outputs.push({ type, fragments, metadata });
+        emitOutput(type: string, metrics: unknown[], metadata: unknown) {
+            runtime.outputs.push({ type, metrics, metadata });
         },
 
         markComplete(reason: string) {
@@ -188,17 +187,17 @@ export function createIntegrationContext(
         getMemory<T extends MemoryType>(type: T): MemoryTypeMap[T] | undefined {
             // Try list-based memory first
             const locations = block.getMemoryByTag(type as unknown as MemoryTag);
-            if (locations.length > 0 && locations[0].fragments.length > 0) {
-                // Special case: 'round' memory uses CurrentRoundFragment which
+            if (locations.length > 0 && locations[0].metrics.length > 0) {
+                // Special case: 'round' memory uses CurrentRoundMetric which
                 // stores .current and .total as direct fields. Synthesize RoundState.
                 if (type === 'round') {
-                    const frag = locations[0].fragments[0] as unknown as { current?: number; total?: number };
+                    const frag = locations[0].metrics[0] as unknown as { current?: number; total?: number };
                     if (frag?.current !== undefined) {
                         return { current: frag.current, total: frag.total } as MemoryTypeMap[T];
                     }
                     return undefined;
                 }
-                return locations[0].fragments[0].value as MemoryTypeMap[T];
+                return locations[0].metrics[0].value as MemoryTypeMap[T];
             }
             // Fall back to Map
             return block.memory.get(type) as MemoryTypeMap[T] | undefined;
@@ -211,62 +210,60 @@ export function createIntegrationContext(
             const tag = type as unknown as MemoryTag;
             const locations = block.getMemoryByTag(tag);
             if (locations.length > 0) {
-                const fragment: ICodeFragment = {
-                    fragmentType: 0 as any,
-                    type: tag,
+                const metric: IMetric = {
+                    type: 0 as any,
                     image: '',
                     origin: 'runtime',
                     value,
                     sourceBlockKey: block.key.toString(),
                     timestamp: new Date(),
                 } as any;
-                locations[0].update([fragment]);
+                locations[0].update([metric]);
             } else {
-                const fragment: ICodeFragment = {
-                    fragmentType: 0 as any,
-                    type: tag,
+                const metric: IMetric = {
+                    type: 0 as any,
                     image: '',
                     origin: 'runtime',
                     value,
                     sourceBlockKey: block.key.toString(),
                     timestamp: new Date(),
                 } as any;
-                block.pushMemory(new MemoryLocation(tag, [fragment]));
+                block.pushMemory(new MemoryLocation(tag, [metric]));
             }
         },
 
-        pushMemory(tag: string, fragments: ICodeFragment[]) {
+        pushMemory(tag: string, metrics: IMetric[]) {
             const memTag = tag as MemoryTag;
-            const location = new MemoryLocation(memTag, fragments);
+            const location = new MemoryLocation(memTag, metrics);
             block.pushMemory(location);
             // Sync to Map for backward compat assertions
-            if (fragments.length > 0) {
-                const frag = fragments[0] as unknown as { current?: number; total?: number };
+            if (metrics.length > 0) {
+                const frag = metrics[0] as unknown as { current?: number; total?: number };
                 const value = (tag === 'round' && frag?.current !== undefined)
                     ? { current: frag.current, total: frag.total }
-                    : fragments[0].value;
+                    : metrics[0].value;
                 if (value !== undefined) {
                     block.memory.set(tag as MemoryType, value);
                 }
             }
         },
 
-        updateMemory(tag: string, fragments: ICodeFragment[]) {
+        updateMemory(tag: string, metrics: IMetric[]) {
             const memTag = tag as MemoryTag;
             const locations = block.getMemoryByTag(memTag);
             if (locations.length > 0) {
-                locations[0].update(fragments);
+                locations[0].update(metrics);
             } else {
                 // Create new location if none exists
-                const location = new MemoryLocation(memTag, fragments);
+                const location = new MemoryLocation(memTag, metrics);
                 block.pushMemory(location);
             }
             // Sync to Map for backward compat assertions
-            if (fragments.length > 0) {
-                const frag = fragments[0] as unknown as { current?: number; total?: number };
+            if (metrics.length > 0) {
+                const frag = metrics[0] as unknown as { current?: number; total?: number };
                 const value = (tag === 'round' && frag?.current !== undefined)
                     ? { current: frag.current, total: frag.total }
-                    : fragments[0].value;
+                    : metrics[0].value;
                 if (value !== undefined) {
                     block.memory.set(tag as MemoryType, value);
                 }
@@ -418,25 +415,25 @@ export function findEvents(runtime: MockRuntime, name: string): Array<{ name: st
 /**
  * Finds outputs by type.
  */
-export function findOutputs(runtime: MockRuntime, type: string): Array<{ type: string; fragments: unknown[]; metadata: unknown }> {
+export function findOutputs(runtime: MockRuntime, type: string): Array<{ type: string; metrics: unknown[]; metadata: unknown }> {
     return runtime.outputs.filter(o => o.type === type);
 }
 
 /**
- * Gets the display fragments from a block's memory locations.
- * Returns all fragments from the first 'display' memory location.
+ * Gets the display metrics from a block's memory locations.
+ * Returns all metric from the first 'display' memory location.
  */
-export function getDisplayFragments(block: MockBlock): Array<{ text: string; role: string }> {
+export function getDisplayMetrics(block: MockBlock): Array<{ text: string; role: string }> {
     const locations = block.getMemoryByTag('display' as MemoryTag);
     if (locations.length === 0) return [];
-    return locations[0].fragments.map(f => f.value as { text: string; role: string });
+    return locations[0].metrics.map(f => f.value as { text: string; role: string });
 }
 
 /**
  * Gets the display label from a block's display memory.
  */
 export function getDisplayLabel(block: MockBlock): string | undefined {
-    const frags = getDisplayFragments(block);
+    const frags = getDisplayMetrics(block);
     const label = frags.find(f => f.role === 'label');
     return label?.text;
 }
@@ -445,7 +442,7 @@ export function getDisplayLabel(block: MockBlock): string | undefined {
  * Gets the round display text from a block's display memory.
  */
 export function getRoundDisplay(block: MockBlock): string | undefined {
-    const frags = getDisplayFragments(block);
+    const frags = getDisplayMetrics(block);
     const round = frags.find(f => f.role === 'round');
     return round?.text;
 }
@@ -477,9 +474,9 @@ export function expectRoundDisplay(block: MockBlock, expected: string): void {
  * advanceBehaviors() to simulate what ChildSelectionBehavior would do.
  */
 export function simulateRoundAdvance(ctx: IBehaviorContext): void {
-    const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+    const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
     if (!round) return;
-    const frag = new CurrentRoundFragment(
+    const frag = new CurrentRoundMetric(
         round.current + 1,
         round.total,
         'test-block',

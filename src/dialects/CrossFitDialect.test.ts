@@ -17,7 +17,7 @@ describe('CrossFitDialect', () => {
   }
 
   describe('AMRAP detection', () => {
-    it('should detect AMRAP in Action fragment', () => {
+    it('should detect AMRAP in Action metrics', () => {
       // "AMRAP 20 mins" -> Action="AMRAP", Timer=20mins
       const statement = parseStatement('AMRAP 20 mins');
       const analysis = dialect.analyze(statement);
@@ -34,7 +34,7 @@ describe('CrossFitDialect', () => {
       expect(analysis.hints).toContain('workout.amrap');
     });
 
-    it('should detect AMRAP in Effort fragment', () => {
+    it('should detect AMRAP in Effort metrics', () => {
       // "20 min AMRAP" -> Timer=20mins, Action="AMRAP" (or similar depending on parser)
       // The parser handles "20 min" as a timer usually.
       const statement = parseStatement('20 min AMRAP');
@@ -46,7 +46,7 @@ describe('CrossFitDialect', () => {
   });
 
   describe('EMOM detection', () => {
-    it('should detect EMOM in Action fragment', () => {
+    it('should detect EMOM in Action metrics', () => {
       const statement = parseStatement('EMOM 10 mins');
       const analysis = dialect.analyze(statement);
 
@@ -88,7 +88,7 @@ describe('CrossFitDialect', () => {
   });
 
   describe('FOR TIME detection', () => {
-    it('should detect FOR TIME in Action fragment', () => {
+    it('should detect FOR TIME in Action metrics', () => {
       const statement = parseStatement('For Time');
       const analysis = dialect.analyze(statement);
 
@@ -98,7 +98,7 @@ describe('CrossFitDialect', () => {
   });
 
   describe('TABATA detection', () => {
-    it('should detect TABATA in Action fragment', () => {
+    it('should detect TABATA in Action metrics', () => {
       const statement = parseStatement('Tabata Squats');
       const analysis = dialect.analyze(statement);
 

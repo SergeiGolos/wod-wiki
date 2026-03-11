@@ -23,7 +23,7 @@ describe('SessionRootStrategy', () => {
         });
 
         it('should return false even with valid statements', () => {
-            const statements = [{ id: 1, fragments: [], children: [], meta: {}, fragmentMeta: new Map() }] as any[];
+            const statements = [{ id: 1, metrics: [], children: [], meta: {}, metricMeta: new Map() }] as any[];
             expect(strategy.match(statements, {} as any)).toBe(false);
         });
     });
@@ -146,9 +146,9 @@ describe('SessionRootStrategy', () => {
 
         it('should create child groups from statement IDs', () => {
             const statements = [
-                { id: 10, fragments: [], children: [], meta: {}, fragmentMeta: new Map() },
-                { id: 20, fragments: [], children: [], meta: {}, fragmentMeta: new Map() },
-                { id: 30, fragments: [], children: [], meta: {}, fragmentMeta: new Map() }
+                { id: 10, metrics: [], children: [], meta: {}, metricMeta: new Map() },
+                { id: 20, metrics: [], children: [], meta: {}, metricMeta: new Map() },
+                { id: 30, metrics: [], children: [], meta: {}, metricMeta: new Map() }
             ] as any[];
 
             const block = strategy.buildFromStatements(harness.runtime, statements);
@@ -160,7 +160,7 @@ describe('SessionRootStrategy', () => {
 
         it('should pass through label option', () => {
             const statements = [
-                { id: 1, fragments: [], children: [], meta: {}, fragmentMeta: new Map() }
+                { id: 1, metrics: [], children: [], meta: {}, metricMeta: new Map() }
             ] as any[];
 
             const block = strategy.buildFromStatements(harness.runtime, statements, {
@@ -172,7 +172,7 @@ describe('SessionRootStrategy', () => {
 
         it('should pass through totalRounds option', () => {
             const statements = [
-                { id: 1, fragments: [], children: [], meta: {}, fragmentMeta: new Map() }
+                { id: 1, metrics: [], children: [], meta: {}, metricMeta: new Map() }
             ] as any[];
 
             const block = strategy.buildFromStatements(harness.runtime, statements, {
@@ -187,7 +187,7 @@ describe('SessionRootStrategy', () => {
 
         it('should default to single-round when no options provided', () => {
             const statements = [
-                { id: 1, fragments: [], children: [], meta: {}, fragmentMeta: new Map() }
+                { id: 1, metrics: [], children: [], meta: {}, metricMeta: new Map() }
             ] as any[];
 
             const block = strategy.buildFromStatements(harness.runtime, statements);

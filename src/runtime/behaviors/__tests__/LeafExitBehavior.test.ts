@@ -14,7 +14,7 @@ function createMockContext(): {
         block: {
             key: { toString: () => 'leaf-block' },
             label: 'Leaf',
-            fragments: []
+            metrics: []
         },
         clock: { now: new Date(0) },
         stackLevel: 0,

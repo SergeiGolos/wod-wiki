@@ -33,7 +33,7 @@ export class TimeSpan {
      * Uses current time if the span is still open.
      *
      * Note: Not to be confused with the glossary term "Duration" which
-     * refers to the parser-defined planned target (DurationFragment).
+     * refers to the parser-defined planned target (DurationMetric).
      */
     get duration(): number {
         const end = this.ended ?? Date.now();

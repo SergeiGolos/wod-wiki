@@ -62,7 +62,7 @@ function createBlock(): IRuntimeBlock {
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockReturnValue([]),
         getAllMemory: vi.fn().mockReturnValue([]),
-        getFragmentMemoryByVisibility: vi.fn().mockReturnValue([]),
+        getMetricMemoryByVisibility: vi.fn().mockReturnValue([]),
     } as unknown as IRuntimeBlock;
 }
 

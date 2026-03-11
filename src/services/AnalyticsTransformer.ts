@@ -2,7 +2,7 @@
 
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 
-import { ICodeFragment } from '../core/models/CodeFragment';
+import { IMetric } from '../core/models/Metric';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 
@@ -15,33 +15,33 @@ function formatMetricLabel(key: string): string {
 }
 
 /**
- * Extract numeric metrics from fragment groups.
+ * Extract numeric metrics from metric groups.
  */
-function extractMetricsFromFragments(fragments: ICodeFragment[][]): Record<string, number> {
-  const metrics: Record<string, number> = {};
-  const flat = fragments.flat();
+function extractMetricsFromFragments(metricGroups: IMetric[][]): Record<string, number> {
+  const result: Record<string, number> = {};
+  const flat = metricGroups.flat();
 
   for (const f of flat) {
     if (f.value !== undefined && typeof f.value === 'number') {
       let key = f.type;
-      if (f.fragmentType === 'rep') key = 'repetitions';
-      if (f.fragmentType === 'distance') key = 'distance';
-      if (f.fragmentType === 'resistance') key = 'resistance';
+      if (f.type === 'rep') key = 'repetitions';
+      if (f.type === 'distance') key = 'distance';
+      if (f.type === 'resistance') key = 'resistance';
 
       let val = f.value;
       // Convert time-based metrics (except elapsed/total which are handled separately)
       // from milliseconds to seconds for consistency in the analytics data points.
-      if (f.fragmentType === 'duration' || f.type === 'duration') {
+      if (f.type === 'duration' || f.type === 'duration') {
         // Duration (intent) is now handled as a top-level segment property,
         // we don't want it in the dynamic metrics map to avoid double-counting
         // or unit confusion in the performance graphs.
         continue;
       }
 
-      metrics[key] = (metrics[key] || 0) + val;
+      result[key] = (result[key] || 0) + val;
     }
   }
-  return metrics;
+  return result;
 }
 
 /**
@@ -77,11 +77,11 @@ export class AnalyticsTransformer {
     );
 
     return outputs.map(output => {
-      // Paranoid copy of fragments to ensure they persist
-      const fragments = output.fragments ? [...output.fragments] : [];
+      // Paranoid copy of metrics to ensure they persist
+      const outputMetrics = output.metrics ? [...output.metrics] : [];
 
       // Intent: parser-defined duration (if any)
-      const durationFrag = fragments.find(f => f.fragmentType === 'duration');
+      const durationFrag = outputMetrics.find(f => f.type === 'duration');
       const intentDuration = durationFrag?.value !== undefined ? (durationFrag.value as number) / 1000 : undefined;
 
       // Real Time: pause-aware elapsed time and wall-clock total
@@ -92,14 +92,14 @@ export class AnalyticsTransformer {
       const startTimeMs = output.timeSpan?.started ?? startTime;
       const endTimeMs = output.timeSpan?.ended ?? Date.now();
 
-      const metrics = extractMetricsFromFragments([fragments]);
+      const extractedMetrics = extractMetricsFromFragments([outputMetrics]);
 
-      const nameFragment = fragments.find(f =>
-        f.fragmentType === 'effort' ||
-        f.fragmentType === 'action' ||
-        f.fragmentType === 'duration' ||
-        f.fragmentType === 'rounds' ||
-        f.fragmentType === 'current-round'
+      const nameFragment = outputMetrics.find(f =>
+        f.type === 'effort' ||
+        f.type === 'action' ||
+        f.type === 'duration' ||
+        f.type === 'rounds' ||
+        f.type === 'current-round'
       );
       const label = nameFragment?.image || output.sourceBlockKey;
       const type = nameFragment?.type || output.outputType;
@@ -127,10 +127,10 @@ export class AnalyticsTransformer {
         total,
         parentId: output.parent ?? null,
         depth: output.stackLevel,
-        metrics,
+        metrics: extractedMetrics,
         lane: output.stackLevel,
         spans,
-        fragments,
+        metrics: outputMetrics,
         tags: output.hints ? Array.from(output.hints) : undefined,
         context: {
           outputType: output.outputType,

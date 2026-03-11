@@ -2,22 +2,21 @@ import { describe, expect, it, vi } from 'bun:test';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
-import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
+import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 
 describe('RuntimeBlock Memory Methods', () => {
     const runtime = {} as IScriptRuntime;
 
     const createBlock = () => new RuntimeBlock(runtime);
 
-    function createFragment(tag: string, value: unknown): ICodeFragment {
+    function createFragment(tag: string, value: unknown): IMetric {
         return {
-            fragmentType: FragmentType.Duration,
-            type: tag,
+            type: MetricType.Duration,
             image: '',
             origin: 'runtime',
             value,
-        } as ICodeFragment;
+        } as IMetric;
     }
 
     // ====================================================================
@@ -56,7 +55,7 @@ describe('RuntimeBlock Memory Methods', () => {
 
             const timers = block.getMemoryByTag('time');
             expect(timers).toHaveLength(1);
-            expect(timers[0].fragments[0].value).toEqual({ direction: 'up' });
+            expect(timers[0].metrics[0].value).toEqual({ direction: 'up' });
         });
     });
 
@@ -104,26 +103,26 @@ describe('RuntimeBlock Memory Methods', () => {
             expect(block.getMemoryByTag('time')[0]).toBeUndefined();
         });
 
-        it('should read first fragment value', () => {
+        it('should read first metrics value', () => {
             const block = createBlock();
             const timerState = { direction: 'down', durationMs: 60000, label: 'Countdown', spans: [] };
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', timerState)]));
 
             const loc = block.getMemoryByTag('time')[0];
             expect(loc).toBeDefined();
-            expect(loc?.fragments[0]?.value).toEqual(timerState);
+            expect(loc?.metrics[0]?.value).toEqual(timerState);
         });
 
         it('should preserve type safety across multiple memory types', () => {
             const block = createBlock();
             const timerState = { direction: 'up', spans: [], label: 'Test' };
             block.pushMemory(new MemoryLocation('time', [createFragment('timer', timerState)]));
-            block.pushMemory(new MemoryLocation('round', [new CurrentRoundFragment(1, 5, 'block', new Date())]));
+            block.pushMemory(new MemoryLocation('round', [new CurrentRoundMetric(1, 5, 'block', new Date())]));
 
             const timerLoc = block.getMemoryByTag('time')[0];
-            const roundFrag = block.getMemoryByTag('round')[0]?.fragments[0] as any;
+            const roundFrag = block.getMemoryByTag('round')[0]?.metrics[0] as any;
 
-            expect(timerLoc?.fragments[0]?.value).toMatchObject({ spans: [] });
+            expect(timerLoc?.metrics[0]?.value).toMatchObject({ spans: [] });
             expect(roundFrag?.current).toBe(1);
             expect(roundFrag?.total).toBe(5);
         });
@@ -136,7 +135,7 @@ describe('RuntimeBlock Memory Methods', () => {
             block.pushMemory(loc);
 
             expect(block.getMemoryByTag('time')).toHaveLength(1);
-            expect((block.getMemoryByTag('time')[0]?.fragments[0]?.value as any)?.direction).toBe('up');
+            expect((block.getMemoryByTag('time')[0]?.metrics[0]?.value as any)?.direction).toBe('up');
         });
 
         it('should update existing location value', () => {
@@ -147,7 +146,7 @@ describe('RuntimeBlock Memory Methods', () => {
 
             loc.update([{ ...frag, value: { direction: 'down', label: 'Second' } }]);
 
-            expect((block.getMemoryByTag('time')[0]?.fragments[0]?.value as any)?.label).toBe('Second');
+            expect((block.getMemoryByTag('time')[0]?.metrics[0]?.value as any)?.label).toBe('Second');
         });
 
         it('should allow updating memory without error', () => {
@@ -158,7 +157,7 @@ describe('RuntimeBlock Memory Methods', () => {
             loc.update([{ ...frag, value: { direction: 'down', label: 'Second' } }]);
             loc.update([{ ...frag, value: { direction: 'up', label: 'Third' } }]);
 
-            expect((block.getMemoryByTag('time')[0]?.fragments[0]?.value as any)?.label).toBe('Third');
+            expect((block.getMemoryByTag('time')[0]?.metrics[0]?.value as any)?.label).toBe('Third');
         });
     });
 

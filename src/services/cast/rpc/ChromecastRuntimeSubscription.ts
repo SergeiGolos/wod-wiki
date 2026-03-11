@@ -1,8 +1,9 @@
 import { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IOutputStatement } from '@/core/models/OutputStatement';
+import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
 import { IRpcTransport } from './IRpcTransport';
-import { serializeStackSnapshot, serializeOutput } from './RpcSerializer';
+import { serializeStackSnapshot, serializeOutput, serializeTrackerUpdate } from './RpcSerializer';
 
 /**
  * ChromecastRuntimeSubscription — sends runtime state updates to the Chromecast
@@ -43,6 +44,11 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
         this.transport.send(serializeOutput(output));
     }
 
+    onTrackerUpdate(update: TrackerUpdate): void {
+        if (!this.transport.connected) return;
+        this.transport.send(serializeTrackerUpdate(update));
+    }
+
     dispose(): void {
         // Intentionally does NOT send rpc-dispose — that message is reserved for
         // explicit cast-session teardown (sent by CastButtonRpc.cleanupCast).
@@ -55,7 +61,7 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
 
     /**
      * Compute a structural fingerprint that excludes timer elapsed values.
-     * Only structural changes (block list, labels, completion, fragment tiers, behaviors)
+     * Only structural changes (block list, labels, completion, metrics tiers, behaviors)
      * trigger a send. Timer spans are included (so span count / start changes are detected)
      * but accumulated elapsed is NOT — the receiver interpolates locally.
      */
@@ -90,15 +96,15 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
                     `timer:${block.timer.isRunning}:${block.timer.spans.length}:${block.timer.durationMs}:${block.timer.spans[0]?.started ?? ''}`,
                 );
             }
-            // Include fragment tier counts so added/removed rows trigger a re-send
+            // Include metrics tier counts so added/removed rows trigger a re-send
             parts.push(`frags:${block.displayFragments.length}`);
             parts.push(`promote:${block.promoteFragments?.length ?? 0}`);
             parts.push(`result:${block.resultFragments?.length ?? 0}`);
             const privateTags = Object.keys(block.privateFragments ?? {}).sort().join(',');
             parts.push(`private:${privateTags}`);
-            // Include next-preview fragment content so Up Next changes trigger a re-send
+            // Include next-preview metrics content so Up Next changes trigger a re-send
             const nextSig = block.nextFragments
-                ?.map((f: any) => `${f.fragmentType ?? f.type ?? ''}:${f.image ?? f.value ?? ''}`)
+                ?.map((f: any) => `${f.type ?? f.type ?? ''}:${f.image ?? f.value ?? ''}`)
                 .join(',') ?? '';
             parts.push(`next:${nextSig}`);
             // Behavior names (rarely change but should trigger re-send if they do)

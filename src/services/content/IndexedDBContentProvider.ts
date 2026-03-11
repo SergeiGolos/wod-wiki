@@ -36,6 +36,7 @@ function toSegmentDataType(sectionType: SectionType): SegmentDataType {
     switch (sectionType) {
         case 'wod': return 'wod';
         case 'title': return 'title';
+        case 'frontmatter': return 'frontmatter';
         case 'markdown':
         default:
             return 'markdown';

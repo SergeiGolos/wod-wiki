@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { JitCompiler } from "../JitCompiler";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { CodeStatement } from "@/core/models/CodeStatement";
-import { TimerFragment } from "../fragments/TimerFragment";
-import { RoundsFragment } from "../fragments/RoundsFragment";
-import { RepFragment } from "../fragments/RepFragment";
+import { TimerMetric } from "../metrics/TimerMetric";
+import { RoundsMetric } from "../metrics/RoundsMetric";
+import { RepMetric } from "../metrics/RepMetric";
 import { AmrapLogicStrategy } from "../strategies/logic/AmrapLogicStrategy";
 import { IntervalLogicStrategy } from "../strategies/logic/IntervalLogicStrategy";
 import { GenericTimerStrategy } from "../strategies/components/GenericTimerStrategy";
@@ -18,7 +18,7 @@ import {
     CountdownTimerBehavior,
     ChildSelectionBehavior,
     SoundCueBehavior,
-    FragmentPromotionBehavior
+    MetricPromotionBehavior
 } from "../../behaviors";
 
 describe("JIT Composition", () => {
@@ -33,7 +33,7 @@ describe("JIT Composition", () => {
     });
 
     // Mock Fragments for testing since we don't want to rely on parsing logic in unit test
-    class MockTimerFragment extends TimerFragment {
+    class MockTimerMetric extends TimerMetric {
         constructor(ms: number, forceUp: boolean = false) {
              // Compute a proper image string so LabelComposer can read it
              const totalSecs = Math.floor(ms / 1000);
@@ -44,7 +44,7 @@ describe("JIT Composition", () => {
         }
     }
 
-    class MockRoundsFragment extends RoundsFragment {
+    class MockRoundsMetric extends RoundsMetric {
          constructor(val: number) {
              super(val);
          }
@@ -53,9 +53,9 @@ describe("JIT Composition", () => {
     it("should compile AMRAP block using composition with aspect-based behaviors", () => {
         // AMRAP 10 min - uses new aspect-based behaviors
         const statement = new CodeStatement();
-        statement.fragments = [
-            new MockTimerFragment(600000, true), // AMRAP implies 'up'
-            new MockRoundsFragment(1),           // Required for AmrapLogicStrategy.match()
+        statement.metrics = [
+            new MockTimerMetric(600000, true), // AMRAP implies 'up'
+            new MockRoundsMetric(1),           // Required for AmrapLogicStrategy.match()
         ];
         statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
         statement.children = [new CodeStatement()]; // Add children to trigger ChildrenStrategy
@@ -72,7 +72,7 @@ describe("JIT Composition", () => {
         if (!block) return;
 
         expect(block.blockType).toBe("AMRAP");
-        // LabelComposer uses the RoundsFragment image ("1") as the primary metric
+        // LabelComposer uses the RoundsMetric image ("1") as the primary metric
         expect(block.label).toBe("1");
 
         // Check Behaviors - now using aspect-based behaviors
@@ -90,10 +90,10 @@ describe("JIT Composition", () => {
     it("should compile EMOM block using composition with aspect-based behaviors", () => {
         // EMOM 10 min (Every 1 min) - uses new aspect-based behaviors
         const statement = new CodeStatement();
-        statement.fragments = [
-            new MockTimerFragment(60000), // 1 min interval
-            new MockTimerFragment(600000), // 10 min total (optional)
-            new MockRoundsFragment(10) // 10 rounds
+        statement.metrics = [
+            new MockTimerMetric(60000), // 1 min interval
+            new MockTimerMetric(600000), // 10 min total (optional)
+            new MockRoundsMetric(10) // 10 rounds
         ];
         statement.hints = new Set(['behavior.repeating_interval']);
 
@@ -121,8 +121,8 @@ describe("JIT Composition", () => {
     it("should compile generic Timer block with aspect-based behaviors", () => {
         // For Time: 5 min - uses new aspect-based behaviors
         const statement = new CodeStatement();
-        statement.fragments = [
-            new MockTimerFragment(300000)
+        statement.metrics = [
+            new MockTimerMetric(300000)
         ];
 
         compiler.registerStrategy(new GenericTimerStrategy());
@@ -136,15 +136,15 @@ describe("JIT Composition", () => {
         expect(block?.getBehavior(SoundCueBehavior)).toBeDefined();
     });
 
-    it("should auto-detect rep scheme from RepFragments and add FragmentPromotionBehavior", () => {
-        // (21-15-9) — parser creates RoundsFragment(3) + 3 RepFragments
+    it("should auto-detect rep scheme from RepMetrics and add MetricPromotionBehavior", () => {
+        // (21-15-9) — parser creates RoundsMetric(3) + 3 RepMetrics
         const meta = new CodeMetadata(0, 0, 0, 0);
         const statement = new CodeStatement();
-        statement.fragments = [
-            new RoundsFragment(3, meta),
-            new RepFragment(21, meta),
-            new RepFragment(15, meta),
-            new RepFragment(9, meta),
+        statement.metrics = [
+            new RoundsMetric(3, meta),
+            new RepMetric(21, meta),
+            new RepMetric(15, meta),
+            new RepMetric(9, meta),
         ];
 
         compiler.registerStrategy(new GenericLoopStrategy());
@@ -158,8 +158,8 @@ describe("JIT Composition", () => {
         // LabelComposer: Rounds image "3" as metric + rep images "21 15 9" as identity
         expect(block.label).toBe("3 21 15 9");
 
-        // FragmentPromotionBehavior should be attached with round-robin rep scheme
-        const repBehavior = block.getBehavior(FragmentPromotionBehavior);
+        // MetricPromotionBehavior should be attached with round-robin rep scheme
+        const repBehavior = block.getBehavior(MetricPromotionBehavior);
         expect(repBehavior).toBeDefined();
         expect(repBehavior!.repScheme).toEqual([21, 15, 9]);
         expect(repBehavior!.getRepsForRound(1)).toBe(21);
@@ -169,12 +169,12 @@ describe("JIT Composition", () => {
         expect(repBehavior!.getRepsForRound(4)).toBe(21);
     });
 
-    it("should not add FragmentPromotionBehavior rep scheme when no RepFragments present", () => {
-        // (3 rounds) — only RoundsFragment, no RepFragments
+    it("should not add MetricPromotionBehavior rep scheme when no RepMetrics present", () => {
+        // (3 rounds) — only RoundsMetric, no RepMetrics
         const meta = new CodeMetadata(0, 0, 0, 0);
         const statement = new CodeStatement();
-        statement.fragments = [
-            new RoundsFragment(3, meta),
+        statement.metrics = [
+            new RoundsMetric(3, meta),
         ];
 
         compiler.registerStrategy(new GenericLoopStrategy());
@@ -185,10 +185,10 @@ describe("JIT Composition", () => {
         if (!block) return;
 
         expect(block.blockType).toBe("Rounds");
-        // LabelComposer uses the RoundsFragment image ("3") as the primary metric
+        // LabelComposer uses the RoundsMetric image ("3") as the primary metric
         expect(block.label).toBe("3");
 
-        const repBehavior = block.getBehavior(FragmentPromotionBehavior);
+        const repBehavior = block.getBehavior(MetricPromotionBehavior);
         expect(repBehavior).toBeDefined();
         expect(repBehavior!.repScheme).toEqual([]);
     });

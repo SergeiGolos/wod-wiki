@@ -1,45 +1,45 @@
 /**
- * GridCell — Multi-fragment cell renderer.
+ * GridCell — Multi-metrics cell renderer.
  *
- * Renders all fragments of a single FragmentType within one table cell.
- * Multiple fragments appear as stacked pills/badges.
+ * Renders all metrics of a single MetricType within one table cell.
+ * Multiple metric appear as stacked pills/badges.
  * Double-clicking opens the user override dialog.
  */
 
 import React, { useCallback, useRef } from 'react';
-import type { FragmentType } from '@/core/models/CodeFragment';
+import type { MetricType } from '@/core/models/Metric';
 import type { GridCell as GridCellData } from './types';
-import { FragmentPill } from './FragmentPill';
+import { MetricPill } from './MetricPill';
 
 interface GridCellProps {
-  /** Cell data (may be undefined if the row has no fragments of this type) */
+  /** Cell data (may be undefined if the row has no metrics of this type) */
   cell?: GridCellData;
   /** Fragment type for this column (needed for override targeting) */
-  fragmentType?: FragmentType;
+  metricType?: MetricType;
   /** Block key of the row (needed for override targeting) */
   blockKey?: string;
   /** Indentation level (0-based) for visual hierarchy */
   indent?: number;
   /** Callback when a cell is double-clicked for override editing */
-  onDoubleClick?: (blockKey: string, fragmentType: FragmentType, anchorRect: DOMRect) => void;
+  onDoubleClick?: (blockKey: string, metricType: MetricType, anchorRect: DOMRect) => void;
 }
 
 /**
- * Render a grid cell containing zero or more fragment pills.
+ * Render a grid cell containing zero or more metrics pills.
  * Empty cells render as a dim dash. Double-click triggers override dialog.
  */
-export const GridCell: React.FC<GridCellProps> = ({ cell, fragmentType, blockKey, indent = 0, onDoubleClick }) => {
+export const GridCell: React.FC<GridCellProps> = ({ cell, metricType, blockKey, indent = 0, onDoubleClick }) => {
   const tdRef = useRef<HTMLTableCellElement>(null);
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (fragmentType && blockKey && onDoubleClick && tdRef.current) {
+      if (metricType && blockKey && onDoubleClick && tdRef.current) {
         const rect = tdRef.current.getBoundingClientRect();
-        onDoubleClick(blockKey, fragmentType, rect);
+        onDoubleClick(blockKey, metricType, rect);
       }
     },
-    [fragmentType, blockKey, onDoubleClick],
+    [metricType, blockKey, onDoubleClick],
   );
 
   const content = (
@@ -52,11 +52,11 @@ export const GridCell: React.FC<GridCellProps> = ({ cell, fragmentType, blockKey
         />
       )}
 
-      {(!cell || cell.fragments.length === 0) ? (
+      {(!cell || cell.metrics.length === 0) ? (
         <span className="text-muted-foreground/40 text-xs">—</span>
       ) : (
-        cell.fragments.map((frag, idx) => (
-          <FragmentPill key={idx} fragment={frag} />
+        cell.metrics.map((frag, idx) => (
+          <MetricPill key={idx} metric={frag} />
         ))
       )}
     </div>
@@ -65,7 +65,7 @@ export const GridCell: React.FC<GridCellProps> = ({ cell, fragmentType, blockKey
   return (
     <td
       ref={tdRef}
-      className={`py-1 px-2 cursor-cell ${(!cell || cell.fragments.length === 0) ? 'text-center' : ''}`}
+      className={`py-1 px-2 cursor-cell ${(!cell || cell.metrics.length === 0) ? 'text-center' : ''}`}
       onDoubleClick={handleDoubleClick}
     >
       {content}

@@ -1,4 +1,4 @@
-import { ICodeFragment } from '../../core/models/CodeFragment';
+import { IMetric } from '../../core/models/Metric';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
@@ -81,17 +81,17 @@ export class EffortBlock extends RuntimeBlock {
     runtime: IScriptRuntime,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
-    fragments?: ICodeFragment[][]
+    metrics?: IMetric[][]
   ) {
     super(
       runtime,
       sourceIds,
       [], // Behaviors added below
-      "Effort",
-      undefined,
-      undefined,
-      `${config.targetReps} ${config.exerciseName}`,
-      fragments
+      undefined, // context
+      undefined, // key
+      "Effort", // blockType
+      `${config.targetReps} ${config.exerciseName}`, // label
+      metrics
     );
 
     // Validate configuration

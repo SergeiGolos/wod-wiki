@@ -6,7 +6,7 @@ import { WodScript } from '../../src/parser/WodScript';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
-import { FragmentVisualizer } from '../../src/components/fragments';
+import { MetricVisualizer } from '../../src/components/metrics';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
 import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
 import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
@@ -822,7 +822,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
     }
   })();
 
-  // Extract statements for fragment visualization
+  // Extract statements for metrics visualization
   const statements = runtime?.script?.statements || [];
 
   return (
@@ -873,7 +873,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
                         </td>
                         <td className="p-2">
                           <div style={{ paddingLeft: statement.meta?.columnStart ? `${(statement.meta.columnStart - 1) * COLUMN_INDENT_REM}rem` : '0' }}>
-                            <FragmentVisualizer fragments={statement.fragments} />
+                            <MetricVisualizer metrics={statement.metrics} />
                           </div>
                         </td>
                       </tr>

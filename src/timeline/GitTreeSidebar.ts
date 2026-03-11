@@ -4,7 +4,7 @@
  * Segment types used in analytics history.
  */
 
-import type { ICodeFragment } from '../core/models/CodeFragment';
+import type { IMetric } from '../core/models/Metric';
 
 export interface Segment {
   id: number;
@@ -15,7 +15,7 @@ export interface Segment {
   startTime: number;
   endTime: number;
   duration: number;
-  fragments?: ICodeFragment[];
+  metrics?: IMetric[];
   metadata?: Record<string, unknown>;
   /** Average power output for this segment (Watts) */
   avgPower?: number;

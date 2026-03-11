@@ -6,7 +6,7 @@ import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
 import { TimerStackView } from '@/components/workout/TimerStackView';
 import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
-import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
+import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { Timer, CheckCircle2 } from 'lucide-react';
@@ -39,7 +39,7 @@ interface RemoteDisplayRow {
   label: string;
   isLeaf: boolean;
   depth: number;
-  rows: any[][]; // ICodeFragment[][]
+  rows: any[][]; // IMetric[][]
   timer: {
     spans: RemoteTimeSpan[];
     durationMs?: number;
@@ -51,7 +51,7 @@ interface RemoteDisplayRow {
 interface RemoteState {
   timerStack: RemoteTimerEntry[];
   displayRows: RemoteDisplayRow[];
-  lookahead: { fragments: any[] } | null;
+  lookahead: { metrics: any[] } | null;
   subLabel?: string;
   subLabels?: string[];
   workoutState: string;
@@ -123,9 +123,9 @@ const RemoteStackBlockItem: React.FC<{
         {entry.rows.length > 0 && (
           <div className="flex flex-col gap-0.5 px-3 pb-2">
             {entry.rows.map((row, rowIdx) => (
-              <FragmentSourceRow
+              <MetricSourceRow
                 key={rowIdx}
-                fragments={row}
+                metrics={row}
                 size={entry.isLeaf ? "normal" : "compact"}
                 isLeaf={entry.isLeaf}
               />
@@ -143,7 +143,7 @@ const RemoteStackBlockItem: React.FC<{
 
 const RemoteVisualStatePanel: React.FC<{
   displayRows: RemoteDisplayRow[];
-  lookahead: { fragments: any[] } | null;
+  lookahead: { metrics: any[] } | null;
   localNow: number;
   workoutState: string;
   sessionElapsedMs: number;
@@ -200,8 +200,8 @@ const RemoteVisualStatePanel: React.FC<{
               "bg-card/50 border-border/60 hover:bg-card/80"
             )}>
               <div className="flex flex-col gap-0.5 p-3">
-                <FragmentSourceRow
-                  fragments={lookahead.fragments}
+                <MetricSourceRow
+                  metrics={lookahead.metrics}
                   size="compact"
                 />
               </div>

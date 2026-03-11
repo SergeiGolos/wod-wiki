@@ -1,15 +1,15 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { FragmentType, ICodeFragment } from '../../core/models/CodeFragment';
+import { MetricType, IMetric } from '../../core/models/Metric';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
 import { calculateElapsed } from '../time/calculateElapsed';
-import { CurrentRoundFragment } from '../compiler/fragments/CurrentRoundFragment';
-import { ElapsedFragment } from '../compiler/fragments/ElapsedFragment';
-import { TotalFragment } from '../compiler/fragments/TotalFragment';
-import { SpansFragment } from '../compiler/fragments/SpansFragment';
-import { SystemTimeFragment } from '../compiler/fragments/SystemTimeFragment';
+import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
+import { ElapsedMetric } from '../compiler/metrics/ElapsedMetric';
+import { TotalMetric } from '../compiler/metrics/TotalMetric';
+import { SpansMetric } from '../compiler/metrics/SpansMetric';
+import { SystemTimeMetric } from '../compiler/metrics/SystemTimeMetric';
 
 export interface ReportOutputConfig {
     label?: string;
@@ -35,7 +35,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             });
         }
 
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         const shouldEmitMilestones = this.config.emitMilestones ?? !!round;
         if (shouldEmitMilestones && round && (round.total === undefined || round.total > 1)) {
             this.lastEmittedRound = round.current;
@@ -48,7 +48,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         const shouldEmitMilestones = this.config.emitMilestones ?? !!round;
         if (!shouldEmitMilestones || !round || (round.total !== undefined && round.total <= 1)) {
             return [];
@@ -76,8 +76,8 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
 
         // Determine a descriptive completion label
@@ -94,13 +94,13 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         }
 
         if (shouldComputeTimeResults) {
-            const displayGroups = ctx.block.getMemoryByTag('fragment:display');
+            const displayGroups = ctx.block.getMemoryByTag('metric:display');
             if (displayGroups.length > 1) {
                 // Split results proportionally across groups
                 const resultGroups = this.computeSplitTimeResults(
                     ctx,
                     timer,
-                    displayGroups.map(loc => loc.fragments),
+                    displayGroups.map(loc => loc.metrics),
                     completionLabel
                 );
                 this.writeResultGroups(ctx, resultGroups);
@@ -117,7 +117,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // Default single-output result
         const resultFragments = shouldComputeTimeResults
             ? this.computeTimeResults(ctx, timer, completionLabel)
-            : [new SystemTimeFragment(new Date(), ctx.block.key.toString())];
+            : [new SystemTimeMetric(new Date(), ctx.block.key.toString())];
 
         this.writeResultMemory(ctx, resultFragments);
 
@@ -132,27 +132,27 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // No cleanup needed
     }
 
-    private collectDisplayFragments(ctx: IBehaviorContext): ICodeFragment[] {
-        return ctx.block.getMemoryByTag('fragment:display').flatMap(loc => loc.fragments);
+    private collectDisplayFragments(ctx: IBehaviorContext): IMetric[] {
+        return ctx.block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
     }
 
-    private collectStateFragments(ctx: IBehaviorContext): ICodeFragment[] {
-        const roundFragments = ctx.block.getMemoryByTag('round').flatMap(loc => loc.fragments);
-        const timerFragments = ctx.block.getMemoryByTag('time').flatMap(loc => loc.fragments);
+    private collectStateFragments(ctx: IBehaviorContext): IMetric[] {
+        const roundFragments = ctx.block.getMemoryByTag('round').flatMap(loc => loc.metrics);
+        const timerFragments = ctx.block.getMemoryByTag('time').flatMap(loc => loc.metrics);
         return [...roundFragments, ...timerFragments];
     }
 
-    private mergeFragments(displayFragments: ICodeFragment[], stateFragments: ICodeFragment[]): ICodeFragment[] {
-        const displayTypes = new Set(displayFragments.map(f => `${f.fragmentType}:${f.type}`));
+    private mergeFragments(displayFragments: IMetric[], stateFragments: IMetric[]): IMetric[] {
+        const displayTypes = new Set(displayFragments.map(f => `${f.type}:${f.type}`));
         const uniqueStateFragments = stateFragments.filter(
-            f => !displayTypes.has(`${f.fragmentType}:${f.type}`)
+            f => !displayTypes.has(`${f.type}:${f.type}`)
         );
         return [...displayFragments, ...uniqueStateFragments];
     }
 
-    private buildMilestoneFragments(ctx: IBehaviorContext, round: RoundState): ICodeFragment[] {
-        const fragments: ICodeFragment[] = [
-            new CurrentRoundFragment(
+    private buildMilestoneFragments(ctx: IBehaviorContext, round: RoundState): IMetric[] {
+        const metrics: IMetric[] = [
+            new CurrentRoundMetric(
                 round.current,
                 round.total,
                 ctx.block.key.toString(),
@@ -160,29 +160,29 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             ),
         ];
 
-        const timer = ctx.getMemoryByTag('time')[0]?.fragments[0]?.value as TimerState | undefined;
+        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
         if (timer) {
             const nowMs = ctx.clock.now.getTime();
             const elapsed = calculateElapsed(timer, nowMs);
-            fragments.push(new ElapsedFragment(elapsed, ctx.block.key.toString(), ctx.clock.now));
+            metrics.push(new ElapsedMetric(elapsed, ctx.block.key.toString(), ctx.clock.now));
 
             if (timer.spans.length > 0) {
-                fragments.push(new SpansFragment([...timer.spans], ctx.block.key.toString(), ctx.clock.now));
+                metrics.push(new SpansMetric([...timer.spans], ctx.block.key.toString(), ctx.clock.now));
             }
         }
 
-        return fragments;
+        return metrics;
     }
 
     private computeTimeResults(
         ctx: IBehaviorContext,
         timer: TimerState | undefined,
         customRoundLabel?: string
-    ): ICodeFragment[] {
+    ): IMetric[] {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
 
         if (timer && timer.spans.length > 0) {
             const elapsed = calculateElapsed(timer, nowMs);
@@ -191,52 +191,52 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const lastEnd = lastSpan.ended ?? nowMs;
             const total = Math.max(0, lastEnd - firstStart);
 
-            const fragments: ICodeFragment[] = [
-                new ElapsedFragment(elapsed, blockKey, now),
-                new TotalFragment(total, blockKey, now),
-                new SpansFragment([...timer.spans], blockKey, now),
-                new SystemTimeFragment(new Date(), blockKey),
+            const metrics: IMetric[] = [
+                new ElapsedMetric(elapsed, blockKey, now),
+                new TotalMetric(total, blockKey, now),
+                new SpansMetric([...timer.spans], blockKey, now),
+                new SystemTimeMetric(new Date(), blockKey),
             ];
             if (round) {
-                fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
+                metrics.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
             }
-            return fragments;
+            return metrics;
         }
 
         const degenerateSpan = new TimeSpan(nowMs, nowMs);
-        const fragments: ICodeFragment[] = [
-            new ElapsedFragment(0, blockKey, now),
-            new TotalFragment(0, blockKey, now),
-            new SpansFragment([degenerateSpan], blockKey, now),
-            new SystemTimeFragment(new Date(), blockKey),
+        const metrics: IMetric[] = [
+            new ElapsedMetric(0, blockKey, now),
+            new TotalMetric(0, blockKey, now),
+            new SpansMetric([degenerateSpan], blockKey, now),
+            new SystemTimeMetric(new Date(), blockKey),
         ];
         if (round) {
-            fragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
+            metrics.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
         }
-        return fragments;
+        return metrics;
     }
 
     private computeSplitTimeResults(
         ctx: IBehaviorContext,
         timer: TimerState | undefined,
-        groups: ICodeFragment[][],
+        groups: IMetric[][],
         customRoundLabel?: string
-    ): ICodeFragment[][] {
+    ): IMetric[][] {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
-        const round = ctx.getMemoryByTag('round')[0]?.fragments[0] as unknown as RoundState | undefined;
+        const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
 
         if (!timer || timer.spans.length === 0) {
             return groups.map(() => {
-                const groupFragments: ICodeFragment[] = [
-                    new ElapsedFragment(0, blockKey, now),
-                    new TotalFragment(0, blockKey, now),
-                    new SpansFragment([new TimeSpan(nowMs, nowMs)], blockKey, now),
-                    new SystemTimeFragment(new Date(), blockKey),
+                const groupFragments: IMetric[] = [
+                    new ElapsedMetric(0, blockKey, now),
+                    new TotalMetric(0, blockKey, now),
+                    new SpansMetric([new TimeSpan(nowMs, nowMs)], blockKey, now),
+                    new SystemTimeMetric(new Date(), blockKey),
                 ];
                 if (round) {
-                    groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
+                    groupFragments.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
                 }
                 return groupFragments;
             });
@@ -250,7 +250,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // 1. Calculate weights for each group based on reps
         const weights = groups.map(group => {
             const reps = group
-                .filter(f => f.fragmentType === FragmentType.Rep && typeof f.value === 'number')
+                .filter(f => f.type === MetricType.Rep && typeof f.value === 'number')
                 .reduce((sum, f) => sum + (f.value as number), 0);
             return reps > 0 ? reps : 1; // Default to 1 if no reps
         });
@@ -269,38 +269,38 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const groupEnd = groupStart + groupTotal;
             currentOffsetMs += groupTotal;
 
-            const groupFragments: ICodeFragment[] = [
-                new ElapsedFragment(groupElapsed, blockKey, now),
-                new TotalFragment(groupTotal, blockKey, now),
-                new SpansFragment([new TimeSpan(groupStart, groupEnd)], blockKey, now),
-                new SystemTimeFragment(new Date(), blockKey),
+            const groupFragments: IMetric[] = [
+                new ElapsedMetric(groupElapsed, blockKey, now),
+                new TotalMetric(groupTotal, blockKey, now),
+                new SpansMetric([new TimeSpan(groupStart, groupEnd)], blockKey, now),
+                new SystemTimeMetric(new Date(), blockKey),
             ];
             if (round) {
-                groupFragments.push(new CurrentRoundFragment(round.current, round.total, blockKey, now, customRoundLabel));
+                groupFragments.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
             }
             return groupFragments;
         });
     }
 
-    private writeResultMemory(ctx: IBehaviorContext, resultFragments: ICodeFragment[]): void {
-        const existing = ctx.block.getMemoryByTag('fragment:result');
+    private writeResultMemory(ctx: IBehaviorContext, resultFragments: IMetric[]): void {
+        const existing = ctx.block.getMemoryByTag('metric:result');
         if (existing.length > 0) {
-            ctx.updateMemory('fragment:result', resultFragments);
+            ctx.updateMemory('metric:result', resultFragments);
             return;
         }
 
-        ctx.pushMemory('fragment:result', resultFragments);
+        ctx.pushMemory('metric:result', resultFragments);
     }
 
-    private writeResultGroups(ctx: IBehaviorContext, resultGroups: ICodeFragment[][]): void {
-        const existing = ctx.block.getMemoryByTag('fragment:result');
+    private writeResultGroups(ctx: IBehaviorContext, resultGroups: IMetric[][]): void {
+        const existing = ctx.block.getMemoryByTag('metric:result');
         if (existing.length > 0) {
             // Not supporting partial updates of groups yet
             return;
         }
 
         for (const group of resultGroups) {
-            ctx.pushMemory('fragment:result', group);
+            ctx.pushMemory('metric:result', group);
         }
     }
 

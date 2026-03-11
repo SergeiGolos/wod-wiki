@@ -4,7 +4,7 @@ import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
-import { isFragmentPromoter } from "../contracts/behaviors/IFragmentPromoter";
+import { isFragmentPromoter } from "../contracts/behaviors/IMetricPromoter";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks.
@@ -36,11 +36,11 @@ export class JitCompiler {
     let effectiveNodes = nodes;
     const parentBlock = runtime.stack?.current;
 
-    // Parent Injection Layer: Inject promoted fragments from parent block
+    // Parent Injection Layer: Inject promoted metrics from parent block
     if (parentBlock) {
-      // 1. Static promotions from memory (fragment:promote, fragment:rep-target)
-      const promotedLocations = parentBlock.getFragmentMemoryByVisibility('promote');
-      const promotedFragments = [...promotedLocations.flatMap(loc => loc.fragments)];
+      // 1. Static promotions from memory (metrics:promote, metrics:rep-target)
+      const promotedLocations = parentBlock.getMetricMemoryByVisibility('promote');
+      const promotedFragments = [...promotedLocations.flatMap(loc => loc.metrics)];
 
       // 2. Dynamic promotions from behaviors (compiler-time concern)
       // This allows behaviors to compute promotions based on current parent state
@@ -51,7 +51,7 @@ export class JitCompiler {
           
           for (const df of dynamicFragments) {
             // Deduplicate: Dynamic promotions take precedence over memory-based ones
-            const existingIndex = promotedFragments.findIndex(f => f.fragmentType === df.fragmentType);
+            const existingIndex = promotedFragments.findIndex(f => f.type === df.type);
             if (existingIndex !== -1) {
               promotedFragments[existingIndex] = df;
             } else {
@@ -62,15 +62,15 @@ export class JitCompiler {
       }
 
       if (promotedFragments.length > 0) {
-        // Clone nodes and append promoted fragments
-        // We append so that explicit child fragments (index 0) take precedence 
+        // Clone nodes and append promoted metrics
+        // We append so that explicit child metric (index 0) take precedence 
         // when origins are equal (defaults), but higher-precedence origins (compiler/execution)
         // will still resort to the top in the UI.
         effectiveNodes = nodes.map(node => {
           // Create a clone that preserves the prototype chain (to keep methods like getFragment)
           const clone = Object.create(Object.getPrototypeOf(node));
           Object.assign(clone, node);
-          clone.fragments = [...node.fragments, ...promotedFragments];
+          clone.metrics = [...node.metrics, ...promotedFragments];
           return clone;
         });
       }

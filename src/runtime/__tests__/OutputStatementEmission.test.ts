@@ -6,7 +6,7 @@ import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { OutputStatement } from '../../core/models/OutputStatement';
 import { RuntimeClock } from '../RuntimeClock';
@@ -19,11 +19,11 @@ function createMockBlock(options: {
     key?: string;
     label?: string;
     sourceIds?: number[];
-    fragments?: ICodeFragment[][];
-    resultFragments?: ICodeFragment[];
+    metrics?: IMetric[][];
+    resultFragments?: IMetric[];
 } = {}): IRuntimeBlock {
     const key = new BlockKey(options.key ?? `test-block-${Date.now()}`);
-    const fragmentGroups = options.fragments;
+    const metricGroups = options.metrics;
     const resultFragments = options.resultFragments ?? [];
 
     return {
@@ -45,9 +45,9 @@ function createMockBlock(options: {
             const startTime = this.executionTiming?.startTime?.getTime() ?? Date.now();
             const endTime = this.executionTiming?.completedAt?.getTime() ?? Date.now();
             const timeSpan = new TimeSpan(startTime, endTime);
-            // Access fragments through memory (new API)
-            const fragmentLocs = this.getMemoryByTag?.('fragment:display') ?? [];
-            const fragments = fragmentLocs.flatMap((loc: any) => loc.fragments);
+            // Access metrics through memory (new API)
+            const metricLocs = this.getMemoryByTag?.('metric:display') ?? [];
+            const metrics = metricLocs.flatMap((loc: any) => loc.metrics);
 
             const output = new OutputStatement({
                 outputType: 'completion',
@@ -55,7 +55,7 @@ function createMockBlock(options: {
                 sourceBlockKey: this.key.toString(),
                 sourceStatementId: this.sourceIds?.[0],
                 stackLevel: runtime.stack?.count ?? 0,
-                fragments,
+                metrics,
                 parent: undefined,
                 children: [],
             });
@@ -70,33 +70,33 @@ function createMockBlock(options: {
 
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockImplementation((tag: string) => {
-            if (tag === 'fragment:display' && fragmentGroups) {
-                return fragmentGroups.map(g => ({ tag: 'fragment:display', fragments: g })) as any;
+            if (tag === 'metric:display' && metricGroups) {
+                return metricGroups.map(g => ({ tag: 'metric:display', metrics: g })) as any;
             }
-            if (tag === 'fragment:result' && resultFragments.length > 0) {
-                return [{ tag: 'fragment:result', fragments: resultFragments }] as any;
+            if (tag === 'metric:result' && resultFragments.length > 0) {
+                return [{ tag: 'metric:result', metrics: resultFragments }] as any;
             }
             return [];
         }),
         getAllMemory: vi.fn().mockImplementation(() => {
             const mem: any[] = [];
-            if (fragmentGroups) {
-                mem.push(...fragmentGroups.map(g => ({ tag: 'fragment:display', fragments: g })));
+            if (metricGroups) {
+                mem.push(...metricGroups.map(g => ({ tag: 'metric:display', metrics: g })));
             }
             if (resultFragments.length > 0) {
-                mem.push({ tag: 'fragment:result', fragments: resultFragments });
+                mem.push({ tag: 'metric:result', metrics: resultFragments });
             }
             return mem;
         }),
 
         hasMemory: vi.fn().mockImplementation((type: string) => {
-            if (type === 'fragment:display' && fragmentGroups) return true;
-            if (type === 'fragment:result' && resultFragments.length > 0) return true;
+            if (type === 'metric:display' && metricGroups) return true;
+            if (type === 'metric:result' && resultFragments.length > 0) return true;
             return false;
         }),
         getMemory: vi.fn().mockImplementation((type: string) => {
-            if (type === 'fragment' && fragmentGroups) {
-                return { type: 'fragment', value: { groups: fragmentGroups } };
+            if (type ===   'metrics' && metricGroups) {
+                return { type:   'metric', value: { groups: metricGroups } };
             }
             return undefined;
         }),
@@ -227,14 +227,13 @@ describe('ScriptRuntime Output Statements', () => {
     });
 
     describe('output statement content', () => {
-        it('should emit segment output from fragment:result on pop', () => {
+        it('should emit segment output from metrics:result on pop', () => {
             const listener = vi.fn();
             runtime.subscribeToOutput(listener);
 
-            const resultFragments: ICodeFragment[] = [
+            const resultFragments: IMetric[] = [
                 {
-                    type: 'spans',
-                    fragmentType: FragmentType.Spans,
+                    type: MetricType.Spans,
                     image: '1 span',
                     origin: 'runtime',
                     value: [new TimeSpan(1000, 1600)],
@@ -254,7 +253,7 @@ describe('ScriptRuntime Output Statements', () => {
             const segment = outputs.find(o => o.outputType === 'segment' && o.sourceBlockKey === block.key.toString());
             expect(segment).toBeDefined();
             expect(segment?.sourceStatementId).toBe(77);
-            expect(segment?.fragments.some(f => f.fragmentType === FragmentType.Spans)).toBe(true);
+            expect(segment?.metrics.some(f => f.type === MetricType.Spans)).toBe(true);
         });
 
         it('should include timeSpan with start and end times', () => {
@@ -274,9 +273,9 @@ describe('ScriptRuntime Output Statements', () => {
             expect(output?.timeSpan.started).toBeDefined();
         });
 
-        it('should include fragments from the block', () => {
-            const fragments: ICodeFragment[][] = [[
-                { type: 'effort', fragmentType: FragmentType.Effort, value: 'Push-ups', image: 'Push-ups' }
+        it('should include metrics from the block', () => {
+            const metrics: IMetric[][] = [[
+                { type: MetricType.Effort, value: 'Push-ups', image: 'Push-ups' }
             ]];
 
             const listener = vi.fn();
@@ -284,7 +283,7 @@ describe('ScriptRuntime Output Statements', () => {
 
             const block = createMockBlock({
                 label: 'Fragment Block',
-                fragments
+                metrics
             });
             runtime.pushBlock(block);
             runtime.popBlock();
@@ -294,8 +293,8 @@ describe('ScriptRuntime Output Statements', () => {
                 .find((entry: IOutputStatement) => entry.outputType === 'completion') as IOutputStatement | undefined;
 
             expect(output).toBeDefined();
-            expect(output!.fragments).toHaveLength(1);
-            expect(output!.fragments[0].value).toBe('Push-ups');
+            expect(output!.metrics).toHaveLength(1);
+            expect(output!.metrics[0].value).toBe('Push-ups');
         });
 
         it('should link to source statement ID', () => {

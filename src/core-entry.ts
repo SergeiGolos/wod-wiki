@@ -1,7 +1,7 @@
 /**
  * Core Entry Point for WOD Wiki
  * 
- * Exports the parser, runtime engine, fragments, and core utilities.
+ * Exports the parser, runtime engine, metrics, and core utilities.
  * This is the minimal import for parsing and executing workout scripts.
  * 
  * @example
@@ -20,9 +20,7 @@ export type { IOutputStatement } from './core/models/OutputStatement';
 export type { CodeMetadata } from './core/models/CodeMetadata';
 
 // Parser
-export * from './parser/timer.parser';
-export * from './parser/timer.tokens';
-export * from './parser/timer.visitor';
+export { sharedParser } from './parser/parserInstance';
 
 // Runtime engine
 export { ScriptRuntime } from './runtime/ScriptRuntime';
@@ -61,21 +59,21 @@ export * from './runtime/blocks/RestBlock';
 export * from './runtime/compiler/strategies';
 
 // Fragments
-export * from './runtime/compiler/fragments/TimerFragment';
-export * from './runtime/compiler/fragments/RoundsFragment';
-export * from './runtime/compiler/fragments/RepFragment';
-export * from './runtime/compiler/fragments/EffortFragment';
-export * from './runtime/compiler/fragments/DistanceFragment';
-export * from './runtime/compiler/fragments/ResistanceFragment';
-export * from './runtime/compiler/fragments/ActionFragment';
-export * from './runtime/compiler/fragments/IncrementFragment';
-export * from './runtime/compiler/fragments/GroupFragment';
-export * from './runtime/compiler/fragments/TextFragment';
+export * from './runtime/compiler/metrics/TimerMetric';
+export * from './runtime/compiler/metrics/RoundsMetric';
+export * from './runtime/compiler/metrics/RepMetric';
+export * from './runtime/compiler/metrics/EffortMetric';
+export * from './runtime/compiler/metrics/DistanceMetric';
+export * from './runtime/compiler/metrics/ResistanceMetric';
+export * from './runtime/compiler/metrics/ActionMetric';
+export * from './runtime/compiler/metrics/IncrementMetric';
+export * from './runtime/compiler/metrics/GroupMetric';
+export * from './runtime/compiler/metrics/TextMetric';
 
 // Fragment types
-export { FragmentType } from './core/models/CodeFragment';
-export type { ICodeFragment } from './core/models/CodeFragment';
+export { MetricType } from './core/models/Metric';
+export type { IMetric } from './core/models/Metric';
 
 // Fragment contracts & utilities
-export type { IFragmentSource, FragmentFilter } from './core/contracts/IFragmentSource';
-export { resolveFragmentPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/fragmentPrecedence';
+export type { IMetricSource, MetricFilter } from './core/contracts/IMetricSource';
+export { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/metricPrecedence';

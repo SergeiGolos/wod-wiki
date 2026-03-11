@@ -91,7 +91,43 @@ export interface RuntimeStackTracker {
     startSpan?: (block: IRuntimeBlock, parentSpanId: string | null) => void;
     endSpan?: (blockKey: string) => void;
 
+    /**
+     * Record a metric update for a specific block.
+     * This is used for real-time tracking of exercise progress (e.g. reps, distance).
+     */
+    recordMetric?: (blockId: string, metricKey: string, value: any, unit?: string) => void;
+
+    /**
+     * Record a round update for a specific block.
+     */
+    recordRound?: (blockId: string, currentRound: number, totalRounds?: number) => void;
+
+    /**
+     * Subscribe to tracker updates.
+     */
+    onUpdate?: (callback: (update: TrackerUpdate) => void) => () => void;
+
+    /**
+     * Get a snapshot of the current tracker state.
+     */
+    getSnapshot?: () => TrackerSnapshot;
 }
+
+/**
+ * A snapshot of the entire workout tracker state.
+ */
+export interface TrackerSnapshot {
+    metrics: Record<string, Record<string, { value: any; unit?: string }>>;
+    rounds: Record<string, { current: number; total?: number }>;
+}
+
+/**
+ * Represents a real-time update from the workout tracker.
+ */
+export type TrackerUpdate = 
+    | { type: 'metric'; blockId: string; key: string; value: any; unit?: string; timestamp: number }
+    | { type: 'round'; blockId: string; current: number; total?: number; timestamp: number }
+    | { type: 'snapshot'; snapshot: TrackerSnapshot; timestamp: number };
 
 export interface RuntimeStackWrapper {
     wrap?: (block: IRuntimeBlock, parent?: IRuntimeBlock) => IRuntimeBlock;

@@ -7,7 +7,7 @@
  * Export format:
  * - Each note creates:
  *   - {noteId}.md - Markdown representation
- *   - {noteId}_statements.csv - Parsed code statements/fragments
+ *   - {noteId}_statements.csv - Parsed code statements/metrics
  *   - {noteId}_results_{version}.csv - Results for each version
  */
 
@@ -74,7 +74,7 @@ function noteToMarkdown(entry: HistoryEntry): string {
 }
 
 /**
- * Convert parsed statements/fragments to CSV
+ * Convert parsed statements/metrics to CSV
  */
 function statementsToCSV(entry: HistoryEntry): string {
     const headers = [
@@ -93,19 +93,19 @@ function statementsToCSV(entry: HistoryEntry): string {
         for (const section of entry.sections) {
             if (section.wodBlock?.statements) {
                 for (const stmt of section.wodBlock.statements) {
-                    if (stmt.fragments && stmt.fragments.length > 0) {
-                        for (const fragment of stmt.fragments) {
+                    if (stmt.metrics && stmt.metrics.length > 0) {
+                        for (const metric of stmt.metrics) {
                             rows.push([
                                 stmt.id,
                                 stmt.parent ?? null,
                                 stmt.meta?.line ?? null,
-                                fragment.type,
-                                fragment.value !== undefined ? JSON.stringify(fragment.value) : null,
-                                fragment.behavior ?? null,
+                                metrics.type,
+                                metric.value !== undefined ? JSON.stringify(metric.value) : null,
+                                metric.origin ?? null,
                             ]);
                         }
                     } else {
-                        // Statement without fragments
+                        // Statement without metrics
                         rows.push([
                             stmt.id,
                             stmt.parent ?? null,
@@ -161,9 +161,9 @@ function resultsToCSV(entry: HistoryEntry): string {
                     result.totalRounds ?? null,
                     result.repsCompleted ?? null,
                     result.completed,
-                    metric.fragment.type,
-                    metric.fragment.value !== undefined ? JSON.stringify(metric.fragment.value) : null,
-                    metric.behavior ?? null,
+                    metrics.metrics.type,
+                    metric.metric.value !== undefined ? JSON.stringify(metric.metric.value) : null,
+                    metric.origin ?? null,
                     metric.timestamp ?? null,
                 ]);
             }
@@ -220,7 +220,7 @@ export async function exportAllNotes(provider: IContentProvider): Promise<void> 
         '',
         'Each note is exported with the following files:',
         '- `{noteId}.md` - Markdown representation with metadata',
-        '- `{noteId}_statements.csv` - Parsed code statements and fragments',
+        '- `{noteId}_statements.csv` - Parsed code statements and metrics',
         '- `{noteId}_results.csv` - Workout results for all versions',
         '',
         '## Notes',
@@ -274,7 +274,7 @@ export async function exportNote(entry: HistoryEntry): Promise<void> {
         '## Files',
         '',
         `- \`${noteId}.md\` - Markdown representation with metadata`,
-        `- \`${noteId}_statements.csv\` - Parsed code statements and fragments`,
+        `- \`${noteId}_statements.csv\` - Parsed code statements and metrics`,
         `- \`${noteId}_results.csv\` - Workout results`,
     ].join('\n');
 

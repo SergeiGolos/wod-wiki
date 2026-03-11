@@ -125,10 +125,10 @@ describe('Timer Block Integration', () => {
             const completionOutputs = runtime.outputs.filter(o => o.type === 'completion');
             expect(completionOutputs.length).toBe(1);
 
-            // Completion output should contain elapsed and spans fragments
+            // Completion output should contain elapsed and spans metrics
             const completion = completionOutputs[0];
-            const hasElapsed = (completion.fragments as any[]).some(f => f.fragmentType === 'elapsed');
-            const hasSpans = (completion.fragments as any[]).some(f => f.fragmentType === 'spans');
+            const hasElapsed = (completion.metrics as any[]).some(f => f.type === 'elapsed');
+            const hasSpans = (completion.metrics as any[]).some(f => f.type === 'spans');
             expect(hasElapsed).toBe(true);
             expect(hasSpans).toBe(true);
         });
@@ -249,7 +249,7 @@ describe('Timer Block Integration', () => {
             // Sound cues emit system outputs (not milestone) - excluded from review logs
             const milestones = findOutputs(runtime, 'system');
             const soundOutputs = milestones.filter(m => 
-                (m.fragments as any[]).some(f => f.sound === 'start-beep')
+                (m.metrics as any[]).some(f => f.sound === 'start-beep')
             );
             expect(soundOutputs.length).toBeGreaterThanOrEqual(1);
         });
@@ -265,7 +265,7 @@ describe('Timer Block Integration', () => {
             // Sound cues emit system outputs (not milestone) - excluded from review logs
             const milestones = findOutputs(runtime, 'system');
             const countdownSounds = milestones.filter(m =>
-                (m.fragments as any[]).some(f => f.sound === 'countdown-beep')
+                (m.metrics as any[]).some(f => f.sound === 'countdown-beep')
             );
             expect(countdownSounds.length).toBeGreaterThanOrEqual(1);
         });
@@ -280,7 +280,7 @@ describe('Timer Block Integration', () => {
             // Sound cues emit system outputs (not milestone) - excluded from review logs
             const milestones = findOutputs(runtime, 'system');
             const completeSounds = milestones.filter(m =>
-                (m.fragments as any[]).some(f => f.sound === 'complete-chime')
+                (m.metrics as any[]).some(f => f.sound === 'complete-chime')
             );
             expect(completeSounds.length).toBeGreaterThanOrEqual(1);
         });

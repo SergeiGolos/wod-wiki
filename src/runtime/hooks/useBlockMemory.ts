@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from '../memory/MemoryTypes';
-import { IFragmentSource } from '../../core/contracts/IFragmentSource';
+import { IMetricSource } from '../../core/contracts/IMetricSource';
 import { formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
 import { MemoryTag } from '../memory/MemoryLocation';
@@ -36,9 +36,9 @@ export function useBlockMemory<T extends MemoryType>(
     const getVal = (): MemoryValueOf<T> | undefined => {
         const loc = block?.getMemoryByTag(tag)[0];
         if (!loc) return undefined;
-        // 'round' tag: the fragment itself IS the value (CurrentRoundFragment satisfies RoundState)
-        if (tag === 'round') return loc.fragments[0] as unknown as MemoryValueOf<T>;
-        return loc.fragments[0]?.value as MemoryValueOf<T> | undefined;
+        // 'round' tag: the metrics itself IS the value (CurrentRoundMetric satisfies RoundState)
+        if (tag === 'round') return loc.metrics[0] as unknown as MemoryValueOf<T>;
+        return loc.metrics[0]?.value as MemoryValueOf<T> | undefined;
     };
     const [value, setValue] = useState<MemoryValueOf<T> | undefined>(getVal);
 
@@ -254,18 +254,18 @@ export function useRoundDisplay(block: IRuntimeBlock | undefined): RoundDisplayV
 }
 
 /**
- * Hook for subscribing to the display fragment source from a block.
+ * Hook for subscribing to the display metrics source from a block.
  *
- * Returns the `IFragmentSource` interface from the block's `'fragment:display'`
- * memory entry (`DisplayFragmentMemory`). The returned source provides
- * precedence-resolved fragments that update reactively when the underlying
- * fragment memory or runtime state changes.
+ * Returns the `IMetricSource` interface from the block's `'metric:display'`
+ * memory entry (`DisplayMetricMemory`). The returned source provides
+ * precedence-resolved metric that update reactively when the underlying
+ * metric memory or runtime state changes.
  *
- * This is the primary hook for UI components that need to render fragments
+ * This is the primary hook for UI components that need to render metrics
  * from a runtime block with proper origin precedence (user > runtime > compiler > parser).
  *
  * @param block The runtime block (can be undefined)
- * @returns The IFragmentSource for the block, or undefined if no fragment:display memory
+ * @returns The IMetricSource for the block, or undefined if no metrics:display memory
  *
  * @example
  * ```tsx
@@ -273,34 +273,34 @@ export function useRoundDisplay(block: IRuntimeBlock | undefined): RoundDisplayV
  *   const source = useFragmentSource(block);
  *   if (!source) return null;
  *
- *   const fragments = source.getDisplayFragments();
- *   return <FragmentVisualizer fragments={fragments} />;
+ *   const metrics = source.getDisplayMetrics();
+ *   return <MetricVisualizer metric={metric} />;
  * }
  * ```
  */
-export function useFragmentSource(block: IRuntimeBlock | undefined): IFragmentSource | undefined {
+export function useFragmentSource(block: IRuntimeBlock | undefined): IMetricSource | undefined {
     const [version, setVersion] = useState(0);
 
     useEffect(() => {
         if (!block) return;
-        const loc = block.getMemoryByTag('fragment:display')[0];
+        const loc = block.getMemoryByTag('metric:display')[0];
         if (!loc) return;
         return loc.subscribe(() => setVersion(v => v + 1));
     }, [block]);
 
     return useMemo(() => {
         if (!block) return undefined;
-        const locs = block.getMemoryByTag('fragment:display');
+        const locs = block.getMemoryByTag('metric:display');
         if (locs.length === 0) return undefined;
-        const allFragments = locs.flatMap(loc => loc.fragments);
+        const allFragments = locs.flatMap(loc => loc.metrics);
         return {
             id: block.key.toString(),
-            getDisplayFragments: () => allFragments,
-            getFragment: (type) => allFragments.find(f => f.fragmentType === type),
-            getAllFragmentsByType: (type) => allFragments.filter(f => f.fragmentType === type),
-            hasFragment: (type) => allFragments.some(f => f.fragmentType === type),
-            rawFragments: allFragments,
-        } as IFragmentSource;
+            getDisplayMetrics: () => allFragments,
+            getFragment: (type) => allFragments.find(f => f.type === type),
+            getAllMetricsByType: (type) => allFragments.filter(f => f.type === type),
+            hasFragment: (type) => allFragments.some(f => f.type === type),
+            rawMetrics: allFragments,
+        } as IMetricSource;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [block, version]);
 }

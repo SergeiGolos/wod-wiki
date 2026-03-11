@@ -1,6 +1,7 @@
 import { IRuntimeSubscription } from '../contracts/IRuntimeSubscription';
 import { StackSnapshot } from '../contracts/IRuntimeStack';
 import { IOutputStatement } from '@/core/models/OutputStatement';
+import { TrackerUpdate } from '../contracts/IRuntimeOptions';
 
 /**
  * LocalRuntimeSubscription — a no-op subscription that simply receives
@@ -18,15 +19,18 @@ export class LocalRuntimeSubscription implements IRuntimeSubscription {
 
     private onStackSnapshotCallback?: (snapshot: StackSnapshot) => void;
     private onOutputCallback?: (output: IOutputStatement) => void;
+    private onTrackerUpdateCallback?: (update: TrackerUpdate) => void;
 
     constructor(options?: {
         id?: string;
         onStackSnapshot?: (snapshot: StackSnapshot) => void;
         onOutput?: (output: IOutputStatement) => void;
+        onTrackerUpdate?: (update: TrackerUpdate) => void;
     }) {
         this.id = options?.id ?? 'local';
         this.onStackSnapshotCallback = options?.onStackSnapshot;
         this.onOutputCallback = options?.onOutput;
+        this.onTrackerUpdateCallback = options?.onTrackerUpdate;
     }
 
     onStackSnapshot(snapshot: StackSnapshot): void {
@@ -37,8 +41,13 @@ export class LocalRuntimeSubscription implements IRuntimeSubscription {
         this.onOutputCallback?.(output);
     }
 
+    onTrackerUpdate(update: TrackerUpdate): void {
+        this.onTrackerUpdateCallback?.(update);
+    }
+
     dispose(): void {
         this.onStackSnapshotCallback = undefined;
         this.onOutputCallback = undefined;
+        this.onTrackerUpdateCallback = undefined;
     }
 }

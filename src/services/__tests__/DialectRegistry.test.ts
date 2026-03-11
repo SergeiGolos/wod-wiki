@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'bun:test';
 import { DialectRegistry } from '../DialectRegistry';
 import { IDialect, DialectAnalysis } from '../../core/models/Dialect';
 import { ICodeStatement } from '../../core/models/CodeStatement';
-import { FragmentType } from '../../core/models/CodeFragment';
+import { MetricType } from '../../core/models/Metric';
 
 // Mock dialect for testing
 const createMockDialect = (id: string, hints: string[] = []): IDialect => ({
@@ -64,7 +64,7 @@ describe('DialectRegistry', () => {
       
       const statement: ICodeStatement = {
         id: 1,
-        fragments: []
+        metrics: []
       } as any;
       
       registry.process(statement);
@@ -79,7 +79,7 @@ describe('DialectRegistry', () => {
       
       const statement: ICodeStatement = {
         id: 1,
-        fragments: []
+        metrics: []
       } as any;
       
       registry.process(statement);
@@ -113,7 +113,7 @@ describe('DialectRegistry', () => {
       registry.register(dialect1);
       registry.register(dialect2);
       
-      const statement: ICodeStatement = { id: 1, fragments: [] } as any;
+      const statement: ICodeStatement = { id: 1, metrics: [] } as any;
       registry.process(statement);
       
       expect(order).toEqual(['first', 'second']);
@@ -124,7 +124,7 @@ describe('DialectRegistry', () => {
       registry.register(createMockDialect('a', ['hint.from.a']));
       registry.register(createMockDialect('b', ['hint.from.b']));
       
-      const statement: ICodeStatement = { id: 1, fragments: [] } as any;
+      const statement: ICodeStatement = { id: 1, metrics: [] } as any;
       registry.process(statement);
       
       expect(statement.hints?.has('hint.from.a')).toBe(true);
@@ -136,7 +136,7 @@ describe('DialectRegistry', () => {
       registry.register(createMockDialect('a', ['shared.hint']));
       registry.register(createMockDialect('b', ['shared.hint']));
       
-      const statement: ICodeStatement = { id: 1, fragments: [] } as any;
+      const statement: ICodeStatement = { id: 1, metrics: [] } as any;
       registry.process(statement);
       
       // Set automatically deduplicates
@@ -150,7 +150,7 @@ describe('DialectRegistry', () => {
       
       const statement: ICodeStatement = {
         id: 1,
-        fragments: [],
+        metrics: [],
         hints: new Set(['existing.hint'])
       } as any;
       
@@ -167,9 +167,9 @@ describe('DialectRegistry', () => {
       registry.register(createMockDialect('test', ['processed']));
       
       const statements: ICodeStatement[] = [
-        { id: 1, fragments: [] } as any,
-        { id: 2, fragments: [] } as any,
-        { id: 3, fragments: [] } as any
+        { id: 1, metrics: [] } as any,
+        { id: 2, metrics: [] } as any,
+        { id: 3, metrics: [] } as any
       ];
       
       registry.processAll(statements);
@@ -188,10 +188,10 @@ describe('DialectRegistry', () => {
         name: 'CrossFit-like Dialect',
         analyze: (statement: ICodeStatement): DialectAnalysis => {
           const hints: string[] = [];
-          const fragments = statement.fragments || [];
+          const metrics = statement.metrics || [];
           
-          const hasEmom = fragments.some(f =>
-            (f.fragmentType === FragmentType.Action || f.fragmentType === FragmentType.Effort) &&
+          const hasEmom = metrics.some(f =>
+            (f.type === MetricType.Action || f.type === MetricType.Effort) &&
             typeof f.value === 'string' &&
             f.value.toUpperCase().includes('EMOM')
           );
@@ -210,9 +210,9 @@ describe('DialectRegistry', () => {
       
       const statement: ICodeStatement = {
         id: 1,
-        fragments: [
-          { fragmentType: FragmentType.Action, value: 'EMOM 10', type: 'action' },
-          { fragmentType: FragmentType.Duration, value: 60000, type: 'duration' }
+        metrics: [
+          { type: MetricType.Action, value: 'EMOM 10' },
+          { type: MetricType.Duration, value: 60000 }
         ]
       } as any;
       

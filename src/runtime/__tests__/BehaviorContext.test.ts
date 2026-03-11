@@ -4,7 +4,7 @@ import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IRuntimeClock } from '../contracts/IRuntimeClock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { ICodeFragment, FragmentType } from '../../core/models/CodeFragment';
+import { IMetric, MetricType } from '../../core/models/Metric';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 
 /**
@@ -16,7 +16,7 @@ function createMockBlock(label: string = 'Test Block'): IRuntimeBlock {
         key,
         label,
         sourceIds: [1],
-        fragments: [],
+        metrics: [],
         blockType: 'test',
         context: { release: vi.fn() } as any,
         isComplete: false,
@@ -142,14 +142,13 @@ describe('BehaviorContext', () => {
 
     describe('emitOutput', () => {
         it('should create an output statement and add to runtime', () => {
-            const fragment: ICodeFragment = {
-                fragmentType: FragmentType.Duration,
+            const metric: IMetric = {
+                type: MetricType.Duration,
                 image: '1:00',
-                origin: 'runtime',
-                type: 'test'
+                origin: 'runtime'
             };
 
-            ctx.emitOutput('segment', [fragment], { label: 'Test Output' });
+            ctx.emitOutput('segment', [metric], { label: 'Test Output' });
 
             // Check that addOutput was called
             expect((runtime as any).addOutput).toHaveBeenCalled();
@@ -171,18 +170,17 @@ describe('BehaviorContext', () => {
             expect(outputs[0].stackLevel).toBe(3);
         });
 
-        it('should tag fragments with sourceBlockKey if not provided', () => {
-            const fragment: ICodeFragment = {
-                fragmentType: FragmentType.Duration,
+        it('should tag metrics with sourceBlockKey if not provided', () => {
+            const metric: IMetric = {
+                type: MetricType.Duration,
                 image: '2:00',
-                origin: 'runtime',
-                type: ''
+                origin: 'runtime'
             };
 
-            ctx.emitOutput('milestone', [fragment], {});
+            ctx.emitOutput('milestone', [metric], {});
 
             const outputs = runtime.getOutputStatements();
-            expect(outputs[0].fragments[0].sourceBlockKey).toBe(block.key.toString());
+            expect(outputs[0].metrics[0].sourceBlockKey).toBe(block.key.toString());
         });
     });
 
@@ -231,7 +229,7 @@ describe('BehaviorContext', () => {
             // BehaviorContext.getMemoryByTag delegates to block.getMemoryByTag
             const mockLocation = {
                 tag: 'time',
-                fragments: [{ value: { elapsed: 1000 } }],
+                metrics: [{ value: { elapsed: 1000 } }],
                 subscribe: vi.fn(),
                 update: vi.fn(),
                 dispose: vi.fn(),
@@ -240,7 +238,7 @@ describe('BehaviorContext', () => {
 
             const result = ctx.getMemoryByTag('time');
             expect(result).toEqual([mockLocation]);
-            expect(result[0]?.fragments[0]?.value).toEqual({ elapsed: 1000 });
+            expect(result[0]?.metrics[0]?.value).toEqual({ elapsed: 1000 });
         });
     });
 

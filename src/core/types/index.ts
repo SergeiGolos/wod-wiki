@@ -20,10 +20,10 @@ export type {
   BlockKey,
   Duration,
   CodeMetadata,
-  ICodeFragment,
+  IMetric,
 } from './core';
 
-export { FragmentType } from './core';
+export { MetricType } from './core';
 
 // Runtime types
 export type {
@@ -86,8 +86,8 @@ export type {
 } from './clock';
 
 // Fragment types
-// Note: FragmentTypeString and FragmentColorMap moved to src/views/runtime/fragmentColorMap.ts
+// Note: MetricTypeString and FragmentColorMap moved to src/views/runtime/metricColorMap.ts
 export type {
   ParseError,
-  FragmentVisualizerProps,
-} from './fragments';
+  MetricVisualizerProps,
+} from './metrics';

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
-import { IFragmentSource } from '../../core/contracts/IFragmentSource';
-import { ICodeFragment } from '../../core/models/CodeFragment';
-import { FragmentSourceEntry } from '../../components/fragments/FragmentSourceRow';
+import { IMetricSource } from '../../core/contracts/IMetricSource';
+import { IMetric } from '../../core/models/Metric';
+import { FragmentSourceEntry } from '../../components/metrics/MetricSourceRow';
 import { useSnapshotBlocks } from './useStackSnapshot';
 
 // ============================================================================
@@ -62,7 +62,7 @@ export function useStackTimers(): StackTimerEntry[] {
             const timerLoc = block.getMemoryByTag('time')[0];
             if (!timerLoc) continue;
 
-            const timer = timerLoc.fragments[0]?.value as TimerState | undefined;
+            const timer = timerLoc.metrics[0]?.value as TimerState | undefined;
             if (!timer) continue;
 
             entries.push({
@@ -179,8 +179,8 @@ export function useActiveControls(): ButtonConfig[] {
             const controlsLocs = blocks[i].getMemoryByTag('controls');
             if (controlsLocs.length === 0) continue;
 
-            // Each fragment in the controls location IS a button config
-            const buttons = controlsLocs[0].fragments
+            // Each metrics in the controls location IS a button config
+            const buttons = controlsLocs[0].metrics
                 .map(f => f.value as ButtonConfig)
                 .filter(Boolean);
             const isTop = i === blocks.length - 1;
@@ -221,7 +221,7 @@ export function useActiveControls(): ButtonConfig[] {
 // ============================================================================
 
 /**
- * Represents a fragment source on the stack with layout context.
+ * Represents a metrics source on the stack with layout context.
  *
  * Extends the generic FragmentSourceEntry with a block reference for
  * runtime-specific scenarios (accessing memory, dispatching events).
@@ -232,16 +232,16 @@ export interface StackFragmentEntry extends FragmentSourceEntry {
 }
 
 /**
- * Hook that converts the runtime stack into an array of IFragmentSource entries.
+ * Hook that converts the runtime stack into an array of IMetricSource entries.
  *
- * Each block on the stack with a `'fragment:display'` memory entry produces a
- * `StackFragmentEntry` containing the `IFragmentSource` and layout context
+ * Each block on the stack with a `'metric:display'` memory entry produces a
+ * `StackFragmentEntry` containing the `IMetricSource` and layout context
  * (depth, leaf status, label).
  *
- * This is the preferred way for UI components to access fragment data from
+ * This is the preferred way for UI components to access metrics data from
  * the stack, replacing `useStackDisplayItems()` which returns `IDisplayItem[]`.
  *
- * @returns Array of stack fragment entries, or undefined if no blocks on stack
+ * @returns Array of stack metrics entries, or undefined if no blocks on stack
  *
  * @example
  * ```tsx
@@ -250,9 +250,9 @@ export interface StackFragmentEntry extends FragmentSourceEntry {
  *   if (!entries) return null;
  *
  *   return entries.map(entry => (
- *     <FragmentVisualizer
+ *     <MetricVisualizer
  *       key={entry.source.id}
- *       fragments={entry.source.getDisplayFragments()}
+ *       metrics={entry.source.getDisplayMetrics()}
  *     />
  *   ));
  * }
@@ -262,12 +262,12 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
     const blocks = useSnapshotBlocks();
     const [version, setVersion] = useState(0);
 
-    // Subscribe to fragment:display memory changes on all blocks
+    // Subscribe to metrics:display memory changes on all blocks
     useEffect(() => {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const displayLocs = block.getMemoryByTag('fragment:display');
+            const displayLocs = block.getMemoryByTag('metric:display');
             for (const loc of displayLocs) {
                 const unsub = loc.subscribe(() => {
                     setVersion(v => v + 1);
@@ -291,41 +291,41 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
             // Skip root blocks without meaningful labels
             if (block.blockType === 'Root' && !block.label) return;
 
-            // Get all fragment:display locations from list-based memory
-            const displayLocs = block.getMemoryByTag('fragment:display');
+            // Get all metrics:display locations from list-based memory
+            const displayLocs = block.getMemoryByTag('metric:display');
 
-            // Create fallback source for blocks without fragment:display memory
-            let source: IFragmentSource;
+            // Create fallback source for blocks without metrics:display memory
+            let source: IMetricSource;
             if (displayLocs.length === 0) {
-                // Fallback: create synthetic fragment source from block label
+                // Fallback: create synthetic metrics source from block label
                 if (!block.label) return; // Skip blocks with no display entry AND no label
 
                 source = {
                     id: block.key.toString(),
-                    getDisplayFragments: () => [],
+                    getDisplayMetrics: () => [],
                     getFragment: () => undefined,
-                    getAllFragmentsByType: () => [],
+                    getAllMetricsByType: () => [],
                     hasFragment: () => false,
-                    rawFragments: [],
-                } as IFragmentSource;
+                    rawMetrics: [],
+                } as IMetricSource;
             } else {
-                // Create an IFragmentSource adapter from the memory locations
-                const allFragments = displayLocs.flatMap(loc => loc.fragments);
+                // Create an IMetricSource adapter from the memory locations
+                const allFragments = displayLocs.flatMap(loc => loc.metrics);
                 source = {
                     id: block.key.toString(),
-                    getDisplayFragments: () => allFragments,
-                    getFragment: (type) => allFragments.find(f => f.fragmentType === type),
-                    getAllFragmentsByType: (type) => allFragments.filter(f => f.fragmentType === type),
-                    hasFragment: (type) => allFragments.some(f => f.fragmentType === type),
-                    rawFragments: allFragments,
-                } as IFragmentSource;
+                    getDisplayMetrics: () => allFragments,
+                    getFragment: (type) => allFragments.find(f => f.type === type),
+                    getAllMetricsByType: (type) => allFragments.filter(f => f.type === type),
+                    hasFragment: (type) => allFragments.some(f => f.type === type),
+                    rawMetrics: allFragments,
+                } as IMetricSource;
             }
 
             const isLeaf = index === orderedBlocks.length - 1;
 
-            // Get raw fragment groups from list-based memory for multi-line display
-            const fragmentGroups = displayLocs.length > 1
-                ? displayLocs.map(loc => loc.fragments)
+            // Get raw metrics groups from list-based memory for multi-line display
+            const metricGroups = displayLocs.length > 1
+                ? displayLocs.map(loc => loc.metrics)
                 : undefined;
 
             entries.push({
@@ -334,7 +334,7 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                 depth: index,
                 isLeaf,
                 label: block.label,
-                fragmentGroups,
+                metricGroups,
             });
         });
 
@@ -350,34 +350,34 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
 /**
  * Represents a display entry with list-based memory access.
  *
- * Replaces IFragmentSource adapter with direct ICodeFragment[][] access.
+ * Replaces IMetricSource adapter with direct IMetric[][] access.
  */
 export interface StackDisplayEntry {
     /** The owning runtime block */
     block: IRuntimeBlock;
-    /** Display rows - each row is an array of fragments */
-    displayRows: ICodeFragment[][];
+    /** Display rows - each row is an array of metrics */
+    displayRows: IMetric[][];
     /** Display label from block */
     label: string;
     /** Nesting depth for indentation (0 = root level) */
     depth: number;
     /** Whether this is the leaf (most active) entry */
     isLeaf: boolean;
-    /** Raw fragment groups from block memory (for backward compatibility) */
-    fragmentGroups?: readonly (readonly ICodeFragment[])[];
+    /** Raw metrics groups from block memory (for backward compatibility) */
+    metricGroups?: readonly (readonly IMetric[])[];
 }
 
 /**
  * Hook that reads list-based memory directly from runtime stack blocks.
  *
  * This is the Phase 3 UI migration hook that consumes the list-based memory
- * API populated by Phase 2 behaviors. It subscribes to all 'fragment:display'
- * memory locations and returns display rows without requiring IFragmentSource
+ * API populated by Phase 2 behaviors. It subscribes to all 'metric:display'
+ * memory locations and returns display rows without requiring IMetricSource
  * adapter layer.
  *
- * Each block can have multiple 'fragment:display' memory locations (non-unique
- * tags in list-based API), where each location stores ICodeFragment[]. These
- * are returned as displayRows: ICodeFragment[][].
+ * Each block can have multiple 'metric:display' memory locations (non-unique
+ * tags in list-based API), where each location stores IMetric[]. These
+ * are returned as displayRows: IMetric[][].
  *
  * @returns Array of stack display entries, or undefined if no blocks on stack
  *
@@ -390,7 +390,7 @@ export interface StackDisplayEntry {
  *   return entries.map(entry => (
  *     <div key={entry.block.key.toString()}>
  *       {entry.displayRows.map((row, idx) => (
- *         <FragmentSourceRow key={idx} fragments={row} />
+ *         <MetricSourceRow key={idx} metrics={row} />
  *       ))}
  *     </div>
  *   ));
@@ -401,12 +401,12 @@ export function useStackDisplayRows(): StackDisplayEntry[] | undefined {
     const blocks = useSnapshotBlocks();
     const [version, setVersion] = useState(0);
 
-    // Subscribe to all fragment:display memory locations on all blocks
+    // Subscribe to all metrics:display memory locations on all blocks
     useEffect(() => {
         const unsubscribes: (() => void)[] = [];
 
         for (const block of blocks) {
-            const displayLocs = block.getMemoryByTag('fragment:display');
+            const displayLocs = block.getMemoryByTag('metric:display');
             for (const loc of displayLocs) {
                 const unsub = loc.subscribe(() => {
                     setVersion(v => v + 1);
@@ -430,20 +430,20 @@ export function useStackDisplayRows(): StackDisplayEntry[] | undefined {
             // Skip root blocks without meaningful labels
             if (block.blockType === 'Root' && !block.label) return;
 
-            // Get all fragment:display locations from list-based memory
-            const displayLocs = block.getMemoryByTag('fragment:display');
+            // Get all metrics:display locations from list-based memory
+            const displayLocs = block.getMemoryByTag('metric:display');
 
             // Convert locations to display rows
-            const displayRows = displayLocs.map(loc => loc.fragments);
+            const displayRows = displayLocs.map(loc => loc.metrics);
 
             // Skip blocks with no display data AND no label
             if (displayRows.length === 0 && !block.label) return;
 
             const isLeaf = index === orderedBlocks.length - 1;
 
-            // Get raw fragment groups from list-based memory for multi-line display
-            const fragmentGroups = displayLocs.length > 1
-                ? displayLocs.map(loc => loc.fragments)
+            // Get raw metrics groups from list-based memory for multi-line display
+            const metricGroups = displayLocs.length > 1
+                ? displayLocs.map(loc => loc.metrics)
                 : undefined;
 
             entries.push({
@@ -452,7 +452,7 @@ export function useStackDisplayRows(): StackDisplayEntry[] | undefined {
                 label: block.label,
                 depth: index,
                 isLeaf,
-                fragmentGroups,
+                metricGroups,
             });
         });
 

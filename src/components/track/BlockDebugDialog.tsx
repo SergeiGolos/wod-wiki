@@ -2,9 +2,9 @@
  * BlockDebugDialog — Debug inspection dialog for runtime blocks.
  *
  * Shows three tabs:
- *   1. Code Statements — source statements for this block rendered with FragmentSourceRow
+ *   1. Code Statements — source statements for this block rendered with MetricSourceRow
  *   2. Behaviors — list of attached behavior classes
- *   3. Memory — all active memory locations rendered with FragmentSourceRow
+ *   3. Memory — all active memory locations rendered with MetricSourceRow
  *
  * Opened via the table icon button on each StackBlockItem when debug mode is on.
  */
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
-import { FragmentSourceRow } from '@/components/fragments/FragmentSourceRow';
+import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
 
 export interface BlockDebugDialogProps {
     open: boolean;
@@ -114,7 +114,7 @@ export const BlockDebugDialog: React.FC<BlockDebugDialogProps> = ({
 };
 
 // ──────────────────────────────────────────────────────────────
-// Tab: Code Statements — renders using the metrics grid (FragmentSourceRow)
+// Tab: Code Statements — renders using the metrics grid (MetricSourceRow)
 // ──────────────────────────────────────────────────────────────
 
 const StatementsTab: React.FC<{ statements: ICodeStatement[] }> = ({ statements }) => {
@@ -139,8 +139,8 @@ const StatementsTab: React.FC<{ statements: ICodeStatement[] }> = ({ statements 
                         {stmt.id}
                     </div>
                     <div className="py-0.5">
-                        <FragmentSourceRow
-                            fragments={stmt.fragments}
+                        <MetricSourceRow
+                            metrics={stmt.metrics}
                             size="compact"
                         />
                     </div>
@@ -185,7 +185,7 @@ const BehaviorsTab: React.FC<{ names: string[] }> = ({ names }) => {
 };
 
 // ──────────────────────────────────────────────────────────────
-// Tab: Memory — renders using the metrics grid (FragmentSourceRow)
+// Tab: Memory — renders using the metrics grid (MetricSourceRow)
 // ──────────────────────────────────────────────────────────────
 
 const MemoryTab: React.FC<{ block: IRuntimeBlock; locations: ReturnType<IRuntimeBlock['getAllMemory']> }> = ({ locations }) => {
@@ -212,8 +212,8 @@ const MemoryTab: React.FC<{ block: IRuntimeBlock; locations: ReturnType<IRuntime
                         </span>
                     </div>
                     <div className="py-0.5">
-                        <FragmentSourceRow
-                            fragments={loc.fragments}
+                        <MetricSourceRow
+                            metrics={loc.metrics}
                             size="compact"
                         />
                     </div>

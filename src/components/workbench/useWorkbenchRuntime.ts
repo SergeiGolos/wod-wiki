@@ -12,11 +12,16 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RegisterEventHandlerAction } from '../../runtime/actions/events/RegisterEventHandlerAction';
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
-import { RunningSumProcess } from '../../core/analytics/RunningSumProcess';
-import { RepAnalyticsProcess } from '../../core/analytics/RepAnalyticsProcess';
-import { DistanceAnalyticsProcess } from '../../core/analytics/DistanceAnalyticsProcess';
-import { WeightAnalyticsProcess } from '../../core/analytics/WeightAnalyticsProcess';
-import { FragmentType } from '../../core/models/CodeFragment';
+import { SpeedEnrichmentProcess } from '../../core/analytics/SpeedEnrichmentProcess';
+import { RepRateEnrichmentProcess } from '../../core/analytics/RepRateEnrichmentProcess';
+import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
+import { ProjectionSyncProcess } from '../../core/analytics/ProjectionSyncProcess';
+import { AnalysisService } from '../../timeline/analytics/analytics/AnalysisService';
+import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
+import { RepProjectionEngine } from '../../timeline/analytics/analytics/engines/RepProjectionEngine';
+import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/engines/DistanceProjectionEngine';
+import { SessionLoadProjectionEngine } from '../../timeline/analytics/analytics/engines/SessionLoadProjectionEngine';
+import { MetMinuteProjectionEngine } from '../../timeline/analytics/analytics/engines/MetMinuteProjectionEngine';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -54,12 +59,24 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             action.do(runtime);
 
             // Setup Analytics Engine
+            // Pipeline A: stateless per-segment enrichment — derives metrics from
+            // values already on the segment. Processes chain in registration order.
             const engine = new AnalyticsEngine();
-            engine.addProcess(new RunningSumProcess('repetitions', FragmentType.Rep));
-            engine.addProcess(new RunningSumProcess('resistance', FragmentType.Resistance));
-            engine.addProcess(new RepAnalyticsProcess());
-            engine.addProcess(new DistanceAnalyticsProcess());
-            engine.addProcess(new WeightAnalyticsProcess());
+            engine.addProcess(new SpeedEnrichmentProcess());      // distance + elapsed → speed, pace
+            engine.addProcess(new RepRateEnrichmentProcess());     // reps + elapsed → reps/min
+            engine.addProcess(new PowerEnrichmentProcess());       // reps + resistance + elapsed → power
+
+            // Pipeline B: projection engines aggregate across all segments and push
+            // totals into the tracker (shown as cards above the timer).
+            const projectionService = new AnalysisService();
+            projectionService.registerEngine(new RepProjectionEngine());
+            projectionService.registerEngine(new DistanceProjectionEngine());
+            projectionService.registerEngine(new VolumeProjectionEngine());
+            projectionService.registerEngine(new SessionLoadProjectionEngine());
+            projectionService.registerEngine(new MetMinuteProjectionEngine());
+
+            engine.addProcess(new ProjectionSyncProcess(projectionService, runtime.tracker));
+
             runtime.setAnalyticsEngine(engine);
 
             // Cleanup on unmount or runtime change

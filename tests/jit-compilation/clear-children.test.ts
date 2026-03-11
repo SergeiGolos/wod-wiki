@@ -4,7 +4,7 @@
  * Validates that ClearChildrenAction:
  * 1. Pops all blocks above the target block
  * 2. Force-completes incomplete blocks during pop
- * 3. Runs full unmount lifecycle (fragment emission)
+ * 3. Runs full unmount lifecycle (metrics emission)
  * 4. Returns a NextAction for the target block
  * 5. Does nothing if target block is already on top
  */

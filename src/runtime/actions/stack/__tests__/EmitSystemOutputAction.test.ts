@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EmitSystemOutputAction } from '../EmitSystemOutputAction';
-import { FragmentType } from '../../../../core/models/CodeFragment';
+import { MetricType } from '../../../../core/models/Metric';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import { IRuntimeStack } from '../../../contracts/IRuntimeStack';
 
@@ -55,20 +55,19 @@ describe('EmitSystemOutputAction', () => {
         expect(output.stackLevel).toBe(2);
     });
 
-    it('should create a System fragment with lifecycle type', () => {
+    it('should create a System metrics with lifecycle type', () => {
         const action = new EmitSystemOutputAction('push: Test', 'push', 'block-1');
         action.do(runtime);
 
         const output = (runtime.addOutput as any).mock.calls[0][0];
-        expect(output.fragments).toHaveLength(1);
+        expect(output.metrics).toHaveLength(1);
 
-        const fragment = output.fragments[0];
-        expect(fragment.fragmentType).toBe(FragmentType.System);
-        expect(fragment.type).toBe('lifecycle');
-        expect(fragment.image).toBe('push: Test');
-        expect(fragment.origin).toBe('runtime');
-        expect(fragment.value.event).toBe('push');
-        expect(fragment.value.blockKey).toBe('block-1');
+        const metric = output.metrics[0];
+        expect(metric.type).toBe(MetricType.System);
+        expect(metric.image).toBe('push: Test');
+        expect(metric.origin).toBe('runtime');
+        expect(metric.value.event).toBe('push');
+        expect(metric.value.blockKey).toBe('block-1');
     });
 
     it('should use event-action type for event-action events', () => {
@@ -76,11 +75,12 @@ describe('EmitSystemOutputAction', () => {
         action.do(runtime);
 
         const output = (runtime.addOutput as any).mock.calls[0][0];
-        const fragment = output.fragments[0];
-        expect(fragment.type).toBe('event-action');
+        const metric = output.metrics[0];
+        expect(metric.type).toBe(MetricType.System);
+        expect(metric.value.event).toBe('event-action');
     });
 
-    it('should include extra data in fragment value', () => {
+    it('should include extra data in metrics value', () => {
         const action = new EmitSystemOutputAction(
             'pop: Test', 'pop', 'block-1', 'Test', 1,
             { completionReason: 'timer-expired' }
@@ -88,8 +88,8 @@ describe('EmitSystemOutputAction', () => {
         action.do(runtime);
 
         const output = (runtime.addOutput as any).mock.calls[0][0];
-        const fragment = output.fragments[0];
-        expect(fragment.value.completionReason).toBe('timer-expired');
+        const metric = output.metrics[0];
+        expect(metric.value.completionReason).toBe('timer-expired');
     });
 
     it('should create a point-in-time TimeSpan', () => {
@@ -108,21 +108,21 @@ describe('EmitSystemOutputAction', () => {
         expect(output.stackLevel).toBe(2); // from mock runtime.stack.count
     });
 
-    it('should include blockLabel in fragment value when provided', () => {
+    it('should include blockLabel in metrics value when provided', () => {
         const action = new EmitSystemOutputAction('push: 5×Burpees', 'push', 'block-1', '5×Burpees');
         action.do(runtime);
 
         const output = (runtime.addOutput as any).mock.calls[0][0];
-        const fragment = output.fragments[0];
-        expect(fragment.value.blockLabel).toBe('5×Burpees');
+        const metric = output.metrics[0];
+        expect(metric.value.blockLabel).toBe('5×Burpees');
     });
 
-    it('should use runtime clock timestamp for fragment', () => {
+    it('should use runtime clock timestamp for metrics', () => {
         const action = new EmitSystemOutputAction('next: Test', 'next', 'block-1');
         action.do(runtime);
 
         const output = (runtime.addOutput as any).mock.calls[0][0];
-        const fragment = output.fragments[0];
-        expect(fragment.timestamp).toEqual(new Date('2024-01-15T12:00:00Z'));
+        const metric = output.metrics[0];
+        expect(metric.timestamp).toEqual(new Date('2024-01-15T12:00:00Z'));
     });
 });

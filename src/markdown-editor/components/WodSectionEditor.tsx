@@ -4,7 +4,7 @@ import { VALID_WOD_DIALECTS, type WodDialect } from '../types/section';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { ParseError } from '../types';
 import { SECTION_LINE_HEIGHT } from './SectionContainer';
-import { StatementDisplay } from '@/components/fragments/StatementDisplay';
+import { StatementDisplay } from '@/components/metrics/StatementDisplay';
 import { parseWodBlock } from '../utils/parseWodBlock';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';

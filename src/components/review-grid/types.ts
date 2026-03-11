@@ -2,22 +2,22 @@
  * Review Grid — Type Definitions
  *
  * Core data model for the review grid that treats IOutputStatement[] as rows
- * and FragmentType columns as the primary data axis.
+ * and MetricType columns as the primary data axis.
  */
 
-import type { ICodeFragment, FragmentType, FragmentOrigin } from '@/core/models/CodeFragment';
+import type { IMetric, MetricType, MetricOrigin } from '@/core/models/Metric';
 import type { OutputStatementType } from '@/core/models/OutputStatement';
 
 // ─── Grid Row ──────────────────────────────────────────────────
 
 /**
- * One row per IOutputStatement, with fragments pivoted into column-keyed cells.
+ * One row per IOutputStatement, with metrics pivoted into column-keyed cells.
  *
- * Canonical time data lives in `cells` keyed by `FragmentType`:
- * - `cells.get(FragmentType.Spans)`   → **Time** (raw TimeSpan[] recordings)
- * - `cells.get(FragmentType.Elapsed)` → **Elapsed** (Σ span durations)
- * - `cells.get(FragmentType.Total)`   → **Total** (wall-clock bracket)
- * - `cells.get(FragmentType.Duration)` → **Duration** (parser target)
+ * Canonical time data lives in `cells` keyed by `MetricType`:
+ * - `cells.get(MetricType.Spans)`   → **Time** (raw TimeSpan[] recordings)
+ * - `cells.get(MetricType.Elapsed)` → **Elapsed** (Σ span durations)
+ * - `cells.get(MetricType.Total)`   → **Total** (wall-clock bracket)
+ * - `cells.get(MetricType.Duration)` → **Duration** (parser target)
  *
  * The direct properties below are **deprecated proxies** kept for backward
  * compatibility. New renderers should read from `cells` instead.
@@ -52,18 +52,18 @@ export interface GridRow {
   /** Completion reason (only for 'completion' type) */
   readonly completionReason?: string;
   /** Fragment-type → cell data (canonical source of truth) */
-  readonly cells: Map<FragmentType, GridCell>;
+  readonly cells: Map<MetricType, GridCell>;
 }
 
 // ─── Grid Cell ─────────────────────────────────────────────────
 
 /**
- * Multi-value cell — a single row can carry multiple fragments of the same type.
+ * Multi-value cell — a single row can carry multiple metrics of the same type.
  */
 export interface GridCell {
-  /** All fragments of this type for this row */
-  readonly fragments: ICodeFragment[];
-  /** True if any fragment has origin 'user' */
+  /** All metrics of this type for this row */
+  readonly metrics: IMetric[];
+  /** True if any metric has origin 'user' */
   readonly hasUserOverride: boolean;
 }
 
@@ -71,14 +71,14 @@ export interface GridCell {
 
 /**
  * Column definition for the grid.
- * Fixed columns (index, block key, etc.) have no fragmentType.
- * Dynamic columns correspond to a FragmentType.
+ * Fixed columns (index, block key, etc.) have no metricType.
+ * Dynamic columns correspond to a MetricType.
  */
 export interface GridColumn {
   /** Unique column identifier */
   readonly id: string;
-  /** Associated fragment type (undefined for fixed columns) */
-  readonly fragmentType?: FragmentType;
+  /** Associated metrics type (undefined for fixed columns) */
+  readonly type?: MetricType;
   /** Display label */
   readonly label: string;
   /** Optional icon/emoji */
@@ -113,8 +113,8 @@ export interface GridSortConfig {
 export interface GridFilterConfig {
   /** Filter by output type */
   readonly outputTypes?: OutputStatementType[];
-  /** Filter by fragment origin */
-  readonly origins?: FragmentOrigin[];
+  /** Filter by metrics origin */
+  readonly origins?: MetricOrigin[];
   /** Global text search across all cells */
   readonly searchText?: string;
   /** Per-column filter values (column id → filter text) */
@@ -130,8 +130,8 @@ export interface GridViewPreset {
   readonly label: string;
   /** Filter configuration for this preset */
   readonly filters: GridFilterConfig;
-  /** Which fragment-type columns are visible in this preset */
-  readonly visibleColumns: FragmentType[];
+  /** Which metrics-type columns are visible in this preset */
+  readonly visibleColumns: MetricType[];
   /** Whether this preset is the default */
   readonly isDefault?: boolean;
 }
@@ -139,7 +139,7 @@ export interface GridViewPreset {
 // ─── Fixed Column IDs ──────────────────────────────────────────
 
 /**
- * Identifiers for the non-fragment fixed columns.
+ * Identifiers for the non-metrics fixed columns.
  *
  * Column names follow the glossary in docs/architecture/time-terminology.md:
  * - TIMESTAMP → **TimeStamp** (system Date.now())

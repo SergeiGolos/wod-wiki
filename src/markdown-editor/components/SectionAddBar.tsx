@@ -17,14 +17,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import {
   AlignLeft, ListTodo, ScrollText, ClipboardList,
-  Plus,
+  Plus, FileText,
 } from 'lucide-react';
 
 export type NewSectionType =
   | 'markdown'
   | 'wod'
   | 'log'
-  | 'plan';
+  | 'plan'
+  | 'frontmatter';
 
 export interface SectionAddBarProps {
   /** Called when the user picks a section type to add */
@@ -42,10 +43,11 @@ interface ButtonDef {
 }
 
 const BUTTONS: ButtonDef[] = [
-  { type: 'markdown',  label: 'Text',  icon: <AlignLeft className="w-4 h-4" /> },
-  { type: 'wod',       label: 'WOD',   icon: <ListTodo className="w-4 h-4" />,       group: true },
-  { type: 'log',       label: 'Log',   icon: <ScrollText className="w-4 h-4" /> },
-  { type: 'plan',      label: 'Plan',  icon: <ClipboardList className="w-4 h-4" /> },
+  { type: 'markdown',      label: 'Text',        icon: <AlignLeft className="w-4 h-4" /> },
+  { type: 'frontmatter',   label: 'Front Matter', icon: <FileText className="w-4 h-4" /> },
+  { type: 'wod',           label: 'WOD',         icon: <ListTodo className="w-4 h-4" />,       group: true },
+  { type: 'log',           label: 'Log',         icon: <ScrollText className="w-4 h-4" /> },
+  { type: 'plan',          label: 'Plan',        icon: <ClipboardList className="w-4 h-4" /> },
 ];
 
 export const SectionAddBar: React.FC<SectionAddBarProps> = ({ onAdd, className }) => {

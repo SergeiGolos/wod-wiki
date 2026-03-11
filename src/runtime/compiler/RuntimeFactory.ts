@@ -25,7 +25,7 @@ import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import type { WodBlock } from '../../markdown-editor/types';
-import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
+import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
 
@@ -37,10 +37,10 @@ export interface IRuntimeFactory {
   /**
    * Creates a new ScriptRuntime from a WodBlock
    * @param block - The WOD block containing workout script and parsed statements
-   * @param options - Optional runtime options (debug mode, logging, etc.)
+   * @param options - Optional runtime options (debug mode, logging, tracker, etc.)
    * @returns A fully initialized ScriptRuntime, or null if block has no statements
    */
-  createRuntime(block: WodBlock, options?: IRuntimeOptions): IScriptRuntime | null;
+  createRuntime(block: WodBlock, options?: RuntimeStackOptions): IScriptRuntime | null;
 
   /**
    * Disposes of a runtime and cleans up resources
@@ -65,10 +65,10 @@ export class RuntimeFactory implements IRuntimeFactory {
    * 4. Dispatches StartSessionAction to wrap script in session root block and push it
    * 
    * @param block - The WOD block to create runtime for
-   * @param options - Optional runtime options (debug mode, logging, etc.)
+   * @param options - Optional runtime options (debug mode, logging, tracker, etc.)
    * @returns Initialized ScriptRuntime or null if invalid block
    */
-  createRuntime(block: WodBlock, options?: IRuntimeOptions): IScriptRuntime | null {
+  createRuntime(block: WodBlock, options?: RuntimeStackOptions): IScriptRuntime | null {
     if (!block.statements || block.statements.length === 0) {
       return null;
     }
@@ -121,4 +121,3 @@ export async function createDefaultRuntimeFactory(): Promise<RuntimeFactory> {
   const { globalCompiler } = await import('../../runtime-test-bench/services/testbench-services');
   return new RuntimeFactory(globalCompiler);
 }
-

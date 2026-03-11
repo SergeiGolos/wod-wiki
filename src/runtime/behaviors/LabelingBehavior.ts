@@ -1,7 +1,7 @@
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
-import { FragmentType, ICodeFragment } from '../../core/models/CodeFragment';
+import { MetricType, IMetric } from '../../core/models/Metric';
 
 export interface LabelingConfig {
     mode?: 'clock' | 'timer' | 'countdown' | 'hidden';
@@ -18,10 +18,10 @@ export class LabelingBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         const staticLabels = this.createStaticLabels(ctx);
         const roundLabel = this.createRoundLabel(ctx);
-        const fragments = roundLabel ? [...staticLabels, roundLabel] : staticLabels;
+        const metrics = roundLabel ? [...staticLabels, roundLabel] : staticLabels;
 
-        if (fragments.length > 0) {
-            ctx.pushMemory('display', fragments);
+        if (metrics.length > 0) {
+            ctx.pushMemory('display', metrics);
         }
 
         return [];
@@ -37,8 +37,8 @@ export class LabelingBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        const currentFragments = existingDisplay[0].fragments.filter(
-            fragment => !this.isRoundRoleFragment(fragment)
+        const currentFragments = existingDisplay[0].metrics.filter(
+            metric => !this.isRoundRoleFragment(metric)
         );
 
         ctx.updateMemory('display', [...currentFragments, roundLabel]);
@@ -52,48 +52,47 @@ export class LabelingBehavior implements IRuntimeBehavior {
     onDispose(_ctx: IBehaviorContext): void {
     }
 
-    private createStaticLabels(ctx: IBehaviorContext): ICodeFragment[] {
+    private createStaticLabels(ctx: IBehaviorContext): IMetric[] {
         const label = this.config.label ?? ctx.block.label;
         const subtitle = this.config.subtitle;
         const actionDisplay = this.config.actionDisplay;
-        const fragments: ICodeFragment[] = [];
+        const metrics: IMetric[] = [];
 
         if (label) {
-            fragments.push(this.createTextFragment(ctx, label, 'label'));
+            metrics.push(this.createTextMetric(ctx, label, 'label'));
         }
 
         if (subtitle) {
-            fragments.push(this.createTextFragment(ctx, subtitle, 'subtitle'));
+            metrics.push(this.createTextMetric(ctx, subtitle, 'subtitle'));
         }
 
         if (actionDisplay) {
-            fragments.push(this.createTextFragment(ctx, actionDisplay, 'action'));
+            metrics.push(this.createTextMetric(ctx, actionDisplay, 'action'));
         }
 
-        return fragments;
+        return metrics;
     }
 
-    private createRoundLabel(ctx: IBehaviorContext): ICodeFragment | undefined {
+    private createRoundLabel(ctx: IBehaviorContext): IMetric | undefined {
         if (this.config.showRoundDisplay === false) return undefined;
 
         const roundLocation = ctx.block.getMemoryByTag('round')[0];
-        if (!roundLocation || roundLocation.fragments.length === 0) return undefined;
+        if (!roundLocation || roundLocation.metrics.length === 0) return undefined;
 
-        const roundValue = roundLocation.fragments[0] as { current?: number; total?: number };
+        const roundValue = roundLocation.metrics[0] as { current?: number; total?: number };
         if (!roundValue || typeof roundValue.current !== 'number') return undefined;
 
         const roundLabel = this.formatRound(roundValue.current, roundValue.total);
-        return this.createTextFragment(ctx, roundLabel, 'round');
+        return this.createTextMetric(ctx, roundLabel, 'round');
     }
 
-    private createTextFragment(
+    private createTextMetric(
         ctx: IBehaviorContext,
         text: string,
         role: 'label' | 'subtitle' | 'action' | 'round'
-    ): ICodeFragment {
+    ): IMetric {
         return {
-            fragmentType: FragmentType.Text,
-            type: 'text',
+            type: MetricType.Text,
             image: text,
             origin: 'runtime',
             value: { text, role },
@@ -114,8 +113,8 @@ export class LabelingBehavior implements IRuntimeBehavior {
         return `Round ${current}`;
     }
 
-    private isRoundRoleFragment(fragment: ICodeFragment): boolean {
-        const value = fragment.value as { role?: string } | undefined;
+    private isRoundRoleFragment(metric: IMetric): boolean {
+        const value = metric.value as { role?: string } | undefined;
         return value?.role === 'round';
     }
 }

@@ -44,8 +44,8 @@ export type { WodBlockManagerProps } from './components/WodBlockManager';
 
 // ContextPanel has been removed - use WorkoutContextPanel from '@/components/workout/WorkoutContextPanel' instead
 
-export { FragmentEditor } from './components/FragmentEditor';
-export type { FragmentEditorProps } from './components/FragmentEditor';
+export { MetricEditor } from './components/MetricEditor';
+export type { MetricEditorProps } from './components/MetricEditor';
 
 // Widgets
 export { ReactMonacoWidget } from './widgets/ReactMonacoWidget';
@@ -59,7 +59,7 @@ export type { UseBlockEditorOptions, UseBlockEditorReturn } from './hooks/useBlo
 // Section Editor (Phase 1 + Phase 2)
 export { SectionEditor } from './SectionEditor';
 export type { SectionEditorProps } from './SectionEditor';
-export type { Section, SectionType, SectionDocument } from './types/section';
+export type { Section, SectionType, SectionDocument, FrontMatterSubtype } from './types/section';
 export { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds } from './utils/sectionParser';
 export { useSectionDocument } from './hooks/useSectionDocument';
 export type { UseSectionDocumentOptions, UseSectionDocumentReturn } from './hooks/useSectionDocument';
@@ -71,3 +71,4 @@ export type { WodSectionEditorProps } from './components/WodSectionEditor';
 export { HeadingDisplay } from './components/section-renderers/HeadingDisplay';
 export { ParagraphDisplay } from './components/section-renderers/ParagraphDisplay';
 export { WodBlockDisplay } from './components/section-renderers/WodBlockDisplay';
+export { FrontMatterDisplay } from './components/section-renderers/FrontMatterDisplay';

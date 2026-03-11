@@ -1,47 +1,47 @@
 import { CodeMetadata } from "./CodeMetadata";
-import { ICodeFragment, FragmentType } from "./CodeFragment";
-import { IFragmentSource, FragmentFilter } from "../contracts/IFragmentSource";
-import { resolveFragmentPrecedence, ORIGIN_PRECEDENCE } from "../utils/fragmentPrecedence";
+import { IMetric, MetricType } from "./Metric";
+import { IMetricSource, MetricFilter } from "../contracts/IMetricSource";
+import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from "../utils/metricPrecedence";
 
 export interface ICodeStatement {
   id: number;
   parent?: number;
   children: number[][];
-  fragments: ICodeFragment[];
+  metrics: IMetric[];
   isLeaf?: boolean;
   meta: CodeMetadata;
-  fragmentMeta: Map<ICodeFragment, CodeMetadata>;
+  metricMeta: Map<IMetric, CodeMetadata>;
 
   // Semantic hints from dialect processing
   hints?: Set<string>;
 }
 
-export abstract class CodeStatement implements ICodeStatement, IFragmentSource {
+export abstract class CodeStatement implements ICodeStatement, IMetricSource {
   abstract id: number;
   abstract parent?: number;
   abstract children: number[][];
   abstract meta: CodeMetadata;
-  abstract fragments: ICodeFragment[];
-  abstract fragmentMeta: Map<ICodeFragment, CodeMetadata>;
+  abstract metrics: IMetric[];
+  abstract metricMeta: Map<IMetric, CodeMetadata>;
   abstract isLeaf?: boolean;
 
-  // ── IFragmentSource ─────────────────────────────────────────────
+  // ── IMetricSource ─────────────────────────────────────────────
 
-  hasFragment(type: FragmentType): boolean {
-    return this.fragments.some(f => f.fragmentType === type);
+  hasMetric(type: MetricType): boolean {
+    return this.metrics.some(f => f.type === type);
   }
 
-  getDisplayFragments(filter?: FragmentFilter): ICodeFragment[] {
-    return resolveFragmentPrecedence([...this.fragments], filter);
+  getDisplayMetrics(filter?: MetricFilter): IMetric[] {
+    return resolveMetricPrecedence([...this.metrics], filter);
   }
 
-  getFragment(type: FragmentType): ICodeFragment | undefined {
-    const all = this.getAllFragmentsByType(type);
+  getMetric(type: MetricType): IMetric | undefined {
+    const all = this.getAllMetricsByType(type);
     return all.length > 0 ? all[0] : undefined;
   }
 
-  getAllFragmentsByType(type: FragmentType): ICodeFragment[] {
-    const ofType = this.fragments.filter(f => f.fragmentType === type);
+  getAllMetricsByType(type: MetricType): IMetric[] {
+    const ofType = this.metrics.filter(f => f.type === type);
     if (ofType.length === 0) return [];
 
     // Sort by precedence (highest first = lowest rank number first)
@@ -52,8 +52,8 @@ export abstract class CodeStatement implements ICodeStatement, IFragmentSource {
     });
   }
 
-  get rawFragments(): ICodeFragment[] {
-    return [...this.fragments];
+  get rawMetrics(): IMetric[] {
+    return [...this.metrics];
   }
 }
 
@@ -62,17 +62,17 @@ export class ParsedCodeStatement extends CodeStatement {
   parent?: number;
   children: number[][] = [];
   meta: CodeMetadata = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' } as any;
-  fragments: ICodeFragment[] = [];
-  fragmentMeta: Map<ICodeFragment, CodeMetadata> = new Map();
+  metrics: IMetric[] = [];
+  metricMeta: Map<IMetric, CodeMetadata> = new Map();
   isLeaf?: boolean;
   hints?: Set<string>;
 
   constructor(init?: Partial<ParsedCodeStatement>) {
     super();
     Object.assign(this, init);
-    // Ensure fragmentMeta is initialized if not provided in init
-    if (!this.fragmentMeta) {
-      this.fragmentMeta = new Map();
+    // Ensure metricMeta is initialized if not provided in init
+    if (!this.metricMeta) {
+      this.metricMeta = new Map();
     }
   }
 }

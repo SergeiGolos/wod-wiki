@@ -1,8 +1,8 @@
 import { ExerciseDefinitionService } from '../../../services';
 import { IProjectionEngine } from './IProjectionEngine';
 import { ProjectionResult } from './ProjectionResult';
-import { FragmentType } from '../../../core/models/CodeFragment';
-import type { ICodeFragment } from '../../../core/models/CodeFragment';
+import { MetricType } from '../../../core/models/Metric';
+import type { IMetric } from '../../../core/models/Metric';
 
 /**
  * Central service for running analytical projections on runtime metrics.
@@ -11,7 +11,7 @@ import type { ICodeFragment } from '../../../core/models/CodeFragment';
  * exercise definition lookup, and registered projection engines to produce
  * a comprehensive analysis of workout performance.
  * 
- * Phase 4 Cleanup: Simplified to use fragment-based path exclusively.
+ * Phase 4 Cleanup: Simplified to use metrics-based path exclusively.
  */
 export class AnalysisService {
   private engines: IProjectionEngine[] = [];
@@ -36,36 +36,34 @@ export class AnalysisService {
   }
 
   /**
-   * Run all registered projection engines on the provided fragments.
-   * 
-   * This is the fragment-based projection method introduced in Phase 2.
-   * Groups fragments by exercise ID (from metadata) and runs projections for each group.
-   * 
-   * @param fragments Array of code fragments to analyze
-   * @returns Array of projection results from all engines
+   * Run per-exercise projections on the provided metrics.
+   *
+   * Groups metrics by exercise ID (from Effort metrics) and calls
+   * `calculateFromFragments` on engines that implement it.
+   * Requires an exercise service to be set; returns [] otherwise.
+   *
+   * @param metrics Array of metrics to analyze
    */
-  public runAllProjectionsFromFragments(fragments: ICodeFragment[]): ProjectionResult[] {
+  public runAllProjectionsFromFragments(metrics: IMetric[]): ProjectionResult[] {
     if (!this.exerciseService) {
       return [];
     }
 
     const results: ProjectionResult[] = [];
+    const metricByExercise = this.groupFragmentsByExercise(metrics);
 
-    // Group fragments by exercise ID (from metadata)
-    const fragmentsByExercise = this.groupFragmentsByExercise(fragments);
-
-    // Run projections for each exercise
-    for (const [exerciseId, exerciseFragments] of fragmentsByExercise.entries()) {
+    for (const [exerciseId, exerciseFragments] of metricByExercise.entries()) {
       const definition = this.exerciseService.findById(exerciseId);
+      if (!definition) continue;
 
-      if (!definition) {
-        continue;
-      }
-
-      // Run all registered engines
       for (const engine of this.engines) {
-        const engineResults = engine.calculateFromFragments(exerciseFragments, exerciseId, definition);
-        results.push(...engineResults);
+        if (engine.calculateFromFragments) {
+          try {
+            results.push(...engine.calculateFromFragments(exerciseFragments, exerciseId, definition));
+          } catch (err) {
+            console.error(`[AnalysisService] Error in engine '${engine.name}' (per-exercise):`, err);
+          }
+        }
       }
     }
 
@@ -73,32 +71,56 @@ export class AnalysisService {
   }
 
   /**
-   * Group fragments by exercise ID for targeted analysis.
-   * 
-   * Exercise ID is extracted from Effort fragments. Fragments are grouped
-   * based on the most recently encountered Effort fragment before them.
-   * 
-   * @param fragments Array of code fragments
-   * @returns Map of exercise ID to fragments
+   * Run workout-level projections on all accumulated metrics.
+   *
+   * Calls `calculateFromWorkout` on every engine that implements it.
+   * Does not require exercise grouping or definition lookup.
+   *
+   * @param metrics All metrics collected so far in the workout session
    */
-  private groupFragmentsByExercise(fragments: ICodeFragment[]): Map<string, ICodeFragment[]> {
-    const grouped = new Map<string, ICodeFragment[]>();
+  public runWorkoutProjections(metrics: IMetric[]): ProjectionResult[] {
+    const results: ProjectionResult[] = [];
+
+    for (const engine of this.engines) {
+      if (engine.calculateFromWorkout) {
+        try {
+          results.push(...engine.calculateFromWorkout(metrics));
+        } catch (err) {
+          console.error(`[AnalysisService] Error in engine '${engine.name}' (workout):`, err);
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Group metrics by exercise ID for targeted analysis.
+   * 
+   * Exercise ID is extracted from Effort metrics. Fragments are grouped
+   * based on the most recently encountered Effort metrics before them.
+   * 
+   * @param metrics Array of code metrics
+   * @returns Map of exercise ID to metrics
+   */
+  private groupFragmentsByExercise(metrics: IMetric[]): Map<string, IMetric[]> {
+    const grouped = new Map<string, IMetric[]>();
     let currentExerciseId: string | null = null;
 
-    for (const fragment of fragments) {
-      // Check if this is an Effort fragment (contains exercise ID)
-      if (fragment.fragmentType === FragmentType.Effort && typeof fragment.value === 'string') {
-        currentExerciseId = fragment.value;
+    for (const metric of metrics) {
+      // Check if this is an Effort metric (contains exercise ID)
+      if (metric.type === MetricType.Effort && typeof metric.value === 'string') {
+        currentExerciseId = metric.value;
         // Initialize array for this exercise if not exists
         if (!grouped.has(currentExerciseId)) {
           grouped.set(currentExerciseId, []);
         }
-        continue; // Don't include the Effort fragment itself
+        continue; // Don't include the Effort metric itself
       }
 
-      // Add fragment to current exercise group
+      // Add metric to current exercise group
       if (currentExerciseId) {
-        grouped.get(currentExerciseId)!.push(fragment);
+        grouped.get(currentExerciseId)!.push(metric);
       }
     }
 

@@ -3,7 +3,7 @@ import { CountdownTimerBehavior } from '../CountdownTimerBehavior';
 import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { TimeSpan } from '../../models/TimeSpan';
 import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
-import { ICodeFragment } from '../../../core/models/CodeFragment';
+import { IMetric } from '../../../core/models/Metric';
 
 interface MockContextState {
     memoryStore: Map<string, any>;
@@ -21,7 +21,7 @@ function createMockContext(initialTime: number = 0): { ctx: IBehaviorContext; st
         block: {
             key: { toString: () => 'test-block' },
             label: 'Test Block',
-            fragments: [],
+            metrics: [],
             behaviors: [],
             isComplete: false
         },
@@ -42,22 +42,22 @@ function createMockContext(initialTime: number = 0): { ctx: IBehaviorContext; st
             const loc = memoryLocations.get(tag);
             return loc ? [loc] : [];
         }),
-        pushMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
-            // Store the TimerState (fragment.value) so getMemory can return it
-            if (fragments.length > 0 && fragments[0].value !== undefined) {
-                memoryStore.set(tag, fragments[0].value);
+        pushMemory: vi.fn((tag: string, metrics: IMetric[]) => {
+            // Store the TimerState (metric.value) so getMemory can return it
+            if (metrics.length > 0 && metrics[0].value !== undefined) {
+                memoryStore.set(tag, metrics[0].value);
             }
-            const loc = new MemoryLocation(tag as MemoryTag, fragments);
+            const loc = new MemoryLocation(tag as MemoryTag, metrics);
             memoryLocations.set(tag, loc);
             return loc;
         }),
-        updateMemory: vi.fn((tag: string, fragments: ICodeFragment[]) => {
+        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
             const loc = memoryLocations.get(tag);
             if (loc) {
-                loc.update(fragments);
+                loc.update(metrics);
                 // Also sync memoryStore for backward-compat test assertions
-                if (fragments.length > 0 && fragments[0].value !== undefined) {
-                    memoryStore.set(tag, fragments[0].value);
+                if (metrics.length > 0 && metrics[0].value !== undefined) {
+                    memoryStore.set(tag, metrics[0].value);
                 }
             }
         }),
