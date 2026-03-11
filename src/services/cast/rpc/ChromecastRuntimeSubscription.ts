@@ -1,8 +1,9 @@
 import { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IOutputStatement } from '@/core/models/OutputStatement';
+import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
 import { IRpcTransport } from './IRpcTransport';
-import { serializeStackSnapshot, serializeOutput } from './RpcSerializer';
+import { serializeStackSnapshot, serializeOutput, serializeTrackerUpdate } from './RpcSerializer';
 
 /**
  * ChromecastRuntimeSubscription — sends runtime state updates to the Chromecast
@@ -41,6 +42,11 @@ export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
     onOutput(output: IOutputStatement): void {
         if (!this.transport.connected) return;
         this.transport.send(serializeOutput(output));
+    }
+
+    onTrackerUpdate(update: TrackerUpdate): void {
+        if (!this.transport.connected) return;
+        this.transport.send(serializeTrackerUpdate(update));
     }
 
     dispose(): void {

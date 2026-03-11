@@ -23,7 +23,7 @@ export class TrackRoundAction implements IRuntimeAction {
     }
 
     do(runtime: IScriptRuntime): void {
-        if (runtime.tracker) {
+        if (runtime.tracker?.recordRound) {
             runtime.tracker.recordRound(this.blockId, this.currentRound, this.totalRounds);
         }
     }

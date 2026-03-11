@@ -1,4 +1,4 @@
-import { IScriptRuntime, OutputListener } from './contracts/IScriptRuntime';
+import { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
 import { JitCompiler } from './compiler/JitCompiler';
 import { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
@@ -6,7 +6,8 @@ import type { RuntimeError } from './actions/ErrorAction';
 import { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
-    RuntimeStackOptions
+    RuntimeStackOptions,
+    RuntimeStackTracker
 } from './contracts/IRuntimeOptions';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
@@ -43,6 +44,10 @@ export class ScriptRuntime implements IScriptRuntime {
     private _outputStatements: IOutputStatement[] = [];
     private _outputListeners: Set<OutputListener> = new Set();
 
+    // Tracker update tracking
+    private _trackerListeners: Set<TrackerListener> = new Set();
+    private _trackerSubscriptionUnsub: (() => void) | null = null;
+
     // Stack observer tracking
     private _stackObservers: Set<StackObserver> = new Set();
     private _stackSubscriptionUnsub: (() => void) | null = null;
@@ -52,7 +57,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     private _analyticsEngine: IAnalyticsEngine | null = null;
 
-    public get tracker(): any {
+    public get tracker(): RuntimeStackTracker | undefined {
         return this.options.tracker;
     }
 
@@ -223,6 +228,34 @@ export class ScriptRuntime implements IScriptRuntime {
     }
 
     /**
+     * Subscribe to real-time tracker updates.
+     */
+    public subscribeToTracker(listener: TrackerListener): Unsubscribe {
+        this._trackerListeners.add(listener);
+
+        // If this is the first listener and we have a tracker, subscribe to it
+        if (this._trackerListeners.size === 1 && this.tracker?.onUpdate) {
+            this._trackerSubscriptionUnsub = this.tracker.onUpdate((update) => {
+                for (const l of this._trackerListeners) {
+                    try {
+                        l(update);
+                    } catch (err) {
+                        console.error('[RT] Tracker listener error:', err);
+                    }
+                }
+            });
+        }
+
+        return () => {
+            this._trackerListeners.delete(listener);
+            if (this._trackerListeners.size === 0 && this._trackerSubscriptionUnsub) {
+                this._trackerSubscriptionUnsub();
+                this._trackerSubscriptionUnsub = null;
+            }
+        };
+    }
+
+    /**
      * Set the analytics engine for the runtime.
      */
     public setAnalyticsEngine(engine: IAnalyticsEngine): void {
@@ -309,6 +342,13 @@ export class ScriptRuntime implements IScriptRuntime {
         if (this._stackSubscriptionUnsub) {
             this._stackSubscriptionUnsub();
             this._stackSubscriptionUnsub = null;
+        }
+
+        // Clear tracker listeners
+        this._trackerListeners.clear();
+        if (this._trackerSubscriptionUnsub) {
+            this._trackerSubscriptionUnsub();
+            this._trackerSubscriptionUnsub = null;
         }
 
         // Clear the event bus
@@ -642,4 +682,3 @@ export class ScriptRuntime implements IScriptRuntime {
         this.addOutput(output);
     }
 }
-

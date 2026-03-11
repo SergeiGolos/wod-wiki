@@ -3,12 +3,14 @@ import { IOutputStatement } from '@/core/models/OutputStatement';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IMetric } from '@/core/models/Metric';
 import { MemoryTag } from '@/runtime/memory/MemoryLocation';
+import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
 import {
     SerializedBlock,
     SerializedTimer,
     SerializedBehavior,
     RpcStackUpdate,
     RpcOutputStatement,
+    RpcTrackerUpdate,
 } from './RpcMessages';
 
 /**
@@ -158,5 +160,30 @@ export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
         completionReason: output.completionReason,
         timeSpan: { started, ended },
         elapsed,
+    };
+}
+
+/**
+ * Serialize a TrackerUpdate into an RpcTrackerUpdate message.
+ */
+export function serializeTrackerUpdate(update: TrackerUpdate): RpcTrackerUpdate {
+    if (update.type === 'snapshot') {
+        return {
+            type: 'rpc-tracker-update',
+            update: {
+                type: 'snapshot',
+                blockId: 'root', // Required by type but unused for snapshot
+                snapshot: update.snapshot,
+                timestamp: update.timestamp,
+            } as any,
+        };
+    }
+
+    return {
+        type: 'rpc-tracker-update',
+        update: {
+            ...update,
+            timestamp: update.timestamp,
+        },
     };
 }

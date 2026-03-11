@@ -15,7 +15,7 @@ export class TrackMetricAction implements IRuntimeAction {
     ) { }
 
     do(runtime: IScriptRuntime): void {
-        if (runtime.tracker) {
+        if (runtime.tracker?.recordMetric) {
             runtime.tracker.recordMetric(this.blockId, this.metricKey, this.value, this.unit);
         }
     }

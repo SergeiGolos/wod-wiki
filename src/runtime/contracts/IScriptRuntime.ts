@@ -8,17 +8,21 @@ import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IEvent } from './events/IEvent';
 import { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
+import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRuntimeOptions';
 
 /**
  * Listener callback for output statement events.
  */
 export type OutputListener = (output: IOutputStatement) => void;
 
-import { RuntimeStackOptions } from './IRuntimeOptions';
+/**
+ * Listener callback for real-time tracker updates.
+ */
+export type TrackerListener = (update: TrackerUpdate) => void;
 
 export interface IScriptRuntime {
     options: RuntimeStackOptions;
-    tracker?: any; // Added for backward compatibility with tracking actions
+    tracker?: RuntimeStackTracker;
     script: WodScript;
 
     eventBus: IEventBus;
@@ -118,6 +122,18 @@ export interface IScriptRuntime {
     addOutput(output: IOutputStatement): void;
 
     // ============================================================================
+    // Tracker Update API
+    // ============================================================================
+
+    /**
+     * Subscribe to real-time tracker updates (reps, rounds).
+     * 
+     * @param listener Callback invoked for each tracker update
+     * @returns Unsubscribe function to stop receiving notifications
+     */
+    subscribeToTracker(listener: TrackerListener): Unsubscribe;
+
+    // ============================================================================
     // Stack Observer API
     // ============================================================================
 
@@ -154,4 +170,3 @@ export interface IScriptRuntime {
 
     dispose(): void;
 }
-

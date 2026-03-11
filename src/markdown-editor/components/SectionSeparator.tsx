@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, AlignLeft, ListTodo, ScrollText, ClipboardList } from 'lucide-react';
+import { Plus, AlignLeft, ListTodo, ScrollText, ClipboardList, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { NewSectionType } from './SectionAddBar';
 
@@ -71,6 +71,12 @@ export const SectionSeparator: React.FC<SectionSeparatorProps> = ({
                         icon={<AlignLeft className="w-full h-full" />}
                         label="Text"
                         onClick={() => onAdd('markdown')}
+                    />
+                    <BubbleButton
+                        icon={<FileText className="w-full h-full" />}
+                        label="Front Matter"
+                        colorClass="text-amber-500"
+                        onClick={() => onAdd('frontmatter')}
                     />
                     <BubbleButton
                         icon={<ListTodo className="w-full h-full" />}

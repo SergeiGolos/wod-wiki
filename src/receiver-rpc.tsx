@@ -28,6 +28,7 @@ import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import { usePrimaryTimer, useSecondaryTimers, useStackTimers } from '@/runtime/hooks/useStackDisplay';
 import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
+import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
 import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
@@ -681,6 +682,9 @@ const ReceiverApp: React.FC = () => {
 
                     {/* Right Column: Timer & Controls */}
                     <div className="w-1/2 flex flex-col bg-background transition-all duration-300">
+                        <div className="p-4 pt-6">
+                            <MetricTrackerCard />
+                        </div>
                         <ReceiverTimerPanel localNow={now} onEvent={sendEvent} getFocusProps={getFocusProps} />
                         <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                             {connectionStatus}

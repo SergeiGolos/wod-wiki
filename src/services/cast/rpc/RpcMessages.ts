@@ -165,12 +165,27 @@ export interface RpcWorkbenchUpdate {
     };
 }
 
+export interface RpcTrackerUpdate {
+    type: 'rpc-tracker-update';
+    update: {
+        type: 'metric' | 'round';
+        blockId: string;
+        key?: string;
+        value?: any;
+        unit?: string;
+        current?: number;
+        total?: number;
+        timestamp: number;
+    };
+}
+
 /**
  * Union of all RPC message types sent over the DataChannel.
  */
 export type RpcMessage =
     | RpcStackUpdate
     | RpcOutputStatement
+    | RpcTrackerUpdate
     | RpcEvent
     | RpcDispose
     | RpcWorkbenchUpdate;

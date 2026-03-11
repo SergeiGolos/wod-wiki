@@ -159,3 +159,100 @@ describe('matchSectionIds', () => {
     expect(matched[0].id).toBe(oldSections[0].id);
   });
 });
+
+describe('parseDocumentSections — frontmatter', () => {
+  it('parses a YAML front matter block between --- delimiters', () => {
+    const content = '---\ntitle: My Workout\ndate: 2024-01-01\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm).toBeDefined();
+    expect(fm!.properties).toBeDefined();
+    expect(fm!.properties!['title']).toBe('My Workout');
+    expect(fm!.properties!['date']).toBe('2024-01-01');
+  });
+
+  it('assigns default frontmatterType when no type property', () => {
+    const content = '---\ntitle: Hello\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('default');
+  });
+
+  it('detects youtube frontmatterType from type property', () => {
+    const content = '---\ntype: youtube\nurl: https://youtube.com/watch?v=abc12345678\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('youtube');
+  });
+
+  it('auto-detects youtube from url pattern', () => {
+    const content = '---\nurl: https://www.youtube.com/watch?v=dQw4w9WgXcQ\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('youtube');
+  });
+
+  it('detects strava frontmatterType', () => {
+    const content = '---\ntype: strava\nurl: https://www.strava.com/activities/12345\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('strava');
+  });
+
+  it('auto-detects strava from url pattern', () => {
+    const content = '---\nurl: https://www.strava.com/activities/99999\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('strava');
+  });
+
+  it('detects file frontmatterType', () => {
+    const content = '---\ntype: file\nfile: /images/photo.jpg\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('file');
+  });
+
+  it('preserves correct line numbers for frontmatter', () => {
+    const content = '---\nkey: value\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.startLine).toBe(0);
+    expect(fm!.endLine).toBe(2);
+    expect(fm!.lineCount).toBe(3);
+  });
+
+  it('parses frontmatter before title', () => {
+    const content = '---\ntitle: Hello\n---\n# Heading';
+    const sections = parseDocumentSections(content);
+    expect(sections[0].type).toBe('frontmatter');
+    expect(sections[1].type).toBe('title');
+  });
+
+  it('parses frontmatter between other sections', () => {
+    const content = '# Title\n---\nmeta: data\n---\nMore text';
+    const sections = parseDocumentSections(content);
+    expect(sections.map(s => s.type)).toEqual(['title', 'frontmatter', 'markdown']);
+  });
+
+  it('round-trips frontmatter through buildRawContent', () => {
+    const content = '---\ntitle: Test\n---';
+    const sections = parseDocumentSections(content);
+    expect(buildRawContent(sections)).toBe(content);
+  });
+
+  it('ignores unclosed --- blocks', () => {
+    const content = '---\nno closing fence';
+    const sections = parseDocumentSections(content);
+    // Should be treated as regular text, not frontmatter
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm).toBeUndefined();
+  });
+
+  it('does not detect --- inside wod blocks as frontmatter', () => {
+    const content = '```wod\n---\nkey: val\n---\n```';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm).toBeUndefined();
+  });
+});

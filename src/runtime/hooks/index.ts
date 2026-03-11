@@ -68,6 +68,7 @@
 export { useStackSnapshot, useSnapshotBlocks, useSnapshotCurrentBlock } from './useStackSnapshot';
 export { useOutputStatements } from './useOutputStatements';
 export { useNextPreview, type NextPreview } from './useNextPreview';
+export { useWorkoutTracker } from './useWorkoutTracker';
 
 // Stack-driven display hooks (preferred for Clock UI)
 export {

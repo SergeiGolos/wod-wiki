@@ -16,6 +16,11 @@ import { RunningSumProcess } from '../../core/analytics/RunningSumProcess';
 import { RepAnalyticsProcess } from '../../core/analytics/RepAnalyticsProcess';
 import { DistanceAnalyticsProcess } from '../../core/analytics/DistanceAnalyticsProcess';
 import { WeightAnalyticsProcess } from '../../core/analytics/WeightAnalyticsProcess';
+import { VolumeLoadProcess } from '../../core/analytics/VolumeLoadProcess';
+import { SessionLoadProcess } from '../../core/analytics/SessionLoadProcess';
+import { MetMinuteProcess } from '../../core/analytics/MetMinuteProcess';
+import { UnifiedIntensityProcess } from '../../core/analytics/UnifiedIntensityProcess';
+import { ACWRProcess } from '../../core/analytics/ACWRProcess';
 import { MetricType } from '../../core/models/Metric';
 
 /**
@@ -60,6 +65,13 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             engine.addProcess(new RepAnalyticsProcess());
             engine.addProcess(new DistanceAnalyticsProcess());
             engine.addProcess(new WeightAnalyticsProcess());
+            
+            // Advanced Cross-Disciplinary Analytics
+            engine.addProcess(new VolumeLoadProcess());
+            engine.addProcess(new MetMinuteProcess());
+            engine.addProcess(new SessionLoadProcess());
+            engine.addProcess(new UnifiedIntensityProcess());
+            engine.addProcess(new ACWRProcess());
             runtime.setAnalyticsEngine(engine);
 
             // Cleanup on unmount or runtime change

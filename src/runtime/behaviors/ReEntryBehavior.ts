@@ -2,6 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
+import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 
 export interface ReEntryConfig {
     /** Total number of rounds (undefined for unbounded) */
@@ -26,17 +27,20 @@ export class ReEntryBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         const current = this.config.startRound ?? 1;
         const total = this.config.totalRounds;
+        const blockId = ctx.block.key.toString();
 
         const roundFragment = new CurrentRoundMetric(
             current,
             total,
-            ctx.block.key.toString(),
+            blockId,
             ctx.clock.now,
         );
 
         ctx.pushMemory('round', [roundFragment]);
 
-        return [];
+        return [
+            new TrackRoundAction(blockId, current, total)
+        ];
     }
 
     onNext(_ctx: IBehaviorContext): IRuntimeAction[] {

@@ -1,4 +1,4 @@
-import type { Section, SectionType, WodDialect } from '../types/section';
+import type { Section, SectionType, WodDialect, FrontMatterSubtype } from '../types/section';
 import type { WodBlock } from '../types';
 import { detectWodBlocks } from './blockDetection';
 
@@ -58,6 +58,80 @@ function blockDialect(block: WodBlock): WodDialect {
 }
 
 /**
+ * Detect front matter blocks delimited by `---` lines.
+ * Returns an array of { startLine, endLine } ranges (0-indexed, inclusive).
+ */
+interface FrontMatterRange {
+  startLine: number;
+  endLine: number;
+}
+
+function detectFrontMatterBlocks(lines: string[], wodBlocks: WodBlock[]): FrontMatterRange[] {
+  const ranges: FrontMatterRange[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    // Skip lines that are inside a WOD block
+    const inWod = wodBlocks.some(b => i >= b.startLine && i <= b.endLine);
+    if (inWod) { i++; continue; }
+
+    if (lines[i].trim() === '---') {
+      const openLine = i;
+      // Look for closing ---
+      let j = i + 1;
+      while (j < lines.length) {
+        const inWodInner = wodBlocks.some(b => j >= b.startLine && j <= b.endLine);
+        if (inWodInner) { j++; continue; }
+        if (lines[j].trim() === '---') {
+          ranges.push({ startLine: openLine, endLine: j });
+          i = j + 1;
+          break;
+        }
+        j++;
+      }
+      if (j >= lines.length) {
+        // Unclosed --- block, skip
+        i++;
+      }
+    } else {
+      i++;
+    }
+  }
+  return ranges;
+}
+
+/**
+ * Parse YAML-like key: value pairs from front matter lines.
+ */
+export function parseFrontMatterProperties(innerLines: string[]): Record<string, string> {
+  const props: Record<string, string> = {};
+  for (const line of innerLines) {
+    const match = line.match(/^([^:]+):\s*(.*)$/);
+    if (match) {
+      props[match[1].trim()] = match[2].trim();
+    }
+  }
+  return props;
+}
+
+/**
+ * Determine the front matter subtype from its properties.
+ */
+export function resolveFrontMatterSubtype(props: Record<string, string>): FrontMatterSubtype {
+  const typeValue = (props['type'] || '').toLowerCase();
+  if (typeValue === 'youtube') return 'youtube';
+  if (typeValue === 'strava') return 'strava';
+  if (typeValue === 'file') return 'file';
+
+  // Auto-detect from url patterns
+  const url = props['url'] || props['link'] || '';
+  if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
+  if (/strava\.com/i.test(url)) return 'strava';
+
+  return 'default';
+}
+
+/**
  * Parse a markdown document into an ordered list of sections.
  *
  * Section model (simplified):
@@ -77,6 +151,7 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
   const blocks = wodBlocks ?? detectWodBlocks(content);
   const lines = content.split('\n');
   const sections: Section[] = [];
+  const fmRanges = detectFrontMatterBlocks(lines, blocks);
 
   const now = Date.now();
   let currentLine = 0;
@@ -169,7 +244,42 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
       continue;
     }
 
-    // Not a wod-block line — accumulate for markdown
+    // Check if current line is start of a front matter block
+    const fmRange = fmRanges.find(r => r.startLine === currentLine);
+
+    if (fmRange) {
+      // Flush any accumulated markdown before this front matter block
+      flushMarkdownLines(mdBuffer, mdBufferStart);
+      mdBuffer = [];
+
+      const rawLines = lines.slice(fmRange.startLine, fmRange.endLine + 1);
+      const raw = rawLines.join('\n');
+      const innerLines = lines.slice(fmRange.startLine + 1, fmRange.endLine);
+      const { metadata, cleanText } = extractMetadata(innerLines.join('\n'));
+      const properties = parseFrontMatterProperties(cleanText.split('\n'));
+      const subtype = resolveFrontMatterSubtype(properties);
+      const lineCount = fmRange.endLine - fmRange.startLine + 1;
+
+      sections.push({
+        id: metadata?.id || generateSectionId('frontmatter', fmRange.startLine, raw),
+        type: 'frontmatter',
+        rawContent: raw,
+        displayContent: cleanText,
+        startLine: fmRange.startLine,
+        endLine: fmRange.endLine,
+        lineCount,
+        properties,
+        frontmatterType: subtype,
+        version: metadata?.version || 1,
+        createdAt: metadata?.createdAt || now,
+      });
+
+      currentLine = fmRange.endLine + 1;
+      mdBufferStart = currentLine;
+      continue;
+    }
+
+    // Not a wod-block or front-matter line — accumulate for markdown
     if (mdBuffer.length === 0) {
       mdBufferStart = currentLine;
     }

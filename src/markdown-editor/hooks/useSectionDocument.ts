@@ -13,7 +13,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Section, WodDialect } from '../types/section';
 import { VALID_WOD_DIALECTS } from '../types/section';
 import type { WodBlock } from '../types';
-import { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds, extractMetadata } from '../utils/sectionParser';
+import { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds, extractMetadata, parseFrontMatterProperties, resolveFrontMatterSubtype } from '../utils/sectionParser';
 import { detectWodBlocks } from '../utils/blockDetection';
 import { parseWodBlock } from '../utils/parseWodBlock';
 import { sharedParser } from '../../parser/parserInstance';
@@ -288,6 +288,31 @@ export function useSectionDocument(options: UseSectionDocumentOptions): UseSecti
             state: contentChanged ? 'idle' : s.wodBlock.state,
             version: contentChanged ? (s.wodBlock.version || 1) + 1 : s.wodBlock.version
           } : undefined,
+        };
+      }
+
+      // Frontmatter sections: recalculate properties and subtype
+      if (s.type === 'frontmatter') {
+        const fmLines = cleanForUpdate.split('\n');
+        // Strip --- delimiters if present to get inner content
+        const hasOpenFence = fmLines[0]?.trim() === '---';
+        const hasCloseFence = fmLines[fmLines.length - 1]?.trim() === '---';
+        const innerLines = hasOpenFence && hasCloseFence
+          ? fmLines.slice(1, -1)
+          : fmLines;
+        const properties = parseFrontMatterProperties(innerLines);
+        const frontmatterType = resolveFrontMatterSubtype(properties);
+        const displayContent = innerLines.join('\n');
+        const newLineCount = cleanForUpdate.split('\n').length;
+
+        return {
+          ...s,
+          rawContent: cleanForUpdate,
+          displayContent,
+          lineCount: newLineCount,
+          endLine: s.startLine + newLineCount - 1,
+          properties,
+          frontmatterType,
         };
       }
 
