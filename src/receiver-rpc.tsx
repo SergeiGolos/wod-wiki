@@ -432,7 +432,7 @@ const ReceiverApp: React.FC = () => {
     // Enter/Select (activation). We map element IDs to runtime events.
     const { getFocusProps } = useSpatialNavigation({
         enabled: !!proxyRuntime,
-        initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'timer-main',
+        initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'btn-next',
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
             flash();
             // Preview screen items → start the workout
