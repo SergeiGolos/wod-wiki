@@ -77,7 +77,15 @@ export const CollectionsPage: React.FC<{ provider: IContentProvider }> = ({ prov
             <div className="h-10 flex items-center px-4 border-b border-border gap-2 shrink-0">
                 <span className="font-semibold text-sm">
                     {activeCollectionId
-                        ? collections.find(c => c.id === activeCollectionId)?.name
+                        ? (() => {
+                            const col = collections.find(c => c.id === activeCollectionId);
+                            if (!col) return activeCollectionId;
+                            if (col.parent) {
+                                const parent = collections.find(c => c.id === col.parent);
+                                return `${parent?.name ?? col.parent} › ${col.name}`;
+                            }
+                            return col.name;
+                        })()
                         : "All Collections"
                     }
                 </span>

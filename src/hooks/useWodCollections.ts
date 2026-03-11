@@ -6,6 +6,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { getWodCollections, getWodCollection } from '../app/wod-collections';
 import type { WodCollection, WodCollectionItem } from '../app/wod-collections';
 
+export type { WodCollection, WodCollectionItem };
+
 export interface UseWodCollectionsReturn {
     /** All available collections */
     collections: WodCollection[];
