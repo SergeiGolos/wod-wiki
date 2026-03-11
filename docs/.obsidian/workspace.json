@@ -197,6 +197,7 @@
   },
   "active": "ce524ac6422799a0",
   "lastOpenFiles": [
+    "TESTING_STORIES.md",
     "analytics-reference.md",
     "Untitled.md",
     "plans",
@@ -227,7 +228,6 @@
     "architecture/02-solution-strategy.md",
     "architecture/05-deployment-view.md",
     "RUNTIME_INTEGRATION_TESTING.md",
-    "REMOTE_NAVIGATION_PLAN.md",
     "tv",
     "restructure/post-restructure-bugs",
     "restructure",
