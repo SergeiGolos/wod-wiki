@@ -1,22 +1,25 @@
 import { IOutputStatement } from '../models/OutputStatement';
 
 /**
- * An individual analytics process that can intercept and enrich the output stream.
+ * An individual analytics process that enriches the output stream.
+ *
+ * Each process is purely segment-local: it reads metrics already on the
+ * statement (including those added by earlier processes in the chain) and
+ * pushes additional derived metrics back onto `output.metrics`.
+ *
+ * No cross-segment state. No summary outputs. Aggregation belongs in the
+ * projection pipeline (IProjectionEngine / AnalysisService).
  */
 export interface IAnalyticsProcess {
     /** Unique identifier for the process */
     readonly id: string;
 
     /**
-     * Process an output statement as it is emitted from the runtime.
-     * Can return a modified version of the statement (e.g., with added fragments).
+     * Enrich an output statement with derived metrics.
+     * Must return the (possibly mutated) statement. Processes chain in
+     * registration order — each one sees metrics added by its predecessors.
      */
     process(output: IOutputStatement): IOutputStatement;
-
-    /**
-     * Called when execution finishes to produce final summary statements.
-     */
-    finalize(): IOutputStatement[];
 }
 
 /**
@@ -28,7 +31,4 @@ export interface IAnalyticsEngine {
 
     /** Run all processes on an output statement */
     run(output: IOutputStatement): IOutputStatement;
-
-    /** Collect final statements from all processes */
-    finalize(): IOutputStatement[];
 }

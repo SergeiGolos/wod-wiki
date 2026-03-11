@@ -12,20 +12,16 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { RegisterEventHandlerAction } from '../../runtime/actions/events/RegisterEventHandlerAction';
 import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
-import { RunningSumProcess } from '../../core/analytics/RunningSumProcess';
-import { RepAnalyticsProcess } from '../../core/analytics/RepAnalyticsProcess';
-import { DistanceAnalyticsProcess } from '../../core/analytics/DistanceAnalyticsProcess';
-import { WeightAnalyticsProcess } from '../../core/analytics/WeightAnalyticsProcess';
-import { VolumeLoadProcess } from '../../core/analytics/VolumeLoadProcess';
-import { SessionLoadProcess } from '../../core/analytics/SessionLoadProcess';
-import { MetMinuteProcess } from '../../core/analytics/MetMinuteProcess';
-import { UnifiedIntensityProcess } from '../../core/analytics/UnifiedIntensityProcess';
-import { ACWRProcess } from '../../core/analytics/ACWRProcess';
-import { TrackerSyncProcess } from '../../core/analytics/TrackerSyncProcess';
 import { SpeedEnrichmentProcess } from '../../core/analytics/SpeedEnrichmentProcess';
 import { RepRateEnrichmentProcess } from '../../core/analytics/RepRateEnrichmentProcess';
 import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
-import { MetricType } from '../../core/models/Metric';
+import { ProjectionSyncProcess } from '../../core/analytics/ProjectionSyncProcess';
+import { AnalysisService } from '../../timeline/analytics/analytics/AnalysisService';
+import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
+import { RepProjectionEngine } from '../../timeline/analytics/analytics/engines/RepProjectionEngine';
+import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/engines/DistanceProjectionEngine';
+import { SessionLoadProjectionEngine } from '../../timeline/analytics/analytics/engines/SessionLoadProjectionEngine';
+import { MetMinuteProjectionEngine } from '../../timeline/analytics/analytics/engines/MetMinuteProjectionEngine';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -63,27 +59,23 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             action.do(runtime);
 
             // Setup Analytics Engine
+            // Pipeline A: stateless per-segment enrichment — derives metrics from
+            // values already on the segment. Processes chain in registration order.
             const engine = new AnalyticsEngine();
-            engine.addProcess(new RunningSumProcess('repetitions', MetricType.Rep));
-            engine.addProcess(new RunningSumProcess('resistance', MetricType.Resistance));
-            engine.addProcess(new RepAnalyticsProcess());
-            engine.addProcess(new DistanceAnalyticsProcess());
-            engine.addProcess(new WeightAnalyticsProcess());
-            
-            // Per-segment enrichment (derived metrics local to each segment)
-            engine.addProcess(new SpeedEnrichmentProcess());
-            engine.addProcess(new RepRateEnrichmentProcess());
-            engine.addProcess(new PowerEnrichmentProcess());
+            engine.addProcess(new SpeedEnrichmentProcess());      // distance + elapsed → speed, pace
+            engine.addProcess(new RepRateEnrichmentProcess());     // reps + elapsed → reps/min
+            engine.addProcess(new PowerEnrichmentProcess());       // reps + resistance + elapsed → power
 
-            // Advanced Cross-Disciplinary Analytics
-            engine.addProcess(new VolumeLoadProcess());
-            engine.addProcess(new MetMinuteProcess());
-            engine.addProcess(new SessionLoadProcess());
-            engine.addProcess(new UnifiedIntensityProcess());
-            engine.addProcess(new ACWRProcess());
+            // Pipeline B: projection engines aggregate across all segments and push
+            // totals into the tracker (shown as cards above the timer).
+            const projectionService = new AnalysisService();
+            projectionService.registerEngine(new RepProjectionEngine());
+            projectionService.registerEngine(new DistanceProjectionEngine());
+            projectionService.registerEngine(new VolumeProjectionEngine());
+            projectionService.registerEngine(new SessionLoadProjectionEngine());
+            projectionService.registerEngine(new MetMinuteProjectionEngine());
 
-            // Sync analytics back to the live tracker
-            engine.addProcess(new TrackerSyncProcess(runtime.tracker));
+            engine.addProcess(new ProjectionSyncProcess(projectionService, runtime.tracker));
 
             runtime.setAnalyticsEngine(engine);
 

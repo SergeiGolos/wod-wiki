@@ -1,4 +1,4 @@
-import { IEnrichmentProcess } from '../contracts/IEnrichmentProcess';
+import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 
@@ -9,11 +9,10 @@ import { MetricType } from '../models/Metric';
  * Adds one analyzed metric to each qualifying segment:
  *  - Rep Rate (reps/min): reps ÷ elapsed minutes
  *
- * No cross-segment state is carried; every computation is local to the segment.
+ * Stateless; every computation is local to the segment.
  */
-export class RepRateEnrichmentProcess implements IEnrichmentProcess {
+export class RepRateEnrichmentProcess implements IAnalyticsProcess {
     public readonly id = 'rep-rate-enrichment';
-    public readonly processType = 'enrichment' as const;
 
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
@@ -32,8 +31,8 @@ export class RepRateEnrichmentProcess implements IEnrichmentProcess {
         const repsPerMin = reps / elapsedMin;
 
         output.metrics.push({
-            type: MetricType.Metric,
-            image: `Rep Rate: ${repsPerMin.toFixed(1)} reps/min`,
+            type: 'rep-rate',
+            image: `${repsPerMin.toFixed(1)} reps/min`,
             value: parseFloat(repsPerMin.toFixed(1)),
             unit: 'reps/min',
             origin: 'analyzed',
@@ -41,9 +40,5 @@ export class RepRateEnrichmentProcess implements IEnrichmentProcess {
         });
 
         return output;
-    }
-
-    finalize(): [] {
-        return [];
     }
 }

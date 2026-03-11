@@ -84,4 +84,39 @@ export class VolumeProjectionEngine implements IProjectionEngine {
       }
     }];
   }
+
+  /**
+   * Workout-level volume: sum reps × resistance across ALL exercises.
+   */
+  calculateFromWorkout(metrics: IMetric[]): ProjectionResult[] {
+    let totalVolume = 0;
+    let currentReps: number | undefined;
+    let currentResistance: number | undefined;
+
+    for (const m of metrics) {
+      if (m.type === MetricType.Rep && typeof m.value === 'number') {
+        currentReps = m.value;
+      } else if (m.type === MetricType.Resistance) {
+        const val = m.value as any;
+        const amount = typeof val?.amount === 'number' ? val.amount : (typeof val === 'number' ? val : undefined);
+        if (amount !== undefined) currentResistance = amount;
+      }
+
+      if (currentReps !== undefined && currentResistance !== undefined) {
+        totalVolume += currentReps * currentResistance;
+        currentReps = undefined;
+        currentResistance = undefined;
+      }
+    }
+
+    if (totalVolume === 0) return [];
+
+    const now = new Date();
+    return [{
+      name: 'Volume Load',
+      value: totalVolume,
+      unit: 'kg',
+      timeSpan: new TimeSpan(now.getTime(), now.getTime()),
+    }];
+  }
 }

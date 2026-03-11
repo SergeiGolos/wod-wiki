@@ -1,4 +1,4 @@
-import { IEnrichmentProcess } from '../contracts/IEnrichmentProcess';
+import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 
@@ -10,11 +10,10 @@ import { MetricType } from '../models/Metric';
  *  - Speed (m/s): distance ÷ elapsed seconds
  *  - Pace (min/km): elapsed minutes ÷ distance in kilometres
  *
- * No cross-segment state is carried; every computation is local to the segment.
+ * Stateless; every computation is local to the segment.
  */
-export class SpeedEnrichmentProcess implements IEnrichmentProcess {
+export class SpeedEnrichmentProcess implements IAnalyticsProcess {
     public readonly id = 'speed-enrichment';
-    public readonly processType = 'enrichment' as const;
 
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
@@ -31,8 +30,8 @@ export class SpeedEnrichmentProcess implements IEnrichmentProcess {
 
         // Speed (m/s)
         output.metrics.push({
-            type: MetricType.Metric,
-            image: `Speed: ${speedMs.toFixed(2)} m/s`,
+            type: 'speed',
+            image: `${speedMs.toFixed(2)} m/s`,
             value: parseFloat(speedMs.toFixed(2)),
             unit: 'm/s',
             origin: 'analyzed',
@@ -44,8 +43,8 @@ export class SpeedEnrichmentProcess implements IEnrichmentProcess {
         if (distanceKm > 0) {
             const paceMinKm = elapsedMs / 1000 / 60 / distanceKm;
             output.metrics.push({
-                type: MetricType.Metric,
-                image: `Pace: ${paceMinKm.toFixed(2)} min/km`,
+                type: 'pace',
+                image: `${paceMinKm.toFixed(2)} min/km`,
                 value: parseFloat(paceMinKm.toFixed(2)),
                 unit: 'min/km',
                 origin: 'analyzed',
@@ -54,9 +53,5 @@ export class SpeedEnrichmentProcess implements IEnrichmentProcess {
         }
 
         return output;
-    }
-
-    finalize(): [] {
-        return [];
     }
 }

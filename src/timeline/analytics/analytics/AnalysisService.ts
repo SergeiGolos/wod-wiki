@@ -36,13 +36,13 @@ export class AnalysisService {
   }
 
   /**
-   * Run all registered projection engines on the provided metrics.
-   * 
-   * This is the metrics-based projection method introduced in Phase 2.
-   * Groups metrics by exercise ID (from metadata) and runs projections for each group.
-   * 
-   * @param metrics Array of code metrics to analyze
-   * @returns Array of projection results from all engines
+   * Run per-exercise projections on the provided metrics.
+   *
+   * Groups metrics by exercise ID (from Effort metrics) and calls
+   * `calculateFromFragments` on engines that implement it.
+   * Requires an exercise service to be set; returns [] otherwise.
+   *
+   * @param metrics Array of metrics to analyze
    */
   public runAllProjectionsFromFragments(metrics: IMetric[]): ProjectionResult[] {
     if (!this.exerciseService) {
@@ -50,22 +50,44 @@ export class AnalysisService {
     }
 
     const results: ProjectionResult[] = [];
-
-    // Group metrics by exercise ID (from metadata)
     const metricByExercise = this.groupFragmentsByExercise(metrics);
 
-    // Run projections for each exercise
     for (const [exerciseId, exerciseFragments] of metricByExercise.entries()) {
       const definition = this.exerciseService.findById(exerciseId);
+      if (!definition) continue;
 
-      if (!definition) {
-        continue;
-      }
-
-      // Run all registered engines
       for (const engine of this.engines) {
-        const engineResults = engine.calculateFromFragments(exerciseFragments, exerciseId, definition);
-        results.push(...engineResults);
+        if (engine.calculateFromFragments) {
+          try {
+            results.push(...engine.calculateFromFragments(exerciseFragments, exerciseId, definition));
+          } catch (err) {
+            console.error(`[AnalysisService] Error in engine '${engine.name}' (per-exercise):`, err);
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Run workout-level projections on all accumulated metrics.
+   *
+   * Calls `calculateFromWorkout` on every engine that implements it.
+   * Does not require exercise grouping or definition lookup.
+   *
+   * @param metrics All metrics collected so far in the workout session
+   */
+  public runWorkoutProjections(metrics: IMetric[]): ProjectionResult[] {
+    const results: ProjectionResult[] = [];
+
+    for (const engine of this.engines) {
+      if (engine.calculateFromWorkout) {
+        try {
+          results.push(...engine.calculateFromWorkout(metrics));
+        } catch (err) {
+          console.error(`[AnalysisService] Error in engine '${engine.name}' (workout):`, err);
+        }
       }
     }
 

@@ -121,12 +121,14 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
   const typeValue = (props['type'] || '').toLowerCase();
   if (typeValue === 'youtube') return 'youtube';
   if (typeValue === 'strava') return 'strava';
+  if (typeValue === 'amazon') return 'amazon';
   if (typeValue === 'file') return 'file';
 
   // Auto-detect from url patterns
   const url = props['url'] || props['link'] || '';
   if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
   if (/strava\.com/i.test(url)) return 'strava';
+  if (/amazon\.com|amzn\.to/i.test(url)) return 'amazon';
 
   return 'default';
 }

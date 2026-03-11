@@ -10,12 +10,16 @@ const https = certFiles.length > 0 && keyFiles.length > 0
     ? { cert: fs.readFileSync(resolve(__dirname, certFiles[0])), key: fs.readFileSync(resolve(__dirname, keyFiles[0])) }
     : undefined;
 
-// Dev plugin: intercept /receiver.html and serve the RPC version instead
+// Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
+// transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
+// Mirrors the same middleware in .storybook/main.mjs viteFinal.
 const receiverRedirectPlugin: Plugin = {
     name: 'receiver-redirect',
     configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
             const isReceiverUrl =
+                req.url === '/receiver-rpc.html' ||
+                req.url === '/receiver-rpc' ||
                 req.url === '/receiver.html' ||
                 req.url === '/receiver';
             if (isReceiverUrl) {

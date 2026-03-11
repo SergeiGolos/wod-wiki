@@ -325,7 +325,62 @@ Refer to the attached document for the full periodization schedule.`}
 };
 
 // ---------------------------------------------------------------------------
-// 13. Combined — All Section Types
+// 13. Front Matter — Amazon Product
+// ---------------------------------------------------------------------------
+
+export const FrontMatterAmazon: Story = {
+  name: 'Front Matter — Amazon',
+  render: () => (
+    <PlanPreview
+      content={`---
+type: amazon
+url: https://www.amazon.com/Kettlebell-Workout-Weights/dp/B08P2C6J7B
+title: Yes4All Vinyl Coated Kettlebells
+description: High-quality solid cast iron kettlebell encased in color-coded vinyl to prevent corrosion, increase durability, and protect flooring. Wide, smooth handle provides a comfortable & secure grip for high reps.
+image: https://m.media-amazon.com/images/I/71N9X9u6S9L._AC_SL1500_.jpg
+price: $34.99
+---
+
+# Recommended Equipment
+
+I recommend using these kettlebells for the workout below.
+
+\`\`\`wod
+3x {
+  15 Kettlebell Swings
+  10 Goblet Squats
+}
+\`\`\``}
+    />
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// 14. Front Matter — Amazon (On Sale)
+// ---------------------------------------------------------------------------
+
+export const FrontMatterAmazonSale: Story = {
+  name: 'Front Matter — Amazon (Sale)',
+  render: () => (
+    <PlanPreview
+      content={`---
+url: https://www.amazon.com/dp/B07315FNRJ
+title: Bowflex SelectTech 552 Adjustable Dumbbells
+description: Each dumbbell adjusts from 5 to 52.5 pounds; adjusts in 2.5-pound increments up to the first 25 pounds. Lets you rapidly switch from one exercise to the next.
+image: https://m.media-amazon.com/images/I/81+mS6T8pFL._AC_SL1500_.jpg
+price: $549.00
+sale_price: $429.00
+---
+
+# Home Gym Deal
+
+These adjustable dumbbells are currently on sale!`}
+    />
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// 15. Combined — All Section Types
 // ---------------------------------------------------------------------------
 
 export const AllSectionTypes: Story = {

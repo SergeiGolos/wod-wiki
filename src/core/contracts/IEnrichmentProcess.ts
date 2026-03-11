@@ -1,26 +1,8 @@
-import { IAnalyticsProcess } from './IAnalyticsEngine';
-import { IOutputStatement } from '../models/OutputStatement';
-
 /**
- * An enrichment process derives new metrics from a single segment's own data
- * and pushes them back onto that segment's `metrics` array.
+ * IEnrichmentProcess is now an alias for IAnalyticsProcess.
  *
- * ## Distinction from compounding processes
- *
- * | Concern                   | Compounding (IAnalyticsProcess) | Enriching (IEnrichmentProcess) |
- * |---------------------------|---------------------------------|--------------------------------|
- * | Cross-segment state       | ✅ Yes — accumulates totals     | ❌ None                        |
- * | `process()` modifies seg  | ❌ Returns output unmodified    | ✅ Pushes derived metrics      |
- * | `finalize()` creates recs | ✅ Emits summary `analytics`    | Returns `[]` always            |
- * | Example                   | RepAnalyticsProcess             | SpeedEnrichmentProcess         |
- *
- * ## Contract
- * - `process()`: compute derived metric(s) from the current segment alone and push them
- *   onto `output.metrics` with `origin: 'analyzed'`. Return the enriched output.
- * - `finalize()`: always returns `[]`.
- * - No instance fields that accumulate across calls.
+ * All analytics processes are enrichment-style: stateless, per-segment
+ * derivations with no finalize(). This type is kept for backward
+ * compatibility; prefer using IAnalyticsProcess directly.
  */
-export interface IEnrichmentProcess extends IAnalyticsProcess {
-    readonly processType: 'enrichment';
-    finalize(): [];
-}
+export type { IAnalyticsProcess as IEnrichmentProcess } from './IAnalyticsEngine';

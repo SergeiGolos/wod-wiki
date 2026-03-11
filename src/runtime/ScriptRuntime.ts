@@ -298,15 +298,6 @@ export class ScriptRuntime implements IScriptRuntime {
         // Stop the clock
         this.clock.stop();
 
-        // Finalize analytics before disposing everything else
-        if (this._analyticsEngine) {
-            const finalOutputs = this._analyticsEngine.finalize();
-            for (const output of finalOutputs) {
-                this.addOutput(output);
-            }
-            this._analyticsEngine = null;
-        }
-
         // Properly unmount and dispose each block (top-down)
         while (this.stack.count > 0) {
             const block = this.stack.current;

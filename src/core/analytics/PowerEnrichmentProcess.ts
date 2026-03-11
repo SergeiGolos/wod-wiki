@@ -1,4 +1,4 @@
-import { IEnrichmentProcess } from '../contracts/IEnrichmentProcess';
+import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 
@@ -11,11 +11,10 @@ import { MetricType } from '../models/Metric';
  * Adds one analyzed metric to each qualifying segment:
  *  - Power (kg/s): (reps × weight) ÷ elapsed seconds
  *
- * No cross-segment state is carried; every computation is local to the segment.
+ * Stateless; every computation is local to the segment.
  */
-export class PowerEnrichmentProcess implements IEnrichmentProcess {
+export class PowerEnrichmentProcess implements IAnalyticsProcess {
     public readonly id = 'power-enrichment';
-    public readonly processType = 'enrichment' as const;
 
     process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
@@ -47,8 +46,8 @@ export class PowerEnrichmentProcess implements IEnrichmentProcess {
         const power = volumeLoad / elapsedSec;
 
         output.metrics.push({
-            type: MetricType.Metric,
-            image: `Power: ${power.toFixed(1)} ${units}/s`,
+            type: 'power',
+            image: `${power.toFixed(1)} ${units}/s`,
             value: parseFloat(power.toFixed(1)),
             unit: `${units}/s`,
             origin: 'analyzed',
@@ -56,9 +55,5 @@ export class PowerEnrichmentProcess implements IEnrichmentProcess {
         });
 
         return output;
-    }
-
-    finalize(): [] {
-        return [];
     }
 }

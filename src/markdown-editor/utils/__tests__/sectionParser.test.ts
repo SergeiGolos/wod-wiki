@@ -213,6 +213,27 @@ describe('parseDocumentSections — frontmatter', () => {
     expect(fm!.frontmatterType).toBe('file');
   });
 
+  it('detects amazon frontmatterType from type property', () => {
+    const content = '---\ntype: amazon\nurl: https://www.amazon.com/dp/B001234567\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('amazon');
+  });
+
+  it('auto-detects amazon from url pattern', () => {
+    const content = '---\nurl: https://www.amazon.com/Kettlebell-Workout-Weights/dp/B08P2C6J7B\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('amazon');
+  });
+
+  it('auto-detects amazon from short url (amzn.to)', () => {
+    const content = '---\nurl: https://amzn.to/3abc123\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('amazon');
+  });
+
   it('preserves correct line numbers for frontmatter', () => {
     const content = '---\nkey: value\n---';
     const sections = parseDocumentSections(content);

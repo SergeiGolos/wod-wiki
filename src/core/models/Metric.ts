@@ -27,7 +27,12 @@ export type MetricOrigin =
 export interface IMetric {
   readonly image?: string;
   readonly value?: unknown;
-  readonly type: MetricType;
+  /**
+   * The metric type. Use a `MetricType` enum value for standard types, or any
+   * string for custom derived metrics produced by enrichment processes
+   * (e.g. `'speed'`, `'pace'`, `'rep-rate'`, `'power'`).
+   */
+  readonly type: MetricType | string;
   readonly origin: MetricOrigin;
   readonly unit?: string;
 

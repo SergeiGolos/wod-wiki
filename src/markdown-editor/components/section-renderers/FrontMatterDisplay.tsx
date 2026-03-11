@@ -13,6 +13,7 @@ import type { Section, FrontMatterSubtype } from '../../types/section';
 import { SECTION_LINE_HEIGHT } from '../SectionContainer';
 import { YouTubeEmbed } from './embeds/YouTubeEmbed';
 import { StravaEmbed } from './embeds/StravaEmbed';
+import { AmazonEmbed } from './embeds/AmazonEmbed';
 import { FilePreviewEmbed } from './embeds/FilePreviewEmbed';
 
 export interface FrontMatterDisplayProps {
@@ -128,7 +129,13 @@ export const FrontMatterDisplay: React.FC<FrontMatterDisplayProps> = (props) => 
           {subtype === 'strava' && (
             <StravaEmbed properties={section.properties ?? {}} lineCount={rawLines.length - 2} />
           )}
+
+          {subtype === 'amazon' && (
+            <AmazonEmbed properties={section.properties ?? {}} lineCount={rawLines.length - 2} />
+          )}
+
           {subtype === 'file' && (
+
             <FilePreviewEmbed properties={section.properties ?? {}} lineCount={rawLines.length - 2} />
           )}
         </div>

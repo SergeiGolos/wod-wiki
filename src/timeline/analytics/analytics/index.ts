@@ -1,8 +1,8 @@
 /**
  * Analytics Module
- * 
- * This module provides the projection layer for analyzing runtime metrics
- * and producing meaningful insights about workout performance.
+ *
+ * Pipeline B: projection engines aggregate collected IMetric arrays
+ * and produce ProjectionResult summaries for the tracker UI.
  */
 
 // Core interfaces
@@ -14,3 +14,7 @@ export { AnalysisService } from './AnalysisService';
 
 // Built-in projection engines
 export { VolumeProjectionEngine } from './engines/VolumeProjectionEngine';
+export { RepProjectionEngine } from './engines/RepProjectionEngine';
+export { DistanceProjectionEngine } from './engines/DistanceProjectionEngine';
+export { SessionLoadProjectionEngine } from './engines/SessionLoadProjectionEngine';
+export { MetMinuteProjectionEngine } from './engines/MetMinuteProjectionEngine';
