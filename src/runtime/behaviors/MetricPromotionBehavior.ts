@@ -68,7 +68,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
                 metrics.push({
                     type: MetricType.Rep,
                     image: reps.toString(),
-                    origin: 'runtime',
+                    origin: 'compiler',
                     value: reps,
                     sourceBlockKey: parentBlock.key.toString(),
                     timestamp: runtime.clock.now,
@@ -83,7 +83,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             if (sourceFragment) {
                 metrics.push({
                     ...sourceFragment,
-                    origin: rule.origin ?? 'runtime'
+                    origin: rule.origin ?? 'compiler'
                 });
             }
         }

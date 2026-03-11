@@ -11,6 +11,7 @@ import {
     RpcStackUpdate,
     RpcOutputStatement,
     RpcTrackerUpdate,
+    RpcAnalyticsSummary,
 } from './RpcMessages';
 
 /**
@@ -187,3 +188,22 @@ export function serializeTrackerUpdate(update: TrackerUpdate): RpcTrackerUpdate 
         },
     };
 }
+
+/**
+ * Serialize analytics summary with projection results.
+ * Extracts projection results from runtime's analytics engine and
+ * creates a RpcAnalyticsSummary message.
+ */
+export function serializeAnalyticsSummary(
+    projections: Array<{ name: string; value: number; unit: string; metricType?: string }>,
+    totalDurationMs: number,
+    completedSegments: number,
+): RpcAnalyticsSummary {
+    return {
+        type: 'rpc-analytics-summary',
+        totalDurationMs,
+        completedSegments,
+        projections,
+    };
+}
+

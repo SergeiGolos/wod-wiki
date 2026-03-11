@@ -216,6 +216,39 @@ export interface RpcClockSyncResult {
 }
 
 /**
+ * Individual projection result from analytics projection engine.
+ */
+export interface RpcProjectionResult {
+    /** Human-readable name (e.g., "Total Volume", "Average Power") */
+    name: string;
+    /** Calculated value */
+    value: number;
+    /** Unit of measurement (e.g., "kg", "watts", "calories") */
+    unit: string;
+    /** Associated metric type for UI categorization (optional) */
+    metricType?: string;
+    /** Icon for display (Lucide icon name) */
+    icon?: string;
+    /** Color for visualization (hex code) */
+    color?: string;
+}
+
+/**
+ * Analytics summary with projection results.
+ * Sent by browser to replace the simple row-based review data
+ * with a focused, categorized view of workout analytics.
+ */
+export interface RpcAnalyticsSummary {
+    type: 'rpc-analytics-summary';
+    /** Total workout duration in ms */
+    totalDurationMs: number;
+    /** Number of completed segments */
+    completedSegments: number;
+    /** Projection results from analytics engines */
+    projections: RpcProjectionResult[];
+}
+
+/**
  * Union of all RPC message types sent over the DataChannel.
  */
 export type RpcMessage =
@@ -227,4 +260,5 @@ export type RpcMessage =
     | RpcWorkbenchUpdate
     | RpcClockSyncRequest
     | RpcClockSyncResponse
-    | RpcClockSyncResult;
+    | RpcClockSyncResult
+    | RpcAnalyticsSummary;

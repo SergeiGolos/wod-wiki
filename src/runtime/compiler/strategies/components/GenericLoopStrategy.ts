@@ -87,7 +87,10 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(s.metrics || [], "Rounds")
+            distributor.distribute(
+                s.metrics.filter(f => f.type !== MetricType.Rep),
+                "Rounds"
+            )
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

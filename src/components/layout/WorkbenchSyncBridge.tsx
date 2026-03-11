@@ -32,6 +32,7 @@ import { useWorkbenchSyncStore } from './workbenchSyncStore';
 import { WodBlock } from '../../markdown-editor/types';
 import { indexedDBService } from '../../services/db/IndexedDBService';
 import type { AnalyticsDataPoint } from '../../types/storage';
+import { useProjectionSync } from '../../components/cast/ProjectionSyncContext';
 
 // Helper to generate a unique key for a block based on its content/statements
 const getBlockKey = (block: WodBlock | null): string => {
@@ -100,6 +101,7 @@ interface WorkbenchSyncBridgeProps {
 
 export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ children }) => {
   const store = useWorkbenchSyncStore;
+  const projectionSync = useProjectionSync();
 
   // --- Consume upstream React contexts ---
   const {
@@ -241,6 +243,22 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
       if (shouldUpdate) {
         const { segments, groups } = getAnalyticsFromRuntime(runtime);
         store.getState().setAnalytics(segments, groups);
+
+        // Calculate total elapsed time and segment count for projection sync
+        let totalElapsedMs = 0;
+        for (const seg of segments) {
+          if (seg.elapsed !== undefined) {
+            totalElapsedMs += seg.elapsed * 1000; // Convert seconds to ms
+          }
+        }
+
+        // Send projection results to Chromecast
+        projectionSync?.updateFromSegments(
+          segments,
+          totalElapsedMs,
+          segments.length,
+        );
+
         lastAnalyticsUpdateRef.current = now;
         lastStatusRef.current = execution.status;
       }

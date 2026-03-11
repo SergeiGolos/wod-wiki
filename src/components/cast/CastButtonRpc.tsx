@@ -25,6 +25,7 @@ import { CAST_APP_ID, hasCustomCastAppId } from '@/services/cast/config';
 import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';
 import { cn } from '@/lib/utils';
 import { ClockSyncService } from '@/services/cast/rpc/ClockSync';
+import { ProjectionSyncProvider } from './ProjectionSyncContext';
 
 const CHROMECAST_SUBSCRIPTION_ID = 'chromecast';
 
@@ -40,6 +41,7 @@ export const CastButtonRpc: React.FC = () => {
     const eventProviderRef = useRef<ChromecastEventProvider | null>(null);
     const buttonRef = useRef<HTMLButtonElement | null>(null);
     const clockSyncRef = useRef<ClockSyncService | null>(null);
+    const chromecastSubRef = useRef<ChromecastRuntimeSubscription | null>(null);
 
     // Track state in refs for the native event listener closure
     const isCastingRef = useRef(false);
@@ -68,12 +70,15 @@ export const CastButtonRpc: React.FC = () => {
     }, []);
 
     // Shared helper: attach a new ChromecastRuntimeSubscription to a manager
+    // Returns the subscription so it can be passed to ProjectionSyncProvider
     const attachSubscription = useCallback((mgr: SubscriptionManager, transport: WebRtcRpcTransport) => {
         const chromecastSub = new ChromecastRuntimeSubscription(transport, {
             id: CHROMECAST_SUBSCRIPTION_ID,
         });
         mgr.add(chromecastSub);
         console.log('[CastButtonRpc] Attached subscription to SubscriptionManager');
+        chromecastSubRef.current = chromecastSub; // Store the subscription
+        return chromecastSub; // Return the subscription
     }, []);
 
     const cleanupCast = useCallback(() => {
@@ -82,6 +87,7 @@ export const CastButtonRpc: React.FC = () => {
         // are no-ops instead of double-disposing.
         subscriptionManager?.remove(CHROMECAST_SUBSCRIPTION_ID);
 
+        chromecastSubRef.current = null;
         const transport = transportRef.current;
         transportRef.current = null;   // ← null before dispose to break re-entrancy
 
@@ -291,31 +297,33 @@ export const CastButtonRpc: React.FC = () => {
     }
 
     return (
-        <Button
-            ref={buttonRef}
-            variant="ghost"
-            size="icon"
-            disabled={isCurrentlyBusy || !canInteract}
-            className={cn(
-                "transition-all duration-300",
-                isConnected ? "text-blue-500 bg-blue-500/10" : "",
-                isCurrentlyBusy ? "text-blue-400" : "",
-                isAvailable ? "text-foreground hover:text-blue-500" : ""
-            )}
-            title={isConnected ? "Stop Casting" : (isCurrentlyBusy ? "Connecting..." : "Cast to TV")}
-        >
-            {isConnected ? (
-                <TvMinimal className={cn(
-                    "h-5 w-5",
-                    !isWebRtcActive && "opacity-50",
-                    isDisconnecting && "animate-pulse"
-                )} />
-            ) : (
-                <Cast className={cn(
-                    "h-5 w-5",
-                    isCurrentlyConnecting ? "animate-pulse-opacity" : ""
-                )} />
-            )}
-        </Button>
+        <ProjectionSyncProvider chromecastSubscription={chromecastSubRef.current ?? null}>
+            <Button
+                ref={buttonRef}
+                variant="ghost"
+                size="icon"
+                disabled={isCurrentlyBusy || !canInteract}
+                className={cn(
+                    "transition-all duration-300",
+                    isConnected ? "text-blue-500 bg-blue-500/10" : "",
+                    isCurrentlyBusy ? "text-blue-400" : "",
+                    isAvailable ? "text-foreground hover:text-blue-500" : ""
+                )}
+                title={isConnected ? "Stop Casting" : (isCurrentlyBusy ? "Connecting..." : "Cast to TV")}
+            >
+                {isConnected ? (
+                    <TvMinimal className={cn(
+                        "h-5 w-5",
+                        !isWebRtcActive && "opacity-50",
+                        isDisconnecting && "animate-pulse"
+                    )} />
+                ) : (
+                    <Cast className={cn(
+                        "h-5 w-5",
+                        isCurrentlyConnecting ? "animate-pulse-opacity" : ""
+                    )} />
+                )}
+            </Button>
+        </ProjectionSyncProvider>
     );
 };

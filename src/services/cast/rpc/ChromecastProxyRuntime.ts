@@ -131,6 +131,11 @@ export interface WorkbenchDisplayState {
     mode: 'idle' | 'preview' | 'active' | 'review';
     previewData?: RpcWorkbenchUpdate['previewData'];
     reviewData?: RpcWorkbenchUpdate['reviewData'];
+    analyticsSummary?: {
+        totalDurationMs: number;
+        completedSegments: number;
+        projections: Array<{ name: string; value: number; unit: string; metricType?: string }>;
+    };
 }
 
 export type WorkbenchStateListener = (state: WorkbenchDisplayState) => void;
@@ -371,6 +376,9 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
             case 'rpc-workbench-update':
                 this.handleWorkbenchUpdate(message);
                 break;
+            case 'rpc-analytics-summary':
+                this.handleAnalyticsSummary(message);
+                break;
             case 'rpc-dispose':
                 // Sender is shutting down — close the transport so its
                 // onDisconnected callbacks fire (e.g. setProxyRuntime(null) on
@@ -547,5 +555,23 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     private handleClockSyncResult(message: { type: 'rpc-clock-sync-result'; offsetMs: number; rttMs: number }): void {
         this.setClockOffset(message.offsetMs);
         console.log(`[ChromecastProxyRuntime] Clock sync complete — offset: ${message.offsetMs}ms, RTT: ${message.rttMs}ms`);
+    }
+
+    /**
+     * Handle analytics summary from browser.
+     * Replaces simple row-based review with focused projection results.
+     */
+    private handleAnalyticsSummary(message: { type: 'rpc-analytics-summary'; totalDurationMs: number; completedSegments: number; projections: Array<{ name: string; value: number; unit: string; metricType?: string }> }): void {
+        this._workbenchState = {
+            ...this._workbenchState,
+            analyticsSummary: {
+                totalDurationMs: message.totalDurationMs,
+                completedSegments: message.completedSegments,
+                projections: message.projections,
+            },
+        };
+        for (const listener of this.workbenchListeners) {
+            listener(this._workbenchState);
+        }
     }
 }

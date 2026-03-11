@@ -33,7 +33,21 @@ import { MetricSourceRow } from '@/components/metrics/MetricSourceRow';
 import { cn } from '@/lib/utils';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import { calculateDuration } from '@/lib/timeUtils';
-import { Timer, CheckCircle2, Dumbbell, BarChart3, Play, Clock } from 'lucide-react';
+import {
+    Timer,
+    CheckCircle2,
+    Dumbbell,
+    BarChart3,
+    Play,
+    Clock,
+    Zap,
+    Activity,
+    Wind,
+    Gauge,
+    Hash,
+    Flame,
+    ArrowRight
+} from 'lucide-react';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import '@/index.css';
@@ -356,9 +370,45 @@ const ReceiverPreviewPanel: React.FC<{
 // ReceiverReviewPanel — shown after a workout completes (results available)
 // ============================================================================
 
+// Icon mapping for projection result icons
+const ICON_MAP: Record<string, string> = {
+    'power': 'Zap',
+    'heart_rate': 'Activity',
+    'cadence': 'Wind',
+    'speed': 'Gauge',
+    'resistance': 'Dumbbell',
+    'repetitions': 'Hash',
+    'calories': 'Flame',
+    'duration': 'Timer',
+    'elapsed': 'Clock',
+    'volume': 'Dumbbell',
+    'pace': 'Gauge',
+    'distance': 'ArrowRight',
+    'reps': 'Hash',
+};
+
 const ReceiverReviewPanel: React.FC<{
     reviewData: NonNullable<WorkbenchDisplayState['reviewData']>;
-}> = ({ reviewData }) => {
+    analyticsSummary?: WorkbenchDisplayState['analyticsSummary'];
+}> = ({ reviewData, analyticsSummary }) => {
+    // Prefer analytics summary if available, otherwise fall back to simple rows
+    const projections = analyticsSummary?.projections ?? [];
+    const totalDurationMs = analyticsSummary?.totalDurationMs ?? reviewData?.totalDurationMs ?? 0;
+    const completedSegments = analyticsSummary?.completedSegments ?? reviewData?.completedSegments ?? 0;
+
+    // Format total duration
+    const formatDuration = (ms: number) => {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    // Get icon name from metric type
+    const getIconName = (metricType?: string) => {
+        return ICON_MAP[metricType ?? ''] ?? 'BarChart3';
+    };
+
     return (
         <div className="h-full w-full flex flex-col items-center justify-center gap-8 p-12 bg-background">
             {/* Header */}
@@ -367,28 +417,97 @@ const ReceiverReviewPanel: React.FC<{
                 <h1 className="text-4xl font-bold text-foreground">Workout Complete</h1>
             </div>
 
-            {/* Stats grid */}
-            <div className="w-full max-w-md flex flex-col gap-2">
-                {reviewData.rows.map((row, i) => (
-                    <div
-                        key={i}
-                        className={cn(
-                            "flex items-center justify-between rounded-lg px-5 py-3 text-base",
-                            i === 0
-                                ? "bg-primary/10 border border-primary/30 font-bold"
-                                : "bg-card/40 border border-border/40"
-                        )}
-                    >
-                        <span className="text-muted-foreground">{row.label}</span>
-                        <span className="font-mono font-semibold text-foreground">{row.value}</span>
+            {/* Analytics Summary View */}
+            {projections.length > 0 ? (
+                <div className="w-full max-w-2xl flex flex-col gap-4">
+                    {/* Total Duration Card */}
+                    <div className="bg-card/50 border border-border/60 rounded-xl p-6 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Timer className="h-6 w-6 text-primary" />
+                            <div className="flex flex-col">
+                                <span className="text-sm text-muted-foreground">Total Duration</span>
+                                <span className="text-3xl font-bold text-foreground font-mono">
+                                    {formatDuration(totalDurationMs)}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground/60">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <span className="text-xs font-mono uppercase tracking-wider">
+                                {completedSegments} segments
+                            </span>
+                        </div>
                     </div>
-                ))}
-            </div>
+
+                    {/* Projection Results Grid */}
+                    <div className="grid grid-cols-2 gap-3 w-full">
+                        {projections.map((proj, index) => {
+                            const IconComponent = getIconName(proj.metricType) as any;
+                            return (
+                                <div
+                                    key={index}
+                                    className={cn(
+                                        "flex flex-col items-center gap-3 p-5 rounded-xl border transition-all",
+                                        "bg-card/50 border-border/60 hover:bg-card/80"
+                                    )}
+                                    style={{ borderColor: proj.color ? `${proj.color}40` : undefined }}
+                                >
+                                    {/* Icon */}
+                                    {IconComponent && (
+                                        <div
+                                            className="h-10 w-10 flex items-center justify-center rounded-lg"
+                                            style={{ backgroundColor: proj.color ? `${proj.color}20` : 'rgba(0,0,0,0.05)' }}
+                                        >
+                                            <IconComponent className="h-5 w-5" />
+                                        </div>
+                                    )}
+
+                                    {/* Metric Value */}
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-lg font-bold text-foreground font-mono">
+                                            {proj.value.toLocaleString()}
+                                        </span>
+                                        <span className="text-2xl font-bold text-foreground font-mono">
+                                            {proj.value.toLocaleString()}
+                                            <span className="text-sm font-medium text-muted-foreground ml-1">
+                                                {proj.unit}
+                                            </span>
+                                        </span>
+                                    </div>
+
+                                    {/* Metric Name */}
+                                    <span className="text-sm font-medium text-muted-foreground text-center">
+                                        {proj.name}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ) : (
+                // Fallback to simple rows if no projections available
+                <div className="w-full max-w-md flex flex-col gap-2">
+                    {reviewData?.rows.map((row, i) => (
+                        <div
+                            key={i}
+                            className={cn(
+                                "flex items-center justify-between rounded-lg px-5 py-3 text-base",
+                                i === 0
+                                    ? "bg-primary/10 border border-primary/30 font-bold"
+                                    : "bg-card/40 border border-border/40"
+                            )}
+                        >
+                            <span className="text-muted-foreground">{row.label}</span>
+                            <span className="font-mono font-semibold text-foreground">{row.value}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             <div className="flex items-center gap-2 text-muted-foreground/50">
                 <BarChart3 className="h-4 w-4" />
                 <span className="text-xs font-mono uppercase tracking-widest">
-                    {reviewData.completedSegments} segments completed
+                    {completedSegments} segments completed
                 </span>
             </div>
         </div>
@@ -673,7 +792,10 @@ const ReceiverApp: React.FC = () => {
                 {dpadFlash && (
                     <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
                 )}
-                <ReceiverReviewPanel reviewData={workbenchState.reviewData} />
+                <ReceiverReviewPanel
+                    reviewData={workbenchState.reviewData}
+                    analyticsSummary={workbenchState.analyticsSummary}
+                />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}
                 </div>
