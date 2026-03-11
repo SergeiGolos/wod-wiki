@@ -32,23 +32,16 @@ export class VolumeLoadProcess implements IAnalyticsProcess {
             const val = frag.value as any;
             if (typeof val?.amount === 'number') {
                 segmentWeight += val.amount;
+                // Handle both singular 'unit' and plural 'units' for robustness
+                if (val.unit) units = val.unit;
                 if (val.units) units = val.units;
             }
         }
 
-        // Volume = reps * weight (if no weight but reps exist, maybe just count reps, but here volume implies weight)
+        // Accumulate only — the running total is emitted in finalize(), not stamped on each segment.
         if (segmentReps > 0 && segmentWeight > 0) {
             const segmentVolume = segmentReps * segmentWeight;
             this.runningVolume += segmentVolume;
-
-            // Inject running total into the segment's metrics
-            output.metrics.push({
-                type: MetricType.Metric,
-                image: `Running Volume: ${this.runningVolume}${units}`,
-                value: this.runningVolume,
-                origin: 'analyzed',
-                timestamp: new Date()
-            });
         }
 
         return output;
@@ -69,6 +62,13 @@ export class VolumeLoadProcess implements IAnalyticsProcess {
                         type: MetricType.Label,
                         image: `Total Volume Load: ${this.runningVolume}`,
                         value: `Total Volume Load: ${this.runningVolume}`,
+                        origin: 'analyzed',
+                        timestamp: now
+                    },
+                    {
+                        type: MetricType.Volume,
+                        image: `Final Total Volume: ${this.runningVolume}`,
+                        value: this.runningVolume,
                         origin: 'analyzed',
                         timestamp: now
                     }

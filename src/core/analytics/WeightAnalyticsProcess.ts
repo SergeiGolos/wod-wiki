@@ -83,17 +83,17 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    type: MetricType.Metric,
+                    type: MetricType.Load,
                     image: `${label}: ${displayValue}`,
                     value: value,
-                    origin: 'runtime',
+                    origin: 'analyzed',
                     timestamp: timestamp
                 },
                 {
                     type: MetricType.Label,
                     image: `${label}: ${displayValue}`,
                     value: `${label}: ${displayValue}`,
-                    origin: 'runtime',
+                    origin: 'analyzed',
                     timestamp: timestamp
                 }
             ]
@@ -111,14 +111,14 @@ export class WeightAnalyticsProcess implements IAnalyticsProcess {
                     type: MetricType.Effort,
                     image: effort,
                     value: effort,
-                    origin: 'runtime',
+                    origin: 'analyzed',
                     timestamp: timestamp
                 },
                 {
-                    type: MetricType.Metric,
+                    type: MetricType.Load,
                     image: `Total Weight (${effort}): ${weight.toFixed(2)}`,
                     value: weight,
-                    origin: 'runtime',
+                    origin: 'analyzed',
                     timestamp: timestamp
                 }
             ]

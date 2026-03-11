@@ -27,9 +27,9 @@ describe('Metric Analytics Processes', () => {
             process.process(segment);
             const results = process.finalize();
 
-            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.value === 20))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.image?.includes('Total Reps (hard)') && f.value === 20))).toBe(true);
-            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Metric && f.image?.includes('Reps per Second') && f.value === 2))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Rep && f.value === 20))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Rep && f.image?.includes('Total Reps (hard)') && f.value === 20))).toBe(true);
+            expect(results.some(o => o.metrics.some(f => f.type === MetricType.Rep && f.image?.includes('Reps per Second') && f.value === 2))).toBe(true);
         });
     });
 

@@ -21,6 +21,10 @@ import { SessionLoadProcess } from '../../core/analytics/SessionLoadProcess';
 import { MetMinuteProcess } from '../../core/analytics/MetMinuteProcess';
 import { UnifiedIntensityProcess } from '../../core/analytics/UnifiedIntensityProcess';
 import { ACWRProcess } from '../../core/analytics/ACWRProcess';
+import { TrackerSyncProcess } from '../../core/analytics/TrackerSyncProcess';
+import { SpeedEnrichmentProcess } from '../../core/analytics/SpeedEnrichmentProcess';
+import { RepRateEnrichmentProcess } from '../../core/analytics/RepRateEnrichmentProcess';
+import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
 import { MetricType } from '../../core/models/Metric';
 
 /**
@@ -66,12 +70,21 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             engine.addProcess(new DistanceAnalyticsProcess());
             engine.addProcess(new WeightAnalyticsProcess());
             
+            // Per-segment enrichment (derived metrics local to each segment)
+            engine.addProcess(new SpeedEnrichmentProcess());
+            engine.addProcess(new RepRateEnrichmentProcess());
+            engine.addProcess(new PowerEnrichmentProcess());
+
             // Advanced Cross-Disciplinary Analytics
             engine.addProcess(new VolumeLoadProcess());
             engine.addProcess(new MetMinuteProcess());
             engine.addProcess(new SessionLoadProcess());
             engine.addProcess(new UnifiedIntensityProcess());
             engine.addProcess(new ACWRProcess());
+
+            // Sync analytics back to the live tracker
+            engine.addProcess(new TrackerSyncProcess(runtime.tracker));
+
             runtime.setAnalyticsEngine(engine);
 
             // Cleanup on unmount or runtime change

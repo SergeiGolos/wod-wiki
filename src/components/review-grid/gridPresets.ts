@@ -31,11 +31,18 @@ export const ALL_FRAGMENT_COLUMNS: MetricType[] = [
   MetricType.Metric,
   MetricType.Group,
   MetricType.System,
+  MetricType.Label,
+  MetricType.Text,
+  MetricType.CurrentRound,
+  MetricType.Volume,
+  MetricType.Intensity,
+  MetricType.Load,
+  MetricType.Work,
 ];
 
 /**
  * Fragment columns shown in the default (non-debug) view.
- * Excludes System, Sound, Group, Text which are typically noise or merged.
+ * Excludes System, Sound, Group which are typically noise.
  */
 const DEFAULT_VISIBLE_COLUMNS: MetricType[] = [
   MetricType.Effort,
@@ -47,6 +54,13 @@ const DEFAULT_VISIBLE_COLUMNS: MetricType[] = [
   MetricType.Action,
   MetricType.Increment,
   MetricType.Metric,
+  MetricType.Label,
+  MetricType.Text,
+  MetricType.CurrentRound,
+  MetricType.Volume,
+  MetricType.Intensity,
+  MetricType.Load,
+  MetricType.Work,
 ];
 
 /**
@@ -237,6 +251,9 @@ export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): G
   // 4/6. Text (Secondary Descriptor)
   add(getFragmentCol(MetricType.Text));
 
+  // Label
+  add(getFragmentCol(MetricType.Label));
+
   // 5/7. All other Fragments (Data)
   // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
   metricCols.forEach(col => add(col));
@@ -267,6 +284,10 @@ function isNumericMetricType(ft: MetricType): boolean {
     case MetricType.Resistance:
     case MetricType.Increment:
     case MetricType.Metric:
+    case MetricType.Volume:
+    case MetricType.Intensity:
+    case MetricType.Load:
+    case MetricType.Work:
       return true;
     default:
       return false;

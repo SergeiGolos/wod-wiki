@@ -85,9 +85,16 @@ export class UnifiedIntensityProcess implements IAnalyticsProcess {
                 stackLevel: 0,
                 metrics: [
                     {
-                        type: MetricType.Label,
+                        type: MetricType.Intensity,
                         image: `TIS: ${tisScore} - ${intensityLabel}`,
                         value: tisScore,
+                        origin: 'analyzed',
+                        timestamp: now
+                    },
+                    {
+                        type: MetricType.Label,
+                        image: `TIS: ${tisScore} - ${intensityLabel}`,
+                        value: `TIS: ${tisScore} - ${intensityLabel}`,
                         origin: 'analyzed',
                         timestamp: now
                     }

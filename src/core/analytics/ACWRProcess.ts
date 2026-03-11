@@ -73,9 +73,16 @@ export class ACWRProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    type: MetricType.Metric,
+                    type: MetricType.Intensity,
                     image: `ACWR: ${acwr.toFixed(2)}`,
                     value: parseFloat(acwr.toFixed(2)),
+                    origin: 'analyzed',
+                    timestamp: now
+                },
+                {
+                    type: MetricType.Label,
+                    image: `ACWR: ${acwr.toFixed(2)}`,
+                    value: `ACWR: ${acwr.toFixed(2)}`,
                     origin: 'analyzed',
                     timestamp: now
                 }

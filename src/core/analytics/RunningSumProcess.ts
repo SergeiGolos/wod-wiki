@@ -14,7 +14,7 @@ export class RunningSumProcess implements IAnalyticsProcess {
     private filterType: MetricType;
 
     constructor(metricType: string = 'repetitions', filterType: MetricType = MetricType.Rep) {
-        this.type = metricType;
+        this.metricType = metricType;
         this.filterType = filterType;
     }
 
@@ -30,10 +30,10 @@ export class RunningSumProcess implements IAnalyticsProcess {
 
             // Add a "running total" metrics to this output
             output.metrics.push({
-                type: MetricType.Metric,
-                image: `Total ${this.type}: ${this.total}`,
+                type: this.filterType,
+                image: `Total ${this.metricType}: ${this.total}`,
                 value: this.total,
-                origin: 'runtime',
+                origin: 'analyzed',
                 timestamp: new Date()
             });
         }
@@ -50,17 +50,17 @@ export class RunningSumProcess implements IAnalyticsProcess {
             stackLevel: 0,
             metrics: [
                 {
-                    type: MetricType.Metric,
-                    image: `Final Total ${this.type}: ${this.total}`,
+                    type: this.filterType,
+                    image: `Final Total ${this.metricType}: ${this.total}`,
                     value: this.total,
-                    origin: 'runtime',
+                    origin: 'analyzed',
                     timestamp: now
                 },
                 {
                     type: MetricType.Label,
-                    image: `Workout Summary: ${this.total} ${this.type} completed.`,
-                    value: `Workout Summary: ${this.total} ${this.type} completed.`,
-                    origin: 'runtime',
+                    image: `Workout Summary: ${this.total} ${this.metricType} completed.`,
+                    value: `Workout Summary: ${this.total} ${this.metricType} completed.`,
+                    origin: 'analyzed',
                     timestamp: now
                 }
             ]

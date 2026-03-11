@@ -197,6 +197,7 @@
   },
   "active": "ce524ac6422799a0",
   "lastOpenFiles": [
+    "plans",
     "Untitled.md",
     "domain-model/contracts/ICodeFragment.md",
     "domain-model/contracts/IRuntimeBlock.md",
@@ -226,7 +227,6 @@
     "architecture/05-deployment-view.md",
     "RUNTIME_INTEGRATION_TESTING.md",
     "REMOTE_NAVIGATION_PLAN.md",
-    "Mastering Remote Interaction in Chromecast Web Receiver Applications_ A Professional Guide.md",
     "tv",
     "restructure/post-restructure-bugs",
     "restructure",

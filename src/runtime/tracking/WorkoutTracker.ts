@@ -14,6 +14,7 @@ export class WorkoutTracker implements RuntimeStackTracker {
      * Record a metric update (e.g., reps, weight, distance)
      */
     recordMetric(blockId: string, metricKey: string, value: any, unit?: string): void {
+        console.log(`[WorkoutTracker] recordMetric: block=${blockId}, key=${metricKey}, value=${value}, unit=${unit}`);
         let blockMetrics = this.metrics.get(blockId);
         if (!blockMetrics) {
             blockMetrics = new Map();
@@ -36,6 +37,7 @@ export class WorkoutTracker implements RuntimeStackTracker {
      * Record a round update
      */
     recordRound(blockId: string, current: number, total?: number): void {
+        console.log(`[WorkoutTracker] recordRound: block=${blockId}, current=${current}, total=${total}`);
         this.rounds.set(blockId, { current, total });
 
         this.notify({

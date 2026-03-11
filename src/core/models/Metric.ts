@@ -107,4 +107,8 @@ export enum MetricType {
   Label = 'label',
   Lap = 'lap',
   Metric = 'metric',
+  Volume = 'volume',
+  Intensity = 'intensity',
+  Load = 'load',
+  Work = 'work',
 }

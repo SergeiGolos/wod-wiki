@@ -62,6 +62,14 @@ export class SessionLoadProcess implements IAnalyticsProcess {
                 stackLevel: 0,
                 metrics: [
                     {
+                        type: MetricType.Load,
+                        image: `Training Load: ${sessionLoadAu} AU`,
+                        value: sessionLoadAu,
+                        unit: 'AU',
+                        origin: 'analyzed',
+                        timestamp: now
+                    },
+                    {
                         type: MetricType.Label,
                         image: `Training Load: ${sessionLoadAu} AU`,
                         value: `Training Load: ${sessionLoadAu} AU`,

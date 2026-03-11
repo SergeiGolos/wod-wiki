@@ -71,46 +71,51 @@ Helps resolve precedence and identifies the source of the metric:
 
 ---
 
-## Writing an Analytics Process
+## Two Distinct Process Roles
 
-An analytics process must implement `IAnalyticsProcess`. It processes statements as they are emitted, maintains internal state (like a running sum), and yields final summary statements at the end of the workout.
+The analytics pipeline supports two fundamentally different roles. **Never mix them in a single class.**
+
+| Concern                      | Compounding (`IAnalyticsProcess`) | Enriching (`IEnrichmentProcess`) |
+|------------------------------|-----------------------------------|----------------------------------|
+| Cross-segment mutable state  | ✅ Yes — accumulates totals        | ❌ None                          |
+| `process()` modifies segment | ❌ Returns output **unmodified**   | ✅ Pushes derived metrics         |
+| `finalize()` creates records | ✅ Emits summary `'analytics'`     | Always returns `[]`              |
+| Built-in examples            | `RepAnalyticsProcess`             | `SpeedEnrichmentProcess`         |
+
+---
+
+## Writing a Compounding Process
+
+A compounding process accumulates state across segments and emits new `'analytics'` output records at the end. It **must not mutate the segment** in `process()`.
 
 ```typescript
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
 
-export class CustomAnalyticsProcess implements IAnalyticsProcess {
-  public readonly id = 'my-custom-analytics';
+export class CustomTotalProcess implements IAnalyticsProcess {
+  public readonly id = 'my-custom-total';
   private total = 0;
 
   process(output: IOutputStatement): IOutputStatement {
-    // 1. Filter for completed segments
-    if (output.outputType === 'segment') {
-      
-      // 2. Extract metrics to analyze
-      const repMetric = output.getMetric(MetricType.Rep);
-      if (typeof repMetric?.value === 'number') {
-        this.total += repMetric.value;
-      }
+    // 1. Filter for leaf segments only
+    if (output.outputType !== 'segment' || !output.isLeaf) return output;
 
-      // 3. Inject new derived/analyzed metrics inline
-      output.metrics.push({
-        type: MetricType.Metric,
-        image: `Running Total: ${this.total}`,
-        value: this.total,
-        origin: 'analyzed',
-        timestamp: new Date()
-      });
+    // 2. Accumulate internal state — do NOT push onto the segment
+    const repMetric = output.getMetric(MetricType.Rep);
+    if (typeof repMetric?.value === 'number') {
+      this.total += repMetric.value;
     }
+
+    // 3. Return output unmodified
     return output;
   }
 
   finalize(): IOutputStatement[] {
-    // 4. Return summary statement(s) when the session ends
+    // 4. Emit a new analytics output record for the final summary
     return [new OutputStatement({
       outputType: 'analytics',
       timeSpan: new TimeSpan(Date.now(), Date.now()),
-      sourceBlockKey: 'analytics-engine',
+      sourceBlockKey: 'my-custom-total',
       stackLevel: 0,
       metrics: [
         { type: MetricType.Label, value: `Final Total: ${this.total}`, origin: 'analyzed' }
@@ -119,6 +124,60 @@ export class CustomAnalyticsProcess implements IAnalyticsProcess {
   }
 }
 ```
+
+---
+
+## Writing an Enrichment Process
+
+An enrichment process derives metrics from a **single segment's own data only** — no cross-segment state. It pushes the derived value back onto that segment and returns `[]` from `finalize()`.
+
+```typescript
+import { IEnrichmentProcess } from '../contracts/IEnrichmentProcess';
+import { IOutputStatement } from '../models/OutputStatement';
+
+export class CustomRatioEnrichmentProcess implements IEnrichmentProcess {
+  public readonly id = 'my-custom-ratio';
+  public readonly processType = 'enrichment' as const;
+
+  process(output: IOutputStatement): IOutputStatement {
+    // 1. Guard: only enrich leaf segments with the required metrics
+    if (output.outputType !== 'segment' || !output.isLeaf) return output;
+
+    const elapsedMs = output.getMetric(MetricType.Elapsed)?.value as number ?? 0;
+    if (elapsedMs <= 0) return output;
+
+    const reps = output.getMetric(MetricType.Rep)?.value as number;
+    if (!reps) return output;
+
+    // 2. Compute ratio from this segment's data alone
+    const repsPerMin = reps / (elapsedMs / 1000 / 60);
+
+    // 3. Push the derived metric onto the segment
+    output.metrics.push({
+      type: MetricType.Metric,
+      image: `Rep Rate: ${repsPerMin.toFixed(1)} reps/min`,
+      value: parseFloat(repsPerMin.toFixed(1)),
+      unit: 'reps/min',
+      origin: 'analyzed',
+      timestamp: new Date()
+    });
+
+    return output;
+  }
+
+  // Enrichment processes never emit additional records
+  finalize(): [] { return []; }
+}
+```
+
+### Built-in Enrichment Processes
+
+| Class | Formula | Output metric |
+|-------|---------|---------------|
+| `SpeedEnrichmentProcess` | distance ÷ elapsed → **m/s** | Speed + Pace (min/km) |
+| `RepRateEnrichmentProcess` | reps ÷ elapsed → **reps/min** | Rep rate |
+| `PowerEnrichmentProcess` | (reps × weight) ÷ elapsed → **kg/s** | Strength power proxy |
+| `MetMinuteProcess` | MET × minutes → **MET-min** | Per-segment energy cost |
 
 ## Trackers & UI Views
 

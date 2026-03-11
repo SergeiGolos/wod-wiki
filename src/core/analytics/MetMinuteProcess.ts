@@ -48,15 +48,7 @@ export class MetMinuteProcess implements IAnalyticsProcess {
             
             const metMins = mets * minutes;
             this.accumulatedMetMinutes += metMins;
-
-            // Inject running MET-minutes inline
-            output.metrics.push({
-                type: MetricType.Metric,
-                image: `${this.accumulatedMetMinutes.toFixed(1)} MET-mins`,
-                value: parseFloat(this.accumulatedMetMinutes.toFixed(1)),
-                origin: 'analyzed',
-                timestamp: new Date()
-            });
+            // Accumulate only — the session total is emitted in finalize(), not stamped on each segment.
         }
 
         return output;
@@ -74,9 +66,16 @@ export class MetMinuteProcess implements IAnalyticsProcess {
                 stackLevel: 0,
                 metrics: [
                     {
-                        type: MetricType.Label,
+                        type: MetricType.Work,
                         image: `Total Energy: ${Math.round(this.accumulatedMetMinutes)} MET-minutes`,
                         value: Math.round(this.accumulatedMetMinutes),
+                        origin: 'analyzed',
+                        timestamp: now
+                    },
+                    {
+                        type: MetricType.Label,
+                        image: `Total Energy: ${Math.round(this.accumulatedMetMinutes)} MET-minutes`,
+                        value: `Total Energy: ${Math.round(this.accumulatedMetMinutes)} MET-minutes`,
                         origin: 'analyzed',
                         timestamp: now
                     }

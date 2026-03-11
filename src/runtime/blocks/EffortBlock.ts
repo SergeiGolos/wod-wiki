@@ -87,10 +87,10 @@ export class EffortBlock extends RuntimeBlock {
       runtime,
       sourceIds,
       [], // Behaviors added below
-      "Effort",
-      undefined,
-      undefined,
-      `${config.targetReps} ${config.exerciseName}`,
+      undefined, // context
+      undefined, // key
+      "Effort", // blockType
+      `${config.targetReps} ${config.exerciseName}`, // label
       metrics
     );
 

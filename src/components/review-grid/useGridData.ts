@@ -74,11 +74,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     const addType = (ft: MetricType) => {
       // Guard: skip undefined/null metricType (defensive against malformed metric)
       if (ft == null) return;
-      // Redirection: Label, Text, and CurrentRound are now part of Effort column
-      if (ft === MetricType.Label || ft === MetricType.Text || ft === MetricType.CurrentRound) {
-        types.add(MetricType.Effort);
-        return;
-      }
+      
       // Noise suppression: Sound is hidden
       if (ft === MetricType.Sound) return;
       
@@ -123,12 +119,11 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
         }
 
         // EXCEPTION: Always keep structural columns (no metricType)
-        // or specifically requested columns like Timestamp/Spans/Effort
+        // or specifically requested columns like Timestamp/Spans
         if (
           !col.type ||
           col.id === FIXED_COLUMN_IDS.TIMESTAMP ||
-          col.id === FIXED_COLUMN_IDS.SPANS ||
-          col.type === MetricType.Effort
+          col.id === FIXED_COLUMN_IDS.SPANS
         ) {
           return true;
         }
@@ -290,19 +285,13 @@ function extractBlockKey(seg: Segment): string | undefined {
 
 /**
  * Group a single metrics into the cells map.
- * EXCEPTION: Label metric are merged into the Effort cell to compose them
- * in one column. Sound metric are ignored.
+ * NO LONGER combining Label/Text/CurrentRound into Effort.
  */
 function groupFragmentIntoCell(
   cells: Map<MetricType, GridCell>,
   frag: IMetric,
 ): void {
-  let ft = frag.type;
-
-  // Composed columns: Combine Label, Text, and CurrentRound into Effort
-  if (ft === MetricType.Label || ft === MetricType.Text || ft === MetricType.CurrentRound) {
-    ft = MetricType.Effort;
-  }
+  const ft = frag.type;
 
   // Hide noise: Sounds are no longer displayed in the grid
   if (ft === MetricType.Sound) {
