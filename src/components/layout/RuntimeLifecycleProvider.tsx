@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { IRuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
-import type { WodBlock } from '../../markdown-editor/types';
+import type { WodBlock } from '../Editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 import { SubscriptionManager } from '../../runtime/subscriptions/SubscriptionManager';
 import { LocalRuntimeSubscription } from '../../runtime/subscriptions/LocalRuntimeSubscription';

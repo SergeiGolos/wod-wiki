@@ -20,8 +20,8 @@ import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { Segment } from '@/core/models/AnalyticsModels';
-import type { DocumentItem } from '@/markdown-editor/utils/documentStructure';
-import type { WodBlock } from '@/markdown-editor/types';
+import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
+import type { WodBlock } from '@/components/Editor/types';
 
 export const WorkbenchCastBridge: React.FC = () => {
     const castTransport = useWorkbenchSyncStore(s => s.castTransport);

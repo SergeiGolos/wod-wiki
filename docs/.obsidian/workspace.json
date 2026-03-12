@@ -11,17 +11,14 @@
             "id": "ce524ac6422799a0",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "markdown",
               "state": {
-                "file": "web/wod.wiki.canvas",
-                "viewState": {
-                  "x": -434.99740333313457,
-                  "y": -621.5485588157035,
-                  "zoom": -1.4658313121869404
-                }
+                "file": "unified-editor-adr.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-layout-dashboard",
-              "title": "wod.wiki"
+              "icon": "lucide-file",
+              "title": "unified-editor-adr"
             }
           }
         ]
@@ -185,10 +182,12 @@
   },
   "active": "ce524ac6422799a0",
   "lastOpenFiles": [
+    "unified-editor-prd.md",
+    "unified-editor-adr.md",
+    "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",
     "Untitled 1.md",
     "Untitled.md",
-    "web/wod.wiki.canvas",
     "web/Untitled.md",
     "web",
     "Chromecast Prompt.md",
@@ -216,8 +215,6 @@
     "diagrams/runtime-state-machine.canvas",
     "diagrams/domain-model-overview.canvas",
     "diagrams/behavior-overview.canvas",
-    "diagrams/behavior-memory-matrix.md",
-    "architecture/track-ui-binding-adr.md",
     "tv",
     "restructure/post-restructure-bugs",
     "restructure",

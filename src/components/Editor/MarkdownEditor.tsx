@@ -6,17 +6,17 @@ import { useParseAllBlocks } from './hooks/useParseAllBlocks';
 import { findBlockAtLine } from './utils/blockDetection';
 
 // Components
-import { CodeMirrorEditor } from '../components/Editor/CodeMirrorEditor';
+import { CodeMirrorEditor } from './CodeMirrorEditor';
 
 // Theme hook
 import { useEditorTheme } from '@/hooks/editor/useEditorTheme';
 
 // Phase 3: State Management
-import { useWorkoutStore } from '../components/layout/WorkoutStore';
-import { useEditorStateSync } from '../components/Editor/useEditorState';
+import { useWorkoutStore } from '../layout/WorkoutStore';
+import { useEditorStateSync } from './useEditorState';
 
-import { CommandProvider, useCommandPalette } from '../components/command-palette/CommandContext';
-import { CommandPalette } from '../components/command-palette/CommandPalette';
+import { CommandProvider, useCommandPalette } from '../command-palette/CommandContext';
+import { CommandPalette } from '../command-palette/CommandPalette';
 
 export interface MarkdownEditorProps {
   /** Initial markdown content */

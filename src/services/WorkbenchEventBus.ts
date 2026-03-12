@@ -1,4 +1,4 @@
-import { WodBlock } from '../markdown-editor/types';
+import { WodBlock } from '../components/Editor/types';
 
 export enum WorkbenchEvent {
     // Navigation / Sync

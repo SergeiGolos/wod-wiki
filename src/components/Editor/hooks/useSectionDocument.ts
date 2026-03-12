@@ -16,7 +16,7 @@ import type { WodBlock } from '../types';
 import { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds, extractMetadata, parseFrontMatterProperties, resolveFrontMatterSubtype } from '../utils/sectionParser';
 import { detectWodBlocks } from '../utils/blockDetection';
 import { parseWodBlock } from '../utils/parseWodBlock';
-import { sharedParser } from '../../parser/parserInstance';
+import { sharedParser } from '../../../parser/parserInstance';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

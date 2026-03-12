@@ -12,7 +12,7 @@
  */
 
 
-import type { WorkoutResults, Section } from '../markdown-editor/types';
+import type { WorkoutResults, Section } from '../components/Editor/types';
 import type { WorkoutResult } from './storage';
 
 /**

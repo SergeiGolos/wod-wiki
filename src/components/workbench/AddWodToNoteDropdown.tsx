@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
-import type { WodBlock } from '@/markdown-editor/types';
+import type { WodBlock } from '@/components/Editor/types';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import { cn } from '@/lib/utils';

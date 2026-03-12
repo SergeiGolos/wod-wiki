@@ -9,8 +9,8 @@ import {
   gutter
 } from "@codemirror/view";
 import { RangeSetBuilder, StateField, StateEffect, Extension } from "@codemirror/state";
-import { WodBlock } from "../../../markdown-editor/types";
-import { detectWodBlocks } from "../../../markdown-editor/utils/blockDetection";
+import { WodBlock } from "../types";
+import { detectWodBlocks } from "../utils/blockDetection";
 import { MetricType } from "../../../core/models/Metric";
 
 // Effect to update blocks in state

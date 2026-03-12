@@ -2,11 +2,11 @@
  * Type definitions for markdown editor components
  */
 
-import { ICodeStatement } from '../../core/models/CodeStatement';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { MdTimerRuntime } from '../../parser/md-timer';
-import { IMetric } from '../../core/models/Metric';
-import { IOutputStatement } from '../../core/models/OutputStatement';
+import { ICodeStatement } from '../../../core/models/CodeStatement';
+import { ScriptRuntime } from '../../../runtime/ScriptRuntime';
+import { MdTimerRuntime } from '../../../parser/md-timer';
+import { IMetric } from '../../../core/models/Metric';
+import { IOutputStatement } from '../../../core/models/OutputStatement';
 export * from './section';
 export type { WodDialect } from './section';
 export { VALID_WOD_DIALECTS } from './section';

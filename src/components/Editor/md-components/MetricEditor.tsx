@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { ICodeStatement } from '../../core/models/CodeStatement';
+import { ICodeStatement } from '../../../core/models/CodeStatement';
 
 export interface MetricEditorProps {
   /** Current statements in the block */

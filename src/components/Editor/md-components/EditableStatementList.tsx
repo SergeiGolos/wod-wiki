@@ -4,10 +4,10 @@
  */
 
 import React, { useMemo } from 'react';
-import { ICodeStatement } from '../../core/models/CodeStatement';
-import { StatementDisplay } from '../../components/metrics/StatementDisplay';
-import { useCommandPalette } from '../../components/command-palette/CommandContext';
-import { CommandStrategy } from '../../components/command-palette/types';
+import { ICodeStatement } from '../../../core/models/CodeStatement';
+import { StatementDisplay } from '../../metrics/StatementDisplay';
+import { useCommandPalette } from '../../command-palette/CommandContext';
+import { CommandStrategy } from '../../command-palette/types';
 
 export interface EditableStatementListProps {
   /** Current statements in the block */

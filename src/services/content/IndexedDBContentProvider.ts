@@ -11,8 +11,8 @@ import type { IContentProvider, ContentProviderMode } from '../../types/content-
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '../db/IndexedDBService';
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
-import { parseDocumentSections } from '../../markdown-editor/utils/sectionParser';
-import { Section, SectionType } from '../../markdown-editor/types/section';
+import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
+import { Section, SectionType } from '../../components/Editor/types/section';
 
 /**
  * Map legacy SectionType values stored in older DBs to current types.

@@ -3,7 +3,7 @@ import { useRuntimeLifecycle } from '../layout/RuntimeLifecycleProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
-import type { WorkoutResults, WodBlock } from '../../markdown-editor/types';
+import type { WorkoutResults, WodBlock } from '../Editor/types';
 import { NextEvent } from '../../runtime/events/NextEvent';
 import { audioService } from '../../services/AudioService';
 import { IEventHandler } from '../../runtime/contracts/events/IEventHandler';

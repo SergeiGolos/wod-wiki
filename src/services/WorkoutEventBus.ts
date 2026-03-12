@@ -28,7 +28,7 @@
  * ```
  */
 
-import type { WodBlock, WorkoutResults } from '../markdown-editor/types';
+import type { WodBlock, WorkoutResults } from '../components/Editor/types';
 
 /**
  * Union type for all workout-related events

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
+import { DocumentItem } from '../Editor/utils/documentStructure';
 import { Timer, Hash } from 'lucide-react';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 

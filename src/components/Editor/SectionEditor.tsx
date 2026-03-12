@@ -13,12 +13,12 @@ import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import type { WodBlock } from './types';
 import type { Section, SectionType, WodDialect } from './types/section';
 import { useSectionDocument } from './hooks/useSectionDocument';
-import { SectionContainer } from './components/SectionContainer';
-import { MarkdownDisplay, WodBlockDisplay, FrontMatterDisplay } from './components/section-renderers';
-import { SectionEditView } from './components/SectionEditView';
-import { WodSectionEditor } from './components/WodSectionEditor';
-import { SectionAddBar, type NewSectionType } from './components/SectionAddBar';
-import { SectionSeparator } from './components/SectionSeparator';
+import { SectionContainer } from './md-components/SectionContainer';
+import { MarkdownDisplay, WodBlockDisplay, FrontMatterDisplay } from './md-components/section-renderers';
+import { SectionEditView } from './md-components/SectionEditView';
+import { WodSectionEditor } from './md-components/WodSectionEditor';
+import { SectionAddBar, type NewSectionType } from './md-components/SectionAddBar';
+import { SectionSeparator } from './md-components/SectionSeparator';
 import type { IContentProvider } from '@/types/content-provider';
 
 export interface SectionEditorProps {

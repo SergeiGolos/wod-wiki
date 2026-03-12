@@ -6,8 +6,8 @@
  * `segments` store and adds `attachments` + `analytics` stores.
  */
 
-import { WorkoutResults } from '../markdown-editor/types';
-import { WodBlock } from '../markdown-editor/types/section';
+import { WorkoutResults } from '../components/Editor/types';
+import { WodBlock } from '../components/Editor/types/section';
 
 // ---------------------------------------------------------------------------
 // Segment data types — superset of old SectionType + new external sources

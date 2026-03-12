@@ -7,7 +7,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { SectionEditor } from '../../../src/markdown-editor/SectionEditor';
+import { SectionEditor } from '../../../src/components/Editor/SectionEditor';
 
 /** Thin wrapper that hosts a SectionEditor with preset content */
 const PlanPreview: React.FC<{ content: string; editable?: boolean }> = ({

@@ -1,10 +1,11 @@
 /**
- * Markdown Editor - Main exports
+ * Markdown Editor - Re-exports from consolidated Editor directory
+ * @deprecated Import directly from '@/components/Editor' instead
  */
 
 // Main component
-export { MarkdownEditor } from './MarkdownEditor';
-export type { MarkdownEditorProps } from './MarkdownEditor';
+export { MarkdownEditor } from '../components/Editor/MarkdownEditor';
+export type { MarkdownEditorProps } from '../components/Editor/MarkdownEditor';
 
 // Types
 export type {
@@ -13,51 +14,31 @@ export type {
   ParseError,
   WorkoutMetricFragment,
   WorkoutResults
-} from './types';
+} from '../components/Editor/types';
 
 // Utilities
 export {
   detectWodBlocks,
   findBlockAtLine,
   extractBlockContent
-} from './utils/blockDetection';
+} from '../components/Editor/utils/blockDetection';
 
-export { parseWodBlock } from './utils/parseWodBlock';
-export type { ParseResult } from './utils/parseWodBlock';
+export { parseWodBlock } from '../components/Editor/utils/parseWodBlock';
+export type { ParseResult } from '../components/Editor/utils/parseWodBlock';
 
 // Hooks
-export { useWodBlocks } from './hooks/useWodBlocks';
-export type {
-  UseWodBlocksOptions,
-  UseWodBlocksResult
-} from './hooks/useWodBlocks';
-
-export { useBlockParser } from './hooks/useBlockParser';
+export { useBlockParser } from '../components/Editor/hooks/useBlockParser';
 export type {
   UseBlockParserOptions,
   UseBlockParserResult
-} from './hooks/useBlockParser';
+} from '../components/Editor/hooks/useBlockParser';
 
 // Components
-export { WodBlockManager } from './components/WodBlockManager';
-export type { WodBlockManagerProps } from './components/WodBlockManager';
+export { MetricEditor } from '../components/Editor/md-components/MetricEditor';
+export type { MetricEditorProps } from '../components/Editor/md-components/MetricEditor';
 
-// ContextPanel has been removed - use WorkoutContextPanel from '@/components/workout/WorkoutContextPanel' instead
-
-export { MetricEditor } from './components/MetricEditor';
-export type { MetricEditorProps } from './components/MetricEditor';
-
-// Widgets
-export { ReactMonacoWidget } from './widgets/ReactMonacoWidget';
-export { ContextOverlay } from './widgets/ContextOverlay';
-
-// Hooks
-export { useContextOverlay } from './hooks/useContextOverlay';
-export { useBlockEditor } from './hooks/useBlockEditor';
-export type { UseBlockEditorOptions, UseBlockEditorReturn } from './hooks/useBlockEditor';
-
-// Section Editor (Phase 1 + Phase 2)
-export { SectionEditor } from './SectionEditor';
+// Section Editor
+export { SectionEditor } from '../components/Editor/SectionEditor';
 export type { SectionEditorProps } from './SectionEditor';
 export type { Section, SectionType, SectionDocument, FrontMatterSubtype } from './types/section';
 export { parseDocumentSections, buildRawContent, calculateTotalLines, matchSectionIds } from './utils/sectionParser';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SectionEditor } from '../src/markdown-editor/SectionEditor';
+import { SectionEditor } from '../src/components/Editor/SectionEditor';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../src/components/ui/card';
 import { Button } from '../src/components/ui/button';
 import { 

@@ -25,7 +25,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { PlanPanel } from '@/panels/plan-panel';
-import type { WodBlock } from '@/markdown-editor/types';
+import type { WodBlock } from '@/components/Editor/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workout content fixtures (sourced from wod/ collection)

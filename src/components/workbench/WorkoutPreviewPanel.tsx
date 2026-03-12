@@ -11,9 +11,9 @@
  */
 
 import React from 'react';
-import type { SectionType } from '../../markdown-editor/types/section';
-import type { WodBlock } from '../../markdown-editor/types';
-import { SectionEditor } from '../../markdown-editor/SectionEditor';
+import type { SectionType } from '../Editor/types/section';
+import type { WodBlock } from '../Editor/types';
+import { SectionEditor } from '../Editor/SectionEditor';
 import { cn } from '@/lib/utils';
 import { Dumbbell } from 'lucide-react';
 

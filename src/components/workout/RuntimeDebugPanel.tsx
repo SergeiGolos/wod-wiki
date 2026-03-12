@@ -16,7 +16,7 @@ import { X, Bug } from 'lucide-react';
 import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
-import { WodBlock } from '../../markdown-editor/types';
+import { WodBlock } from '../Editor/types';
 import { MemoryValueDialog, useMemoryValueDialog } from '../../runtime-test-bench/components/MemoryValuePopover';
 import type { MemoryEntry } from '../../runtime-test-bench/types/interfaces';
 import { RuntimeLogger } from '../../runtime/RuntimeLogger';

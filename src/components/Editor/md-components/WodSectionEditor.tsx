@@ -10,7 +10,7 @@ import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { WodPlaygroundButton } from './WodPlaygroundButton';
 import type { WodBlock } from '../types';
-import { CodeMirrorEditor } from '../../components/Editor/CodeMirrorEditor';
+import { CodeMirrorEditor } from '../CodeMirrorEditor';
 
 /** Max editor height before scrolling kicks in */
 const MAX_EDITOR_HEIGHT = SECTION_LINE_HEIGHT * 12; // ~12 lines max

@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
-import { MarkdownEditorProps } from '../../markdown-editor/MarkdownEditor';
+import { MarkdownEditorProps } from '../Editor/MarkdownEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File } from 'lucide-react';

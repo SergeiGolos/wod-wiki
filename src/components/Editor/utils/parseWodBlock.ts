@@ -3,9 +3,9 @@
  */
 
 import { EditorState } from "@codemirror/state";
-import { wodscriptLanguage } from "../../parser/wodscript-language";
-import { extractStatements } from "../../parser/lezer-mapper";
-import type { ICodeStatement } from '../../core/models/CodeStatement';
+import { wodscriptLanguage } from "../../../parser/wodscript-language";
+import { extractStatements } from "../../../parser/lezer-mapper";
+import type { ICodeStatement } from '../../../core/models/CodeStatement';
 import type { ParseError } from '../types';
 
 /**

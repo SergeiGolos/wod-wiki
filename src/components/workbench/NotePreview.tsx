@@ -1,12 +1,12 @@
 import React from 'react';
-import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
+import { DocumentItem } from '../Editor/utils/documentStructure';
 import { Dumbbell, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
-import { SectionEditor } from '../../markdown-editor/SectionEditor';
+import { SectionEditor } from '../Editor/SectionEditor';
 import { CloneDateDropdown } from './CloneDateDropdown';
 
 export interface NotePreviewProps {

@@ -26,7 +26,7 @@ import { markdown } from "@codemirror/lang-markdown";
 
 import { wodscriptLanguage } from "../../parser/wodscript-language";
 import { editorTheme, smartIncrement, wodDecorations } from "./extensions";
-import { WodBlock } from "../../markdown-editor/types";
+import { WodBlock } from "./types";
 import { useCommandPalette } from "../command-palette/CommandContext";
 
 // Phase 3: Compartments and State Fields

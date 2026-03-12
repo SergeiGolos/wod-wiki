@@ -11,8 +11,8 @@
  */
 
 import React from 'react';
-import { WodBlock } from '../../markdown-editor/types';
-import { EditableStatementList } from '../../markdown-editor/components/EditableStatementList';
+import { WodBlock } from '../Editor/types';
+import { EditableStatementList } from '../Editor/md-components/EditableStatementList';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 

@@ -9,8 +9,8 @@ export { WodWiki } from './components/Editor/WodWiki';
 export type { WodWikiProps } from './components/Editor/WodWiki';
 
 // Markdown editor
-export { MarkdownEditor } from './markdown-editor/MarkdownEditor';
-export type { MarkdownEditorProps } from './markdown-editor/MarkdownEditor';
+export { MarkdownEditor } from './components/Editor/MarkdownEditor';
+export type { MarkdownEditorProps } from './components/Editor/MarkdownEditor';
 
 // Exercise management
 export { ExerciseIndexManager } from './components/Editor/ExerciseIndexManager';

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { WodBlock, WodBlockState } from '../../markdown-editor/types';
+import { WodBlock, WodBlockState } from '../Editor/types';
 
 interface WorkoutState {
   blocks: WodBlock[];

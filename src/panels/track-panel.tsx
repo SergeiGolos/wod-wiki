@@ -9,8 +9,8 @@ import { UseRuntimeExecutionReturn } from '@/runtime-test-bench/hooks/useRuntime
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel';
-import type { SectionType } from '@/markdown-editor/types/section';
-import type { WodBlock } from '@/markdown-editor/types';
+import type { SectionType } from '@/components/Editor/types/section';
+import type { WodBlock } from '@/components/Editor/types';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
