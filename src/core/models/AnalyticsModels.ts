@@ -38,7 +38,7 @@ export interface Segment {
   total: number;
   parentId: number | null;
   depth: number;
-  metrics: Record<string, number>; // Dynamic metrics map (e.g., 'power': 200, 'heart_rate': 150)
+  metric: Record<string, number>; // Dynamic metrics map (e.g., 'power': 200, 'heart_rate': 150)
   lane: number;
   /** Raw time spans from the output statement (seconds relative to workout start) */
   spans?: { started: number; ended?: number }[];

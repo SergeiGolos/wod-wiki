@@ -86,9 +86,9 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
     // Check runtime segments
     for (const seg of segments) {
-      if (seg.metrics && Array.isArray(seg.metrics)) {
-        for (const f of (seg.metrics as unknown as IMetric[])) {
-          addType(f.type);
+      if (seg.metrics) {
+        for (const f of seg.metrics) {
+          addType(f.type as MetricType);
         }
       }
     }
@@ -230,8 +230,8 @@ function segmentsToRows(
     const cells = new Map<MetricType, GridCell>();
 
     // Group runtime metrics by MetricType
-    if (seg.metrics && Array.isArray(seg.metrics)) {
-      for (const frag of (seg.metrics as unknown as IMetric[])) {
+    if (seg.metrics) {
+      for (const frag of seg.metrics) {
         groupFragmentIntoCell(cells, frag);
       }
     }

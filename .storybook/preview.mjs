@@ -24,12 +24,12 @@ const preview = {
     },
     layout: 'fullscreen',
     options: {
-      showPanel: false,
       storySort: {
         order: [
           'Playground',
           'Overview',
           'Syntax',
+          'Testing',
           'Examples',
           [
             '*',

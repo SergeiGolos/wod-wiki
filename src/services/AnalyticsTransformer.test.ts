@@ -219,7 +219,7 @@ describe('AnalyticsTransformer', () => {
             duration: 60,
             parentId: null,
             depth: 0,
-            metrics: { repetitions: 10, resistance: 50 },
+            metric: { repetitions: 10, resistance: 50 },
             lane: 0
           }
         ];
@@ -236,8 +236,8 @@ describe('AnalyticsTransformer', () => {
     describe('filterByTags', () => {
       it('returns all segments when no tags provided', () => {
         const segments: SegmentWithMetadata[] = [
-          { id: 1, name: 'A', type: 'a', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, tags: ['amrap'] },
-          { id: 2, name: 'B', type: 'b', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, tags: ['emom'] }
+          { id: 1, name: 'A', type: 'a', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metric: {}, lane: 0, tags: ['amrap'] },
+          { id: 2, name: 'B', type: 'b', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metric: {}, lane: 0, tags: ['emom'] }
         ];
 
         const filtered = transformer.filterByTags(segments, []);
@@ -246,8 +246,8 @@ describe('AnalyticsTransformer', () => {
 
       it('filters segments by single tag', () => {
         const segments: SegmentWithMetadata[] = [
-          { id: 1, name: 'AMRAP', type: 'amrap', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, tags: ['amrap', 'time_bound'] },
-          { id: 2, name: 'EMOM', type: 'emom', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, tags: ['emom', 'interval'] }
+          { id: 1, name: 'AMRAP', type: 'amrap', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metric: {}, lane: 0, tags: ['amrap', 'time_bound'] },
+          { id: 2, name: 'EMOM', type: 'emom', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metric: {}, lane: 0, tags: ['emom', 'interval'] }
         ];
 
         const filtered = transformer.filterByTags(segments, ['amrap']);
@@ -259,8 +259,8 @@ describe('AnalyticsTransformer', () => {
     describe('filterByType', () => {
       it('filters segments by span type', () => {
         const segments: SegmentWithMetadata[] = [
-          { id: 1, name: 'AMRAP', type: 'amrap', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, spanType: 'amrap' },
-          { id: 2, name: 'EMOM', type: 'emom', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metrics: {}, lane: 0, spanType: 'emom' }
+          { id: 1, name: 'AMRAP', type: 'amrap', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metric: {}, lane: 0, spanType: 'amrap' },
+          { id: 2, name: 'EMOM', type: 'emom', startTime: 0, endTime: 1, duration: 1, parentId: null, depth: 0, metric: {}, lane: 0, spanType: 'emom' }
         ];
 
         const amrapSegments = transformer.filterByType(segments, 'amrap');
@@ -273,7 +273,7 @@ describe('AnalyticsTransformer', () => {
       it('returns true when segment matches strategy', () => {
         const segment: SegmentWithMetadata = {
           id: 1, name: 'Test', type: 'test', startTime: 0, endTime: 1, duration: 1,
-          parentId: null, depth: 0, metrics: {}, lane: 0,
+          parentId: null, depth: 0, metric: {}, lane: 0,
           context: { strategyUsed: 'TimeBoundRoundsStrategy' }
         };
 

@@ -15,10 +15,8 @@ const config = {
 
   "addons": [
     "@storybook/addon-docs",
-    // "@storybook/addon-vitest" - disabled due to bun + Windows compatibility issues
-    // Run tests via CLI: bun run test:storybook
+    "@storybook/addon-vitest",
     "@storybook/addon-a11y",
-    // "@storybook/addon-vitest"
   ],
 
   "staticDirs": ["../public"],

@@ -88,7 +88,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         isActive,
         isComplete: status === 'complete',
         status,
-        metrics: {}, // TODO: Extract actual metrics
+        metric: {}, // TODO: Extract actual metrics
         metrics,
         metricGroups,
         sourceIds: block.sourceIds,

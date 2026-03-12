@@ -74,7 +74,7 @@ function segmentsToAnalyticsPoints(
     }
 
     // Persist each dynamic metric (reps, resistance, distance, etc.)
-    for (const [key, value] of Object.entries(seg.metrics)) {
+    for (const [key, value] of Object.entries(seg.metric)) {
       if (typeof value !== 'number') continue;
       points.push({
         id: `${segId}-${key}-${now}`,

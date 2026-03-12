@@ -1,0 +1,25 @@
+{
+	"nodes":[
+		{"id":"5a8063a49182e61c","type":"text","text":"# landing page\n\n\nsliding hero of core features\n- Planner / Calendar with markdown syntax\n- Timer \\ Tracking \n- Metrics & Analytics (import data)\n\nBonus:\n- It works on Chromecast + Remote replacing that Gym Timer you don't know how to program and getting loada Metrics & Analytics of data in the by process.","x":-340,"y":-480,"width":525,"height":460},
+		{"id":"5065552cbf9ecc00","type":"text","text":"# Playground\n\nSpecial type of workbench\n- loads from local storage \n- toPlayground store\n\nWhen empty pre-load with syntax walk through.","x":-1080,"y":-480,"width":432,"height":460},
+		{"id":"e2b208cd125736a7","type":"text","text":"# Zip Reader\n\n- Reads workout from zip\n- staves it to playground store\n- redirect to playground.","x":-1060,"y":-1021,"width":392,"height":140},
+		{"id":"a2495bdf1ee91f3e","type":"text","text":"# Collections\n\nBased on the existing markdown files a way to displaythe main collection page\n\ncollectoins -> items listem -> preview panel","x":-1760,"y":-480,"width":440,"height":460},
+		{"id":"174cb5cfbefce0d7","type":"text","text":"# Getting Startd\n","x":380,"y":-280,"width":250,"height":60},
+		{"id":"f541578ceffe9df4","type":"text","text":"Basic Syntax","x":380,"y":380,"width":250,"height":193},
+		{"id":"711802a3d8e49c56","type":"text","text":"Loops & Inheritance","x":540,"y":160,"width":250,"height":193},
+		{"id":"51780a7c77ba5a9d","type":"text","text":"Metric Collection","x":700,"y":-60,"width":250,"height":193},
+		{"id":"39de2d1383a65341","type":"text","text":"# Command Palette\n\n- select workouts from the\n- store the collcetion workout toPlayground\n- redirect to playground","x":-1760,"y":-1021,"width":440,"height":140},
+		{"id":"12f9bb582c45cbeb","type":"text","text":"# Syntax Walkthough (Default)\n","x":-340,"y":-1021,"width":500,"height":140}
+	],
+	"edges":[
+		{"id":"d690d737f9e36491","fromNode":"174cb5cfbefce0d7","fromSide":"bottom","toNode":"f541578ceffe9df4","toSide":"top"},
+		{"id":"04bb7a2d715c8d45","fromNode":"174cb5cfbefce0d7","fromSide":"bottom","toNode":"711802a3d8e49c56","toSide":"top"},
+		{"id":"af8101ce22ebc2cf","fromNode":"174cb5cfbefce0d7","fromSide":"bottom","toNode":"51780a7c77ba5a9d","toSide":"top"},
+		{"id":"2dd6a42895850d2c","fromNode":"5a8063a49182e61c","fromSide":"right","toNode":"174cb5cfbefce0d7","toSide":"left"},
+		{"id":"a793af2cc3198d53","fromNode":"5a8063a49182e61c","fromSide":"left","toNode":"5065552cbf9ecc00","toSide":"right"},
+		{"id":"3a7bfe03b8d42e84","fromNode":"e2b208cd125736a7","fromSide":"bottom","toNode":"5065552cbf9ecc00","toSide":"top"},
+		{"id":"6c7668f42ab09f8c","fromNode":"39de2d1383a65341","fromSide":"right","toNode":"5065552cbf9ecc00","toSide":"top"},
+		{"id":"b208c143858e3f72","fromNode":"12f9bb582c45cbeb","fromSide":"left","toNode":"5065552cbf9ecc00","toSide":"top"},
+		{"id":"aad867d0777d2650","fromNode":"a2495bdf1ee91f3e","fromSide":"right","toNode":"5065552cbf9ecc00","toSide":"left"}
+	]
+}

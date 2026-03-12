@@ -17,9 +17,9 @@ function formatMetricLabel(key: string): string {
 /**
  * Extract numeric metrics from metric groups.
  */
-function extractMetricsFromFragments(metricGroups: IMetric[][]): Record<string, number> {
+function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, number> {
   const result: Record<string, number> = {};
-  const flat = metricGroups.flat();
+  const flat = metricsGroups.flat();
 
   for (const f of flat) {
     if (f.value !== undefined && typeof f.value === 'number') {
@@ -92,9 +92,9 @@ export class AnalyticsTransformer {
       const startTimeMs = output.timeSpan?.started ?? startTime;
       const endTimeMs = output.timeSpan?.ended ?? Date.now();
 
-      const extractedMetrics = extractMetricsFromFragments([outputMetrics]);
+      const extractedMetrics = extractMetricsFromGroups([outputMetrics]);
 
-      const nameFragment = outputMetrics.find(f =>
+      const nameMetric = outputMetrics.find(f =>
         f.type === 'effort' ||
         f.type === 'action' ||
         f.type === 'duration' ||
@@ -102,8 +102,8 @@ export class AnalyticsTransformer {
         f.type === 'current-round' ||
         f.type === 'label'
       );
-      const label = nameFragment?.image || output.sourceBlockKey;
-      const type = nameFragment?.type || output.outputType;
+      const label = nameMetric?.image || output.sourceBlockKey;
+      const type = nameMetric?.type || output.outputType;
 
       // Spans are recorded using the runtime clock.
       // We convert them to session-relative seconds for visualization.
@@ -128,7 +128,7 @@ export class AnalyticsTransformer {
         total,
         parentId: output.parent ?? null,
         depth: output.stackLevel,
-        metrics: extractedMetrics,
+        metric: extractedMetrics,
         lane: output.stackLevel,
         spans,
         metrics: outputMetrics,
@@ -150,7 +150,7 @@ export class AnalyticsTransformer {
   toAnalyticsGroup(segments: SegmentWithMetadata[]): AnalyticsGroup[] {
     const groups: AnalyticsGroup[] = [];
     const availableMetricKeys = new Set<string>();
-    segments.forEach(s => Object.keys(s.metrics).forEach(k => availableMetricKeys.add(k)));
+    segments.forEach(s => Object.keys(s.metric).forEach(k => availableMetricKeys.add(k)));
 
     const standardMetrics: Record<string, AnalyticsGraphConfig> = {
       'power': { id: 'power', label: 'Power', unit: 'W', color: '#8b5cf6', dataKey: 'power', icon: 'Zap' },
