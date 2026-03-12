@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
-import { WodWiki } from '../../src/editor/WodWiki';
+import { WodWiki } from '../../src/components/Editor/WodWiki';
 import { IScript } from '../../src/WodScript';
 import { MetricVisualizer } from '../../src/components/metrics';
 

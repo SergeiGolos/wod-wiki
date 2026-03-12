@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WodWiki } from '../../src/editor/WodWiki';
+import { WodWiki } from '../../src/components/Editor/WodWiki';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import { WodScript } from '../../src/parser/WodScript';

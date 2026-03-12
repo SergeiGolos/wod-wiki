@@ -13,7 +13,7 @@ import { useEditorTheme } from '@/hooks/editor/useEditorTheme';
 
 // Phase 3: State Management
 import { useWorkoutStore } from '../components/layout/WorkoutStore';
-import { useEditorStateSync } from '../editor/useEditorState';
+import { useEditorStateSync } from '../components/Editor/useEditorState';
 
 import { CommandProvider, useCommandPalette } from '../components/command-palette/CommandContext';
 import { CommandPalette } from '../components/command-palette/CommandPalette';

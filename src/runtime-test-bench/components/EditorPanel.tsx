@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { WodWiki } from '../../editor/WodWiki';
+import { WodWiki } from '../../components/Editor/WodWiki';
 import { EditorPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
 

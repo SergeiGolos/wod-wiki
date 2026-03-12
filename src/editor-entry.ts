@@ -5,20 +5,20 @@
  */
 
 // Main editor components
-export { WodWiki } from './editor/WodWiki';
-export type { WodWikiProps } from './editor/WodWiki';
+export { WodWiki } from './components/Editor/WodWiki';
+export type { WodWikiProps } from './components/Editor/WodWiki';
 
 // Markdown editor
 export { MarkdownEditor } from './markdown-editor/MarkdownEditor';
 export type { MarkdownEditorProps } from './markdown-editor/MarkdownEditor';
 
 // Exercise management
-export { ExerciseIndexManager } from './editor/ExerciseIndexManager';
-export { ExerciseSearchEngine } from './editor/ExerciseSearchEngine';
-export type { SearchOptions } from './editor/ExerciseSearchEngine';
+export { ExerciseIndexManager } from './components/Editor/ExerciseIndexManager';
+export { ExerciseSearchEngine } from './components/Editor/ExerciseSearchEngine';
+export type { SearchOptions } from './components/Editor/ExerciseSearchEngine';
 
 // LRU Cache utility
-export { LRUCache } from './editor/LRUCache';
+export { LRUCache } from './components/Editor/LRUCache';
 
 // Exercise types
 export type { Exercise, Muscle, Force, Level, Mechanic, Equipment, Category } from './exercise';

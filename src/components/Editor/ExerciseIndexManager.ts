@@ -1,7 +1,7 @@
 import { LRUCache } from './LRUCache';
-import type { ExercisePathIndex, ExercisePathEntry, ExercisePathGroup } from '../tools/ExercisePathIndexer';
-import type { Exercise } from '../exercise';
-import type { ExerciseDataProvider } from '../core/types/providers';
+import type { ExercisePathIndex, ExercisePathEntry, ExercisePathGroup } from '../../tools/ExercisePathIndexer';
+import type { Exercise } from '../../exercise';
+import type { ExerciseDataProvider } from '../../core/types/providers';
 
 /**
  * Singleton manager for exercise index and data loading

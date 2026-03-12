@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { EditorView } from '@codemirror/view';
-import { useWorkoutStore } from '../components/layout/WorkoutStore';
+import { useWorkoutStore } from '../layout/WorkoutStore';
 import { setActiveWorkoutId, setWodBlockRuntimeMeta } from './state-fields';
 
 /**

@@ -30,8 +30,8 @@ import { WodBlock } from "../../markdown-editor/types";
 import { useCommandPalette } from "../command-palette/CommandContext";
 
 // Phase 3: Compartments and State Fields
-import { themeCompartment, languageCompartment, modeCompartment } from "../../editor/compartments";
-import { activeWorkoutIdField, wodBlockRuntimeField } from "../../editor/state-fields";
+import { themeCompartment, languageCompartment, modeCompartment } from "./compartments";
+import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
 
 export interface CodeMirrorEditorProps {
   value: string;

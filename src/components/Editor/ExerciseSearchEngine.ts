@@ -1,4 +1,4 @@
-import { ExercisePathEntry } from '../tools/ExercisePathIndexer';
+import { ExercisePathEntry } from '../../tools/ExercisePathIndexer';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 
 export interface SearchOptions {

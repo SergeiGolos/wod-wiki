@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
-import { CodeMirrorEditor } from '../components/Editor/CodeMirrorEditor';
-import type { IScript } from '../parser/WodScript';
-import { MdTimerRuntime } from '../parser/md-timer';
-import type { CodeMetadata } from '../core/models/CodeMetadata';
+import { CodeMirrorEditor } from './CodeMirrorEditor';
+import type { IScript } from '../../parser/WodScript';
+import { MdTimerRuntime } from '../../parser/md-timer';
+import type { CodeMetadata } from '../../core/models/CodeMetadata';
 import type { ExerciseDataProvider } from '@/core/types/providers';
 import { ExerciseIndexManager } from './ExerciseIndexManager';
 

@@ -1,5 +1,5 @@
 import { StateField, StateEffect } from "@codemirror/state";
-import { WodBlockState } from "../markdown-editor/types";
+import { WodBlockState } from "../../markdown-editor/types";
 
 /**
  * Effect to update the active workout block ID.
