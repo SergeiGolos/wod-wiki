@@ -29,6 +29,12 @@ The `wod-wiki` editor experience is currently fragmented between a raw Markdown 
 ### 3.3. Smart Autocomplete & Shortcuts
 - **Dialect Completion**: Typing ` ``` ` must trigger a dropdown of available dialects (e.g., `wod`, `log`, `plan`).
 - **Component Embeds**: Typing `---` on a new line must trigger a dropdown of embeddable components (e.g., `youtube`, `strava`, `amazon`, `file`).
+- **Auto-Wrapping Promotion**:
+    - Selecting multiple lines and typing ` ``` ` (or a shortcut) must automatically wrap the selection in the chosen dialect fence.
+    - If no lines are selected, it should insert a snippet with the cursor placed between the fences.
+- **Frontmatter Edit Placement**: 
+    - Selecting a component from the `---` autocomplete must insert the required YAML properties and automatically place the cursor at the first value field (e.g., after `url:` or `id:`).
+    - If `---` is typed at the top of the file, it should manage the global document frontmatter; if typed within the body, it should create a block-level embed.
 - **Promotion to Block**: A keyboard shortcut (e.g., `Cmd+B` or `Cmd+Shift+W`) to wrap the selected lines in a ` ```wod ` block.
 
 ### 3.4. Unified Data Management

@@ -13,9 +13,10 @@ The current editor architecture uses a fragmented approach: a single CodeMirror 
     - **WodPreviewWidget**: Renders non-active WodScript sections using the existing `StatementDisplay` logic for structured visual feedback.
 4. **Custom Linting Extension**: Develop a `LintSource` that runs the WodScript parser on content within code fences to show real-time syntax errors as inline underlines.
 5. **Interactive Overlay Panel**: Implement a floating UI using CM6 `showTooltip` or a custom absolute-positioned layer that tracks the active line in a WodScript block.
-6. **Autocomplete Extensions**: Add custom `CompletionSource` implementations to handle:
-    - Code fence dialects (` ``` `).
-    - Frontmatter components (`---`).
+6. **Autocomplete & Command Extensions**:
+    - **Snippet Support**: Utilize CM6 `Snippet` for frontmatter component insertion, which handles cursor placement (e.g., `url: ${1:enter_url}`).
+    - **Smart Wrapping Command**: Implement a custom editor command bound to ` ``` ` that wraps the current selection in ` ```${dialect}\n${selection}\n``` ` and shifts focus to the first line of content.
+    - **Contextual Autocomplete**: Use `CompletionSource` to suggest dialects inside ` ``` ` and components after `---`.
 7. **Coordinate Mapping Strategy**: Implement logic to accurately map mouse clicks on a preview widget back to the underlying text coordinates in the CM6 document.
 
 ## Rationale
