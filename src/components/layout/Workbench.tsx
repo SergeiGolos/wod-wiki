@@ -37,9 +37,9 @@ import {
 import { NoteDetailsPanel } from '../workbench/NoteDetailsPanel';
 import { useTheme } from '../theme/ThemeProvider';
 import { CommitGraph } from '../ui/CommitGraph';
-import { ResponsiveViewport } from './panel-system/ResponsiveViewport';
-import { createPlanView, createTrackView, createReviewView } from './panel-system/viewDescriptors';
-import type { ViewMode } from './panel-system/ResponsiveViewport';
+import { ResponsiveViewport } from '@/panels/panel-system/ResponsiveViewport';
+import { createPlanView, createTrackView, createReviewView } from '@/panels/panel-system/viewDescriptors';
+import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
@@ -52,12 +52,12 @@ import { globalCompiler } from '../../runtime-test-bench/services/testbench-serv
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import { HistoryEntry } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
-import { getWodContent } from '../../app/wod-loader';
+import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 
-import { PlanPanel } from '../workbench/PlanPanel';
-import { TimerScreen } from '../workbench/TrackPanel';
+import { PlanPanel } from '@/panels/plan-panel';
+import { TimerScreen } from '@/panels/track-panel';
 import { ReviewGrid } from '../review-grid';
 
 // Create singleton factory instance

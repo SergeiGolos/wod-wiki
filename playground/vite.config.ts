@@ -4,15 +4,15 @@ import { resolve } from 'path';
 import fs from 'fs';
 
 // Auto-detect Tailscale SSL certs for HTTPS (required for Chromecast)
-const certFiles = fs.readdirSync(__dirname).filter(f => f.endsWith('.ts.net.crt'));
-const keyFiles = fs.readdirSync(__dirname).filter(f => f.endsWith('.ts.net.key'));
+const projectRoot = resolve(__dirname, '..');
+const certFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.crt'));
+const keyFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.key'));
 const https = certFiles.length > 0 && keyFiles.length > 0
-    ? { cert: fs.readFileSync(resolve(__dirname, certFiles[0])), key: fs.readFileSync(resolve(__dirname, keyFiles[0])) }
+    ? { cert: fs.readFileSync(resolve(projectRoot, certFiles[0])), key: fs.readFileSync(resolve(projectRoot, keyFiles[0])) }
     : undefined;
 
 // Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
 // transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
-// Mirrors the same middleware in .storybook/main.mjs viteFinal.
 const receiverRedirectPlugin: Plugin = {
     name: 'receiver-redirect',
     configureServer(server) {
@@ -41,11 +41,12 @@ const receiverRedirectPlugin: Plugin = {
 };
 
 export default defineConfig({
+    root: __dirname,
     base: './',
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
         alias: {
-            '@': resolve(__dirname, 'src'),
+            '@': resolve(__dirname, '../src'),
         },
     },
     server: {

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { Timer, Hash } from 'lucide-react';
-import { usePanelSize } from './panel-system/PanelSizeContext';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface WodIndexPanelProps {
   /** Document structure items */

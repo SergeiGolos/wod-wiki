@@ -136,9 +136,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-import { PlanPanel } from '@/components/workbench/PlanPanel';
-import { TimerScreen } from '@/components/workbench/TrackPanel';
-import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
+import { PlanPanel } from '@/panels/plan-panel';
+import { TimerScreen } from '@/panels/track-panel';
+import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { ReviewGrid } from '@/components/review-grid';
 import { WorkbenchProps } from '@/components/layout/Workbench';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';

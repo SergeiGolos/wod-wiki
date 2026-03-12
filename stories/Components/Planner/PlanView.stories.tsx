@@ -23,8 +23,8 @@
 import React, { useCallback, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
-import { PlanPanel } from '@/components/workbench/PlanPanel';
+import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
+import { PlanPanel } from '@/panels/plan-panel';
 import type { WodBlock } from '@/markdown-editor/types';
 
 // ─────────────────────────────────────────────────────────────────────────────

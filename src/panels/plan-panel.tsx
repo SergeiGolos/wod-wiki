@@ -1,7 +1,7 @@
 import React from 'react';
-import type { WodBlock } from '../../markdown-editor/types';
-import { SectionEditor } from '../../markdown-editor/SectionEditor';
-import type { IContentProvider } from '../../types/content-provider';
+import type { WodBlock } from '@/markdown-editor/types';
+import { SectionEditor } from '@/markdown-editor/SectionEditor';
+import type { IContentProvider } from '@/types/content-provider';
 // import { HistoryEntry } from '../../types/history';
 
 export interface PlanPanelProps {

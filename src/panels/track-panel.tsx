@@ -1,16 +1,16 @@
 import React from 'react';
-import { TimerIndexPanel } from '../layout/TimerIndexPanel';
-import { TimerDisplay } from '../workout/TimerDisplay';
-import { ScriptRuntimeProvider } from '../../runtime/context/RuntimeContext';
-import { VisualStatePanel } from '../track/VisualStatePanel';
+import { TimerIndexPanel } from '@/components/layout/TimerIndexPanel';
+import { TimerDisplay } from '@/panels/timer-panel';
+import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
+import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { useParams } from 'react-router-dom';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
-import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
+import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import { UseRuntimeExecutionReturn } from '@/runtime-test-bench/hooks/useRuntimeExecution';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
-import { WorkoutPreviewPanel } from './WorkoutPreviewPanel';
-import type { SectionType } from '../../markdown-editor/types/section';
-import type { WodBlock } from '../../markdown-editor/types';
+import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel';
+import type { SectionType } from '@/markdown-editor/types/section';
+import type { WodBlock } from '@/markdown-editor/types';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;

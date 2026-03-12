@@ -1,7 +1,7 @@
 import React from 'react';
-import { useScriptRuntime } from '../../runtime/context/RuntimeContext';
-import { RuntimeStackView, LookaheadView } from './VisualStateComponents';
-import { useOutputStatements } from '../../runtime/hooks/useOutputStatements';
+import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
+import { RuntimeStackView, LookaheadView } from '@/components/track/VisualStateComponents';
+import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
 

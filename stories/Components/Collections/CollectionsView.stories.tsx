@@ -25,12 +25,12 @@
 import React, { useState, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { fn } from '@storybook/test';
-import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
+import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { CollectionsFilter } from '@/components/history/CollectionsFilter';
 import { ListOfNotes } from '@/components/workbench/ListOfNotes';
 import { NotePreview } from '@/components/workbench/NotePreview';
-import { getWodCollections } from '@/app/wod-collections';
-import type { WodCollection, WodCollectionItem } from '@/app/wod-collections';
+import { getWodCollections } from '@/repositories/wod-collections';
+import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
 import type { HistoryEntry } from '@/types/history';
 
 // ─────────────────────────────────────────────────────────────────────────────

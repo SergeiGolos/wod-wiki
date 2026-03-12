@@ -32,7 +32,7 @@ import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels'
 import type { IMetric } from '../../core/models/Metric';
 import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
-import type { ViewMode } from './panel-system/ResponsiveViewport';
+import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
 /**
  * Default no-op execution return used before the bridge hydrates the store

@@ -79,7 +79,7 @@
  */
 
 // Components
-// StackedClockDisplay has been removed - use TimerDisplay from '@/components/workout/TimerDisplay' instead
+// StackedClockDisplay has been removed - use TimerDisplay from '@/panels/timer-panel' instead
 
 // Legacy components (for backward compatibility)
 export { ClockAnchor } from './anchors/ClockAnchor';

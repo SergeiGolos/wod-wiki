@@ -12,7 +12,7 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePanelSize } from '@/components/layout/panel-system/PanelSizeContext';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface CalendarWidgetProps {
   /** Currently viewed month */

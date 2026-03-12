@@ -2,7 +2,7 @@ import React from 'react';
 import { DocumentItem } from '../../markdown-editor/utils/documentStructure';
 import { Dumbbell, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';

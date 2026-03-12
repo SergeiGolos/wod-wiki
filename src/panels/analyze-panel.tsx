@@ -8,7 +8,7 @@
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePanelSize } from '../layout/panel-system/PanelSizeContext';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import type { HistoryEntry } from '@/types/history';
 
 export interface AnalyzePanelProps {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Workbench } from '@/components/layout/Workbench';
-import { getWodContent } from '../wod-loader';
+import { getWodContent } from '@/repositories/wod-loader';
 import { useNavigate } from 'react-router-dom';
 import { useMemo } from 'react';
 import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';

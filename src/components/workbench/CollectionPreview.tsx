@@ -5,9 +5,9 @@
 import React from 'react';
 import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePanelSize } from '@/components/layout/panel-system/PanelSizeContext';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { SectionEditor } from '@/markdown-editor/SectionEditor';
-import type { WodCollectionItem } from '@/app/wod-collections';
+import type { WodCollectionItem } from '@/repositories/wod-collections';
 
 export interface CollectionPreviewProps {
     item: WodCollectionItem;

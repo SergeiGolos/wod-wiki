@@ -4,7 +4,7 @@ import { CalendarWidget } from '../history/CalendarWidget';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Dumbbell, Tag, X, Plus, FolderOpen } from 'lucide-react';
 import type { Notebook } from '@/types/notebook';
-import type { WodCollection } from '@/app/wod-collections';
+import type { WodCollection } from '@/repositories/wod-collections';
 
 export interface ListFilterProps {
     /** Current calendar date */

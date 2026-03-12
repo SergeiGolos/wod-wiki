@@ -29,7 +29,7 @@ export default defineConfig({
         sourcemap: true,
         rollupOptions: {
             input: {
-                'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
+                'receiver-rpc': resolve(__dirname, 'playground/receiver-rpc.html'),
             },
             output: {
                 // Put JS/CSS in assets/ matching Storybook's convention

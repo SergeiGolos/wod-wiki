@@ -3,8 +3,8 @@
  * derived from wod/ subdirectories.
  */
 import { useState, useMemo, useCallback } from 'react';
-import { getWodCollections, getWodCollection } from '../app/wod-collections';
-import type { WodCollection, WodCollectionItem } from '../app/wod-collections';
+import { getWodCollections, getWodCollection } from '@/repositories/wod-collections';
+import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
 
 export type { WodCollection, WodCollectionItem };
 

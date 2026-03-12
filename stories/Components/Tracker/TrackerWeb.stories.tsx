@@ -45,10 +45,10 @@ import { NextAction } from '@/runtime/actions/stack/NextAction';
 
 // UI
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
-import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
+import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { DebugModeProvider } from '@/components/layout/DebugModeContext';
-import { VisualStatePanel } from '@/components/track/VisualStatePanel';
-import { TimerDisplay } from '@/components/workout/TimerDisplay';
+import { VisualStatePanel } from '@/panels/visual-state-panel';
+import { TimerDisplay } from '@/panels/timer-panel';
 import { useRuntimeExecution } from '@/runtime-test-bench/hooks/useRuntimeExecution';
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

@@ -28,7 +28,6 @@ import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
 import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
-import { calculateDuration } from '@/lib/timeUtils';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import '@/index.css';
 

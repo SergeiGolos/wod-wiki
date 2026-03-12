@@ -3,7 +3,7 @@ import { FolderOpen, Settings, Sun, Moon, Volume2, VolumeX, Github, ExternalLink
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useAudio } from '@/components/audio/AudioContext';
 import { cn } from '@/lib/utils';
-import type { WodCollection } from '@/app/wod-collections';
+import type { WodCollection } from '@/repositories/wod-collections';
 
 export interface HistoryDetailsPanelProps {
     isOpen: boolean;

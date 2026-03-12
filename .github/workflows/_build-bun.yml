@@ -57,8 +57,8 @@ jobs:
       - name: Replace GA tag in sources
         if: ${{ vars.G_TAG != '' }}
         run: |
-          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' index.html
-          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' receiver-rpc.html
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' playground/index.html
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' playground/receiver-rpc.html
 
       - name: Build App
         run: bun run build:app

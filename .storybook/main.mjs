@@ -88,7 +88,7 @@ const config = {
             req.url === '/receiver';
           if (isReceiverUrl) {
             try {
-              const htmlPath = path.resolve(process.cwd(), 'receiver-rpc.html');
+              const htmlPath = path.resolve(process.cwd(), 'playground/receiver-rpc.html');
               const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
               const html = await server.transformIndexHtml('/receiver-rpc.html', rawHtml, req.originalUrl);
               res.setHeader('Content-Type', 'text/html');

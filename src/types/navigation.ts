@@ -1,4 +1,4 @@
-import type { ViewMode } from '@/components/layout/panel-system/ResponsiveViewport';
+import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
 /**
  * Supported view modes in the workbench.

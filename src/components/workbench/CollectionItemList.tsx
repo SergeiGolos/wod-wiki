@@ -5,7 +5,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { FileText } from 'lucide-react';
-import type { WodCollectionItem } from '@/app/wod-collections';
+import type { WodCollectionItem } from '@/repositories/wod-collections';
 
 export interface CollectionItemListProps {
     items: WodCollectionItem[];

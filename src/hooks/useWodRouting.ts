@@ -21,7 +21,7 @@ import {
   type RawRouteParams,
   type WodRouteParams,
 } from '@/lib/routes';
-import type { ViewMode } from '@/components/layout/panel-system/ResponsiveViewport';
+import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
 export type { WodRouteParams } from '@/lib/routes';
 

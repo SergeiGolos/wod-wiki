@@ -2,14 +2,14 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import { v4 as uuidv4 } from 'uuid';
 import { useLocation } from 'react-router-dom';
 import { WodBlock, WorkoutResults, Section } from '../../markdown-editor/types';
-import type { ViewMode } from './panel-system/ResponsiveViewport';
-import type { PanelLayoutState } from './panel-system/types';
+import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
+import type { PanelLayoutState } from '@/panels/panel-system/types';
 import type { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
 import { StaticContentProvider } from '../../services/content/StaticContentProvider';
-import { getWodContent } from '../../app/wod-loader';
+import { getWodContent } from '@/repositories/wod-loader';
 import { toNotebookTag } from '../../types/notebook';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRef } from 'react';

@@ -47,7 +47,7 @@ import { NextAction } from '@/runtime/actions/stack/NextAction';
 
 // Runtime hooks — same ones used by ReceiverStackPanel / ReceiverTimerPanel
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
-import { PanelSizeProvider } from '@/components/layout/panel-system/PanelSizeContext';
+import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { useSnapshotBlocks } from '@/runtime/hooks/useStackSnapshot';
 import {
   usePrimaryTimer,

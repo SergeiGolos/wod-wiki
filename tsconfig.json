@@ -44,6 +44,8 @@
     "stories/declarations.d.ts",
     "stories/**/*.ts",
     "stories/**/*.tsx",
+    "playground/**/*.ts",
+    "playground/**/*.tsx",
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ],

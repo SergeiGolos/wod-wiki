@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Command, CommandStrategy } from '../types';
-import { getAllWodIds } from '@/app/wod-loader';
+import { getAllWodIds } from '@/repositories/wod-loader';
 import { planPath } from '@/lib/routes';
 
 export class WodNavigationStrategy implements CommandStrategy {

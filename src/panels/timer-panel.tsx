@@ -11,19 +11,19 @@
  */
 
 import React, { useMemo } from 'react';
-import { useScriptRuntime } from '../../runtime/context/RuntimeContext';
+import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import {
   usePrimaryTimer,
   useSecondaryTimers,
   useStackTimers,
   useActiveControls,
   useStackDisplayRows,
-} from '../../runtime/hooks/useStackDisplay';
-import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
-import { calculateDuration } from '../../lib/timeUtils';
+} from '@/runtime/hooks/useStackDisplay';
+import { useRoundDisplay } from '@/runtime/hooks/useBlockMemory';
+import { calculateDuration } from '@/lib/timeUtils';
 
-import { TimerStackView } from './TimerStackView';
-import { MetricTrackerCard } from '../track/MetricTrackerCard';
+import { TimerStackView } from '@/components/workout/TimerStackView';
+import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
