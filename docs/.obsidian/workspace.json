@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "unified-editor-adr.md",
+                "file": "unified-editor-research-curriculum.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "unified-editor-adr"
+              "title": "unified-editor-research-curriculum"
             }
           }
         ]
@@ -182,8 +182,10 @@
   },
   "active": "ce524ac6422799a0",
   "lastOpenFiles": [
-    "unified-editor-prd.md",
+    "decoupling-planner-workbench.md",
     "unified-editor-adr.md",
+    "unified-editor-research-curriculum.md",
+    "unified-editor-prd.md",
     "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",
     "Untitled 1.md",
@@ -210,7 +212,6 @@
     "architecture/ANALYTICS_SYSTEM_REVIEW.md",
     "architecture/STORAGE_SCHEMA.md",
     "DEPRECATION_CLEANUP.md",
-    "BEHAVIORAL_ARCHITECTURE.md",
     "Behavior Map.canvas",
     "diagrams/runtime-state-machine.canvas",
     "diagrams/domain-model-overview.canvas",

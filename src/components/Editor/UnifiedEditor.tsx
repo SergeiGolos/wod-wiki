@@ -13,7 +13,7 @@
  * SectionEditor to a single, highly-extensible CodeMirror 6 instance."
  */
 
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { EditorState, Extension, StateEffect } from "@codemirror/state";
 import {
   EditorView,
@@ -49,20 +49,24 @@ import { editorTheme } from "./extensions/theme";
 import { smartIncrement } from "./extensions/smart-increment";
 
 // Unified editor extensions
-import { sectionField, SectionState } from "./extensions/section-state";
+import { sectionField, SectionState, activeCursorSection, type EditorSection } from "./extensions/section-state";
 import { previewDecorations } from "./extensions/preview-decorations";
 import { frontmatterPreview } from "./extensions/frontmatter-preview";
 import { markdownTablePreview } from "./extensions/markdown-tables";
 import { wodLinter } from "./extensions/wod-linter";
 import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplete";
 import { wodOverlayPanel, configureOverlayActions } from "./extensions/wod-overlay";
+import { sectionGeometry } from "./extensions/section-geometry";
+import { OverlayTrack } from "./overlays/OverlayTrack";
+import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
+import type { OverlaySlotProps } from "./overlays/OverlayTrack";
+import { FrontmatterCompanion } from "./overlays/FrontmatterCompanion";
 
 // Existing state fields
 import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
 import { themeCompartment, languageCompartment, modeCompartment } from "./compartments";
 
 import type { WodBlock } from "./types";
-import type { EditorSection } from "./extensions/section-state";
 import { useCommandPalette } from "../command-palette/CommandContext";
 
 export interface UnifiedEditorProps {
@@ -122,6 +126,11 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   const viewRef = useRef<EditorView | null>(null);
   const { setIsOpen } = useCommandPalette();
   const isDark = theme === "dark" || theme === "vs-dark";
+
+  // Overlay track state
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [sections, setSections] = useState<EditorSection[]>([]);
+  const overlayState = useOverlayWidthState(sections, activeSectionId);
 
   // Configure overlay actions with callbacks
   useEffect(() => {
@@ -218,6 +227,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       // Overlay panel for WodScript blocks
       ...(enableOverlay ? [wodOverlayPanel] : []),
 
+      // Section geometry measurement (for overlay track)
+      sectionGeometry,
+
       // Update listener
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -228,6 +240,12 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           const { head } = update.state.selection.main;
           const line = update.state.doc.lineAt(head);
           onCursorPositionChange?.(line.number, head - line.from + 1);
+
+          // Update overlay track state
+          const cursorSec = activeCursorSection(update.state);
+          setActiveSectionId(cursorSec?.id ?? null);
+          const { sections: secs } = update.state.field(sectionField);
+          setSections(secs);
         }
       }),
 
@@ -318,11 +336,40 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     }
   }, [baseExtensions, mode, isDark, languages]);
 
+  // Slot renderer — routes to companion components by section type
+  const renderSlot = (props: OverlaySlotProps) => {
+    if (props.sectionType === "frontmatter") {
+      return (
+        <FrontmatterCompanion
+          sectionId={props.sectionId}
+          view={props.view}
+          isActive={props.isActive}
+          widthPercent={props.widthPercent}
+        />
+      );
+    }
+    // Default placeholder for other section types
+    return (
+      <div className="h-full w-full bg-popover/80 backdrop-blur-sm border-l border-border rounded-l-md p-2 text-xs text-muted-foreground">
+        <div className="font-medium text-foreground">{props.sectionType}</div>
+      </div>
+    );
+  };
+
   return (
     <div
       ref={editorRef}
-      className={`cm-unified-editor h-full w-full min-w-0 overflow-hidden ${className}`}
-    />
+      className={`cm-unified-editor relative h-full w-full min-w-0 overflow-hidden ${className}`}
+    >
+      {enableOverlay && (
+        <OverlayTrack
+          view={viewRef.current}
+          widths={overlayState.widths}
+          activeSectionId={activeSectionId}
+          renderSlot={renderSlot}
+        />
+      )}
+    </div>
   );
 };
 

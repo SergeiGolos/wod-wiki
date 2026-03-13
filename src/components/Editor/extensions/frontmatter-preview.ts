@@ -55,67 +55,6 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   return "default";
 }
 
-// ── YouTube video ID extraction ─────────────────────────────────────
-
-function extractYouTubeVideoId(url: string): string | null {
-  const standard = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-  if (standard) return standard[1];
-  const short = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-  if (short) return short[1];
-  const embed = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
-  if (embed) return embed[1];
-  return null;
-}
-
-// ── YouTube Preview Widget ──────────────────────────────────────────
-
-class YouTubePreviewWidget extends WidgetType {
-  constructor(
-    readonly videoId: string,
-    readonly title: string,
-    readonly sectionFrom: number,
-  ) {
-    super();
-  }
-
-  eq(other: YouTubePreviewWidget): boolean {
-    return this.videoId === other.videoId && this.sectionFrom === other.sectionFrom;
-  }
-
-  toDOM(_view: EditorView): HTMLElement {
-    const wrapper = document.createElement("div");
-    wrapper.className = "cm-youtube-preview";
-
-    // Container with 16:9 aspect ratio
-    const container = document.createElement("div");
-    container.className = "cm-youtube-container";
-
-    const iframe = document.createElement("iframe");
-    iframe.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(this.videoId)}`;
-    iframe.title = this.title;
-    iframe.allow =
-      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
-    iframe.allowFullscreen = true;
-    iframe.loading = "lazy";
-    container.appendChild(iframe);
-    wrapper.appendChild(container);
-
-    // Title below if non-default
-    if (this.title !== "YouTube Video") {
-      const label = document.createElement("div");
-      label.className = "cm-youtube-title";
-      label.textContent = this.title;
-      wrapper.appendChild(label);
-    }
-
-    return wrapper;
-  }
-
-  ignoreEvent(): boolean {
-    return true;
-  }
-}
-
 // ── Amazon Product Widget ───────────────────────────────────────────
 
 class AmazonPreviewWidget extends WidgetType {
@@ -262,24 +201,8 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
     const props = parseFrontmatterProps(state, section);
     const subtype = detectSubtype(props);
 
-    if (subtype === "youtube") {
-      const url = props["url"] || props["link"] || "";
-      const title = props["title"] || "YouTube Video";
-      const videoId = extractYouTubeVideoId(url);
-
-      if (videoId) {
-        decos.push(
-          Decoration.replace({
-            widget: new YouTubePreviewWidget(
-              videoId,
-              title,
-              section.from,
-            ),
-            block: true,
-          }).range(section.from, section.to)
-        );
-      }
-    } else if (subtype === "amazon") {
+    // YouTube frontmatter is handled by the overlay companion (FrontmatterCompanion)
+    if (subtype === "amazon") {
       decos.push(
         Decoration.replace({
           widget: new AmazonPreviewWidget(
@@ -316,37 +239,6 @@ const frontmatterPreviewField = StateField.define<DecorationSet>({
 // ── Base theme ──────────────────────────────────────────────────────
 
 const frontmatterPreviewTheme = EditorView.baseTheme({
-  // ── YouTube ─────────────────────────────────────────────────────
-  ".cm-youtube-preview": {
-    padding: "4px 0",
-    maxWidth: "560px",
-  },
-  ".cm-youtube-container": {
-    position: "relative",
-    width: "100%",
-    paddingBottom: "56.25%", // 16:9 aspect ratio
-    borderRadius: "8px",
-    overflow: "hidden",
-    border: "1px solid rgba(128,128,128,0.2)",
-    backgroundColor: "#000",
-  },
-  ".cm-youtube-container iframe": {
-    position: "absolute",
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    border: "none",
-  },
-  ".cm-youtube-title": {
-    marginTop: "4px",
-    fontSize: "12px",
-    color: "var(--cm-muted-foreground, #888)",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-
   // ── Amazon ──────────────────────────────────────────────────────
   ".cm-amazon-preview": {
     padding: "8px 0",
