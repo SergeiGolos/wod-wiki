@@ -66,9 +66,20 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
           VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
 
-      - name: Upload Build Assets
+      - name: Build Library
+        if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
+        run: bun run build-library
+
+      - name: Upload Page Assets
         uses: actions/upload-artifact@v4
-        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}  
+        if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}  
         with:
           name: page
+          path: playground/dist
+
+      - name: Upload Library Assets
+        uses: actions/upload-artifact@v4
+        if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}  
+        with:
+          name: library
           path: dist
