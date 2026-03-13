@@ -67,44 +67,6 @@ function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
-// ── Shared edit-bar builder ────────────────────────────────────────
-
-/**
- * Builds the thin header strip shown above every preview widget.
- * Displays the source line range and an "✎ Edit" button that places
- * the cursor inside the collapsed section so the user can edit it.
- */
-function buildPreviewEditBar(
-  view: EditorView,
-  sectionFrom: number,
-  lineStart: number,
-  lineEnd: number
-): HTMLElement {
-  const bar = document.createElement("div");
-  bar.className = "cm-preview-edit-bar";
-
-  const info = document.createElement("span");
-  info.className = "cm-preview-line-info";
-  info.textContent = `Lines ${lineStart}\u2013${lineEnd}`;
-  bar.appendChild(info);
-
-  const btn = document.createElement("button");
-  btn.className = "cm-preview-edit-btn";
-  btn.textContent = "✎ Edit";
-  // mousedown fires before CM6 processes the click; preventDefault keeps
-  // focus in the editor and prevents the default focus-loss behaviour.
-  btn.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    // Move cursor to first line inside the section (past the opening ---)
-    const target = Math.min(sectionFrom + 1, view.state.doc.length);
-    view.dispatch({ selection: { anchor: target, head: target } });
-    view.focus();
-  });
-  bar.appendChild(btn);
-
-  return bar;
-}
-
 // ── YouTube Preview Widget ──────────────────────────────────────────
 
 class YouTubePreviewWidget extends WidgetType {
@@ -112,8 +74,6 @@ class YouTubePreviewWidget extends WidgetType {
     readonly videoId: string,
     readonly title: string,
     readonly sectionFrom: number,
-    readonly lineStart: number,
-    readonly lineEnd: number
   ) {
     super();
   }
@@ -122,14 +82,9 @@ class YouTubePreviewWidget extends WidgetType {
     return this.videoId === other.videoId && this.sectionFrom === other.sectionFrom;
   }
 
-  toDOM(view: EditorView): HTMLElement {
+  toDOM(_view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-youtube-preview";
-
-    // Edit bar with line range + click-to-edit
-    wrapper.appendChild(
-      buildPreviewEditBar(view, this.sectionFrom, this.lineStart, this.lineEnd)
-    );
 
     // Container with 16:9 aspect ratio
     const container = document.createElement("div");
@@ -167,8 +122,6 @@ class AmazonPreviewWidget extends WidgetType {
   constructor(
     readonly props: Record<string, string>,
     readonly sectionFrom: number,
-    readonly lineStart: number,
-    readonly lineEnd: number
   ) {
     super();
   }
@@ -181,7 +134,7 @@ class AmazonPreviewWidget extends WidgetType {
     );
   }
 
-  toDOM(view: EditorView): HTMLElement {
+  toDOM(_view: EditorView): HTMLElement {
     const url = this.props["url"] || this.props["link"] || "";
     const title = this.props["title"] || "Amazon Product";
     const description = this.props["description"] || "";
@@ -191,11 +144,6 @@ class AmazonPreviewWidget extends WidgetType {
 
     const wrapper = document.createElement("div");
     wrapper.className = "cm-amazon-preview";
-
-    // Edit bar with line range + click-to-edit
-    wrapper.appendChild(
-      buildPreviewEditBar(view, this.sectionFrom, this.lineStart, this.lineEnd)
-    );
 
     if (!url) {
       const empty = document.createElement("div");
@@ -326,8 +274,6 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
               videoId,
               title,
               section.from,
-              section.startLine,
-              section.endLine
             ),
             block: true,
           }).range(section.from, section.to)
@@ -339,8 +285,6 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
           widget: new AmazonPreviewWidget(
             props,
             section.from,
-            section.startLine,
-            section.endLine
           ),
           block: true,
         }).range(section.from, section.to)
@@ -372,37 +316,6 @@ const frontmatterPreviewField = StateField.define<DecorationSet>({
 // ── Base theme ──────────────────────────────────────────────────────
 
 const frontmatterPreviewTheme = EditorView.baseTheme({
-  // ── Shared edit bar ──────────────────────────────────────────────
-  ".cm-preview-edit-bar": {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "2px 6px",
-    marginBottom: "4px",
-    fontSize: "10px",
-    color: "var(--cm-muted-foreground, #888)",
-    borderBottom: "1px solid rgba(128,128,128,0.15)",
-  },
-  ".cm-preview-line-info": {
-    fontFamily: "var(--font-mono, monospace)",
-    opacity: "0.6",
-  },
-  ".cm-preview-edit-btn": {
-    fontSize: "10px",
-    padding: "1px 7px",
-    borderRadius: "4px",
-    border: "1px solid rgba(128,128,128,0.3)",
-    background: "transparent",
-    cursor: "pointer",
-    color: "inherit",
-    opacity: "0.7",
-    transition: "opacity 0.15s, border-color 0.15s",
-  },
-  ".cm-preview-edit-btn:hover": {
-    opacity: "1",
-    borderColor: "rgba(128,128,128,0.6)",
-  },
-
   // ── YouTube ─────────────────────────────────────────────────────
   ".cm-youtube-preview": {
     padding: "4px 0",

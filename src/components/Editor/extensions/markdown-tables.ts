@@ -56,45 +56,12 @@ function parseTableAlignment(
   });
 }
 
-// ── Shared edit-bar helper ───────────────────────────────────────────
-// (same pattern used by frontmatter-preview.ts)
-
-function buildPreviewEditBar(
-  view: EditorView,
-  sectionFrom: number,
-  lineStart: number,
-  lineEnd: number
-): HTMLElement {
-  const bar = document.createElement("div");
-  bar.className = "cm-preview-edit-bar";
-
-  const info = document.createElement("span");
-  info.className = "cm-preview-line-info";
-  info.textContent = `Lines ${lineStart}–${lineEnd}`;
-  bar.appendChild(info);
-
-  const btn = document.createElement("button");
-  btn.className = "cm-preview-edit-btn";
-  btn.textContent = "✎ Edit";
-  btn.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    const target = Math.min(sectionFrom, view.state.doc.length);
-    view.dispatch({ selection: { anchor: target, head: target } });
-    view.focus();
-  });
-  bar.appendChild(btn);
-
-  return bar;
-}
-
 // ── Table widget ─────────────────────────────────────────────────────
 
 class MarkdownTableWidget extends WidgetType {
   constructor(
     readonly tableLines: string[],
     readonly tableFrom: number,
-    readonly lineStart: number,
-    readonly lineEnd: number
   ) {
     super();
   }
@@ -107,13 +74,9 @@ class MarkdownTableWidget extends WidgetType {
     );
   }
 
-  toDOM(view: EditorView): HTMLElement {
+  toDOM(_view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-md-table-preview";
-
-    wrapper.appendChild(
-      buildPreviewEditBar(view, this.tableFrom, this.lineStart, this.lineEnd)
-    );
 
     wrapper.appendChild(this._buildTable());
     return wrapper;
@@ -204,8 +167,6 @@ function buildTableDecos(state: EditorState): DecorationSet {
           widget: new MarkdownTableWidget(
             groupLines,
             fromPos,
-            groupStart,
-            groupEnd
           ),
           block: true,
         }).range(fromPos, toPos)
@@ -235,38 +196,6 @@ const tablePreviewField = StateField.define<DecorationSet>({
 // ── Base theme ───────────────────────────────────────────────────────
 
 const tablePreviewTheme = EditorView.baseTheme({
-  // Shared edit bar (defined here for table; same classes used by
-  // frontmatter-preview.ts so no duplication in the DOM/CSSOM)
-  ".cm-preview-edit-bar": {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "2px 6px",
-    marginBottom: "4px",
-    fontSize: "10px",
-    color: "var(--cm-muted-foreground, #888)",
-    borderBottom: "1px solid rgba(128,128,128,0.15)",
-  },
-  ".cm-preview-line-info": {
-    fontFamily: "var(--font-mono, monospace)",
-    opacity: "0.6",
-  },
-  ".cm-preview-edit-btn": {
-    fontSize: "10px",
-    padding: "1px 7px",
-    borderRadius: "4px",
-    border: "1px solid rgba(128,128,128,0.3)",
-    background: "transparent",
-    cursor: "pointer",
-    color: "inherit",
-    opacity: "0.7",
-    transition: "opacity 0.15s, border-color 0.15s",
-  },
-  ".cm-preview-edit-btn:hover": {
-    opacity: "1",
-    borderColor: "rgba(128,128,128,0.6)",
-  },
-
   // Table container
   ".cm-md-table-preview": {
     padding: "4px 0 8px",

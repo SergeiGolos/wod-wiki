@@ -252,10 +252,10 @@ function UnifiedEditorWrapper(props: {
 
   return (
     <CommandProvider>
-      <div
-        className="border rounded-lg overflow-hidden"
-        style={{ height: props.height ?? "700px" }}
-      >
+      <div className="p-4 h-full w-full flex flex-col box-border">
+        <div
+          className="border rounded-lg overflow-hidden w-full flex-1 min-h-0"
+        >
         <UnifiedEditor
           value={content}
           onChange={setContent}
@@ -268,6 +268,7 @@ function UnifiedEditorWrapper(props: {
           onStartWorkout={(block) => props.onStartWorkout?.(block)}
           onBlocksChange={(blocks) => console.log("Blocks changed:", blocks.length)}
         />
+        </div>
       </div>
     </CommandProvider>
   );
@@ -281,7 +282,7 @@ const meta: Meta<typeof UnifiedEditorWrapper> = {
   title: "Components/UnifiedEditor",
   component: UnifiedEditorWrapper,
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
     docs: {
       description: {
         component:
