@@ -8,6 +8,10 @@
 export { WodWiki } from './components/Editor/WodWiki';
 export type { WodWikiProps } from './components/Editor/WodWiki';
 
+// Unified editor (single CM6 instance for full document editing)
+export { UnifiedEditor } from './components/Editor/UnifiedEditor';
+export type { UnifiedEditorProps } from './components/Editor/UnifiedEditor';
+
 // Markdown editor
 export { MarkdownEditor } from './components/Editor/MarkdownEditor';
 export type { MarkdownEditorProps } from './components/Editor/MarkdownEditor';
