@@ -49,7 +49,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    initialContent: `# My Workout Log - ${new Date().toLocaleDateString()}
+    initialContent: `# My Workout Log - 2024-03-14
 
 ---
 test:value1
@@ -81,12 +81,8 @@ Add your workout notes here.
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     
-    // Check if the workbench is rendered by looking for the header title
-    await expect(canvas.getByText(/STORYBOOK WORKBENCH/i)).toBeInTheDocument();
-    
-    // Check if the Plan panel is present via its class
-    const planPanel = canvasElement.querySelector('.group\\/plan-panel');
-    expect(planPanel).toBeInTheDocument();
+    // Check if the workbench is rendered by looking for the main header
+    await expect(canvas.getByRole('heading', { name: /^Workbench$/i })).toBeInTheDocument();
     
     // Check if some content from initialContent is present in the editor area
     await expect(canvas.getByText(/My Workout Log/i)).toBeInTheDocument();

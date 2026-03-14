@@ -22,7 +22,7 @@
 
 import React, { useCallback, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { PlanPanel } from '@/panels/plan-panel';
 import type { WodBlock } from '@/components/Editor/types';
@@ -267,7 +267,6 @@ const PlanViewHarness: React.FC<PlanViewHarnessProps> = ({
 }) => {
   const [, setBlocks] = useState<unknown[]>([]);
   const [, setContent] = useState(initialContent);
-  const [, setActiveBlockId] = useState<string | null>(null);
 
   const handleStartWorkout = useCallback(
     (block: WodBlock) => {
@@ -285,7 +284,6 @@ const PlanViewHarness: React.FC<PlanViewHarnessProps> = ({
         <PlanPanel
           initialContent={initialContent}
           onStartWorkout={handleStartWorkout}
-          setActiveBlockId={setActiveBlockId}
           setBlocks={setBlocks}
           setContent={setContent}
           readOnly={readOnly}

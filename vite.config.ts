@@ -25,13 +25,13 @@ export default defineConfig({
   })],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': resolve(dirname, 'src')
     }
   },
   build: {
     // Library mode configuration - single entry for simplicity
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
+      entry: resolve(dirname, 'src/index.ts'),
       formats: ['es'],
       fileName: 'index'
     },

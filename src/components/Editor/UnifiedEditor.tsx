@@ -13,7 +13,7 @@
  * SectionEditor to a single, highly-extensible CodeMirror 6 instance."
  */
 
-import React, { useEffect, useRef, useMemo, useState } from "react";
+import React, { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import { EditorState, Extension, StateEffect } from "@codemirror/state";
 import {
   EditorView,
@@ -58,6 +58,7 @@ import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplet
 import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
+import { gutterRuntimeHighlights } from "./extensions/gutter-runtime";
 import { OverlayTrack } from "./overlays/OverlayTrack";
 import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "./overlays/OverlayTrack";
@@ -118,6 +119,12 @@ export interface UnifiedEditorProps {
    * Default: 1.
    */
   visibleCommands?: number;
+  /**
+   * When true (default), clicking "Run" opens an inline runtime panel below
+   * the WOD block instead of calling onStartWorkout / navigating to the track
+   * route.  Set to false to restore the previous route-based behaviour.
+   */
+  enableInlineRuntime?: boolean;
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
@@ -139,6 +146,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   enableOverlay = true,
   commands,
   visibleCommands = 1,
+  enableInlineRuntime = true,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -151,12 +159,83 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   const [cursorLine, setCursorLine] = useState(1);
   const overlayState = useOverlayWidthState(sections, activeSectionId);
 
+  // Active runtime panels: sectionId → pinned WodBlock (set when Run clicked,
+  // removed when the panel is closed). Stored as plain React state so the
+  // overlay slot re-renders when a panel is toggled.
+  const [activeRuntimes, setActiveRuntimes] = useState<Map<string, WodBlock>>(new Map());
+
+  // Sections whose runtime panel is in "expanded" (full content area) mode.
+  const [expandedRuntimes, setExpandedRuntimes] = useState<Set<string>>(new Set());
+
+  // Derived sets for OverlayTrack — avoids re-creating on every render unless
+  // the underlying state changes.
+  const runtimeActiveSectionIds = useMemo(
+    () => new Set(activeRuntimes.keys()),
+    [activeRuntimes],
+  );
+
+  const expandedRuntimeSectionIds = useMemo(
+    () => new Set(expandedRuntimes),
+    [expandedRuntimes],
+  );
+
+  // Toggle an inline runtime panel for the given WOD block (Run button).
+  const handleInlineRun = useCallback((block: WodBlock) => {
+    setActiveRuntimes((prev) => {
+      const next = new Map(prev);
+      if (next.has(block.id)) {
+        next.delete(block.id);  // toggle off
+      } else {
+        next.set(block.id, block);
+      }
+      return next;
+    });
+  }, []);
+
+  // Close a specific runtime panel (called by RuntimeTimerPanel's onClose).
+  const handleRuntimeClose = useCallback((sectionId: string) => {
+    setActiveRuntimes((prev) => {
+      const next = new Map(prev);
+      next.delete(sectionId);
+      return next;
+    });
+    setExpandedRuntimes((prev) => {
+      const next = new Set(prev);
+      next.delete(sectionId);
+      return next;
+    });
+  }, []);
+
+  // Toggle the expanded (full content area) state for a runtime panel.
+  const handleRuntimeToggleExpand = useCallback((sectionId: string) => {
+    setExpandedRuntimes((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  }, []);
+
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
+  // When enableInlineRuntime is true the "Run" command uses handleInlineRun
+  // instead of routing via onStartWorkout.
   const effectiveCommands = useMemo<WodCommand[]>(() => {
     if (commands && commands.length > 0) return commands;
     const synthesized: WodCommand[] = [];
-    if (onStartWorkout) {
+    if (enableInlineRuntime) {
+      // Inline run: open TimerScreen panel below WOD block
+      synthesized.push({
+        id: "run",
+        label: "Run",
+        icon: <Play className="h-3 w-3 fill-current" />,
+        primary: true,
+        onClick: handleInlineRun,
+      });
+    } else if (onStartWorkout) {
       synthesized.push({
         id: "run",
         label: "Run",
@@ -174,7 +253,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       });
     }
     return synthesized;
-  }, [commands, onStartWorkout, onAddToPlan]);
+  }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleInlineRun]);
 
   // Mixed language: Markdown + embedded WodScript in code fences
   const languages = useMemo(() => {
@@ -250,6 +329,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
       // Ctrl+Click link opening + hover tooltip
       linkOpen,
+
+      // Gutter line highlights for active runtime blocks
+      ...gutterRuntimeHighlights,
 
       // Update listener
       EditorView.updateListener.of((update) => {
@@ -382,6 +464,10 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           docVersion={props.docVersion}
           commands={effectiveCommands}
           visibleCount={visibleCommands}
+          activeBlock={activeRuntimes.get(props.sectionId)}
+          onRuntimeClose={() => handleRuntimeClose(props.sectionId)}
+          isRuntimeExpanded={props.isRuntimeExpanded}
+          onRuntimeToggleExpand={() => handleRuntimeToggleExpand(props.sectionId)}
         />
       );
     }
@@ -415,6 +501,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           widths={overlayState.widths}
           activeSectionId={activeSectionId}
           renderSlot={renderSlot}
+          runtimeActiveSectionIds={runtimeActiveSectionIds}
+          expandedRuntimeSectionIds={expandedRuntimeSectionIds}
+          cursorLine={cursorLine}
         />
       )}
     </div>

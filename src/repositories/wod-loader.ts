@@ -2,7 +2,7 @@
  * Loads markdown content from the project's WOD directory.
  * Uses Vite's import.meta.glob feature.
  */
-const wodModules = import.meta.glob('../../wod/*.md', { query: '?raw', eager: true, import: 'default' });
+const wodModules = import.meta.glob('../../wod/**/*.md', { query: '?raw', eager: true, import: 'default' });
 
 export function getWodContent(id: string): string | undefined {
     // Try exact match first

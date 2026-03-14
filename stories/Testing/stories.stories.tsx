@@ -17,7 +17,6 @@ const meta: Meta<typeof Workbench> = {
   component: Workbench,
   args: {
     showToolbar: false,
-    showContextOverlay: false,
     readonly: true,
     theme: 'wod-light',
     hidePlanUnlessDebug: true,
@@ -39,60 +38,114 @@ const meta: Meta<typeof Workbench> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const createWorkoutStory = (content: string, source: string): Story => ({
-  args: { initialContent: content },
+// ── Loops Group ─────────────────────────────────────────────────────────────
+
+export const LoopsFixed: Story = {
+  name: 'Loops/Fixed Rounds',
+  args: { initialContent: markdownLoopsFixed },
   parameters: {
     docs: {
       description: {
-        story: `Markdown source: ${source}`
+        story: 'Markdown source: stories/Testing/workouts/loops-fixed.md'
       }
     }
   }
-});
-
-// Loops Group
-export const LoopsFixed: Story = {
-  ...createWorkoutStory(markdownLoopsFixed, 'stories/Testing/workouts/loops-fixed.md'),
-  name: 'Loops/Fixed Rounds'
 };
 
 export const LoopsForTime: Story = {
-  ...createWorkoutStory(markdownLoopsForTime, 'stories/Testing/workouts/loops-for-time.md'),
-  name: 'Loops/For Time'
+  name: 'Loops/For Time',
+  args: { initialContent: markdownLoopsForTime },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/loops-for-time.md'
+      }
+    }
+  }
 };
 
 export const LoopsEMOM: Story = {
-  ...createWorkoutStory(markdownLoopsEMOM, 'stories/Testing/workouts/loops-emom.md'),
-  name: 'Loops/EMOM'
+  name: 'Loops/EMOM',
+  args: { initialContent: markdownLoopsEMOM },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/loops-emom.md'
+      }
+    }
+  }
 };
 
 export const LoopsAMRAP: Story = {
-  ...createWorkoutStory(markdownLoopsAMRAP, 'stories/Testing/workouts/loops-amrap.md'),
-  name: 'Loops/AMRAP'
+  name: 'Loops/AMRAP',
+  args: { initialContent: markdownLoopsAMRAP },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/loops-amrap.md'
+      }
+    }
+  }
 };
 
 export const LoopsTabata: Story = {
-  ...createWorkoutStory(markdownLoopsTabata, 'stories/Testing/workouts/loops-tabata.md'),
-  name: 'Loops/Tabata'
+  name: 'Loops/Tabata',
+  args: { initialContent: markdownLoopsTabata },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/loops-tabata.md'
+      }
+    }
+  }
 };
 
-// Blocks Group
+// ── Blocks Group ────────────────────────────────────────────────────────────
+
 export const BlocksSimple: Story = {
-  ...createWorkoutStory(markdownBlocksSimple, 'stories/Testing/workouts/blocks-simple.md'),
-  name: 'Blocks/Simple'
+  name: 'Blocks/Simple',
+  args: { initialContent: markdownBlocksSimple },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/blocks-simple.md'
+      }
+    }
+  }
 };
 
 export const BlocksNested: Story = {
-  ...createWorkoutStory(markdownBlocksNested, 'stories/Testing/workouts/blocks-nested.md'),
-  name: 'Blocks/Nested'
+  name: 'Blocks/Nested',
+  args: { initialContent: markdownBlocksNested },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/blocks-nested.md'
+      }
+    }
+  }
 };
 
 export const BlocksRest: Story = {
-  ...createWorkoutStory(markdownBlocksRest, 'stories/Testing/workouts/blocks-rest.md'),
-  name: 'Blocks/Rest'
+  name: 'Blocks/Rest',
+  args: { initialContent: markdownBlocksRest },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/blocks-rest.md'
+      }
+    }
+  }
 };
 
 export const BlocksMetadata: Story = {
-  ...createWorkoutStory(markdownBlocksMetadata, 'stories/Testing/workouts/blocks-metadata.md'),
-  name: 'Blocks/Metadata'
+  name: 'Blocks/Metadata',
+  args: { initialContent: markdownBlocksMetadata },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Markdown source: stories/Testing/workouts/blocks-metadata.md'
+      }
+    }
+  }
 };

@@ -12,7 +12,7 @@ export default defineConfig({
   ],
   optimizeDeps: {
     include: [
-      '@storybook/test',
+      'storybook/test',
       '@storybook/react-vite',
       'react-router-dom',
       '@radix-ui/react-slot',

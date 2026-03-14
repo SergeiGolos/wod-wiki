@@ -24,7 +24,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { CollectionsFilter } from '@/components/history/CollectionsFilter';
 import { ListOfNotes } from '@/components/workbench/ListOfNotes';

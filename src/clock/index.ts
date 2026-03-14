@@ -98,19 +98,3 @@ export type {
 export { createDefaultDisplayState } from './types/DisplayTypes';
 
 // Hooks (useDisplayStack and related hooks have been removed - deprecated legacy API)
-
-// Card Components
-export {
-  IdleStartCard,
-  IdleCompleteCard,
-  ActiveBlockCard,
-  RestPeriodCard,
-  FallbackCard,
-} from './cards/DefaultCards';
-
-// Registry
-export { 
-  CardComponentRegistry, 
-  registerDefaultCards 
-} from './registry';
-export type { CardComponentProps, CardComponent } from './registry';

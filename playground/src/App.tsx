@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { Avatar } from './Components/avatar'
+import { Avatar } from '@/components/playground/avatar'
 import {
   Dropdown,
   DropdownButton,
@@ -7,8 +7,8 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownMenu,
-} from './Components/dropdown'
-import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from './Components/navbar'
+} from '@/components/playground/dropdown'
+import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
 import {
   Sidebar,
   SidebarBody,
@@ -19,8 +19,8 @@ import {
   SidebarLabel,
   SidebarSection,
   SidebarSpacer,
-} from './Components/sidebar'
-import { SidebarLayout } from './Components/sidebar-layout'
+} from '@/components/playground/sidebar'
+import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
   ArrowRightStartOnRectangleIcon,
   ChevronDownIcon,
@@ -59,7 +59,7 @@ import {
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
-import { CommandPalette } from './Components/CommandPalette'
+import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
@@ -147,12 +147,13 @@ function AppContent() {
     })
   }, [currentWorkout.name])
 
-  const handleSelectWorkout = (item: WorkoutItem | { name: string; content: string; category?: string }) => {
-    if (item.name === 'Home') {
+  const handleSelectWorkout = (item: any) => {
+    const workout = item as { name: string; category?: string; content?: string }
+    if (workout.name === 'Home') {
       navigate('/')
     } else {
-      const category = (item as WorkoutItem).category || 'General'
-      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(item.name)}`)
+      const category = workout.category || 'General'
+      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
     }
   }
 
@@ -187,12 +188,12 @@ function AppContent() {
       if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         setActiveCategory(null)
-        setIsCommandPaletteOpen((prev) => !prev)
+        setIsCommandPaletteOpen(!isCommandPaletteOpen)
       }
     }
     document.addEventListener('keydown', down)
     return () => document.removeEventListener('keydown', down)
-  }, [setIsCommandPaletteOpen])
+  }, [setIsCommandPaletteOpen, isCommandPaletteOpen])
 
   const actualTheme = useMemo(() => {
     if (theme === 'system') {

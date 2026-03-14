@@ -375,13 +375,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
       <PlanPanel
         initialContent={initialContent}
         value={content}
-        sections={sections}
         onStartWorkout={handleStartWorkoutAction}
-        setActiveBlockId={setActiveBlockId}
         setBlocks={setBlocks}
         setContent={setContent}
-        provider={provider}
-        sourceNoteId={contextEntry?.id ?? routeId}
       />
     </div>
   );
