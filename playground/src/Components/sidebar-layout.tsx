@@ -26,11 +26,11 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
     <Headless.Dialog open={open} onClose={close} className="lg:hidden">
       <Headless.DialogBackdrop
         transition
-        className="fixed inset-0 bg-black/30 transition data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in"
+        className="fixed inset-0 bg-black/30 transition data-closed:opacity-0 data-enter:duration-700 data-enter:ease-in-out data-leave:duration-700 data-leave:ease-in-out"
       />
       <Headless.DialogPanel
         transition
-        className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-in-out data-closed:-translate-x-full"
+        className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-700 ease-in-out data-closed:-translate-x-full"
       >
         <div className="flex h-full flex-col rounded-lg bg-white shadow-xs ring-1 ring-zinc-950/5 dark:bg-zinc-900 dark:ring-white/10">
           <div className="-mb-3 px-4 pt-3">
@@ -58,7 +58,7 @@ export function SidebarLayout({
       {/* Sidebar on desktop */}
       <div 
         className={clsx(
-          "fixed inset-y-0 left-0 transition-all duration-300 ease-in-out max-lg:hidden",
+          "fixed inset-y-0 left-0 transition-all duration-700 ease-in-out max-lg:hidden",
           isCollapsed ? "w-0 -translate-x-full" : "w-64 translate-x-0"
         )}
       >
@@ -84,7 +84,7 @@ export function SidebarLayout({
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className={clsx(
-          "fixed top-4 z-40 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-zinc-950/10 transition-all duration-300 hover:bg-zinc-50 max-lg:hidden dark:bg-zinc-800 dark:ring-white/10 dark:hover:bg-zinc-700",
+          "fixed top-4 z-40 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-zinc-950/10 transition-all duration-700 ease-in-out hover:bg-zinc-50 max-lg:hidden dark:bg-zinc-800 dark:ring-white/10 dark:hover:bg-zinc-700",
           isCollapsed ? "left-4" : "left-[15rem]"
         )}
         aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -93,7 +93,7 @@ export function SidebarLayout({
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
-          className={clsx("h-5 w-5 transition-transform duration-300", isCollapsed ? "" : "rotate-180")}
+          className={clsx("h-5 w-5 transition-transform duration-700 ease-in-out", isCollapsed ? "" : "rotate-180")}
         >
           <path
             fillRule="evenodd"
@@ -106,7 +106,8 @@ export function SidebarLayout({
       {/* Content */}
       <main 
         className={clsx(
-          "flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 transition-all duration-300 ease-in-out",
+          "flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 transition-all duration-700 ease-in-out",
+          "bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950",
           isCollapsed ? "lg:pl-2" : "lg:pl-64"
         )}
       >

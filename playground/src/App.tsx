@@ -41,6 +41,15 @@ import {
   SparklesIcon,
   Square2StackIcon,
   TicketIcon,
+  CodeBracketIcon,
+  ClockIcon,
+  ArrowsRightLeftIcon,
+  RectangleStackIcon,
+  BeakerIcon,
+  CircleStackIcon,
+  CommandLineIcon,
+  DocumentTextIcon,
+  FolderIcon,
 } from '@heroicons/react/20/solid'
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
@@ -49,7 +58,7 @@ import { CommandPalette } from './Components/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
-import { HashRouter } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 
 // Load all markdown files from the wod directory
 const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -62,10 +71,14 @@ interface WorkoutItem {
 }
 
 function AppContent() {
-  const [content, setContent] = useState(PLAYGROUND_CONTENT)
-  const [currentFileName, setCurrentFileName] = useState('Home')
+  const navigate = useNavigate()
+  const { category: urlCategory, name: urlName } = useParams()
+  const location = useLocation()
+  
   const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen } = useCommandPalette()
   const { theme } = useTheme()
+  const [recentPages, setRecentPages] = useState<string[]>(['Home'])
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
 
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
@@ -81,9 +94,71 @@ function AppContent() {
     })
   }, [])
 
-  const handleSelectWorkout = (item: WorkoutItem) => {
-    setContent(item.content)
-    setCurrentFileName(item.name)
+  // Find current content based on URL
+  const currentWorkout = useMemo(() => {
+    if (location.pathname === '/' || !urlName) {
+      return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
+    }
+    
+    const name = decodeURIComponent(urlName)
+    const category = urlCategory ? decodeURIComponent(urlCategory) : 'General'
+    
+    return workoutItems.find(item => item.name === name && item.category === category) || { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
+  }, [urlCategory, urlName, workoutItems, location.pathname])
+
+  const collections = useMemo(() => {
+    const categories = Array.from(new Set(workoutItems.map(item => item.category)))
+    
+    const groups = {
+      Kettlebell: [
+        'kettlebell', 'dan-john', 'geoff-neupert', 'girevoy-sport', 
+        'joe-daniels', 'keith-weber', 'mark-wildman', 'steve-cotter', 'strongfirst'
+      ],
+      Crossfit: [
+        'crossfit-games', 'crossfit-girls'
+      ],
+      Swimming: [
+        'pre-hishschool', 'highschool', 'college', 'post-college', 
+        'masters', 'olympic', 'triathlete'
+      ],
+      Other: [
+        'unconventional'
+      ]
+    }
+
+    return {
+      Kettlebell: groups.Kettlebell.filter(c => categories.includes(c)),
+      Crossfit: groups.Crossfit.filter(c => categories.includes(c)),
+      Swimming: groups.Swimming.filter(c => categories.includes(c)),
+      Other: groups.Other.filter(c => categories.includes(c))
+    }
+  }, [workoutItems])
+
+  // Update recent pages whenever currentWorkout changes
+  useEffect(() => {
+    setRecentPages(prev => {
+      const filtered = prev.filter(name => name !== currentWorkout.name)
+      return [currentWorkout.name, ...filtered].slice(0, 5)
+    })
+  }, [currentWorkout.name])
+
+  const handleSelectWorkout = (item: WorkoutItem | { name: string; content: string; category?: string }) => {
+    if (item.name === 'Home') {
+      navigate('/')
+    } else {
+      const category = (item as WorkoutItem).category || 'General'
+      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(item.name)}`)
+    }
+  }
+
+  const handleCollectionClick = (category: string) => {
+    setActiveCategory(category)
+    setIsCommandPaletteOpen(true)
+  }
+
+  const handleSearchClick = () => {
+    setActiveCategory(null)
+    setIsCommandPaletteOpen(true)
   }
 
   // Keyboard shortcut for command palette
@@ -91,6 +166,7 @@ function AppContent() {
     const down = (e: KeyboardEvent) => {
       if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
+        setActiveCategory(null)
         setIsCommandPaletteOpen((prev) => !prev)
       }
     }
@@ -98,7 +174,6 @@ function AppContent() {
     return () => document.removeEventListener('keydown', down)
   }, [setIsCommandPaletteOpen])
 
-  // Determine actual theme for editor
   const actualTheme = useMemo(() => {
     if (theme === 'system') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'vs'
@@ -112,9 +187,9 @@ function AppContent() {
         <Navbar>
           <NavbarSpacer />
           <NavbarSection>
-            <NavbarItem onClick={() => setIsCommandPaletteOpen(true)} aria-label="Search">
+            <NavbarItem onClick={handleSearchClick} aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
-              <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-hover:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-hover:text-zinc-400">
+              <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-[hover]:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-[hover]:text-zinc-400">
                 <abbr title="Control" className="no-underline">
                   Ctrl
                 </abbr>{' '}
@@ -159,87 +234,94 @@ function AppContent() {
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <Dropdown>
-              <DropdownButton as={SidebarItem} className="lg:mb-2.5">
-                <Avatar initials="W" className="bg-blue-600 text-white" />
-                <SidebarLabel>Wod Wiki</SidebarLabel>
-                <ChevronDownIcon data-slot="icon" />
-              </DropdownButton>
-              <DropdownMenu className="min-w-80 lg:min-w-64" anchor="bottom start">
-                <DropdownItem href="/teams/1/settings">
-                  <Cog8ToothIcon data-slot="icon" />
-                  <DropdownLabel>Settings</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/teams/1">
-                  <Avatar slot="icon" initials="W" className="bg-blue-600 text-white" />
-                  <DropdownLabel>Wod Wiki</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/teams/create">
-                  <PlusIcon data-slot="icon" />
-                  <DropdownLabel>New collection&hellip;</DropdownLabel>
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-            <SidebarSection className="max-lg:hidden">
-              <SidebarItem onClick={() => setIsCommandPaletteOpen(true)}>
+            <div className="flex items-center px-2 py-2.5">
+              <Avatar initials="W" className="bg-blue-600 text-white size-6" />
+              <span className="ml-3 text-sm font-semibold text-zinc-950 dark:text-white">Wod Wiki</span>
+            </div>
+            <SidebarSection>
+              <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/'}>
+                <HomeIcon data-slot="icon" />
+                <SidebarLabel>Home</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem onClick={handleSearchClick}>
                 <MagnifyingGlassIcon data-slot="icon" />
                 <SidebarLabel>Search</SidebarLabel>
-                <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-hover:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-hover:text-zinc-400">
+                <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-[hover]:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-[hover]:text-zinc-400">
                   <abbr title="Control" className="no-underline">
                     Ctrl
                   </abbr>{' '}
                   K
                 </kbd>
               </SidebarItem>
-              <SidebarItem href="/inbox">
-                <InboxIcon data-slot="icon" />
-                <SidebarLabel>Inbox</SidebarLabel>
-              </SidebarItem>
             </SidebarSection>
           </SidebarHeader>
           <SidebarBody>
             <SidebarSection>
-              <SidebarItem href="/" current>
-                <HomeIcon data-slot="icon" />
-                <SidebarLabel>Home</SidebarLabel>
+              <SidebarHeading>Syntax</SidebarHeading>
+              <SidebarItem href="#/syntax/basics">
+                <CodeBracketIcon data-slot="icon" />
+                <SidebarLabel>The Basics</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/events">
-                <Square2StackIcon data-slot="icon" />
-                <SidebarLabel>Events</SidebarLabel>
+              <SidebarItem href="#/syntax/timers">
+                <ClockIcon data-slot="icon" />
+                <SidebarLabel>Timers & Intervals</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/orders">
-                <TicketIcon data-slot="icon" />
-                <SidebarLabel>Orders</SidebarLabel>
+              <SidebarItem href="#/syntax/repeaters">
+                <ArrowsRightLeftIcon data-slot="icon" />
+                <SidebarLabel>Repeaters</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/settings">
-                <Cog6ToothIcon data-slot="icon" />
-                <SidebarLabel>Settings</SidebarLabel>
+              <SidebarItem href="#/syntax/groups">
+                <RectangleStackIcon data-slot="icon" />
+                <SidebarLabel>Groups</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/broadcasts">
-                <MegaphoneIcon data-slot="icon" />
-                <SidebarLabel>Broadcasts</SidebarLabel>
+              <SidebarItem href="#/syntax/measurements">
+                <BeakerIcon data-slot="icon" />
+                <SidebarLabel>Measurements</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="#/syntax/supplemental">
+                <CircleStackIcon data-slot="icon" />
+                <SidebarLabel>Supplemental Data</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="#/syntax/agentic">
+                <CommandLineIcon data-slot="icon" />
+                <SidebarLabel>Agentic Skill</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
-            <SidebarSection className="max-lg:hidden">
-              <SidebarHeading>Recent Workouts</SidebarHeading>
-              {workoutItems.slice(0, 5).map(item => (
-                <SidebarItem key={item.id} onClick={() => handleSelectWorkout(item)}>
-                  {item.name}
-                </SidebarItem>
+            
+            <SidebarSpacer />
+
+            <SidebarSection>
+              <SidebarHeading>Collections</SidebarHeading>
+              {Object.entries(collections).map(([groupName, groupCategories]) => (
+                groupCategories.length > 0 && (
+                  <React.Fragment key={groupName}>
+                    <div className="px-2 pt-4 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">
+                      {groupName}
+                    </div>
+                    {groupCategories.map(category => (
+                      <SidebarItem key={category} onClick={() => handleCollectionClick(category)} current={currentWorkout.category === category}>
+                        <FolderIcon data-slot="icon" />
+                        <SidebarLabel>{category}</SidebarLabel>
+                      </SidebarItem>
+                    ))}
+                  </React.Fragment>
+                )
               ))}
             </SidebarSection>
+            
             <SidebarSpacer />
+            
             <SidebarSection>
-              <SidebarItem href="/support">
-                <QuestionMarkCircleIcon data-slot="icon" />
-                <SidebarLabel>Support</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/changelog">
-                <SparklesIcon data-slot="icon" />
-                <SidebarLabel>Changelog</SidebarLabel>
-              </SidebarItem>
+              <SidebarHeading>Recent</SidebarHeading>
+              {recentPages.map(pageName => {
+                const item = workoutItems.find(i => i.name === pageName) || (pageName === 'Home' ? { name: 'Home', content: PLAYGROUND_CONTENT } : null)
+                if (!item) return null
+                return (
+                  <SidebarItem key={pageName} onClick={() => handleSelectWorkout(item as any)} current={currentWorkout.name === pageName}>
+                    {pageName}
+                  </SidebarItem>
+                )
+              })}
             </SidebarSection>
           </SidebarBody>
           <SidebarFooter className="max-lg:hidden">
@@ -287,14 +369,15 @@ function AppContent() {
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="pt-4 lg:pt-6">
-          <h1 className="px-6 lg:px-10 text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentFileName}</h1>
+          <h1 className="px-6 lg:px-10 text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
           <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
         </div>
         
         <div className="flex-1 flex flex-col min-h-0">
           <UnifiedEditor
-            value={content}
-            onChange={setContent}
+            key={currentWorkout.name}
+            value={currentWorkout.content}
+            onChange={() => {}} // Read-only for now via routing, or could sync back
             className="flex-1 min-h-0 w-full"
             theme={actualTheme}
           />
@@ -303,9 +386,13 @@ function AppContent() {
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
+        onClose={() => {
+          setIsCommandPaletteOpen(false)
+          setActiveCategory(null)
+        }}
         items={workoutItems}
         onSelect={handleSelectWorkout}
+        initialCategory={activeCategory}
       />
     </SidebarLayout>
   )
@@ -316,7 +403,11 @@ export function App() {
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
       <HashRouter>
         <CommandProvider>
-          <AppContent />
+          <Routes>
+            <Route path="/" element={<AppContent />} />
+            <Route path="/workout/:category/:name" element={<AppContent />} />
+            <Route path="*" element={<AppContent />} />
+          </Routes>
         </CommandProvider>
       </HashRouter>
     </ThemeProvider>
