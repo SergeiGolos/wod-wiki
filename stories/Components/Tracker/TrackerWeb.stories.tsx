@@ -18,7 +18,7 @@
 
 import React, { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { fn } from '@storybook/test';
+import { fn } from 'storybook/test';
 
 import { ScriptRuntime } from '@/runtime/ScriptRuntime';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';

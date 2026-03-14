@@ -23,6 +23,7 @@ export interface OverlayWidthDefaults {
   frontmatter: { active: number; inactive: number };
   markdown:    { active: number; inactive: number };
   code:        { active: number; inactive: number };
+  widget:      { active: number; inactive: number };
 }
 
 // ── Default policy values ────────────────────────────────────────────
@@ -32,6 +33,7 @@ export const DEFAULT_OVERLAY_WIDTHS: OverlayWidthDefaults = {
   frontmatter: { active: 35, inactive: 100 },
   markdown:    { active: 0,  inactive: 0 },
   code:        { active: 30, inactive: 0 },
+  widget:      { active: 100, inactive: 100 },
 };
 
 // ── Policy function ──────────────────────────────────────────────────

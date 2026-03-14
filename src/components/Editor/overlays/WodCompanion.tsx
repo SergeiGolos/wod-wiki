@@ -22,6 +22,7 @@ import { sectionField, type EditorSection } from "../extensions/section-state";
 import { cn } from "@/lib/utils";
 import type { WodBlock } from "../types";
 import type { WodCommand } from "./WodCommand";
+import { RuntimeTimerPanel } from "./RuntimeTimerPanel";
 
 // ── Singleton parser (created once per module) ───────────────────────
 const parser = new MdTimerRuntime();
@@ -272,6 +273,18 @@ export interface WodCompanionProps {
    * behind a "…" overflow menu.  Default: 1.
    */
   visibleCount?: number;
+  /**
+   * When set, the companion renders the full-height RuntimeTimerPanel instead
+   * of the normal metrics/button view. This is the pinned WodBlock from the
+   * moment Run was clicked.
+   */
+  activeBlock?: WodBlock;
+  /** Called to close/stop the active runtime panel. */
+  onRuntimeClose?: () => void;
+  /** True when the runtime panel is in full-height expanded mode. */
+  isRuntimeExpanded?: boolean;
+  /** Toggle between expanded and compact runtime view. */
+  onRuntimeToggleExpand?: () => void;
 }
 
 export const WodCompanion: React.FC<WodCompanionProps> = ({
@@ -282,6 +295,10 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   docVersion,
   commands,
   visibleCount = 1,
+  activeBlock,
+  onRuntimeClose,
+  isRuntimeExpanded,
+  onRuntimeToggleExpand,
 }) => {
   const section = useMemo(
     () => getSection(view, sectionId),
@@ -308,11 +325,24 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
 
   if (!section) return null;
 
+  // ── RUNTIME ACTIVE: full-height timer panel ──────────────────────
+  // OverlayTrack has already expanded the slot to ≥75 vh.
+  if (activeBlock) {
+    return (
+      <RuntimeTimerPanel
+        block={activeBlock}
+        view={view}
+        onClose={onRuntimeClose ?? (() => {})}
+        isExpanded={isRuntimeExpanded ?? false}
+        onToggleExpand={onRuntimeToggleExpand}
+      />
+    );
+  }
+
   // ── INACTIVE: compact action strip ──────────────────────────────
   if (!isActive) {
     return (
       <div className="h-full w-full flex flex-col bg-popover/60 backdrop-blur-sm border-l border-border/50 overflow-visible">
-        {/* Buttons pinned to top-right */}
         <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} compact />
       </div>
     );

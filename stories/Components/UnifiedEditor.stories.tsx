@@ -13,7 +13,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { UnifiedEditor } from "@/components/Editor/UnifiedEditor";
 import { CommandProvider } from "@/components/command-palette/CommandContext";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import { useState } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────

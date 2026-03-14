@@ -27,6 +27,8 @@ export interface SectionRect {
   type: EditorSection["type"];
   /** Section subtype (forwarded for convenience) */
   subtype?: EditorSection["subtype"];
+  /** Widget name (only for type === "widget") */
+  widgetName?: string;
 }
 
 /** Callback type for geometry change listeners */
@@ -90,6 +92,7 @@ class SectionGeometryPlugin {
         height: bottom - top,
         type: sec.type,
         subtype: sec.subtype,
+        widgetName: sec.widgetName,
       });
     }
 

@@ -1,58 +1,61 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { WodBlock } from '@/components/Editor/types';
-import { SectionEditor } from '@/components/Editor/SectionEditor';
-import type { IContentProvider } from '@/types/content-provider';
-// import { HistoryEntry } from '../../types/history';
+import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
+import { useTheme } from '@/components/theme/ThemeProvider';
 
 export interface PlanPanelProps {
   initialContent?: string;
   value?: string;
-  sections?: any[] | null; // Use any[] temporarily if Section is not imported, or import it
+  /** @deprecated Ignored — sections are parsed internally by UnifiedEditor */
+  sections?: any[] | null;
   onStartWorkout: (block: WodBlock) => void;
-  setActiveBlockId: (blockId: string | null) => void;
+  /** @deprecated Ignored — active block tracking is handled by the overlay */
+  setActiveBlockId?: (blockId: string | null) => void;
   setBlocks: (blocks: any[]) => void;
   setContent: (content: string) => void;
   readOnly?: boolean;
-  provider?: IContentProvider;
-  /** ID of the note being edited (for link tracking) */
+  /** @deprecated Ignored — content provider not needed by UnifiedEditor */
+  provider?: any;
+  /** @deprecated Ignored */
   sourceNoteId?: string;
-  // entry?: HistoryEntry | null;
 }
 
 export const PlanPanel: React.FC<PlanPanelProps> = ({
   initialContent,
   value,
-  sections,
   onStartWorkout,
-  setActiveBlockId,
   setBlocks,
   setContent,
   readOnly = false,
-  provider,
-  sourceNoteId,
-  // entry,
 }) => {
-  const handleActiveBlockChange = (block: WodBlock | null) => {
-    setActiveBlockId(block?.id || null);
-  };
+  const { theme } = useTheme();
+
+  const resolvedTheme = useMemo(() => {
+    if (theme === 'dark') return 'vs-dark';
+    if (theme === 'light') return 'vs';
+    // "system" — detect from prefers-color-scheme
+    if (typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'vs-dark';
+    }
+    return 'vs';
+  }, [theme]);
 
   return (
     <div className="h-full w-full relative flex flex-col group/plan-panel">
-      {/* Section-based editor */}
       <div className="flex-1 min-h-0 relative">
-        <SectionEditor
-          initialContent={initialContent}
-          initialSections={sections || undefined}
-          value={value}
-          onContentChange={setContent}
+        <UnifiedEditor
+          value={value ?? initialContent ?? ''}
+          onChange={setContent}
           onBlocksChange={setBlocks}
-          onActiveBlockChange={handleActiveBlockChange}
           onStartWorkout={onStartWorkout}
-          height="100%"
-          editable={!readOnly}
+          readonly={readOnly}
           showLineNumbers={true}
-          sourceNoteId={sourceNoteId}
-          contentClassName="max-w-5xl mx-auto px-6 py-8"
+          theme={resolvedTheme}
+          enableOverlay={true}
+          enablePreview={true}
+          enableLinting={true}
+          className="h-full"
         />
       </div>
     </div>

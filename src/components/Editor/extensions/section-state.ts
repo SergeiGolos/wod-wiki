@@ -18,7 +18,7 @@ import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/s
 // ── Types ────────────────────────────────────────────────────────────
 
 /** Section types the parser can identify */
-export type EditorSectionType = "markdown" | "wod" | "frontmatter" | "code";
+export type EditorSectionType = "markdown" | "wod" | "frontmatter" | "code" | "widget";
 
 /** Markdown subtypes for routing per-section UI */
 export type EditorSectionSubtype =
@@ -53,6 +53,8 @@ export interface EditorSection {
   dialect?: EditorDialect;
   /** Fence language tag (only for type === "code") */
   language?: string;
+  /** Widget name (only for type === "widget", e.g. "hero" from ```widget:hero) */
+  widgetName?: string;
   /** Character offset of inner content start (after opening fence / delimiter) */
   contentFrom?: number;
   /** Character offset of inner content end (before closing fence / delimiter) */
@@ -147,13 +149,26 @@ function matchDialectFence(trimmed: string): EditorDialect | null {
 }
 
 /**
+ * Match a ```widget:<name> fence. Returns the widget name or null.
+ */
+function matchWidgetFence(trimmed: string): string | null {
+  const prefix = "```widget:";
+  if (!trimmed.toLowerCase().startsWith(prefix)) return null;
+  const rest = trimmed.slice(prefix.length).trim().split(/[\s\t]/)[0];
+  return rest.length > 0 ? rest : null;
+}
+
+/**
  * Match a generic fenced code block opening (``` followed by a language tag
  * that is NOT a WOD dialect). Returns the language string or null.
  */
 function matchGenericFence(trimmed: string): string | null {
+    // Also skip if it's a widget fence (handled below)
   if (!trimmed.startsWith("```") || trimmed === "```") return null;
   // Already a WOD dialect?
   if (matchDialectFence(trimmed)) return null;
+  // Already a widget?
+  if (matchWidgetFence(trimmed)) return null;
   // Extract language tag: everything after ``` up to first space/tab or end
   const rest = trimmed.slice(3).trim();
   if (rest.length === 0) return null;
@@ -287,6 +302,48 @@ function parseSections(state: EditorState): EditorSection[] {
         startLine: openLine,
         endLine: closeLine,
         dialect,
+        contentFrom: Math.min(contentFrom, doc.length),
+        contentTo: Math.max(contentFrom, contentTo),
+      });
+
+      lineNum = closeLine + 1;
+      continue;
+    }
+
+    // ── Widget fence (```widget:<name> ... ```) ──
+    const widgetName = matchWidgetFence(trimmed);
+    if (widgetName) {
+      flushMarkdown();
+
+      const openLine = lineNum;
+      const contentFrom = line.to + 1;
+      let closeLine = lineNum;
+      let contentTo = line.to;
+      let foundClose = false;
+
+      for (let j = lineNum + 1; j <= lineCount; j++) {
+        if (doc.line(j).text.trim() === "```") {
+          closeLine = j;
+          contentTo = doc.line(j).from - 1;
+          foundClose = true;
+          break;
+        }
+      }
+
+      if (!foundClose) {
+        closeLine = lineCount;
+        contentTo = doc.line(lineCount).to;
+      }
+
+      const content = doc.sliceString(line.from, doc.line(closeLine).to);
+      sections.push({
+        id: generateSectionId("widget", openLine, content),
+        type: "widget",
+        widgetName,
+        from: line.from,
+        to: doc.line(closeLine).to,
+        startLine: openLine,
+        endLine: closeLine,
         contentFrom: Math.min(contentFrom, doc.length),
         contentTo: Math.max(contentFrom, contentTo),
       });
