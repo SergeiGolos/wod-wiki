@@ -58,6 +58,8 @@ import {
 } from '@heroicons/react/20/solid'
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import type { WidgetRegistry } from '@/components/Editor/overlays/WidgetCompanion'
+import { HeroCarousel } from '@/components/Editor/widgets/HeroCarousel'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
@@ -202,6 +204,12 @@ function AppContent() {
     return theme === 'dark' ? 'vs-dark' : 'vs'
   }, [theme])
 
+  const widgetRegistry = useMemo<WidgetRegistry>(() => {
+    const reg = new Map()
+    reg.set('hero', HeroCarousel)
+    return reg
+  }, [])
+
   const ActionsMenu = () => (
     <Dropdown>
       <DropdownButton plain>
@@ -315,31 +323,31 @@ function AppContent() {
           <SidebarBody>
             <SidebarSection>
               <SidebarHeading>Syntax</SidebarHeading>
-              <SidebarItem href="#/syntax/basics">
+              <SidebarItem onClick={() => navigate('/workout/syntax/basics')} current={location.pathname === '/workout/syntax/basics'}>
                 <CodeBracketIcon data-slot="icon" />
                 <SidebarLabel>The Basics</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="#/syntax/timers">
+              <SidebarItem onClick={() => navigate('/workout/syntax/timers')} current={location.pathname === '/workout/syntax/timers'}>
                 <ClockIcon data-slot="icon" />
                 <SidebarLabel>Timers & Intervals</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="#/syntax/repeaters">
+              <SidebarItem onClick={() => navigate('/workout/syntax/repeaters')} current={location.pathname === '/workout/syntax/repeaters'}>
                 <ArrowsRightLeftIcon data-slot="icon" />
                 <SidebarLabel>Repeaters</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="#/syntax/groups">
+              <SidebarItem onClick={() => navigate('/workout/syntax/groups')} current={location.pathname === '/workout/syntax/groups'}>
                 <RectangleStackIcon data-slot="icon" />
                 <SidebarLabel>Groups</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="#/syntax/measurements">
+              <SidebarItem onClick={() => navigate('/workout/syntax/measurements')} current={location.pathname === '/workout/syntax/measurements'}>
                 <BeakerIcon data-slot="icon" />
                 <SidebarLabel>Measurements</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="#/syntax/supplemental">
+              <SidebarItem onClick={() => navigate('/workout/syntax/supplemental')} current={location.pathname === '/workout/syntax/supplemental'}>
                 <CircleStackIcon data-slot="icon" />
                 <SidebarLabel>Supplemental Data</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="#/syntax/agentic">
+              <SidebarItem onClick={() => navigate('/workout/syntax/agentic')} current={location.pathname === '/workout/syntax/agentic'}>
                 <CommandLineIcon data-slot="icon" />
                 <SidebarLabel>Agentic Skill</SidebarLabel>
               </SidebarItem>
@@ -409,6 +417,7 @@ function AppContent() {
             onChange={() => {}} // Read-only for now via routing, or could sync back
             className="flex-1 min-h-0 w-full"
             theme={actualTheme}
+            widgetComponents={widgetRegistry}
           />
         </div>
       </div>

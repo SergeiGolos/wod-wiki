@@ -136,7 +136,7 @@ export const OverviewPage: React.FC = () => {
             <h3 className="font-bold mb-2">Getting Started</h3>
             <p className="text-sm text-muted-foreground mb-4">Ready to build your first workout? Check out the syntax guide.</p>
             <Button variant="outline" size="sm" onClick={() => {
-                if (window.parent) window.parent.location.href = './?path=/story/syntax--ai-skill';
+                if (window.parent) window.parent.location.href = './?path=/story/syntax-interactive-guide--index';
             }}>
                 View Syntax Guide
             </Button>

@@ -315,6 +315,18 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     handleStartWorkoutAction,
   } = useWorkbenchSync();
 
+  const { goToPlan } = useWorkbench();
+
+  // Handle NAVIGATE_TO requests from syntax links
+  useEffect(() => {
+    const cleanup = workbenchEventBus.onNavigateTo(({ entryId, view: _view }) => {
+      // In Storybook/Static mode, we just update the in-memory noteId
+      // and let the provider/context handle loading the content.
+      goToPlan(entryId);
+    });
+    return () => { cleanup(); };
+  }, [goToPlan]);
+
   const { startTutorial } = useTutorialStore();
 
   // Local UI state

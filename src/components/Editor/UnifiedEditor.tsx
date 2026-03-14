@@ -59,11 +59,14 @@ import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterRuntimeHighlights } from "./extensions/gutter-runtime";
+import { foldWidgets } from "./extensions/fold-widgets";
 import { OverlayTrack } from "./overlays/OverlayTrack";
 import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "./overlays/OverlayTrack";
 import { FrontmatterCompanion } from "./overlays/FrontmatterCompanion";
 import { WodCompanion } from "./overlays/WodCompanion";
+import { WidgetCompanion } from "./overlays/WidgetCompanion";
+import type { WidgetRegistry } from "./overlays/WidgetCompanion";
 import type { WodCommand } from "./overlays/WodCommand";
 
 // Existing state fields
@@ -125,6 +128,11 @@ export interface UnifiedEditorProps {
    * route.  Set to false to restore the previous route-based behaviour.
    */
   enableInlineRuntime?: boolean;
+  /**
+   * Registry of custom widget components rendered inside ```widget:<name> blocks.
+   * Keys are widget names (e.g. "hero"), values are React components.
+   */
+  widgetComponents?: WidgetRegistry;
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
@@ -147,6 +155,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   commands,
   visibleCommands = 1,
   enableInlineRuntime = true,
+  widgetComponents,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -333,6 +342,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       // Gutter line highlights for active runtime blocks
       ...gutterRuntimeHighlights,
 
+      // Auto-fold widget fence bodies (keeps JSON off-screen)
+      foldWidgets,
+
       // Update listener
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -479,6 +491,16 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           isActive={props.isActive}
           widthPercent={props.widthPercent}
           docVersion={props.docVersion}
+        />
+      );
+    }
+    if (props.sectionType === "widget" && props.widgetName) {
+      return (
+        <WidgetCompanion
+          sectionId={props.sectionId}
+          widgetName={props.widgetName}
+          view={props.view}
+          registry={widgetComponents ?? new Map()}
         />
       );
     }

@@ -30,6 +30,7 @@ const MIN_SLOT_HEIGHT: Partial<Record<EditorSectionType, number>> = {
   frontmatter: 280,
   wod:         200,
   code:        140,
+  widget:      220,
 };
 
 // ── Running slot constants ─────────────────────────────────────────────
@@ -54,6 +55,8 @@ export interface OverlaySlotProps {
   isRuntimeActive?: boolean;
   /** True when the runtime panel is in expanded (full content area) mode. */
   isRuntimeExpanded?: boolean;
+  /** Widget name (only when sectionType === "widget"). */
+  widgetName?: string;
 }
 
 export interface OverlayTrackProps {
@@ -223,6 +226,7 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 view,
                 docVersion,
                 isRuntimeExpanded: true,
+                widgetName: rect.widgetName,
               })}
             </div>
           );
@@ -252,7 +256,11 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
             (scrollerHeight || window.innerHeight) * (isExpanded ? 1.0 : RUNNING_MIN_HEIGHT_RATIO),
           );
           const minH = isRunning ? runningMinH : (MIN_SLOT_HEIGHT[rect.type] ?? 0);
-          const effectiveHeight = Math.max(rect.height, minH);
+          // Widget slots use a fixed height — their section height is inflated
+          // by the JSON body lines which aren't displayed in the slot.
+          const effectiveHeight = rect.type === "widget"
+            ? minH
+            : Math.max(rect.height, minH);
 
           // ── Slot width ──────────────────────────────────────────────
           // Expanded: fill 100% of the content area (full viewing area).
@@ -357,7 +365,10 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 widthPercent: state.effectiveWidth,
                 isActive,
                 view,
-                docVersion,                isRuntimeExpanded: isExpanded,              })}
+                docVersion,
+                isRuntimeExpanded: isExpanded,
+                widgetName: rect.widgetName,
+              })}
             </div>
           );
         })}

@@ -6,21 +6,21 @@ const wodModules = import.meta.glob('../../wod/**/*.md', { query: '?raw', eager:
 
 export function getWodContent(id: string): string | undefined {
     // Try exact match first
-    let path = `../../wod/${id}.md`;
+    const path = `../../wod/${id}.md`;
     if (wodModules[path]) {
         return wodModules[path] as string;
     }
 
-    // Try case-insensitive match
-    const lowerId = id.toLowerCase();
-    const entry = Object.entries(wodModules).find(([p]) => p.toLowerCase().endsWith(`/${lowerId}.md`));
+    // Try case-insensitive match by searching for the suffix /id.md
+    const suffix = `/${id}.md`.toLowerCase();
+    const entry = Object.entries(wodModules).find(([p]) => p.toLowerCase().endsWith(suffix));
 
     return entry ? (entry[1] as string) : undefined;
 }
 
 export function getAllWodIds(): string[] {
     return Object.keys(wodModules).map(path => {
-        const match = path.match(/\/([^/]+)\.md$/);
+        const match = path.match(/\/wod\/(.+)\.md$/);
         return match ? match[1] : path;
     });
 }

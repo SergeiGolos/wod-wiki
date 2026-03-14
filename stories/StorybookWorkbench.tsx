@@ -30,7 +30,14 @@ import {
   Tv,
   MoreVertical,
   Bug,
-  RefreshCw
+  RefreshCw,
+  Code2 as CodeBracketIcon,
+  Clock as ClockIcon,
+  ArrowLeftRight as ArrowsRightLeftIcon,
+  Layers as RectangleStackIcon,
+  Beaker as BeakerIcon,
+  Database as CircleStackIcon,
+  Terminal as CommandLineIcon
 } from 'lucide-react';
 import { Button } from '../src/components/ui/button';
 import { Badge } from '../src/components/ui/badge';
@@ -126,7 +133,10 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     addAttachment,
     attachments,
     deleteAttachment,
+    navigation,
   } = useWorkbench();
+
+  const { goToPlan } = navigation;
 
   const { setIsOpen } = useCommandPalette();
   const { isDebugMode } = useDebugMode();
@@ -212,6 +222,58 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
           </SidebarHeader>
           <SidebarBody>
             <SidebarSection>
+              <SidebarHeading>Syntax Guide</SidebarHeading>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/basics')}
+                current={navigation.state.noteId === 'syntax/basics'}
+              >
+                <CodeBracketIcon className="size-5" />
+                <SidebarLabel>The Basics</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/timers')}
+                current={navigation.state.noteId === 'syntax/timers'}
+              >
+                <ClockIcon className="size-5" />
+                <SidebarLabel>Timers & Intervals</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/repeaters')}
+                current={navigation.state.noteId === 'syntax/repeaters'}
+              >
+                <ArrowsRightLeftIcon className="size-5" />
+                <SidebarLabel>Repeaters</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/groups')}
+                current={navigation.state.noteId === 'syntax/groups'}
+              >
+                <RectangleStackIcon className="size-5" />
+                <SidebarLabel>Groups</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/measurements')}
+                current={navigation.state.noteId === 'syntax/measurements'}
+              >
+                <BeakerIcon className="size-5" />
+                <SidebarLabel>Measurements</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/supplemental')}
+                current={navigation.state.noteId === 'syntax/supplemental'}
+              >
+                <CircleStackIcon className="size-5" />
+                <SidebarLabel>Supplemental Data</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem 
+                onClick={() => goToPlan('syntax/agentic')}
+                current={navigation.state.noteId === 'syntax/agentic'}
+              >
+                <CommandLineIcon className="size-5" />
+                <SidebarLabel>Agentic Skill</SidebarLabel>
+              </SidebarItem>
+            </SidebarSection>
+            <SidebarSection>
               <SidebarHeading>Actions</SidebarHeading>
               <SidebarItem onClick={handleDownload}>
                 <Download className="size-5" />
@@ -268,8 +330,8 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
 export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => {
   const { content: zContent, ready } = useZParamContent();
   const navigation = useInMemoryNavigation({
-    view: 'plan',
-    noteId: 'static',
+    view: props.initialViewMode || 'plan',
+    noteId: props.initialActiveEntryId || 'static',
   });
 
   if (!ready) return null;

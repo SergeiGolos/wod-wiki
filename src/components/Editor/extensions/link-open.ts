@@ -15,6 +15,7 @@
 import { Extension } from "@codemirror/state";
 import { EditorView, hoverTooltip, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
+import { workbenchEventBus } from "@/services/WorkbenchEventBus";
 
 // ── URL extraction ───────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ function urlAtPos(view: EditorView, pos: number): string | null {
     cursor = cursor.parent;
   }
 
-  return url && url.match(/^https?:\/\//) ? url : null;
+  return url && (url.match(/^https?:\/\//) || url.startsWith('wod:')) ? url : null;
 }
 
 // ── Hover tooltip ────────────────────────────────────────────────────
@@ -103,7 +104,13 @@ const ctrlClickPlugin = ViewPlugin.fromClass(
 
         e.preventDefault();
         e.stopPropagation();
-        window.open(url, "_blank", "noopener,noreferrer");
+
+        if (url.startsWith('wod:')) {
+          const entryId = url.slice(4); // Remove 'wod:'
+          workbenchEventBus.emitNavigateTo(entryId);
+        } else {
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
       };
 
       view.dom.addEventListener("mousedown", this.handler, true);
