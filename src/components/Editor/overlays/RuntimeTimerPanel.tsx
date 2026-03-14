@@ -24,10 +24,10 @@ import type { EditorView } from "@codemirror/view";
 import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
-import { PanelSizeProvider } from "@/panels/panel-system/PanelSizeContext";
+import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
 import { RuntimeFactory } from "@/runtime/compiler/RuntimeFactory";
 import { globalCompiler, globalParser } from "@/runtime-test-bench/services/testbench-services";
-import { useRuntimeExecution } from "@/runtime-test-bench/hooks/useRuntimeExecution";
+import { useRuntimeExecution, type UseRuntimeExecutionReturn } from "@/runtime-test-bench/hooks/useRuntimeExecution";
 import { useChromecast } from "@/hooks/useChromecast";
 import type { WodBlock, WorkoutResults } from "../types";
 import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
@@ -60,6 +60,99 @@ export interface RuntimeTimerPanelProps {
   onToggleExpand?: () => void;
 }
 
+
+// ── Inner body component (needs PanelSizeContext) ───────────────────────
+
+interface RuntimeTimerBodyProps {
+  execution: UseRuntimeExecutionReturn;
+  outputCount: number;
+  completedAt: Date | null;
+  casting: ReturnType<typeof useChromecast>;
+  handleCast: () => void;
+  handleStart: () => void;
+  handleStop: () => void;
+  handleNext: () => void;
+}
+
+const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
+  execution,
+  outputCount,
+  completedAt,
+  casting,
+  handleCast,
+  handleStart,
+  handleStop,
+  handleNext,
+}) => {
+  const { isCompact } = usePanelSize();
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden bg-background">
+      {/* ── Header: Cast button ── */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/20">
+        <span className="text-xs font-semibold text-foreground">Running</span>
+        <button
+          onClick={handleCast}
+          disabled={casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs font-medium transition-colors hover:bg-muted"
+          style={{
+            backgroundColor: casting.isCasting ? "#3b82f6" : "transparent",
+            color: casting.isCasting ? "white" : "inherit",
+            opacity: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" ? 0.5 : 1,
+            cursor: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting ? "not-allowed" : "pointer",
+          }}
+          title={casting.isCasting ? "Casting to device" : "Cast to device"}
+        >
+          <Tv size={14} />
+          <span>{casting.isConnecting ? "Connecting..." : casting.isCasting ? "Casting" : "Cast"}</span>
+        </button>
+      </div>
+
+      {/* ── Body: stacked on mobile, side-by-side on desktop ── */}
+      <div className={`min-h-0 flex-1 overflow-hidden flex ${isCompact ? "flex-col" : "flex-row"}`}>
+        {/* Visual State — top on mobile, left on desktop */}
+        <div className={`overflow-hidden bg-secondary/10 ${
+          isCompact
+            ? "flex-1 min-h-0 border-b border-border"
+            : "min-w-0 flex-1 border-r border-border"
+        }`}>
+          <VisualStatePanel />
+        </div>
+
+        {/* Timer — bottom on mobile, right on desktop */}
+        <div className={`flex flex-col justify-center overflow-hidden bg-background ${
+          isCompact ? "shrink-0" : "w-[48%]"
+        }`}>
+          <TimerDisplay
+            elapsedMs={execution.elapsedTime}
+            hasActiveBlock={true}
+            onStart={handleStart}
+            onPause={execution.pause}
+            onStop={handleStop}
+            onNext={handleNext}
+            isRunning={execution.status === "running"}
+            compact={isCompact}
+            enableDisplayStack={true}
+          />
+        </div>
+      </div>
+
+      {/* ── Results footer ── */}
+      {outputCount > 0 && (
+        <div className="flex flex-shrink-0 items-center gap-2 border-t border-border bg-muted/20 px-2.5 py-1 text-[10px] text-muted-foreground">
+          <span>
+            {outputCount} result{outputCount !== 1 ? "s" : ""} logged
+          </span>
+          {completedAt && (
+            <span className="ml-auto text-green-600 dark:text-green-400">
+              ✓ {completedAt.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -238,64 +331,16 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   return (
     <PanelSizeProvider>
       <ScriptRuntimeProvider runtime={runtimeRef.current}>
-        <div className="flex h-full flex-col overflow-hidden bg-background">
-          {/* ── Header: Cast button ── */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/20">
-            <span className="text-xs font-semibold text-foreground">Running</span>
-            <button
-              onClick={handleCast}
-              disabled={casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs font-medium transition-colors hover:bg-muted"
-              style={{
-                backgroundColor: casting.isCasting ? "#3b82f6" : "transparent",
-                color: casting.isCasting ? "white" : "inherit",
-                opacity: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" ? 0.5 : 1,
-                cursor: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting ? "not-allowed" : "pointer",
-              }}
-              title={casting.isCasting ? "Casting to device" : "Cast to device"}
-            >
-              <Tv size={14} />
-              <span>{casting.isConnecting ? "Connecting..." : casting.isCasting ? "Casting" : "Cast"}</span>
-            </button>
-          </div>
-
-          {/* ── Body: VisualStatePanel (left) + TimerDisplay (right) ── */}
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            {/* Left: stack + lookahead */}
-            <div className="min-w-0 flex-1 overflow-hidden border-r border-border">
-              <VisualStatePanel />
-            </div>
-
-            {/* Right: clock + controls */}
-            <div className="flex w-[48%] flex-col justify-center overflow-hidden bg-background">
-              <TimerDisplay
-                elapsedMs={execution.elapsedTime}
-                hasActiveBlock={true}
-                onStart={handleStart}
-                onPause={execution.pause}
-                onStop={handleStop}
-                onNext={handleNext}
-                isRunning={execution.status === "running"}
-                compact={false}
-                enableDisplayStack={true}
-              />
-            </div>
-          </div>
-
-          {/* ── Results footer ── */}
-          {outputCount > 0 && (
-            <div className="flex flex-shrink-0 items-center gap-2 border-t border-border bg-muted/20 px-2.5 py-1 text-[10px] text-muted-foreground">
-              <span>
-                {outputCount} result{outputCount !== 1 ? "s" : ""} logged
-              </span>
-              {completedAt && (
-                <span className="ml-auto text-green-600 dark:text-green-400">
-                  ✓ {completedAt.toLocaleTimeString()}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        <RuntimeTimerBody
+          execution={execution}
+          outputCount={outputCount}
+          completedAt={completedAt}
+          casting={casting}
+          handleCast={handleCast}
+          handleStart={handleStart}
+          handleStop={handleStop}
+          handleNext={handleNext}
+        />
       </ScriptRuntimeProvider>
     </PanelSizeProvider>
   );

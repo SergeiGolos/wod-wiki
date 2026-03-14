@@ -12,56 +12,15 @@ import { CastButtonRpc } from '../src/components/cast/CastButtonRpc';
 import { RuntimeFactory } from '../src/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../src/runtime-test-bench/services/testbench-services';
 import { 
-  FileText, 
-  Activity, 
-  BarChart3, 
   Download, 
   RotateCcw, 
-  Edit, 
-  Timer, 
-  BarChart2, 
-  Upload, 
-  Trash2, 
-  File,
-  Home,
-  Search,
-  Settings,
-  HelpCircle,
-  Tv,
-  MoreVertical,
-  Bug,
-  RefreshCw,
-  Code2 as CodeBracketIcon,
-  Clock as ClockIcon,
-  ArrowLeftRight as ArrowsRightLeftIcon,
-  Layers as RectangleStackIcon,
-  Beaker as BeakerIcon,
-  Database as CircleStackIcon,
-  Terminal as CommandLineIcon
 } from 'lucide-react';
 import { Button } from '../src/components/ui/button';
-import { Badge } from '../src/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '../src/components/ui/dropdown-menu';
-import { cn } from '../src/lib/utils';
 
 import { UnifiedEditor } from '../src/components/Editor/UnifiedEditor';
 import { WorkbenchProps } from '../src/components/layout/Workbench';
 import { useWorkbenchSyncStore } from '../src/components/layout/workbenchSyncStore';
 import { useInMemoryNavigation } from '../src/hooks/useInMemoryNavigation';
-
-// Catalyst-like components for Storybook (moved to src/components/playground)
-import { SidebarLayout } from '../src/components/playground/sidebar-layout';
-import { Sidebar, SidebarBody, SidebarHeader, SidebarHeading, SidebarItem, SidebarLabel, SidebarSection, SidebarSpacer } from '../src/components/playground/sidebar';
-import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '../src/components/playground/navbar';
-import { Avatar } from '../src/components/playground/avatar';
-import { Dropdown, DropdownButton, DropdownDivider, DropdownItem, DropdownLabel, DropdownMenu as CatalystDropdownMenu } from '../src/components/playground/dropdown';
 
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
@@ -126,20 +85,11 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
   const {
     content,
     setContent,
-    activeBlockId,
-    setActiveBlockId,
     selectBlock,
+    setActiveBlockId,
     resetResults,
-    addAttachment,
-    attachments,
-    deleteAttachment,
-    navigation,
   } = useWorkbench();
 
-  const { goToPlan } = navigation;
-
-  const { setIsOpen } = useCommandPalette();
-  const { isDebugMode } = useDebugMode();
   const resetStore = useWorkbenchSyncStore(s => s.resetStore);
   const { handleStartWorkoutAction, execution } = useWorkbenchSync();
 
@@ -165,165 +115,33 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
   }, [content]);
 
   return (
-    <SidebarLayout
-      navbar={
-        <Navbar>
-          <div className="flex items-center gap-3 lg:hidden truncate">
-            <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
-              Storybook Workbench
-            </span>
-          </div>
-          <NavbarSpacer />
-          <NavbarSection>
-            <NavbarItem onClick={() => setIsOpen(true)} aria-label="Search">
-              <Search className="size-5" />
-            </NavbarItem>
-            <NavbarItem className="lg:hidden">
-              <Tv className="size-5" />
-            </NavbarItem>
-            <div className="lg:hidden">
-              <Dropdown>
-                <DropdownButton plain>
-                  <MoreVertical className="size-5" />
-                </DropdownButton>
-                <CatalystDropdownMenu className="min-w-48" anchor="bottom end">
-                  <DropdownItem onClick={handleDownload}>
-                    <Download className="size-4" />
-                    <DropdownLabel>Download</DropdownLabel>
-                  </DropdownItem>
-                  <DropdownItem onClick={handleReset}>
-                    <RefreshCw className="size-4 text-red-500" />
-                    <DropdownLabel className="text-red-500">Reset</DropdownLabel>
-                  </DropdownItem>
-                </CatalystDropdownMenu>
-              </Dropdown>
-            </div>
-          </NavbarSection>
-        </Navbar>
-      }
-      sidebar={
-        <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center px-2 py-2.5">
-              <Avatar initials="SB" className="bg-pink-600 text-white size-6" />
-              <span className="ml-3 text-sm font-semibold text-zinc-950 dark:text-white">Storybook</span>
-            </div>
-            <SidebarSection>
-              <SidebarItem href="#" current>
-                <Home className="size-5" />
-                <SidebarLabel>Workbench</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => setIsOpen(true)}>
-                <Search className="size-5" />
-                <SidebarLabel>Search</SidebarLabel>
-                <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 lg:inline">⌘K</kbd>
-              </SidebarItem>
-            </SidebarSection>
-          </SidebarHeader>
-          <SidebarBody>
-            <SidebarSection>
-              <SidebarHeading>Syntax Guide</SidebarHeading>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/basics')}
-                current={navigation.state.noteId === 'syntax/basics'}
-              >
-                <CodeBracketIcon className="size-5" />
-                <SidebarLabel>The Basics</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/timers')}
-                current={navigation.state.noteId === 'syntax/timers'}
-              >
-                <ClockIcon className="size-5" />
-                <SidebarLabel>Timers & Intervals</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/repeaters')}
-                current={navigation.state.noteId === 'syntax/repeaters'}
-              >
-                <ArrowsRightLeftIcon className="size-5" />
-                <SidebarLabel>Repeaters</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/groups')}
-                current={navigation.state.noteId === 'syntax/groups'}
-              >
-                <RectangleStackIcon className="size-5" />
-                <SidebarLabel>Groups</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/measurements')}
-                current={navigation.state.noteId === 'syntax/measurements'}
-              >
-                <BeakerIcon className="size-5" />
-                <SidebarLabel>Measurements</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/supplemental')}
-                current={navigation.state.noteId === 'syntax/supplemental'}
-              >
-                <CircleStackIcon className="size-5" />
-                <SidebarLabel>Supplemental Data</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem 
-                onClick={() => goToPlan('syntax/agentic')}
-                current={navigation.state.noteId === 'syntax/agentic'}
-              >
-                <CommandLineIcon className="size-5" />
-                <SidebarLabel>Agentic Skill</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
-            <SidebarSection>
-              <SidebarHeading>Actions</SidebarHeading>
-              <SidebarItem onClick={handleDownload}>
-                <Download className="size-5" />
-                <SidebarLabel>Export Markdown</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={handleReset}>
-                <RotateCcw className="size-5 text-red-500" />
-                <SidebarLabel className="text-red-500">Reset Data</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
-            <SidebarSpacer />
-            <SidebarSection>
-              <SidebarHeading>Environment</SidebarHeading>
-              <div className="px-2">
-                <DebugButton />
-              </div>
-              <div className="px-2 mt-2">
-                <CastButtonRpc />
-              </div>
-            </SidebarSection>
-          </SidebarBody>
-        </Sidebar>
-      }
-    >
-      <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
-          <div className="flex items-center justify-between px-6 lg:px-10">
-            <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">Workbench</h1>
-            <div className="flex items-center gap-4">
-              <CastButtonRpc />
-              <DebugButton />
-              <Button variant="ghost" size="icon" onClick={handleDownload}>
-                <Download className="size-5" />
-              </Button>
-            </div>
-          </div>
-          <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
-        </div>
-        
-        <div className="flex-1 flex flex-col min-h-0">
-          <UnifiedEditor
-            value={content}
-            onChange={setContent}
-            onStartWorkout={handleStartWorkoutAction}
-            className="flex-1 min-h-0 w-full"
-            theme="vs-dark" // Should ideally sync with storybook theme
-          />
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      {/* Minimal toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background shrink-0">
+        <span className="text-sm font-semibold text-foreground">WOD Wiki</span>
+        <div className="flex items-center gap-2">
+          <CastButtonRpc />
+          <DebugButton />
+          <Button variant="ghost" size="icon" title="Download" onClick={handleDownload}>
+            <Download className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" title="Reset" onClick={handleReset}>
+            <RotateCcw className="size-4 text-red-500" />
+          </Button>
         </div>
       </div>
-    </SidebarLayout>
+
+      {/* Editor fills remaining height */}
+      <div className="flex-1 min-h-0">
+        <UnifiedEditor
+          value={content}
+          onChange={setContent}
+          onStartWorkout={handleStartWorkoutAction}
+          className="h-full w-full"
+          theme="vs-dark"
+        />
+      </div>
+    </div>
   );
 };
 

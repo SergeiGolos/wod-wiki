@@ -103,18 +103,24 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
 
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
-      <div className="flex h-full overflow-hidden">
-        {/* Left Column: Session / Visual State */}
-        {!isCompact && (
-          <div id="tutorial-track-visual" className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
-            <VisualStatePanel />
-          </div>
-        )}
+      <div className={cn("flex h-full overflow-hidden", isCompact ? "flex-col" : "flex-row")}>
+        {/* Top (mobile) / Left (desktop): Session / Visual State */}
+        <div
+          id="tutorial-track-visual"
+          className={cn(
+            "bg-secondary/10",
+            isCompact
+              ? "flex-1 min-h-0 border-b border-border overflow-hidden"
+              : "flex-1 min-w-0 border-r border-border"
+          )}
+        >
+          <VisualStatePanel />
+        </div>
 
-        {/* Right Column: Timer & Controls (Clock) */}
+        {/* Bottom (mobile) / Right (desktop): Timer & Controls (Clock) */}
         <div id="tutorial-track-clock" className={cn(
           "flex flex-col bg-background transition-all duration-300",
-          isCompact ? "w-full" : "w-1/2"
+          isCompact ? "shrink-0" : "w-1/2"
         )}>
           <div className="flex-1 flex flex-col justify-center">
             {timerDisplay}

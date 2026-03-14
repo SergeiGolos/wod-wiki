@@ -9,38 +9,20 @@ const meta: Meta<typeof Workbench> = {
     layout: 'fullscreen',
     docs: {
       description: {
-        component: 'Interactive playground for the WOD Wiki editor with responsive layout.'
+        component: 'Interactive WOD Wiki editor with runtime execution and graph display.'
       }
     }
   },
   argTypes: {
     initialContent: {
       control: 'text',
-      description: 'Initial markdown content to display'
-    },
-    showToolbar: {
-      control: 'boolean',
-      description: 'Whether to show markdown toolbar'
-    },
-    readonly: {
-      control: 'boolean',
-      description: 'Whether editor is read-only'
-    },
-    theme: {
-      control: 'select',
-      options: ['wod-light', 'wod-dark'],
-      description: 'Editor theme',
-      table: { defaultValue: { summary: 'wod-light' } }
+      description: 'Initial workout script content'
     },
     initialViewMode: {
       control: 'select',
       options: ['plan', 'track', 'review'],
-      description: 'Initial view mode for the workbench',
+      description: 'Initial view mode',
     },
-    hidePlanUnlessDebug: {
-      control: 'boolean',
-      description: 'Whether to hide the Plan panel unless in debug mode'
-    }
   }
 };
 
@@ -72,19 +54,11 @@ Add your workout notes here.
 `,
     showToolbar: false,
     readonly: false,
-    theme: 'wod-light',
-    hidePlanUnlessDebug: false,
-    initialShowPlan: true,
-    initialShowTrack: true,
-    initialShowReview: true
+    initialViewMode: 'plan',
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    
-    // Check if the workbench is rendered by looking for the main header
-    await expect(canvas.getByRole('heading', { name: /^Workbench$/i })).toBeInTheDocument();
-    
-    // Check if some content from initialContent is present in the editor area
-    await expect(canvas.getByText(/My Workout Log/i)).toBeInTheDocument();
+    // Verify the toolbar label is present
+    await expect(canvas.getByText(/WOD Wiki/i)).toBeInTheDocument();
   }
 };
