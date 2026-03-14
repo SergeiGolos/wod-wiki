@@ -81,6 +81,8 @@ import { useCommandPalette } from "../command-palette/CommandContext";
 import { Play, Plus } from "lucide-react";
 
 export interface UnifiedEditorProps {
+  /** Note ID for result lookup */
+  noteId?: string;
   /** Document content */
   value: string;
   /** Called on every document change */
@@ -141,6 +143,7 @@ export interface UnifiedEditorProps {
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
+  noteId,
   value,
   onChange,
   onCursorPositionChange,
@@ -440,6 +443,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     if (props.sectionType === "wod") {
       return (
         <WodCompanion
+          noteId={noteId}
           sectionId={props.sectionId}
           view={props.view}
           isActive={props.isActive}
@@ -452,6 +456,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         />
       );
     }
+
     if (props.sectionType === "frontmatter") {
       return (
         <FrontmatterCompanion
@@ -500,6 +505,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           block={fullscreenTimerBlock}
           view={viewRef.current}
           onClose={handleTimerClose}
+          onCompleteWorkout={onCompleteWorkout}
         />
       )}
 

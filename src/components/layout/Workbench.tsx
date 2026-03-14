@@ -106,6 +106,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     setContent,
     setViewMode,
     saveState,
+    completeWorkout,
     currentEntry: contextEntry,
     addAttachment,
     attachments,
@@ -380,14 +381,23 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     return () => { cleanup(); };
   }, [documentItems, setHighlightedLine]);
 
+  const handleCompleteWorkout = useCallback((blockId: string, results: WorkoutResults) => {
+    // Sync selection so completeWorkout knows which section these results belong to
+    _selectBlock(blockId);
+    // Persist result via provider (WorkbenchContext handles navigation/save)
+    completeWorkout(results);
+  }, [_selectBlock, completeWorkout]);
+
   // --- View Components ---
 
   const planPanel = (
     <div id="tutorial-editor" className="h-full">
       <PlanPanel
+        sourceNoteId={contextEntry?.id}
         initialContent={initialContent}
         value={content}
         onStartWorkout={handleStartWorkoutAction}
+        onCompleteWorkout={handleCompleteWorkout}
         setBlocks={setBlocks}
         setContent={setContent}
       />

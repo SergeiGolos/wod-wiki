@@ -18,7 +18,8 @@
  *   Document line = block.startLine + 1 + sourceId.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Tv } from "lucide-react";
 import type { EditorView } from "@codemirror/view";
 import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
@@ -28,14 +29,13 @@ import { RuntimeFactory } from "@/runtime/compiler/RuntimeFactory";
 import { globalCompiler, globalParser } from "@/runtime-test-bench/services/testbench-services";
 import { useRuntimeExecution } from "@/runtime-test-bench/hooks/useRuntimeExecution";
 import { useChromecast } from "@/hooks/useChromecast";
-import type { WodBlock } from "../types";
+import type { WodBlock, WorkoutResults } from "../types";
 import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import type { ScriptRuntime } from "@/runtime/ScriptRuntime";
 import type { StackSnapshot } from "@/runtime/contracts/IRuntimeStack";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-runtime";
 import { NextEvent } from "@/runtime/events/NextEvent";
-import { Tv } from "lucide-react";
 
 // Singleton factory — avoids re-constructing the compiler on every render
 const factory = new RuntimeFactory(globalCompiler);
@@ -52,11 +52,14 @@ export interface RuntimeTimerPanelProps {
   view: EditorView;
   /** Called when the user presses Stop (which also closes the panel). */
   onClose: () => void;
+  /** Called when a workout is completed or stopped with results. */
+  onComplete?: (blockId: string, results: WorkoutResults) => void;
   /** Whether the slot is currently in full-height expanded mode. */
   isExpanded?: boolean;
   /** Toggle between expanded and compact runtime view. */
   onToggleExpand?: () => void;
 }
+
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -64,6 +67,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   block,
   view,
   onClose,
+  onComplete,
   isExpanded = false,
   onToggleExpand,
 }) => {
@@ -136,10 +140,38 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   const execution = useRuntimeExecution(runtimeRef.current as ScriptRuntime | null);
 
+  const handleComplete = useCallback((completed: boolean) => {
+    if (!runtimeRef.current) return;
+
+    // Finalize analytics to get summary outputs
+    runtimeRef.current.finalizeAnalytics();
+    const allOutputs = runtimeRef.current.getOutputStatements();
+    
+    // Extract metrics fragments from all segment outputs
+    const metricFragments = allOutputs
+      .filter(o => o.outputType === 'segment')
+      .flatMap(o => (o.metrics || []).map(m => ({
+        metric: m,
+        timestamp: o.timeSpan.start
+      })));
+
+    const results: WorkoutResults = {
+      startTime: execution.startTime || Date.now(),
+      endTime: Date.now(),
+      duration: execution.elapsedTime,
+      completed,
+      metrics: metricFragments,
+      logs: allOutputs
+    };
+
+    onComplete?.(block.id, results);
+  }, [block.id, execution.elapsedTime, execution.startTime, onComplete]);
+
   // Track completion time and handle auto-close
   useEffect(() => {
     if (execution.status === "completed" && !completedAt) {
       setCompletedAt(new Date());
+      handleComplete(true);
 
       // Auto-close after 2 seconds so the user can see the "Completed" state
       const timer = setTimeout(() => {
@@ -148,11 +180,12 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [execution.status, completedAt, onClose]);
+  }, [execution.status, completedAt, onClose, handleComplete]);
 
   const handleStop = () => {
     execution.stop();
     runtimeRef.current?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
+    handleComplete(false);
     onClose();
   };
 

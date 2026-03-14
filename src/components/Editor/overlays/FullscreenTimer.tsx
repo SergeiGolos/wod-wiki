@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "./RuntimeTimerPanel";
-import type { WodBlock } from "../types";
+import type { WodBlock, WorkoutResults } from "../types";
 import { X } from "lucide-react";
 
 export interface FullscreenTimerProps {
   block: WodBlock;
   view: EditorView;
   onClose: () => void;
+  onCompleteWorkout?: (blockId: string, results: WorkoutResults) => void;
 }
 
 export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
   block,
   view,
   onClose,
+  onCompleteWorkout,
 }) => {
   const [isClosing, setIsClosing] = useState(false);
 
@@ -48,6 +50,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
             block={block}
             view={view}
             onClose={handleClose}
+            onComplete={onCompleteWorkout}
             isExpanded={true}
           />
         </div>

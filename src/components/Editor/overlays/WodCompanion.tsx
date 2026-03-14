@@ -6,11 +6,12 @@
  * Layout modes:
  *   INACTIVE (15% strip) — cursor is outside the block.
  *     Shows action buttons (Run, Plan, …) as a compact vertical column.
+ *     Shows a minimized latest result line if results exist.
  *
  *   ACTIVE (35% panel) — cursor is inside the block.
- *     Top half: metric chips for the statement under the cursor, showing
- *       every parsed fragment with its type, value, and unit.
- *     Bottom: same action buttons in a horizontal row.
+ *     Top: Latest result line (if any)
+ *     Middle: Metric chips for the statement under the cursor.
+ *     Bottom: History of previous results and action buttons.
  */
 
 import React, { useMemo, useState } from "react";
@@ -22,9 +23,10 @@ import { sectionField, type EditorSection } from "../extensions/section-state";
 import { cn } from "@/lib/utils";
 import type { WodBlock } from "../types";
 import type { WodCommand } from "./WodCommand";
-import { useWodBlockResults } from "../../hooks/useWodBlockResults";
+import { useWodBlockResults } from "../hooks/useWodBlockResults";
 import { History, ExternalLink } from "lucide-react";
 import type { Segment } from "@/core/models/AnalyticsModels";
+import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 
 // ── Singleton parser (created once per module) ───────────────────────
 const parser = new MdTimerRuntime();
@@ -64,6 +66,19 @@ function findActiveStatement(
   const lineInContent = cursorDocLine - section.startLine;  // startLine = fence line
   const match = statements.find((s) => s.meta?.line === lineInContent);
   return match ?? statements[0];
+}
+
+/** Format milliseconds as M:SS or H:MM:SS */
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "--:--";
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 // ── Metric chip data ─────────────────────────────────────────────────
@@ -257,9 +272,58 @@ const CommandButtons: React.FC<{
   );
 };
 
+// ── ResultLine Component ──────────────────────────────────────────────
+
+const ResultLine: React.FC<{
+  result: any;
+  onOpenReview?: (segments: Segment[]) => void;
+  compact?: boolean;
+}> = ({ result, onOpenReview, compact }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (result.data?.logs && onOpenReview) {
+      const { segments } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime);
+      onOpenReview(segments);
+    }
+  };
+
+  if (compact) {
+    return (
+      <div 
+        onClick={handleClick}
+        className="mt-auto flex flex-col items-end p-1.5 cursor-pointer hover:bg-primary/20 transition-colors group bg-primary/5 border-t border-primary/10"
+        title={`Latest: ${formatDuration(result.data.duration)} (${new Date(result.completedAt).toLocaleDateString()})`}
+      >
+        <History className="h-3 w-3 text-primary" />
+        <span className="text-[8px] font-mono font-bold text-primary mt-0.5">{formatDuration(result.data.duration)}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={handleClick}
+      className="group flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/30 bg-primary/5"
+    >
+      <History className="h-3.5 w-3.5 text-primary shrink-0" />
+      <div className="flex-1 flex items-center justify-between min-w-0">
+        <span className="text-[10px] text-foreground font-bold truncate">
+          {formatDuration(result.data.duration)}
+        </span>
+        <span className="text-[9px] text-muted-foreground whitespace-nowrap ml-2">
+          {new Date(result.completedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+      <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/30 group-hover:text-primary shrink-0 transition-colors" />
+    </div>
+  );
+};
+
 // ── Main component ───────────────────────────────────────────────────
 
 export interface WodCompanionProps {
+  /** Note ID for results lookup */
+  noteId?: string;
   sectionId: string;
   view: EditorView;
   isActive: boolean;
@@ -279,20 +343,8 @@ export interface WodCompanionProps {
   onOpenReview?: (segments: Segment[]) => void;
 }
 
-/** Format milliseconds as M:SS or H:MM:SS */
-function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "--:--";
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
 export const WodCompanion: React.FC<WodCompanionProps> = ({
+  noteId: propNoteId,
   sectionId,
   view,
   isActive,
@@ -303,7 +355,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   onOpenReview,
 }) => {
   // In a real app, this would come from a NoteContext
-  const noteId = (view.state as any).noteId || "current";
+  const noteId = propNoteId || (view.state as any).noteId || "current";
   const { results } = useWodBlockResults(noteId, sectionId);
 
   const section = useMemo(
@@ -338,11 +390,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} compact />
         {/* Minimized results indicator if they exist */}
         {results.length > 0 && (
-          <div className="mt-auto flex flex-col items-end p-1.5 opacity-50 hover:opacity-100 transition-opacity">
-            <div className="bg-muted/80 rounded-sm p-1" title={`${results.length} results`}>
-              <History className="h-3 w-3 text-muted-foreground" />
-            </div>
-          </div>
+          <ResultLine result={results[0]} onOpenReview={onOpenReview} compact />
         )}
       </div>
     );
@@ -361,6 +409,11 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         </span>
         <span className="text-[10px] text-muted-foreground">line {lineInContent}</span>
       </div>
+
+      {/* Latest Result Line (New minimized results view) */}
+      {results.length > 0 && (
+        <ResultLine result={results[0]} onOpenReview={onOpenReview} />
+      )}
 
       {/* Current line raw text */}
       <div className="px-2.5 py-2 border-b border-border/30">
@@ -392,31 +445,31 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         )}
       </div>
 
-      {/* Results section */}
+      {/* Results history section (more details) */}
       <div className="flex-1 overflow-auto">
-        {results.length > 0 && (
+        {results.length > 1 && (
           <div className="flex flex-col">
-            <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-tight flex items-center gap-1.5 bg-muted/20">
-              <History className="h-3 w-3" />
-              Recent Results
+            <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-tight flex items-center gap-1.5 bg-muted/20 border-b border-border/10">
+              History
             </div>
             <div className="divide-y divide-border/30">
-              {results.slice(0, 5).map((res) => (
+              {results.slice(1, 5).map((res) => (
                 <div
                   key={res.id}
                   onClick={() => {
                     if (res.data?.logs && onOpenReview) {
-                      onOpenReview(res.data.logs as any);
+                      const { segments } = getAnalyticsFromLogs(res.data.logs as any, res.data.startTime);
+                      onOpenReview(segments);
                     }
                   }}
                   className="group flex items-center justify-between px-2.5 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
                 >
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] text-foreground font-medium">
-                      {new Date(res.completedAt).toLocaleDateString()} {new Date(res.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(res.completedAt).toLocaleDateString()}
                     </span>
                     <span className="text-[9px] text-muted-foreground font-mono">
-                      {formatDuration(res.data.duration)} {res.data.completed ? "" : "(partial)"}
+                      {formatDuration(res.data.duration)}
                     </span>
                   </div>
                   <ExternalLink className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
@@ -432,4 +485,3 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
     </div>
   );
 };
-
