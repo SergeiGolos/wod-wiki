@@ -143,32 +143,28 @@ const CommandButtons: React.FC<{
     cmd.onClick(buildWodBlock(view, section));
   };
 
-  // ── COMPACT (inactive 15% strip) ── icon-only vertical stack
+  // ── COMPACT (inactive strip) ── thin pill buttons, top-right corner
   if (compact) {
     return (
-      <div className="flex flex-col items-center gap-1.5 p-1.5">
+      <div className="flex flex-col items-end gap-1 p-1.5">
         {visible.map((cmd) => (
           <button
             key={cmd.id}
             title={cmd.label}
             onClick={fire(cmd)}
             className={cn(
-              "w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm",
+              "flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm whitespace-nowrap",
               cmd.primary
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
             )}
           >
-            <span className="text-base leading-none flex items-center justify-center">
-              {cmd.icon}
-            </span>
-            <span className="leading-none opacity-80" style={{ fontSize: "8px" }}>
-              {cmd.label}
-            </span>
+            <span className="flex items-center h-3 w-3">{cmd.icon}</span>
+            <span>{cmd.label}</span>
           </button>
         ))}
         {overflow.length > 0 && (
-          <div className="relative w-full">
+          <div className="relative">
             <button
               title="More actions"
               onClick={(e) => {
@@ -176,12 +172,12 @@ const CommandButtons: React.FC<{
                 e.stopPropagation();
                 setOverflowOpen((o) => !o);
               }}
-              className="w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm bg-muted/60 hover:bg-muted text-muted-foreground border border-border/50"
+              className="flex items-center px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm bg-muted/60 hover:bg-muted text-muted-foreground border border-border/50"
             >
-              <span className="text-base leading-none">…</span>
+              …
             </button>
             {overflowOpen && (
-              <div className="absolute left-full top-0 ml-1 z-50 min-w-[110px] bg-popover border border-border rounded-md shadow-lg py-1">
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[110px] bg-popover border border-border rounded-md shadow-lg py-1">
                 {overflow.map((cmd) => (
                   <button
                     key={cmd.id}
@@ -315,13 +311,8 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   // ── INACTIVE: compact action strip ──────────────────────────────
   if (!isActive) {
     return (
-      <div className="h-full w-full flex flex-col bg-popover/60 backdrop-blur-sm border-l border-border/50 overflow-hidden">
-        {/* Dialect badge */}
-        <div className="px-1.5 py-1 border-b border-border/30 flex justify-center">
-          <span className="text-[8px] font-mono uppercase tracking-wider text-muted-foreground/70">
-            {section.dialect ?? "wod"}
-          </span>
-        </div>
+      <div className="h-full w-full flex flex-col bg-popover/60 backdrop-blur-sm border-l border-border/50 overflow-visible">
+        {/* Buttons pinned to top-right */}
         <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} compact />
       </div>
     );

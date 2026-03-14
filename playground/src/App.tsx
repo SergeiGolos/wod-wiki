@@ -286,10 +286,12 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentFileName}</h1>
-        <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
+        <div className="pt-4 lg:pt-6">
+          <h1 className="px-6 lg:px-10 text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentFileName}</h1>
+          <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
+        </div>
         
-        <div className="mt-8 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col min-h-0">
           <UnifiedEditor
             value={content}
             onChange={setContent}

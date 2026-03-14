@@ -338,38 +338,55 @@ function parseSections(state: EditorState): EditorSection[] {
     }
 
     // ── Frontmatter (--- delimiters) ──
+    // Rules (matches Jekyll / Hugo / YAML front matter convention):
+    //  1. The opening --- must be on line 1 OR preceded only by blank lines.
+    //  2. The line immediately after the opening --- must NOT be blank
+    //     (blank-after means it's a Markdown thematic break / hr, not YAML).
+    //  3. The block between the delimiters must contain at least one
+    //     "key: value" line so we don't treat empty --- --- pairs as frontmatter.
     if (trimmed === "---") {
-      let foundClose = false;
-      let closeLine = lineNum;
+      // Rule 2: next line must be non-blank
+      const nextLineText = lineNum < lineCount ? doc.line(lineNum + 1).text.trim() : "";
+      const nextLineIsBlank = nextLineText === "";
+      if (!nextLineIsBlank) {
+        let foundClose = false;
+        let closeLine = lineNum;
+        let hasKeyValueLine = false;
 
-      for (let j = lineNum + 1; j <= lineCount; j++) {
-        const jLine = doc.line(j);
-        if (matchDialectFence(jLine.text.trim())) break;
-        if (matchGenericFence(jLine.text.trim())) break;
-        if (jLine.text.trim() === "---") {
-          closeLine = j;
-          foundClose = true;
-          break;
+        for (let j = lineNum + 1; j <= lineCount; j++) {
+          const jLine = doc.line(j);
+          const jTrimmed = jLine.text.trim();
+          if (matchDialectFence(jTrimmed)) break;
+          if (matchGenericFence(jTrimmed)) break;
+          if (jTrimmed === "---") {
+            closeLine = j;
+            foundClose = true;
+            break;
+          }
+          // Check for at least one YAML key: value line
+          if (/^[A-Za-z_][\w-]*\s*:/.test(jTrimmed)) {
+            hasKeyValueLine = true;
+          }
         }
-      }
 
-      if (foundClose) {
-        flushMarkdown();
+        if (foundClose && hasKeyValueLine) {
+          flushMarkdown();
 
-        const content = doc.sliceString(line.from, doc.line(closeLine).to);
-        sections.push({
-          id: generateSectionId("frontmatter", lineNum, content),
-          type: "frontmatter",
-          from: line.from,
-          to: doc.line(closeLine).to,
-          startLine: lineNum,
-          endLine: closeLine,
-          contentFrom: line.to + 1,
-          contentTo: doc.line(closeLine).from - 1,
-        });
+          const content = doc.sliceString(line.from, doc.line(closeLine).to);
+          sections.push({
+            id: generateSectionId("frontmatter", lineNum, content),
+            type: "frontmatter",
+            from: line.from,
+            to: doc.line(closeLine).to,
+            startLine: lineNum,
+            endLine: closeLine,
+            contentFrom: line.to + 1,
+            contentTo: doc.line(closeLine).from - 1,
+          });
 
-        lineNum = closeLine + 1;
-        continue;
+          lineNum = closeLine + 1;
+          continue;
+        }
       }
     }
 

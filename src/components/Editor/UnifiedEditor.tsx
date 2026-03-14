@@ -57,6 +57,7 @@ import { wodLinter } from "./extensions/wod-linter";
 import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplete";
 import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
+import { linkOpen } from "./extensions/link-open";
 import { OverlayTrack } from "./overlays/OverlayTrack";
 import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "./overlays/OverlayTrack";
@@ -246,6 +247,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
       // Section geometry measurement (for overlay track)
       sectionGeometry,
+
+      // Ctrl+Click link opening + hover tooltip
+      linkOpen,
 
       // Update listener
       EditorView.updateListener.of((update) => {

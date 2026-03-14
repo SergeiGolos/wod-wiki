@@ -8,3 +8,4 @@ export * from "./markdown-tables";
 export * from "./wod-linter";
 export * from "./wod-autocomplete";
 export * from "./wod-overlay";
+export * from "./link-open";

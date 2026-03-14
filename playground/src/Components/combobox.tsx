@@ -141,7 +141,7 @@ export function ComboboxOption<T>({
     'flex min-w-0 items-center',
     // Icons
     '[&>[data-slot=icon]]:size-5 [&>[data-slot=icon]]:shrink-0 sm:[&>[data-slot=icon]]:size-4',
-    '[&>[data-slot=icon]]:text-zinc-500 group-data-[focus]/option:[&>[data-slot=icon]]:text-white group-data-[hover]/option:[&>[data-slot=icon]]:text-white data-[focus]:[&_*]:text-white data-[hover]:[&_*]:text-white dark:[&>[data-slot=icon]]:text-zinc-400',
+    '[&>[data-slot=icon]]:text-zinc-500 group-data-[focus]/option:[&>[data-slot=icon]]:text-zinc-950 dark:group-data-[focus]/option:[&>[data-slot=icon]]:text-white data-[focus]:[&_*]:text-zinc-950 dark:data-[focus]:[&_*]:text-white dark:[&>[data-slot=icon]]:text-zinc-400',
     'forced-colors:[&>[data-slot=icon]]:text-[CanvasText] forced-colors:group-data-[focus]/option:[&>[data-slot=icon]]:text-[Canvas]',
     // Avatars
     '[&>[data-slot=avatar]]:-mx-0.5 [&>[data-slot=avatar]]:size-6 sm:[&>[data-slot=avatar]]:size-5'
@@ -155,11 +155,10 @@ export function ComboboxOption<T>({
         'group/option grid w-full cursor-default grid-cols-[1fr_--spacing(5)] items-baseline gap-x-2 rounded-lg py-2.5 pr-2 pl-3.5 sm:grid-cols-[1fr_--spacing(4)] sm:py-1.5 sm:pr-2 sm:pl-3',
         // Typography
         'text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white forced-colors:text-[CanvasText]',
-        // Focus/Active state (Tailwind UI / Headless UI compatibility)
-        'outline-hidden data-[focus]:bg-blue-500 data-[focus]:text-white data-[focus]:[&_*]:text-white',
-        'data-[active]:bg-blue-500 data-[active]:text-white',
-        'data-[hover]:bg-blue-500 data-[hover]:text-white',
-        'selection:bg-blue-500 selection:text-white',
+        // Focus/Active state (Neutral Catalyst Style)
+        'outline-hidden data-[focus]:bg-zinc-100 dark:data-[focus]:bg-white/10',
+        'data-[active]:bg-zinc-100 dark:data-[active]:bg-white/10',
+        'data-[hover]:bg-zinc-100 dark:data-[hover]:bg-white/10',
         // Forced colors mode
         'forced-color-adjust-none forced-colors:data-[focus]:bg-[Highlight] forced-colors:data-[focus]:text-[HighlightText]',
         // Disabled

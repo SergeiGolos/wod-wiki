@@ -24,6 +24,14 @@ import { sectionGeometry } from "../extensions/section-geometry";
 import type { SectionOverlayState } from "./useOverlayWidthState";
 import type { EditorSectionType } from "../extensions/section-state";
 
+// ── Minimum slot heights (px) ────────────────────────────────────────
+// Slots expand to at least this height and re-center against their section.
+const MIN_SLOT_HEIGHT: Partial<Record<EditorSectionType, number>> = {
+  frontmatter: 280,
+  wod:         200,
+  code:        140,
+};
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface OverlaySlotProps {
@@ -157,6 +165,13 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const state = widths.get(rect.sectionId)!;
           const isActive = rect.sectionId === activeSectionId;
 
+          // Expand slot to a minimum height and vertically center it
+          // against the section's midline so the panel never clips content.
+          const minH = MIN_SLOT_HEIGHT[rect.type] ?? 0;
+          const effectiveHeight = Math.max(rect.height, minH);
+          // Center around section midline; clamp so we never go above the track top.
+          const centeredTop = Math.max(0, rect.top + rect.height / 2 - effectiveHeight / 2);
+
           // When clicking on the overlay background (not on a button/input/a),
           // resolve the document position from click coordinates and move the
           // editor cursor there so the user isn't stuck.
@@ -175,10 +190,10 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
               className={`overlay-slot ${isActive ? "overlay-slot-active" : ""}`}
               style={{
                 position: "absolute",
-                top: rect.top,
+                top: centeredTop,
                 right: 0,
                 width: `${state.effectiveWidth}%`,
-                height: rect.height,
+                height: effectiveHeight,
                 pointerEvents: "auto",
                 transition: "width 150ms ease, opacity 150ms ease",
                 overflow: "hidden",
