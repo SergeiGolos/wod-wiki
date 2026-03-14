@@ -18,7 +18,8 @@
  *   Document line = block.startLine + 1 + sourceId.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Tv } from "lucide-react";
 import type { EditorView } from "@codemirror/view";
 import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
@@ -27,14 +28,14 @@ import { PanelSizeProvider } from "@/panels/panel-system/PanelSizeContext";
 import { RuntimeFactory } from "@/runtime/compiler/RuntimeFactory";
 import { globalCompiler, globalParser } from "@/runtime-test-bench/services/testbench-services";
 import { useRuntimeExecution } from "@/runtime-test-bench/hooks/useRuntimeExecution";
-import type { WodBlock } from "../types";
+import { useChromecast } from "@/hooks/useChromecast";
+import type { WodBlock, WorkoutResults } from "../types";
 import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import type { ScriptRuntime } from "@/runtime/ScriptRuntime";
 import type { StackSnapshot } from "@/runtime/contracts/IRuntimeStack";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-runtime";
 import { NextEvent } from "@/runtime/events/NextEvent";
-import { Maximize2, Minimize2, CheckCircle2 } from "lucide-react";
 
 // Singleton factory — avoids re-constructing the compiler on every render
 const factory = new RuntimeFactory(globalCompiler);
@@ -51,11 +52,14 @@ export interface RuntimeTimerPanelProps {
   view: EditorView;
   /** Called when the user presses Stop (which also closes the panel). */
   onClose: () => void;
+  /** Called when a workout is completed or stopped with results. */
+  onComplete?: (blockId: string, results: WorkoutResults) => void;
   /** Whether the slot is currently in full-height expanded mode. */
   isExpanded?: boolean;
   /** Toggle between expanded and compact runtime view. */
   onToggleExpand?: () => void;
 }
+
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -63,6 +67,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   block,
   view,
   onClose,
+  onComplete,
   isExpanded = false,
   onToggleExpand,
 }) => {
@@ -70,6 +75,9 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [ready, setReady] = useState(false);
   const [outputCount, setOutputCount] = useState(0);
   const [completedAt, setCompletedAt] = useState<Date | null>(null);
+
+  // Chromecast integration
+  const casting = useChromecast();
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
   // statement sourceId = 1-based line within content
@@ -132,16 +140,52 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   const execution = useRuntimeExecution(runtimeRef.current as ScriptRuntime | null);
 
-  // Track completion time
+  const handleComplete = useCallback((completed: boolean) => {
+    if (!runtimeRef.current) return;
+
+    // Finalize analytics to get summary outputs
+    runtimeRef.current.finalizeAnalytics();
+    const allOutputs = runtimeRef.current.getOutputStatements();
+    
+    // Extract metrics fragments from all segment outputs
+    const metricFragments = allOutputs
+      .filter(o => o.outputType === 'segment')
+      .flatMap(o => (o.metrics || []).map(m => ({
+        metric: m,
+        timestamp: o.timeSpan.start
+      })));
+
+    const results: WorkoutResults = {
+      startTime: execution.startTime || Date.now(),
+      endTime: Date.now(),
+      duration: execution.elapsedTime,
+      completed,
+      metrics: metricFragments,
+      logs: allOutputs
+    };
+
+    onComplete?.(block.id, results);
+  }, [block.id, execution.elapsedTime, execution.startTime, onComplete]);
+
+  // Track completion time and handle auto-close
   useEffect(() => {
     if (execution.status === "completed" && !completedAt) {
       setCompletedAt(new Date());
+      handleComplete(true);
+
+      // Auto-close after 2 seconds so the user can see the "Completed" state
+      const timer = setTimeout(() => {
+        onClose();
+      }, 2000);
+
+      return () => clearTimeout(timer);
     }
-  }, [execution.status, completedAt]);
+  }, [execution.status, completedAt, onClose, handleComplete]);
 
   const handleStop = () => {
     execution.stop();
     runtimeRef.current?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
+    handleComplete(false);
     onClose();
   };
 
@@ -155,6 +199,34 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtimeRef.current?.handle(new NextEvent());
   };
 
+  // Handle cast button click
+  const handleCast = async () => {
+    if (casting.isCasting) {
+      return; // Already casting
+    }
+    await casting.requestSession();
+  };
+
+  // Sync runtime state to receiver when casting
+  useEffect(() => {
+    if (!casting.isCasting || !runtimeRef.current) return;
+
+    const syncState = () => {
+      if (!runtimeRef.current) return;
+      // Send runtime state snapshot to receiver
+      const state = {
+        elapsedTime: execution.elapsedTime,
+        status: execution.status,
+        timestamp: Date.now(),
+      };
+      casting.sendMessage("state-update", state);
+    };
+
+    // Sync on every execution update
+    const interval = setInterval(syncState, 100); // 10Hz updates
+    return () => clearInterval(interval);
+  }, [casting.isCasting, execution.elapsedTime, execution.status, casting]);
+
   if (!ready || !runtimeRef.current) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -167,32 +239,23 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     <PanelSizeProvider>
       <ScriptRuntimeProvider runtime={runtimeRef.current}>
         <div className="flex h-full flex-col overflow-hidden bg-background">
-
-          {/* ── Header ── */}
-          <div className="flex flex-shrink-0 items-center justify-between border-b border-border bg-muted/30 px-2.5 py-1.5">
-            <span className="flex items-center gap-1.5 text-xs font-medium">
-              {execution.status === "running" && (
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              )}
-              {execution.status === "completed" ? (
-                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Completed
-                </span>
-              ) : (
-                <span className="text-muted-foreground capitalize">
-                  {block.dialect ?? "wod"} · {execution.status}
-                </span>
-              )}
-            </span>
+          {/* ── Header: Cast button ── */}
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/20">
+            <span className="text-xs font-semibold text-foreground">Running</span>
             <button
-              title={isExpanded ? "Shrink" : "Expand"}
-              onClick={() => onToggleExpand?.()}
-              className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={handleCast}
+              disabled={casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs font-medium transition-colors hover:bg-muted"
+              style={{
+                backgroundColor: casting.isCasting ? "#3b82f6" : "transparent",
+                color: casting.isCasting ? "white" : "inherit",
+                opacity: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" ? 0.5 : 1,
+                cursor: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting ? "not-allowed" : "pointer",
+              }}
+              title={casting.isCasting ? "Casting to device" : "Cast to device"}
             >
-              {isExpanded
-                ? <Minimize2 className="h-3.5 w-3.5" />
-                : <Maximize2 className="h-3.5 w-3.5" />}
+              <Tv size={14} />
+              <span>{casting.isConnecting ? "Connecting..." : casting.isCasting ? "Casting" : "Cast"}</span>
             </button>
           </div>
 
@@ -204,7 +267,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
             </div>
 
             {/* Right: clock + controls */}
-            <div className="flex w-[48%] flex-col overflow-hidden bg-background">
+            <div className="flex w-[48%] flex-col justify-center overflow-hidden bg-background">
               <TimerDisplay
                 elapsedMs={execution.elapsedTime}
                 hasActiveBlock={true}

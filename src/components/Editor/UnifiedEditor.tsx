@@ -68,6 +68,9 @@ import { WodCompanion } from "./overlays/WodCompanion";
 import { WidgetCompanion } from "./overlays/WidgetCompanion";
 import type { WidgetRegistry } from "./overlays/WidgetCompanion";
 import type { WodCommand } from "./overlays/WodCommand";
+import { FullscreenTimer } from "./overlays/FullscreenTimer";
+import { FullscreenReview } from "./overlays/FullscreenReview";
+import type { Segment } from "@/core/models/AnalyticsModels";
 
 // Existing state fields
 import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
@@ -78,6 +81,8 @@ import { useCommandPalette } from "../command-palette/CommandContext";
 import { Play, Plus } from "lucide-react";
 
 export interface UnifiedEditorProps {
+  /** Note ID for result lookup */
+  noteId?: string;
   /** Document content */
   value: string;
   /** Called on every document change */
@@ -92,6 +97,8 @@ export interface UnifiedEditorProps {
   className?: string;
   /** Called when user triggers "Run" on a WodScript block */
   onStartWorkout?: (block: WodBlock) => void;
+  /** Called when a workout is completed with the results */
+  onCompleteWorkout?: (blockId: string, results: WodBlock["results"]) => void;
   /** Called when WodScript blocks change */
   onBlocksChange?: (blocks: WodBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a WodScript block */
@@ -136,6 +143,7 @@ export interface UnifiedEditorProps {
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
+  noteId,
   value,
   onChange,
   onCursorPositionChange,
@@ -143,6 +151,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   readonly = false,
   className = "",
   onStartWorkout,
+  onCompleteWorkout,
   onBlocksChange,
   onAddToPlan,
   onViewCreated,
@@ -168,81 +177,47 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   const [cursorLine, setCursorLine] = useState(1);
   const overlayState = useOverlayWidthState(sections, activeSectionId);
 
-  // Active runtime panels: sectionId → pinned WodBlock (set when Run clicked,
-  // removed when the panel is closed). Stored as plain React state so the
-  // overlay slot re-renders when a panel is toggled.
-  const [activeRuntimes, setActiveRuntimes] = useState<Map<string, WodBlock>>(new Map());
+  // Full-screen timer block: when set, the FullscreenTimer overlay is shown.
+  const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<WodBlock | null>(null);
 
-  // Sections whose runtime panel is in "expanded" (full content area) mode.
-  const [expandedRuntimes, setExpandedRuntimes] = useState<Set<string>>(new Set());
+  // Full-screen review segments: when set, the FullscreenReview overlay is shown.
+  const [fullscreenReviewSegments, setFullscreenReviewSegments] = useState<Segment[] | null>(null);
 
-  // Derived sets for OverlayTrack — avoids re-creating on every render unless
-  // the underlying state changes.
-  const runtimeActiveSectionIds = useMemo(
-    () => new Set(activeRuntimes.keys()),
-    [activeRuntimes],
-  );
-
-  const expandedRuntimeSectionIds = useMemo(
-    () => new Set(expandedRuntimes),
-    [expandedRuntimes],
-  );
-
-  // Toggle an inline runtime panel for the given WOD block (Run button).
-  const handleInlineRun = useCallback((block: WodBlock) => {
-    setActiveRuntimes((prev) => {
-      const next = new Map(prev);
-      if (next.has(block.id)) {
-        next.delete(block.id);  // toggle off
-      } else {
-        next.set(block.id, block);
-      }
-      return next;
-    });
+  // Toggle the full-screen timer for the given WOD block (Run button).
+  const handleRun = useCallback((block: WodBlock) => {
+    setFullscreenTimerBlock(block);
   }, []);
 
-  // Close a specific runtime panel (called by RuntimeTimerPanel's onClose).
-  const handleRuntimeClose = useCallback((sectionId: string) => {
-    setActiveRuntimes((prev) => {
-      const next = new Map(prev);
-      next.delete(sectionId);
-      return next;
-    });
-    setExpandedRuntimes((prev) => {
-      const next = new Set(prev);
-      next.delete(sectionId);
-      return next;
-    });
+  // Close the full-screen timer.
+  const handleTimerClose = useCallback(() => {
+    setFullscreenTimerBlock(null);
   }, []);
 
-  // Toggle the expanded (full content area) state for a runtime panel.
-  const handleRuntimeToggleExpand = useCallback((sectionId: string) => {
-    setExpandedRuntimes((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      return next;
-    });
+  // Open the full-screen review.
+  const handleOpenReview = useCallback((segments: Segment[]) => {
+    setFullscreenReviewSegments(segments);
+  }, []);
+
+  // Close the full-screen review.
+  const handleReviewClose = useCallback(() => {
+    setFullscreenReviewSegments(null);
   }, []);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
-  // When enableInlineRuntime is true the "Run" command uses handleInlineRun
+  // When enableInlineRuntime is true the "Run" command uses handleRun
   // instead of routing via onStartWorkout.
   const effectiveCommands = useMemo<WodCommand[]>(() => {
     if (commands && commands.length > 0) return commands;
     const synthesized: WodCommand[] = [];
     if (enableInlineRuntime) {
-      // Inline run: open TimerScreen panel below WOD block
+      // Full-screen run: open FullscreenTimer panel
       synthesized.push({
         id: "run",
         label: "Run",
         icon: <Play className="h-3 w-3 fill-current" />,
         primary: true,
-        onClick: handleInlineRun,
+        onClick: handleRun,
       });
     } else if (onStartWorkout) {
       synthesized.push({
@@ -262,7 +237,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       });
     }
     return synthesized;
-  }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleInlineRun]);
+  }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleRun]);
 
   // Mixed language: Markdown + embedded WodScript in code fences
   const languages = useMemo(() => {
@@ -468,6 +443,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     if (props.sectionType === "wod") {
       return (
         <WodCompanion
+          noteId={noteId}
           sectionId={props.sectionId}
           view={props.view}
           isActive={props.isActive}
@@ -476,13 +452,11 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           docVersion={props.docVersion}
           commands={effectiveCommands}
           visibleCount={visibleCommands}
-          activeBlock={activeRuntimes.get(props.sectionId)}
-          onRuntimeClose={() => handleRuntimeClose(props.sectionId)}
-          isRuntimeExpanded={props.isRuntimeExpanded}
-          onRuntimeToggleExpand={() => handleRuntimeToggleExpand(props.sectionId)}
+          onOpenReview={handleOpenReview}
         />
       );
     }
+
     if (props.sectionType === "frontmatter") {
       return (
         <FrontmatterCompanion
@@ -523,9 +497,22 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           widths={overlayState.widths}
           activeSectionId={activeSectionId}
           renderSlot={renderSlot}
-          runtimeActiveSectionIds={runtimeActiveSectionIds}
-          expandedRuntimeSectionIds={expandedRuntimeSectionIds}
           cursorLine={cursorLine}
+        />
+      )}
+      {fullscreenTimerBlock && viewRef.current && (
+        <FullscreenTimer
+          block={fullscreenTimerBlock}
+          view={viewRef.current}
+          onClose={handleTimerClose}
+          onCompleteWorkout={onCompleteWorkout}
+        />
+      )}
+
+      {fullscreenReviewSegments && (
+        <FullscreenReview
+          segments={fullscreenReviewSegments}
+          onClose={handleReviewClose}
         />
       )}
     </div>
