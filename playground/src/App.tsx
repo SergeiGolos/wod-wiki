@@ -50,6 +50,11 @@ import {
   CommandLineIcon,
   DocumentTextIcon,
   FolderIcon,
+  TvIcon,
+  EllipsisVerticalIcon,
+  ArrowDownTrayIcon,
+  BugAntIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/20/solid'
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
@@ -161,6 +166,21 @@ function AppContent() {
     setIsCommandPaletteOpen(true)
   }
 
+  const handleResetData = () => {
+    localStorage.clear()
+    window.location.reload()
+  }
+
+  const handleDownload = () => {
+    const blob = new Blob([currentWorkout.content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${currentWorkout.name}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // Keyboard shortcut for command palette
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -181,10 +201,38 @@ function AppContent() {
     return theme === 'dark' ? 'vs-dark' : 'vs'
   }, [theme])
 
+  const ActionsMenu = () => (
+    <Dropdown>
+      <DropdownButton plain>
+        <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
+      </DropdownButton>
+      <DropdownMenu className="min-w-48" anchor="bottom end">
+        <DropdownItem onClick={handleDownload}>
+          <ArrowDownTrayIcon data-slot="icon" />
+          <DropdownLabel>Download Markdown</DropdownLabel>
+        </DropdownItem>
+        <DropdownItem href="#/debug">
+          <BugAntIcon data-slot="icon" />
+          <DropdownLabel>Toggle Debug Mode</DropdownLabel>
+        </DropdownItem>
+        <DropdownDivider />
+        <DropdownItem onClick={handleResetData}>
+          <ArrowPathIcon data-slot="icon" className="text-red-500" />
+          <DropdownLabel className="text-red-500">Reset & Clear Cache</DropdownLabel>
+        </DropdownItem>
+      </DropdownMenu>
+    </Dropdown>
+  )
+
   return (
     <SidebarLayout
       navbar={
         <Navbar>
+          <div className="flex items-center gap-3 lg:hidden truncate">
+            <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
+              {currentWorkout.name}
+            </span>
+          </div>
           <NavbarSpacer />
           <NavbarSection>
             <NavbarItem onClick={handleSearchClick} aria-label="Search">
@@ -196,38 +244,46 @@ function AppContent() {
                 K
               </kbd>
             </NavbarItem>
-            <NavbarItem href="/inbox" aria-label="Inbox">
+            <NavbarItem className="lg:hidden" title="Cast to Device">
+              <TvIcon data-slot="icon" />
+            </NavbarItem>
+            <NavbarItem href="/inbox" className="max-lg:hidden" aria-label="Inbox">
               <InboxIcon data-slot="icon" />
             </NavbarItem>
-            <Dropdown>
-              <DropdownButton as={NavbarItem}>
-                <Avatar initials="S" square className="bg-zinc-500 text-white" />
-              </DropdownButton>
-              <DropdownMenu className="min-w-64" anchor="bottom end">
-                <DropdownItem href="/my-profile">
-                  <UserIcon data-slot="icon" />
-                  <DropdownLabel>My profile</DropdownLabel>
-                </DropdownItem>
-                <DropdownItem href="/settings">
-                  <Cog8ToothIcon data-slot="icon" />
-                  <DropdownLabel>Settings</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/privacy-policy">
-                  <ShieldCheckIcon data-slot="icon" />
-                  <DropdownLabel>Privacy policy</DropdownLabel>
-                </DropdownItem>
-                <DropdownItem href="/share-feedback">
-                  <LightBulbIcon data-slot="icon" />
-                  <DropdownLabel>Share feedback</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/logout">
-                  <ArrowRightStartOnRectangleIcon data-slot="icon" />
-                  <DropdownLabel>Sign out</DropdownLabel>
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
+            <div className="lg:hidden">
+              <ActionsMenu />
+            </div>
+            <div className="max-lg:hidden">
+              <Dropdown>
+                <DropdownButton as={NavbarItem}>
+                  <Avatar initials="S" square className="bg-zinc-500 text-white" />
+                </DropdownButton>
+                <DropdownMenu className="min-w-64" anchor="bottom end">
+                  <DropdownItem href="/my-profile">
+                    <UserIcon data-slot="icon" />
+                    <DropdownLabel>My profile</DropdownLabel>
+                  </DropdownItem>
+                  <DropdownItem href="/settings">
+                    <Cog8ToothIcon data-slot="icon" />
+                    <DropdownLabel>Settings</DropdownLabel>
+                  </DropdownItem>
+                  <DropdownDivider />
+                  <DropdownItem href="/privacy-policy">
+                    <ShieldCheckIcon data-slot="icon" />
+                    <DropdownLabel>Privacy policy</DropdownLabel>
+                  </DropdownItem>
+                  <DropdownItem href="/share-feedback">
+                    <LightBulbIcon data-slot="icon" />
+                    <DropdownLabel>Share feedback</DropdownLabel>
+                  </DropdownItem>
+                  <DropdownDivider />
+                  <DropdownItem href="/logout">
+                    <ArrowRightStartOnRectangleIcon data-slot="icon" />
+                    <DropdownLabel>Sign out</DropdownLabel>
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            </div>
           </NavbarSection>
         </Navbar>
       }
@@ -324,52 +380,24 @@ function AppContent() {
               })}
             </SidebarSection>
           </SidebarBody>
-          <SidebarFooter className="max-lg:hidden">
-            <Dropdown>
-              <DropdownButton as={SidebarItem}>
-                <span className="flex min-w-0 items-center gap-3">
-                  <Avatar initials="S" className="size-10 bg-zinc-500 text-white" square alt="" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm/5 font-medium text-zinc-950 dark:text-white">Serge</span>
-                    <span className="block truncate text-xs/5 font-normal text-zinc-500 dark:text-zinc-400">
-                      serge@example.com
-                    </span>
-                  </span>
-                </span>
-                <ChevronUpIcon data-slot="icon" />
-              </DropdownButton>
-              <DropdownMenu className="min-w-64" anchor="top start">
-                <DropdownItem href="/my-profile">
-                  <UserIcon data-slot="icon" />
-                  <DropdownLabel>My profile</DropdownLabel>
-                </DropdownItem>
-                <DropdownItem href="/settings">
-                  <Cog8ToothIcon data-slot="icon" />
-                  <DropdownLabel>Settings</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/privacy-policy">
-                  <ShieldCheckIcon data-slot="icon" />
-                  <DropdownLabel>Privacy policy</DropdownLabel>
-                </DropdownItem>
-                <DropdownItem href="/share-feedback">
-                  <LightBulbIcon data-slot="icon" />
-                  <DropdownLabel>Share feedback</DropdownLabel>
-                </DropdownItem>
-                <DropdownDivider />
-                <DropdownItem href="/logout">
-                  <ArrowRightStartOnRectangleIcon data-slot="icon" />
-                  <DropdownLabel>Sign out</DropdownLabel>
-                </DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
-          </SidebarFooter>
         </Sidebar>
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        <div className="pt-4 lg:pt-6">
-          <h1 className="px-6 lg:px-10 text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
+        <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
+          <div className="flex items-center justify-between px-6 lg:px-10">
+            <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
+            <div className="flex items-center gap-4">
+              <button 
+                className="text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                title="Cast to Device"
+              >
+                <TvIcon data-slot="icon" className="size-5" />
+              </button>
+              
+              <ActionsMenu />
+            </div>
+          </div>
           <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
         </div>
         
