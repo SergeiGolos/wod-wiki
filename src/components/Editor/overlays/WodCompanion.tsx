@@ -22,7 +22,9 @@ import { sectionField, type EditorSection } from "../extensions/section-state";
 import { cn } from "@/lib/utils";
 import type { WodBlock } from "../types";
 import type { WodCommand } from "./WodCommand";
-import { RuntimeTimerPanel } from "./RuntimeTimerPanel";
+import { useWodBlockResults } from "../../hooks/useWodBlockResults";
+import { History, ExternalLink } from "lucide-react";
+import type { Segment } from "@/core/models/AnalyticsModels";
 
 // ── Singleton parser (created once per module) ───────────────────────
 const parser = new MdTimerRuntime();
@@ -273,18 +275,21 @@ export interface WodCompanionProps {
    * behind a "…" overflow menu.  Default: 1.
    */
   visibleCount?: number;
-  /**
-   * When set, the companion renders the full-height RuntimeTimerPanel instead
-   * of the normal metrics/button view. This is the pinned WodBlock from the
-   * moment Run was clicked.
-   */
-  activeBlock?: WodBlock;
-  /** Called to close/stop the active runtime panel. */
-  onRuntimeClose?: () => void;
-  /** True when the runtime panel is in full-height expanded mode. */
-  isRuntimeExpanded?: boolean;
-  /** Toggle between expanded and compact runtime view. */
-  onRuntimeToggleExpand?: () => void;
+  /** Callback to open the full-screen review grid for a set of segments. */
+  onOpenReview?: (segments: Segment[]) => void;
+}
+
+/** Format milliseconds as M:SS or H:MM:SS */
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "--:--";
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  }
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export const WodCompanion: React.FC<WodCompanionProps> = ({
@@ -295,11 +300,12 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   docVersion,
   commands,
   visibleCount = 1,
-  activeBlock,
-  onRuntimeClose,
-  isRuntimeExpanded,
-  onRuntimeToggleExpand,
+  onOpenReview,
 }) => {
+  // In a real app, this would come from a NoteContext
+  const noteId = (view.state as any).noteId || "current";
+  const { results } = useWodBlockResults(noteId, sectionId);
+
   const section = useMemo(
     () => getSection(view, sectionId),
     // docVersion forces re-lookup when doc content changes
@@ -325,30 +331,24 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
 
   if (!section) return null;
 
-  // ── RUNTIME ACTIVE: full-height timer panel ──────────────────────
-  // OverlayTrack has already expanded the slot to ≥75 vh.
-  if (activeBlock) {
-    return (
-      <RuntimeTimerPanel
-        block={activeBlock}
-        view={view}
-        onClose={onRuntimeClose ?? (() => {})}
-        isExpanded={isRuntimeExpanded ?? false}
-        onToggleExpand={onRuntimeToggleExpand}
-      />
-    );
-  }
-
   // ── INACTIVE: compact action strip ──────────────────────────────
   if (!isActive) {
     return (
       <div className="h-full w-full flex flex-col bg-popover/60 backdrop-blur-sm border-l border-border/50 overflow-visible">
         <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} compact />
+        {/* Minimized results indicator if they exist */}
+        {results.length > 0 && (
+          <div className="mt-auto flex flex-col items-end p-1.5 opacity-50 hover:opacity-100 transition-opacity">
+            <div className="bg-muted/80 rounded-sm p-1" title={`${results.length} results`}>
+              <History className="h-3 w-3 text-muted-foreground" />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
-  // ── ACTIVE: metric details + action buttons ──────────────────────
+  // ── ACTIVE: metric details + results + action buttons ─────────────
   const lineText = (activeStatement?.meta as any)?.raw ?? "";
   const lineInContent = cursorLine - section.startLine;
 
@@ -373,7 +373,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
       </div>
 
       {/* Metric chips */}
-      <div className="flex-1 px-2.5 py-2 overflow-auto">
+      <div className="px-2.5 py-2 border-b border-border/30">
         {chips.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">
             {chips.map((chip, i) => (
@@ -392,8 +392,44 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         )}
       </div>
 
+      {/* Results section */}
+      <div className="flex-1 overflow-auto">
+        {results.length > 0 && (
+          <div className="flex flex-col">
+            <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-tight flex items-center gap-1.5 bg-muted/20">
+              <History className="h-3 w-3" />
+              Recent Results
+            </div>
+            <div className="divide-y divide-border/30">
+              {results.slice(0, 5).map((res) => (
+                <div
+                  key={res.id}
+                  onClick={() => {
+                    if (res.data?.logs && onOpenReview) {
+                      onOpenReview(res.data.logs as any);
+                    }
+                  }}
+                  className="group flex items-center justify-between px-2.5 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-foreground font-medium">
+                      {new Date(res.completedAt).toLocaleDateString()} {new Date(res.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground font-mono">
+                      {formatDuration(res.data.duration)} {res.data.completed ? "" : "(partial)"}
+                    </span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Action buttons */}
       <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} />
     </div>
   );
 };
+

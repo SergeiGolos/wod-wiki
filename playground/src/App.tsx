@@ -58,14 +58,13 @@ import {
 } from '@heroicons/react/20/solid'
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
-import type { WidgetRegistry } from '@/components/Editor/overlays/WidgetCompanion'
-import { HeroCarousel } from '@/components/Editor/widgets/HeroCarousel'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { HomePageContent } from './HomePage'
 
 // Load all markdown files from the wod directory
 const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -203,12 +202,6 @@ function AppContent() {
     }
     return theme === 'dark' ? 'vs-dark' : 'vs'
   }, [theme])
-
-  const widgetRegistry = useMemo<WidgetRegistry>(() => {
-    const reg = new Map()
-    reg.set('hero', HeroCarousel)
-    return reg
-  }, [])
 
   const ActionsMenu = () => (
     <Dropdown>
@@ -393,45 +386,59 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
-          <div className="flex items-center justify-between px-6 lg:px-10">
-            <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
-            <div className="flex items-center gap-4">
-              <button 
-                className="text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors"
-                title="Cast to Device"
-              >
-                <TvIcon data-slot="icon" className="size-5" />
-              </button>
-              
-              <ActionsMenu />
+        {currentWorkout.name !== 'Home' && (
+          <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
+            <div className="flex items-center justify-between px-6 lg:px-10">
+              <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
+              <div className="flex items-center gap-4">
+                <button
+                  className="text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                  title="Cast to Device"
+                >
+                  <TvIcon data-slot="icon" className="size-5" />
+                </button>
+                <ActionsMenu />
+              </div>
             </div>
+            <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
           </div>
-          <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
-        </div>
+        )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          <UnifiedEditor
-            key={currentWorkout.name}
-            value={currentWorkout.content}
-            onChange={() => {}} // Read-only for now via routing, or could sync back
-            className="flex-1 min-h-0 w-full"
-            theme={actualTheme}
-            widgetComponents={widgetRegistry}
-          />
+          {currentWorkout.name === 'Home' ? (
+            <HomePageContent
+              actualTheme={actualTheme}
+              workoutItems={workoutItems}
+              onSelectWorkout={handleSelectWorkout}
+              isCommandPaletteOpen={isCommandPaletteOpen}
+              setIsCommandPaletteOpen={setIsCommandPaletteOpen}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+            />
+          ) : (
+            <UnifiedEditor
+              key={currentWorkout.name}
+              value={currentWorkout.content}
+              onChange={() => {}} // Read-only for now via routing, or could sync back
+              className="flex-1 min-h-0 w-full"
+              theme={actualTheme}
+            />
+          )}
         </div>
       </div>
 
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => {
-          setIsCommandPaletteOpen(false)
-          setActiveCategory(null)
-        }}
-        items={workoutItems}
-        onSelect={handleSelectWorkout}
-        initialCategory={activeCategory}
-      />
+      {currentWorkout.name !== 'Home' && (
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => {
+            setIsCommandPaletteOpen(false)
+            setActiveCategory(null)
+          }}
+          items={workoutItems}
+          onSelect={handleSelectWorkout}
+          initialCategory={activeCategory}
+        />
+      )}
     </SidebarLayout>
   )
 }
