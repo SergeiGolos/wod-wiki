@@ -215,10 +215,8 @@ const wodBlockBaseTheme = EditorView.baseTheme({
     fontFamily: "var(--font-mono, monospace)",
     // Left indent so content is visually inset from surrounding markdown
     paddingLeft: "24px",
-    // Continuous card background
+    // Continuous card background — no side shadows (they were distracting)
     backgroundColor: "rgba(59, 130, 246, 0.04)",
-    // Side shadows for depth continuity between inner lines
-    boxShadow: "-3px 0 8px -4px rgba(0,0,0,0.06), 3px 0 8px -4px rgba(0,0,0,0.06)",
   },
 
   // ── Dark mode adjustments ───────────────────────────────────────
@@ -234,7 +232,6 @@ const wodBlockBaseTheme = EditorView.baseTheme({
   },
   "&dark .cm-wod-inner": {
     backgroundColor: "rgba(96, 165, 250, 0.06)",
-    boxShadow: "-3px 0 10px -4px rgba(0,0,0,0.2), 3px 0 10px -4px rgba(0,0,0,0.2)",
   },
 });
 

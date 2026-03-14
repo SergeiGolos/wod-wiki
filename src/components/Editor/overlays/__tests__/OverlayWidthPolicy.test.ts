@@ -12,12 +12,12 @@ import type { OverlayWidthInput } from "../OverlayWidthPolicy";
 describe("computeOverlayWidth", () => {
   // ── Default policy tests ──
 
-  it("wod active → 50%", () => {
-    expect(computeOverlayWidth({ sectionType: "wod", isActive: true })).toBe(50);
+  it("wod active → 35%", () => {
+    expect(computeOverlayWidth({ sectionType: "wod", isActive: true })).toBe(35);
   });
 
-  it("wod inactive → 0%", () => {
-    expect(computeOverlayWidth({ sectionType: "wod", isActive: false })).toBe(0);
+  it("wod inactive → 15%", () => {
+    expect(computeOverlayWidth({ sectionType: "wod", isActive: false })).toBe(15);
   });
 
   it("frontmatter active → 35%", () => {

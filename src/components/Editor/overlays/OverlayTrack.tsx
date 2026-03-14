@@ -6,9 +6,13 @@
  * and sized to the computed overlay width (0-100% from the right edge).
  *
  * Layout model:
- *  - The track is `position: absolute; top: 0; right: 0; pointer-events: none`
- *    inside the `cm-unified-editor` container.
- *  - It is scroll-synced with `.cm-scroller` via `transform: translateY(-scrollTop)`.
+ *  - The track is `position: absolute` inset to the editor's writable content
+ *    area: starts after the gutter (line-numbers) and ends before the native
+ *    browser scrollbar.  Overlays therefore never cover line numbers or the
+ *    scrollbar regardless of width setting.
+ *  - Insets are measured via ResizeObserver so they stay correct when gutters
+ *    are toggled or the window is resized.
+ *  - The track is scroll-synced with `.cm-scroller` via `translateY(-scrollTop)`.
  *  - Each visible slot has `pointer-events: auto` so its contents are interactive.
  *  - Text underneath remains full-width — the overlay floats on top.
  */
@@ -29,6 +33,8 @@ export interface OverlaySlotProps {
   widthPercent: number;
   isActive: boolean;
   view: EditorView;
+  /** Increments on every document change — use as useMemo dep in companions. */
+  docVersion: number;
 }
 
 export interface OverlayTrackProps {
@@ -53,6 +59,43 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
   const trackRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<SectionRect[]>([]);
   const [scrollTop, setScrollTop] = useState(0);
+  // left = gutter width; right = scrollbar width
+  const [contentInsets, setContentInsets] = useState<{ left: number; right: number }>({ left: 0, right: 0 });
+  // Increments whenever the editor document changes so companions re-derive their data.
+  const [docVersion, setDocVersion] = useState(0);
+
+  // Measure content-area insets: gutter (left) and scrollbar (right).
+  // Re-measures whenever the editor DOM resizes (gutters toggled, window resize, etc.).
+  useEffect(() => {
+    if (!view) return;
+
+    const measure = () => {
+      // Gutter width = offsetLeft of .cm-content within .cm-scroller
+      const gutterWidth = view.contentDOM.offsetLeft;
+      // Scrollbar width = total scrollDOM width minus the visible (non-scrollbar) width
+      const scrollbarWidth = view.scrollDOM.offsetWidth - view.scrollDOM.clientWidth;
+      setContentInsets({ left: gutterWidth, right: scrollbarWidth });
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(view.dom);
+    return () => observer.disconnect();
+  }, [view]);
+
+  // Watch for document mutations: CM6 synchronously updates contentDOM on every
+  // dispatch, so a MutationObserver gives us a reliable change signal without
+  // needing to add a CM6 extension.
+  useEffect(() => {
+    if (!view) return;
+    const observer = new MutationObserver(() => setDocVersion((v) => v + 1));
+    observer.observe(view.contentDOM, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
+  }, [view]);
 
   // Subscribe to section geometry changes
   useEffect(() => {
@@ -95,8 +138,8 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
       style={{
         position: "absolute",
         top: 0,
-        right: 0,
-        left: 0,
+        left: contentInsets.left,
+        right: contentInsets.right,
         bottom: 0,
         pointerEvents: "none",
         overflow: "hidden",
@@ -114,6 +157,18 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const state = widths.get(rect.sectionId)!;
           const isActive = rect.sectionId === activeSectionId;
 
+          // When clicking on the overlay background (not on a button/input/a),
+          // resolve the document position from click coordinates and move the
+          // editor cursor there so the user isn't stuck.
+          const handleSlotClick = (e: React.MouseEvent<HTMLDivElement>) => {
+            const target = e.target as HTMLElement;
+            if (target.closest("button,a,input,select,textarea,[role=button]")) return;
+            const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+            if (pos == null) return;
+            view.dispatch({ selection: { anchor: pos } });
+            view.focus();
+          };
+
           return (
             <div
               key={rect.sectionId}
@@ -128,6 +183,7 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 transition: "width 150ms ease, opacity 150ms ease",
                 overflow: "hidden",
               }}
+              onClick={handleSlotClick}
             >
               {renderSlot?.({
                 sectionId: rect.sectionId,
@@ -136,6 +192,7 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 widthPercent: state.effectiveWidth,
                 isActive,
                 view,
+                docVersion,
               })}
             </div>
           );

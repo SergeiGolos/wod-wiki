@@ -1,14 +1,19 @@
 /**
  * Frontmatter Preview Decorations
  *
- * Replaces frontmatter sections (--- delimited YAML) with rich preview
- * widgets when the cursor is NOT inside them. Supports:
- *   - YouTube: embedded video player (youtube-nocookie.com)
- *   - Amazon: product card with image, price, description
+ * Manages visual presentation of frontmatter sections:
  *
- * When the cursor enters a frontmatter section, the widget collapses
- * back to raw YAML so the user can edit. This mimics the "preview mode"
- * pattern used by WOD block decorations.
+ *  Height padding — Expands the section's visual height to match a desired
+ *    companion height by adding CSS padding to the first/last lines. This
+ *    lets the OverlayTrack slot fill to the right size.
+ *    - `height: <px>` in YAML overrides the default for any section.
+ *    - YouTube sections default to DEFAULT_COMPANION_HEIGHT (315 px).
+ *    - Padding is split equally top and bottom to visually center the lines.
+ *
+ *  Amazon replacement — Replaces Amazon frontmatter with a product card
+ *    widget when the cursor is outside the section.
+ *
+ *  Arrow-key navigation — Allows navigating into replaced sections.
  */
 
 import {
@@ -20,6 +25,18 @@ import {
 } from "@codemirror/view";
 import { EditorState, Range, StateField, Extension, Prec } from "@codemirror/state";
 import { sectionField, EditorSection } from "./section-state";
+
+// ── Constants ────────────────────────────────────────────────────────
+
+/** Default overlay height for YouTube sections (pixels). Matches a 560×315 YouTube embed. */
+const DEFAULT_COMPANION_HEIGHT = 315;
+
+/**
+ * Rough line-height estimate used to compute how much padding to add.
+ * CM6 line heights depend on font/theme; 20px is a safe default.
+ * If your editor uses a larger font, set `height:` explicitly in the YAML.
+ */
+const LINE_HEIGHT_ESTIMATE = 20;
 
 // ── Frontmatter parsing helpers ─────────────────────────────────────
 
@@ -185,7 +202,7 @@ class AmazonPreviewWidget extends WidgetType {
   }
 }
 
-// ── Build replace decorations for frontmatter sections ──────────────
+// ── Build decorations for frontmatter sections ──────────────────────
 
 function buildFrontmatterDecos(state: EditorState): DecorationSet {
   const { sections } = state.field(sectionField);
@@ -195,20 +212,92 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
   for (const section of sections) {
     if (section.type !== "frontmatter") continue;
 
-    // Don't replace when cursor is inside this section (let user edit)
-    if (cursorHead >= section.from && cursorHead <= section.to) continue;
-
     const props = parseFrontmatterProps(state, section);
     const subtype = detectSubtype(props);
+    const cursorInside = cursorHead >= section.from && cursorHead <= section.to;
 
-    // YouTube frontmatter is handled by the overlay companion (FrontmatterCompanion)
-    if (subtype === "amazon") {
+    // ── Desired companion height ─────────────────────────────────────
+    // Explicit `height:` YAML prop overrides subtype defaults.
+    const explicitHeight = parseInt(props["height"] ?? "", 10);
+    let desiredHeight = 0;
+    if (!isNaN(explicitHeight) && explicitHeight > 0) {
+      desiredHeight = explicitHeight;
+    } else if (subtype === "youtube") {
+      desiredHeight = DEFAULT_COMPANION_HEIGHT;
+    }
+
+    // ── Padding decorations ──────────────────────────────────────────
+    // Expand the visual height of the section to desiredHeight by adding
+    // CSS padding-top / padding-bottom to the first and last lines.
+    //
+    // Why this works: CM6 measures actual DOM element heights for visible
+    // lines. A `.cm-line` with padding-top:Xpx has height (lineHeight + X),
+    // and that full height is reflected in lineBlockAt().height — which is
+    // what section-geometry uses to compute SectionRect.height. No changes
+    // to section-geometry are needed.
+    //
+    // Amazon is excluded: the replacement widget controls its own height.
+    if (desiredHeight > 0 && subtype !== "amazon") {
+      // Use total section line count for height estimation (delimiter lines
+      // contribute to the section's visual height just like content lines).
+      const totalSectionLines = section.endLine - section.startLine + 1;
+      const estimatedHeight = totalSectionLines * LINE_HEIGHT_ESTIMATE;
+      const totalPadding = Math.max(0, desiredHeight - estimatedHeight);
+
+      if (totalPadding > 0) {
+        const topPad = Math.floor(totalPadding / 2);
+        const bottomPad = Math.ceil(totalPadding / 2);
+
+        // Apply padding to the CONTENT lines inside the delimiters (e.g., the
+        // lines between the two `---` markers), NOT to the delimiter lines
+        // themselves.  This keeps the `---` lines at their natural height and
+        // visually centers the YAML content within the desired companion height.
+        const firstContentLine = section.startLine + 1;
+        const lastContentLine = section.endLine - 1;
+
+        // Guard: skip if no content lines between delimiters.
+        if (
+          firstContentLine <= lastContentLine &&
+          firstContentLine >= 1 &&
+          lastContentLine <= state.doc.lines
+        ) {
+          const firstFrom = state.doc.line(firstContentLine).from;
+          const lastFrom = state.doc.line(lastContentLine).from;
+
+          if (firstFrom === lastFrom) {
+            // Single content line — combine both into one Decoration.line so
+            // the `style` attribute is not overwritten by a second decoration.
+            decos.push(
+              Decoration.line({
+                attributes: { style: `padding-top: ${topPad}px; padding-bottom: ${bottomPad}px` },
+              }).range(firstFrom)
+            );
+          } else {
+            if (topPad > 0) {
+              decos.push(
+                Decoration.line({
+                  attributes: { style: `padding-top: ${topPad}px` },
+                }).range(firstFrom)
+              );
+            }
+            if (bottomPad > 0) {
+              decos.push(
+                Decoration.line({
+                  attributes: { style: `padding-bottom: ${bottomPad}px` },
+                }).range(lastFrom)
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // ── Amazon replacement (cursor outside only) ─────────────────────
+    // YouTube is handled by the overlay companion (FrontmatterCompanion).
+    if (subtype === "amazon" && !cursorInside) {
       decos.push(
         Decoration.replace({
-          widget: new AmazonPreviewWidget(
-            props,
-            section.from,
-          ),
+          widget: new AmazonPreviewWidget(props, section.from),
           block: true,
         }).range(section.from, section.to)
       );

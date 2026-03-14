@@ -69,6 +69,7 @@ interface FrontmatterCompanionProps {
   view: EditorView;
   isActive: boolean;
   widthPercent: number;
+  docVersion: number;
 }
 
 export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
@@ -76,10 +77,13 @@ export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
   view,
   isActive,
   widthPercent,
+  docVersion,
 }) => {
   const props = useMemo(
     () => parseFrontmatterProps(view, sectionId),
-    [view, sectionId],
+    // docVersion ensures we re-parse when frontmatter content changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view, sectionId, docVersion],
   );
   const subtype = useMemo(() => detectSubtype(props), [props]);
 

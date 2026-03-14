@@ -1,23 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="antialiased lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wod.Wiki</title>
+  <title>Wod.Wiki Playground</title>
   <link rel="icon" type="image/png" href="/images/wod-wiki-logo-light.png" />
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PROD-ID"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-PROD-ID');
-  </script>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 </head>
 
-<body>
+<body class="min-h-svh w-full bg-white dark:bg-zinc-900">
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

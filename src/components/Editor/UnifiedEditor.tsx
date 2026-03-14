@@ -61,6 +61,7 @@ import { OverlayTrack } from "./overlays/OverlayTrack";
 import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "./overlays/OverlayTrack";
 import { FrontmatterCompanion } from "./overlays/FrontmatterCompanion";
+import { WodCompanion } from "./overlays/WodCompanion";
 
 // Existing state fields
 import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
@@ -130,6 +131,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   // Overlay track state
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [sections, setSections] = useState<EditorSection[]>([]);
+  const [cursorLine, setCursorLine] = useState(1);
   const overlayState = useOverlayWidthState(sections, activeSectionId);
 
   // Configure overlay actions with callbacks
@@ -244,6 +246,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           // Update overlay track state
           const cursorSec = activeCursorSection(update.state);
           setActiveSectionId(cursorSec?.id ?? null);
+          setCursorLine(line.number);
           const { sections: secs } = update.state.field(sectionField);
           setSections(secs);
         }
@@ -292,6 +295,17 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     viewRef.current = view;
     onViewCreated?.(view);
 
+    // Seed overlay state from initial editor state so panels render
+    // immediately without requiring a cursor move or click.
+    const { sections: initialSections } = view.state.field(sectionField);
+    setSections(initialSections);
+    const initialLine = view.state.doc.lineAt(
+      view.state.selection.main.head
+    ).number;
+    setCursorLine(initialLine);
+    const initialSection = activeCursorSection(view.state);
+    setActiveSectionId(initialSection?.id ?? null);
+
     return () => {
       view.destroy();
     };
@@ -338,6 +352,18 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
   // Slot renderer — routes to companion components by section type
   const renderSlot = (props: OverlaySlotProps) => {
+    if (props.sectionType === "wod") {
+      return (
+        <WodCompanion
+          sectionId={props.sectionId}
+          view={props.view}
+          isActive={props.isActive}
+          widthPercent={props.widthPercent}
+          cursorLine={cursorLine}
+          docVersion={props.docVersion}
+        />
+      );
+    }
     if (props.sectionType === "frontmatter") {
       return (
         <FrontmatterCompanion
@@ -345,6 +371,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           view={props.view}
           isActive={props.isActive}
           widthPercent={props.widthPercent}
+          docVersion={props.docVersion}
         />
       );
     }

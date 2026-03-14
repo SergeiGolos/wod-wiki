@@ -28,7 +28,7 @@ export interface OverlayWidthDefaults {
 // ── Default policy values ────────────────────────────────────────────
 
 export const DEFAULT_OVERLAY_WIDTHS: OverlayWidthDefaults = {
-  wod:         { active: 50, inactive: 0 },
+  wod:         { active: 35, inactive: 15 },
   frontmatter: { active: 35, inactive: 100 },
   markdown:    { active: 0,  inactive: 0 },
   code:        { active: 30, inactive: 0 },

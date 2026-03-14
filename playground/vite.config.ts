@@ -11,6 +11,8 @@ const https = certFiles.length > 0 && keyFiles.length > 0
     ? { cert: fs.readFileSync(resolve(projectRoot, certFiles[0])), key: fs.readFileSync(resolve(projectRoot, keyFiles[0])) }
     : undefined;
 
+const hmrHost = certFiles.length > 0 ? certFiles[0].replace('.crt', '') : undefined;
+
 // Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
 // transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
 const receiverRedirectPlugin: Plugin = {
@@ -52,6 +54,7 @@ export default defineConfig({
     server: {
         host: '0.0.0.0',
         ...(https ? { https } : {}),
+        hmr: hmrHost ? { host: hmrHost } : true,
     },
     build: {
         outDir: 'dist',
