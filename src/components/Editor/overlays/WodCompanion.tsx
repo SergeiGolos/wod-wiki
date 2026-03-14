@@ -13,13 +13,15 @@
  *     Bottom: same action buttons in a horizontal row.
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { MetricType } from "@/core/models/Metric";
 import { MdTimerRuntime } from "@/parser/md-timer";
 import { sectionField, type EditorSection } from "../extensions/section-state";
-import { getOverlayActions, type OverlayAction } from "../extensions/wod-overlay";
+import { cn } from "@/lib/utils";
+import type { WodBlock } from "../types";
+import type { WodCommand } from "./WodCommand";
 
 // ── Singleton parser (created once per module) ───────────────────────
 const parser = new MdTimerRuntime();
@@ -95,62 +97,163 @@ function metricChips(statement: ICodeStatement): MetricChip[] {
     });
 }
 
-// ── Sub-components ───────────────────────────────────────────────────
+// ── Block resolver ────────────────────────────────────────────────────
 
-const ActionButtons: React.FC<{
+function buildWodBlock(view: EditorView, section: EditorSection): WodBlock {
+  const content =
+    section.contentFrom !== undefined && section.contentTo !== undefined
+      ? view.state.doc.sliceString(section.contentFrom, section.contentTo)
+      : "";
+  return {
+    id: section.id,
+    dialect: section.dialect || "wod",
+    startLine: section.startLine - 1,
+    endLine: section.endLine - 1,
+    content,
+    state: "idle",
+    version: 1,
+    createdAt: Date.now(),
+    widgetIds: {},
+  };
+}
+
+// ── CommandButtons ────────────────────────────────────────────────────
+/**
+ * Renders a row (active) or vertical strip (compact/inactive) of command
+ * buttons.  The first `visibleCount` commands are shown directly; any
+ * remaining commands are hidden behind a "…" overflow menu.
+ */
+const CommandButtons: React.FC<{
+  commands: WodCommand[];
+  visibleCount: number;
   section: EditorSection;
   view: EditorView;
-  actions: OverlayAction[];
   compact?: boolean;
-}> = ({ section, view, actions, compact }) => {
-  if (!actions.length) return null;
+}> = ({ commands, visibleCount, section, view, compact }) => {
+  const [overflowOpen, setOverflowOpen] = useState(false);
 
+  if (!commands.length) return null;
+
+  const visible = commands.slice(0, visibleCount);
+  const overflow = commands.slice(visibleCount);
+
+  const fire = (cmd: WodCommand) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cmd.onClick(buildWodBlock(view, section));
+  };
+
+  // ── COMPACT (inactive 15% strip) ── icon-only vertical stack
   if (compact) {
-    // Narrow strip: icon-only tall buttons stacked vertically
     return (
       <div className="flex flex-col items-center gap-1.5 p-1.5">
-        {actions.map((a) => (
+        {visible.map((cmd) => (
           <button
-            key={a.label}
-            title={a.label}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              a.action(view, section);
-            }}
-            className="w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded text-[10px] font-medium
-              bg-muted/60 hover:bg-primary hover:text-primary-foreground
-              text-muted-foreground transition-colors"
+            key={cmd.id}
+            title={cmd.label}
+            onClick={fire(cmd)}
+            className={cn(
+              "w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm",
+              cmd.primary
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
+            )}
           >
-            <span className="text-sm leading-none">{a.icon}</span>
+            <span className="text-base leading-none flex items-center justify-center">
+              {cmd.icon}
+            </span>
             <span className="leading-none opacity-80" style={{ fontSize: "8px" }}>
-              {a.label}
+              {cmd.label}
             </span>
           </button>
         ))}
+        {overflow.length > 0 && (
+          <div className="relative w-full">
+            <button
+              title="More actions"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOverflowOpen((o) => !o);
+              }}
+              className="w-full flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm bg-muted/60 hover:bg-muted text-muted-foreground border border-border/50"
+            >
+              <span className="text-base leading-none">…</span>
+            </button>
+            {overflowOpen && (
+              <div className="absolute left-full top-0 ml-1 z-50 min-w-[110px] bg-popover border border-border rounded-md shadow-lg py-1">
+                {overflow.map((cmd) => (
+                  <button
+                    key={cmd.id}
+                    onClick={(e) => {
+                      setOverflowOpen(false);
+                      fire(cmd)(e);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] hover:bg-muted text-foreground"
+                  >
+                    <span className="flex items-center">{cmd.icon}</span>
+                    <span>{cmd.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
 
-  // Full row
+  // ── FULL ROW (active 35% panel) ── icon + label horizontal
   return (
-    <div className="flex items-center gap-1 p-2 border-t border-border/50">
-      {actions.map((a) => (
+    <div className="flex items-center gap-1.5 p-2 border-t border-border/50 flex-wrap">
+      {visible.map((cmd) => (
         <button
-          key={a.label}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            a.action(view, section);
-          }}
-          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium
-            bg-muted hover:bg-primary hover:text-primary-foreground
-            text-muted-foreground transition-colors"
+          key={cmd.id}
+          title={cmd.label}
+          onClick={fire(cmd)}
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm",
+            cmd.primary
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
+          )}
         >
-          <span>{a.icon}</span>
-          <span>{a.label}</span>
+          <span className="flex items-center h-3 w-3">{cmd.icon}</span>
+          <span>{cmd.label}</span>
         </button>
       ))}
+      {overflow.length > 0 && (
+        <div className="relative">
+          <button
+            title="More actions"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOverflowOpen((o) => !o);
+            }}
+            className="flex items-center px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm bg-muted text-muted-foreground hover:bg-muted/80 border border-border/50"
+          >
+            …
+          </button>
+          {overflowOpen && (
+            <div className="absolute bottom-full right-0 mb-1 z-50 min-w-[120px] bg-popover border border-border rounded-md shadow-lg py-1">
+              {overflow.map((cmd) => (
+                <button
+                  key={cmd.id}
+                  onClick={(e) => {
+                    setOverflowOpen(false);
+                    fire(cmd)(e);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] hover:bg-muted text-foreground"
+                >
+                  <span className="flex items-center">{cmd.icon}</span>
+                  <span>{cmd.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -166,6 +269,13 @@ export interface WodCompanionProps {
   cursorLine: number;
   /** Increments on every document change — forces re-parse on content edits. */
   docVersion: number;
+  /** Commands to display as action buttons. */
+  commands: WodCommand[];
+  /**
+   * How many commands show as direct buttons.  Additional commands are hidden
+   * behind a "…" overflow menu.  Default: 1.
+   */
+  visibleCount?: number;
 }
 
 export const WodCompanion: React.FC<WodCompanionProps> = ({
@@ -174,6 +284,8 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   isActive,
   cursorLine,
   docVersion,
+  commands,
+  visibleCount = 1,
 }) => {
   const section = useMemo(
     () => getSection(view, sectionId),
@@ -181,7 +293,6 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, sectionId, docVersion],
   );
-  const actions = useMemo(() => getOverlayActions(), []);
 
   const statements = useMemo(
     () => (section ? parseContent(view, section) : []),
@@ -211,7 +322,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
             {section.dialect ?? "wod"}
           </span>
         </div>
-        <ActionButtons section={section} view={view} actions={actions} compact />
+        <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} compact />
       </div>
     );
   }
@@ -261,7 +372,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
       </div>
 
       {/* Action buttons */}
-      <ActionButtons section={section} view={view} actions={actions} />
+      <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} />
     </div>
   );
 };

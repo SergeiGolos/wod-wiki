@@ -55,13 +55,14 @@ import { frontmatterPreview } from "./extensions/frontmatter-preview";
 import { markdownTablePreview } from "./extensions/markdown-tables";
 import { wodLinter } from "./extensions/wod-linter";
 import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplete";
-import { wodOverlayPanel, configureOverlayActions } from "./extensions/wod-overlay";
+import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { OverlayTrack } from "./overlays/OverlayTrack";
 import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "./overlays/OverlayTrack";
 import { FrontmatterCompanion } from "./overlays/FrontmatterCompanion";
 import { WodCompanion } from "./overlays/WodCompanion";
+import type { WodCommand } from "./overlays/WodCommand";
 
 // Existing state fields
 import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
@@ -69,6 +70,7 @@ import { themeCompartment, languageCompartment, modeCompartment } from "./compar
 
 import type { WodBlock } from "./types";
 import { useCommandPalette } from "../command-palette/CommandContext";
+import { Play, Plus } from "lucide-react";
 
 export interface UnifiedEditorProps {
   /** Document content */
@@ -103,6 +105,18 @@ export interface UnifiedEditorProps {
   enableLinting?: boolean;
   /** Enable overlay panel (default: true) */
   enableOverlay?: boolean;
+  /**
+   * Command buttons shown on WodScript block overlays.
+   * When provided, replaces the individual onStartWorkout / onAddToPlan callbacks
+   * (those are still accepted for backward compatibility when commands is omitted).
+   */
+  commands?: WodCommand[];
+  /**
+   * How many commands are shown as direct buttons in the overlay.
+   * Any additional commands are hidden behind a "…" overflow menu.
+   * Default: 1.
+   */
+  visibleCommands?: number;
 }
 
 export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
@@ -122,6 +136,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   enablePreview = true,
   enableLinting = true,
   enableOverlay = true,
+  commands,
+  visibleCommands = 1,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -134,31 +150,30 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   const [cursorLine, setCursorLine] = useState(1);
   const overlayState = useOverlayWidthState(sections, activeSectionId);
 
-  // Configure overlay actions with callbacks
-  useEffect(() => {
-    const actions = [];
+  // Build effective command list: use explicit commands if provided, otherwise
+  // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
+  const effectiveCommands = useMemo<WodCommand[]>(() => {
+    if (commands && commands.length > 0) return commands;
+    const synthesized: WodCommand[] = [];
     if (onStartWorkout) {
-      actions.push({
+      synthesized.push({
+        id: "run",
         label: "Run",
-        icon: "▶",
-        action: (_view: EditorView, section: EditorSection) => {
-          const wodBlock = sectionToWodBlock(section, _view.state);
-          if (wodBlock) onStartWorkout(wodBlock);
-        },
+        icon: <Play className="h-3 w-3 fill-current" />,
+        primary: true,
+        onClick: onStartWorkout,
       });
     }
     if (onAddToPlan) {
-      actions.push({
+      synthesized.push({
+        id: "plan",
         label: "Plan",
-        icon: "📋",
-        action: (_view: EditorView, section: EditorSection) => {
-          const wodBlock = sectionToWodBlock(section, _view.state);
-          if (wodBlock) onAddToPlan(wodBlock);
-        },
+        icon: <Plus className="h-3 w-3" />,
+        onClick: onAddToPlan,
       });
     }
-    configureOverlayActions(actions);
-  }, [onStartWorkout, onAddToPlan]);
+    return synthesized;
+  }, [commands, onStartWorkout, onAddToPlan]);
 
   // Mixed language: Markdown + embedded WodScript in code fences
   const languages = useMemo(() => {
@@ -361,6 +376,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           widthPercent={props.widthPercent}
           cursorLine={cursorLine}
           docVersion={props.docVersion}
+          commands={effectiveCommands}
+          visibleCount={visibleCommands}
         />
       );
     }

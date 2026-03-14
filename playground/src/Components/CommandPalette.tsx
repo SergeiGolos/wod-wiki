@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react'
 import * as Headless from '@headlessui/react'
 import { Dialog, DialogBackdrop, DialogPanel } from '@headlessui/react'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
-import { ComboboxOption, ComboboxLabel, ComboboxDescription, Combobox } from './combobox'
+import { ComboboxOption, ComboboxLabel, ComboboxDescription } from './combobox'
+import clsx from 'clsx'
 
 interface CommandPaletteProps {
   isOpen: boolean
@@ -13,6 +14,14 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ isOpen, onClose, items, onSelect }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
+
+  const filteredItems = useMemo(() => {
+    return query === ''
+      ? []
+      : items.filter((item) => {
+          return item.name.toLowerCase().includes(query.toLowerCase())
+        })
+  }, [query, items])
 
   return (
     <Dialog 
@@ -33,9 +42,7 @@ export function CommandPalette({ isOpen, onClose, items, onSelect }: CommandPale
           transition
           className="mx-auto max-w-2xl transform divide-y divide-zinc-100 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black/5 transition-all data-closed:scale-95 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in dark:divide-zinc-800 dark:bg-zinc-900 dark:ring-white/10"
         >
-          <Combobox
-            options={items}
-            displayValue={(item: any) => (item ? item.name : '')}
+          <Headless.Combobox
             onChange={(item: any) => {
               if (item) {
                 onSelect(item)
@@ -43,18 +50,51 @@ export function CommandPalette({ isOpen, onClose, items, onSelect }: CommandPale
                 setQuery('')
               }
             }}
-            onClose={() => setQuery('')}
-            placeholder="Search workouts..."
-            icon={MagnifyingGlassIcon}
-            className="border-none before:hidden after:hidden focus:ring-0"
           >
-            {(item) => (
-              <ComboboxOption key={item.id} value={item}>
-                <ComboboxLabel>{item.name}</ComboboxLabel>
-                <ComboboxDescription>{item.category}</ComboboxDescription>
-              </ComboboxOption>
+            <div className="relative">
+              <MagnifyingGlassIcon
+                data-slot="icon"
+                className="pointer-events-none absolute top-3.5 left-4 size-5 text-zinc-400 dark:text-zinc-500"
+                aria-hidden="true"
+              />
+              <Headless.ComboboxInput
+                autoFocus
+                className="h-12 w-full border-0 bg-transparent pl-11 pr-4 text-zinc-900 placeholder:text-zinc-400 focus:ring-0 sm:text-sm dark:text-white dark:placeholder:text-zinc-500"
+                placeholder="Search workouts..."
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+
+            {(query === '' || filteredItems.length > 0) && (
+              <Headless.ComboboxOptions
+                static
+                className="max-h-80 scroll-py-2 overflow-y-auto py-2 text-sm text-zinc-800 dark:text-zinc-200"
+              >
+                {filteredItems.length > 0 ? (
+                  filteredItems.map((item) => (
+                    <ComboboxOption key={item.id} value={item}>
+                      <ComboboxLabel>{item.name}</ComboboxLabel>
+                      <ComboboxDescription>{item.category}</ComboboxDescription>
+                    </ComboboxOption>
+                  ))
+                ) : query !== '' ? (
+                   <div className="px-4 py-14 text-center sm:px-14">
+                    <p className="mt-4 text-sm text-zinc-900 dark:text-zinc-100">No workouts found for this search.</p>
+                  </div>
+                ) : (
+                  <div className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                    Recent Workouts
+                  </div>
+                )}
+                {query === '' && items.slice(0, 5).map((item) => (
+                  <ComboboxOption key={item.id} value={item}>
+                    <ComboboxLabel>{item.name}</ComboboxLabel>
+                    <ComboboxDescription>{item.category}</ComboboxDescription>
+                  </ComboboxOption>
+                ))}
+              </Headless.ComboboxOptions>
             )}
-          </Combobox>
+          </Headless.Combobox>
         </DialogPanel>
       </div>
     </Dialog>
