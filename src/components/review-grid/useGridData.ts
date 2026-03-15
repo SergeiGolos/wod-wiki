@@ -241,6 +241,17 @@ function segmentsToRows(
     const overrides = blockKey ? userOverrides.get(blockKey) : undefined;
     if (overrides) {
       for (const frag of overrides) {
+        // Remove hinted placeholders (origin === 'hinted') of the same type so
+        // the user value replaces the '?' instead of appearing alongside it.
+        const existing = cells.get(frag.type as MetricType);
+        if (existing) {
+          const withoutHinted = existing.metrics.filter((m) => m.origin !== 'hinted');
+          if (withoutHinted.length === 0) {
+            cells.delete(frag.type as MetricType);
+          } else {
+            cells.set(frag.type as MetricType, { metrics: withoutHinted, hasUserOverride: false });
+          }
+        }
         groupFragmentIntoCell(cells, frag);
       }
     }
@@ -251,6 +262,10 @@ function segmentsToRows(
         (f) => f.origin === 'user',
       );
     }
+
+    // Derive Volume (reps × weight) when both Rep and Resistance are known.
+    // This re-runs whenever user overrides supply a missing rep or weight value.
+    deriveVolumeCell(cells);
 
     const outputType = ((seg as SegmentWithContext).context?.outputType as string) ?? seg.type;
 
@@ -281,6 +296,50 @@ function extractBlockKey(seg: Segment): string | undefined {
   const ctx = (seg as SegmentWithContext).context;
   if (ctx?.sourceBlockKey) return ctx.sourceBlockKey as string;
   return seg.name;
+}
+
+/**
+ * Derive a Volume cell (reps × weight kg) when both Rep and Resistance cells
+ * are present with numeric values.  Skips if a Volume cell already exists or
+ * either source cell is missing.
+ */
+function deriveVolumeCell(cells: Map<MetricType, GridCell>): void {
+  // Already have a computed volume — don't overwrite
+  if (cells.has(MetricType.Volume)) return;
+
+  const repCell = cells.get(MetricType.Rep);
+  const resistanceCell = cells.get(MetricType.Resistance);
+  if (!repCell || !resistanceCell) return;
+
+  let reps = 0;
+  for (const m of repCell.metrics) {
+    if (typeof m.value === 'number') reps += m.value;
+  }
+
+  let weightKg = 0;
+  let unit = 'kg';
+  for (const m of resistanceCell.metrics) {
+    const val = m.value as any;
+    if (typeof val?.amount === 'number') {
+      weightKg += val.amount;
+      if (val.unit) unit = val.unit;
+    } else if (typeof m.value === 'number') {
+      weightKg += m.value;
+    }
+  }
+
+  if (reps <= 0 || weightKg <= 0) return;
+
+  const volume = reps * weightKg;
+  cells.set(MetricType.Volume, {
+    metrics: [{
+      type: MetricType.Volume,
+      value: volume,
+      image: `${volume} ${unit}`,
+      origin: 'analyzed',
+    }],
+    hasUserOverride: false,
+  });
 }
 
 /**
