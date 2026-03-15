@@ -25,11 +25,19 @@ import type { SectionOverlayState } from "./useOverlayWidthState";
 import type { EditorSectionType } from "../extensions/section-state";
 
 // ── Minimum slot heights (px) ────────────────────────────────────────
-// Slots expand to at least this height and re-center against their section.
+// Active slots expand to at least this height to avoid clipping their content.
 const MIN_SLOT_HEIGHT: Partial<Record<EditorSectionType, number>> = {
   frontmatter: 280,
-  wod:         200,
+  wod:         160,
   code:        140,
+  widget:      220,
+};
+
+// Inactive (compact) slots — no artificial inflation; just match the section.
+const MIN_SLOT_HEIGHT_INACTIVE: Partial<Record<EditorSectionType, number>> = {
+  frontmatter: 120,
+  wod:         0,
+  code:        60,
   widget:      220,
 };
 
@@ -172,8 +180,11 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           const isActive = rect.sectionId === activeSectionId;
 
           // ── Slot height ────────────────────────────────────────────
-          // Normal: expand to a minimum per-type height.
-          const minH = MIN_SLOT_HEIGHT[rect.type] ?? 0;
+          // Active slots use a larger minimum to avoid clipping panel content.
+          // Inactive (compact) slots use a smaller minimum so they don't
+          // create empty space below the action buttons.
+          const heightMap = isActive ? MIN_SLOT_HEIGHT : MIN_SLOT_HEIGHT_INACTIVE;
+          const minH = heightMap[rect.type] ?? 0;
           // Widget slots use a fixed height — their section height is inflated
           // by the JSON body lines which aren't displayed in the slot.
           const effectiveHeight = rect.type === "widget"
@@ -211,9 +222,13 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
           }
 
           const unclamped = targetCenterY - effectiveHeight / 2;
-          // Never go above track top (0), never push bottom below section end.
+          // Clamp so the slot never floats above its own section top.
+          // Using rect.top (not 0) prevents taller-than-section slots from
+          // drifting up into the previous section's space when the bottom-pin
+          // term (rect.top + rect.height - effectiveHeight) goes negative.
+          // When the slot fits inside the section, this keeps it within bounds.
           const slotTop = Math.max(
-            0,
+            rect.top,
             Math.min(unclamped, rect.top + rect.height - effectiveHeight),
           );
 

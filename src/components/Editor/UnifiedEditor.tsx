@@ -60,6 +60,13 @@ import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterRuntimeHighlights } from "./extensions/gutter-runtime";
 import { foldWidgets } from "./extensions/fold-widgets";
+import {
+  wodResultsWidget,
+  wodResultsField,
+  updateSectionResults,
+  WOD_RESULT_CLICK_EVENT,
+  type WodResultClickDetail,
+} from "./extensions/wod-results-widget";
 import { OverlayTrack } from "./overlays/OverlayTrack";
 import { useOverlayWidthState } from "./overlays/useOverlayWidthState";
 import type { OverlaySlotProps } from "./overlays/OverlayTrack";
@@ -71,6 +78,9 @@ import type { WodCommand } from "./overlays/WodCommand";
 import { FullscreenTimer } from "./overlays/FullscreenTimer";
 import { FullscreenReview } from "./overlays/FullscreenReview";
 import type { Segment } from "@/core/models/AnalyticsModels";
+import { indexedDBService } from "@/services/db/IndexedDBService";
+import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
+import { v4 as uuidv4 } from "uuid";
 
 // Existing state fields
 import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
@@ -193,6 +203,41 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     setFullscreenTimerBlock(null);
   }, []);
 
+  // Intercept workout completion: immediately push the new result into the CM6
+  // wodResultsField so the inline results bar updates without waiting for a DB
+  // round-trip, then forward to the parent's onCompleteWorkout callback.
+  const handleCompleteWorkout = useCallback(
+    (blockId: string, results: WodBlock["results"]) => {
+      if (results && viewRef.current) {
+        const view = viewRef.current;
+        const now = results.endTime || Date.now();
+        const newResult = {
+          id: uuidv4(),
+          noteId: noteId ?? "",
+          sectionId: blockId,
+          segmentId: blockId,
+          data: results,
+          completedAt: now,
+        };
+
+        // Read existing results for this section and prepend the new one
+        // (most-recent first) before dispatching.
+        const existingMap = view.state.field(wodResultsField);
+        const prev = existingMap.get(blockId) ?? [];
+        view.dispatch({
+          effects: [
+            updateSectionResults.of({
+              sectionId: blockId,
+              results: [newResult, ...prev],
+            }),
+          ],
+        });
+      }
+      onCompleteWorkout?.(blockId, results);
+    },
+    [noteId, onCompleteWorkout],
+  );
+
   // Open the full-screen review.
   const handleOpenReview = useCallback((segments: Segment[]) => {
     setFullscreenReviewSegments(segments);
@@ -202,6 +247,53 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   const handleReviewClose = useCallback(() => {
     setFullscreenReviewSegments(null);
   }, []);
+
+  // Fetch workout results for all WOD sections and push them into the editor
+  // via the wodResultsField StateEffect so the inline results bar is visible.
+  useEffect(() => {
+    if (!viewRef.current) return;
+    const wodSections = sections.filter((s) => s.type === "wod");
+    if (wodSections.length === 0) return;
+
+    for (const section of wodSections) {
+      indexedDBService
+        .getResultsForSection(noteId ?? "", section.id)
+        .then((results) => {
+          const view = viewRef.current;
+          if (!view || !view.dom.isConnected) return;
+          const sorted = results.sort((a, b) => b.completedAt - a.completedAt);
+          view.dispatch({
+            effects: [
+              updateSectionResults.of({ sectionId: section.id, results: sorted }),
+            ],
+          });
+        })
+        .catch(() => {
+          // IndexedDB unavailable (e.g. Storybook) – silently ignore
+        });
+    }
+  }, [noteId, sections]);
+
+  // Listen for result pill clicks fired by the CM6 widget and open the
+  // full-screen review overlay if the result has detailed logs.
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+
+    const handleResultClick = (e: Event) => {
+      const { result } = (e as CustomEvent<WodResultClickDetail>).detail;
+      if (result?.data?.logs && result.data.logs.length > 0) {
+        const { segments } = getAnalyticsFromLogs(
+          result.data.logs as any,
+          result.data.startTime,
+        );
+        handleOpenReview(segments);
+      }
+    };
+
+    el.addEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
+    return () => el.removeEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
+  }, [handleOpenReview]);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
@@ -319,6 +411,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
       // Auto-fold widget fence bodies (keeps JSON off-screen)
       foldWidgets,
+
+      // Results bar widgets — shown after each WOD block's closing fence
+      ...wodResultsWidget,
 
       // Update listener
       EditorView.updateListener.of((update) => {
@@ -505,7 +600,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           block={fullscreenTimerBlock}
           view={viewRef.current}
           onClose={handleTimerClose}
-          onCompleteWorkout={onCompleteWorkout}
+          onCompleteWorkout={handleCompleteWorkout}
         />
       )}
 

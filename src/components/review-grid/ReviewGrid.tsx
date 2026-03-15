@@ -272,11 +272,11 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   );
 
   const handleOverrideSave = useCallback(
-    (value: string, image?: string) => {
-      setOverride(overrideDialog.blockKey, overrideDialog.type, value, image);
+    (blockKey: string, metricType: MetricType, value: unknown, image?: string) => {
+      setOverride(blockKey, metricType, value, image);
       setOverrideDialog((prev) => ({ ...prev, isOpen: false }));
     },
-    [overrideDialog.blockKey, overrideDialog.type, setOverride],
+    [setOverride],
   );
 
   const handleOverrideRemove = useCallback(() => {
