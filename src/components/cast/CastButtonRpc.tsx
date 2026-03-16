@@ -258,12 +258,25 @@ export const CastButtonRpc: React.FC = () => {
 
         const unsub = eventProvider.onEvent((event) => {
             const state = useWorkbenchSyncStore.getState();
-            const { handleNext, handleStart, handlePause, handleStop } = state;
+            const { handleNext, handleStart, handlePause, handleStop, handleStartWorkoutAction } = state;
             switch (event.name) {
                 case 'next': handleNext(); break;
                 case 'start': handleStart(); break;
                 case 'pause': handlePause(); break;
                 case 'stop': handleStop(); break;
+                case 'select-block': {
+                    // Receiver user selected a preview block — find the matching
+                    // WodBlock from documentItems and start the workout.
+                    const { index, blockId } = (event.data ?? {}) as { index?: number; blockId?: string };
+                    const wodItems = state.documentItems.filter(i => i.type === 'wod');
+                    const target = blockId
+                        ? wodItems.find(i => i.id === blockId)
+                        : wodItems[index ?? 0];
+                    if (target?.wodBlock) {
+                        handleStartWorkoutAction(target.wodBlock);
+                    }
+                    break;
+                }
             }
         });
         return unsub;

@@ -621,6 +621,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         sections={sections}
         isRuntimeActive={fullscreenTimerBlock !== null}
         editorState={viewRef.current?.state ?? null}
+        onSelectBlock={enableInlineRuntime ? handleRun : undefined}
       />
     </div>
   );

@@ -39,6 +39,8 @@ import type { StackSnapshot } from "@/runtime/contracts/IRuntimeStack";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-runtime";
 import { NextEvent } from "@/runtime/events/NextEvent";
+import { formatTimeMMSS } from "@/lib/formatTime";
+import type { RpcWorkbenchUpdate } from "@/services/cast/rpc/RpcMessages";
 
 // Singleton factory — avoids re-constructing the compiler on every render
 const factory = new RuntimeFactory(globalCompiler);
@@ -238,10 +240,34 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   // Track completion: notify parent immediately so it can switch to results view.
   // The parent (FullscreenTimer) will unmount this panel when it transitions.
+  // Also send review mode to Chromecast BEFORE the panel unmounts (which would
+  // otherwise lose the cast subscription).
   useEffect(() => {
     if (execution.status === "completed" && !completedAt) {
       setCompletedAt(new Date());
       handleComplete(true);
+
+      // Send review data to Chromecast so the receiver transitions to the
+      // review screen. This must happen before the panel unmounts and the
+      // cast subscription is disposed.
+      const transport = useWorkbenchSyncStore.getState().castTransport;
+      if (transport?.connected) {
+        const allOutputs = runtimeRef.current?.getOutputStatements() || [];
+        const segmentCount = allOutputs.filter(o => o.outputType === 'segment').length;
+        const reviewMessage: RpcWorkbenchUpdate = {
+          type: 'rpc-workbench-update',
+          mode: 'review',
+          reviewData: {
+            totalDurationMs: execution.elapsedTime,
+            completedSegments: segmentCount,
+            rows: [
+              { label: 'Total Time', value: formatTimeMMSS(execution.elapsedTime) },
+              { label: 'Segments', value: String(segmentCount) },
+            ],
+          },
+        };
+        try { transport.send(reviewMessage); } catch { /* ignore */ }
+      }
     }
   }, [execution.status, completedAt, handleComplete]);
 
@@ -300,10 +326,9 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       eventProvider.dispose();
       clockSync.dispose();
       subMgr.dispose();
-      // Signal idle when runtime panel unmounts
-      if (castTransport.connected) {
-        try { castTransport.send({ type: 'rpc-workbench-update', mode: 'idle' }); } catch { /* ignore */ }
-      }
+      // Do NOT send mode='idle' here — let EditorCastBridge or WorkbenchCastBridge
+      // handle the mode transition. Sending 'idle' would flash the waiting screen
+      // before the correct mode (preview or review) is re-sent by the bridge.
     };
     // Only re-run when transport connection changes or runtime is created
     // eslint-disable-next-line react-hooks/exhaustive-deps

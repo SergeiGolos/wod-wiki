@@ -17,7 +17,9 @@ import { useEffect, useRef } from 'react';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import type { EditorSection } from '../extensions/section-state';
 import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
+import type { RpcMessage } from '@/services/cast/rpc/RpcMessages';
 import type { EditorState } from '@codemirror/state';
+import type { WodBlock } from '../types';
 
 interface EditorCastBridgeProps {
   /** All parsed editor sections */
@@ -26,12 +28,15 @@ interface EditorCastBridgeProps {
   isRuntimeActive: boolean;
   /** CodeMirror EditorState — used to extract section content */
   editorState: EditorState | null;
+  /** Called when the Chromecast receiver selects a block to start */
+  onSelectBlock?: (block: WodBlock) => void;
 }
 
 export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
   sections,
   isRuntimeActive,
   editorState,
+  onSelectBlock,
 }) => {
   const castTransport = useWorkbenchSyncStore(s => s.castTransport);
   const lastFingerprintRef = useRef('');
@@ -94,6 +99,55 @@ export const EditorCastBridge: React.FC<EditorCastBridgeProps> = ({
       lastFingerprintRef.current = '';
     }
   }, [castTransport]);
+
+  // Reset fingerprint when the runtime becomes inactive so the preview
+  // is re-sent even if the sections haven't changed. Without this, closing
+  // the track screen would leave the Chromecast stuck on idle/review.
+  useEffect(() => {
+    if (!isRuntimeActive) {
+      lastFingerprintRef.current = '';
+    }
+  }, [isRuntimeActive]);
+
+  // Listen for 'select-block' events from the receiver and resolve them
+  // against the current editor sections to start the inline runtime.
+  useEffect(() => {
+    if (!castTransport?.connected || !onSelectBlock || !editorState) return;
+
+    const unsub = castTransport.onMessage((message: RpcMessage) => {
+      if (message.type !== 'rpc-event' || (message as any).name !== 'select-block') return;
+
+      const { index, blockId } = ((message as any).data ?? {}) as { index?: number; blockId?: string };
+      const wodSections = sections.filter(s => s.type === 'wod');
+
+      const targetSection = blockId
+        ? wodSections.find(s => s.id === blockId)
+        : wodSections[index ?? 0];
+
+      if (!targetSection || !editorState) return;
+
+      const content =
+        targetSection.contentFrom !== undefined && targetSection.contentTo !== undefined
+          ? editorState.doc.sliceString(targetSection.contentFrom, targetSection.contentTo)
+          : '';
+
+      const block: WodBlock = {
+        id: targetSection.id,
+        dialect: targetSection.dialect || 'wod',
+        startLine: targetSection.startLine - 1,
+        endLine: targetSection.endLine - 1,
+        content,
+        state: 'idle',
+        version: 1,
+        createdAt: Date.now(),
+        widgetIds: {},
+      };
+
+      onSelectBlock(block);
+    });
+
+    return unsub;
+  }, [castTransport, sections, editorState, onSelectBlock, isRuntimeActive]);
 
   return null;
 };
