@@ -77,6 +77,7 @@ import type { WidgetRegistry } from "./overlays/WidgetCompanion";
 import type { WodCommand } from "./overlays/WodCommand";
 import { FullscreenTimer } from "./overlays/FullscreenTimer";
 import { FullscreenReview } from "./overlays/FullscreenReview";
+import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { indexedDBService } from "@/services/db/IndexedDBService";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
@@ -548,6 +549,11 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           commands={effectiveCommands}
           visibleCount={visibleCommands}
           onOpenReview={handleOpenReview}
+          hoverLine={props.hoverLine}
+          stickyTopOffset={props.stickyTopOffset}
+          isPanelHovered={props.isPanelHovered}
+          lineDocY={props.lineDocY}
+          rect={props.rect}
         />
       );
     }
@@ -610,6 +616,12 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           onClose={handleReviewClose}
         />
       )}
+
+      <EditorCastBridge
+        sections={sections}
+        isRuntimeActive={fullscreenTimerBlock !== null}
+        editorState={viewRef.current?.state ?? null}
+      />
     </div>
   );
 };

@@ -152,7 +152,17 @@ export interface RpcWorkbenchUpdate {
         /** Title of the selected WOD block (or document title) */
         title: string;
         /** Workout blocks available in the document */
-        blocks: Array<{ id: string; title: string; statementCount: number }>;
+        blocks: Array<{
+            id: string;
+            title: string;
+            statementCount: number;
+            /** First few lines of block content */
+            contentPreview?: string;
+            /** Timer duration hint (e.g. "10:00") if detected */
+            timerHint?: string;
+            /** WOD dialect (wod, log, plan) */
+            dialect?: string;
+        }>;
     };
     /** Populated in 'review' mode — summary of completed workout */
     reviewData?: {

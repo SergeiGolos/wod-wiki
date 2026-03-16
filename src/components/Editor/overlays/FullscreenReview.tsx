@@ -58,7 +58,7 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full h-full flex flex-col max-w-7xl mx-auto shadow-2xl border-x border-border bg-card overflow-hidden">
+      <div className="relative w-full h-full flex flex-col bg-card overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
           <h2 className="text-lg font-semibold">{title}</h2>

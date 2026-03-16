@@ -7,7 +7,6 @@ import {
   computeOverlayWidth,
   DEFAULT_OVERLAY_WIDTHS,
 } from "../OverlayWidthPolicy";
-import type { OverlayWidthInput } from "../OverlayWidthPolicy";
 
 describe("computeOverlayWidth", () => {
   // ── Default policy tests ──
@@ -16,8 +15,8 @@ describe("computeOverlayWidth", () => {
     expect(computeOverlayWidth({ sectionType: "wod", isActive: true })).toBe(35);
   });
 
-  it("wod inactive → 15%", () => {
-    expect(computeOverlayWidth({ sectionType: "wod", isActive: false })).toBe(15);
+  it("wod inactive → 20%", () => {
+    expect(computeOverlayWidth({ sectionType: "wod", isActive: false })).toBe(20);
   });
 
   it("frontmatter active → 35%", () => {

@@ -50,7 +50,6 @@ import {
   CommandLineIcon,
   DocumentTextIcon,
   FolderIcon,
-  TvIcon,
   EllipsisVerticalIcon,
   ArrowDownTrayIcon,
   BugAntIcon,
@@ -65,6 +64,7 @@ import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomePageContent } from './HomePage'
+import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 
 // Load all markdown files from the wod directory
 const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -246,8 +246,8 @@ function AppContent() {
                 K
               </kbd>
             </NavbarItem>
-            <NavbarItem className="lg:hidden" title="Cast to Device">
-              <TvIcon data-slot="icon" />
+            <NavbarItem className="lg:hidden">
+              <CastButtonRpc />
             </NavbarItem>
             <NavbarItem href="/inbox" className="max-lg:hidden" aria-label="Inbox">
               <InboxIcon data-slot="icon" />
@@ -391,12 +391,7 @@ function AppContent() {
             <div className="flex items-center justify-between px-6 lg:px-10">
               <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
               <div className="flex items-center gap-4">
-                <button
-                  className="text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white transition-colors"
-                  title="Cast to Device"
-                >
-                  <TvIcon data-slot="icon" className="size-5" />
-                </button>
+                <CastButtonRpc />
                 <ActionsMenu />
               </div>
             </div>

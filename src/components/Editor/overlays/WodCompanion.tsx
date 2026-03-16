@@ -291,11 +291,11 @@ const ResultLine: React.FC<{
     return (
       <div 
         onClick={handleClick}
-        className="mt-auto flex flex-col items-end p-1.5 cursor-pointer hover:bg-primary/20 transition-colors group bg-primary/5 border-t border-primary/10"
+        className="flex items-center gap-1.5 px-2 py-0.5 cursor-pointer hover:bg-primary/20 transition-colors group bg-primary/10 border border-primary/20 rounded-md shadow-sm"
         title={`Latest: ${formatDuration(result.data.duration)} (${new Date(result.completedAt).toLocaleDateString()})`}
       >
         <History className="h-3 w-3 text-primary" />
-        <span className="text-[8px] font-mono font-bold text-primary mt-0.5">{formatDuration(result.data.duration)}</span>
+        <span className="text-[10px] font-mono font-bold text-primary">{formatDuration(result.data.duration)}</span>
       </div>
     );
   }
@@ -330,14 +330,21 @@ export interface WodCompanionProps {
   widthPercent: number;
   /** Absolute 1-based document line number of the cursor (for metric lookup). */
   cursorLine: number;
+  /** Absolute 1-based document line number the mouse is hovering over (may be undefined when mouse is over the panel itself). */
+  hoverLine?: number;
+  /** How many px the section top has scrolled above the viewport. */
+  stickyTopOffset: number;
+  /** True while the mouse is physically over the slot (keeps card pinned). */
+  isPanelHovered: boolean;
+  /** Document-space Y midpoint of cursor/hover line (for card centering). */
+  lineDocY?: number;
+  /** Section rect — used for card position clamping. */
+  rect: import('../extensions/section-geometry').SectionRect;
   /** Increments on every document change — forces re-parse on content edits. */
   docVersion: number;
   /** Commands to display as action buttons. */
   commands: WodCommand[];
-  /**
-   * How many commands show as direct buttons.  Additional commands are hidden
-   * behind a "…" overflow menu.  Default: 1.
-   */
+  /** How many commands show as direct buttons. Default: 1. */
   visibleCount?: number;
   /** Callback to open the full-screen review grid for a set of segments. */
   onOpenReview?: (segments: Segment[]) => void;
@@ -349,18 +356,21 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   view,
   isActive,
   cursorLine,
+  hoverLine,
+  stickyTopOffset,
+  isPanelHovered,
+  lineDocY,
+  rect,
   docVersion,
   commands,
   visibleCount = 1,
   onOpenReview,
 }) => {
-  // In a real app, this would come from a NoteContext
   const noteId = propNoteId || (view.state as any).noteId || "current";
   const { results } = useWodBlockResults(noteId, sectionId);
 
   const section = useMemo(
     () => getSection(view, sectionId),
-    // docVersion forces re-lookup when doc content changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view, sectionId, docVersion],
   );
@@ -371,9 +381,28 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
     [view, section?.id, docVersion],
   );
 
+  // Track last valid hoverLine inside this section so the card doesn't blank
+  // when the mouse moves from editor text into the panel itself.
+  const lastHoverLineRef = React.useRef<number | null>(null);
+  const hoverInsideSection = section && hoverLine !== undefined
+    && hoverLine >= section.startLine
+    && hoverLine <= section.endLine;
+  if (hoverInsideSection && hoverLine !== undefined) {
+    lastHoverLineRef.current = hoverLine;
+  }
+
+  // Use remembered line when panel is hovered but hoverLine dropped off
+  const effectiveHoverLine = hoverInsideSection
+    ? hoverLine!
+    : (isPanelHovered ? (lastHoverLineRef.current ?? null) : null);
+
+  const showCard = isActive || effectiveHoverLine !== null;
+  const effectiveLine = isActive ? cursorLine : (effectiveHoverLine ?? cursorLine);
+
   const activeStatement = useMemo(
-    () => (section && isActive ? findActiveStatement(statements, section, cursorLine) : null),
-    [section, isActive, statements, cursorLine],
+    () => (section && showCard ? findActiveStatement(statements, section, effectiveLine) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [section, effectiveLine, showCard, statements],
   );
 
   const chips = useMemo(
@@ -383,105 +412,105 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
 
   if (!section) return null;
 
-  // ── INACTIVE: compact action strip ──────────────────────────────
-  if (!isActive) {
-    return (
-      <div className="h-full w-full flex flex-col bg-popover/60 backdrop-blur-sm border-l border-border/50 overflow-visible">
-        <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} compact />
-        {/* Minimized results indicator if they exist */}
+  const lineText = (activeStatement?.meta as any)?.raw ?? "";
+  const lineInContent = effectiveLine - section.startLine;
+
+  // The slot is full-height and transparent. We render two absolute children:
+  //  1. STRIP — always visible, sticky to top of viewport within section bounds
+  //  2. CARD  — compact metric panel, shown on hover/active, positioned below strip
+
+  const STRIP_H = 28;
+  const CARD_H  = 200;
+
+  // Card top: centered on the active line, but clamped to stay within the slot
+  // and below the sticky strip. lineDocY is document-space, rect.top is slot top.
+  let cardTop: number;
+  if (lineDocY !== undefined) {
+    const lineRelY = lineDocY - rect.top;              // line Y relative to slot top
+    const centered = lineRelY - CARD_H / 2;           // center card on line
+    const minTop = stickyTopOffset + STRIP_H + 4;     // must be below strip
+    const maxTop = rect.height - CARD_H;              // must not overflow slot bottom
+    cardTop = Math.max(minTop, Math.min(centered, Math.max(minTop, maxTop)));
+  } else {
+    cardTop = stickyTopOffset + STRIP_H + 4;          // fallback: just below strip
+  }
+
+  return (
+    <div className="relative w-full h-full" style={{ pointerEvents: "none" }}>
+
+      {/* ── STRIP: always visible, sticky-top ────────────────────── */}
+      <div
+        className="absolute inset-x-0 flex items-center justify-end gap-1 px-2 pointer-events-auto
+                   bg-background/70 backdrop-blur-sm border-l border-b border-border/40 rounded-bl-md"
+        style={{ top: stickyTopOffset, height: STRIP_H }}
+      >
         {results.length > 0 && (
           <ResultLine result={results[0]} onOpenReview={onOpenReview} compact />
         )}
-      </div>
-    );
-  }
-
-  // ── ACTIVE: metric details + results + action buttons ─────────────
-  const lineText = (activeStatement?.meta as any)?.raw ?? "";
-  const lineInContent = cursorLine - section.startLine;
-
-  return (
-    <div className="h-full w-full flex flex-col bg-popover/90 backdrop-blur-sm border-l border-border overflow-hidden">
-      {/* Header: dialect + current line indicator */}
-      <div className="flex items-center gap-2 px-2.5 py-1.5 border-b border-border/50 bg-muted/30">
-        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 uppercase tracking-wide">
-          {section.dialect ?? "wod"}
-        </span>
-        <span className="text-[10px] text-muted-foreground">line {lineInContent}</span>
+        <CommandButtons
+          commands={commands}
+          visibleCount={visibleCount}
+          section={section}
+          view={view}
+          compact
+        />
       </div>
 
-      {/* Latest Result Line (New minimized results view) */}
-      {results.length > 0 && (
-        <ResultLine result={results[0]} onOpenReview={onOpenReview} />
-      )}
-
-      {/* Current line raw text */}
-      <div className="px-2.5 py-2 border-b border-border/30">
+      {/* ── CARD: compact metric panel on hover / cursor ─────────── */}
+      {showCard && (
         <div
-          className="text-xs font-mono text-foreground truncate"
-          title={lineText}
+          className="absolute inset-x-0 flex flex-col bg-popover/95 backdrop-blur-md
+                     border border-border/80 shadow-xl rounded-lg overflow-hidden pointer-events-auto"
+          style={{ top: cardTop, height: CARD_H }}
         >
-          {lineText || <span className="italic text-muted-foreground">—</span>}
-        </div>
-      </div>
-
-      {/* Metric chips */}
-      <div className="px-2.5 py-2 border-b border-border/30">
-        {chips.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {chips.map((chip, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${chip.color}`}
-                title={chip.label}
-              >
-                <span>{chip.icon}</span>
-                <span className="font-mono">{chip.value}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <span className="text-[10px] italic text-muted-foreground">No parsed metrics</span>
-        )}
-      </div>
-
-      {/* Results history section (more details) */}
-      <div className="flex-1 overflow-auto">
-        {results.length > 1 && (
-          <div className="flex flex-col">
-            <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-tight flex items-center gap-1.5 bg-muted/20 border-b border-border/10">
-              History
+          {/* Header */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border/50 shrink-0">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider font-semibold">
+              {section.dialect ?? "wod"}
+            </span>
+            <div className="flex items-center min-w-0 gap-2">
+              <span className="text-xs text-muted-foreground/60">L{lineInContent}</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="text-xs font-mono text-foreground/90 truncate font-medium" title={lineText}>
+                {lineText || <span className="italic text-muted-foreground">—</span>}
+              </span>
             </div>
-            <div className="divide-y divide-border/30">
-              {results.slice(1, 5).map((res) => (
-                <div
-                  key={res.id}
-                  onClick={() => {
-                    if (res.data?.logs && onOpenReview) {
-                      const { segments } = getAnalyticsFromLogs(res.data.logs as any, res.data.startTime);
-                      onOpenReview(segments);
-                    }
-                  }}
-                  className="group flex items-center justify-between px-2.5 py-1.5 hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-foreground font-medium">
-                      {new Date(res.completedAt).toLocaleDateString()}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground font-mono">
-                      {formatDuration(res.data.duration)}
-                    </span>
+          </div>
+
+          {/* Metric chips */}
+          <div className="px-3 py-2.5 flex-1 min-h-0 overflow-auto">
+            {chips.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {chips.map((chip, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-semibold ${chip.color}`}
+                    title={chip.label}
+                  >
+                    <span className="text-base leading-none">{chip.icon}</span>
+                    <span className="font-mono tracking-tight">{chip.value}</span>
                   </div>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs italic text-muted-foreground">No metrics on this line</span>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Action buttons */}
-      <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} />
+          {/* Latest result */}
+          {results.length > 0 && (
+            <div className="border-t border-border/40 shrink-0">
+              <ResultLine result={results[0]} onOpenReview={onOpenReview} compact />
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="border-t border-border/40 shrink-0">
+            <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

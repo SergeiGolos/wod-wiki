@@ -19,7 +19,6 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Tv } from "lucide-react";
 import type { EditorView } from "@codemirror/view";
 import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
@@ -28,7 +27,11 @@ import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSize
 import { RuntimeFactory } from "@/runtime/compiler/RuntimeFactory";
 import { globalCompiler, globalParser } from "@/runtime-test-bench/services/testbench-services";
 import { useRuntimeExecution, type UseRuntimeExecutionReturn } from "@/runtime-test-bench/hooks/useRuntimeExecution";
-import { useChromecast } from "@/hooks/useChromecast";
+import { useWorkbenchSyncStore } from "@/components/layout/workbenchSyncStore";
+import { SubscriptionManager } from "@/runtime/subscriptions/SubscriptionManager";
+import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
+import { ChromecastEventProvider } from "@/services/cast/rpc/ChromecastEventProvider";
+import { ClockSyncService } from "@/services/cast/rpc/ClockSync";
 import type { WodBlock, WorkoutResults } from "../types";
 import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import type { ScriptRuntime } from "@/runtime/ScriptRuntime";
@@ -67,8 +70,6 @@ interface RuntimeTimerBodyProps {
   execution: UseRuntimeExecutionReturn;
   outputCount: number;
   completedAt: Date | null;
-  casting: ReturnType<typeof useChromecast>;
-  handleCast: () => void;
   handleStart: () => void;
   handleStop: () => void;
   handleNext: () => void;
@@ -78,8 +79,6 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   execution,
   outputCount,
   completedAt,
-  casting,
-  handleCast,
   handleStart,
   handleStop,
   handleNext,
@@ -88,24 +87,9 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {/* ── Header: Cast button ── */}
+      {/* ── Header ── */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/20">
         <span className="text-xs font-semibold text-foreground">Running</span>
-        <button
-          onClick={handleCast}
-          disabled={casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs font-medium transition-colors hover:bg-muted"
-          style={{
-            backgroundColor: casting.isCasting ? "#3b82f6" : "transparent",
-            color: casting.isCasting ? "white" : "inherit",
-            opacity: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" ? 0.5 : 1,
-            cursor: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting ? "not-allowed" : "pointer",
-          }}
-          title={casting.isCasting ? "Casting to device" : "Cast to device"}
-        >
-          <Tv size={14} />
-          <span>{casting.isConnecting ? "Connecting..." : casting.isCasting ? "Casting" : "Cast"}</span>
-        </button>
       </div>
 
       {/* ── Body: stacked on mobile, side-by-side on desktop ── */}
@@ -168,9 +152,6 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [ready, setReady] = useState(false);
   const [outputCount, setOutputCount] = useState(0);
   const [completedAt, setCompletedAt] = useState<Date | null>(null);
-
-  // Chromecast integration
-  const casting = useChromecast();
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
   // statement sourceId = 1-based line within content
@@ -260,20 +241,14 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     onComplete?.(block.id, results);
   }, [block.id, execution.elapsedTime, execution.startTime, onComplete]);
 
-  // Track completion time and handle auto-close
+  // Track completion: notify parent immediately so it can switch to results view.
+  // The parent (FullscreenTimer) will unmount this panel when it transitions.
   useEffect(() => {
     if (execution.status === "completed" && !completedAt) {
       setCompletedAt(new Date());
       handleComplete(true);
-
-      // Auto-close after 2 seconds so the user can see the "Completed" state
-      const timer = setTimeout(() => {
-        onClose();
-      }, 2000);
-
-      return () => clearTimeout(timer);
     }
-  }, [execution.status, completedAt, onClose, handleComplete]);
+  }, [execution.status, completedAt, handleComplete]);
 
   const handleStop = () => {
     execution.stop();
@@ -292,33 +267,52 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtimeRef.current?.handle(new NextEvent());
   };
 
-  // Handle cast button click
-  const handleCast = async () => {
-    if (casting.isCasting) {
-      return; // Already casting
-    }
-    await casting.requestSession();
-  };
+  // ── Chromecast RPC syncing ──────────────────────────────────────────
+  // When a cast transport is active (connected from the app-level CastButtonRpc),
+  // wire the local runtime into the Chromecast RPC pipeline so the receiver
+  // gets proper stack snapshots, output statements, and timer data.
+  const castTransport = useWorkbenchSyncStore(s => s.castTransport);
 
-  // Sync runtime state to receiver when casting
   useEffect(() => {
-    if (!casting.isCasting || !runtimeRef.current) return;
+    const rt = runtimeRef.current;
+    if (!castTransport?.connected || !rt) return;
 
-    const syncState = () => {
-      if (!runtimeRef.current) return;
-      // Send runtime state snapshot to receiver
-      const state = {
-        elapsedTime: execution.elapsedTime,
-        status: execution.status,
-        timestamp: Date.now(),
-      };
-      casting.sendMessage("state-update", state);
+    // Signal active mode to receiver
+    try { castTransport.send({ type: 'rpc-workbench-update', mode: 'active' }); } catch { /* ignore */ }
+
+    // Create a local SubscriptionManager that fans out runtime events
+    const subMgr = new SubscriptionManager(rt);
+    const chromecastSub = new ChromecastRuntimeSubscription(castTransport, { id: 'inline-chromecast' });
+    subMgr.add(chromecastSub);
+
+    // Remote control: D-Pad events from receiver → local runtime
+    const eventProvider = new ChromecastEventProvider(castTransport);
+    const unsubEvents = eventProvider.onEvent((event) => {
+      switch (event.name) {
+        case 'next': runtimeRef.current?.handle(new NextEvent()); break;
+        case 'start': execution.start(); break;
+        case 'pause': execution.pause(); break;
+        case 'stop': handleStop(); break;
+      }
+    });
+
+    // Clock sync (best-effort, non-blocking)
+    const clockSync = new ClockSyncService(castTransport);
+    clockSync.sync().catch(() => {});
+
+    return () => {
+      unsubEvents();
+      eventProvider.dispose();
+      clockSync.dispose();
+      subMgr.dispose();
+      // Signal idle when runtime panel unmounts
+      if (castTransport.connected) {
+        try { castTransport.send({ type: 'rpc-workbench-update', mode: 'idle' }); } catch { /* ignore */ }
+      }
     };
-
-    // Sync on every execution update
-    const interval = setInterval(syncState, 100); // 10Hz updates
-    return () => clearInterval(interval);
-  }, [casting.isCasting, execution.elapsedTime, execution.status, casting]);
+    // Only re-run when transport connection changes or runtime is created
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [castTransport?.connected, ready]);
 
   if (!ready || !runtimeRef.current) {
     return (
@@ -335,8 +329,6 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
           execution={execution}
           outputCount={outputCount}
           completedAt={completedAt}
-          casting={casting}
-          handleCast={handleCast}
           handleStart={handleStart}
           handleStop={handleStop}
           handleNext={handleNext}
