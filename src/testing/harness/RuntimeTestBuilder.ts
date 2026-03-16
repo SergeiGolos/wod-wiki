@@ -6,7 +6,7 @@ import { sharedParser } from '@/parser/parserInstance';
 import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
-import { createMockClock } from '@/runtime/RuntimeClock';
+import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
 import { WodScript } from '@/parser/WodScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 
@@ -34,6 +34,7 @@ export class RuntimeTestHarness {
   readonly runtime: ScriptRuntime;
   readonly script: WodScript;
   readonly jit: JitCompiler;
+  readonly clock: MockClock;
 
   constructor(
     scriptText: string,
@@ -47,7 +48,7 @@ export class RuntimeTestHarness {
     this.jit = new JitCompiler(strategies);
 
     // 3. Runtime dependencies
-    const clock = createMockClock(clockTime);
+    this.clock = createMockClock(clockTime);
     const memory = new RuntimeMemory();
     const stack = new RuntimeStack();
     const eventBus = new EventBus();
@@ -59,7 +60,7 @@ export class RuntimeTestHarness {
         {
             memory,
             stack,
-            clock,
+            clock: this.clock,
             eventBus
         }
     );
@@ -68,6 +69,19 @@ export class RuntimeTestHarness {
   // Quick accessors
   get stackDepth(): number { return this.runtime.stack.count; }
   get currentBlock() { return this.runtime.stack.current; }
+
+  /**
+   * Advance the mock clock by milliseconds and dispatch a tick event.
+   */
+  advanceClock(ms: number): this {
+    this.clock.advance(ms);
+    this.runtime.handle({
+      name: 'tick',
+      timestamp: this.clock.now,
+      data: { source: 'test-harness' }
+    });
+    return this;
+  }
 
   pushStatement(index: number) {
     const statement = this.script.statements[index];
@@ -78,6 +92,13 @@ export class RuntimeTestHarness {
 
     this.runtime.stack.push(block);
     return block;
+  }
+
+  /**
+   * Dispose the runtime and release all resources.
+   */
+  dispose(): void {
+    this.runtime.dispose();
   }
 }
 

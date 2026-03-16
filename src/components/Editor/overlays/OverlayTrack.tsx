@@ -1,20 +1,18 @@
 /**
  * OverlayTrack
  *
- * React component that renders section-aligned overlay slots on top of the
- * CodeMirror editor. Each slot is positioned at the section's measured geometry
- * and sized to the computed overlay width (0-100% from the right edge).
+ * Renders section-aligned overlay slots on top of the CodeMirror editor.
  *
  * Layout model:
- *  - The track is `position: absolute` inset to the editor's writable content
- *    area: starts after the gutter (line-numbers) and ends before the native
- *    browser scrollbar.  Overlays therefore never cover line numbers or the
- *    scrollbar regardless of width setting.
- *  - Insets are measured via ResizeObserver so they stay correct when gutters
- *    are toggled or the window is resized.
- *  - The track is scroll-synced with `.cm-scroller` via `translateY(-scrollTop)`.
- *  - Each visible slot has `pointer-events: auto` so its contents are interactive.
- *  - Text underneath remains full-width — the overlay floats on top.
+ *  - Track is `position: absolute`, inset to the content area (after gutter,
+ *    before scrollbar).
+ *  - Track inner div is scroll-synced via `translateY(-scrollTop)`.
+ *  - Each WOD slot spans the FULL section height but is transparent — only its
+ *    absolutely-positioned children (strip, card) are visible.
+ *  - The sticky run-button STRIP is always visible, following the viewport
+ *    top as the section scrolls past it (sticky within section bounds).
+ *  - The metric CARD appears on hover or cursor focus, positioned near the
+ *    target line, without hiding the strip.
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -24,20 +22,15 @@ import { sectionGeometry } from "../extensions/section-geometry";
 import type { SectionOverlayState } from "./useOverlayWidthState";
 import type { EditorSectionType } from "../extensions/section-state";
 
-// ── Minimum slot heights (px) ────────────────────────────────────────
-// Active slots expand to at least this height to avoid clipping their content.
-const MIN_SLOT_HEIGHT: Partial<Record<EditorSectionType, number>> = {
-  frontmatter: 280,
-  wod:         160,
-  code:        140,
+// ── Non-wod slot heights (px) ────────────────────────────────────────
+const SLOT_HEIGHT_INACTIVE: Partial<Record<EditorSectionType, number>> = {
+  frontmatter: 120,
+  code:        60,
   widget:      220,
 };
-
-// Inactive (compact) slots — no artificial inflation; just match the section.
-const MIN_SLOT_HEIGHT_INACTIVE: Partial<Record<EditorSectionType, number>> = {
-  frontmatter: 120,
-  wod:         0,
-  code:        60,
+const SLOT_HEIGHT_ACTIVE: Partial<Record<EditorSectionType, number>> = {
+  frontmatter: 280,
+  code:        140,
   widget:      220,
 };
 
@@ -54,6 +47,16 @@ export interface OverlaySlotProps {
   docVersion: number;
   /** Widget name (only when sectionType === "widget"). */
   widgetName?: string;
+  /** 1-based line number the mouse is hovering over (undefined = not in this section). */
+  hoverLine?: number;
+  /**
+   * For WOD slots: how many px the section top has scrolled above the viewport.
+   * Used to position the sticky strip inside the full-height transparent slot.
+   */
+  stickyTopOffset: number;
+  isPanelHovered: boolean;
+  /** Document-space Y midpoint of the cursor/hover line; WodCompanion uses this to center the card. */
+  lineDocY?: number;
 }
 
 export interface OverlayTrackProps {
@@ -65,7 +68,7 @@ export interface OverlayTrackProps {
   activeSectionId: string | null;
   /** Render function for slot contents — called for each visible slot */
   renderSlot?: (props: OverlaySlotProps) => React.ReactNode;
-  /** Current cursor line (1-based) — used to center the slot on the active line */
+  /** Current cursor line (1-based) — used to center the card on the active line */
   cursorLine?: number;
 }
 
@@ -81,71 +84,85 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
   const trackRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<SectionRect[]>([]);
   const [scrollTop, setScrollTop] = useState(0);
-  // left = gutter width; right = scrollbar width
   const [contentInsets, setContentInsets] = useState<{ left: number; right: number }>({ left: 0, right: 0 });
-  // Increments whenever the editor document changes so companions re-derive their data.
   const [docVersion, setDocVersion] = useState(0);
+  // 1-based doc line under the mouse pointer (undefined when outside)
+  const [hoverLine, setHoverLine] = useState<number | undefined>(undefined);
+  // sectionId whose panel the mouse is physically over (keeps panel pinned)
+  const [hoverSectionId, setHoverSectionId] = useState<string | undefined>(undefined);
 
-  // Measure content-area insets: gutter (left) and scrollbar (right).
-  // Re-measures whenever the editor DOM resizes (gutters toggled, window resize, etc.).
+  // Measure gutter + scrollbar insets
   useEffect(() => {
     if (!view) return;
-
     const measure = () => {
-      // Gutter width = offsetLeft of .cm-content within .cm-scroller
       const gutterWidth = view.contentDOM.offsetLeft;
-      // Scrollbar width = total scrollDOM width minus the visible (non-scrollbar) width
       const scrollbarWidth = view.scrollDOM.offsetWidth - view.scrollDOM.clientWidth;
       setContentInsets({ left: gutterWidth, right: scrollbarWidth });
     };
-
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(view.dom);
     return () => observer.disconnect();
   }, [view]);
 
-  // Watch for document mutations: CM6 synchronously updates contentDOM on every
-  // dispatch, so a MutationObserver gives us a reliable change signal without
-  // needing to add a CM6 extension.
+  // MutationObserver → docVersion bump on every CM6 dispatch
   useEffect(() => {
     if (!view) return;
     const observer = new MutationObserver(() => setDocVersion((v) => v + 1));
-    observer.observe(view.contentDOM, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    observer.observe(view.contentDOM, { childList: true, subtree: true, characterData: true });
     return () => observer.disconnect();
   }, [view]);
 
-  // Subscribe to section geometry changes
+  // Section geometry subscription
   useEffect(() => {
     if (!view) return;
-
     const plugin = view.plugin(sectionGeometry);
     if (!plugin) return;
-
-    const unsub = plugin.addListener(setRects);
-    return unsub;
+    return plugin.addListener(setRects);
   }, [view]);
 
-  // Scroll sync: listen to .cm-scroller scroll events
+  // Scroll sync
   useEffect(() => {
     if (!view) return;
-
     const scroller = view.scrollDOM;
-    const handleScroll = () => {
-      setScrollTop(scroller.scrollTop);
-    };
-
-    // Initial sync
+    const handleScroll = () => setScrollTop(scroller.scrollTop);
     setScrollTop(scroller.scrollTop);
     scroller.addEventListener("scroll", handleScroll, { passive: true });
     return () => scroller.removeEventListener("scroll", handleScroll);
   }, [view]);
 
-  // Filter to slots that have width > 0
+  // Hover-line tracking at DOCUMENT level so events fire even when the
+  // mouse is over the overlay panel (which is a sibling of the CM scroller,
+  // not a child, so scroller-level listeners miss those events).
+  useEffect(() => {
+    if (!view) return;
+    const scroller = view.scrollDOM;
+    const handleMouseMove = (e: MouseEvent) => {
+      const bounds = scroller.getBoundingClientRect();
+      if (
+        e.clientY < bounds.top || e.clientY > bounds.bottom ||
+        e.clientX < bounds.left || e.clientX > bounds.right
+      ) {
+        setHoverLine(undefined);
+        return;
+      }
+      try {
+        const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+        if (pos == null) { setHoverLine(undefined); return; }
+        setHoverLine(view.state.doc.lineAt(pos).number);
+      } catch {
+        setHoverLine(undefined);
+      }
+    };
+    const handleMouseLeave = () => setHoverLine(undefined);
+    document.addEventListener("mousemove", handleMouseMove, { passive: true });
+    scroller.addEventListener("mouseleave", handleMouseLeave);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      scroller.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [view]);
+
   const visibleSlots = rects.filter((rect) => {
     const state = widths.get(rect.sectionId);
     return state && state.effectiveWidth > 0;
@@ -164,7 +181,7 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
         right: contentInsets.right,
         bottom: 0,
         pointerEvents: "none",
-        overflow: "hidden",
+        overflow: "visible",
         zIndex: 10,
       }}
     >
@@ -178,63 +195,65 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
         {visibleSlots.map((rect) => {
           const state = widths.get(rect.sectionId)!;
           const isActive = rect.sectionId === activeSectionId;
+          const isPanelHovered = hoverSectionId === rect.sectionId;
 
-          // ── Slot height ────────────────────────────────────────────
-          // Active slots use a larger minimum to avoid clipping panel content.
-          // Inactive (compact) slots use a smaller minimum so they don't
-          // create empty space below the action buttons.
-          const heightMap = isActive ? MIN_SLOT_HEIGHT : MIN_SLOT_HEIGHT_INACTIVE;
-          const minH = heightMap[rect.type] ?? 0;
-          // Widget slots use a fixed height — their section height is inflated
-          // by the JSON body lines which aren't displayed in the slot.
-          const effectiveHeight = rect.type === "widget"
-            ? minH
-            : Math.max(rect.height, minH);
+          // ── For WOD blocks: slot always spans full section height ────
+          // The WodCompanion renders its children (strip + card) using
+          // absolute positioning within this transparent full-height container.
+          let slotTop: number;
+          let slotHeight: number;
 
-          // ── Slot width ──────────────────────────────────────────────
-          // Normal: use the computed overlay width.
-          const slotWidthPct = state.effectiveWidth;
+          if (rect.type === "wod") {
+            slotTop = rect.top;
+            slotHeight = rect.height;
+          } else {
+            // Non-WOD: sized and centered as before
+            const isComp = isActive;
+            const heightMap = isComp ? SLOT_HEIGHT_ACTIVE : SLOT_HEIGHT_INACTIVE;
+            const minH = heightMap[rect.type] ?? 0;
+            slotHeight = rect.type === "widget" ? minH : Math.max(rect.height, minH);
 
-          // ── Slot vertical position ──────────────────────────────────
-          // Centering logic for normal slots:
-          //   - Slot LARGER than section  → center on the section midline.
-          //   - Slot SMALLER than section → center on the cursor line (if cursor
-          //     is inside this section), otherwise center on section midline.
-          //   Result is clamped so the slot never rises above the track's top.
-          const sectionMidY = rect.top + rect.height / 2;
-          let targetCenterY = sectionMidY;
-
-          if (effectiveHeight < rect.height && cursorLine !== undefined && view) {
-            // Convert cursor line to document-space Y (top of that line block).
-            try {
-              const lineCount = view.state.doc.lines;
-              const safeLine = Math.max(1, Math.min(cursorLine, lineCount));
-              const lineFrom = view.state.doc.line(safeLine).from;
-              const lineBlock = view.lineBlockAt(lineFrom);
-              const cursorDocY = lineBlock.top + lineBlock.height / 2;
-              // Only use cursor centering if the cursor is within the section.
-              if (cursorDocY >= rect.top && cursorDocY <= rect.top + rect.height) {
-                targetCenterY = cursorDocY;
+            if (isActive) {
+              // Center on cursor line for active non-wod slots
+              const sectionMidY = rect.top + rect.height / 2;
+              let targetCenterY = sectionMidY;
+              if (cursorLine !== undefined) {
+                try {
+                  const lineCount = view.state.doc.lines;
+                  const safeLine = Math.max(1, Math.min(cursorLine, lineCount));
+                  const lineFrom = view.state.doc.line(safeLine).from;
+                  const lb = view.lineBlockAt(lineFrom);
+                  const y = lb.top + lb.height / 2;
+                  if (y >= rect.top && y <= rect.top + rect.height) targetCenterY = y;
+                } catch { /* ignore */ }
               }
-            } catch {
-              // lineBlockAt can throw on unmounted views — fall back to midline
+              const unclamped = targetCenterY - slotHeight / 2;
+              slotTop = Math.max(rect.top, Math.min(unclamped, rect.top + rect.height - slotHeight));
+            } else {
+              slotTop = rect.top;
             }
           }
 
-          const unclamped = targetCenterY - effectiveHeight / 2;
-          // Clamp so the slot never floats above its own section top.
-          // Using rect.top (not 0) prevents taller-than-section slots from
-          // drifting up into the previous section's space when the bottom-pin
-          // term (rect.top + rect.height - effectiveHeight) goes negative.
-          // When the slot fits inside the section, this keeps it within bounds.
-          const slotTop = Math.max(
-            rect.top,
-            Math.min(unclamped, rect.top + rect.height - effectiveHeight),
-          );
+          // stickyTopOffset: clamped to [0, rect.height - 28] so strip stays within section.
+          const STRIP_H = 28;
+          const rawSticky = Math.max(0, scrollTop - rect.top);
+          const stickyTopOffset = Math.min(rawSticky, Math.max(0, rect.height - STRIP_H));
 
-          // When clicking on the overlay background (not on a button/input/a),
-          // resolve the document position from click coordinates and move the
-          // editor cursor there so the user isn't stuck.
+          // lineDocY: document-space Y midpoint of the active cursor or hover line,
+          // only for WOD blocks. WodCompanion uses it to center the metric card.
+          let lineDocY: number | undefined;
+          if (rect.type === "wod") {
+            const refLine = isActive ? cursorLine : hoverLine;
+            if (refLine !== undefined) {
+              try {
+                const sf = Math.max(1, Math.min(refLine, view.state.doc.lines));
+                const lb = view.lineBlockAt(view.state.doc.line(sf).from);
+                const y = lb.top + lb.height / 2;
+                if (y >= rect.top && y <= rect.top + rect.height) lineDocY = y;
+              } catch { /* ignore */ }
+            }
+          }
+
           const handleSlotClick = (e: React.MouseEvent<HTMLDivElement>) => {
             const target = e.target as HTMLElement;
             if (target.closest("button,a,input,select,textarea,[role=button]")) return;
@@ -252,13 +271,15 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 position: "absolute",
                 top: slotTop,
                 right: 0,
-                width: `${slotWidthPct}%`,
-                height: effectiveHeight,
-                pointerEvents: "auto",
-                transition: "width 150ms ease, opacity 150ms ease",
-                overflow: "hidden",
+                width: `${state.effectiveWidth}%`,
+                height: slotHeight,
+                pointerEvents: rect.type === "wod" ? "none" : "auto",
+                transition: "width 150ms ease",
+                overflow: "visible",
               }}
-              onClick={handleSlotClick}
+              onClick={rect.type !== "wod" ? handleSlotClick : undefined}
+              onMouseEnter={() => setHoverSectionId(rect.sectionId)}
+              onMouseLeave={() => setHoverSectionId(undefined)}
             >
               {renderSlot?.({
                 sectionId: rect.sectionId,
@@ -269,6 +290,10 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
                 view,
                 docVersion,
                 widgetName: rect.widgetName,
+                hoverLine,
+                stickyTopOffset,
+                isPanelHovered,
+                lineDocY,
               })}
             </div>
           );
@@ -277,4 +302,3 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
     </div>
   );
 };
-

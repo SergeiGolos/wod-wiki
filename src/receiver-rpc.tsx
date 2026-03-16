@@ -49,12 +49,13 @@ const ReceiverApp: React.FC = () => {
     const signalingRef = useRef<ReceiverCastSignaling | null>(null);
 
     // Send event back to browser via the proxy runtime
-    const sendEvent = useCallback((eventName: string) => {
+    const sendEvent = useCallback((eventName: string, data?: unknown) => {
         const runtime = runtimeRef.current;
         if (!runtime) return;
         runtime.handle({
             name: eventName,
             timestamp: new Date(),
+            data,
         });
     }, []);
 
@@ -64,17 +65,24 @@ const ReceiverApp: React.FC = () => {
         setTimeout(() => setDpadFlash(false), 200);
     }, []);
 
+    // Keep workbenchState in a ref so the onSelect callback always reads
+    // the latest value without needing it in its dependency array.
+    const workbenchStateRef = useRef(workbenchState);
+    workbenchStateRef.current = workbenchState;
+
     // ── Spatial Navigation ──────────────────────────────────────────────────
     // The hook handles ArrowUp/Down/Left/Right (focus movement) and
     // Enter/Select (activation). We map element IDs to runtime events.
-    const { getFocusProps } = useSpatialNavigation({
+    const { getFocusProps, setFocusedId } = useSpatialNavigation({
         enabled: !!proxyRuntime,
         initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'btn-next',
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
             flash();
-            // Preview screen items → start the workout
+            // Preview screen items → select the block to start the workout
             if (elementId.startsWith('preview-block-')) {
-                sendEvent('next');
+                const index = parseInt(elementId.replace('preview-block-', ''), 10);
+                const blockId = workbenchStateRef.current.previewData?.blocks[index]?.id;
+                sendEvent('select-block', { index, blockId });
                 return;
             }
             // Track panel controls
@@ -96,6 +104,16 @@ const ReceiverApp: React.FC = () => {
             }
         }, [sendEvent, flash]),
     });
+
+    // Move focus to the appropriate element when the display mode changes.
+    // Preview → focus first block; Active → focus the Next button.
+    useEffect(() => {
+        if (workbenchState.mode === 'preview') {
+            setFocusedId('preview-block-0');
+        } else if (workbenchState.mode === 'active') {
+            setFocusedId('btn-next');
+        }
+    }, [workbenchState.mode, setFocusedId]);
 
     // Local clock for smooth timer interpolation
     // Uses the proxy runtime's clock sync offset to match sender's elapsed time

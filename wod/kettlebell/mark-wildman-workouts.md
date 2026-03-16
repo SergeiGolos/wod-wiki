@@ -27,7 +27,7 @@ The Man Maker is Mark Wildman's signature full-body workout that combines multip
 The session is designed to be progressively overloaded through weight increases and rep additions. Mark emphasizes quality over quantity, teaching that sustainable progress comes from perfect practice rather than maximum effort in every session.
 
 ```wod
-The Man Maker:
+The Man Maker
 (4)
   10 Two-Hand KB Swing 24kg
   :30 Rest
@@ -46,7 +46,7 @@ The Man Maker:
   10 Bent Over Row Right 20kg
   :30 Rest
 
-Finisher:
+Finisher
 (2)
   15 Two-Hand KB Swing 24kg
   :20 Rest
@@ -79,7 +79,7 @@ The Heavy/Light programming system is Mark Wildman's approach to organizing trai
 Heavy days focus on building absolute strength with heavier weights and lower reps. Light days focus on technique refinement and work capacity with lighter weights and higher reps. This alternation allows for frequent training without burnout while developing both strength and endurance.
 
 ```wod
-Heavy Day:
+Heavy Day
 (5)
   3 Clean & Press 28kg
   :60 Rest
@@ -92,7 +92,7 @@ Heavy Day:
   5 Pullups
   :60 Rest
 
-Light Day:
+Light Day
 (5)
   8 Clean & Press 20kg
   :45 Rest
@@ -142,7 +142,7 @@ Mark Wildman has identified the two "best" kettlebell exercises that everyone sh
 This program represents Mark's philosophy that simple, consistent practice of fundamental movements produces better results than complex programming. The minimalist approach allows for mastery of these essential patterns while fitting into any schedule.
 
 ```wod
-Daily Practice:
+Daily Practice
 (5)
   10 Two-Hand KB Swing 24kg
   :30 Rest
@@ -188,7 +188,7 @@ This program is designed specifically for Brazilian Jiu-Jitsu practitioners, bui
 The programming avoids excessive soreness and fatigue that would interfere with BJJ training while still building the strength attributes that improve performance. Movements are selected for their transfer to grappling situations.
 
 ```wod
-BJJ Strength Session:
+BJJ Strength Session
 (4)
   10 KB Swing 24kg
   :30 Rest
@@ -239,19 +239,19 @@ This fat loss protocol progresses from beginner to advanced through three levels
 The protocol combines swings, squats, and pressing movements to create metabolic demand while building strength. The progressive format allows practitioners to advance at their own pace while always having a clear next step.
 
 ```wod
-Beginner:
+Beginner
 (3)
   10 KB Swing 16kg
   10 Goblet Squat 16kg
   :45 Rest
 
-Intermediate:
+Intermediate
 (5)
   15 KB Swing 20kg
   15 Goblet Squat 20kg
   :30 Rest
 
-Advanced:
+Advanced
 (5)
   20 KB Swing 24kg
   15 Clean & Press 20kg
@@ -286,7 +286,7 @@ The Tetris of Training is Mark Wildman's systematic approach to program design t
 The concept uses a horizontal and vertical organization: horizontally organizing by movement pattern (hinge, squat, push, pull), and vertically by intensity (heavy, medium, light). This creates a framework that can accommodate any exercise while ensuring nothing is neglected.
 
 ```wod
-Day 1 - Hinge Focus:
+Day 1 - Hinge Focus
 (5)
   10 KB Swing 24kg
   :30 Rest
@@ -294,7 +294,7 @@ Day 1 - Hinge Focus:
   10 Clean & Press 20kg
   :45 Rest
 
-Day 2 - Squat Focus:
+Day 2 - Squat Focus
 (5)
   10 Goblet Squat 24kg
   :30 Rest
@@ -302,7 +302,7 @@ Day 2 - Squat Focus:
   10 Two-Hand KB Swing 24kg
   :30 Rest
 
-Day 3 - Push/Pull:
+Day 3 - Push/Pull
 (5)
   8 Clean & Press 20kg
   :45 Rest

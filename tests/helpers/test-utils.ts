@@ -7,18 +7,28 @@ import { WodScript } from '../../src/parser/WodScript';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
 
 /**
- * Shared test utilities for runtime testing
+ * @deprecated Use test harnesses from `@/testing/harness` instead.
+ *
+ * Migration guide:
+ * - `createMockRuntime()` → use `BehaviorTestHarness` (real runtime with mock clock)
+ * - `createMockBlock()` → use `MockBlock` from `@/testing/harness`
+ * - `mockPerformanceNow()` → use `BehaviorTestHarness.advanceClock(ms)`
+ * - `createEventCapture()` → use `BehaviorTestHarness.capturedEvents`
+ *
+ * @see src/testing/harness/BehaviorTestHarness.ts
+ * @see src/testing/harness/MockBlock.ts
  */
 
 /**
- * Creates a mock WodScript with proper ID resolution for testing
+ * @deprecated Use `sharedParser.read(scriptText) as WodScript` instead.
  */
 export function createMockScript(statements: ICodeStatement[]): WodScript {
   return new WodScript('mock source', statements, []);
 }
 
 /**
- * Creates a mock IScriptRuntime for testing
+ * @deprecated Use `BehaviorTestHarness` from `@/testing/harness` instead.
+ * BehaviorTestHarness provides a real memory/stack/EventBus with mock clock.
  */
 export function createMockRuntime(): IScriptRuntime {
   const memoryStore = new Map<string, any>();
@@ -83,7 +93,8 @@ export function createMockRuntime(): IScriptRuntime {
 }
 
 /**
- * Creates a mock IRuntimeBlock for testing
+ * @deprecated Use `MockBlock` from `@/testing/harness` instead.
+ * MockBlock supports behaviors, state tracking, list-based memory, and recordings.
  */
 export function createMockBlock(overrides: Partial<IRuntimeBlock> = {}): IRuntimeBlock {
   return {
@@ -96,7 +107,7 @@ export function createMockBlock(overrides: Partial<IRuntimeBlock> = {}): IRuntim
 }
 
 /**
- * Mocks performance.now() for timer testing
+ * @deprecated Use `BehaviorTestHarness.advanceClock(ms)` instead.
  */
 export function mockPerformanceNow() {
   let currentTime = 0;
@@ -125,7 +136,7 @@ export function mockPerformanceNow() {
 }
 
 /**
- * Creates an event capture utility for testing event emissions
+ * @deprecated Use `BehaviorTestHarness.capturedEvents` or `MockBlock.recordings` instead.
  */
 export function createEventCapture() {
   const events: IEvent[] = [];

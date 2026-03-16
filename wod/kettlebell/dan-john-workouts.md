@@ -225,21 +225,21 @@ The Mass Program is Dan John's approach to building muscle with kettlebells, com
 The program emphasizes compound movements and high tension, creating the metabolic and mechanical stress necessary for hypertrophy while maintaining the functional strength and movement quality that defines Dan John's approach. The combination of pressing, squatting, and pulling movements develops balanced musculature.
 
 ```wod
-Week 1-2:
+Week 1-2
 (5)
   + 2 Double Clean 20kg
   + 1 Double Press 20kg
   + 3 Double Front Squat 20kg
   :60 Rest
 
-Week 3-4:
+Week 3-4
 (5)
   + 2 Double Clean 24kg
   + 1 Double Press 24kg
   + 3 Double Front Squat 24kg
   :60 Rest
 
-Week 5-6:
+Week 5-6
 (5)
   + 2 Double Clean 24kg
   + 2 Double Press 24kg

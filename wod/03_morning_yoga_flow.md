@@ -156,7 +156,7 @@ Lie flat on your back with your arms at your sides, palms facing up. Allow your 
 
 (Floor Poses)
   1:00 Cat-Cow
-  1:00 Child's Pose
+  1:00 Childs Pose
   1:00 Seated Forward Fold
   1:00 Reclined Twist Right
   1:00 Reclined Twist Left

@@ -11,7 +11,7 @@ Biathlon is a two-event competition consisting of the Jerk followed by the Snatc
 This workout simulates competition conditions, though training sets may be shorter than 10 minutes as athletes build capacity. The focus is on developing efficiency, pace, and the specific endurance required for each lift.
 
 ```wod
-Biathlon Training:
+Biathlon Training
 10:00 ? Double KB Jerk 24kg
 
 30:00 Rest

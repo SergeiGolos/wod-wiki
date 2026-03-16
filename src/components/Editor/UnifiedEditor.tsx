@@ -77,6 +77,7 @@ import type { WidgetRegistry } from "./overlays/WidgetCompanion";
 import type { WodCommand } from "./overlays/WodCommand";
 import { FullscreenTimer } from "./overlays/FullscreenTimer";
 import { FullscreenReview } from "./overlays/FullscreenReview";
+import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { indexedDBService } from "@/services/db/IndexedDBService";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
@@ -193,15 +194,27 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   // Full-screen review segments: when set, the FullscreenReview overlay is shown.
   const [fullscreenReviewSegments, setFullscreenReviewSegments] = useState<Segment[] | null>(null);
 
+  // Whether the fullscreen timer should auto-start on mount
+  const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
+
   // Toggle the full-screen timer for the given WOD block (Run button).
-  const handleRun = useCallback((block: WodBlock) => {
+  const handleRun = useCallback((block: WodBlock, autoStart = false) => {
+    setAutoStartFullscreen(autoStart);
     setFullscreenTimerBlock(block);
   }, []);
 
   // Close the full-screen timer.
   const handleTimerClose = useCallback(() => {
     setFullscreenTimerBlock(null);
+    setAutoStartFullscreen(false);
   }, []);
+
+  // Intercept selection from Chromecast to start the inline runtime with auto-start.
+  const handleCastSelectBlock = useCallback((block: WodBlock) => {
+    if (enableInlineRuntime) {
+      handleRun(block, true);
+    }
+  }, [enableInlineRuntime, handleRun]);
 
   // Intercept workout completion: immediately push the new result into the CM6
   // wodResultsField so the inline results bar updates without waiting for a DB
@@ -548,6 +561,11 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           commands={effectiveCommands}
           visibleCount={visibleCommands}
           onOpenReview={handleOpenReview}
+          hoverLine={props.hoverLine}
+          stickyTopOffset={props.stickyTopOffset}
+          isPanelHovered={props.isPanelHovered}
+          lineDocY={props.lineDocY}
+          rect={props.rect}
         />
       );
     }
@@ -601,6 +619,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           view={viewRef.current}
           onClose={handleTimerClose}
           onCompleteWorkout={handleCompleteWorkout}
+          autoStart={autoStartFullscreen}
         />
       )}
 
@@ -610,6 +629,13 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           onClose={handleReviewClose}
         />
       )}
+
+      <EditorCastBridge
+        sections={sections}
+        isRuntimeActive={fullscreenTimerBlock !== null}
+        editorState={viewRef.current?.state ?? null}
+        onSelectBlock={handleCastSelectBlock}
+      />
     </div>
   );
 };

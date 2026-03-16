@@ -87,21 +87,35 @@ export const useRuntimeExecution = (
       const tickEvent = new TickEvent();
       runtime.handle(tickEvent);
       setStepCount(prev => prev + 1);
-
-      // Check if runtime is complete (stack is empty after root block finishes)
-      if (runtime.stack.count === 0) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        setStatus('completed');
-      }
     } catch (error) {
       stop();
       setStatus('error');
       console.error('Runtime execution error:', error);
     }
   }, [runtime]);
+
+  /**
+   * Reactive completion detection
+   * Ensures 'completed' status is set immediately when the stack becomes empty,
+   * regardless of whether the playback loop is active.
+   */
+  useEffect(() => {
+    if (!runtime) return;
+    
+    // Subscribe to stack snapshots to detect when everything is finished
+    const unsubscribe = runtime.subscribeToStack((snapshot) => {
+      // If stack becomes empty and we were previously in an active state, we are done!
+      if (snapshot.blocks.length === 0 && (status === 'running' || status === 'paused')) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setStatus('completed');
+      }
+    });
+
+    return unsubscribe;
+  }, [runtime, status]);
 
   /**
    * Starts continuous execution at fixed 20ms tick rate

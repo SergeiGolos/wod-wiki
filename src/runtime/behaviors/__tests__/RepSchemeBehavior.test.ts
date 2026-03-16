@@ -1,78 +1,19 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { MetricPromotionBehavior } from '../MetricPromotionBehavior';
-import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { MetricType, IMetric } from '../../../core/models/Metric';
+import { MetricType } from '../../../core/models/Metric';
 import { RoundState } from '../../memory/MemoryTypes';
-import { IRepSource } from '../../contracts/behaviors/IRepSource';
-import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+import { MemoryLocation } from '../../memory/MemoryLocation';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 
-function makeRoundLocation(round: RoundState): MemoryLocation {
-    // Round metrics are the roundState itself (cast pattern)
-    return new MemoryLocation('round', [{ ...round, type: MetricType.CurrentRound, image: '', origin: 'runtime' as any } as any]);
-}
-
-function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
-    const memoryStore = new Map<MemoryTag, MemoryLocation>();
-
-    return {
-        block: {
-            key: { toString: () => 'loop-block' },
-            label: 'Loop',
-            metrics: [],
-            completionReason: undefined,
-            getMemoryByTag: vi.fn(() => []),
-        },
-        clock: { now: new Date(1000) },
-        stackLevel: 0,
-        subscribe: vi.fn(),
-        emitEvent: vi.fn(),
-        emitOutput: vi.fn(),
-        markComplete: vi.fn(),
-        getMemoryByTag: vi.fn((tag: MemoryTag) => {
-            const loc = memoryStore.get(tag);
-            return loc ? [loc] : [];
-        }),
-        getMemory: vi.fn(),
-        setMemory: vi.fn(),
-        pushMemory: vi.fn(),
-        updateMemory: vi.fn(),
-        ...overrides,
-    } as unknown as IBehaviorContext;
-}
-
-function withRoundState(round: RoundState): Partial<IBehaviorContext> {
-    const loc = makeRoundLocation(round);
-    return {
-        getMemoryByTag: vi.fn((tag: MemoryTag) => tag === 'round' ? [loc] : []),
-        getMemory: vi.fn(),
-        setMemory: vi.fn(),
-    };
-}
-
-function withMutableRound(initial: RoundState) {
-    let loc = makeRoundLocation(initial);
-    const memoryStore = new Map<string, any>([['round', initial]]);
-    return {
-        memoryStore,
-        overrides: {
-            getMemoryByTag: vi.fn((tag: MemoryTag) => tag === 'round' ? [loc] : []),
-            getMemory: vi.fn(),
-            setMemory: vi.fn((tagStr: string, value: RoundState) => {
-                if (tagStr === 'round') {
-                    memoryStore.set('round', value);
-                    loc = makeRoundLocation(value);
-                }
-            }),
-        } as Partial<IBehaviorContext>,
-        // Allow tests to mutate the round by updating the memoryStore
-        setRound: (r: RoundState) => {
-            memoryStore.set('round', r);
-            loc = makeRoundLocation(r);
-        },
-    };
+function makeRoundMetric(round: RoundState) {
+    return { ...round, type: MetricType.CurrentRound, image: '', origin: 'runtime' as any } as any;
 }
 
 describe('MetricPromotionBehavior repScheme', () => {
+    let harness: BehaviorTestHarness;
+
+    afterEach(() => { harness?.dispose(); });
+
     // ── IRepSource contract ──────────────────────────────────────────
 
     describe('IRepSource — getRepsForRound', () => {
@@ -87,11 +28,8 @@ describe('MetricPromotionBehavior repScheme', () => {
         it('should wrap around when round exceeds scheme length', () => {
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
 
-            // Round 4 → scheme[0] = 21
             expect(behavior.getRepsForRound(4)).toBe(21);
-            // Round 5 → scheme[1] = 15
             expect(behavior.getRepsForRound(5)).toBe(15);
-            // Round 6 → scheme[2] = 9
             expect(behavior.getRepsForRound(6)).toBe(9);
         });
 
@@ -118,12 +56,13 @@ describe('MetricPromotionBehavior repScheme', () => {
         });
 
         it('should return reps for last promoted round after mount', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext(withRoundState({ current: 2, total: 3 }));
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 2, total: 3 })]));
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            // After mount with round 2, current reps should be for round 2
             expect(behavior.getRepsForCurrentRound()).toBe(15);
         });
     });
@@ -135,7 +74,6 @@ describe('MetricPromotionBehavior repScheme', () => {
 
             expect(behavior.repScheme).toEqual([21, 15, 9]);
 
-            // Mutating original should not affect behavior's scheme
             original.push(99);
             expect(behavior.repScheme).toEqual([21, 15, 9]);
         });
@@ -145,62 +83,67 @@ describe('MetricPromotionBehavior repScheme', () => {
 
     describe('onMount — promotes reps for initial round', () => {
         it('should push rep metrics to metrics:rep-target on mount', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext(withRoundState({ current: 1, total: 3 }));
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 3 })]));
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({
-                    type: MetricType.Rep,
-                    value: 21,
-                    image: '21',
-                    origin: 'runtime',
-                })]
-            );
+            const repTarget = block.recordings.pushMemory.find(p => p.tag === 'metric:rep-target');
+            expect(repTarget).toBeDefined();
+            expect(repTarget!.metrics).toEqual([expect.objectContaining({
+                type: MetricType.Rep,
+                value: 21,
+                image: '21',
+                origin: 'runtime',
+            })]);
         });
 
         it('should use round 1 when no round memory exists', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext(); // no round state
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            // Defaults to round 1 → scheme[0] = 21
-            expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 21 })]
-            );
+            const repTarget = block.recordings.pushMemory.find(p => p.tag === 'metric:rep-target');
+            expect(repTarget).toBeDefined();
+            expect(repTarget!.metrics).toEqual([expect.objectContaining({ value: 21 })]);
         });
 
         it('should promote reps for non-first round on mount', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext(withRoundState({ current: 2, total: 3 }));
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 2, total: 3 })]));
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 15, image: '15' })]
-            );
+            const repTarget = block.recordings.pushMemory.find(p => p.tag === 'metric:rep-target');
+            expect(repTarget).toBeDefined();
+            expect(repTarget!.metrics).toEqual([expect.objectContaining({ value: 15, image: '15' })]);
         });
 
         it('should not push memory when rep scheme is empty', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [], promotions: [] });
-            const ctx = createMockContext(withRoundState({ current: 1, total: 3 }));
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 3 })]));
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.pushMemory).not.toHaveBeenCalled();
+            expect(block.recordings.pushMemory).toHaveLength(0);
         });
 
         it('should return empty actions on mount', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext(withRoundState({ current: 1, total: 3 }));
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 3 })]));
+            harness.push(block);
 
-            const actions = behavior.onMount(ctx);
-
+            const actions = harness.mount();
             expect(actions).toEqual([]);
         });
     });
@@ -209,108 +152,85 @@ describe('MetricPromotionBehavior repScheme', () => {
 
     describe('onNext — promotes reps on round change', () => {
         it('should update rep-target when round advances', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const { setRound, overrides } = withMutableRound({ current: 1, total: 3 });
-            const ctx = createMockContext({
-                ...overrides,
-                block: {
-                    key: { toString: () => 'loop-block' },
-                    label: 'Loop',
-                    metrics: [],
-                    completionReason: undefined,
-                    getMemoryByTag: vi.fn(() => [{ tag: 'metric:rep-target', metrics: [] }]),
-                },
-            } as unknown as Partial<IBehaviorContext>);
-
-            // Mount with round 1
-            behavior.onMount(ctx);
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 3 })]));
+            harness.push(block);
+            harness.mount();
 
             // Advance to round 2
-            setRound({ current: 2, total: 3 } as RoundState);
-            behavior.onNext(ctx);
+            block.getMemoryByTag('round')[0].update([makeRoundMetric({ current: 2, total: 3 })]);
+            harness.next();
 
-            // Should update (not push) because rep-target already exists
-            expect(ctx.updateMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 15, image: '15' })]
-            );
+            const repUpdate = block.recordings.updateMemory.find(u => u.tag === 'metric:rep-target');
+            expect(repUpdate).toBeDefined();
+            expect(repUpdate!.metrics).toEqual([expect.objectContaining({ value: 15, image: '15' })]);
         });
 
         it('should NOT promote when round has not changed', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const { overrides } = withMutableRound({ current: 1, total: 3 });
-            const ctx = createMockContext(overrides);
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 3 })]));
+            harness.push(block);
+            harness.mount();
 
-            // Mount with round 1
-            behavior.onMount(ctx);
-            // Reset call counts
-            (ctx.pushMemory as any).mockClear();
-            (ctx.updateMemory as any).mockClear();
+            const pushCountAfterMount = block.recordings.pushMemory.length;
+            const updateCountAfterMount = block.recordings.updateMemory.length;
 
             // onNext with same round 1 — should NOT promote
-            behavior.onNext(ctx);
-            expect(ctx.pushMemory).not.toHaveBeenCalled();
-            expect(ctx.updateMemory).not.toHaveBeenCalled();
+            harness.next();
+            expect(block.recordings.pushMemory.length).toBe(pushCountAfterMount);
+            expect(block.recordings.updateMemory.length).toBe(updateCountAfterMount);
         });
 
         it('should NOT promote when no round memory exists', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext();
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            // No round memory seeded
+            harness.push(block);
+            harness.mount();
 
-            behavior.onNext(ctx);
+            const pushCountAfterMount = block.recordings.pushMemory.length;
+            const updateCountAfterMount = block.recordings.updateMemory.length;
 
-            expect(ctx.pushMemory).not.toHaveBeenCalled();
-            expect(ctx.updateMemory).not.toHaveBeenCalled();
+            // onNext with no round memory — should not promote
+            harness.next();
+            expect(block.recordings.pushMemory.length).toBe(pushCountAfterMount);
+            expect(block.recordings.updateMemory.length).toBe(updateCountAfterMount);
         });
 
         it('should handle full round-robin cycle over multiple advances', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const { setRound, overrides } = withMutableRound({ current: 1, total: 6 });
-            let repTargetPushed = false;
-            const ctx = createMockContext({
-                ...overrides,
-                block: {
-                    key: { toString: () => 'loop-block' },
-                    label: 'Loop',
-                    metrics: [],
-                    completionReason: undefined,
-                    getMemoryByTag: vi.fn(() =>
-                        repTargetPushed ? [{ tag: 'metric:rep-target', metrics: [] }] : []
-                    ),
-                },
-                pushMemory: vi.fn(() => { repTargetPushed = true; }),
-            } as unknown as Partial<IBehaviorContext>);
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 6 })]));
+            harness.push(block);
 
-            // Mount: round 1 → 21 (pushMemory because rep-target doesn't exist yet)
-            behavior.onMount(ctx);
-            expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 21 })]
-            );
+            // Mount: round 1 → 21
+            harness.mount();
+            const repTarget = block.recordings.pushMemory.find(p => p.tag === 'metric:rep-target');
+            expect(repTarget!.metrics).toEqual([expect.objectContaining({ value: 21 })]);
 
             // Round 2 → 15
-            setRound({ current: 2, total: 6 });
-            behavior.onNext(ctx);
-            expect(ctx.updateMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 15 })]
-            );
+            block.getMemoryByTag('round')[0].update([makeRoundMetric({ current: 2, total: 6 })]);
+            harness.next();
+            expect(block.recordings.updateMemory.filter(u => u.tag === 'metric:rep-target').at(-1)!.metrics)
+                .toEqual([expect.objectContaining({ value: 15 })]);
 
             // Round 3 → 9
-            setRound({ current: 3, total: 6 });
-            behavior.onNext(ctx);
-            expect(ctx.updateMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 9 })]
-            );
+            block.getMemoryByTag('round')[0].update([makeRoundMetric({ current: 3, total: 6 })]);
+            harness.next();
+            expect(block.recordings.updateMemory.filter(u => u.tag === 'metric:rep-target').at(-1)!.metrics)
+                .toEqual([expect.objectContaining({ value: 9 })]);
 
             // Round 4 → wraps to 21
-            setRound({ current: 4, total: 6 });
-            behavior.onNext(ctx);
-            expect(ctx.updateMemory).toHaveBeenLastCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({ value: 21 })]
-            );
+            block.getMemoryByTag('round')[0].update([makeRoundMetric({ current: 4, total: 6 })]);
+            harness.next();
+            expect(block.recordings.updateMemory.filter(u => u.tag === 'metric:rep-target').at(-1)!.metrics)
+                .toEqual([expect.objectContaining({ value: 21 })]);
         });
     });
 
@@ -318,17 +238,24 @@ describe('MetricPromotionBehavior repScheme', () => {
 
     describe('onUnmount / onDispose', () => {
         it('should return empty actions on unmount', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext();
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            harness.push(block);
+            harness.mount();
 
-            expect(behavior.onUnmount(ctx)).toEqual([]);
+            const actions = block.unmount(harness.runtime);
+            expect(actions).toEqual([]);
         });
 
         it('should not throw on dispose', () => {
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
             const behavior = new MetricPromotionBehavior({ repScheme: [21, 15, 9], promotions: [] });
-            const ctx = createMockContext();
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            harness.push(block);
+            harness.mount();
 
-            expect(() => behavior.onDispose(ctx)).not.toThrow();
+            expect(() => block.dispose()).not.toThrow();
         });
     });
 
@@ -336,22 +263,19 @@ describe('MetricPromotionBehavior repScheme', () => {
 
     describe('emitted metrics shape', () => {
         it('should include sourceBlockKey and timestamp in metric', () => {
-            const behavior = new MetricPromotionBehavior({ repScheme: [10], promotions: [] });
             const clockTime = new Date('2024-06-15T10:00:00Z');
-            const ctx = createMockContext({
-                ...withRoundState({ current: 1, total: 1 }),
-                clock: { now: clockTime },
-            } as unknown as Partial<IBehaviorContext>);
+            harness = new BehaviorTestHarness().withClock(clockTime);
+            const behavior = new MetricPromotionBehavior({ repScheme: [10], promotions: [] });
+            const block = new MockBlock('loop-block', [behavior], { label: 'Loop' });
+            block.pushMemory(new MemoryLocation('round', [makeRoundMetric({ current: 1, total: 1 })]));
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.pushMemory).toHaveBeenCalledWith(
-                'metric:rep-target',
-                [expect.objectContaining({
-                    sourceBlockKey: 'loop-block',
-                    timestamp: clockTime,
-                })]
-            );
+            const repTarget = block.recordings.pushMemory.find(p => p.tag === 'metric:rep-target');
+            expect(repTarget!.metrics).toEqual([expect.objectContaining({
+                sourceBlockKey: 'loop-block',
+                timestamp: clockTime,
+            })]);
         });
     });
 });

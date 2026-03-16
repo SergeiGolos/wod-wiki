@@ -27,7 +27,7 @@ Joe's programs, available through Kettlebell Muscle Gain (KBMuscle.com), include
 The program progresses through phases, starting with foundational movement patterns and advancing to more complex combinations. Each session is designed to be completed in 30-45 minutes, making it practical for those with busy schedules while still providing significant training stimulus.
 
 ```wod
-Phase 1 Week 1-2:
+Phase 1 Week 1-2
 (5)
   + 5 KB Swing 20kg
   + 3 Goblet Squat 20kg
@@ -38,7 +38,7 @@ Phase 1 Week 1-2:
   5 Clean & Press Right 20kg
   :45 Rest
 
-Phase 2 Week 3-4:
+Phase 2 Week 3-4
 (5)
   + 3 Clean & Press Left 20kg
   + 3 Front Squat Left 20kg
@@ -197,7 +197,7 @@ The Fundamentals Program is Joe Daniels' entry-level program designed to teach p
 The program is designed for those new to kettlebells or those wanting to refine their technique. Sessions are shorter and focused on quality over quantity, establishing the movement patterns that will support long-term progress.
 
 ```wod
-Fundamentals Session:
+Fundamentals Session
 (3)
   5 Two-Hand KB Swing 16kg
   :30 Rest
@@ -243,12 +243,12 @@ This session prepares athletes for kettlebell sport competition, focusing on the
 The session includes both jerk and snatch practice, following the structure of kettlebell sport competition. Rest periods are strategic, allowing for quality work while building the specific endurance required for competition.
 
 ```wod
-Sport Preparation:
+Sport Preparation
 10:00 ? KB Jerk 16kg
 5:00 Rest
 10:00 ? KB Snatch 16kg
 
-Technical Practice:
+Technical Practice
 (5)
   1:00 KB Clean 16kg
   :30 Rest
@@ -281,13 +281,13 @@ The overhead squat is a demanding movement that combines mobility, stability, an
 Joe Daniels has emphasized the overhead kettlebell squat as a diagnostic tool and developmental exercise. The movement reveals limitations in mobility and stability while simultaneously addressing them through practice.
 
 ```wod
-Warm-up:
+Warm-up
 (3)
   5 Halos 12kg
   5 Arm Bars Left 12kg
   5 Arm Bars Right 12kg
 
-Main Work:
+Main Work
 (5)
   3 Overhead Squat Left 16kg
   3 Overhead Squat Right 16kg

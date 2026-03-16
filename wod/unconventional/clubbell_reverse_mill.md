@@ -157,10 +157,10 @@ The Reverse Mill pairs well with:
 ### Sample Balanced Session
 
 ```wod
-Warmup:
+Warmup
   5 Two-Hand Mills Each Direction
 
-Main Work:
+Main Work
   (3)
     10 Mill Left 15lb
     10 Reverse Mill Left 15lb
@@ -171,7 +171,7 @@ Main Work:
     10 Reverse Mill Right 15lb
     :60 Rest
 
-Cool Down:
+Cool Down
   Inside/Outside Circles x 10 each
 ```
 

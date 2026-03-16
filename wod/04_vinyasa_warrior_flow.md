@@ -155,7 +155,7 @@ Lie flat on your back, arms at your sides, palms facing up. Close your eyes and 
   1:00 Goddess Pose
   :30 Goddess Twist Right
   :30 Goddess Twist Left
-  1:00 Child's Pose
+  1:00 Childs Pose
   3:00 Savasana
 ```
 

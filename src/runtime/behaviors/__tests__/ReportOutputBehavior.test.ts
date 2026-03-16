@@ -1,68 +1,40 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { ReportOutputBehavior } from '../ReportOutputBehavior';
-import { IBehaviorContext } from '../../contracts/IBehaviorContext';
 import { MetricType } from '../../../core/models/Metric';
 import { RoundState, TimerState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
-
-interface MockContextOptions {
-    memory?: Record<string, unknown>;
-    tagFragments?: Record<string, any[]>;
-    label?: string;
-}
-
-function createMockContext(options: MockContextOptions = {}): IBehaviorContext {
-    const memoryStore = new Map<string, unknown>(Object.entries(options.memory ?? {}));
-    const tagStore = new Map<string, any[]>(Object.entries(options.tagFragments ?? {}));
-
-    const pushMemory = vi.fn((tag: string, metrics: any[]) => {
-        tagStore.set(tag, metrics);
-        return { tag, metrics, update: vi.fn(), subscribe: vi.fn(), dispose: vi.fn() } as any;
-    });
-
-    const updateMemory = vi.fn((tag: string, metrics: any[]) => {
-        tagStore.set(tag, metrics);
-    });
-
-    return {
-        block: {
-            key: { toString: () => 'test-block' },
-            label: options.label ?? 'Default Label',
-            metrics: [],
-            completionReason: undefined,
-            getMemoryByTag: (tag: string) => {
-                const metrics = tagStore.get(tag) ?? [];
-                if (metrics.length === 0) return [];
-                return [{ tag, metrics } as any];
-            },
-        },
-        clock: { now: new Date(1000) },
-        stackLevel: 0,
-        subscribe: vi.fn(),
-        emitEvent: vi.fn(),
-        emitOutput: vi.fn(),
-        getMemoryByTag: (tag: string) => {
-            const metrics = tagStore.get(tag) ?? [];
-            if (metrics.length === 0) return [];
-            return [{ tag, metrics } as any];
-        },
-        pushMemory,
-        updateMemory,
-        markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: unknown) => memoryStore.set(type, value)),
-    } as unknown as IBehaviorContext;
-}
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
+import { MemoryLocation } from '../../memory/MemoryLocation';
 
 describe('ReportOutputBehavior', () => {
+    let harness: BehaviorTestHarness;
+
+    afterEach(() => { harness?.dispose(); });
+
+    function setup(config?: ConstructorParameters<typeof ReportOutputBehavior>[0], opts?: {
+        tagFragments?: Record<string, any[]>;
+        label?: string;
+    }) {
+        harness = new BehaviorTestHarness().withClock(new Date(1000));
+        const behavior = new ReportOutputBehavior(config);
+        const block = new MockBlock('test-block', [behavior], { label: opts?.label ?? 'Default Label' });
+
+        if (opts?.tagFragments) {
+            for (const [tag, metrics] of Object.entries(opts.tagFragments)) {
+                block.pushMemory(new MemoryLocation(tag as any, metrics));
+            }
+        }
+
+        harness.push(block);
+        return { block, behavior };
+    }
+
     it('does not emit segment output on mount by default', () => {
-        const behavior = new ReportOutputBehavior();
-        const ctx = createMockContext();
+        const { block } = setup();
+        harness.mount();
 
-        behavior.onMount(ctx);
-
-        const segmentCalls = (ctx.emitOutput as any).mock.calls.filter((call: any[]) => call[0] === 'segment');
-        expect(segmentCalls).toHaveLength(0);
+        const segmentOutputs = block.recordings.emitOutput.filter(o => o.type === 'segment');
+        expect(segmentOutputs).toHaveLength(0);
     });
 
     it('emits segment output on mount with merged display + state metrics', () => {
@@ -77,30 +49,31 @@ describe('ReportOutputBehavior', () => {
             image: 'Round 1 of 3',
             origin: 'runtime' as const,
             value: 1,
+            current: 1,
+            total: 3,
             timestamp: new Date(1000),
         };
 
-        const behavior = new ReportOutputBehavior({ emitSegmentOnMount: true });
-        const ctx = createMockContext({
-            tagFragments: {
-                'metric:display': [displayFragment],
-                round: [roundFragment],
-            },
-            memory: {
-                round: { current: 1, total: 3 } as RoundState,
-            },
-        });
+        const { block } = setup(
+            { emitSegmentOnMount: true },
+            {
+                tagFragments: {
+                    'metric:display': [displayFragment],
+                    round: [roundFragment],
+                },
+            }
+        );
+        harness.mount();
 
-        behavior.onMount(ctx);
-
-        expect(ctx.emitOutput).toHaveBeenCalledWith(
-            'segment',
+        const segmentOutputs = block.recordings.emitOutput.filter(o => o.type === 'segment');
+        expect(segmentOutputs).toHaveLength(1);
+        expect(segmentOutputs[0].metrics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ type: 'label' }),
                 expect.objectContaining({ type: 'current-round' }),
-            ]),
-            expect.objectContaining({ label: 'Default Label' })
+            ])
         );
+        expect(segmentOutputs[0].options).toEqual(expect.objectContaining({ label: 'Default Label' }));
     });
 
     it('deduplicates overlapping metrics types when merging display + state', () => {
@@ -119,112 +92,100 @@ describe('ReportOutputBehavior', () => {
             timestamp: new Date(1000),
         };
 
-        const behavior = new ReportOutputBehavior({ emitSegmentOnMount: true });
-        const ctx = createMockContext({
-            tagFragments: {
-                'metric:display': [parserTimerMetric],
-                time: [runtimeTimerMetric],
-            },
-        });
+        const { block } = setup(
+            { emitSegmentOnMount: true },
+            {
+                tagFragments: {
+                    'metric:display': [parserTimerMetric],
+                    time: [runtimeTimerMetric],
+                },
+            }
+        );
+        harness.mount();
 
-        behavior.onMount(ctx);
-
-        const emittedFragments = (ctx.emitOutput as any).mock.calls[0][1];
-        const timerFragments = emittedFragments.filter((f: any) => f.type === MetricType.Duration);
+        const segmentOutputs = block.recordings.emitOutput.filter(o => o.type === 'segment');
+        const timerFragments = segmentOutputs[0].metrics.filter((f: any) => f.type === MetricType.Duration);
         expect(timerFragments).toHaveLength(1);
         expect(timerFragments[0].origin).toBe('parser');
     });
 
     it('emits milestone on mount for multi-round blocks', () => {
-        const behavior = new ReportOutputBehavior();
         const roundState: RoundState = { current: 1, total: 3 };
-        const ctx = createMockContext({
+        const { block } = setup(undefined, {
             tagFragments: {
-                round: [{ ...roundState, type: MetricType.CurrentRound, value: 1 }]
+                round: [{ ...roundState, type: MetricType.CurrentRound, value: 1, image: '', origin: 'runtime' }]
             }
         });
+        harness.mount();
 
-        behavior.onMount(ctx);
-
-        expect(ctx.emitOutput).toHaveBeenCalledWith(
-            'milestone',
+        const milestoneOutputs = block.recordings.emitOutput.filter(o => o.type === 'milestone');
+        expect(milestoneOutputs).toHaveLength(1);
+        expect(milestoneOutputs[0].metrics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ type: MetricType.CurrentRound, current: 1, total: 3 }),
-            ]),
-            expect.objectContaining({ label: 'Round 1 of 3' })
+            ])
         );
+        expect(milestoneOutputs[0].options).toEqual(expect.objectContaining({ label: 'Round 1 of 3' }));
     });
 
     it('does not emit milestone on mount for single-round blocks', () => {
-        const behavior = new ReportOutputBehavior();
         const roundState: RoundState = { current: 1, total: 1 };
-        const ctx = createMockContext({
+        const { block } = setup(undefined, {
             tagFragments: {
-                round: [{ ...roundState, type: MetricType.CurrentRound, value: 1 }]
+                round: [{ ...roundState, type: MetricType.CurrentRound, value: 1, image: '', origin: 'runtime' }]
             }
         });
+        harness.mount();
 
-        behavior.onMount(ctx);
-
-        const milestoneCalls = (ctx.emitOutput as any).mock.calls.filter((call: any[]) => call[0] === 'milestone');
-        expect(milestoneCalls).toHaveLength(0);
+        const milestoneOutputs = block.recordings.emitOutput.filter(o => o.type === 'milestone');
+        expect(milestoneOutputs).toHaveLength(0);
     });
 
     it('emits milestone on next when round advances', () => {
-        const behavior = new ReportOutputBehavior();
         const round1: RoundState = { current: 1, total: 5 };
-        // Mount with round 1 to initialize lastEmittedRound
-        const mountCtx = createMockContext({
+        const { block } = setup(undefined, {
             tagFragments: {
-                round: [{ ...round1, type: MetricType.CurrentRound, value: 1 }]
+                round: [{ ...round1, type: MetricType.CurrentRound, value: 1, image: '', origin: 'runtime' }]
             }
         });
-        behavior.onMount(mountCtx);
+        harness.mount();
 
-        // Simulate round advancing to 2 (done by ChildSelectionBehavior)
-        const round2: RoundState = { current: 2, total: 5 };
-        const ctx = createMockContext({
-            tagFragments: {
-                round: [{ ...round2, type: MetricType.CurrentRound, value: 2 }]
-            }
-        });
+        // Update round to 2
+        const roundLoc = block.getMemoryByTag('round')[0];
+        const round2 = { current: 2, total: 5 } as RoundState;
+        roundLoc.update([{ ...round2, type: MetricType.CurrentRound, value: 2, image: '', origin: 'runtime' } as any]);
 
-        behavior.onNext(ctx);
+        harness.next();
 
-        expect(ctx.emitOutput).toHaveBeenCalledWith(
-            'milestone',
+        const milestoneOutputs = block.recordings.emitOutput.filter(o => o.type === 'milestone');
+        expect(milestoneOutputs).toHaveLength(2); // round 1 from mount + round 2 from next
+        const round2Milestone = milestoneOutputs[1];
+        expect(round2Milestone.metrics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ type: MetricType.CurrentRound, current: 2, total: 5 }),
-            ]),
-            expect.objectContaining({ label: 'Round 2 of 5' })
+            ])
         );
+        expect(round2Milestone.options).toEqual(expect.objectContaining({ label: 'Round 2 of 5' }));
     });
 
     it('does not emit milestone on next when round has not changed', () => {
-        const behavior = new ReportOutputBehavior();
         const round2: RoundState = { current: 2, total: 5 };
-        // Mount emits milestone for round 2 and sets lastEmittedRound
-        const mountCtx = createMockContext({
+        const { block } = setup(undefined, {
             tagFragments: {
-                round: [{ ...round2, type: MetricType.CurrentRound, value: 2 }]
+                round: [{ ...round2, type: MetricType.CurrentRound, value: 2, image: '', origin: 'runtime' }]
             }
         });
-        behavior.onMount(mountCtx);
+        harness.mount();
 
-        // onNext with same round should not emit again
-        const ctx = createMockContext({
-            tagFragments: {
-                round: [{ ...round2, type: MetricType.CurrentRound, value: 2 }]
-            }
-        });
+        const countAfterMount = block.recordings.emitOutput.length;
 
-        behavior.onNext(ctx);
+        harness.next();
 
-        expect(ctx.emitOutput).not.toHaveBeenCalled();
+        // No new outputs should have been emitted
+        expect(block.recordings.emitOutput.length).toBe(countAfterMount);
     });
 
     it('computes timer results and emits completion output on unmount', () => {
-        const behavior = new ReportOutputBehavior({ label: 'Workout' });
         const timer: TimerState = {
             spans: [new TimeSpan(0, 600), new TimeSpan(800, 1000)],
             direction: 'down',
@@ -233,21 +194,23 @@ describe('ReportOutputBehavior', () => {
             role: 'primary',
         };
 
-        const ctx = createMockContext({
-            tagFragments: {
-                time: [{
-                    type: MetricType.Duration,
-                    image: '2:00',
-                    origin: 'runtime',
-                    value: timer,
-                }],
-            },
-        });
+        harness = new BehaviorTestHarness().withClock(new Date(1000));
+        const behavior = new ReportOutputBehavior({ label: 'Workout' });
+        const block = new MockBlock('test-block', [behavior], { label: 'Workout' });
+        block.pushMemory(new MemoryLocation('time' as any, [{
+            type: MetricType.Duration,
+            image: '2:00',
+            origin: 'runtime',
+            value: timer,
+        } as any]));
 
-        behavior.onUnmount(ctx);
+        harness.push(block);
+        harness.mount();
+        harness.unmount();
 
-        expect(ctx.pushMemory).toHaveBeenCalledWith(
-            'metric:result',
+        const resultPush = block.recordings.pushMemory.find(p => p.tag === 'metric:result');
+        expect(resultPush).toBeDefined();
+        expect(resultPush!.metrics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ type: MetricType.Elapsed, value: 800 }),
                 expect.objectContaining({ type: MetricType.Total, value: 1000 }),
@@ -256,26 +219,28 @@ describe('ReportOutputBehavior', () => {
             ])
         );
 
-        expect(ctx.emitOutput).toHaveBeenCalledWith(
-            'completion',
+        const completionOutputs = block.recordings.emitOutput.filter(o => o.type === 'completion');
+        expect(completionOutputs).toHaveLength(1);
+        expect(completionOutputs[0].metrics).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ type: MetricType.Elapsed, value: 800 }),
                 expect.objectContaining({ type: MetricType.Total, value: 1000 }),
-            ]),
-            expect.objectContaining({ label: 'Workout' })
+            ])
         );
+        expect(completionOutputs[0].options).toEqual(expect.objectContaining({ label: 'Workout' }));
     });
 
     it('creates degenerate span for non-timer blocks on unmount', () => {
-        const behavior = new ReportOutputBehavior();
-        const ctx = createMockContext();
+        const { block } = setup();
+        harness.mount();
+        harness.unmount();
 
-        behavior.onUnmount(ctx);
+        const resultPush = block.recordings.pushMemory.find(p => p.tag === 'metric:result');
+        expect(resultPush).toBeDefined();
 
-        const resultFragments = (ctx.pushMemory as any).mock.calls[0][1];
-        const spans = resultFragments.find((f: any) => f.type === MetricType.Spans);
+        const spans = resultPush!.metrics.find((f: any) => f.type === MetricType.Spans);
         expect(spans).toBeDefined();
-        expect(spans.spans).toHaveLength(1);
-        expect(spans.spans[0].started).toBe(spans.spans[0].ended);
+        expect((spans as any).spans).toHaveLength(1);
+        expect((spans as any).spans[0].started).toBe((spans as any).spans[0].ended);
     });
 });

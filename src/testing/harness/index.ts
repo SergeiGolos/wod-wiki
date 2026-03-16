@@ -25,6 +25,7 @@ export type {
 // Existing harnesses
 export { BehaviorTestHarness } from './BehaviorTestHarness';
 export { MockBlock } from './MockBlock';
+export type { MockBlockConfig, BehaviorContextRecordings } from './MockBlock';
 export { RuntimeTestBuilder, RuntimeTestHarness } from './RuntimeTestBuilder';
 export { WorkoutTestHarness, WorkoutTestBuilder } from './WorkoutTestHarness';
 export type { RuntimeSnapshot, MemoryEntry } from './RuntimeTestBuilder';
