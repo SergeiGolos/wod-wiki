@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ReviewGrid } from "@/components/review-grid/ReviewGrid";
-import { X } from "lucide-react";
 import type { Segment } from "@/core/models/AnalyticsModels";
+import { FocusedDialog } from "./FocusedDialog";
 
 export interface FullscreenReviewProps {
   segments: Segment[];
@@ -48,40 +48,15 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
     });
   };
 
-  // Prevent scrolling on the body while the review is open
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full h-full flex flex-col bg-card overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm"
-            title="Close Review"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          <ReviewGrid
-            runtime={null}
-            segments={segments}
-            selectedSegmentIds={selectedSegmentIds}
-            onSelectSegment={handleSelectSegment}
-            groups={[]}
-          />
-        </div>
-      </div>
-    </div>
+    <FocusedDialog title={title} onClose={onClose}>
+      <ReviewGrid
+        runtime={null}
+        segments={segments}
+        selectedSegmentIds={selectedSegmentIds}
+        onSelectSegment={handleSelectSegment}
+        groups={[]}
+      />
+    </FocusedDialog>
   );
 };

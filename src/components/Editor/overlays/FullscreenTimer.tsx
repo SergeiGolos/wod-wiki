@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "./RuntimeTimerPanel";
 import type { WodBlock, WorkoutResults } from "../types";
-import { X } from "lucide-react";
 import { ReviewGrid } from "@/components/review-grid/ReviewGrid";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 import type { Segment } from "@/core/models/AnalyticsModels";
+import { FocusedDialog } from "./FocusedDialog";
 
 export interface FullscreenTimerProps {
   block: WodBlock;
@@ -78,63 +78,27 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
     });
   };
 
-  // Prevent scrolling on the body while the popup is open
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full h-full flex flex-col bg-card overflow-hidden">
-
-        {completedSegments !== null ? (
-          /* ── Results view: shown after natural workout completion ── */
-          <>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-              <h2 className="text-lg font-semibold">Workout Complete</h2>
-              <button
-                onClick={handleClose}
-                className="p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm"
-                title="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <ReviewGrid
-                runtime={null}
-                segments={completedSegments}
-                selectedSegmentIds={selectedSegmentIds}
-                onSelectSegment={handleSelectSegment}
-                groups={[]}
-              />
-            </div>
-          </>
-        ) : (
-          /* ── Track view: active timer ── */
-          <>
-            <button
-              onClick={handleClose}
-              className="absolute top-4 right-4 z-[110] p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm"
-              title="Close Timer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <div className="flex-1 min-h-0">
-              <RuntimeTimerPanel
-                block={block}
-                view={view}
-                onClose={handleClose}
-                onComplete={handleComplete}
-                isExpanded={true}
-              />
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+  return completedSegments !== null ? (
+    /* ── Results view: shown after natural workout completion ── */
+    <FocusedDialog title="Workout Complete" onClose={handleClose}>
+      <ReviewGrid
+        runtime={null}
+        segments={completedSegments}
+        selectedSegmentIds={selectedSegmentIds}
+        onSelectSegment={handleSelectSegment}
+        groups={[]}
+      />
+    </FocusedDialog>
+  ) : (
+    /* ── Track view: active timer ── */
+    <FocusedDialog onClose={handleClose} floatingClose>
+      <RuntimeTimerPanel
+        block={block}
+        view={view}
+        onClose={handleClose}
+        onComplete={handleComplete}
+        isExpanded={true}
+      />
+    </FocusedDialog>
   );
 };

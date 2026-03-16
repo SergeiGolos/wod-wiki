@@ -87,11 +87,6 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/20">
-        <span className="text-xs font-semibold text-foreground">Running</span>
-      </div>
-
       {/* ── Body: stacked on mobile, side-by-side on desktop ── */}
       <div className={`min-h-0 flex-1 overflow-hidden flex ${isCompact ? "flex-col" : "flex-row"}`}>
         {/* Visual State — top on mobile, left on desktop */}
