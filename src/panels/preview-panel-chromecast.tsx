@@ -10,6 +10,7 @@ import React from 'react';
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import {
+    Clock,
     Dumbbell,
     Play,
 } from 'lucide-react';
@@ -36,23 +37,43 @@ export const ReceiverPreviewPanel: React.FC<{
 
             {/* Workout list */}
             {previewData.blocks.length > 0 && (
-                <div className="w-full max-w-lg flex flex-col gap-2">
+                <div className="w-full max-w-2xl flex flex-col gap-3">
                     {previewData.blocks.map((block, index) => (
                         <div
                             key={block.id}
                             {...(getFocusProps ? getFocusProps(`preview-block-${index}`) : {})}
-                            className="tv-focusable flex items-center justify-between rounded-lg border border-border/60 bg-card/50 px-4 py-3 text-sm transition-all cursor-pointer"
+                            className="tv-focusable flex flex-col rounded-lg border border-border/60 bg-card/50 px-5 py-4 transition-all cursor-pointer hover:border-primary/40 hover:bg-card/80"
                         >
-                            <div className="flex items-center gap-2">
-                                <Play className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium text-foreground truncate max-w-xs">
-                                    {block.title}
-                                </span>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <Play className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <span className="font-medium text-foreground truncate">
+                                        {block.title}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 ml-3">
+                                    {block.timerHint && (
+                                        <span className="flex items-center gap-1 text-xs font-mono text-primary/80 bg-primary/10 px-2 py-0.5 rounded">
+                                            <Clock className="h-3 w-3" />
+                                            {block.timerHint}
+                                        </span>
+                                    )}
+                                    {block.dialect && block.dialect !== 'wod' && (
+                                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 bg-muted/30 px-1.5 py-0.5 rounded">
+                                            {block.dialect}
+                                        </span>
+                                    )}
+                                    {block.statementCount > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {block.statementCount} steps
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                            {block.statementCount > 0 && (
-                                <span className="text-xs text-muted-foreground shrink-0">
-                                    {block.statementCount} steps
-                                </span>
+                            {block.contentPreview && (
+                                <pre className="mt-2 text-xs text-muted-foreground/70 font-mono leading-relaxed whitespace-pre-wrap line-clamp-3 pl-6">
+                                    {block.contentPreview}
+                                </pre>
                             )}
                         </div>
                     ))}

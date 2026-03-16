@@ -202,7 +202,6 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
   ]);
 
   // --- Runtime initialization on view mode changes ---
-  // --- Runtime initialization on view mode changes ---
   const lastInitializedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -213,8 +212,12 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
         
         // Clear analytics before starting the new runtime
         store.getState().setAnalytics([], []);
+
+        // Find frontmatter in the document to pass down to runtime
+        const fmSection = documentItems.find(item => item.type === 'frontmatter');
+        const frontmatter = fmSection?.properties;
         
-        initializeRuntime(selectedBlock);
+        initializeRuntime(selectedBlock, frontmatter);
         lastInitializedKeyRef.current = currentKey;
       }
     } else if (viewMode !== 'track') {
@@ -223,7 +226,7 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
         lastInitializedKeyRef.current = null;
       }
     }
-  }, [viewMode, selectedBlock, initializeRuntime, disposeRuntime]);
+  }, [viewMode, selectedBlock, documentItems, initializeRuntime, disposeRuntime]);
 
   // --- Wake lock (keep screen awake during workouts) ---
   useWakeLock({

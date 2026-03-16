@@ -55,7 +55,7 @@ interface WorkbenchSyncState {
   // --- Runtime & Execution (hydrated from React hooks via bridge) ---
   runtime: IScriptRuntime | null;
   execution: UseRuntimeExecutionReturn;
-  initializeRuntime: (block: WodBlock) => void;
+  initializeRuntime: (block: WodBlock, frontmatter?: Record<string, string>) => void;
   disposeRuntime: () => void;
 
   // --- Execution Controls (hydrated from React hooks via bridge) ---
@@ -135,7 +135,7 @@ interface WorkbenchSyncActions {
   _hydrateRuntime: (payload: {
     runtime: IScriptRuntime | null;
     execution: UseRuntimeExecutionReturn;
-    initializeRuntime: (block: WodBlock) => void;
+    initializeRuntime: (block: WodBlock, frontmatter?: Record<string, string>) => void;
     disposeRuntime: () => void;
     handleStart: () => void;
     handlePause: () => void;

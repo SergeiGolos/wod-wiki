@@ -49,6 +49,12 @@ export interface IRuntimeOptions {
      * Defaults to 20 if not specified.
      */
     maxActionDepth?: number;
+
+    /**
+     * Optional frontmatter properties parsed from the document.
+     * Used for things like attaching a youtube playlist to a workout session.
+     */
+    frontmatter?: Record<string, string>;
 }
 
 /**

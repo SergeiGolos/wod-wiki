@@ -527,6 +527,7 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
     private handleWorkbenchUpdate(message: RpcWorkbenchUpdate): void {
         this._workbenchState = {
             mode: message.mode,
+            frontmatter: message.frontmatter,
             previewData: message.previewData,
             reviewData: message.reviewData,
         };

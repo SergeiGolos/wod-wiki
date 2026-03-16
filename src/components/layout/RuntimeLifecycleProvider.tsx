@@ -79,7 +79,7 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
    * Initialize a new runtime for the given block
    * Automatically disposes existing runtime first
    */
-  const initializeRuntime = useCallback((block: WodBlock) => {
+  const initializeRuntime = useCallback((block: WodBlock, frontmatter?: Record<string, string>) => {
     // Guard against duplicate initialization
     if (isInitializing) {
       return;
@@ -114,7 +114,7 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
 
       // Now create the new runtime and update state.
       // Pass the tracker in the options
-      const newRuntime = factoryRef.current.createRuntime(block, { tracker }) as ScriptRuntime | null;
+      const newRuntime = factoryRef.current.createRuntime(block, { tracker, frontmatter }) as ScriptRuntime | null;
       currentRuntimeRef.current = newRuntime;
       setRuntime(newRuntime);
 

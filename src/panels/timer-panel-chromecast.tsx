@@ -13,11 +13,17 @@ import { usePrimaryTimer, useSecondaryTimers, useStackTimers } from '@/runtime/h
 import { calculateDuration } from '@/lib/timeUtils';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 
+import { Music, Play, Pause } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+
 export const ReceiverTimerPanel: React.FC<{
     localNow: number;
     onEvent: (name: string) => void;
     getFocusProps?: (id: string) => FocusProps;
-}> = ({ localNow, onEvent, getFocusProps }) => {
+    currentTrack?: string | null;
+}> = ({ localNow, onEvent, getFocusProps, currentTrack }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
     const primaryTimerEntry = usePrimaryTimer();
     const secondaryTimers = useSecondaryTimers();
     const allTimers = useStackTimers();
@@ -74,6 +80,31 @@ export const ReceiverTimerPanel: React.FC<{
 
     return (
         <div className="flex-1 flex flex-col justify-center">
+            {currentTrack !== undefined && (
+                <div className="flex items-center justify-center gap-3 mb-6 animate-in fade-in slide-in-from-top-4">
+                    <div className="bg-secondary/40 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3 border border-border/50 shadow-sm max-w-[80%]">
+                        <div className="bg-primary/20 p-1.5 rounded-full">
+                            <Music className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="text-sm font-medium truncate flex-1 min-w-0 pr-2">
+                            {currentTrack || "Loading playlist..."}
+                        </div>
+                        <Button
+                            id="btn-playlist-playpause"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 rounded-full hover:bg-primary/20 hover:text-primary transition-colors focus:ring-2 focus:ring-primary focus:outline-none"
+                            onClick={() => {
+                                setIsPlaying(!isPlaying);
+                                // The actual event emission is handled by ReceiverApp's onSelect mapping for the ID
+                            }}
+                            {...(getFocusProps ? getFocusProps('btn-playlist-playpause') : {})}
+                        >
+                            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </Button>
+                    </div>
+                </div>
+            )}
             <TimerStackView
                 elapsedMs={primaryElapsed}
                 hasActiveBlock={!!primaryTimerEntry}

@@ -26,7 +26,7 @@ export interface RuntimeLifecycleState {
   error: Error | null;
   
   /** Initialize a new runtime for the given block */
-  initializeRuntime: (block: WodBlock) => void;
+  initializeRuntime: (block: WodBlock, frontmatter?: Record<string, string>) => void;
   
   /** Dispose the current runtime */
   disposeRuntime: () => void;

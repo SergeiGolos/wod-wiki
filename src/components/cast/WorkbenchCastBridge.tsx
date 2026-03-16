@@ -76,6 +76,12 @@ export const WorkbenchCastBridge: React.FC = () => {
             message = buildPreviewMessage(selectedBlock, documentItems);
         }
 
+        // Add frontmatter to all messages
+        const fmSection = documentItems.find(item => item.type === 'frontmatter');
+        if (fmSection && fmSection.properties) {
+            message.frontmatter = fmSection.properties;
+        }
+
         // Skip send if nothing has changed
         const fingerprint = JSON.stringify(message);
         if (fingerprint === lastFingerprintRef.current) return;

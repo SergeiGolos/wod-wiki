@@ -7,33 +7,17 @@
 
 import React, { useMemo } from 'react';
 import { SECTION_LINE_HEIGHT } from '../../SectionContainer';
+import { extractYouTubeVideoId } from '@/lib/youtubeUtils';
 
 export interface YouTubeEmbedProps {
   properties: Record<string, string>;
   lineCount: number;
 }
 
-/** Extract YouTube video ID from various URL formats */
-function extractVideoId(url: string): string | null {
-  // Standard: https://www.youtube.com/watch?v=VIDEO_ID
-  const standardMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-  if (standardMatch) return standardMatch[1];
-
-  // Short: https://youtu.be/VIDEO_ID
-  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-  if (shortMatch) return shortMatch[1];
-
-  // Embed: https://www.youtube.com/embed/VIDEO_ID
-  const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
-  if (embedMatch) return embedMatch[1];
-
-  return null;
-}
-
 export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = ({ properties, lineCount }) => {
   const url = properties['url'] || properties['link'] || '';
   const title = properties['title'] || 'YouTube Video';
-  const videoId = useMemo(() => extractVideoId(url), [url]);
+  const videoId = useMemo(() => extractYouTubeVideoId(url), [url]);
 
   const minHeight = lineCount * SECTION_LINE_HEIGHT;
 

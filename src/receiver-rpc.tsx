@@ -30,6 +30,8 @@ import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { calculateDuration } from '@/lib/timeUtils';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
+import { YouTubePlaylistPlayer, YouTubePlaylistPlayerRef } from '@/components/cast/YouTubePlaylistPlayer';
+import { extractYouTubePlaylistId } from '@/lib/youtubeUtils';
 import '@/index.css';
 
 // ============================================================================
@@ -44,17 +46,19 @@ const ReceiverApp: React.FC = () => {
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
+    const youtubePlayerRef = useRef<YouTubePlaylistPlayerRef>(null);
 
     // Persistent signaling instance (lives for the life of the Receiver app)
     const signalingRef = useRef<ReceiverCastSignaling | null>(null);
 
     // Send event back to browser via the proxy runtime
-    const sendEvent = useCallback((eventName: string) => {
+    const sendEvent = useCallback((eventName: string, data?: unknown) => {
         const runtime = runtimeRef.current;
         if (!runtime) return;
         runtime.handle({
             name: eventName,
             timestamp: new Date(),
+            data,
         });
     }, []);
 
@@ -64,17 +68,24 @@ const ReceiverApp: React.FC = () => {
         setTimeout(() => setDpadFlash(false), 200);
     }, []);
 
+    // Keep workbenchState in a ref so the onSelect callback always reads
+    // the latest value without needing it in its dependency array.
+    const workbenchStateRef = useRef(workbenchState);
+    workbenchStateRef.current = workbenchState;
+
     // ── Spatial Navigation ──────────────────────────────────────────────────
     // The hook handles ArrowUp/Down/Left/Right (focus movement) and
     // Enter/Select (activation). We map element IDs to runtime events.
-    const { getFocusProps } = useSpatialNavigation({
+    const { getFocusProps, setFocusedId } = useSpatialNavigation({
         enabled: !!proxyRuntime,
         initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'btn-next',
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
             flash();
-            // Preview screen items → start the workout
+            // Preview screen items → select the block to start the workout
             if (elementId.startsWith('preview-block-')) {
-                sendEvent('next');
+                const index = parseInt(elementId.replace('preview-block-', ''), 10);
+                const blockId = workbenchStateRef.current.previewData?.blocks[index]?.id;
+                sendEvent('select-block', { index, blockId });
                 return;
             }
             // Track panel controls
@@ -89,6 +100,18 @@ const ReceiverApp: React.FC = () => {
                 case 'btn-next':
                     sendEvent('next');
                     break;
+                case 'btn-playlist-playpause':
+                    // We handle playlist play/pause locally, but also emit event if needed
+                    if (youtubePlayerRef.current) {
+                        if (youtubePlayerRef.current.getPlayerState() === 1) {
+                            youtubePlayerRef.current.pause();
+                            sendEvent('playlist-paused');
+                        } else {
+                            youtubePlayerRef.current.play();
+                            sendEvent('playlist-playing');
+                        }
+                    }
+                    break;
                 default:
                     // Fallback: click the element
                     element.click();
@@ -96,6 +119,16 @@ const ReceiverApp: React.FC = () => {
             }
         }, [sendEvent, flash]),
     });
+
+    // Move focus to the appropriate element when the display mode changes.
+    // Preview → focus first block; Active → focus the Next button.
+    useEffect(() => {
+        if (workbenchState.mode === 'preview') {
+            setFocusedId('preview-block-0');
+        } else if (workbenchState.mode === 'active') {
+            setFocusedId('btn-next');
+        }
+    }, [workbenchState.mode, setFocusedId]);
 
     // Local clock for smooth timer interpolation
     // Uses the proxy runtime's clock sync offset to match sender's elapsed time
@@ -321,6 +354,39 @@ const ReceiverApp: React.FC = () => {
         );
     }
 
+    const playlistId = workbenchState.frontmatter?.playlist ? extractYouTubePlaylistId(workbenchState.frontmatter.playlist) : null;
+    const [currentTrack, setCurrentTrack] = useState<string | null>(null);
+
+    // Watch for RPC events from sender to control playlist and coordinate playback with WOD lifecycle
+    useEffect(() => {
+        if (!proxyRuntime) return;
+        const unsubEvents = proxyRuntime.eventBus.on('*', (event) => {
+            if (event.name === 'playlist-play') {
+                youtubePlayerRef.current?.play();
+            } else if (event.name === 'playlist-pause') {
+                youtubePlayerRef.current?.pause();
+            }
+        }, 'receiver-rpc');
+
+        const unsubStack = proxyRuntime.subscribeToStack((snapshot) => {
+            if (youtubePlayerRef.current) {
+                // If the stack goes from depth 1 (Session root) to depth 2+ (actual blocks started),
+                // and the player is unstarted, we auto-start it.
+                if (snapshot.depth >= 2 && youtubePlayerRef.current.getPlayerState() === -1) {
+                    youtubePlayerRef.current.play();
+                } else if (snapshot.depth === 0) {
+                    // WOD complete or stopped -> stop the music
+                    youtubePlayerRef.current.pause();
+                }
+            }
+        });
+
+        return () => {
+            unsubEvents();
+            unsubStack();
+        };
+    }, [proxyRuntime]);
+
     // Active / Idle mode: normal stack + timer layout
     return (
         <ScriptRuntimeProvider runtime={proxyRuntime}>
@@ -338,10 +404,22 @@ const ReceiverApp: React.FC = () => {
 
                     {/* Right Column: Timer & Controls */}
                     <div className="w-1/2 flex flex-col bg-background transition-all duration-300">
+                        {playlistId && (
+                            <YouTubePlaylistPlayer
+                                ref={youtubePlayerRef}
+                                playlistId={playlistId}
+                                onTrackChange={(title) => setCurrentTrack(title)}
+                            />
+                        )}
                         <div className="p-4 pt-6">
                             <MetricTrackerCard />
                         </div>
-                        <ReceiverTimerPanel localNow={now} onEvent={sendEvent} getFocusProps={getFocusProps} />
+                        <ReceiverTimerPanel
+                            localNow={now}
+                            onEvent={sendEvent}
+                            getFocusProps={getFocusProps}
+                            currentTrack={currentTrack}
+                        />
                         <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                             {connectionStatus}
                         </div>

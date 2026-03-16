@@ -19,7 +19,6 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Tv } from "lucide-react";
 import type { EditorView } from "@codemirror/view";
 import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
@@ -28,7 +27,11 @@ import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSize
 import { RuntimeFactory } from "@/runtime/compiler/RuntimeFactory";
 import { globalCompiler, globalParser } from "@/runtime-test-bench/services/testbench-services";
 import { useRuntimeExecution, type UseRuntimeExecutionReturn } from "@/runtime-test-bench/hooks/useRuntimeExecution";
-import { useChromecast } from "@/hooks/useChromecast";
+import { useWorkbenchSyncStore } from "@/components/layout/workbenchSyncStore";
+import { SubscriptionManager } from "@/runtime/subscriptions/SubscriptionManager";
+import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
+import { ChromecastEventProvider } from "@/services/cast/rpc/ChromecastEventProvider";
+import { ClockSyncService } from "@/services/cast/rpc/ClockSync";
 import type { WodBlock, WorkoutResults } from "../types";
 import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import type { ScriptRuntime } from "@/runtime/ScriptRuntime";
@@ -36,6 +39,9 @@ import type { StackSnapshot } from "@/runtime/contracts/IRuntimeStack";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-runtime";
 import { NextEvent } from "@/runtime/events/NextEvent";
+import { formatTimeMMSS } from "@/lib/formatTime";
+import type { RpcWorkbenchUpdate } from "@/services/cast/rpc/RpcMessages";
+import { extractYouTubePlaylistId } from "@/lib/youtubeUtils";
 
 // Singleton factory — avoids re-constructing the compiler on every render
 const factory = new RuntimeFactory(globalCompiler);
@@ -67,47 +73,63 @@ interface RuntimeTimerBodyProps {
   execution: UseRuntimeExecutionReturn;
   outputCount: number;
   completedAt: Date | null;
-  casting: ReturnType<typeof useChromecast>;
-  handleCast: () => void;
   handleStart: () => void;
   handleStop: () => void;
   handleNext: () => void;
+  playlistId?: string | null;
+  castTransportConnected?: boolean;
 }
+
+import { Music, Play, Pause } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useWorkbenchRuntime } from '@/components/workbench/useWorkbenchRuntime';
+import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 
 const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   execution,
   outputCount,
   completedAt,
-  casting,
-  handleCast,
   handleStart,
   handleStop,
   handleNext,
+  playlistId,
+  castTransportConnected,
 }) => {
   const { isCompact } = usePanelSize();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState<string | null>(null);
+  const castTransport = useWorkbenchSyncStore(s => s.castTransport);
+
+  // In the sender (browser), we only control the playlist IF we are casting.
+  // The receiver does the actual playback. We show the UI and send RPC events to the receiver.
+  const handlePlaylistPlayPause = () => {
+    if (castTransport?.connected) {
+        if (isPlaying) {
+            castTransport.send({ type: 'rpc-event', name: 'playlist-pause', timestamp: Date.now() });
+        } else {
+            castTransport.send({ type: 'rpc-event', name: 'playlist-play', timestamp: Date.now() });
+        }
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  useEffect(() => {
+    if (!castTransport?.connected) return;
+
+    // We can listen for state updates from the receiver if we wanted to sync 'isPlaying' or 'currentTrack' perfectly
+    const handleMessage = (msg: any) => {
+        if (msg.type === 'rpc-event') {
+            if (msg.name === 'playlist-playing') setIsPlaying(true);
+            if (msg.name === 'playlist-paused') setIsPlaying(false);
+        }
+    };
+    const unsub = castTransport.onMessage(handleMessage);
+    return unsub;
+  }, [castTransport]);
+
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {/* ── Header: Cast button ── */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/20">
-        <span className="text-xs font-semibold text-foreground">Running</span>
-        <button
-          onClick={handleCast}
-          disabled={casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-sm text-xs font-medium transition-colors hover:bg-muted"
-          style={{
-            backgroundColor: casting.isCasting ? "#3b82f6" : "transparent",
-            color: casting.isCasting ? "white" : "inherit",
-            opacity: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" ? 0.5 : 1,
-            cursor: casting.sdkState === "unavailable" || casting.sdkState === "not-loaded" || casting.isConnecting ? "not-allowed" : "pointer",
-          }}
-          title={casting.isCasting ? "Casting to device" : "Cast to device"}
-        >
-          <Tv size={14} />
-          <span>{casting.isConnecting ? "Connecting..." : casting.isCasting ? "Casting" : "Cast"}</span>
-        </button>
-      </div>
-
       {/* ── Body: stacked on mobile, side-by-side on desktop ── */}
       <div className={`min-h-0 flex-1 overflow-hidden flex ${isCompact ? "flex-col" : "flex-row"}`}>
         {/* Visual State — top on mobile, left on desktop */}
@@ -123,6 +145,26 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
         <div className={`flex flex-col justify-center overflow-hidden bg-background ${
           isCompact ? "shrink-0" : "w-[48%]"
         }`}>
+          {playlistId && castTransportConnected && (
+             <div className="flex justify-center mb-4">
+               <div className="bg-secondary/40 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3 border border-border/50 shadow-sm max-w-[80%]">
+                 <div className="bg-primary/20 p-1.5 rounded-full">
+                     <Music className="w-4 h-4 text-primary" />
+                 </div>
+                 <div className="text-sm font-medium truncate flex-1 min-w-0 pr-2">
+                     {currentTrack || "Playing on Chromecast..."}
+                 </div>
+                 <Button
+                     size="icon"
+                     variant="ghost"
+                     className="h-8 w-8 rounded-full hover:bg-primary/20 hover:text-primary transition-colors focus:ring-2 focus:ring-primary focus:outline-none"
+                     onClick={handlePlaylistPlayPause}
+                 >
+                     {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                 </Button>
+               </div>
+             </div>
+          )}
           <TimerDisplay
             elapsedMs={execution.elapsedTime}
             hasActiveBlock={true}
@@ -169,8 +211,10 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const [outputCount, setOutputCount] = useState(0);
   const [completedAt, setCompletedAt] = useState<Date | null>(null);
 
-  // Chromecast integration
-  const casting = useChromecast();
+  const playlistId = useWorkbenchSyncStore(s => {
+    const fmSection = s.documentItems.find(item => item.type === 'frontmatter');
+    return fmSection?.properties?.playlist ? extractYouTubePlaylistId(fmSection.properties.playlist) : null;
+  });
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
   // statement sourceId = 1-based line within content
@@ -260,20 +304,38 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     onComplete?.(block.id, results);
   }, [block.id, execution.elapsedTime, execution.startTime, onComplete]);
 
-  // Track completion time and handle auto-close
+  // Track completion: notify parent immediately so it can switch to results view.
+  // The parent (FullscreenTimer) will unmount this panel when it transitions.
+  // Also send review mode to Chromecast BEFORE the panel unmounts (which would
+  // otherwise lose the cast subscription).
   useEffect(() => {
     if (execution.status === "completed" && !completedAt) {
       setCompletedAt(new Date());
       handleComplete(true);
 
-      // Auto-close after 2 seconds so the user can see the "Completed" state
-      const timer = setTimeout(() => {
-        onClose();
-      }, 2000);
-
-      return () => clearTimeout(timer);
+      // Send review data to Chromecast so the receiver transitions to the
+      // review screen. This must happen before the panel unmounts and the
+      // cast subscription is disposed.
+      const transport = useWorkbenchSyncStore.getState().castTransport;
+      if (transport?.connected) {
+        const allOutputs = runtimeRef.current?.getOutputStatements() || [];
+        const segmentCount = allOutputs.filter(o => o.outputType === 'segment').length;
+        const reviewMessage: RpcWorkbenchUpdate = {
+          type: 'rpc-workbench-update',
+          mode: 'review',
+          reviewData: {
+            totalDurationMs: execution.elapsedTime,
+            completedSegments: segmentCount,
+            rows: [
+              { label: 'Total Time', value: formatTimeMMSS(execution.elapsedTime) },
+              { label: 'Segments', value: String(segmentCount) },
+            ],
+          },
+        };
+        try { transport.send(reviewMessage); } catch { /* ignore */ }
+      }
     }
-  }, [execution.status, completedAt, onClose, handleComplete]);
+  }, [execution.status, completedAt, handleComplete]);
 
   const handleStop = () => {
     execution.stop();
@@ -292,33 +354,51 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtimeRef.current?.handle(new NextEvent());
   };
 
-  // Handle cast button click
-  const handleCast = async () => {
-    if (casting.isCasting) {
-      return; // Already casting
-    }
-    await casting.requestSession();
-  };
+  // ── Chromecast RPC syncing ──────────────────────────────────────────
+  // When a cast transport is active (connected from the app-level CastButtonRpc),
+  // wire the local runtime into the Chromecast RPC pipeline so the receiver
+  // gets proper stack snapshots, output statements, and timer data.
+  const castTransport = useWorkbenchSyncStore(s => s.castTransport);
 
-  // Sync runtime state to receiver when casting
   useEffect(() => {
-    if (!casting.isCasting || !runtimeRef.current) return;
+    const rt = runtimeRef.current;
+    if (!castTransport?.connected || !rt) return;
 
-    const syncState = () => {
-      if (!runtimeRef.current) return;
-      // Send runtime state snapshot to receiver
-      const state = {
-        elapsedTime: execution.elapsedTime,
-        status: execution.status,
-        timestamp: Date.now(),
-      };
-      casting.sendMessage("state-update", state);
+    // Signal active mode to receiver
+    try { castTransport.send({ type: 'rpc-workbench-update', mode: 'active' }); } catch { /* ignore */ }
+
+    // Create a local SubscriptionManager that fans out runtime events
+    const subMgr = new SubscriptionManager(rt);
+    const chromecastSub = new ChromecastRuntimeSubscription(castTransport, { id: 'inline-chromecast' });
+    subMgr.add(chromecastSub);
+
+    // Remote control: D-Pad events from receiver → local runtime
+    const eventProvider = new ChromecastEventProvider(castTransport);
+    const unsubEvents = eventProvider.onEvent((event) => {
+      switch (event.name) {
+        case 'next': runtimeRef.current?.handle(new NextEvent()); break;
+        case 'start': execution.start(); break;
+        case 'pause': execution.pause(); break;
+        case 'stop': handleStop(); break;
+      }
+    });
+
+    // Clock sync (best-effort, non-blocking)
+    const clockSync = new ClockSyncService(castTransport);
+    clockSync.sync().catch(() => {});
+
+    return () => {
+      unsubEvents();
+      eventProvider.dispose();
+      clockSync.dispose();
+      subMgr.dispose();
+      // Do NOT send mode='idle' here — let EditorCastBridge or WorkbenchCastBridge
+      // handle the mode transition. Sending 'idle' would flash the waiting screen
+      // before the correct mode (preview or review) is re-sent by the bridge.
     };
-
-    // Sync on every execution update
-    const interval = setInterval(syncState, 100); // 10Hz updates
-    return () => clearInterval(interval);
-  }, [casting.isCasting, execution.elapsedTime, execution.status, casting]);
+    // Only re-run when transport connection changes or runtime is created
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [castTransport?.connected, ready]);
 
   if (!ready || !runtimeRef.current) {
     return (
@@ -335,11 +415,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
           execution={execution}
           outputCount={outputCount}
           completedAt={completedAt}
-          casting={casting}
-          handleCast={handleCast}
           handleStart={handleStart}
           handleStop={handleStop}
           handleNext={handleNext}
+          playlistId={playlistId}
+          castTransportConnected={castTransport?.connected ?? false}
         />
       </ScriptRuntimeProvider>
     </PanelSizeProvider>

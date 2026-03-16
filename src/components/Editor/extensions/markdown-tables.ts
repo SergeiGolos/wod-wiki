@@ -45,6 +45,26 @@ function parseTableCells(line: string): string[] {
     .map((c) => c.trim());
 }
 
+/**
+ * Returns the character offset *within* a raw table line where cell `ci`
+ * content begins (i.e. just after the (ci+1)-th pipe, past any leading space).
+ */
+function findCellPosInLine(lineText: string, ci: number): number {
+  let pipeCount = 0;
+  for (let i = 0; i < lineText.length; i++) {
+    if (lineText[i] === "|") {
+      pipeCount++;
+      if (pipeCount === ci + 1) {
+        // Skip a single leading space if present (standard table format)
+        let j = i + 1;
+        while (j < lineText.length && lineText[j] === " ") j++;
+        return j;
+      }
+    }
+  }
+  return 0;
+}
+
 function parseTableAlignment(
   line: string
 ): ("left" | "center" | "right")[] {
@@ -74,15 +94,15 @@ class MarkdownTableWidget extends WidgetType {
     );
   }
 
-  toDOM(_view: EditorView): HTMLElement {
+  toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-md-table-preview";
 
-    wrapper.appendChild(this._buildTable());
+    wrapper.appendChild(this._buildTable(view));
     return wrapper;
   }
 
-  private _buildTable(): HTMLElement {
+  private _buildTable(view: EditorView): HTMLElement {
     const lines = this.tableLines;
     const hasSep = lines.length >= 2 && isTableSeparator(lines[1]);
     const alignments = hasSep ? parseTableAlignment(lines[1]) : [];
@@ -101,11 +121,32 @@ class MarkdownTableWidget extends WidgetType {
       const tr = document.createElement("tr");
       tr.className = isHeader ? "cm-md-table-header" : "cm-md-table-row";
 
+      // Map rendered row index back to source line index:
+      //   ri=0 → source line 0 (header)
+      //   ri=1+ → source line ri+1 (skipping separator at index 1)
+      const srcLineIdx = hasSep && ri > 0 ? ri + 1 : ri;
+
       cells.forEach((cell, ci) => {
         const td = document.createElement(isHeader ? "th" : "td");
         const align = alignments[ci] ?? "left";
         td.className = `cm-md-table-cell cm-md-align-${align}`;
         td.textContent = cell || "\u00A0";
+
+        // Click → move cursor into the source cell, collapsing the preview
+        td.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          const firstLine = view.state.doc.lineAt(this.tableFrom);
+          const targetLineNum = firstLine.number + srcLineIdx;
+          if (targetLineNum > view.state.doc.lines) return;
+          const targetLine = view.state.doc.line(targetLineNum);
+          const colOffset = findCellPosInLine(targetLine.text, ci);
+          view.dispatch({
+            selection: { anchor: targetLine.from + colOffset },
+            scrollIntoView: true,
+          });
+          view.focus();
+        });
+
         tr.appendChild(td);
       });
 
@@ -116,6 +157,8 @@ class MarkdownTableWidget extends WidgetType {
   }
 
   ignoreEvent(): boolean {
+    // Keep true so CM6 doesn’t also try to reposition the cursor via posAtCoords;
+    // our mousedown handler above dispatches the correct selection directly.
     return true;
   }
 }
@@ -219,6 +262,7 @@ const tablePreviewTheme = EditorView.baseTheme({
     borderBottom: "2px solid rgba(128,128,128,0.3)",
     color: "inherit",
     whiteSpace: "nowrap",
+    cursor: "pointer",
   },
 
   // Data rows
@@ -227,6 +271,12 @@ const tablePreviewTheme = EditorView.baseTheme({
     borderBottom: "1px solid rgba(128,128,128,0.12)",
     color: "inherit",
     verticalAlign: "top",
+    cursor: "pointer",
+  },
+
+  // Hover highlight for clickable cells
+  ".cm-md-table-cell:hover": {
+    backgroundColor: "rgba(128,128,128,0.08)",
   },
 
   // Column separators between cells

@@ -93,6 +93,14 @@ export class RuntimeBuilder {
     }
 
     /**
+     * Set the frontmatter properties parsed from the document.
+     */
+    withFrontmatter(frontmatter: Record<string, string>): this {
+        this.options.frontmatter = frontmatter;
+        return this;
+    }
+
+    /**
      * Get the current options (for inspection/debugging)
      */
     getOptions(): Readonly<IRuntimeOptions> {
