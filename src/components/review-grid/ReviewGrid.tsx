@@ -10,9 +10,10 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
+import { ALL_FRAGMENT_COLUMNS } from './gridPresets';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import type { IMetric, MetricType } from '@/core/models/Metric';
+import { MetricType, type IMetric } from '@/core/models/Metric';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';
 import { getPreset } from './gridPresets';
@@ -73,6 +74,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [graphTaggedColumns, setGraphTaggedColumns] = useState<Set<string>>(new Set());
   const [columnVisibilityOverrides, setColumnVisibilityOverrides] = useState<Record<string, boolean>>({});
+  const [userAddedColumns, setUserAddedColumns] = useState<Set<MetricType>>(new Set());
 
   // ── User override dialog state ──────────────────────────────
 
@@ -127,6 +129,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
     sortConfigs,
     filterOverrides,
     graphTaggedColumns,
+    extraMetricTypes: userAddedColumns,
   });
 
   // Apply local visibility overrides on top of preset defaults
@@ -227,6 +230,20 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
     [onPresetChange],
   );
 
+  const handleAddColumn = useCallback((type: MetricType) => {
+    setUserAddedColumns((prev) => {
+      const next = new Set(prev);
+      next.add(type);
+      return next;
+    });
+  }, []);
+
+  // Metric types available to add: all known types minus those already shown as columns
+  const availableToAdd = useMemo(() => {
+    const shownTypes = new Set(columns.map((c) => c.type).filter(Boolean));
+    return ALL_FRAGMENT_COLUMNS.filter((ft) => !shownTypes.has(ft));
+  }, [columns]);
+
   const handleSelectRow = useCallback(
     (id: number, modifiers: { ctrlKey: boolean; shiftKey: boolean }) => {
       onSelectSegment(id, modifiers, visibleRowIds);
@@ -326,6 +343,8 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
             showFilters={showFilters}
             columnFilters={columnFilters}
             onColumnFilterChange={handleColumnFilterChange}
+            availableToAdd={availableToAdd}
+            onAddColumn={handleAddColumn}
           />
 
           <tbody className="divide-y divide-border">

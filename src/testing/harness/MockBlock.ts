@@ -9,10 +9,13 @@ import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
 import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
 import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
-import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
+import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, SubscribeOptions, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
-import { OutputStatementType } from '@/core/models/OutputStatement';
+import { OutputStatementType, OutputStatement } from '@/core/models/OutputStatement';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
+import { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
+import { IEvent } from '@/runtime/contracts/events/IEvent';
+import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { MetricVisibility, getMetricVisibility } from '@/runtime/memory/MetricVisibility';
 
 /**
@@ -71,33 +74,138 @@ class MockBlockContext implements IBlockContext {
 }
 
 /**
- * Minimal mock implementation of IBehaviorContext for testing.
- * Provides the essential properties behaviors need without full runtime integration.
+ * Recorded calls from MockBehaviorContext for spy-like assertions.
+ */
+export interface BehaviorContextRecordings {
+  pushMemory: Array<{ tag: string; metrics: IMetric[]; result: IMemoryLocation }>;
+  updateMemory: Array<{ tag: string; metrics: IMetric[] }>;
+  subscribe: Array<{ eventType: BehaviorEventType; options?: SubscribeOptions; unsubscribe: Unsubscribe }>;
+  markComplete: Array<{ reason?: string }>;
+  emitOutput: Array<{ type: OutputStatementType; metrics: IMetric[]; options?: any }>;
+  emitEvent: Array<{ event: any }>;
+}
+
+/**
+ * MockBehaviorContext — production-faithful implementation of IBehaviorContext for testing.
+ *
+ * When a runtime is available (via MockBlock.setRuntime), this context wires:
+ * - subscribe → EventBus (events flow through the real event system)
+ * - emitEvent → runtime.handle() (events dispatch to all handlers)
+ * - emitOutput → runtime.addOutput() (outputs are captured by OutputTracingHarness)
+ *
+ * All calls are recorded in the `recordings` property for spy-like assertions.
  */
 class MockBehaviorContext implements IBehaviorContext {
   readonly block: IRuntimeBlock;
-  readonly clock: IRuntimeClock;
+  clock: IRuntimeClock;
   readonly stackLevel: number;
   private _mockBlock: MockBlock;
+  private _unsubscribers: Array<() => void> = [];
 
-  constructor(block: MockBlock, clock: IRuntimeClock, stackLevel: number = 0) {
+  readonly recordings: BehaviorContextRecordings;
+
+  constructor(block: MockBlock, clock: IRuntimeClock, stackLevel: number = 0, recordings?: BehaviorContextRecordings) {
     this._mockBlock = block;
     this.block = block;
     this.clock = clock;
     this.stackLevel = stackLevel;
+    // Use shared recordings from MockBlock (survives dispose)
+    this.recordings = recordings ?? {
+      pushMemory: [],
+      updateMemory: [],
+      subscribe: [],
+      markComplete: [],
+      emitOutput: [],
+      emitEvent: [],
+    };
   }
 
-  subscribe(_eventType: BehaviorEventType, _listener: BehaviorEventListener): Unsubscribe {
-    // Mock: no-op subscription
-    return () => {};
+  subscribe(eventType: BehaviorEventType, listener: BehaviorEventListener, options?: SubscribeOptions): Unsubscribe {
+    const runtime = this._mockBlock.runtime;
+    let unsub: Unsubscribe;
+
+    if (runtime?.eventBus) {
+      // Wire to real EventBus — mirrors production BehaviorContext.subscribe()
+      const self = this;
+      const handler: IEventHandler = {
+        id: `mock-behavior-${this._mockBlock.key.toString()}-${eventType}-${Date.now()}`,
+        name: `MockBehaviorHandler-${this._mockBlock.label}-${eventType}`,
+        handler: (event: IEvent, _runtime: IScriptRuntime): IRuntimeAction[] => {
+          // Use the dispatching runtime's live clock (like production)
+          const callbackCtx: IBehaviorContext = Object.create(self, {
+            clock: { value: _runtime.clock, enumerable: true, configurable: true }
+          });
+          return listener(event, callbackCtx);
+        }
+      };
+
+      unsub = runtime.eventBus.register(
+        eventType,
+        handler,
+        this._mockBlock.key.toString(),
+        { scope: options?.scope ?? 'active' }
+      );
+    } else {
+      // No runtime — no-op subscription (backward compat)
+      unsub = () => {};
+    }
+
+    this._unsubscribers.push(unsub);
+    this.recordings.subscribe.push({ eventType, options, unsubscribe: unsub });
+    return unsub;
   }
 
-  emitOutput(_type: OutputStatementType, _metrics: IMetric[], _options?: { label?: string }): void {
-    // Mock: no-op output emission
+  emitOutput(type: OutputStatementType, metrics: IMetric[], _options?: { label?: string; completionReason?: string }): void {
+    this.recordings.emitOutput.push({ type, metrics, options: _options });
+
+    const runtime = this._mockBlock.runtime;
+    if (runtime?.addOutput) {
+      // Wire to runtime — mirrors production BehaviorContext.emitOutput()
+      const now = this.clock.now;
+      const timerLocations = this._mockBlock.getMemoryByTag('time');
+      let startTime = now.getTime();
+      const endTime = now.getTime();
+      let timerSpans: TimeSpan[] = [];
+
+      if (timerLocations.length > 0) {
+        const timerFragments = timerLocations[0].metrics;
+        if (timerFragments.length > 0) {
+          const timerValue = timerFragments[0].value as { spans?: TimeSpan[] } | undefined;
+          if (timerValue?.spans && timerValue.spans.length > 0) {
+            timerSpans = [...timerValue.spans];
+            startTime = timerSpans[0].started;
+          }
+        }
+      }
+
+      const taggedMetrics = metrics.map(f => ({
+        ...f,
+        sourceBlockKey: f.sourceBlockKey ?? this._mockBlock.key.toString(),
+        timestamp: f.timestamp ?? now
+      }));
+
+      const output = new OutputStatement({
+        outputType: type,
+        timeSpan: new TimeSpan(startTime, endTime),
+        spans: timerSpans.length > 0 ? timerSpans : undefined,
+        sourceBlockKey: this._mockBlock.key.toString(),
+        sourceStatementId: this._mockBlock.sourceIds?.[0],
+        stackLevel: this.stackLevel,
+        metrics: taggedMetrics,
+        completionReason: _options?.completionReason,
+      });
+
+      runtime.addOutput(output);
+    }
   }
 
-  emitEvent(_event: { name: string; timestamp: Date; data?: unknown }): void {
-    // Mock: no-op event emission
+  emitEvent(event: { name: string; timestamp: Date; data?: unknown }): void {
+    this.recordings.emitEvent.push({ event });
+
+    const runtime = this._mockBlock.runtime;
+    if (runtime?.handle) {
+      runtime.handle(event as IEvent);
+    }
   }
 
   getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
@@ -146,26 +254,33 @@ class MockBehaviorContext implements IBehaviorContext {
   }
 
   pushMemory(_tag: string, _metrics: IMetric[]): IMemoryLocation {
-    // Create a real MemoryLocation and push it to the MockBlock
     const location = new MemoryLocation(_tag as MemoryTag, _metrics);
     this._mockBlock.pushMemory(location);
+    this.recordings.pushMemory.push({ tag: _tag, metrics: _metrics, result: location });
     return location;
   }
 
   updateMemory(_tag: string, _metrics: IMetric[]): void {
-    // Update the first matching location on the MockBlock
     const locations = this._mockBlock.getMemoryByTag(_tag as MemoryTag);
     if (locations.length > 0) {
       locations[0].update(_metrics);
     }
+    this.recordings.updateMemory.push({ tag: _tag, metrics: _metrics });
   }
 
   markComplete(reason?: string): void {
     this._mockBlock.markComplete(reason);
+    this.recordings.markComplete.push({ reason });
   }
 
+  /**
+   * Dispose all event subscriptions registered via subscribe().
+   */
   dispose(): void {
-    // Mock: no-op dispose
+    for (const unsub of this._unsubscribers) {
+      try { unsub(); } catch (_e) { /* cleanup */ }
+    }
+    this._unsubscribers = [];
   }
 }
 
@@ -225,6 +340,15 @@ export class MockBlock implements IRuntimeBlock {
   public state: Record<string, any>;
 
   private _runtime?: IScriptRuntime;
+  private _behaviorContext?: MockBehaviorContext;
+  private _recordings: BehaviorContextRecordings = {
+    pushMemory: [],
+    updateMemory: [],
+    subscribe: [],
+    markComplete: [],
+    emitOutput: [],
+    emitEvent: [],
+  };
   private _forcedMountActions: IRuntimeAction[] = [];
   private _forcedNextActions: IRuntimeAction[] = [];
   private _forcedUnmountActions: IRuntimeAction[] = [];
@@ -291,6 +415,22 @@ export class MockBlock implements IRuntimeBlock {
     return this._runtime;
   }
 
+  /**
+   * Access the behavior context created during mount.
+   * Use this to inspect recorded calls (pushMemory, subscribe, etc.)
+   */
+  get behaviorContext(): MockBehaviorContext | undefined {
+    return this._behaviorContext;
+  }
+
+  /**
+   * Shorthand access to recorded calls from the behavior context.
+   * Survives dispose() — recordings are owned by MockBlock, not the context.
+   */
+  get recordings(): BehaviorContextRecordings {
+    return this._recordings;
+  }
+
   // Helper methods to force specific actions for testing
   setMountActions(actions: IRuntimeAction[]): void {
     this._forcedMountActions = actions;
@@ -312,13 +452,15 @@ export class MockBlock implements IRuntimeBlock {
       return [...this._forcedMountActions];
     }
 
-    const ctx = new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
+    // Create persistent context (reused across lifecycle calls)
+    const stackLevel = runtime.stack?.count ? Math.max(0, runtime.stack.count - 1) : 0;
+    this._behaviorContext = new MockBehaviorContext(this, clock, stackLevel, this._recordings);
+
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      // Detect API version: if onMount exists, use new API; otherwise use legacy onPush
       const usesNewApi = typeof behavior.onMount === 'function';
       const result = usesNewApi 
-        ? behavior.onMount(ctx) 
+        ? behavior.onMount(this._behaviorContext) 
         : behavior.onPush?.(this, clock);
       if (result) actions.push(...result);
     }
@@ -331,10 +473,13 @@ export class MockBlock implements IRuntimeBlock {
     }
 
     const clock = options?.clock ?? runtime.clock;
-    const ctx = new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
+    // Update clock on existing context (like production RuntimeBlock)
+    if (this._behaviorContext) {
+      this._behaviorContext.clock = clock;
+    }
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      // Detect API version: if onMount exists (new API) use ctx, else use legacy (block, clock)
       const usesNewApi = typeof behavior.onMount === 'function';
       const result = usesNewApi 
         ? behavior.onNext?.(ctx) 
@@ -352,10 +497,13 @@ export class MockBlock implements IRuntimeBlock {
       return [...this._forcedUnmountActions];
     }
 
-    const ctx = new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
+    // Update clock on existing context
+    if (this._behaviorContext) {
+      this._behaviorContext.clock = clock;
+    }
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, clock, runtime.stack?.count ?? 0);
     const actions: IRuntimeAction[] = [];
     for (const behavior of this.behaviors) {
-      // Detect API version: if onMount exists (new API) use ctx, else use legacy onPop
       const usesNewApi = typeof behavior.onMount === 'function';
       const result = usesNewApi 
         ? behavior.onUnmount?.(ctx) 
@@ -366,10 +514,17 @@ export class MockBlock implements IRuntimeBlock {
   }
 
   dispose(_runtime: IScriptRuntime): void {
+    // Pass BehaviorContext to onDispose (matches production RuntimeBlock)
+    const ctx = this._behaviorContext ?? new MockBehaviorContext(this, _runtime?.clock ?? { now: new Date() } as IRuntimeClock, 0);
     for (const behavior of this.behaviors) {
       if (typeof (behavior as any).onDispose === 'function') {
-        (behavior as any).onDispose(this);
+        (behavior as any).onDispose(ctx);
       }
+    }
+    // Dispose the behavior context (cleans up event subscriptions)
+    if (this._behaviorContext) {
+      this._behaviorContext.dispose();
+      this._behaviorContext = undefined;
     }
   }
 

@@ -182,10 +182,10 @@
   },
   "active": "ce524ac6422799a0",
   "lastOpenFiles": [
-    "decoupling-planner-workbench.md",
-    "unified-editor-adr.md",
-    "unified-editor-research-curriculum.md",
     "unified-editor-prd.md",
+    "unified-editor-adr.md",
+    "decoupling-planner-workbench.md",
+    "unified-editor-research-curriculum.md",
     "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",
     "Untitled 1.md",

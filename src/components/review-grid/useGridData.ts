@@ -42,6 +42,8 @@ export interface UseGridDataOptions {
   filterOverrides?: Partial<GridFilterConfig>;
   /** Columns currently tagged for graphing (column ids) */
   graphTaggedColumns?: Set<string>;
+  /** User-added metric types to show as columns even when no segment data exists */
+  extraMetricTypes?: Set<MetricType>;
 }
 
 export interface UseGridDataReturn {
@@ -62,6 +64,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     sortConfigs,
     filterOverrides,
     graphTaggedColumns,
+    extraMetricTypes,
   } = options;
 
   const preset = useMemo(() => getPreset(presetId), [presetId]);
@@ -96,12 +99,19 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     // Check user overrides
     for (const metrics of userOutputOverrides.values()) {
       for (const f of metrics) {
-        addType(f.type);
+        addType(f.type as MetricType);
+      }
+    }
+
+    // Merge user-added columns (shown even when no data exists)
+    if (extraMetricTypes) {
+      for (const ft of extraMetricTypes) {
+        addType(ft);
       }
     }
 
     return types;
-  }, [segments, userOutputOverrides]);
+  }, [segments, userOutputOverrides, extraMetricTypes]);
 
   // Build column definitions
   const columns = useMemo(
@@ -350,7 +360,7 @@ function groupFragmentIntoCell(
   cells: Map<MetricType, GridCell>,
   frag: IMetric,
 ): void {
-  const ft = frag.type;
+  const ft = frag.type as MetricType;
 
   // Hide noise: Sounds are no longer displayed in the grid
   if (ft === MetricType.Sound) {
