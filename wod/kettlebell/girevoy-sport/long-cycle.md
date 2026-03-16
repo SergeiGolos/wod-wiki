@@ -11,7 +11,7 @@ Long Cycle is a competition event consisting of the clean and jerk performed con
 The event requires tremendous leg power for the clean, shoulder stability for the rack position, and overhead endurance. Efficient technique minimizes energy expenditure by using leg drive and relaxation in the rack position.
 
 ```wod
-Long Cycle Training:
+Long Cycle Training
 10:00 ? Double KB Clean & Jerk 24kg
 ```
 

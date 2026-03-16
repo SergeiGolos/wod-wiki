@@ -11,7 +11,7 @@ The Fundamentals Program is Joe Daniels' entry-level program designed to teach p
 The program is designed for those new to kettlebells or those wanting to refine their technique. Sessions are shorter and focused on quality over quantity, establishing the movement patterns that will support long-term progress.
 
 ```wod
-Fundamentals Session:
+Fundamentals Session
 (3)
   5 Two-Hand KB Swing 16kg
   :30 Rest

@@ -3,7 +3,7 @@
 Combine loops and timers to create advanced training plans.
 
 ```wod
-# Morning Flow
+
 (3 Rounds)
   (Sun Salutation)
     5 Mountain Pose

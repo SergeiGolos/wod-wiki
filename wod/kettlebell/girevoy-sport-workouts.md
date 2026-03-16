@@ -27,7 +27,7 @@ Biathlon is a two-event competition consisting of the Jerk followed by the Snatc
 This workout simulates competition conditions, though training sets may be shorter than 10 minutes as athletes build capacity. The focus is on developing efficiency, pace, and the specific endurance required for each lift.
 
 ```wod
-Biathlon Training:
+Biathlon Training
 10:00 ? Double KB Jerk 24kg
 
 30:00 Rest
@@ -72,7 +72,7 @@ Long Cycle is a competition event consisting of the clean and jerk performed con
 The event requires tremendous leg power for the clean, shoulder stability for the rack position, and overhead endurance. Efficient technique minimizes energy expenditure by using leg drive and relaxation in the rack position.
 
 ```wod
-Long Cycle Training:
+Long Cycle Training
 10:00 ? Double KB Clean & Jerk 24kg
 ```
 
@@ -111,19 +111,19 @@ Snatch endurance training develops the capacity to maintain the snatch for exten
 Training sets may use various structures: fixed time sets, rep-based sets, or pace-based training. Key technical elements include relaxation in the overhead position, efficient drop technique, and hand transitions that minimize grip fatigue.
 
 ```wod
-Snatch Endurance Session:
+Snatch Endurance Session
 (5)
   1:00 KB Snatch Left 16kg
   :30 Rest
   1:00 KB Snatch Right 16kg
   :30 Rest
 
-Build Phase:
+Build Phase
 (3)
   3:00 KB Snatch 16kg
   1:00 Rest
 
-Test:
+Test
 5:00 ? KB Snatch 16kg
 ```
 
@@ -163,17 +163,17 @@ Jerk training develops the specific endurance to maintain two kettlebells overhe
 Training progresses from short sets focusing on technique to longer sets building competition endurance. The rack position - holding the bells against the chest - is crucial for recovery between reps and must be developed alongside the overhead work.
 
 ```wod
-Jerk Technique Session:
+Jerk Technique Session
 (10)
   1 Double KB Jerk 24kg
   :30 Rest
 
-Jerk Endurance:
+Jerk Endurance
 (5)
   2:00 Double KB Jerk 20kg
   1:00 Rest
 
-Competition Prep:
+Competition Prep
 (3)
   5:00 Double KB Jerk 24kg
   3:00 Rest
@@ -213,47 +213,47 @@ This 4-week program introduces beginners to Girevoy Sport training. The program 
 The program trains three days per week with emphasis on the competition lifts plus supporting exercises. By the end of 4 weeks, practitioners should be able to maintain each lift for at least 5 minutes with basic efficiency.
 
 ```wod
-Week 1:
-Day 1:
+Week 1
+Day 1
   (3) 1:00 Double KB Jerk 16kg, :60 Rest
   (3) 1:00 KB Snatch Left 12kg, :30 Rest, 1:00 KB Snatch Right 12kg, :30 Rest
-Day 2:
+Day 2
   (5) 10 KB Swing 16kg, :30 Rest
   (3) 1:00 Double KB Clean 16kg, :60 Rest
-Day 3:
+Day 3
   (3) 2:00 Double KB Jerk 16kg, 2:00 Rest
   (3) 1:30 KB Snatch 12kg per arm, 1:00 Rest
 
-Week 2:
-Day 1:
+Week 2
+Day 1
   (3) 1:30 Double KB Jerk 16kg, :60 Rest
   (3) 1:30 KB Snatch 12kg per arm, :45 Rest
-Day 2:
+Day 2
   (5) 15 KB Swing 16kg, :30 Rest
   (3) 1:30 Double KB Clean 16kg, :60 Rest
-Day 3:
+Day 3
   (3) 3:00 Double KB Jerk 16kg, 3:00 Rest
   (3) 2:00 KB Snatch 12kg per arm, 1:00 Rest
 
-Week 3:
-Day 1:
+Week 3
+Day 1
   (3) 2:00 Double KB Jerk 16kg, :90 Rest
   (3) 2:00 KB Snatch 12kg per arm, :60 Rest
-Day 2:
+Day 2
   (5) 20 KB Swing 16kg, :30 Rest
   (3) 2:00 Double KB Clean & Jerk 16kg, :90 Rest
-Day 3:
+Day 3
   (2) 4:00 Double KB Jerk 16kg, 4:00 Rest
   (2) 3:00 KB Snatch 12kg per arm, 2:00 Rest
 
-Week 4:
-Day 1:
+Week 4
+Day 1
   (2) 3:00 Double KB Jerk 16kg, 2:00 Rest
   (2) 3:00 KB Snatch 12kg per arm, 1:00 Rest
-Day 2:
+Day 2
   (5) 25 KB Swing 16kg, :30 Rest
   (3) 2:00 Double KB Clean & Jerk 16kg, :90 Rest
-Day 3:
+Day 3
   5:00 Double KB Jerk 16kg
   5:00 Rest
   5:00 KB Snatch 12kg
@@ -286,18 +286,18 @@ Long Cycle training sessions develop the specific endurance for the clean and je
 Sessions may use interval structures, pace training, or continuous sets depending on the training phase. Key technical elements include efficient rack recovery, leg drive utilization, and grip conservation through proper hand insertion.
 
 ```wod
-Long Cycle Session:
-Technique:
+Long Cycle Session
+Technique
 (10)
   1 Double KB Clean & Jerk 24kg
   :30 Rest
 
-Intervals:
+Intervals
 (5)
   1:00 Double KB Clean & Jerk 20kg
   :30 Rest
 
-Tempo Work:
+Tempo Work
 (3)
   3:00 Double KB Clean & Jerk 24kg
   2:00 Rest
@@ -338,13 +338,13 @@ Relay competitions in Girevoy Sport involve teams of athletes performing short, 
 Relay training focuses on high-intensity short sets with quick transitions. This format is more accessible than traditional 10-minute sets and is often used in local competitions to introduce new athletes to GS.
 
 ```wod
-Relay Training:
-Team Format:
+Relay Training
+Team Format
 (4) Athletes rotate
   3:00 Double KB Jerk 24kg
   :30 Transition
 
-Individual Practice:
+Individual Practice
 (5)
   3:00 Double KB Jerk 24kg
   2:00 Rest

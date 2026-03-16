@@ -19,7 +19,7 @@ You can also specify a simple number of sets.
 ```wod
 (5 Sets)
   10 Deadlift 225lb
-  [Rest] 1:00
+  1:00 Rest
 ```
 
 [← Timers & Intervals](wod:syntax/timers) | [Next: Groups →](wod:syntax/groups)

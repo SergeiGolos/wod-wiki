@@ -27,7 +27,7 @@ Extreme Kettlebell Cardio Workout 1 is the flagship workout from Keith Weber's D
 The circuit targets every major muscle group while maintaining elevated heart rate throughout. Keith demonstrates perfect technique and counts off each repetition, allowing practitioners to follow along. The intensity is self-regulated through weight selection, but the format demands sustained effort regardless of weight choice.
 
 ```wod
-Extreme Kettlebell Cardio Circuit:
+Extreme Kettlebell Cardio Circuit
 (2)
   15 Two-Hand KB Swing 20kg
   15 Goblet Squat 20kg
@@ -127,7 +127,7 @@ The Kettlebell Fitness Test is Keith Weber's benchmark workout designed to asses
 The test flows through swings, cleans, presses, snatches, and squats, challenging both strength and cardiovascular capacity. Success requires not only physical conditioning but also the ability to pace oneself strategically across different movements.
 
 ```wod
-Fitness Test:
+Fitness Test
 50 Two-Hand KB Swing 20kg
 25 Clean & Press Left 16kg
 25 Clean & Press Right 16kg
@@ -222,13 +222,13 @@ The Finisher is designed to be performed at the end of a training session to max
 The workout can be used as a standalone conditioning session or appended to a strength workout for additional conditioning stimulus. The simplicity of the movements allows for maximum intensity with minimal technical degradation under fatigue.
 
 ```wod
-The Finisher:
+The Finisher
 (5)
   20 Two-Hand KB Swing 20kg
   10 Goblet Squat 20kg
   :30 Rest
 
-Tabata Finish:
+Tabata Finish
 (8)
   :20 KB Swing 16kg
   :10 Rest

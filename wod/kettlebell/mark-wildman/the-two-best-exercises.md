@@ -11,7 +11,7 @@ Mark Wildman has identified the two "best" kettlebell exercises that everyone sh
 This program represents Mark's philosophy that simple, consistent practice of fundamental movements produces better results than complex programming. The minimalist approach allows for mastery of these essential patterns while fitting into any schedule.
 
 ```wod
-Daily Practice:
+Daily Practice
 (5)
   10 Two-Hand KB Swing 24kg
   :30 Rest

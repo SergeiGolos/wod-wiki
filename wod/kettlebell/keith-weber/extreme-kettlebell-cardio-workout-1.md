@@ -11,7 +11,7 @@ Extreme Kettlebell Cardio Workout 1 is the flagship workout from Keith Weber's D
 The circuit targets every major muscle group while maintaining elevated heart rate throughout. Keith demonstrates perfect technique and counts off each repetition, allowing practitioners to follow along. The intensity is self-regulated through weight selection, but the format demands sustained effort regardless of weight choice.
 
 ```wod
-Extreme Kettlebell Cardio Circuit:
+Extreme Kettlebell Cardio Circuit
 (2)
   15 Two-Hand KB Swing 20kg
   15 Goblet Squat 20kg

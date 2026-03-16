@@ -11,7 +11,7 @@ This mobility session from Steve Cotter's teaching focuses on developing the fle
 Steve emphasizes that mobility work is not optional - it's essential for longevity in training. This session can be used as a warm-up, a recovery session, or a stand-alone practice on rest days.
 
 ```wod
-Mobility Session:
+Mobility Session
 (3)
   10 Halo Left 12kg
   10 Halo Right 12kg

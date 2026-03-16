@@ -11,7 +11,7 @@ The Kettlebell Fitness Test is Keith Weber's benchmark workout designed to asses
 The test flows through swings, cleans, presses, snatches, and squats, challenging both strength and cardiovascular capacity. Success requires not only physical conditioning but also the ability to pace oneself strategically across different movements.
 
 ```wod
-Fitness Test:
+Fitness Test
 50 Two-Hand KB Swing 20kg
 25 Clean & Press Left 16kg
 25 Clean & Press Right 16kg

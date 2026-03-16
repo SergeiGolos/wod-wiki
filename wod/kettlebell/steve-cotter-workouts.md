@@ -27,7 +27,7 @@ This beginner program from Steve Cotter's "Kettlebell Training" book introduces 
 The program uses a structured approach with clear progression criteria. Movements are practiced at sub-maximal intensities to develop technique before adding load. The focus is on building the movement patterns that will support advanced training later.
 
 ```wod
-Week 1-2:
+Week 1-2
 (5)
   8 KB Deadlift 16kg
   :30 Rest
@@ -40,7 +40,7 @@ Week 1-2:
   5 Goblet Squat 16kg
   :30 Rest
 
-Week 3-4:
+Week 3-4
 (5)
   10 Two-Hand KB Swing 16kg
   :30 Rest
@@ -89,7 +89,7 @@ The intermediate program builds on the beginner foundation with more complex mov
 The program uses a 3-day per week structure with each session focusing on different movement qualities. Day 1 emphasizes pressing strength, Day 2 focuses on hip power, and Day 3 combines elements for conditioning.
 
 ```wod
-Day 1 - Press Focus:
+Day 1 - Press Focus
 (5)
   5 Clean & Press Left 20kg
   5 Clean & Press Right 20kg
@@ -103,7 +103,7 @@ Day 1 - Press Focus:
   5 Pullups
   :45 Rest
 
-Day 2 - Hip Power:
+Day 2 - Hip Power
 (5)
   10 KB Swing 24kg
   :30 Rest
@@ -117,7 +117,7 @@ Day 2 - Hip Power:
   10 Goblet Squat 24kg
   :30 Rest
 
-Day 3 - Conditioning:
+Day 3 - Conditioning
 20:00 AMRAP
   10 KB Swing 20kg
   5 Goblet Squat 20kg
@@ -153,7 +153,7 @@ The Way of the Kettlebell is Steve Cotter's program created for Mindvalley, desi
 The program emphasizes both physical development and mindful practice, teaching practitioners to move with intention and awareness. Each session includes mobility preparation, skill practice, and a workout component.
 
 ```wod
-Day 1 - The Swing:
+Day 1 - The Swing
 (5)
   8 Two-Hand KB Swing 16kg
   :30 Rest
@@ -162,7 +162,7 @@ Day 1 - The Swing:
   10 KB Deadlift 16kg
   :30 Rest
 
-Day 2 - The Goblet Squat:
+Day 2 - The Goblet Squat
 (5)
   10 Goblet Squat 16kg
   :30 Rest
@@ -171,7 +171,7 @@ Day 2 - The Goblet Squat:
   8 Two-Hand KB Swing 16kg
   :30 Rest
 
-Day 3 - The Clean:
+Day 3 - The Clean
 (5)
   5 Clean Left 16kg
   5 Clean Right 16kg
@@ -181,7 +181,7 @@ Day 3 - The Clean:
   10 Two-Hand KB Swing 16kg
   :30 Rest
 
-Day 4 - The Press:
+Day 4 - The Press
 (5)
   5 Clean & Press Left 16kg
   5 Clean & Press Right 16kg
@@ -191,7 +191,7 @@ Day 4 - The Press:
   8 Goblet Squat 16kg
   :30 Rest
 
-Day 5 - The Snatch:
+Day 5 - The Snatch
 (5)
   5 KB Snatch Left 16kg
   5 KB Snatch Right 16kg
@@ -201,7 +201,7 @@ Day 5 - The Snatch:
   10 Two-Hand KB Swing 16kg
   :30 Rest
 
-Day 6 - Integration:
+Day 6 - Integration
 (3)
   10 KB Swing 16kg
   5 Goblet Squat 16kg
@@ -237,7 +237,7 @@ This program prepares athletes for kettlebell sport competition, focusing on the
 Steve Cotter's background in both hardstyle and sport methodology makes him uniquely qualified to bridge these approaches. This program teaches the efficiency of sport technique while maintaining the power and precision of hardstyle fundamentals.
 
 ```wod
-Jerk Focus:
+Jerk Focus
 (5)
   1:00 KB Jerk 16kg
   :30 Rest
@@ -246,14 +246,14 @@ Jerk Focus:
   10 Push Press 16kg
   :30 Rest
 
-Snatch Focus:
+Snatch Focus
 (5)
   1:00 KB Snatch Left 16kg
   :30 Rest
   1:00 KB Snatch Right 16kg
   :30 Rest
 
-Long Cycle:
+Long Cycle
 (5)
   1:00 Clean & Jerk 16kg
   :30 Rest
@@ -339,7 +339,7 @@ This mobility session from Steve Cotter's teaching focuses on developing the fle
 Steve emphasizes that mobility work is not optional - it's essential for longevity in training. This session can be used as a warm-up, a recovery session, or a stand-alone practice on rest days.
 
 ```wod
-Mobility Session:
+Mobility Session
 (3)
   10 Halo Left 12kg
   10 Halo Right 12kg

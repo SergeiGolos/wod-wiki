@@ -110,7 +110,10 @@ IM training requires warming up all four strokes:
   50m Choice Stroke
   :20 Rest
 (4)
-  25m Each Stroke (Fly, Back, Breast, Free)
+  25m Fly
+  25m Back
+  25m Breast
+  25m Free
   :15 Rest
 ```
 
@@ -138,7 +141,10 @@ Rest 15-20 seconds between 75s. Complete rest interval on the wall.
 
 ```wod
 (4)
-  100m IM (Fly-Back-Breast-Free)
+  100m Fly
+  100m Back
+  100m Breast
+  100m Free
   2:00 Rest
 ```
 
@@ -232,7 +238,10 @@ Full 200 IM with generous rest for race simulation.
 
 ```wod
 (4)
-  100m Reverse IM (Free-Breast-Back-Fly)
+  100m Free
+  100m Breast
+  100m Back
+  100m Fly
 ```
 
 Reverse order increases difficulty, especially the fly finish.

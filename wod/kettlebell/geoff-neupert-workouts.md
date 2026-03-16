@@ -185,18 +185,18 @@ This year-long program takes practitioners from beginner through advanced double
 The program is designed for those committed to long-term development, with each phase building on the previous one. Starting with basic double movements, the program progresses to complex sequences that challenge strength, coordination, and conditioning simultaneously.
 
 ```wod
-Week 1-4 Foundation:
+Week 1-4 Foundation
 (5)
   3 Double Clean 16kg
   :30 Rest
 
-Week 5-8 Development:
+Week 5-8 Development
 (5)
   + 2 Double Clean 20kg
   + 2 Double Press 20kg
   :45 Rest
 
-Week 9-12 Advanced:
+Week 9-12 Advanced
 (5)
   + 2 Double Clean 24kg
   + 2 Double Press 24kg

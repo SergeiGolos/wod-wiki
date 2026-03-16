@@ -9,7 +9,7 @@ The simplest workout type. The timer counts **up** and the workout ends when you
 Or a classic "For Time" workout:
 
 ```wod
-# Fran
+
 (21-15-9)
   Thrusters 95lb
   Pullups

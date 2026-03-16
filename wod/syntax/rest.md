@@ -7,7 +7,7 @@ Explicit rest between sets:
 ```wod
 5 Rounds
   Deadlift 315lb
-  [Rest] 2:00
+  2:00 Rest
 ```
 
 Implicit rest within an AMRAP:
