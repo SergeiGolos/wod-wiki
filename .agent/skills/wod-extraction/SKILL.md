@@ -449,6 +449,52 @@ For each element of the workout, ask: **"Is this given to the athlete, or does t
 
 ## Common Mistakes to Avoid
 
+### DON'T: Use colons for labels or sections
+```diff
+# BAD: Colons are reserved for timers
+- Warmup:
+-   400m Run
+
+# GOOD: Use simple text for labels
++ Warmup
++   400m Run
+```
+
+### DON'T: Use apostrophes or punctuation in exercise names
+```diff
+# BAD: Identifiers cannot contain apostrophes
+- 1:00 Child's Pose
+
+# GOOD: Remove the apostrophe
++ 1:00 Childs Pose
+```
+
+### DON'T: Include markdown headers inside WOD blocks
+```diff
+# BAD: Markdown headers (#) cause syntax errors
+- ```wod
+- # Morning Flow
+-   1:00 Childs Pose
+- ```
+
+# GOOD: Keep headers outside the code fence
++ # Morning Flow
++ ```wod
++ 1:00 Childs Pose
++ ```
+```
+
+### DON'T: Use brackets for rest or setup periods
+```diff
+# BAD: Brackets are for actions, not effort labels
+- [Rest] 2:00
+- [Setup] 1:00
+
+# GOOD: Use the timer followed by the label
++ 2:00 Rest
++ 1:00 Setup
+```
+
 ### DON'T: Add collectible markers when the system tracks automatically
 ```diff
 # BAD: :? is redundant — "for time" workouts track time by default
