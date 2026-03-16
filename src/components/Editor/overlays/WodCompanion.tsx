@@ -461,7 +461,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         <div
           className="absolute inset-x-0 flex flex-col bg-popover/95 backdrop-blur-md
                      border border-border/80 shadow-xl rounded-lg overflow-hidden pointer-events-auto"
-          style={{ top: cardTop, height: CARD_H }}
+          style={{ top: cardTop, maxHeight: CARD_H }}
         >
           {/* Header */}
           <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border/50 shrink-0">
@@ -478,7 +478,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
           </div>
 
           {/* Metric chips */}
-          <div className="px-3 py-2.5 flex-1 min-h-0 overflow-auto">
+          <div className="px-3 py-2.5 min-h-0 overflow-auto">
             {chips.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {chips.map((chip, i) => (
