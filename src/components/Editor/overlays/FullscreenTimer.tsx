@@ -12,6 +12,8 @@ export interface FullscreenTimerProps {
   view: EditorView;
   onClose: () => void;
   onCompleteWorkout?: (blockId: string, results: WorkoutResults) => void;
+  /** Whether the timer should start automatically on mount. */
+  autoStart?: boolean;
 }
 
 export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
@@ -19,15 +21,12 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
   view,
   onClose,
   onCompleteWorkout,
+  autoStart,
 }) => {
-  const [isClosing, setIsClosing] = useState(false);
-  // When a workout completes naturally (last block popped), we show the results
-  // view in place of the timer view within this same popup.
   const [completedSegments, setCompletedSegments] = useState<Segment[] | null>(null);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set());
 
   const handleClose = () => {
-    setIsClosing(true);
     // Brief delay for any closing animations if we add them later
     setTimeout(onClose, 100);
   };
@@ -98,6 +97,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
         onClose={handleClose}
         onComplete={handleComplete}
         isExpanded={true}
+        autoStart={autoStart}
       />
     </FocusedDialog>
   );

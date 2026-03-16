@@ -1,207 +1,148 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { SoundCueBehavior } from '../SoundCueBehavior';
-import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-
-function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
-    const memoryStore = new Map<string, any>();
-
-    return {
-        block: {
-            key: { toString: () => 'test-block' },
-            label: 'Test Block',
-            metrics: []
-        },
-        clock: { now: new Date(1000) },
-        stackLevel: 0,
-        subscribe: vi.fn(),
-        emitEvent: vi.fn(),
-        emitOutput: vi.fn(),
-        markComplete: vi.fn(),
-        getMemory: vi.fn((type: string) => memoryStore.get(type)),
-        setMemory: vi.fn((type: string, value: any) => memoryStore.set(type, value)),
-        ...overrides
-    } as unknown as IBehaviorContext;
-}
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 
 describe('SoundCueBehavior', () => {
+    let harness: BehaviorTestHarness;
+
+    afterEach(() => { harness?.dispose(); });
+
+    function setup(cues: any[]) {
+        harness = new BehaviorTestHarness().withClock(new Date(1000));
+        const behavior = new SoundCueBehavior({ cues });
+        const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
+        harness.push(block);
+        return block;
+    }
+
     describe('mount trigger', () => {
         it('should emit system output for mount trigger sounds', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'start-beep', trigger: 'mount' }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'start-beep', trigger: 'mount' }]);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'system',
+            expect(block.recordings.emitOutput).toHaveLength(1);
+            expect(block.recordings.emitOutput[0].type).toBe('system');
+            expect(block.recordings.emitOutput[0].metrics).toEqual(
                 expect.arrayContaining([
                     expect.objectContaining({
                         sound: 'start-beep',
                         trigger: 'mount'
                     })
-                ]),
-                expect.any(Object)
+                ])
             );
         });
 
         it('should not emit events (only outputs)', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'start-beep', trigger: 'mount' }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'start-beep', trigger: 'mount' }]);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.emitEvent).not.toHaveBeenCalled();
+            expect(block.recordings.emitEvent).toHaveLength(0);
         });
 
         it('should not emit for non-mount triggers during mount', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [
-                    { sound: 'complete-chime', trigger: 'complete' },
-                    { sound: 'unmount-beep', trigger: 'unmount' }
-                ]
-            });
-            const ctx = createMockContext();
+            const block = setup([
+                { sound: 'complete-chime', trigger: 'complete' },
+                { sound: 'unmount-beep', trigger: 'unmount' }
+            ]);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.emitOutput).not.toHaveBeenCalled();
+            expect(block.recordings.emitOutput).toHaveLength(0);
         });
     });
 
     describe('countdown trigger', () => {
         it('should subscribe to tick events for countdown cues', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'beep', trigger: 'countdown', atSeconds: [3, 2, 1] }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'beep', trigger: 'countdown', atSeconds: [3, 2, 1] }]);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            expect(ctx.subscribe).toHaveBeenCalledWith(
-                'tick',
-                expect.any(Function),
-                { scope: 'bubble' }
-            );
+            const tickSubs = block.recordings.subscribe.filter(s => s.eventType === 'tick');
+            expect(tickSubs).toHaveLength(1);
+            expect(tickSubs[0].options?.scope).toBe('bubble');
         });
 
         it('should not subscribe to tick when no countdown cues', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'start-beep', trigger: 'mount' }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'start-beep', trigger: 'mount' }]);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            // subscribe should not be called for tick (only mount trigger present)
-            const subscribeCalls = (ctx.subscribe as any).mock.calls;
-            const tickCalls = subscribeCalls.filter((c: any[]) => c[0] === 'tick');
-            expect(tickCalls.length).toBe(0);
+            const tickSubs = block.recordings.subscribe.filter(s => s.eventType === 'tick');
+            expect(tickSubs).toHaveLength(0);
         });
     });
 
     describe('unmount/complete trigger', () => {
         it('should emit system output for complete trigger on unmount', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'complete-chime', trigger: 'complete' }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'complete-chime', trigger: 'complete' }]);
+            harness.mount();
+            harness.unmount();
 
-            behavior.onUnmount(ctx);
-
-            expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'system',
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        sound: 'complete-chime',
-                        trigger: 'complete'
-                    })
-                ]),
-                expect.any(Object)
+            const completeCalls = block.recordings.emitOutput.filter(o =>
+                o.metrics.some((m: any) => m.sound === 'complete-chime')
             );
+            expect(completeCalls).toHaveLength(1);
+            expect(completeCalls[0].type).toBe('system');
         });
 
         it('should emit system output for unmount trigger on unmount', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'unmount-beep', trigger: 'unmount' }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'unmount-beep', trigger: 'unmount' }]);
+            harness.mount();
+            harness.unmount();
 
-            behavior.onUnmount(ctx);
-
-            expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'system',
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        sound: 'unmount-beep',
-                        trigger: 'unmount'
-                    })
-                ]),
-                expect.any(Object)
+            const unmountCalls = block.recordings.emitOutput.filter(o =>
+                o.metrics.some((m: any) => m.sound === 'unmount-beep')
             );
+            expect(unmountCalls).toHaveLength(1);
+            expect(unmountCalls[0].type).toBe('system');
         });
 
         it('should emit multiple sound outputs if multiple cues match', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [
-                    { sound: 'complete-chime', trigger: 'complete' },
-                    { sound: 'unmount-beep', trigger: 'unmount' }
-                ]
-            });
-            const ctx = createMockContext();
+            const block = setup([
+                { sound: 'complete-chime', trigger: 'complete' },
+                { sound: 'unmount-beep', trigger: 'unmount' }
+            ]);
+            harness.mount();
+            harness.unmount();
 
-            behavior.onUnmount(ctx);
-
-            expect(ctx.emitOutput).toHaveBeenCalledTimes(2);
+            const unmountOutputs = block.recordings.emitOutput.filter(o =>
+                o.metrics.some((m: any) => m.trigger === 'complete' || m.trigger === 'unmount')
+            );
+            expect(unmountOutputs).toHaveLength(2);
         });
 
         it('should not emit mount triggers during unmount', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'start-beep', trigger: 'mount' }]
-            });
-            const ctx = createMockContext();
+            const block = setup([{ sound: 'start-beep', trigger: 'mount' }]);
+            harness.mount();
+            // Clear mount recordings to isolate unmount behavior
+            const mountOutputCount = block.recordings.emitOutput.length;
+            harness.unmount();
 
-            behavior.onUnmount(ctx);
-
-            expect(ctx.emitOutput).not.toHaveBeenCalled();
+            // No new outputs beyond what mount produced
+            expect(block.recordings.emitOutput.length).toBe(mountOutputCount);
         });
     });
 
     describe('onNext', () => {
         it('should return no actions on next', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [{ sound: 'beep', trigger: 'mount' }]
-            });
-            const ctx = createMockContext();
-            const actions = behavior.onNext(ctx);
+            const block = setup([{ sound: 'beep', trigger: 'mount' }]);
+            harness.mount();
+            const actions = harness.next();
             expect(actions).toEqual([]);
         });
     });
 
     describe('rest block sound cues', () => {
         it('should support rest-over complete cue', () => {
-            const behavior = new SoundCueBehavior({
-                cues: [
-                    { sound: 'rest-over', trigger: 'complete' },
-                    { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] }
-                ]
-            });
-            const ctx = createMockContext();
+            const block = setup([
+                { sound: 'rest-over', trigger: 'complete' },
+                { sound: 'countdown-beep', trigger: 'countdown', atSeconds: [3, 2, 1] }
+            ]);
+            harness.mount();
+            harness.unmount();
 
-            behavior.onUnmount(ctx);
-
-            expect(ctx.emitOutput).toHaveBeenCalledWith(
-                'system',
-                expect.arrayContaining([
-                    expect.objectContaining({
-                        sound: 'rest-over',
-                        trigger: 'complete'
-                    })
-                ]),
-                expect.any(Object)
+            const restOverCalls = block.recordings.emitOutput.filter(o =>
+                o.metrics.some((m: any) => m.sound === 'rest-over')
             );
+            expect(restOverCalls).toHaveLength(1);
+            expect(restOverCalls[0].type).toBe('system');
         });
     });
 });

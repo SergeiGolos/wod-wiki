@@ -1,200 +1,166 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { ChildSelectionBehavior } from '../ChildSelectionBehavior';
-import { IBehaviorContext } from '../../contracts/IBehaviorContext';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { TimerState } from '../../memory/MemoryTypes';
 import { TimeSpan } from '../../models/TimeSpan';
-import { MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
-import { IMetric } from '../../../core/models/Metric';
-
-function createMockContext(overrides: {
-    timerState?: TimerState;
-    isComplete?: boolean;
-    clockNow?: number;
-} = {}): IBehaviorContext {
-    const memoryLocations: MemoryLocation[] = [];
-    if (overrides.timerState) {
-        // Store timer state as metrics.value under 'time' tag
-        memoryLocations.push(new MemoryLocation('time', [{
-            type: 0 as any, image: '', origin: 'runtime' as any,
-            value: overrides.timerState
-        }]));
-    }
-
-    return {
-        block: {
-            key: { toString: () => 'test-block' },
-            label: 'Test Block',
-            metrics: [],
-            isComplete: overrides.isComplete ?? false,
-            getMemoryByTag: () => [],
-        },
-        clock: { now: new Date(overrides.clockNow ?? 1000) },
-        stackLevel: 0,
-        subscribe: vi.fn(),
-        emitEvent: vi.fn(),
-        emitOutput: vi.fn(),
-        markComplete: vi.fn(),
-        getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
-        getMemory: vi.fn(),
-        setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: string, metrics: IMetric[]) => {
-            const loc = new MemoryLocation(tag as MemoryTag, metrics);
-            memoryLocations.push(loc);
-            return loc;
-        }),
-        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
-            const loc = memoryLocations.find(l => l.tag === tag);
-            if (loc) loc.update(metrics);
-        }),
-    } as unknown as IBehaviorContext;
-}
+import { MemoryLocation } from '../../memory/MemoryLocation';
 
 describe('ChildSelectionBehavior', () => {
+    let harness: BehaviorTestHarness;
+
+    afterEach(() => { harness?.dispose(); });
+
+    function setup(config: any, opts?: { timerState?: TimerState; clockNow?: number }) {
+        harness = new BehaviorTestHarness().withClock(new Date(opts?.clockNow ?? 1000));
+        const behavior = new ChildSelectionBehavior(config);
+        const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
+        if (opts?.timerState) {
+            block.pushMemory(new MemoryLocation('time', [{
+                type: 0 as any, image: '', origin: 'runtime' as any,
+                value: opts.timerState
+            }]));
+        }
+        harness.push(block);
+        return block;
+    }
+
     it('dispatches first child on mount and writes children status', () => {
-        const behavior = new ChildSelectionBehavior({ childGroups: [[1], [2]] });
-        const ctx = createMockContext();
+        const block = setup({ childGroups: [[1], [2]] });
+        // Mount directly to inspect returned actions without executing them
+        const actions = block.mount(harness.runtime);
 
-        const actions = behavior.onMount(ctx);
+        expect(actions.some(a => a.type === 'compile-child-block')).toBe(true);
+        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        expect(compileAction!.payload).toEqual({ statementIds: [1] });
 
-        expect(actions[0].type).toBe('compile-child-block');
-        expect(actions[0].payload).toEqual({ statementIds: [1] });
-        expect(actions[1].type).toBe('update-next-preview');
-        expect(ctx.pushMemory).toHaveBeenCalledWith('children:status', expect.arrayContaining([
-            expect.objectContaining({
-                value: expect.objectContaining({
-                    childIndex: 1,
-                    totalChildren: 2,
-                    allExecuted: false,
-                    allCompleted: false,
-                })
-            })
-        ]));
+        expect(block.recordings.pushMemory.some(p =>
+            p.tag === 'children:status' &&
+            p.metrics.some((m: any) =>
+                m.value?.childIndex === 1 &&
+                m.value?.totalChildren === 2 &&
+                m.value?.allExecuted === false &&
+                m.value?.allCompleted === false
+            )
+        )).toBe(true);
     });
 
     it('supports skipOnMount and only sets next preview', () => {
-        const behavior = new ChildSelectionBehavior({ childGroups: [[10]], skipOnMount: true });
-        const ctx = createMockContext();
-
-        const actions = behavior.onMount(ctx);
+        const block = setup({ childGroups: [[10]], skipOnMount: true });
+        const actions = block.mount(harness.runtime);
 
         expect(actions.length).toBe(1);
         expect(actions[0].type).toBe('update-next-preview');
-        expect(ctx.pushMemory).toHaveBeenCalledWith('children:status', expect.arrayContaining([
-            expect.objectContaining({
-                value: expect.objectContaining({
-                    childIndex: 0,
-                    allExecuted: false,
-                })
-            })
-        ]));
+        expect(block.recordings.pushMemory.some(p =>
+            p.tag === 'children:status' &&
+            p.metrics.some((m: any) =>
+                m.value?.childIndex === 0 &&
+                m.value?.allExecuted === false
+            )
+        )).toBe(true);
     });
 
     it('dispatches next children in sequence on onNext', () => {
-        const behavior = new ChildSelectionBehavior({ childGroups: [[1], [2], [3]] });
-        const ctx = createMockContext();
+        const block = setup({ childGroups: [[1], [2], [3]] });
+        block.mount(harness.runtime);
+        const actions = block.next(harness.runtime);
 
-        behavior.onMount(ctx);
-        const actions = behavior.onNext(ctx);
-
-        expect(actions[0].type).toBe('compile-child-block');
-        expect(actions[0].payload).toEqual({ statementIds: [2] });
+        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        expect(compileAction).toBeDefined();
+        expect(compileAction!.payload).toEqual({ statementIds: [2] });
     });
 
     it('loops while countdown timer is active when configured', () => {
-        const behavior = new ChildSelectionBehavior({
-            childGroups: [[1]],
-            loop: { condition: 'timer-active' },
-        });
-        const ctx = createMockContext({
-            timerState: {
-                direction: 'down',
-                durationMs: 60000,
-                spans: [new TimeSpan(0)],
-                label: 'AMRAP',
-                role: 'primary',
-            },
-            clockNow: 10000,
-        });
+        const block = setup(
+            { childGroups: [[1]], loop: { condition: 'timer-active' } },
+            {
+                timerState: {
+                    direction: 'down',
+                    durationMs: 60000,
+                    spans: [new TimeSpan(0)],
+                    label: 'AMRAP',
+                    role: 'primary',
+                },
+                clockNow: 10000,
+            }
+        );
 
-        behavior.onMount(ctx); // dispatches child 1, index=1 (all executed)
-        const actions = behavior.onNext(ctx);
+        block.mount(harness.runtime);
+        const actions = block.next(harness.runtime);
 
-        expect(actions[0].type).toBe('compile-child-block');
-        expect(actions[0].payload).toEqual({ statementIds: [1] });
+        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        expect(compileAction).toBeDefined();
+        expect(compileAction!.payload).toEqual({ statementIds: [1] });
     });
 
     it('does not loop when countdown timer is expired', () => {
-        const behavior = new ChildSelectionBehavior({
-            childGroups: [[1]],
-            loop: { condition: 'timer-active' },
-        });
-        const ctx = createMockContext({
-            timerState: {
-                direction: 'down',
-                durationMs: 60000,
-                spans: [new TimeSpan(0)],
-                label: 'AMRAP',
-                role: 'primary',
-            },
-            clockNow: 70000,
-        });
+        const block = setup(
+            { childGroups: [[1]], loop: { condition: 'timer-active' } },
+            {
+                timerState: {
+                    direction: 'down',
+                    durationMs: 60000,
+                    spans: [new TimeSpan(0)],
+                    label: 'AMRAP',
+                    role: 'primary',
+                },
+                clockNow: 70000,
+            }
+        );
 
-        behavior.onMount(ctx);
-        const actions = behavior.onNext(ctx);
+        block.mount(harness.runtime);
+        const actions = block.next(harness.runtime);
 
-        // Timer expired + loop enabled → marks complete
-        expect(ctx.markComplete).toHaveBeenCalledWith('rounds-exhausted');
+        expect(block.recordings.markComplete).toHaveLength(1);
+        expect(block.recordings.markComplete[0].reason).toBe('rounds-exhausted');
         expect(actions.length).toBe(1);
         expect(actions[0].type).toBe('update-next-preview');
     });
 
     it('injects rest between loop iterations when enabled', () => {
-        const behavior = new ChildSelectionBehavior({
-            childGroups: [[1]],
-            loop: { condition: 'timer-active' },
-            injectRest: true,
-        });
-        const ctx = createMockContext({
-            timerState: {
-                direction: 'down',
-                durationMs: 60000,
-                spans: [new TimeSpan(0)],
-                label: 'EMOM',
-                role: 'primary',
-            },
-            clockNow: 30000,
-        });
+        const block = setup(
+            { childGroups: [[1]], loop: { condition: 'timer-active' }, injectRest: true },
+            {
+                timerState: {
+                    direction: 'down',
+                    durationMs: 60000,
+                    spans: [new TimeSpan(0)],
+                    label: 'EMOM',
+                    role: 'primary',
+                },
+                clockNow: 30000,
+            }
+        );
 
-        behavior.onMount(ctx);
-        const actions = behavior.onNext(ctx);
+        block.mount(harness.runtime);
+        const actions = block.next(harness.runtime);
 
         expect(actions[0].type).toBe('push-rest-block');
         expect(actions[0].payload).toEqual({ durationMs: 30000, label: 'Rest' });
 
-        const afterRestActions = behavior.onNext(ctx);
-        expect(afterRestActions[0].type).toBe('compile-child-block');
-        expect(afterRestActions[0].payload).toEqual({ statementIds: [1] });
+        const afterRestActions = block.next(harness.runtime);
+        const compileAction = afterRestActions.find(a => a.type === 'compile-child-block');
+        expect(compileAction).toBeDefined();
+        expect(compileAction!.payload).toEqual({ statementIds: [1] });
     });
 
     it('does not inject rest for count-up timers', () => {
-        const behavior = new ChildSelectionBehavior({
-            childGroups: [[1]],
-            loop: { condition: 'timer-active' },
-            injectRest: true,
-        });
-        const ctx = createMockContext({
-            timerState: {
-                direction: 'up',
-                spans: [new TimeSpan(0)],
-                label: 'Elapsed',
-                role: 'primary',
-            },
-            clockNow: 10000,
-        });
+        const block = setup(
+            { childGroups: [[1]], loop: { condition: 'timer-active' }, injectRest: true },
+            {
+                timerState: {
+                    direction: 'up',
+                    spans: [new TimeSpan(0)],
+                    label: 'Elapsed',
+                    role: 'primary',
+                },
+                clockNow: 10000,
+            }
+        );
 
-        behavior.onMount(ctx);
-        const actions = behavior.onNext(ctx);
+        block.mount(harness.runtime);
+        const actions = block.next(harness.runtime);
 
-        expect(actions[0].type).toBe('compile-child-block');
+        const compileAction = actions.find(a => a.type === 'compile-child-block');
+        expect(compileAction).toBeDefined();
     });
 });

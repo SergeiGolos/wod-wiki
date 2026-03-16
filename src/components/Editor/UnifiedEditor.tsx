@@ -194,15 +194,27 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   // Full-screen review segments: when set, the FullscreenReview overlay is shown.
   const [fullscreenReviewSegments, setFullscreenReviewSegments] = useState<Segment[] | null>(null);
 
+  // Whether the fullscreen timer should auto-start on mount
+  const [autoStartFullscreen, setAutoStartFullscreen] = useState(false);
+
   // Toggle the full-screen timer for the given WOD block (Run button).
-  const handleRun = useCallback((block: WodBlock) => {
+  const handleRun = useCallback((block: WodBlock, autoStart = false) => {
+    setAutoStartFullscreen(autoStart);
     setFullscreenTimerBlock(block);
   }, []);
 
   // Close the full-screen timer.
   const handleTimerClose = useCallback(() => {
     setFullscreenTimerBlock(null);
+    setAutoStartFullscreen(false);
   }, []);
+
+  // Intercept selection from Chromecast to start the inline runtime with auto-start.
+  const handleCastSelectBlock = useCallback((block: WodBlock) => {
+    if (enableInlineRuntime) {
+      handleRun(block, true);
+    }
+  }, [enableInlineRuntime, handleRun]);
 
   // Intercept workout completion: immediately push the new result into the CM6
   // wodResultsField so the inline results bar updates without waiting for a DB
@@ -607,6 +619,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           view={viewRef.current}
           onClose={handleTimerClose}
           onCompleteWorkout={handleCompleteWorkout}
+          autoStart={autoStartFullscreen}
         />
       )}
 
@@ -621,7 +634,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         sections={sections}
         isRuntimeActive={fullscreenTimerBlock !== null}
         editorState={viewRef.current?.state ?? null}
-        onSelectBlock={enableInlineRuntime ? handleRun : undefined}
+        onSelectBlock={handleCastSelectBlock}
       />
     </div>
   );

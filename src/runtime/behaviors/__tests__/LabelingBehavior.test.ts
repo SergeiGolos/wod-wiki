@@ -1,51 +1,11 @@
-import { describe, it, expect, vi } from 'bun:test';
-import { MetricType, IMetric } from '../../../core/models/Metric';
-import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { IMemoryLocation, MemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { LabelingBehavior } from '../LabelingBehavior';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
 import { CurrentRoundMetric } from '../../compiler/metrics/CurrentRoundMetric';
+import { MemoryLocation } from '../../memory/MemoryLocation';
 
-function createMockContext(overrides: Partial<IBehaviorContext> = {}): IBehaviorContext {
-    const memoryLocations: IMemoryLocation[] = [];
-
-    return {
-        block: {
-            key: { toString: () => 'test-block' },
-            label: 'Fallback Label',
-            metrics: [],
-            completionReason: undefined,
-            getMemoryByTag: (tag: MemoryTag) => memoryLocations.filter(location => location.tag === tag),
-            getAllMemory: () => [...memoryLocations],
-            getBehavior: () => undefined,
-        },
-        clock: { now: new Date('2024-01-01T00:00:00Z') },
-        stackLevel: 0,
-        subscribe: vi.fn(),
-        emitEvent: vi.fn(),
-        emitOutput: vi.fn(),
-        markComplete: vi.fn(),
-        getMemory: vi.fn(),
-        setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
-            const location = new MemoryLocation(tag, metrics);
-            memoryLocations.push(location);
-            return location;
-        }),
-        updateMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
-            const location = memoryLocations.find(loc => loc.tag === tag);
-            if (location) {
-                location.update(metrics);
-                return;
-            }
-
-            memoryLocations.push(new MemoryLocation(tag, metrics));
-        }),
-        ...overrides
-    } as unknown as IBehaviorContext;
-}
-
-function getDisplayTextByRole(ctx: IBehaviorContext, role: string): string | undefined {
-    const location = ctx.block.getMemoryByTag('display')[0];
+function getDisplayTextByRole(block: MockBlock, role: string): string | undefined {
+    const location = block.getMemoryByTag('display')[0];
     if (!location) return undefined;
 
     const metric = location.metrics.find(m => {
@@ -57,114 +17,105 @@ function getDisplayTextByRole(ctx: IBehaviorContext, role: string): string | und
 }
 
 describe('LabelingBehavior', () => {
+    let harness: BehaviorTestHarness;
+
+    afterEach(() => { harness?.dispose(); });
+
+    function setup(behavior: LabelingBehavior, opts?: { preRound?: { current: number; total: number | undefined } }) {
+        harness = new BehaviorTestHarness().withClock(new Date('2024-01-01T00:00:00Z'));
+        const block = new MockBlock('test-block', [behavior], { label: 'Fallback Label' });
+        if (opts?.preRound) {
+            block.pushMemory(new MemoryLocation('round', [
+                new CurrentRoundMetric(opts.preRound.current, opts.preRound.total, 'test-block', new Date())
+            ]));
+        }
+        harness.push(block);
+        harness.mount();
+        return block;
+    }
+
     it('sets label from config', () => {
-        const ctx = createMockContext();
-        const behavior = new LabelingBehavior({ label: 'Configured Label' });
-
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'label')).toBe('Configured Label');
+        const block = setup(new LabelingBehavior({ label: 'Configured Label' }));
+        expect(getDisplayTextByRole(block, 'label')).toBe('Configured Label');
     });
 
     it('falls back to block.label when no config.label', () => {
-        const ctx = createMockContext();
-        const behavior = new LabelingBehavior();
-
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'label')).toBe('Fallback Label');
+        const block = setup(new LabelingBehavior());
+        expect(getDisplayTextByRole(block, 'label')).toBe('Fallback Label');
     });
 
     it('sets subtitle metrics', () => {
-        const ctx = createMockContext();
-        const behavior = new LabelingBehavior({ subtitle: 'Warm-up' });
-
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'subtitle')).toBe('Warm-up');
+        const block = setup(new LabelingBehavior({ subtitle: 'Warm-up' }));
+        expect(getDisplayTextByRole(block, 'subtitle')).toBe('Warm-up');
     });
 
     it('sets actionDisplay metrics', () => {
-        const ctx = createMockContext();
-        const behavior = new LabelingBehavior({ actionDisplay: 'Run' });
-
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'action')).toBe('Run');
+        const block = setup(new LabelingBehavior({ actionDisplay: 'Run' }));
+        expect(getDisplayTextByRole(block, 'action')).toBe('Run');
     });
 
     it('emits all configured labels into display memory on mount', () => {
-        const ctx = createMockContext();
-        const behavior = new LabelingBehavior({
+        const block = setup(new LabelingBehavior({
             label: 'EMOM',
             subtitle: 'Every minute',
             actionDisplay: 'Burpees'
-        });
+        }));
 
-        behavior.onMount(ctx);
-
-        const location = ctx.block.getMemoryByTag('display')[0];
+        const location = block.getMemoryByTag('display')[0];
         expect(location).toBeDefined();
         expect(location.metrics).toHaveLength(3);
     });
 
     it('shows round display when round memory is present', () => {
-        const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundMetric(2, 5, 'test-block', new Date())]);
-
-        const behavior = new LabelingBehavior({ label: 'Rounds' });
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'round')).toBe('Round 2 of 5');
+        const block = setup(
+            new LabelingBehavior({ label: 'Rounds' }),
+            { preRound: { current: 2, total: 5 } }
+        );
+        expect(getDisplayTextByRole(block, 'round')).toBe('Round 2 of 5');
     });
 
     it('skips round display when no round memory exists', () => {
-        const ctx = createMockContext();
-        const behavior = new LabelingBehavior({ label: 'Rounds' });
-
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'round')).toBeUndefined();
+        const block = setup(new LabelingBehavior({ label: 'Rounds' }));
+        expect(getDisplayTextByRole(block, 'round')).toBeUndefined();
     });
 
     it('formats unbounded rounds as "Round X"', () => {
-        const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundMetric(3, undefined, 'test-block', new Date())]);
-
-        const behavior = new LabelingBehavior({ label: 'AMRAP' });
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'round')).toBe('Round 3');
+        const block = setup(
+            new LabelingBehavior({ label: 'AMRAP' }),
+            { preRound: { current: 3, total: undefined } }
+        );
+        expect(getDisplayTextByRole(block, 'round')).toBe('Round 3');
     });
 
     it('updates round display on next()', () => {
-        const ctx = createMockContext();
-        const roundLocation = ctx.pushMemory('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
+        harness = new BehaviorTestHarness().withClock(new Date('2024-01-01T00:00:00Z'));
+        const block = new MockBlock('test-block', [new LabelingBehavior({ label: 'Rounds' })], { label: 'Fallback Label' });
+        const roundLoc = new MemoryLocation('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
+        block.pushMemory(roundLoc);
+        harness.push(block);
+        harness.mount();
 
-        const behavior = new LabelingBehavior({ label: 'Rounds' });
-        behavior.onMount(ctx);
+        roundLoc.update([new CurrentRoundMetric(2, 3, 'test-block', new Date())]);
+        harness.next();
 
-        roundLocation.update([new CurrentRoundMetric(2, 3, 'test-block', new Date())]);
-
-        behavior.onNext(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'round')).toBe('Round 2 of 3');
+        expect(getDisplayTextByRole(block, 'round')).toBe('Round 2 of 3');
     });
 
     it('does not accumulate duplicate round metrics', () => {
-        const ctx = createMockContext();
-        const roundLocation = ctx.pushMemory('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
+        harness = new BehaviorTestHarness().withClock(new Date('2024-01-01T00:00:00Z'));
+        const block = new MockBlock('test-block', [new LabelingBehavior({ label: 'Rounds' })], { label: 'Fallback Label' });
+        const roundLoc = new MemoryLocation('round', [new CurrentRoundMetric(1, 3, 'test-block', new Date())]);
+        block.pushMemory(roundLoc);
+        harness.push(block);
+        harness.mount();
 
-        const behavior = new LabelingBehavior({ label: 'Rounds' });
-        behavior.onMount(ctx);
+        roundLoc.update([new CurrentRoundMetric(2, 3, 'test-block', new Date())]);
+        harness.next();
 
-        roundLocation.update([new CurrentRoundMetric(2, 3, 'test-block', new Date())]);
-        behavior.onNext(ctx);
+        roundLoc.update([new CurrentRoundMetric(3, 3, 'test-block', new Date())]);
+        harness.next();
 
-        roundLocation.update([new CurrentRoundMetric(3, 3, 'test-block', new Date())]);
-        behavior.onNext(ctx);
-
-        const display = ctx.block.getMemoryByTag('display')[0];
+        const display = block.getMemoryByTag('display')[0];
         const roundFragments = display.metrics.filter(metric => {
             const value = metric.value as { role?: string } | undefined;
             return value?.role === 'round';
@@ -174,25 +125,22 @@ describe('LabelingBehavior', () => {
     });
 
     it('supports custom round formatter', () => {
-        const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundMetric(2, 4, 'test-block', new Date())]);
-
-        const behavior = new LabelingBehavior({
+        harness = new BehaviorTestHarness().withClock(new Date('2024-01-01T00:00:00Z'));
+        const block = new MockBlock('test-block', [new LabelingBehavior({
             roundFormat: (current, total) => `Set ${current}/${total ?? '?'}`
-        });
+        })], { label: 'Fallback Label' });
+        block.pushMemory(new MemoryLocation('round', [new CurrentRoundMetric(2, 4, 'test-block', new Date())]));
+        harness.push(block);
+        harness.mount();
 
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'round')).toBe('Set 2/4');
+        expect(getDisplayTextByRole(block, 'round')).toBe('Set 2/4');
     });
 
     it('respects showRoundDisplay=false even when round memory exists', () => {
-        const ctx = createMockContext();
-        ctx.pushMemory('round', [new CurrentRoundMetric(1, 5, 'test-block', new Date())]);
-
-        const behavior = new LabelingBehavior({ showRoundDisplay: false });
-        behavior.onMount(ctx);
-
-        expect(getDisplayTextByRole(ctx, 'round')).toBeUndefined();
+        const block = setup(
+            new LabelingBehavior({ showRoundDisplay: false }),
+            { preRound: { current: 1, total: 5 } }
+        );
+        expect(getDisplayTextByRole(block, 'round')).toBeUndefined();
     });
 });

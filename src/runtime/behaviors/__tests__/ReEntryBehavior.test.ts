@@ -1,97 +1,60 @@
-import { describe, it, expect, vi } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { ReEntryBehavior } from '../ReEntryBehavior';
-import { IBehaviorContext } from '../../contracts/IBehaviorContext';
-import { IRuntimeBlock } from '../../contracts/IRuntimeBlock';
-import { IMemoryLocation, MemoryTag, MemoryLocation } from '../../memory/MemoryLocation';
+import { BehaviorTestHarness, MockBlock } from '@/testing/harness';
+import { MemoryLocation } from '../../memory/MemoryLocation';
 import { IMetric, MetricType } from '../../../core/models/Metric';
 
-function createMockContext(overrides: {
-    roundState?: { current: number; total: number | undefined };
-} = {}): IBehaviorContext {
-    const memoryLocations: IMemoryLocation[] = [];
-
-    if (overrides.roundState) {
-        const roundFragment: IMetric = {
-            type: MetricType.CurrentRound,
-            image: `Round ${overrides.roundState.current}`,
-            origin: 'runtime',
-            value: overrides.roundState,
-        } as any;
-        memoryLocations.push(new MemoryLocation('round', [roundFragment]));
-    }
-
-    const block = {
-        key: { toString: () => 'test-block' },
-        label: 'Test Block',
-        metrics: [],
-        getMemoryByTag: vi.fn((tag: MemoryTag) => memoryLocations.filter(l => l.tag === tag)),
-        pushMemory: vi.fn((loc: IMemoryLocation) => memoryLocations.push(loc)),
-        getAllMemory: vi.fn(() => [...memoryLocations]),
-    } as unknown as IRuntimeBlock;
-
-    return {
-        block,
-        clock: { now: new Date(1000) },
-        stackLevel: 0,
-        subscribe: vi.fn(),
-        emitEvent: vi.fn(),
-        emitOutput: vi.fn(),
-        markComplete: vi.fn(),
-        getMemory: vi.fn(),
-        setMemory: vi.fn(),
-        pushMemory: vi.fn((tag: MemoryTag, metrics: IMetric[]) => {
-            const loc = new MemoryLocation(tag, metrics);
-            memoryLocations.push(loc);
-            return loc;
-        }),
-        updateMemory: vi.fn((tag: string, metrics: IMetric[]) => {
-            const locs = memoryLocations.filter(l => l.tag === tag);
-            if (locs.length > 0) {
-                locs[0].update(metrics);
-            }
-        })
-    } as unknown as IBehaviorContext;
-}
-
 describe('ReEntryBehavior', () => {
+    let harness: BehaviorTestHarness;
+
+    afterEach(() => { harness?.dispose(); });
+
     describe('onMount', () => {
         it('initializes round state (current=1, total=N)', () => {
-            const behavior = new ReEntryBehavior({ totalRounds: 5 });
-            const ctx = createMockContext();
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
+            const block = new MockBlock('test-block', [
+                new ReEntryBehavior({ totalRounds: 5 })
+            ], { label: 'Test Block' });
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
+            const round = block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.value).toBe(1);
         });
 
         it('supports custom startRound', () => {
-            const behavior = new ReEntryBehavior({ totalRounds: 7, startRound: 3 });
-            const ctx = createMockContext();
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
+            const block = new MockBlock('test-block', [
+                new ReEntryBehavior({ totalRounds: 7, startRound: 3 })
+            ], { label: 'Test Block' });
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
+            const round = block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.value).toBe(3);
         });
 
         it('supports unbounded rounds', () => {
-            const behavior = new ReEntryBehavior({ totalRounds: undefined, startRound: 1 });
-            const ctx = createMockContext();
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
+            const block = new MockBlock('test-block', [
+                new ReEntryBehavior({ totalRounds: undefined, startRound: 1 })
+            ], { label: 'Test Block' });
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
+            const round = block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.value).toBe(1);
         });
 
         it('creates CurrentRoundMetric with sourceBlockKey and timestamp', () => {
-            const behavior = new ReEntryBehavior({ totalRounds: 3, startRound: 2 });
-            const ctx = createMockContext();
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
+            const block = new MockBlock('test-block', [
+                new ReEntryBehavior({ totalRounds: 3, startRound: 2 })
+            ], { label: 'Test Block' });
+            harness.push(block);
+            harness.mount();
 
-            behavior.onMount(ctx);
-
-            const round = ctx.block.getMemoryByTag('round')[0]?.metrics[0] as any;
+            const round = block.getMemoryByTag('round')[0]?.metrics[0] as any;
             expect(round?.sourceBlockKey).toBe('test-block');
             expect(round?.timestamp).toEqual(new Date(1000));
         });
@@ -99,13 +62,24 @@ describe('ReEntryBehavior', () => {
 
     describe('onNext', () => {
         it('is a no-op (round advancement handled by ChildSelectionBehavior)', () => {
-            const behavior = new ReEntryBehavior();
-            const ctx = createMockContext({ roundState: { current: 1, total: 5 } });
+            harness = new BehaviorTestHarness().withClock(new Date(1000));
+            const block = new MockBlock('test-block', [
+                new ReEntryBehavior()
+            ], { label: 'Test Block' });
+            // Pre-seed round state
+            block.pushMemory(new MemoryLocation('round', [{
+                type: MetricType.CurrentRound,
+                image: 'Round 1',
+                origin: 'runtime',
+                value: { current: 1, total: 5 },
+            } as any]));
+            harness.push(block);
+            harness.mount();
 
-            const actions = behavior.onNext(ctx);
+            const actions = harness.next();
 
             expect(actions).toEqual([]);
-            expect(ctx.updateMemory).not.toHaveBeenCalled();
+            expect(block.recordings.updateMemory).toHaveLength(0);
         });
     });
 });

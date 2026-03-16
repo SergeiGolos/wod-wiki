@@ -18,7 +18,7 @@
  *   Document line = block.startLine + 1 + sourceId.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import type { EditorView } from "@codemirror/view";
 import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
@@ -63,6 +63,8 @@ export interface RuntimeTimerPanelProps {
   isExpanded?: boolean;
   /** Toggle between expanded and compact runtime view. */
   onToggleExpand?: () => void;
+  /** Whether the timer should start automatically on mount. */
+  autoStart?: boolean;
 }
 
 
@@ -144,8 +146,9 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   onComplete,
   isExpanded = false,
   onToggleExpand,
+  autoStart,
 }) => {
-  const runtimeRef = useRef<IScriptRuntime | null>(null);
+  const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [ready, setReady] = useState(false);
   const [outputCount, setOutputCount] = useState(0);
   const [completedAt, setCompletedAt] = useState<Date | null>(null);
@@ -167,7 +170,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       // Block has no compilable statements — nothing to run
       return;
     }
-    runtimeRef.current = rt;
+    setRuntime(rt);
 
     // ── Gutter highlighting via stack subscription ──────────────────
     const unsubStack = rt.subscribeToStack(
@@ -202,28 +205,34 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       unsubOutput();
       dispatchGutterHighlights(view, []); // clear gutter on unmount
       rt?.dispose();
-      runtimeRef.current = null;
     };
 
     // Block identity pinned at mount — do not re-run on block changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const execution = useRuntimeExecution(runtimeRef.current as ScriptRuntime | null);
+  const execution = useRuntimeExecution(runtime as ScriptRuntime | null);
+
+  // Auto-start workout if requested via props
+  useEffect(() => {
+    if (autoStart && ready && execution.status === 'idle') {
+      execution.start();
+    }
+  }, [autoStart, ready, execution.status, execution.start]);
 
   const handleComplete = useCallback((completed: boolean) => {
-    if (!runtimeRef.current) return;
+    if (!runtime) return;
 
     // Finalize analytics to get summary outputs
-    runtimeRef.current.finalizeAnalytics();
-    const allOutputs = runtimeRef.current.getOutputStatements();
+    runtime.finalizeAnalytics();
+    const allOutputs = runtime.getOutputStatements();
     
     // Extract metrics fragments from all segment outputs
     const metricFragments = allOutputs
-      .filter(o => o.outputType === 'segment')
-      .flatMap(o => (o.metrics || []).map(m => ({
+      .filter((o: IOutputStatement) => o.outputType === 'segment')
+      .flatMap((o: IOutputStatement) => (o.metrics || []).map(m => ({
         metric: m,
-        timestamp: o.timeSpan.start
+        timestamp: o.timeSpan.started
       })));
 
     const results: WorkoutResults = {
@@ -236,7 +245,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     };
 
     onComplete?.(block.id, results);
-  }, [block.id, execution.elapsedTime, execution.startTime, onComplete]);
+  }, [block.id, execution.elapsedTime, execution.startTime, onComplete, runtime]);
 
   // Track completion: notify parent immediately so it can switch to results view.
   // The parent (FullscreenTimer) will unmount this panel when it transitions.
@@ -252,8 +261,8 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       // cast subscription is disposed.
       const transport = useWorkbenchSyncStore.getState().castTransport;
       if (transport?.connected) {
-        const allOutputs = runtimeRef.current?.getOutputStatements() || [];
-        const segmentCount = allOutputs.filter(o => o.outputType === 'segment').length;
+        const allOutputs = runtime?.getOutputStatements() || [];
+        const segmentCount = allOutputs.filter((o: IOutputStatement) => o.outputType === 'segment').length;
         const reviewMessage: RpcWorkbenchUpdate = {
           type: 'rpc-workbench-update',
           mode: 'review',
@@ -273,7 +282,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   const handleStop = () => {
     execution.stop();
-    runtimeRef.current?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
+    runtime?.handle({ name: 'workout:stop', timestamp: new Date(), data: {} });
     handleComplete(false);
     onClose();
   };
@@ -285,7 +294,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   };
 
   const handleNext = () => {
-    runtimeRef.current?.handle(new NextEvent());
+    runtime?.handle(new NextEvent());
   };
 
   // ── Chromecast RPC syncing ──────────────────────────────────────────
@@ -295,7 +304,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   const castTransport = useWorkbenchSyncStore(s => s.castTransport);
 
   useEffect(() => {
-    const rt = runtimeRef.current;
+    const rt = runtime;
     if (!castTransport?.connected || !rt) return;
 
     // Signal active mode to receiver
@@ -310,7 +319,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     const eventProvider = new ChromecastEventProvider(castTransport);
     const unsubEvents = eventProvider.onEvent((event) => {
       switch (event.name) {
-        case 'next': runtimeRef.current?.handle(new NextEvent()); break;
+        case 'next': runtime?.handle(new NextEvent()); break;
         case 'start': execution.start(); break;
         case 'pause': execution.pause(); break;
         case 'stop': handleStop(); break;
@@ -334,7 +343,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [castTransport?.connected, ready]);
 
-  if (!ready || !runtimeRef.current) {
+  if (!ready || !runtime) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
         Initializing…
@@ -344,7 +353,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   return (
     <PanelSizeProvider>
-      <ScriptRuntimeProvider runtime={runtimeRef.current}>
+      <ScriptRuntimeProvider runtime={runtime}>
         <RuntimeTimerBody
           execution={execution}
           outputCount={outputCount}
