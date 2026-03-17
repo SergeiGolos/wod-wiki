@@ -65,6 +65,10 @@ import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomePageContent } from './HomePage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
+import { usePlaygroundContent } from './hooks/usePlaygroundContent'
+import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
+import { indexedDBService } from '@/services/db/IndexedDBService'
+import { v4 as uuidv4 } from 'uuid'
 
 // Load all markdown files from the wod directory
 const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -74,6 +78,62 @@ interface WorkoutItem {
   name: string
   category: string
   content: string
+}
+
+/**
+ * Wrapper that loads workout content via IndexedDB (or falls back to MD).
+ * Keeps WodBlock IDs stable across page loads so results stay linked.
+ */
+function WorkoutEditorPage({
+  category,
+  name,
+  mdContent,
+  theme,
+}: {
+  category: string
+  name: string
+  mdContent: string
+  theme: string
+}) {
+  const noteId = PlaygroundDBService.pageId(category, name)
+  const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
+
+  const handleCompleteWorkout = React.useCallback(
+    (blockId: string, results: any) => {
+      if (!results) return
+      const result = {
+        id: uuidv4(),
+        noteId,
+        segmentId: blockId,
+        sectionId: blockId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
+      }
+      indexedDBService.saveResult(result).catch(() => {
+        // IndexedDB unavailable — silently ignore
+      })
+    },
+    [noteId],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <UnifiedEditor
+      value={content}
+      onChange={onChange}
+      noteId={noteId}
+      onCompleteWorkout={handleCompleteWorkout}
+      className="flex-1 min-h-0 w-full"
+      theme={theme}
+    />
+  )
 }
 
 function AppContent() {
@@ -168,8 +228,9 @@ function AppContent() {
     setIsCommandPaletteOpen(true)
   }
 
-  const handleResetData = () => {
+  const handleResetData = async () => {
     localStorage.clear()
+    await playgroundDB.clearAll()
     window.location.reload()
   }
 
@@ -411,11 +472,11 @@ function AppContent() {
               setActiveCategory={setActiveCategory}
             />
           ) : (
-            <UnifiedEditor
-              key={currentWorkout.name}
-              value={currentWorkout.content}
-              onChange={() => {}} // Read-only for now via routing, or could sync back
-              className="flex-1 min-h-0 w-full"
+            <WorkoutEditorPage
+              key={`${currentWorkout.category}/${currentWorkout.name}`}
+              category={currentWorkout.category}
+              name={currentWorkout.name}
+              mdContent={currentWorkout.content}
               theme={actualTheme}
             />
           )}
