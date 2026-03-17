@@ -101,7 +101,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
-      expect(metric.value).toEqual({ amount: 135, units: "lb" });
+      expect(metric.value).toEqual({ amount: 135, unit: "lb" });
     });
 
     it('parses weight with at-sign @135lb', () => {
@@ -116,7 +116,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Distance);
-      expect(metric.value).toEqual({ amount: 400, units: "m" });
+      expect(metric.value).toEqual({ amount: 400, unit: "m" });
     });
 
     it('parses trend ^', () => {
@@ -144,7 +144,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
-      expect(metric.value).toEqual({ amount: undefined, units: 'lb' });
+      expect(metric.value).toEqual({ amount: undefined, unit: 'lb' });
       expect(metric.origin).toBe('user');
       expect(metric.image).toBe('? lb');
     });
@@ -154,7 +154,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Distance);
-      expect(metric.value).toEqual({ amount: undefined, units: 'm' });
+      expect(metric.value).toEqual({ amount: undefined, unit: 'm' });
       expect(metric.origin).toBe('user');
       expect(metric.image).toBe('? m');
     });
