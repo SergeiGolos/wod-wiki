@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
+
+declare const __APP_VERSION__: string | undefined;
+const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
 import {
   Dropdown,
   DropdownButton,
@@ -682,6 +685,7 @@ function AppContent() {
             <div className="flex items-center px-2 py-2.5">
               <Avatar initials="W" className="bg-blue-600 text-white size-6" />
               <span className="ml-3 text-sm font-semibold text-zinc-950 dark:text-white">Wod Wiki</span>
+              <span className="ml-1.5 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-end mb-0.5">v{appVersion}</span>
             </div>
             <SidebarSection>
               <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/'}>

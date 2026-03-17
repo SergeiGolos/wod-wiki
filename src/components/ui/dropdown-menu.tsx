@@ -77,23 +77,25 @@ DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
 
 interface DropdownMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {
   align?: 'start' | 'center' | 'end';
+  side?: 'top' | 'bottom';
   isOpen?: boolean;
   setIsOpen?: (open: boolean) => void;
   triggerRef?: React.RefObject<HTMLDivElement>;
 }
 
 export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenuContentProps>(
-  ({ className, children, align = 'center', isOpen, setIsOpen, triggerRef, ...props }, ref) => {
+  ({ className, children, align = 'center', side = 'bottom', isOpen, setIsOpen, triggerRef, ...props }, ref) => {
     const internalRef = React.useRef<HTMLDivElement>(null);
     const contentRef = (ref as React.RefObject<HTMLDivElement>) || internalRef;
-    const [position, setPosition] = React.useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+    const [position, setPosition] = React.useState<{ top: number; bottom: number; left: number; width: number }>({ top: 0, bottom: 0, left: 0, width: 0 });
 
     // Calculate position from trigger element
     React.useEffect(() => {
       if (!isOpen || !triggerRef?.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
       setPosition({
-        top: rect.bottom + 8, // 8px gap
+        top: rect.bottom + 8, // 8px gap below
+        bottom: window.innerHeight - rect.top + 8, // 8px gap above
         left: rect.left,
         width: rect.width,
       });
@@ -127,9 +129,14 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
     // Compute alignment style
     let posStyle: React.CSSProperties = {
       position: 'fixed',
-      top: position.top,
       zIndex: 9999,
     };
+
+    if (side === 'top') {
+      posStyle.bottom = position.bottom;
+    } else {
+      posStyle.top = position.top;
+    }
 
     if (align === 'end') {
       posStyle.right = window.innerWidth - position.left - position.width;

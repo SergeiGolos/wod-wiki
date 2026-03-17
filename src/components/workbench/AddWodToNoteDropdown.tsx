@@ -176,7 +176,7 @@ export const AddWodToNoteDropdown: React.FC<AddWodToNoteDropdownProps> = ({
                     <span>Plan</span>
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[520px]" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent align="end" side="top" className="w-[520px]" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuLabel className="flex items-center gap-2">
                     <Plus className="h-3.5 w-3.5" />
                     Add to Plan

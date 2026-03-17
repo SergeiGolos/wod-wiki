@@ -56,6 +56,9 @@ import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 
+declare const __APP_VERSION__: string | undefined;
+const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
+
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
 import { ReviewGrid } from '../review-grid';
@@ -509,6 +512,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 letterSpacing={1.6}
               />
             </div>
+            <span className="text-[10px] font-mono text-muted-foreground/50 self-end mb-1">v{appVersion}</span>
             {!isMobile && currentEntry && (
               <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground">
                 {new Date(currentEntry.targetDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}

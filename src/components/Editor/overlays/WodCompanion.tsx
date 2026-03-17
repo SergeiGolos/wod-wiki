@@ -194,7 +194,7 @@ const CommandButtons: React.FC<{
               …
             </button>
             {overflowOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[110px] bg-popover border border-border rounded-md shadow-lg py-1">
+              <div className="absolute right-0 bottom-full mb-1 z-50 min-w-[110px] bg-popover border border-border rounded-md shadow-lg py-1">
                 {overflow.map((cmd) => (
                   <button
                     key={cmd.id}
