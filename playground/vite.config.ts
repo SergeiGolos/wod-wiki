@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import fs from 'fs';
 
+const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
+
 // Auto-detect Tailscale SSL certs for HTTPS (required for Chromecast)
 const projectRoot = resolve(__dirname, '..');
 const certFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.crt'));
@@ -45,6 +47,9 @@ const receiverRedirectPlugin: Plugin = {
 export default defineConfig({
     root: __dirname,
     base: './',
+    define: {
+        __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
         alias: {

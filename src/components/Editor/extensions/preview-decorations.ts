@@ -184,7 +184,7 @@ const wodBlockBaseTheme = EditorView.baseTheme({
   // ── Fence lines (faded chrome) ──────────────────────────────────
   ".cm-wod-fence-open, .cm-wod-fence-close": {
     fontSize: "10px",
-    lineHeight: "18px",
+    lineHeight: "22px",
     opacity: "0.35",
     fontFamily: "var(--font-mono, monospace)",
     color: "inherit",
@@ -197,7 +197,7 @@ const wodBlockBaseTheme = EditorView.baseTheme({
     borderRadius: "8px 8px 0 0",
     backgroundColor: "rgba(59, 130, 246, 0.04)",
     boxShadow: "0 -3px 8px -2px rgba(0,0,0,0.08), -3px 0 8px -4px rgba(0,0,0,0.06), 3px 0 8px -4px rgba(0,0,0,0.06)",
-    marginTop: "4px",
+    paddingTop: "4px",
   },
 
   // Bottom fence: rounded bottom corners + bottom part of the shadow
@@ -205,13 +205,11 @@ const wodBlockBaseTheme = EditorView.baseTheme({
     borderRadius: "0 0 8px 8px",
     backgroundColor: "rgba(59, 130, 246, 0.04)",
     boxShadow: "0 3px 8px -2px rgba(0,0,0,0.08), -3px 0 8px -4px rgba(0,0,0,0.06), 3px 0 8px -4px rgba(0,0,0,0.06)",
-    marginBottom: "4px",
+    paddingBottom: "4px",
   },
 
   // ── Inner WOD lines (the card body) ─────────────────────────────
   ".cm-wod-inner": {
-    fontSize: "15px",
-    lineHeight: "28px",
     fontFamily: "var(--font-mono, monospace)",
     // Left indent so content is visually inset from surrounding markdown
     paddingLeft: "24px",

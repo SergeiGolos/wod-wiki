@@ -35,6 +35,13 @@ const config = {
   },
 
   "viteFinal": (config) => {
+    // Inject app version from package.json at build time
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf-8'));
+    config.define = {
+      ...config.define,
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    };
+
     // Ensure source maps are generated for debugging
     config.build = config.build || {};
     config.build.sourcemap = true;
