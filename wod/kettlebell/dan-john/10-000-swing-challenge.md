@@ -18,7 +18,8 @@ The program follows a structured approach with specific swing rep schemes per se
   50 KB Swing 24kg
   :30 Rest
   1 Goblet Squat 24kg
-
+```
+```wod
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg
@@ -26,7 +27,8 @@ The program follows a structured approach with specific swing rep schemes per se
   50 KB Swing 24kg
   :30 Rest
   2 Goblet Squat 24kg
-
+```
+```wod
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg
@@ -34,7 +36,8 @@ The program follows a structured approach with specific swing rep schemes per se
   50 KB Swing 24kg
   :30 Rest
   3 Goblet Squat 24kg
-
+```
+```wod
 (5)
   10 KB Swing 24kg
   15 KB Swing 24kg
