@@ -37,6 +37,7 @@ import {
   PlusIcon,
   ShieldCheckIcon,
   UserIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/16/solid'
 import {
   Cog6ToothIcon,
@@ -75,6 +76,7 @@ import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSear
 import { HomePageContent } from './HomePage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
+import { GettingStartedPage } from './GettingStartedPage'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { decodeZip } from './services/decodeZip'
@@ -118,6 +120,9 @@ interface WorkoutItem {
  * Wrapper that loads workout content via IndexedDB (or falls back to MD).
  * Keeps WodBlock IDs stable across page loads so results stay linked.
  */
+/** Syntax and documentation pages use in-page popup; collections use route navigation. */
+const INLINE_RUNTIME_CATEGORIES = new Set(['syntax'])
+
 function WorkoutEditorPage({
   category,
   name,
@@ -129,6 +134,7 @@ function WorkoutEditorPage({
   mdContent: string
   theme: string
 }) {
+  const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
   const noteId = PlaygroundDBService.pageId(category, name)
   const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
@@ -155,8 +161,8 @@ function WorkoutEditorPage({
       value={content}
       onChange={onChange}
       noteId={noteId}
-      onStartWorkout={handleStartWorkout}
-      enableInlineRuntime={false}
+      onStartWorkout={usePopup ? undefined : handleStartWorkout}
+      enableInlineRuntime={usePopup}
       visibleCommands={2}
       className="flex-1 min-h-0 w-full"
       theme={theme}
@@ -477,6 +483,9 @@ function AppContent() {
 
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
+    if (location.pathname === '/getting-started') {
+      return { name: 'Getting Started', content: '', category: 'system' }
+    }
     if (isPlaygroundRoute) {
       return { name: 'Playground', content: '', category: 'playground' }
     }
@@ -702,6 +711,10 @@ function AppContent() {
                   K
                 </kbd>
               </SidebarItem>
+              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
+                <AcademicCapIcon data-slot="icon" />
+                <SidebarLabel>Getting Started</SidebarLabel>
+              </SidebarItem>
               <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
                 <PlusIcon data-slot="icon" />
                 <SidebarLabel>New Playground</SidebarLabel>
@@ -826,7 +839,7 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        {currentWorkout.name !== 'Home' && (
+        {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
           <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
             <div className="flex items-center justify-between px-6 lg:px-10">
               <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
@@ -840,7 +853,9 @@ function AppContent() {
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          {isPlaygroundRoute && effectivePlaygroundId ? (
+          {location.pathname === '/getting-started' ? (
+            <GettingStartedPage theme={actualTheme} />
+          ) : isPlaygroundRoute && effectivePlaygroundId ? (
             <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
           ) : currentWorkout.name === 'Home' ? (
             <HomePageContent
@@ -864,7 +879,7 @@ function AppContent() {
         </div>
       </div>
 
-      {currentWorkout.name !== 'Home' && (
+      {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
         <CommandPalette
           isOpen={isCommandPaletteOpen}
           onClose={() => {
@@ -888,6 +903,7 @@ export function App() {
         <CommandProvider>
           <Routes>
             <Route path="/" element={<AppContent />} />
+            <Route path="/getting-started" element={<AppContent />} />
             <Route path="/workout/:category/:name" element={<AppContent />} />
             <Route path="/load" element={<LoadZipPage />} />
             <Route path="/playground" element={<PlaygroundRedirect />} />

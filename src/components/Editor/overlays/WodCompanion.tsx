@@ -448,9 +448,6 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
                    bg-background/70 backdrop-blur-sm border-l border-b border-border/40 rounded-bl-md"
         style={{ top: stickyTopOffset, height: STRIP_H }}
       >
-        {results.length > 0 && (
-          <ResultLine result={results[0]} onOpenReview={onOpenReview} compact />
-        )}
         <CommandButtons
           commands={commands}
           visibleCount={visibleCount}
@@ -500,13 +497,6 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
               <span className="text-xs italic text-muted-foreground">No metrics on this line</span>
             )}
           </div>
-
-          {/* Latest result */}
-          {results.length > 0 && (
-            <div className="border-t border-border/40 shrink-0">
-              <ResultLine result={results[0]} onOpenReview={onOpenReview} compact />
-            </div>
-          )}
 
           {/* Action buttons */}
           <div className="border-t border-border/40 shrink-0">
