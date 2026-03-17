@@ -14,12 +14,14 @@ import {
   SidebarBody,
   SidebarFooter,
   SidebarHeader,
-  SidebarHeading,
   SidebarItem,
   SidebarLabel,
   SidebarSection,
-  SidebarSpacer,
 } from '@/components/playground/sidebar'
+import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
+import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
+import type { Segment } from '@/core/models/AnalyticsModels'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
   ArrowRightStartOnRectangleIcon,
@@ -54,7 +56,9 @@ import {
   ArrowDownTrayIcon,
   BugAntIcon,
   ArrowPathIcon,
+  TableCellsIcon,
 } from '@heroicons/react/20/solid'
+import type { WorkoutResult } from '@/types/storage'
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
@@ -307,6 +311,9 @@ function AppContent() {
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
+  const [reviewSegments, setReviewSegments] = useState<Segment[] | null>(null)
+  const [reviewTitle, setReviewTitle] = useState<string>('Workout Review')
 
   const isPlaygroundRoute = location.pathname.startsWith('/playground/')
 
@@ -374,6 +381,15 @@ function AppContent() {
       return [currentWorkout.name, ...filtered].slice(0, 5)
     })
   }, [currentWorkout.name])
+
+  // Load recent workout results from IndexedDB
+  useEffect(() => {
+    let cancelled = false
+    indexedDBService.getRecentResults(20).then(results => {
+      if (!cancelled) setRecentResults(results)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [location.pathname])
 
   const handleSelectWorkout = (item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
@@ -546,8 +562,7 @@ function AppContent() {
             </SidebarSection>
           </SidebarHeader>
           <SidebarBody>
-            <SidebarSection>
-              <SidebarHeading>Syntax</SidebarHeading>
+            <SidebarAccordion title="Syntax" defaultOpen={location.pathname.startsWith('/workout/syntax')} count={7}>
               <SidebarItem onClick={() => navigate('/workout/syntax/basics')} current={location.pathname === '/workout/syntax/basics'}>
                 <CodeBracketIcon data-slot="icon" />
                 <SidebarLabel>The Basics</SidebarLabel>
@@ -576,12 +591,9 @@ function AppContent() {
                 <CommandLineIcon data-slot="icon" />
                 <SidebarLabel>Agentic Skill</SidebarLabel>
               </SidebarItem>
-            </SidebarSection>
-            
-            <SidebarSpacer />
+            </SidebarAccordion>
 
-            <SidebarSection>
-              <SidebarHeading>Collections</SidebarHeading>
+            <SidebarAccordion title="Collections" count={Object.values(collections).flat().length}>
               {Object.entries(collections).map(([groupName, groupCategories]) => (
                 groupCategories.length > 0 && (
                   <React.Fragment key={groupName}>
@@ -597,12 +609,9 @@ function AppContent() {
                   </React.Fragment>
                 )
               ))}
-            </SidebarSection>
-            
-            <SidebarSpacer />
-            
-            <SidebarSection>
-              <SidebarHeading>Recent</SidebarHeading>
+            </SidebarAccordion>
+
+            <SidebarAccordion title="Recent" count={recentPages.length}>
               {recentPages.map(pageName => {
                 const item = workoutItems.find(i => i.name === pageName) || (pageName === 'Home' ? { name: 'Home', content: PLAYGROUND_CONTENT } : null)
                 if (!item) return null
@@ -612,7 +621,65 @@ function AppContent() {
                   </SidebarItem>
                 )
               })}
-            </SidebarSection>
+            </SidebarAccordion>
+
+            <SidebarAccordion title="Results" count={recentResults.length}>
+              {recentResults.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-zinc-400 dark:text-zinc-500">
+                  No workout results yet. Complete a workout to see results here.
+                </div>
+              ) : (
+                recentResults.map(result => {
+                  const noteLabel = result.noteId.includes('/')
+                    ? result.noteId.split('/').pop()!
+                    : result.noteId
+                  const date = new Date(result.completedAt)
+                  const duration = result.data?.duration
+                    ? `${Math.floor(result.data.duration / 60000)}m ${Math.floor((result.data.duration % 60000) / 1000)}s`
+                    : null
+                  return (
+                    <div key={result.id} className="group flex flex-col gap-0.5 px-2 py-1.5 rounded-lg hover:bg-zinc-950/5 dark:hover:bg-white/5">
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => {
+                            const parts = result.noteId.split('/')
+                            if (parts.length >= 2 && parts[0] === 'playground') {
+                              navigate(`/playground/${encodeURIComponent(parts[1])}`)
+                            } else if (parts.length >= 2) {
+                              navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`)
+                            } else {
+                              // Bare ID (no slash) — treat as playground page
+                              navigate(`/playground/${encodeURIComponent(result.noteId)}`)
+                            }
+                          }}
+                          className="flex-1 min-w-0 text-left text-sm font-medium text-zinc-950 dark:text-white truncate hover:underline"
+                        >
+                          {noteLabel}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (result.data?.logs && result.data.logs.length > 0) {
+                              const { segments } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)
+                              setReviewSegments(segments)
+                              setReviewTitle(noteLabel)
+                            }
+                          }}
+                          title="View result details"
+                          className="shrink-0 p-0.5 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <TableCellsIcon className="size-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
+                        <span>{date.toLocaleDateString()}</span>
+                        {duration && <span>· {duration}</span>}
+                        {result.data?.completed && <span className="text-emerald-500">✓</span>}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </SidebarAccordion>
           </SidebarBody>
         </Sidebar>
       }
@@ -666,6 +733,14 @@ function AppContent() {
           items={workoutItems}
           onSelect={handleSelectWorkout}
           initialCategory={activeCategory}
+        />
+      )}
+
+      {reviewSegments && (
+        <FullscreenReview
+          segments={reviewSegments}
+          onClose={() => setReviewSegments(null)}
+          title={reviewTitle}
         />
       )}
     </SidebarLayout>

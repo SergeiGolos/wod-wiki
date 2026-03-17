@@ -268,6 +268,19 @@ class IndexedDBService {
         return (await this.dbPromise).get('results', resultId);
     }
 
+    async getRecentResults(limit = 20): Promise<WorkoutResult[]> {
+        const db = await this.dbPromise;
+        const tx = db.transaction('results', 'readonly');
+        const idx = tx.objectStore('results').index('by-completed');
+        const results: WorkoutResult[] = [];
+        let cursor = await idx.openCursor(null, 'prev');
+        while (cursor && results.length < limit) {
+            results.push(cursor.value);
+            cursor = await cursor.continue();
+        }
+        return results;
+    }
+
     // =======================================================================
     // Attachments (new in V4)
     // =======================================================================
