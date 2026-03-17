@@ -49,6 +49,7 @@ import { smartIncrement } from "./extensions/smart-increment";
 // Unified editor extensions
 import { sectionField, SectionState, activeCursorSection, type EditorSection } from "./extensions/section-state";
 import { previewDecorations } from "./extensions/preview-decorations";
+import { embedPreviewDecorations } from "./extensions/embed-preview";
 import { frontmatterPreview } from "./extensions/frontmatter-preview";
 import { markdownTablePreview } from "./extensions/markdown-tables";
 import { wodLinter } from "./extensions/wod-linter";
@@ -57,6 +58,55 @@ import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterUnified } from "./extensions/gutter-unified";
+
+/** File drop handler extension */
+const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandlers({
+  drop: (event, view) => {
+    const files = event.dataTransfer?.files;
+    if (!files || files.length === 0) return false;
+
+    // Prevent default drop behavior
+    event.preventDefault();
+
+    // Get drop position
+    const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+    if (pos === null) return false;
+
+    Array.from(files).forEach(async (file) => {
+      const id = uuidv4();
+      const reader = new FileReader();
+
+      reader.onload = async () => {
+        const data = reader.result as ArrayBuffer;
+        
+        // Save to storage
+        await indexedDBService.saveAttachment({
+          id,
+          noteId: noteId || 'current',
+          label: file.name,
+          mimeType: file.type,
+          data,
+          createdAt: Date.now(),
+          timeSpan: { start: Date.now(), end: Date.now() }
+        });
+
+        // Insert markdown link
+        const isImage = file.type.startsWith('image/');
+        const prefix = isImage ? '!' : '';
+        const markdown = `\n${prefix}[${file.name}](${id})\n`;
+
+        view.dispatch({
+          changes: { from: pos, insert: markdown },
+          selection: { anchor: pos + markdown.length }
+        });
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+    return true;
+  }
+});
 
 import {
   wodResultsWidget,
@@ -408,7 +458,12 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       sectionField,
 
       // Block-level preview decorations
-      ...(enablePreview ? [previewDecorations, frontmatterPreview, markdownTablePreview] : []),
+      ...(enablePreview ? [
+        previewDecorations, 
+        embedPreviewDecorations, 
+        frontmatterPreview, 
+        markdownTablePreview
+      ] : []),
 
       // WodScript linting (no separate lintGutter — unified gutter handles it)
       ...(enableLinting ? [wodLinter] : []),
@@ -431,6 +486,9 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
+
+      // File drop handler
+      fileDropHandler(noteId),
 
       // Update listener
       EditorView.updateListener.of((update) => {
@@ -470,6 +528,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       enablePreview,
       enableLinting,
       enableOverlay,
+      noteId,
     ]
   );
 
@@ -574,10 +633,13 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       );
     }
 
-    if (props.sectionType === "frontmatter") {
+    if (props.sectionType === "frontmatter" || props.sectionType === "embed") {
+      const { sections } = props.view.state.field(sectionField);
+      const section = sections.find(s => s.id === props.sectionId);
       return (
         <FrontmatterCompanion
           sectionId={props.sectionId}
+          section={section}
           view={props.view}
           isActive={props.isActive}
           widthPercent={props.widthPercent}

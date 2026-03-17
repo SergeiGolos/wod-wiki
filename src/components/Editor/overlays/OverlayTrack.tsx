@@ -27,11 +27,13 @@ const SLOT_HEIGHT_INACTIVE: Partial<Record<EditorSectionType, number>> = {
   frontmatter: 120,
   code:        60,
   widget:      220,
+  embed:       180,
 };
 const SLOT_HEIGHT_ACTIVE: Partial<Record<EditorSectionType, number>> = {
   frontmatter: 280,
   code:        140,
   widget:      220,
+  embed:       280,
 };
 
 // ── Types ────────────────────────────────────────────────────────────

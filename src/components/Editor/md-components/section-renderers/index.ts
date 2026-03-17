@@ -20,5 +20,5 @@ export type { WodBlockDisplayProps } from './WodBlockDisplay';
 export { WodBlockResults } from './WodBlockResults';
 export type { WodBlockResultsProps } from './WodBlockResults';
 
-export { FrontMatterDisplay } from './FrontMatterDisplay';
+export { FrontMatterDisplay, EmbedDisplay } from './FrontMatterDisplay';
 export type { FrontMatterDisplayProps } from './FrontMatterDisplay';

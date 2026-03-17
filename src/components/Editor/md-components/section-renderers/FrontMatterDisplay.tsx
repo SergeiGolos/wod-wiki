@@ -12,6 +12,7 @@ import React from 'react';
 import type { Section, FrontMatterSubtype } from '../../types/section';
 import { SECTION_LINE_HEIGHT } from '../SectionContainer';
 import { YouTubeEmbed } from './embeds/YouTubeEmbed';
+import { EditorSection } from '../../extensions/section-state';
 import { StravaEmbed } from './embeds/StravaEmbed';
 import { AmazonEmbed } from './embeds/AmazonEmbed';
 import { FilePreviewEmbed } from './embeds/FilePreviewEmbed';
@@ -153,6 +154,57 @@ export const FrontMatterDisplay: React.FC<FrontMatterDisplayProps> = (props) => 
         >
           ---
         </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * EmbedDisplay
+ * 
+ * Renders a preview for single-line markdown embeds (![]() and []()).
+ */
+export const EmbedDisplay: React.FC<{ section: EditorSection }> = ({ section }) => {
+  if (section.type !== 'embed' || !section.embed) return null;
+
+  const { type, url, label, isImage } = section.embed;
+
+  if (type === 'youtube') {
+    return (
+      <div className="py-1">
+        <YouTubeEmbed properties={{ url, title: label }} lineCount={1} />
+      </div>
+    );
+  }
+
+  if (isImage) {
+    return (
+      <div className="py-1">
+        <FilePreviewEmbed properties={{ src: url, alt: label }} lineCount={1} />
+      </div>
+    );
+  }
+
+  // File link / generic link
+  return (
+    <div className="py-1 px-3">
+      <div className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border/40 bg-card/40 hover:bg-card/60 transition-colors">
+        <div className="size-8 shrink-0 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 font-bold text-lg">
+          📎
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold text-foreground truncate">{label || 'Attached File'}</div>
+          <div className="text-[10px] text-muted-foreground truncate">{url}</div>
+        </div>
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
+          className="text-[10px] font-bold text-blue-500 hover:text-blue-600 px-2 py-1 rounded bg-blue-500/10 transition-colors"
+        >
+          OPEN
+        </a>
       </div>
     </div>
   );

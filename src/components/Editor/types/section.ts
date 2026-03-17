@@ -22,7 +22,7 @@ export type WodDialect = 'wod' | 'log' | 'plan';
 export const VALID_WOD_DIALECTS: WodDialect[] = ['wod', 'log', 'plan'];
 
 /** Section types the editor can parse and render */
-export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter';
+export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter' | 'embed';
 
 /** Typed front matter subtypes — determines embed renderer */
 export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | 'file';
@@ -66,6 +66,14 @@ export interface Section {
 
   /** Typed front matter subtype (only when type === 'frontmatter') */
   frontmatterType?: FrontMatterSubtype;
+
+  /** Embed specific data (only when type === 'embed') */
+  embed?: {
+    type: 'image' | 'link' | 'youtube';
+    label: string;
+    url: string;
+    isImage: boolean;
+  };
 
   /** Section version (increments on content change or soft-delete) */
   version: number;
