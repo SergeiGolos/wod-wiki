@@ -37,7 +37,7 @@ import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import type { ScriptRuntime } from "@/runtime/ScriptRuntime";
 import type { StackSnapshot } from "@/runtime/contracts/IRuntimeStack";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
-import { dispatchGutterHighlights } from "../extensions/gutter-runtime";
+import { dispatchGutterHighlights } from "../extensions/gutter-unified";
 import { NextEvent } from "@/runtime/events/NextEvent";
 import { formatTimeMMSS } from "@/lib/formatTime";
 import type { RpcWorkbenchUpdate } from "@/services/cast/rpc/RpcMessages";
@@ -53,8 +53,8 @@ export interface RuntimeTimerPanelProps {
    * `block.startLine` is 0-indexed; gutter base = block.startLine + 1.
    */
   block: WodBlock;
-  /** The CM6 EditorView — needed to dispatch gutter highlights. */
-  view: EditorView;
+  /** The CM6 EditorView — needed to dispatch gutter highlights. Optional for standalone tracker. */
+  view?: EditorView;
   /** Called when the user presses Stop (which also closes the panel). */
   onClose: () => void;
   /** Called when a workout is completed or stopped with results. */
@@ -175,6 +175,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     // ── Gutter highlighting via stack subscription ──────────────────
     const unsubStack = rt.subscribeToStack(
       (snapshot: StackSnapshot) => {
+        if (!view) return;
         if (snapshot.blocks.length === 0) {
           dispatchGutterHighlights(view, []);
           return;
@@ -203,7 +204,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     return () => {
       unsubStack();
       unsubOutput();
-      dispatchGutterHighlights(view, []); // clear gutter on unmount
+      if (view) dispatchGutterHighlights(view, []); // clear gutter on unmount
       rt?.dispose();
     };
 

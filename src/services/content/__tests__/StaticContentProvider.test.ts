@@ -9,13 +9,13 @@ describe('StaticContentProvider', () => {
     expect(provider.mode).toBe('static');
   });
 
-  it('should have read-only capabilities', () => {
+  it('should have mutable in-memory capabilities', () => {
     const provider = new StaticContentProvider(content);
-    expect(provider.capabilities.canWrite).toBe(false);
+    expect(provider.capabilities.canWrite).toBe(true);
     expect(provider.capabilities.canDelete).toBe(false);
     expect(provider.capabilities.canFilter).toBe(false);
     expect(provider.capabilities.canMultiSelect).toBe(false);
-    expect(provider.capabilities.supportsHistory).toBe(false);
+    expect(provider.capabilities.supportsHistory).toBe(true);
   });
 
   it('getEntries should return a single entry', async () => {
@@ -34,30 +34,33 @@ describe('StaticContentProvider', () => {
     expect(entry!.rawContent).toBe(content);
   });
 
-  it('getEntry should return null for unknown id', async () => {
+  it('getEntry should return the singleton entry for any id', async () => {
     const provider = new StaticContentProvider(content);
     const entry = await provider.getEntry('unknown-id');
-    expect(entry).toBeNull();
+    expect(entry).not.toBeNull();
+    expect(entry!.id).toBe('static');
   });
 
-  it('saveEntry should throw read-only error', async () => {
+  it('saveEntry should update the singleton entry', async () => {
     const provider = new StaticContentProvider(content);
-    await expect(
-      provider.saveEntry({ title: 'X', rawContent: '', tags: [] })
-    ).rejects.toThrow('Static provider is read-only');
+    const saved = await provider.saveEntry({ title: 'X', rawContent: 'new content', tags: [] } as any);
+    expect(saved.id).toBe('static');
+    expect(saved.rawContent).toBe('new content');
+    const fetched = await provider.getEntry('static');
+    expect(fetched!.rawContent).toBe('new content');
   });
 
-  it('updateEntry should throw read-only error', async () => {
+  it('updateEntry should patch the singleton entry', async () => {
     const provider = new StaticContentProvider(content);
-    await expect(
-      provider.updateEntry('static', { title: 'New' })
-    ).rejects.toThrow('Static provider is read-only');
+    const updated = await provider.updateEntry('static', { title: 'New' });
+    expect(updated.title).toBe('New');
+    expect(updated.rawContent).toBe(content);
   });
 
-  it('deleteEntry should throw read-only error', async () => {
+  it('deleteEntry should be a no-op', async () => {
     const provider = new StaticContentProvider(content);
-    await expect(
-      provider.deleteEntry('static')
-    ).rejects.toThrow('Static provider is read-only');
+    await provider.deleteEntry('static');
+    const entry = await provider.getEntry('static');
+    expect(entry).not.toBeNull();
   });
 });

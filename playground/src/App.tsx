@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
 import {
   Dropdown,
@@ -14,12 +14,16 @@ import {
   SidebarBody,
   SidebarFooter,
   SidebarHeader,
-  SidebarHeading,
   SidebarItem,
   SidebarLabel,
   SidebarSection,
-  SidebarSpacer,
 } from '@/components/playground/sidebar'
+import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
+import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
+import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
+import type { Segment } from '@/core/models/AnalyticsModels'
+import type { WodBlock } from '@/components/Editor/types'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
   ArrowRightStartOnRectangleIcon,
@@ -54,7 +58,9 @@ import {
   ArrowDownTrayIcon,
   BugAntIcon,
   ArrowPathIcon,
+  TableCellsIcon,
 } from '@heroicons/react/20/solid'
+import type { WorkoutResult } from '@/types/storage'
 
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
@@ -62,9 +68,38 @@ import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
-import { HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomePageContent } from './HomePage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
+import { usePlaygroundContent } from './hooks/usePlaygroundContent'
+import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
+import { indexedDBService } from '@/services/db/IndexedDBService'
+import { decodeZip } from './services/decodeZip'
+import { v4 as uuidv4 } from 'uuid'
+import type { EditorView } from '@codemirror/view'
+import { EditorSelection } from '@codemirror/state'
+import newPlaygroundTemplate from './templates/new-playground.md?raw'
+
+/**
+ * In-memory store for pending runtimes.
+ * When Run is clicked, we stash { block, noteId } here keyed by runtimeId,
+ * then navigate to #/tracker/:runtimeId. TrackerPage consumes and deletes.
+ */
+const pendingRuntimes = new Map<string, { block: WodBlock; noteId: string }>()
+
+const CURSOR_TOKEN = '$CURSOR'
+
+/** Strip the $CURSOR token and return { content, cursorOffset }. */
+function applyTemplate(raw: string): { content: string; cursorOffset: number } {
+  const idx = raw.indexOf(CURSOR_TOKEN)
+  if (idx === -1) return { content: raw, cursorOffset: raw.length }
+  return {
+    content: raw.slice(0, idx) + raw.slice(idx + CURSOR_TOKEN.length),
+    cursorOffset: idx,
+  }
+}
+
+const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
 // Load all markdown files from the wod directory
 const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -76,15 +111,352 @@ interface WorkoutItem {
   content: string
 }
 
+/**
+ * Wrapper that loads workout content via IndexedDB (or falls back to MD).
+ * Keeps WodBlock IDs stable across page loads so results stay linked.
+ */
+function WorkoutEditorPage({
+  category,
+  name,
+  mdContent,
+  theme,
+}: {
+  category: string
+  name: string
+  mdContent: string
+  theme: string
+}) {
+  const noteId = PlaygroundDBService.pageId(category, name)
+  const navigate = useNavigate()
+  const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
+
+  const handleStartWorkout = useCallback(
+    (block: WodBlock) => {
+      const runtimeId = uuidv4()
+      pendingRuntimes.set(runtimeId, { block, noteId })
+      navigate(`/tracker/${runtimeId}`)
+    },
+    [noteId, navigate],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <UnifiedEditor
+      value={content}
+      onChange={onChange}
+      noteId={noteId}
+      onStartWorkout={handleStartWorkout}
+      enableInlineRuntime={false}
+      visibleCommands={2}
+      className="flex-1 min-h-0 w-full"
+      theme={theme}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/load?zip=<base64> — decode zip, save as page, redirect to playground
+// ---------------------------------------------------------------------------
+
+function LoadZipPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const zip = searchParams.get('zip') || searchParams.get('z')
+    if (!zip) {
+      // No zip param — just create an empty playground page
+      navigate('/playground', { replace: true })
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const content = await decodeZip(zip)
+        if (cancelled) return
+        const id = uuidv4()
+        const now = Date.now()
+        const pageId = PlaygroundDBService.pageId('playground', id)
+        await playgroundDB.savePage({
+          id: pageId,
+          category: 'playground',
+          name: id,
+          content,
+          updatedAt: now,
+        })
+        navigate(`/playground/${id}`, { replace: true })
+      } catch {
+        if (!cancelled) setError('Failed to decode the shared link.')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [searchParams, navigate])
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-red-400">
+        {error}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 flex items-center justify-center text-zinc-400">
+      Loading…
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/playground (no id) — create empty page and redirect
+// ---------------------------------------------------------------------------
+
+/** Generate a date-based name: YYYY-MM-DD HH-MM, with -SS.mmm if collision */
+async function generatePlaygroundName(): Promise<string> {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const base = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}`
+  const basePageId = PlaygroundDBService.pageId('playground', base)
+  const existing = await playgroundDB.getPage(basePageId)
+  if (!existing) return base
+  const precise = `${base}-${pad(now.getSeconds())}.${String(now.getMilliseconds()).padStart(3, '0')}`
+  return precise
+}
+
+function PlaygroundRedirect() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    ;(async () => {
+      const id = await generatePlaygroundName()
+      const now = Date.now()
+      const pageId = PlaygroundDBService.pageId('playground', id)
+      await playgroundDB.savePage({
+        id: pageId,
+        category: 'playground',
+        name: id,
+        content: PLAYGROUND_TEMPLATE.content,
+        updatedAt: now,
+      })
+      navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
+    })()
+  }, [navigate])
+
+  return (
+    <div className="flex-1 flex items-center justify-center text-zinc-400">
+      Creating…
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/playground/:id — load page by UUID from DB, render in editor
+// ---------------------------------------------------------------------------
+
+function PlaygroundNotePage({ theme }: { theme: string }) {
+  const { id } = useParams<{ id: string }>()
+  const noteId = id!
+  const navigate = useNavigate()
+  const { content, loading, onChange } = usePlaygroundContent({
+    category: 'playground',
+    name: noteId,
+    mdContent: PLAYGROUND_TEMPLATE.content,
+  })
+
+  // Place cursor at the $CURSOR token position on first mount
+  const cursorPlaced = useRef(false)
+  const handleViewCreated = useCallback((view: EditorView) => {
+    if (cursorPlaced.current) return
+    cursorPlaced.current = true
+    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
+    view.dispatch({ selection: EditorSelection.cursor(offset) })
+  }, [])
+
+  const handleStartWorkout = useCallback(
+    (block: WodBlock) => {
+      const runtimeId = uuidv4()
+      pendingRuntimes.set(runtimeId, { block, noteId })
+      navigate(`/tracker/${runtimeId}`)
+    },
+    [noteId, navigate],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <UnifiedEditor
+      value={content}
+      onChange={onChange}
+      noteId={noteId}
+      onStartWorkout={handleStartWorkout}
+      enableInlineRuntime={false}
+      onViewCreated={handleViewCreated}
+      visibleCommands={2}
+      className="flex-1 min-h-0 w-full"
+      theme={theme}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/review/:resultId — load result from IndexedDB and show FullscreenReview
+// ---------------------------------------------------------------------------
+
+function ReviewPage() {
+  const { runtimeId } = useParams<{ runtimeId: string }>()
+  const navigate = useNavigate()
+  const [segments, setSegments] = useState<Segment[] | null>(null)
+  const [title, setTitle] = useState('Workout Review')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const resultId = runtimeId
+    if (!resultId) return
+    let cancelled = false
+    indexedDBService.getResultById(resultId).then(result => {
+      if (cancelled) return
+      if (!result) {
+        setError('Result not found.')
+        return
+      }
+      const noteLabel = result.noteId.includes('/')
+        ? result.noteId.split('/').pop()!
+        : result.noteId
+      setTitle(noteLabel)
+      if (result.data?.logs && result.data.logs.length > 0) {
+        const { segments: s } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)
+        setSegments(s)
+      } else {
+        setSegments([])
+      }
+    }).catch(() => {
+      if (!cancelled) setError('Failed to load result.')
+    })
+    return () => { cancelled = true }
+  }, [runtimeId])
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-red-400">
+        {error}
+      </div>
+    )
+  }
+
+  if (segments === null) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <FullscreenReview
+      segments={segments}
+      onClose={() => navigate(-1)}
+      title={title}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/tracker/:runtimeId — run a workout from a pending runtime
+// ---------------------------------------------------------------------------
+
+function TrackerPage() {
+  const { runtimeId } = useParams<{ runtimeId: string }>()
+  const navigate = useNavigate()
+  const pendingRef = useRef(runtimeId ? pendingRuntimes.get(runtimeId) : undefined)
+
+  // Consume from the pending store on mount so it doesn't leak
+  useEffect(() => {
+    if (runtimeId) pendingRuntimes.delete(runtimeId)
+  }, [runtimeId])
+
+  const pending = pendingRef.current
+
+  const handleComplete = useCallback(
+    (blockId: string, results: any) => {
+      if (!results || !runtimeId || !pending) return
+      indexedDBService.saveResult({
+        id: runtimeId,
+        noteId: pending.noteId,
+        segmentId: blockId,
+        sectionId: blockId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
+      }).then(() => {
+        if (results.completed) {
+          navigate(`/review/${runtimeId}`, { replace: true })
+        }
+      }).catch(() => {})
+    },
+    [runtimeId, pending, navigate],
+  )
+
+  const handleClose = useCallback(() => {
+    if (!pending) { navigate('/'); return }
+    // Go back to the note
+    const parts = pending.noteId.split('/')
+    if (parts.length >= 2 && parts[0] === 'playground') {
+      navigate(`/playground/${encodeURIComponent(parts[1])}`, { replace: true })
+    } else if (parts.length >= 2) {
+      navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`, { replace: true })
+    } else {
+      navigate('/', { replace: true })
+    }
+  }, [pending, navigate])
+
+  if (!pending) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-red-400">
+        Runtime not found. Please start the workout from the editor.
+      </div>
+    )
+  }
+
+  return (
+    <FullscreenTimer
+      block={pending.block}
+      onClose={handleClose}
+      onCompleteWorkout={handleComplete}
+      autoStart
+    />
+  )
+}
+
 function AppContent() {
   const navigate = useNavigate()
-  const { category: urlCategory, name: urlName } = useParams()
+  const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
   const location = useLocation()
   
   const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen } = useCommandPalette()
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
+
+  // Unified note route: /note/playground/:name behaves like /playground/:name
+  const isNotePlayground = location.pathname.startsWith('/note/playground/')
+  const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground
+  // For /note/playground/:name, use urlName as the playground ID
+  const effectivePlaygroundId = playgroundId || (isNotePlayground ? urlName : undefined)
 
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
@@ -102,6 +474,9 @@ function AppContent() {
 
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
+    if (isPlaygroundRoute) {
+      return { name: 'Playground', content: '', category: 'playground' }
+    }
     if (location.pathname === '/' || !urlName) {
       return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
     }
@@ -110,7 +485,7 @@ function AppContent() {
     const category = urlCategory ? decodeURIComponent(urlCategory) : 'General'
     
     return workoutItems.find(item => item.name === name && item.category === category) || { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
-  }, [urlCategory, urlName, workoutItems, location.pathname])
+  }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute])
 
   const collections = useMemo(() => {
     const categories = Array.from(new Set(workoutItems.map(item => item.category)))
@@ -148,6 +523,17 @@ function AppContent() {
     })
   }, [currentWorkout.name])
 
+  // Load recent workout results from IndexedDB
+  const refreshResults = useCallback(() => {
+    indexedDBService.getRecentResults(20).then(results => {
+      setRecentResults(results)
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    refreshResults()
+  }, [location.pathname, refreshResults])
+
   const handleSelectWorkout = (item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
     if (workout.name === 'Home') {
@@ -168,8 +554,9 @@ function AppContent() {
     setIsCommandPaletteOpen(true)
   }
 
-  const handleResetData = () => {
+  const handleResetData = async () => {
     localStorage.clear()
+    await playgroundDB.clearAll()
     window.location.reload()
   }
 
@@ -246,9 +633,9 @@ function AppContent() {
                 K
               </kbd>
             </NavbarItem>
-            <NavbarItem className="lg:hidden">
+            <div className="lg:hidden">
               <CastButtonRpc />
-            </NavbarItem>
+            </div>
             <NavbarItem href="/inbox" className="max-lg:hidden" aria-label="Inbox">
               <InboxIcon data-slot="icon" />
             </NavbarItem>
@@ -311,11 +698,14 @@ function AppContent() {
                   K
                 </kbd>
               </SidebarItem>
+              <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
+                <PlusIcon data-slot="icon" />
+                <SidebarLabel>New Playground</SidebarLabel>
+              </SidebarItem>
             </SidebarSection>
           </SidebarHeader>
           <SidebarBody>
-            <SidebarSection>
-              <SidebarHeading>Syntax</SidebarHeading>
+            <SidebarAccordion title="Syntax" defaultOpen={location.pathname.startsWith('/workout/syntax')} count={7}>
               <SidebarItem onClick={() => navigate('/workout/syntax/basics')} current={location.pathname === '/workout/syntax/basics'}>
                 <CodeBracketIcon data-slot="icon" />
                 <SidebarLabel>The Basics</SidebarLabel>
@@ -344,12 +734,9 @@ function AppContent() {
                 <CommandLineIcon data-slot="icon" />
                 <SidebarLabel>Agentic Skill</SidebarLabel>
               </SidebarItem>
-            </SidebarSection>
-            
-            <SidebarSpacer />
+            </SidebarAccordion>
 
-            <SidebarSection>
-              <SidebarHeading>Collections</SidebarHeading>
+            <SidebarAccordion title="Collections" count={Object.values(collections).flat().length}>
               {Object.entries(collections).map(([groupName, groupCategories]) => (
                 groupCategories.length > 0 && (
                   <React.Fragment key={groupName}>
@@ -365,12 +752,9 @@ function AppContent() {
                   </React.Fragment>
                 )
               ))}
-            </SidebarSection>
-            
-            <SidebarSpacer />
-            
-            <SidebarSection>
-              <SidebarHeading>Recent</SidebarHeading>
+            </SidebarAccordion>
+
+            <SidebarAccordion title="Recent" count={recentPages.length}>
               {recentPages.map(pageName => {
                 const item = workoutItems.find(i => i.name === pageName) || (pageName === 'Home' ? { name: 'Home', content: PLAYGROUND_CONTENT } : null)
                 if (!item) return null
@@ -380,7 +764,59 @@ function AppContent() {
                   </SidebarItem>
                 )
               })}
-            </SidebarSection>
+            </SidebarAccordion>
+
+            <SidebarAccordion title="Results" count={recentResults.length}>
+              {recentResults.length === 0 ? (
+                <div className="px-2 py-3 text-xs text-zinc-400 dark:text-zinc-500">
+                  No workout results yet. Complete a workout to see results here.
+                </div>
+              ) : (
+                recentResults.map(result => {
+                  const noteLabel = result.noteId.includes('/')
+                    ? result.noteId.split('/').pop()!
+                    : result.noteId
+                  const date = new Date(result.completedAt)
+                  const duration = result.data?.duration
+                    ? `${Math.floor(result.data.duration / 60000)}m ${Math.floor((result.data.duration % 60000) / 1000)}s`
+                    : null
+                  return (
+                    <div key={result.id} className="group flex flex-col gap-0.5 px-2 py-1.5 rounded-lg hover:bg-zinc-950/5 dark:hover:bg-white/5">
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => {
+                            const parts = result.noteId.split('/')
+                            if (parts.length >= 2) {
+                              navigate(`/note/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`)
+                            } else {
+                              // Bare ID (no slash) — treat as playground page
+                              navigate(`/note/playground/${encodeURIComponent(result.noteId)}`)
+                            }
+                          }}
+                          className="flex-1 min-w-0 text-left text-sm font-medium text-zinc-950 dark:text-white truncate hover:underline"
+                        >
+                          {noteLabel}
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate(`/review/${result.id}`)
+                          }}
+                          title="View result details"
+                          className="shrink-0 p-0.5 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <TableCellsIcon className="size-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
+                        <span>{date.toLocaleDateString()}</span>
+                        {duration && <span>· {duration}</span>}
+                        {result.data?.completed && <span className="text-emerald-500">✓</span>}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </SidebarAccordion>
           </SidebarBody>
         </Sidebar>
       }
@@ -400,7 +836,9 @@ function AppContent() {
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          {currentWorkout.name === 'Home' ? (
+          {isPlaygroundRoute && effectivePlaygroundId ? (
+            <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
+          ) : currentWorkout.name === 'Home' ? (
             <HomePageContent
               actualTheme={actualTheme}
               workoutItems={workoutItems}
@@ -411,11 +849,11 @@ function AppContent() {
               setActiveCategory={setActiveCategory}
             />
           ) : (
-            <UnifiedEditor
-              key={currentWorkout.name}
-              value={currentWorkout.content}
-              onChange={() => {}} // Read-only for now via routing, or could sync back
-              className="flex-1 min-h-0 w-full"
+            <WorkoutEditorPage
+              key={`${currentWorkout.category}/${currentWorkout.name}`}
+              category={currentWorkout.category}
+              name={currentWorkout.name}
+              mdContent={currentWorkout.content}
               theme={actualTheme}
             />
           )}
@@ -434,6 +872,7 @@ function AppContent() {
           initialCategory={activeCategory}
         />
       )}
+
     </SidebarLayout>
   )
 }
@@ -446,6 +885,12 @@ export function App() {
           <Routes>
             <Route path="/" element={<AppContent />} />
             <Route path="/workout/:category/:name" element={<AppContent />} />
+            <Route path="/load" element={<LoadZipPage />} />
+            <Route path="/playground" element={<PlaygroundRedirect />} />
+            <Route path="/playground/:id" element={<AppContent />} />
+            <Route path="/note/:category/:name" element={<AppContent />} />
+            <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
+            <Route path="/review/:runtimeId" element={<ReviewPage />} />
             <Route path="*" element={<AppContent />} />
           </Routes>
         </CommandProvider>

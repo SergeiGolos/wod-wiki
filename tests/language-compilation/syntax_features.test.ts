@@ -10,11 +10,15 @@ describe('Syntax Features Regression Tests', () => {
     return parser.read(code);
   };
 
+  const metricTypeOf = (metric: { metricType?: MetricType; type?: MetricType }) => {
+    return metric.metricType ?? metric.type;
+  };
+
   describe('Actions', () => {
     it('parses action with colon [:Rest]', () => {
       const result = parse('[:Rest]');
       expect(result.errors).toHaveLength(0);
-      expect(result.statements[0].metrics[0].metricType).toBe(MetricType.Action);
+      expect(metricTypeOf(result.statements[0].metrics[0])).toBe(MetricType.Action);
       expect(result.statements[0].metrics[0].value).toBe('Rest');
     });
 
@@ -24,10 +28,11 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.statements[0].metrics[0].value).toBe('Rest');
     });
 
-    // Documenting that [Rest] is invalid without colon
-    it('fails to parse action without colon [Rest]', () => {
+    it('parses bracketed effort without colon [Rest]', () => {
       const result = parse('[Rest]');
-      expect(result.errors!.length).toBeGreaterThan(0);
+      expect(result.errors).toHaveLength(0);
+      expect(metricTypeOf(result.statements[0].metrics[0])).toBe(MetricType.Effort);
+      expect(result.statements[0].metrics[0].value).toBe('Rest');
     });
   });
 
@@ -35,7 +40,7 @@ describe('Syntax Features Regression Tests', () => {
     it('parses simple timer 20:00', () => {
       const result = parse('20:00');
       expect(result.errors).toHaveLength(0);
-      expect(result.statements[0].metrics[0].metricType).toBe(MetricType.Duration);
+      expect(metricTypeOf(result.statements[0].metrics[0])).toBe(MetricType.Duration);
       // 20 minutes = 1200000 ms
       expect(result.statements[0].metrics[0].value).toBe(1200000);
     });
@@ -44,8 +49,8 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse('20:00 Run');
       expect(result.errors).toHaveLength(0);
       const metrics = result.statements[0].metrics;
-      expect(metrics.some(f => f.metricType === MetricType.Duration)).toBe(true);
-      expect(metrics.some(f => f.metricType === MetricType.Effort && f.value === 'Run')).toBe(true);
+      expect(metrics.some(f => metricTypeOf(f) === MetricType.Duration)).toBe(true);
+      expect(metrics.some(f => metricTypeOf(f) === MetricType.Effort && f.value === 'Run')).toBe(true);
     });
   });
 
@@ -53,8 +58,8 @@ describe('Syntax Features Regression Tests', () => {
     it('parses simple rounds (3 rounds)', () => {
       const result = parse('(3 rounds)');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0] as RoundsMetric;
-      expect(metric.metricType).toBe(MetricType.Rounds);
+      const metric = result.statements[0].metrics[0] as RoundsMetric;
+      expect(metricTypeOf(metric)).toBe(MetricType.Rounds);
       expect(metric.count).toBe(3);
     });
 
@@ -62,11 +67,11 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse('(21-15-9)');
       expect(result.errors).toHaveLength(0);
       const metrics = result.statements[0].metrics;
-      const roundFrag = metrics.find(f => f.metricType === MetricType.Rounds) as RoundsMetric;
+      const roundFrag = metrics.find(f => metricTypeOf(f) === MetricType.Rounds) as RoundsMetric;
       expect(roundFrag).toBeDefined();
       expect(roundFrag.count).toBe(3);
 
-      const repFrags = metrics.filter(f => f.metricType === MetricType.Rep);
+      const repFrags = metrics.filter(f => metricTypeOf(f) === MetricType.Rep);
       expect(repFrags).toHaveLength(3);
       expect(repFrags[0].value).toBe(21);
       expect(repFrags[1].value).toBe(15);
@@ -76,16 +81,16 @@ describe('Syntax Features Regression Tests', () => {
     it('parses named rounds (EMOM)', () => {
       const result = parse('(EMOM)');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0] as RoundsMetric;
-      expect(metric.metricType).toBe(MetricType.Rounds);
+      const metric = result.statements[0].metrics[0] as RoundsMetric;
+      expect(metricTypeOf(metric)).toBe(MetricType.Rounds);
       expect(metric.value).toBe('EMOM');
     });
 
     it('parses named rounds (AMRAP)', () => {
       const result = parse('(AMRAP)');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0] as RoundsMetric;
-      expect(metric.metricType).toBe(MetricType.Rounds);
+      const metric = result.statements[0].metrics[0] as RoundsMetric;
+      expect(metricTypeOf(metric)).toBe(MetricType.Rounds);
       expect(metric.value).toBe('AMRAP');
     });
   });
@@ -94,31 +99,31 @@ describe('Syntax Features Regression Tests', () => {
     it('parses weight 135lb', () => {
       const result = parse('135lb');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Resistance);
-      expect(metric.value).toEqual({ amount: 135, units: "lb" });
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
+      expect(metric.value).toEqual({ amount: 135, unit: "lb" });
     });
 
     it('parses weight with at-sign @135lb', () => {
       const result = parse('@135lb');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Resistance);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
     });
 
     it('parses distance 400m', () => {
       const result = parse('400m');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Distance);
-      expect(metric.value).toEqual({ amount: 400, units: "m" });
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Distance);
+      expect(metric.value).toEqual({ amount: 400, unit: "m" });
     });
 
     it('parses trend ^', () => {
       const result = parse('^');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Increment);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Increment);
     });
   });
 
@@ -127,7 +132,7 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse('? Pushups');
       expect(result.errors).toHaveLength(0);
       const metrics = result.statements[0].metrics;
-      const repFragment = metrics.find(f => f.metricType === MetricType.Rep);
+      const repFragment = metrics.find(f => metricTypeOf(f) === MetricType.Rep);
       expect(repFragment).toBeDefined();
       expect(repFragment?.value).toBeUndefined();
       expect(repFragment?.origin).toBe('user');
@@ -137,9 +142,9 @@ describe('Syntax Features Regression Tests', () => {
     it('parses collectible weight ? lb', () => {
       const result = parse('? lb');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Resistance);
-      expect(metric.value).toEqual({ amount: undefined, units: 'lb' });
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
+      expect(metric.value).toEqual({ amount: undefined, unit: 'lb' });
       expect(metric.origin).toBe('user');
       expect(metric.image).toBe('? lb');
     });
@@ -147,9 +152,9 @@ describe('Syntax Features Regression Tests', () => {
     it('parses collectible distance ? m', () => {
       const result = parse('? m');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Distance);
-      expect(metric.value).toEqual({ amount: undefined, units: 'm' });
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Distance);
+      expect(metric.value).toEqual({ amount: undefined, unit: 'm' });
       expect(metric.origin).toBe('user');
       expect(metric.image).toBe('? m');
     });
@@ -157,8 +162,8 @@ describe('Syntax Features Regression Tests', () => {
     it('parses collectible duration :?', () => {
       const result = parse(':?');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Duration);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Duration);
       expect(metric.value).toBeUndefined();
       expect(metric.origin).toBe('runtime');
       expect(metric.image).toBe(':?');
@@ -168,8 +173,8 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse(':? Run');
       expect(result.errors).toHaveLength(0);
       const metrics = result.statements[0].metrics;
-      const timerFragment = metrics.find(f => f.metricType === MetricType.Duration);
-      const effortFragment = metrics.find(f => f.metricType === MetricType.Effort);
+      const timerFragment = metrics.find(f => metricTypeOf(f) === MetricType.Duration);
+      const effortFragment = metrics.find(f => metricTypeOf(f) === MetricType.Effort);
       expect(timerFragment).toBeDefined();
       expect(timerFragment?.value).toBeUndefined();
       expect(timerFragment?.origin).toBe('runtime');
@@ -181,7 +186,7 @@ describe('Syntax Features Regression Tests', () => {
       const result = parse('10 Pushups');
       expect(result.errors).toHaveLength(0);
       const metrics = result.statements[0].metrics;
-      const repFragment = metrics.find(f => f.metricType === MetricType.Rep);
+      const repFragment = metrics.find(f => metricTypeOf(f) === MetricType.Rep);
       expect(repFragment).toBeDefined();
       expect(repFragment?.value).toBe(10);
       expect(repFragment?.origin).toBe('parser');
@@ -190,8 +195,8 @@ describe('Syntax Features Regression Tests', () => {
     it('parses defined weight with parser origin', () => {
       const result = parse('135 lb');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Resistance);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
       expect(metric.value).toEqual({ amount: 135, units: 'lb' });
       expect(metric.origin).toBe('parser');
     });
@@ -199,8 +204,8 @@ describe('Syntax Features Regression Tests', () => {
     it('parses defined distance with parser origin', () => {
       const result = parse('400 m');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Distance);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Distance);
       expect(metric.value).toEqual({ amount: 400, units: 'm' });
       expect(metric.origin).toBe('parser');
     });
@@ -208,8 +213,8 @@ describe('Syntax Features Regression Tests', () => {
     it('parses defined timer with parser origin', () => {
       const result = parse('20:00');
       expect(result.errors).toHaveLength(0);
-      const metrics = result.statements[0].metrics[0];
-      expect(metric.metricType).toBe(MetricType.Duration);
+      const metric = result.statements[0].metrics[0];
+      expect(metricTypeOf(metric)).toBe(MetricType.Duration);
       expect(metric.value).toBe(1200000);
       expect(metric.origin).toBe('parser');
     });

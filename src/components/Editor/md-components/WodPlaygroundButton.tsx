@@ -1,14 +1,13 @@
 /**
  * WodPlaygroundButton
  *
- * Split pill that: (a) opens the Playground story pre-loaded with a WOD
+ * Split pill that: (a) opens the Playground pre-loaded with a WOD
  * block's content, and (b) copies that URL to the clipboard.
  *
- * URL format: /?path=/story/playground--default&z=<gzip+base64 encoded markdown>
+ * URL format: {origin}/#/load?zip=<gzip+base64 encoded markdown>
  *
- * The `?z=` param is decoded by `useZParamContent` in StorybookWorkbench.
- * That hook tries both window.location.search (iframe) and
- * window.parent.location.search (full Storybook UI), whichever has the param.
+ * The `?zip=` param is decoded by the playground's LoadZipPage component,
+ * which saves it as a new page in IndexedDB and redirects to #/playground/{uuid}.
  */
 
 import React, { useCallback, useState } from 'react';
@@ -24,7 +23,7 @@ import { cn } from '@/lib/utils';
  * Falls back to plain base64 if CompressionStream is unavailable (e.g. older
  * browser / non-secure context — very unlikely in modern Storybook).
  */
-async function gzipBase64(text: string): Promise<string> {
+export async function gzipBase64(text: string): Promise<string> {
   const bytes = new TextEncoder().encode(text);
 
   if (typeof CompressionStream !== 'undefined') {
@@ -59,12 +58,12 @@ async function gzipBase64(text: string): Promise<string> {
  * Builds the full absolute playground URL for the given WOD content string
  * (raw inner content of the wod fence, without the opening/closing fences).
  */
-async function buildPlaygroundUrl(wodContent: string): Promise<string> {
+export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
   // Wrap in a markdown wod fence so the playground receives valid markdown
   const markdown = `\`\`\`wod\n${wodContent.trimEnd()}\n\`\`\`\n`;
   const encoded = await gzipBase64(markdown);
   const base = window.location.origin;
-  return `${base}/?path=/story/playground--default&z=${encoded}`;
+  return `${base}/#/load?zip=${encoded}`;
 }
 
 // ---------------------------------------------------------------------------

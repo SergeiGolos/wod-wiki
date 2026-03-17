@@ -13,8 +13,6 @@ import {
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { 
   bracketMatching, 
-  foldGutter, 
-  foldKeymap, 
   indentOnInput, 
   syntaxHighlighting, 
   defaultHighlightStyle 
@@ -92,13 +90,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     autocompletion(),
     highlightActiveLine(),
     highlightSelectionMatches(),
-    foldGutter(),
     keymap.of([
       ...closeBracketsKeymap,
       ...defaultKeymap,
       ...searchKeymap,
       ...historyKeymap,
-      ...foldKeymap,
       ...completionKeymap,
       ...lintKeymap,
       indentWithTab,

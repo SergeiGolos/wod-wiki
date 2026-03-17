@@ -64,8 +64,7 @@ function findActiveStatement(
   if (!statements.length) return null;
   // 1-based line within the content string
   const lineInContent = cursorDocLine - section.startLine;  // startLine = fence line
-  const match = statements.find((s) => s.meta?.line === lineInContent);
-  return match ?? statements[0];
+  return statements.find((s) => s.meta?.line === lineInContent) ?? null;
 }
 
 /** Format milliseconds as M:SS or H:MM:SS */
@@ -164,7 +163,7 @@ const CommandButtons: React.FC<{
   // ── COMPACT (inactive strip) ── thin pill buttons, top-right corner
   if (compact) {
     return (
-      <div className="flex flex-col items-end gap-1 p-1.5">
+      <div className="flex flex-row items-center gap-1 p-1.5">
         {visible.map((cmd) => (
           <button
             key={cmd.id}
@@ -396,8 +395,13 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
     ? hoverLine!
     : (isPanelHovered ? (lastHoverLineRef.current ?? null) : null);
 
-  const showCard = isActive || effectiveHoverLine !== null;
   const effectiveLine = isActive ? cursorLine : (effectiveHoverLine ?? cursorLine);
+
+  // Don't show the card when on the opening ```wod or closing ``` fence lines
+  const onFenceLine = section
+    ? effectiveLine === section.startLine || effectiveLine === section.endLine
+    : false;
+  const showCard = !onFenceLine && (isActive || effectiveHoverLine !== null);
 
   const activeStatement = useMemo(
     () => (section && showCard ? findActiveStatement(statements, section, effectiveLine) : null),

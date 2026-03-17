@@ -1,0 +1,5 @@
+# My Workout
+
+```wod
+$CURSOR
+```
