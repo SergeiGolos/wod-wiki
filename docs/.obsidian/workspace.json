@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "unified-editor-research-curriculum.md",
+                "file": "finishline/command-palette-editor.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "unified-editor-research-curriculum"
+              "title": "command-palette-editor"
             }
           }
         ]
@@ -182,10 +182,20 @@
   },
   "active": "ce524ac6422799a0",
   "lastOpenFiles": [
+    "finishline/README.md",
+    "domain-model/repositories.md",
+    "finishline/command-palette-editor.md",
+    "finishline/report-renderer.md",
+    "finishline/query-language.md",
+    "finishline",
+    "domain-model/README.md",
+    "domain-model/overview.md",
+    "domain-model/entities.md",
     "unified-editor-prd.md",
+    "domain-model",
+    "unified-editor-research-curriculum.md",
     "unified-editor-adr.md",
     "decoupling-planner-workbench.md",
-    "unified-editor-research-curriculum.md",
     "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",
     "Untitled 1.md",
@@ -204,14 +214,6 @@
     "architecture/STORAGE_V4_PLAN.md",
     "architecture/time-terminology.md",
     "architecture/output-statement-deep-dive.md",
-    "architecture/PERSISTENCE_STRATEGY.md",
-    "architecture/NAVIGATION_DECOUPLING.md",
-    "Workbench data state..md",
-    "domain-model/memory/FragmentDisplayState.md",
-    "domain-model/memory/ChildrenStatusState.md",
-    "architecture/ANALYTICS_SYSTEM_REVIEW.md",
-    "architecture/STORAGE_SCHEMA.md",
-    "DEPRECATION_CLEANUP.md",
     "Behavior Map.canvas",
     "diagrams/runtime-state-machine.canvas",
     "diagrams/domain-model-overview.canvas",
@@ -221,7 +223,6 @@
     "restructure",
     "code-mirror",
     "TV Navigation and Focus Management Implementation Guide_notes",
-    "TV Navigation and Focus Management Implementation Guide_notes.zip",
-    "Unconfirmed 507917.crdownload"
+    "TV Navigation and Focus Management Implementation Guide_notes.zip"
   ]
 }
