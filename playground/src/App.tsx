@@ -111,11 +111,13 @@ function WorkoutEditorPage({
   name,
   mdContent,
   theme,
+  onResultSaved,
 }: {
   category: string
   name: string
   mdContent: string
   theme: string
+  onResultSaved?: () => void
 }) {
   const noteId = PlaygroundDBService.pageId(category, name)
   const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
@@ -131,11 +133,13 @@ function WorkoutEditorPage({
         data: results,
         completedAt: results.endTime || Date.now(),
       }
-      indexedDBService.saveResult(result).catch(() => {
+      indexedDBService.saveResult(result).then(() => {
+        onResultSaved?.()
+      }).catch(() => {
         // IndexedDB unavailable — silently ignore
       })
     },
-    [noteId],
+    [noteId, onResultSaved],
   )
 
   if (loading) {
@@ -218,22 +222,35 @@ function LoadZipPage() {
 // #/playground (no id) — create empty page and redirect
 // ---------------------------------------------------------------------------
 
+/** Generate a date-based name: YYYY-MM-DD HH-MM, with -SS.mmm if collision */
+async function generatePlaygroundName(): Promise<string> {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const base = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}`
+  const basePageId = PlaygroundDBService.pageId('playground', base)
+  const existing = await playgroundDB.getPage(basePageId)
+  if (!existing) return base
+  const precise = `${base}-${pad(now.getSeconds())}.${String(now.getMilliseconds()).padStart(3, '0')}`
+  return precise
+}
+
 function PlaygroundRedirect() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const id = uuidv4()
-    const now = Date.now()
-    const pageId = PlaygroundDBService.pageId('playground', id)
-    playgroundDB.savePage({
-      id: pageId,
-      category: 'playground',
-      name: id,
-      content: PLAYGROUND_TEMPLATE.content,
-      updatedAt: now,
-    }).then(() => {
-      navigate(`/playground/${id}`, { replace: true })
-    })
+    ;(async () => {
+      const id = await generatePlaygroundName()
+      const now = Date.now()
+      const pageId = PlaygroundDBService.pageId('playground', id)
+      await playgroundDB.savePage({
+        id: pageId,
+        category: 'playground',
+        name: id,
+        content: PLAYGROUND_TEMPLATE.content,
+        updatedAt: now,
+      })
+      navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
+    })()
   }, [navigate])
 
   return (
@@ -247,7 +264,7 @@ function PlaygroundRedirect() {
 // #/playground/:id — load page by UUID from DB, render in editor
 // ---------------------------------------------------------------------------
 
-function PlaygroundNotePage({ theme }: { theme: string }) {
+function PlaygroundNotePage({ theme, onResultSaved }: { theme: string; onResultSaved?: () => void }) {
   const { id } = useParams<{ id: string }>()
   const noteId = id!
   const { content, loading, onChange } = usePlaygroundContent({
@@ -275,9 +292,11 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
         sectionId: blockId,
         data: results,
         completedAt: results.endTime || Date.now(),
+      }).then(() => {
+        onResultSaved?.()
       }).catch(() => {})
     },
-    [noteId],
+    [noteId, onResultSaved],
   )
 
   if (loading) {
@@ -383,13 +402,15 @@ function AppContent() {
   }, [currentWorkout.name])
 
   // Load recent workout results from IndexedDB
-  useEffect(() => {
-    let cancelled = false
+  const refreshResults = useCallback(() => {
     indexedDBService.getRecentResults(20).then(results => {
-      if (!cancelled) setRecentResults(results)
+      setRecentResults(results)
     }).catch(() => {})
-    return () => { cancelled = true }
-  }, [location.pathname])
+  }, [])
+
+  useEffect(() => {
+    refreshResults()
+  }, [location.pathname, refreshResults])
 
   const handleSelectWorkout = (item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
@@ -700,7 +721,7 @@ function AppContent() {
         
         <div className="flex-1 flex flex-col min-h-0">
           {isPlaygroundRoute && playgroundId ? (
-            <PlaygroundNotePage key={playgroundId} theme={actualTheme} />
+            <PlaygroundNotePage key={playgroundId} theme={actualTheme} onResultSaved={refreshResults} />
           ) : currentWorkout.name === 'Home' ? (
             <HomePageContent
               actualTheme={actualTheme}
@@ -718,6 +739,7 @@ function AppContent() {
               name={currentWorkout.name}
               mdContent={currentWorkout.content}
               theme={actualTheme}
+              onResultSaved={refreshResults}
             />
           )}
         </div>
