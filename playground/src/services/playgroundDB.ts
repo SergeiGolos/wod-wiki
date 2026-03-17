@@ -1,10 +1,12 @@
 /**
- * PlaygroundDB — IndexedDB persistence for playground workout pages.
+ * PlaygroundDB — IndexedDB persistence for playground pages.
  *
- * Provides a cache layer so that edited workout content is preserved across
- * page loads. WodBlock IDs are deterministic hashes of content + position, so
- * persisting the content ensures the same IDs are generated each time, keeping
- * workout results linked to the correct block.
+ * Every page lives in the same `pages` store:
+ *   - Static WOD files are keyed by `category/name`
+ *   - User-created / zip-loaded pages are keyed by UUID
+ *
+ * Persisting content ensures WodBlock IDs (deterministic hashes) remain
+ * stable across reloads, keeping workout results linked to the correct block.
  */
 
 import { openDB, IDBPDatabase, DBSchema } from 'idb';
@@ -14,9 +16,11 @@ import { openDB, IDBPDatabase, DBSchema } from 'idb';
 // ---------------------------------------------------------------------------
 
 export interface PlaygroundPage {
-  /** Deterministic key: `${category}/${name}` */
+  /** `category/name` for static WOD files, UUID for user-created pages */
   id: string;
+  /** Category label (e.g. 'crossfit-girls') or 'playground' */
   category: string;
+  /** Display name (e.g. 'fran' or 'Untitled') */
   name: string;
   /** The (possibly edited) markdown content */
   content: string;
@@ -28,12 +32,12 @@ interface PlaygroundDBSchema extends DBSchema {
   pages: {
     key: string;
     value: PlaygroundPage;
-    indexes: { 'by-updated': number };
+    indexes: { 'by-updated': number; 'by-category': string };
   };
 }
 
 const DB_NAME = 'wodwiki-playground';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // ---------------------------------------------------------------------------
 // Service
@@ -44,10 +48,19 @@ export class PlaygroundDBService {
 
   constructor() {
     this.dbPromise = openDB<PlaygroundDBSchema>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        // Drop and recreate on major schema change
+        if (oldVersion < 2 && db.objectStoreNames.contains('pages')) {
+          db.deleteObjectStore('pages');
+        }
+        // Clean up v1 notes store if it exists
+        if (oldVersion < 2 && (db.objectStoreNames as DOMStringList).contains('notes')) {
+          db.deleteObjectStore('notes' as any);
+        }
         if (!db.objectStoreNames.contains('pages')) {
           const store = db.createObjectStore('pages', { keyPath: 'id' });
           store.createIndex('by-updated', 'updatedAt');
+          store.createIndex('by-category', 'category');
         }
       },
     });
@@ -72,6 +85,11 @@ export class PlaygroundDBService {
 
   async getAllPages(): Promise<PlaygroundPage[]> {
     return (await this.dbPromise).getAll('pages');
+  }
+
+  /** Get all pages in a given category (e.g. 'playground'). */
+  async getPagesByCategory(category: string): Promise<PlaygroundPage[]> {
+    return (await this.dbPromise).getAllFromIndex('pages', 'by-category', category);
   }
 
   /** Delete all cached pages (reset to MD originals). */

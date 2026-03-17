@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
 import {
   Dropdown,
@@ -62,13 +62,31 @@ import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
-import { HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomePageContent } from './HomePage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
+import { decodeZip } from './services/decodeZip'
 import { v4 as uuidv4 } from 'uuid'
+import type { EditorView } from '@codemirror/view'
+import { EditorSelection } from '@codemirror/state'
+import newPlaygroundTemplate from './templates/new-playground.md?raw'
+
+const CURSOR_TOKEN = '$CURSOR'
+
+/** Strip the $CURSOR token and return { content, cursorOffset }. */
+function applyTemplate(raw: string): { content: string; cursorOffset: number } {
+  const idx = raw.indexOf(CURSOR_TOKEN)
+  if (idx === -1) return { content: raw, cursorOffset: raw.length }
+  return {
+    content: raw.slice(0, idx) + raw.slice(idx + CURSOR_TOKEN.length),
+    cursorOffset: idx,
+  }
+}
+
+const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
 // Load all markdown files from the wod directory
 const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
@@ -130,6 +148,150 @@ function WorkoutEditorPage({
       onChange={onChange}
       noteId={noteId}
       onCompleteWorkout={handleCompleteWorkout}
+      visibleCommands={2}
+      className="flex-1 min-h-0 w-full"
+      theme={theme}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/load?zip=<base64> — decode zip, save as page, redirect to playground
+// ---------------------------------------------------------------------------
+
+function LoadZipPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const zip = searchParams.get('zip') || searchParams.get('z')
+    if (!zip) {
+      // No zip param — just create an empty playground page
+      navigate('/playground', { replace: true })
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const content = await decodeZip(zip)
+        if (cancelled) return
+        const id = uuidv4()
+        const now = Date.now()
+        const pageId = PlaygroundDBService.pageId('playground', id)
+        await playgroundDB.savePage({
+          id: pageId,
+          category: 'playground',
+          name: id,
+          content,
+          updatedAt: now,
+        })
+        navigate(`/playground/${id}`, { replace: true })
+      } catch {
+        if (!cancelled) setError('Failed to decode the shared link.')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [searchParams, navigate])
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-red-400">
+        {error}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 flex items-center justify-center text-zinc-400">
+      Loading…
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/playground (no id) — create empty page and redirect
+// ---------------------------------------------------------------------------
+
+function PlaygroundRedirect() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const id = uuidv4()
+    const now = Date.now()
+    const pageId = PlaygroundDBService.pageId('playground', id)
+    playgroundDB.savePage({
+      id: pageId,
+      category: 'playground',
+      name: id,
+      content: PLAYGROUND_TEMPLATE.content,
+      updatedAt: now,
+    }).then(() => {
+      navigate(`/playground/${id}`, { replace: true })
+    })
+  }, [navigate])
+
+  return (
+    <div className="flex-1 flex items-center justify-center text-zinc-400">
+      Creating…
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/playground/:id — load page by UUID from DB, render in editor
+// ---------------------------------------------------------------------------
+
+function PlaygroundNotePage({ theme }: { theme: string }) {
+  const { id } = useParams<{ id: string }>()
+  const noteId = id!
+  const { content, loading, onChange } = usePlaygroundContent({
+    category: 'playground',
+    name: noteId,
+    mdContent: PLAYGROUND_TEMPLATE.content,
+  })
+
+  // Place cursor at the $CURSOR token position on first mount
+  const cursorPlaced = useRef(false)
+  const handleViewCreated = useCallback((view: EditorView) => {
+    if (cursorPlaced.current) return
+    cursorPlaced.current = true
+    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
+    view.dispatch({ selection: EditorSelection.cursor(offset) })
+  }, [])
+
+  const handleCompleteWorkout = useCallback(
+    (blockId: string, results: any) => {
+      if (!results) return
+      indexedDBService.saveResult({
+        id: uuidv4(),
+        noteId,
+        segmentId: blockId,
+        sectionId: blockId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
+      }).catch(() => {})
+    },
+    [noteId],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <UnifiedEditor
+      value={content}
+      onChange={onChange}
+      noteId={noteId}
+      onCompleteWorkout={handleCompleteWorkout}
+      onViewCreated={handleViewCreated}
+      visibleCommands={2}
       className="flex-1 min-h-0 w-full"
       theme={theme}
     />
@@ -138,13 +300,15 @@ function WorkoutEditorPage({
 
 function AppContent() {
   const navigate = useNavigate()
-  const { category: urlCategory, name: urlName } = useParams()
+  const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
   const location = useLocation()
   
   const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen } = useCommandPalette()
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
+
+  const isPlaygroundRoute = location.pathname.startsWith('/playground/')
 
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
@@ -162,6 +326,9 @@ function AppContent() {
 
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
+    if (isPlaygroundRoute) {
+      return { name: 'Playground', content: '', category: 'playground' }
+    }
     if (location.pathname === '/' || !urlName) {
       return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
     }
@@ -170,7 +337,7 @@ function AppContent() {
     const category = urlCategory ? decodeURIComponent(urlCategory) : 'General'
     
     return workoutItems.find(item => item.name === name && item.category === category) || { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
-  }, [urlCategory, urlName, workoutItems, location.pathname])
+  }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute])
 
   const collections = useMemo(() => {
     const categories = Array.from(new Set(workoutItems.map(item => item.category)))
@@ -307,9 +474,9 @@ function AppContent() {
                 K
               </kbd>
             </NavbarItem>
-            <NavbarItem className="lg:hidden">
+            <div className="lg:hidden">
               <CastButtonRpc />
-            </NavbarItem>
+            </div>
             <NavbarItem href="/inbox" className="max-lg:hidden" aria-label="Inbox">
               <InboxIcon data-slot="icon" />
             </NavbarItem>
@@ -371,6 +538,10 @@ function AppContent() {
                   </abbr>{' '}
                   K
                 </kbd>
+              </SidebarItem>
+              <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
+                <PlusIcon data-slot="icon" />
+                <SidebarLabel>New Playground</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
           </SidebarHeader>
@@ -461,7 +632,9 @@ function AppContent() {
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          {currentWorkout.name === 'Home' ? (
+          {isPlaygroundRoute && playgroundId ? (
+            <PlaygroundNotePage key={playgroundId} theme={actualTheme} />
+          ) : currentWorkout.name === 'Home' ? (
             <HomePageContent
               actualTheme={actualTheme}
               workoutItems={workoutItems}
@@ -507,6 +680,9 @@ export function App() {
           <Routes>
             <Route path="/" element={<AppContent />} />
             <Route path="/workout/:category/:name" element={<AppContent />} />
+            <Route path="/load" element={<LoadZipPage />} />
+            <Route path="/playground" element={<PlaygroundRedirect />} />
+            <Route path="/playground/:id" element={<AppContent />} />
             <Route path="*" element={<AppContent />} />
           </Routes>
         </CommandProvider>

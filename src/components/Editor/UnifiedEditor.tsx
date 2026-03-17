@@ -89,7 +89,8 @@ import { themeCompartment, languageCompartment, modeCompartment } from "./compar
 
 import type { WodBlock } from "./types";
 import { useCommandPalette } from "../command-palette/CommandContext";
-import { Play, Plus } from "lucide-react";
+import { Play, Plus, ExternalLink } from "lucide-react";
+import { buildPlaygroundUrl } from "./md-components/WodPlaygroundButton";
 
 export interface UnifiedEditorProps {
   /** Note ID for result lookup */
@@ -341,6 +342,16 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         onClick: onAddToPlan,
       });
     }
+    synthesized.push({
+      id: "playground",
+      label: "Playground",
+      icon: <ExternalLink className="h-3 w-3" />,
+      onClick: (block) => {
+        buildPlaygroundUrl(block.content).then((url) => {
+          window.open(url, "_blank", "noopener,noreferrer");
+        });
+      },
+    });
     return synthesized;
   }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleRun]);
 

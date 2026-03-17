@@ -164,7 +164,7 @@ const CommandButtons: React.FC<{
   // ── COMPACT (inactive strip) ── thin pill buttons, top-right corner
   if (compact) {
     return (
-      <div className="flex flex-col items-end gap-1 p-1.5">
+      <div className="flex flex-row items-center gap-1 p-1.5">
         {visible.map((cmd) => (
           <button
             key={cmd.id}
