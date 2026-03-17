@@ -9,7 +9,7 @@ import { FocusedDialog } from "./FocusedDialog";
 
 export interface FullscreenTimerProps {
   block: WodBlock;
-  view: EditorView;
+  view?: EditorView;
   onClose: () => void;
   onCompleteWorkout?: (blockId: string, results: WorkoutResults) => void;
   /** Whether the timer should start automatically on mount. */

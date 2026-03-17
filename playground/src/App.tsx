@@ -20,8 +20,10 @@ import {
 } from '@/components/playground/sidebar'
 import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
 import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
+import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
+import type { WodBlock } from '@/components/Editor/types'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
   ArrowRightStartOnRectangleIcon,
@@ -78,6 +80,13 @@ import type { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
 
+/**
+ * In-memory store for pending runtimes.
+ * When Run is clicked, we stash { block, noteId } here keyed by runtimeId,
+ * then navigate to #/tracker/:runtimeId. TrackerPage consumes and deletes.
+ */
+const pendingRuntimes = new Map<string, { block: WodBlock; noteId: string }>()
+
 const CURSOR_TOKEN = '$CURSOR'
 
 /** Strip the $CURSOR token and return { content, cursorOffset }. */
@@ -111,35 +120,23 @@ function WorkoutEditorPage({
   name,
   mdContent,
   theme,
-  onResultSaved,
 }: {
   category: string
   name: string
   mdContent: string
   theme: string
-  onResultSaved?: () => void
 }) {
   const noteId = PlaygroundDBService.pageId(category, name)
+  const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
 
-  const handleCompleteWorkout = React.useCallback(
-    (blockId: string, results: any) => {
-      if (!results) return
-      const result = {
-        id: uuidv4(),
-        noteId,
-        segmentId: blockId,
-        sectionId: blockId,
-        data: results,
-        completedAt: results.endTime || Date.now(),
-      }
-      indexedDBService.saveResult(result).then(() => {
-        onResultSaved?.()
-      }).catch(() => {
-        // IndexedDB unavailable — silently ignore
-      })
+  const handleStartWorkout = useCallback(
+    (block: WodBlock) => {
+      const runtimeId = uuidv4()
+      pendingRuntimes.set(runtimeId, { block, noteId })
+      navigate(`/tracker/${runtimeId}`)
     },
-    [noteId, onResultSaved],
+    [noteId, navigate],
   )
 
   if (loading) {
@@ -155,7 +152,8 @@ function WorkoutEditorPage({
       value={content}
       onChange={onChange}
       noteId={noteId}
-      onCompleteWorkout={handleCompleteWorkout}
+      onStartWorkout={handleStartWorkout}
+      enableInlineRuntime={false}
       visibleCommands={2}
       className="flex-1 min-h-0 w-full"
       theme={theme}
@@ -264,9 +262,10 @@ function PlaygroundRedirect() {
 // #/playground/:id — load page by UUID from DB, render in editor
 // ---------------------------------------------------------------------------
 
-function PlaygroundNotePage({ theme, onResultSaved }: { theme: string; onResultSaved?: () => void }) {
+function PlaygroundNotePage({ theme }: { theme: string }) {
   const { id } = useParams<{ id: string }>()
   const noteId = id!
+  const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({
     category: 'playground',
     name: noteId,
@@ -282,21 +281,13 @@ function PlaygroundNotePage({ theme, onResultSaved }: { theme: string; onResultS
     view.dispatch({ selection: EditorSelection.cursor(offset) })
   }, [])
 
-  const handleCompleteWorkout = useCallback(
-    (blockId: string, results: any) => {
-      if (!results) return
-      indexedDBService.saveResult({
-        id: uuidv4(),
-        noteId,
-        segmentId: blockId,
-        sectionId: blockId,
-        data: results,
-        completedAt: results.endTime || Date.now(),
-      }).then(() => {
-        onResultSaved?.()
-      }).catch(() => {})
+  const handleStartWorkout = useCallback(
+    (block: WodBlock) => {
+      const runtimeId = uuidv4()
+      pendingRuntimes.set(runtimeId, { block, noteId })
+      navigate(`/tracker/${runtimeId}`)
     },
-    [noteId, onResultSaved],
+    [noteId, navigate],
   )
 
   if (loading) {
@@ -312,11 +303,140 @@ function PlaygroundNotePage({ theme, onResultSaved }: { theme: string; onResultS
       value={content}
       onChange={onChange}
       noteId={noteId}
-      onCompleteWorkout={handleCompleteWorkout}
+      onStartWorkout={handleStartWorkout}
+      enableInlineRuntime={false}
       onViewCreated={handleViewCreated}
       visibleCommands={2}
       className="flex-1 min-h-0 w-full"
       theme={theme}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/review/:resultId — load result from IndexedDB and show FullscreenReview
+// ---------------------------------------------------------------------------
+
+function ReviewPage() {
+  const { runtimeId } = useParams<{ runtimeId: string }>()
+  const navigate = useNavigate()
+  const [segments, setSegments] = useState<Segment[] | null>(null)
+  const [title, setTitle] = useState('Workout Review')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const resultId = runtimeId
+    if (!resultId) return
+    let cancelled = false
+    indexedDBService.getResultById(resultId).then(result => {
+      if (cancelled) return
+      if (!result) {
+        setError('Result not found.')
+        return
+      }
+      const noteLabel = result.noteId.includes('/')
+        ? result.noteId.split('/').pop()!
+        : result.noteId
+      setTitle(noteLabel)
+      if (result.data?.logs && result.data.logs.length > 0) {
+        const { segments: s } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)
+        setSegments(s)
+      } else {
+        setSegments([])
+      }
+    }).catch(() => {
+      if (!cancelled) setError('Failed to load result.')
+    })
+    return () => { cancelled = true }
+  }, [runtimeId])
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-red-400">
+        {error}
+      </div>
+    )
+  }
+
+  if (segments === null) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <FullscreenReview
+      segments={segments}
+      onClose={() => navigate(-1)}
+      title={title}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/tracker/:runtimeId — run a workout from a pending runtime
+// ---------------------------------------------------------------------------
+
+function TrackerPage() {
+  const { runtimeId } = useParams<{ runtimeId: string }>()
+  const navigate = useNavigate()
+  const pendingRef = useRef(runtimeId ? pendingRuntimes.get(runtimeId) : undefined)
+
+  // Consume from the pending store on mount so it doesn't leak
+  useEffect(() => {
+    if (runtimeId) pendingRuntimes.delete(runtimeId)
+  }, [runtimeId])
+
+  const pending = pendingRef.current
+
+  const handleComplete = useCallback(
+    (blockId: string, results: any) => {
+      if (!results || !runtimeId || !pending) return
+      indexedDBService.saveResult({
+        id: runtimeId,
+        noteId: pending.noteId,
+        segmentId: blockId,
+        sectionId: blockId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
+      }).then(() => {
+        if (results.completed) {
+          navigate(`/review/${runtimeId}`, { replace: true })
+        }
+      }).catch(() => {})
+    },
+    [runtimeId, pending, navigate],
+  )
+
+  const handleClose = useCallback(() => {
+    if (!pending) { navigate('/'); return }
+    // Go back to the note
+    const parts = pending.noteId.split('/')
+    if (parts.length >= 2 && parts[0] === 'playground') {
+      navigate(`/playground/${encodeURIComponent(parts[1])}`, { replace: true })
+    } else if (parts.length >= 2) {
+      navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`, { replace: true })
+    } else {
+      navigate('/', { replace: true })
+    }
+  }, [pending, navigate])
+
+  if (!pending) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-red-400">
+        Runtime not found. Please start the workout from the editor.
+      </div>
+    )
+  }
+
+  return (
+    <FullscreenTimer
+      block={pending.block}
+      onClose={handleClose}
+      onCompleteWorkout={handleComplete}
+      autoStart
     />
   )
 }
@@ -331,10 +451,12 @@ function AppContent() {
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
-  const [reviewSegments, setReviewSegments] = useState<Segment[] | null>(null)
-  const [reviewTitle, setReviewTitle] = useState<string>('Workout Review')
 
-  const isPlaygroundRoute = location.pathname.startsWith('/playground/')
+  // Unified note route: /note/playground/:name behaves like /playground/:name
+  const isNotePlayground = location.pathname.startsWith('/note/playground/')
+  const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground
+  // For /note/playground/:name, use urlName as the playground ID
+  const effectivePlaygroundId = playgroundId || (isNotePlayground ? urlName : undefined)
 
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
@@ -664,13 +786,11 @@ function AppContent() {
                         <button
                           onClick={() => {
                             const parts = result.noteId.split('/')
-                            if (parts.length >= 2 && parts[0] === 'playground') {
-                              navigate(`/playground/${encodeURIComponent(parts[1])}`)
-                            } else if (parts.length >= 2) {
-                              navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`)
+                            if (parts.length >= 2) {
+                              navigate(`/note/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`)
                             } else {
                               // Bare ID (no slash) — treat as playground page
-                              navigate(`/playground/${encodeURIComponent(result.noteId)}`)
+                              navigate(`/note/playground/${encodeURIComponent(result.noteId)}`)
                             }
                           }}
                           className="flex-1 min-w-0 text-left text-sm font-medium text-zinc-950 dark:text-white truncate hover:underline"
@@ -679,11 +799,7 @@ function AppContent() {
                         </button>
                         <button
                           onClick={() => {
-                            if (result.data?.logs && result.data.logs.length > 0) {
-                              const { segments } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)
-                              setReviewSegments(segments)
-                              setReviewTitle(noteLabel)
-                            }
+                            navigate(`/review/${result.id}`)
                           }}
                           title="View result details"
                           className="shrink-0 p-0.5 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -720,8 +836,8 @@ function AppContent() {
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          {isPlaygroundRoute && playgroundId ? (
-            <PlaygroundNotePage key={playgroundId} theme={actualTheme} onResultSaved={refreshResults} />
+          {isPlaygroundRoute && effectivePlaygroundId ? (
+            <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
           ) : currentWorkout.name === 'Home' ? (
             <HomePageContent
               actualTheme={actualTheme}
@@ -739,7 +855,6 @@ function AppContent() {
               name={currentWorkout.name}
               mdContent={currentWorkout.content}
               theme={actualTheme}
-              onResultSaved={refreshResults}
             />
           )}
         </div>
@@ -758,13 +873,6 @@ function AppContent() {
         />
       )}
 
-      {reviewSegments && (
-        <FullscreenReview
-          segments={reviewSegments}
-          onClose={() => setReviewSegments(null)}
-          title={reviewTitle}
-        />
-      )}
     </SidebarLayout>
   )
 }
@@ -780,6 +888,9 @@ export function App() {
             <Route path="/load" element={<LoadZipPage />} />
             <Route path="/playground" element={<PlaygroundRedirect />} />
             <Route path="/playground/:id" element={<AppContent />} />
+            <Route path="/note/:category/:name" element={<AppContent />} />
+            <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
+            <Route path="/review/:runtimeId" element={<ReviewPage />} />
             <Route path="*" element={<AppContent />} />
           </Routes>
         </CommandProvider>

@@ -33,15 +33,13 @@ import {
 } from "@codemirror/commands";
 import {
   bracketMatching,
-  foldGutter,
-  foldKeymap,
   indentOnInput,
   syntaxHighlighting,
   defaultHighlightStyle,
 } from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { lintKeymap, lintGutter } from "@codemirror/lint";
+import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 
 import { wodscriptLanguage } from "../../parser/wodscript-language";
@@ -58,8 +56,8 @@ import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplet
 import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
-import { gutterRuntimeHighlights } from "./extensions/gutter-runtime";
-import { foldWidgets } from "./extensions/fold-widgets";
+import { gutterUnified } from "./extensions/gutter-unified";
+
 import {
   wodResultsWidget,
   wodResultsField,
@@ -382,7 +380,6 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       closeBrackets(),
       highlightActiveLine(),
       highlightSelectionMatches(),
-      foldGutter(),
 
       // Keybindings
       keymap.of([
@@ -390,7 +387,6 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         ...defaultKeymap,
         ...searchKeymap,
         ...historyKeymap,
-        ...foldKeymap,
         ...completionKeymap,
         ...lintKeymap,
         indentWithTab,
@@ -414,8 +410,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       // Block-level preview decorations
       ...(enablePreview ? [previewDecorations, frontmatterPreview, markdownTablePreview] : []),
 
-      // WodScript linting
-      ...(enableLinting ? [wodLinter, lintGutter()] : []),
+      // WodScript linting (no separate lintGutter — unified gutter handles it)
+      ...(enableLinting ? [wodLinter] : []),
 
       // Autocomplete (dialect + embed completions)
       wodAutocompletion,
@@ -430,11 +426,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       // Ctrl+Click link opening + hover tooltip
       linkOpen,
 
-      // Gutter line highlights for active runtime blocks
-      ...gutterRuntimeHighlights,
-
-      // Auto-fold widget fence bodies (keeps JSON off-screen)
-      foldWidgets,
+      // Unified gutter: lint diagnostics + runtime highlights in one column
+      ...gutterUnified,
 
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,

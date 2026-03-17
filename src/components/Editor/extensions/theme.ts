@@ -26,8 +26,9 @@ export function editorTheme(isDark: boolean): Extension {
       backgroundColor: isDark ? "#1e1e1e" : "#f5f5f5",
       color: isDark ? "#858585" : "#999999",
       border: "none",
-      padding: "0 8px"
+      padding: "0",
     },
+
     // Semi-transparent so the drawSelection layer (rendered behind .cm-content)
     // can bleed through and remain visible when text is selected on the active line.
     ".cm-activeLine": {
