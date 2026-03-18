@@ -10,6 +10,8 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownMenu,
+  DropdownSection,
+  DropdownHeading,
 } from '@/components/playground/dropdown'
 import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
 import {
@@ -63,6 +65,9 @@ import {
   BugAntIcon,
   ArrowPathIcon,
   TableCellsIcon,
+  SunIcon,
+  MoonIcon,
+  ComputerDesktopIcon,
 } from '@heroicons/react/20/solid'
 import type { WorkoutResult } from '@/types/storage'
 
@@ -595,19 +600,33 @@ function AppContent() {
     return () => document.removeEventListener('keydown', down)
   }, [setIsCommandPaletteOpen, isCommandPaletteOpen])
 
+  const [isSystemDark, setIsSystemDark] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
+
+  useEffect(() => {
+    if (theme !== 'system') return
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const listener = (e: MediaQueryListEvent) => setIsSystemDark(e.matches)
+    mediaQuery.addEventListener('change', listener)
+    return () => mediaQuery.removeEventListener('change', listener)
+  }, [theme])
+
   const actualTheme = useMemo(() => {
     if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'vs'
+      return isSystemDark ? 'vs-dark' : 'vs'
     }
     return theme === 'dark' ? 'vs-dark' : 'vs'
-  }, [theme])
+  }, [theme, isSystemDark])
+
+  const { setTheme } = useTheme()
 
   const ActionsMenu = () => (
     <Dropdown>
       <DropdownButton plain>
         <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
       </DropdownButton>
-      <DropdownMenu className="min-w-48" anchor="bottom end">
+      <DropdownMenu className="min-w-56" anchor="bottom end">
         <DropdownItem onClick={handleDownload}>
           <ArrowDownTrayIcon data-slot="icon" />
           <DropdownLabel>Download Markdown</DropdownLabel>
@@ -616,6 +635,27 @@ function AppContent() {
           <BugAntIcon data-slot="icon" />
           <DropdownLabel>Toggle Debug Mode</DropdownLabel>
         </DropdownItem>
+        <DropdownDivider />
+
+        <DropdownSection>
+          <DropdownHeading>Theme</DropdownHeading>
+          <DropdownItem onClick={() => setTheme('light')}>
+            <SunIcon data-slot="icon" />
+            <DropdownLabel>Light</DropdownLabel>
+            {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+          <DropdownItem onClick={() => setTheme('dark')}>
+            <MoonIcon data-slot="icon" />
+            <DropdownLabel>Dark</DropdownLabel>
+            {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+          <DropdownItem onClick={() => setTheme('system')}>
+            <ComputerDesktopIcon data-slot="icon" />
+            <DropdownLabel>System</DropdownLabel>
+            {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+        </DropdownSection>
+
         <DropdownDivider />
         <DropdownItem onClick={handleResetData}>
           <ArrowPathIcon data-slot="icon" className="text-red-500" />
