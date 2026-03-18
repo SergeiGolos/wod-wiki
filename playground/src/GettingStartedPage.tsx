@@ -59,7 +59,7 @@ const BLOCKS_TABS = [
   {
     title: 'Smart Intervals',
     subtitle: 'Complex logic',
-    content: '```wod\n4x\n- 40s Work\n- 20s Rest\n```'
+    content: '```wod\n(4)\n  - :40 Work\n  - :20 Rest\n```'
   }
 ]
 
