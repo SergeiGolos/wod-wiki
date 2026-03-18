@@ -139,7 +139,7 @@ import { themeCompartment, languageCompartment, modeCompartment } from "./compar
 
 import type { WodBlock } from "./types";
 import { useCommandPalette } from "../command-palette/CommandContext";
-import { Play, Plus, ExternalLink, History } from "lucide-react";
+import { Play, Plus, ExternalLink, History, Copy, Check } from "lucide-react";
 import { buildPlaygroundUrl } from "./md-components/WodPlaygroundButton";
 
 export interface UnifiedEditorProps {
@@ -410,10 +410,16 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       id: "playground",
       label: "Playground",
       icon: <ExternalLink className="h-3 w-3" />,
+      splitIcon: <Copy className="h-3 w-3" />,
+      splitSuccessIcon: <Check className="h-3 w-3" />,
       onClick: (block) => {
         buildPlaygroundUrl(block.content).then((url) => {
           window.open(url, "_blank", "noopener,noreferrer");
         });
+      },
+      onSplitClick: async (block) => {
+        const url = await buildPlaygroundUrl(block.content);
+        await navigator.clipboard.writeText(url);
       },
     });
 

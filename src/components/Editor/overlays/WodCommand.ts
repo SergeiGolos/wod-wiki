@@ -23,4 +23,14 @@ export interface WodCommand {
   primary?: boolean;
   /** Called with the resolved WodBlock when the user clicks the button */
   onClick: (block: WodBlock) => void;
+  /**
+   * Optional split-button secondary action (e.g. copy to clipboard).
+   * When provided, the button renders as a split pill with a divider separating
+   * the main action from this secondary icon button.
+   */
+  splitIcon?: React.ReactNode;
+  /** Icon to show in the split button after the secondary action completes (e.g. a checkmark) */
+  splitSuccessIcon?: React.ReactNode;
+  /** Called with the resolved WodBlock when the user clicks the split (secondary) button */
+  onSplitClick?: (block: WodBlock) => Promise<void> | void;
 }

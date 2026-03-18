@@ -14,7 +14,7 @@
  *     Bottom: History of previous results and action buttons.
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import type { EditorView } from "@codemirror/view";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { MetricType } from "@/core/models/Metric";
@@ -174,6 +174,112 @@ function buildWodBlock(view: EditorView, section: EditorSection): WodBlock {
   };
 }
 
+// ── SplitCommandButton ────────────────────────────────────────────────
+/**
+ * A single command button that can optionally render as a split pill
+ * (main action | divider | secondary copy action with checkmark flash).
+ */
+const SplitCommandButton: React.FC<{
+  cmd: WodCommand;
+  block: WodBlock;
+  compact?: boolean;
+}> = ({ cmd, block, compact }) => {
+  const [splitSuccess, setSplitSuccess] = useState(false);
+
+  const handleMain = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    cmd.onClick(block);
+  }, [cmd, block]);
+
+  const handleSplit = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!cmd.onSplitClick || splitSuccess) return;
+    await cmd.onSplitClick(block);
+    setSplitSuccess(true);
+    setTimeout(() => setSplitSuccess(false), 1500);
+  }, [cmd, block, splitSuccess]);
+
+  const baseClasses = cn(
+    compact
+      ? "flex items-center gap-1 px-2 py-0.5 text-[10px] shadow-sm whitespace-nowrap"
+      : "flex items-center gap-1.5 px-2 py-0.5 text-[10px] shadow-sm",
+    "font-medium transition-colors",
+    cmd.primary
+      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+      : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
+  );
+
+  if (!cmd.onSplitClick) {
+    return (
+      <button
+        title={cmd.label}
+        onClick={handleMain}
+        className={cn(baseClasses, "rounded-sm")}
+      >
+        <span className="flex items-center h-3 w-3">{cmd.icon}</span>
+        {compact ? (
+          <span className="hidden sm:inline">{cmd.label}</span>
+        ) : (
+          <span>{cmd.label}</span>
+        )}
+      </button>
+    );
+  }
+
+  // Split button: left = main action, right = secondary (copy) action
+  return (
+    <div className={cn(
+      "inline-flex items-stretch rounded-sm overflow-hidden border",
+      cmd.primary ? "border-primary/50" : "border-border/50",
+    )}>
+      {/* Main action */}
+      <button
+        title={cmd.label}
+        onClick={handleMain}
+        className={cn(
+          compact
+            ? "flex items-center gap-1 px-2 py-0.5 text-[10px] whitespace-nowrap"
+            : "flex items-center gap-1.5 px-2 py-0.5 text-[10px]",
+          "font-medium transition-colors",
+          cmd.primary
+            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+            : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        )}
+      >
+        <span className="flex items-center h-3 w-3">{cmd.icon}</span>
+        {compact ? (
+          <span className="hidden sm:inline">{cmd.label}</span>
+        ) : (
+          <span>{cmd.label}</span>
+        )}
+      </button>
+
+      {/* Divider */}
+      <div className={cn("w-px self-stretch", cmd.primary ? "bg-primary-foreground/20" : "bg-border/60")} />
+
+      {/* Secondary (copy) action */}
+      <button
+        title="Copy link to clipboard"
+        onClick={handleSplit}
+        className={cn(
+          "flex items-center justify-center px-1.5 py-0.5 transition-all duration-300",
+          splitSuccess
+            ? "text-emerald-600 bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-500/20"
+            : cmd.primary
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        )}
+      >
+        <span className="flex items-center h-3 w-3">
+          {splitSuccess ? (cmd.splitSuccessIcon ?? cmd.splitIcon) : cmd.splitIcon}
+        </span>
+      </button>
+    </div>
+  );
+};
+
 // ── CommandButtons ────────────────────────────────────────────────────
 /**
  * Renders a row of command buttons.
@@ -187,31 +293,14 @@ const CommandButtons: React.FC<{
 }> = ({ commands, section, view, compact }) => {
   if (!commands.length) return null;
 
-  const fire = (cmd: WodCommand) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    cmd.onClick(buildWodBlock(view, section));
-  };
+  const block = buildWodBlock(view, section);
 
   // ── COMPACT (inactive strip) ── thin pill buttons
   if (compact) {
     return (
       <div className="flex flex-row items-center gap-1 p-1.5">
         {commands.map((cmd) => (
-          <button
-            key={cmd.id}
-            title={cmd.label}
-            onClick={fire(cmd)}
-            className={cn(
-              "flex items-center gap-1 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm whitespace-nowrap",
-              cmd.primary
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
-            )}
-          >
-            <span className="flex items-center h-3 w-3">{cmd.icon}</span>
-            <span className="hidden sm:inline">{cmd.label}</span>
-          </button>
+          <SplitCommandButton key={cmd.id} cmd={cmd} block={block} compact />
         ))}
       </div>
     );
@@ -221,20 +310,7 @@ const CommandButtons: React.FC<{
   return (
     <div className="flex items-center gap-1.5 p-2 border-t border-border/50 flex-wrap">
       {commands.map((cmd) => (
-        <button
-          key={cmd.id}
-          title={cmd.label}
-          onClick={fire(cmd)}
-          className={cn(
-            "flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm",
-            cmd.primary
-              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
-          )}
-        >
-          <span className="flex items-center h-3 w-3">{cmd.icon}</span>
-          <span>{cmd.label}</span>
-        </button>
+        <SplitCommandButton key={cmd.id} cmd={cmd} block={block} />
       ))}
     </div>
   );
