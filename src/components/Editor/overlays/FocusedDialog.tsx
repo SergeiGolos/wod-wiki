@@ -21,6 +21,8 @@ export interface FocusedDialogProps {
   closeButtonClassName?: string;
   /** When true, render a floating close button instead of a header bar. */
   floatingClose?: boolean;
+  /** Visual variant of the dialog. 'default' uses theme background, 'minimal' uses white/excel style. */
+  variant?: 'default' | 'minimal';
 }
 
 export const FocusedDialog: React.FC<FocusedDialogProps> = ({
@@ -29,6 +31,7 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
   children,
   closeButtonClassName,
   floatingClose = false,
+  variant = 'default',
 }) => {
   // Prevent scrolling on the body while the dialog is open
   useEffect(() => {
@@ -38,12 +41,14 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
     };
   }, []);
 
+  const isMinimal = variant === 'minimal';
+
   const closeBtn = (
     <button
       onClick={onClose}
       className={
         closeButtonClassName ??
-        "p-2 rounded-full bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+        `p-2 rounded-full ${isMinimal ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-950' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'} transition-colors shadow-sm`
       }
       title="Close"
     >
@@ -54,12 +59,12 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
   // Portal to document.body so we escape any CSS containing blocks
   // (CodeMirror sets `contain: size style` on .cm-editor which traps fixed positioning).
   return (ReactDOM as any).createPortal(
-    <div className="fixed inset-0 z-[100] flex flex-col bg-background animate-in fade-in duration-200">
-      {floatingClose ? (
+    <div className={`fixed inset-0 z-[100] flex flex-col ${isMinimal ? 'bg-white text-zinc-950' : 'bg-background'} animate-in fade-in duration-200`}>
+      {floatingClose || (isMinimal && !title) ? (
         <div className="absolute top-4 right-4 z-[110]">{closeBtn}</div>
       ) : title ? (
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
-          <h2 className="text-lg font-semibold">{title}</h2>
+        <div className={`flex items-center justify-between px-6 py-4 border-b border-border ${isMinimal ? 'bg-zinc-50/50' : 'bg-muted/30'} shrink-0`}>
+          <h2 className={`text-lg ${isMinimal ? 'font-black tracking-tight uppercase text-[11px] text-zinc-400' : 'font-semibold'}`}>{title}</h2>
           {closeBtn}
         </div>
       ) : null}

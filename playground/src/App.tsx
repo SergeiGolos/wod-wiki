@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
+import { Dumbbell } from 'lucide-react'
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
@@ -587,19 +588,6 @@ function AppContent() {
     URL.revokeObjectURL(url)
   }
 
-  // Keyboard shortcut for command palette
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setActiveCategory(null)
-        setIsCommandPaletteOpen(!isCommandPaletteOpen)
-      }
-    }
-    document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
-  }, [setIsCommandPaletteOpen, isCommandPaletteOpen])
-
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
@@ -731,15 +719,17 @@ function AppContent() {
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center px-2 py-2.5">
-              <Avatar initials="W" className="bg-blue-600 text-white size-6" />
-              <span className="ml-3 text-sm font-semibold text-zinc-950 dark:text-white">Wod Wiki</span>
-              <span className="ml-1.5 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-end mb-0.5">v{appVersion}</span>
+            <div className="flex items-center px-2 py-4">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 rotate-3">
+                <Dumbbell size={18} />
+              </div>
+              <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">Wod Wiki</span>
+              <span className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest">v{appVersion}</span>
             </div>
             <SidebarSection>
               <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/'}>
                 <HomeIcon data-slot="icon" />
-                <SidebarLabel>Home</SidebarLabel>
+                <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
               <SidebarItem onClick={handleSearchClick}>
                 <MagnifyingGlassIcon data-slot="icon" />
@@ -880,42 +870,49 @@ function AppContent() {
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
-          <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
+          <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
             <div className="flex items-center justify-between px-6 lg:px-10">
-              <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-2 rounded-full bg-primary" />
+                <h1 className="text-4xl font-black tracking-tight text-foreground leading-none">{currentWorkout.name}</h1>
+              </div>
               <div className="flex items-center gap-4">
                 <CastButtonRpc />
                 <ActionsMenu />
               </div>
             </div>
-            <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
+            <hr role="presentation" className="mt-8 w-full border-t border-border opacity-50" />
           </div>
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          {location.pathname === '/getting-started' ? (
-            <GettingStartedPage theme={actualTheme} />
-          ) : isPlaygroundRoute && effectivePlaygroundId ? (
-            <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
-          ) : currentWorkout.name === 'Home' ? (
-            <HomePageContent
-              actualTheme={actualTheme}
-              workoutItems={workoutItems}
-              onSelectWorkout={handleSelectWorkout}
-              isCommandPaletteOpen={isCommandPaletteOpen}
-              setIsCommandPaletteOpen={setIsCommandPaletteOpen}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-            />
-          ) : (
-            <WorkoutEditorPage
-              key={`${currentWorkout.category}/${currentWorkout.name}`}
-              category={currentWorkout.category}
-              name={currentWorkout.name}
-              mdContent={currentWorkout.content}
-              theme={actualTheme}
-            />
-          )}
+          <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
+            {location.pathname === '/getting-started' ? (
+              <GettingStartedPage theme={actualTheme} />
+            ) : isPlaygroundRoute && effectivePlaygroundId ? (
+              <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
+            ) : currentWorkout.name === 'Home' ? (
+              <div className="flex-1 flex flex-col min-h-0 rounded-none border-none shadow-none">
+                <HomePageContent
+                  actualTheme={actualTheme}
+                  workoutItems={workoutItems}
+                  onSelectWorkout={handleSelectWorkout}
+                  isCommandPaletteOpen={isCommandPaletteOpen}
+                  setIsCommandPaletteOpen={setIsCommandPaletteOpen}
+                  activeCategory={activeCategory}
+                  setActiveCategory={setActiveCategory}
+                />
+              </div>
+            ) : (
+              <WorkoutEditorPage
+                key={`${currentWorkout.category}/${currentWorkout.name}`}
+                category={currentWorkout.category}
+                name={currentWorkout.name}
+                mdContent={currentWorkout.content}
+                theme={actualTheme}
+              />
+            )}
+          </div>
         </div>
       </div>
 

@@ -52,13 +52,13 @@ export function GettingStartedPage({ theme }: { theme: string }) {
   const [content2, setContent2] = useState(SECTION_2_CONTENT)
 
   return (
-    <div className="flex-1 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 flex flex-col min-h-0">
+    <div className="flex-1 overflow-y-auto bg-background flex flex-col min-h-0">
       <div className="flex-1 flex flex-col min-h-0 space-y-0">
-        <section className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-          <div className="px-6 py-10 lg:px-10">
-            <div className="prose dark:prose-invert max-w-none">
-              <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-white">Mastering the Editor</h1>
-              <p className="text-lg text-zinc-600 dark:text-zinc-400">
+        <section className="bg-card border-b-2 border-border">
+          <div className="px-6 py-12 lg:px-10">
+            <div className="max-w-none">
+              <h1 className="text-4xl font-black tracking-tight text-foreground leading-none mb-4">Mastering the Editor</h1>
+              <p className="text-xl font-medium text-muted-foreground max-w-2xl leading-relaxed">
                 This guide will walk you through the core features of the Wod Wiki editor. Each section below is a live editor where you can experiment.
               </p>
             </div>
@@ -66,10 +66,10 @@ export function GettingStartedPage({ theme }: { theme: string }) {
         </section>
         
         <section className="flex-1 flex flex-col min-h-0">
-          <div className="bg-zinc-50 dark:bg-zinc-800/50 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 lg:px-10">
-            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Lesson 1: Note Basics</span>
+          <div className="bg-muted px-6 py-3 border-b-2 border-border lg:px-10">
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Lesson 1: Note Basics</span>
           </div>
-          <div className="flex-1 flex flex-col min-h-[400px]">
+          <div className="flex-1 flex flex-col min-h-[450px]">
             <UnifiedEditor
               value={content1}
               onChange={setContent1}
@@ -82,11 +82,11 @@ export function GettingStartedPage({ theme }: { theme: string }) {
           </div>
         </section>
 
-        <section className="bg-white dark:bg-zinc-900 border-y border-zinc-200 dark:border-zinc-800">
-          <div className="px-6 py-10 lg:px-10">
-            <div className="prose dark:prose-invert max-w-none">
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-950 dark:text-white">Block Specialization</h2>
-              <p className="text-zinc-600 dark:text-zinc-400">
+        <section className="bg-card border-y-2 border-border">
+          <div className="px-6 py-12 lg:px-10">
+            <div className="max-w-none">
+              <h2 className="text-3xl font-black tracking-tight text-foreground leading-none mb-4">Block Specialization</h2>
+              <p className="text-xl font-medium text-muted-foreground max-w-2xl leading-relaxed">
                 Wod Wiki goes beyond plain text. Use code blocks to define executable logic and structured data.
               </p>
             </div>
@@ -94,10 +94,10 @@ export function GettingStartedPage({ theme }: { theme: string }) {
         </section>
 
         <section className="flex-1 flex flex-col min-h-0">
-          <div className="bg-zinc-50 dark:bg-zinc-800/50 px-6 py-2 border-b border-zinc-200 dark:border-zinc-800 lg:px-10">
-            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Lesson 2: Blocks</span>
+          <div className="bg-muted px-6 py-3 border-b-2 border-border lg:px-10">
+            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Lesson 2: Blocks</span>
           </div>
-          <div className="flex-1 flex flex-col min-h-[500px]">
+          <div className="flex-1 flex flex-col min-h-[550px]">
             <UnifiedEditor
               value={content2}
               onChange={setContent2}
@@ -110,18 +110,21 @@ export function GettingStartedPage({ theme }: { theme: string }) {
           </div>
         </section>
 
-        <section className="p-6 lg:p-10 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 rounded-xl p-8 text-center space-y-4 max-w-4xl mx-auto">
-            <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100">Ready to build?</h3>
-            <p className="text-blue-700 dark:text-blue-300 max-w-md mx-auto">
+        <section className="p-8 lg:p-16 bg-background">
+          <div className="bg-primary/5 border-2 border-dashed border-primary/30 rounded-2xl p-12 text-center space-y-6 max-w-4xl mx-auto">
+            <div className="size-16 bg-primary rounded-xl flex items-center justify-center text-primary-foreground mx-auto shadow-lg shadow-primary/20 rotate-3 mb-4">
+              <PlusIcon className="size-8" />
+            </div>
+            <h3 className="text-3xl font-black tracking-tight text-foreground leading-none">Ready to build?</h3>
+            <p className="text-xl font-medium text-muted-foreground max-w-md mx-auto leading-relaxed">
               Now that you've seen the basics, try creating your own playground note and design your first workout.
             </p>
             <button 
               onClick={() => navigate('/playground')}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-lg shadow-blue-600/20 transition-all active:scale-95 mx-auto"
+              className="inline-flex items-center gap-3 px-8 py-4 bg-primary hover:bg-primary/90 text-primary-foreground text-lg font-black uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95 mx-auto"
             >
-              <PlusIcon className="size-5" />
-              Create New Playground
+              <PlusIcon className="size-6" />
+              Start Building
             </button>
           </div>
         </section>

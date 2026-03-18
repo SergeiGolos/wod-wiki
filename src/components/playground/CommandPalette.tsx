@@ -34,10 +34,12 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
     return []
   }, [query, items, initialCategory])
 
-  // Reset query when closed
+  // Reset query when dialog is closed to ensure a clean start next time
   useEffect(() => {
     if (!isOpen) {
-      setQuery('')
+      // Use a small timeout to let the exit animation finish before clearing the results
+      const timer = setTimeout(() => setQuery(''), 300)
+      return () => clearTimeout(timer)
     }
   }, [isOpen])
 
@@ -47,17 +49,18 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
       onClose={() => {
         onClose()
       }} 
-      className="relative z-50"
+      transition
+      className="relative z-50 focus:outline-none"
     >
       <DialogBackdrop
         transition
-        className="fixed inset-0 bg-zinc-950/25 transition-opacity data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in dark:bg-zinc-950/50"
+        className="fixed inset-0 bg-zinc-950/25 transition-opacity duration-300 ease-out data-closed:opacity-0"
       />
 
       <div className="fixed inset-0 z-10 w-screen overflow-y-auto p-4 sm:p-6 md:p-20">
         <DialogPanel
           transition
-          className="mx-auto max-w-2xl transform divide-y divide-zinc-100 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black/5 transition-all data-closed:scale-95 data-closed:opacity-0 data-enter:duration-300 data-enter:ease-out data-leave:duration-200 data-leave:ease-in dark:divide-zinc-800 dark:bg-zinc-900 dark:ring-white/10"
+          className="mx-auto max-w-xl transform divide-y divide-border overflow-hidden rounded-xl bg-card shadow-2xl ring-1 ring-border transition duration-300 ease-out data-closed:scale-95 data-closed:opacity-0"
         >
           <Headless.Combobox
             onChange={(item: any) => {
@@ -67,15 +70,14 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
               }
             }}
           >
-            <div className="relative">
+            <div className="flex items-center px-4">
               <MagnifyingGlassIcon
-                data-slot="icon"
-                className="pointer-events-none absolute top-3.5 left-4 size-5 text-zinc-400 dark:text-zinc-500"
+                className="size-5 text-muted-foreground"
                 aria-hidden="true"
               />
               <Headless.ComboboxInput
                 autoFocus
-                className="h-12 w-full border-0 bg-transparent pl-11 pr-4 text-zinc-900 placeholder:text-zinc-400 focus:ring-0 sm:text-sm dark:text-white dark:placeholder:text-zinc-500"
+                className="h-12 w-full border-0 bg-transparent pl-3 pr-4 text-foreground placeholder:text-muted-foreground focus:ring-0 sm:text-sm no-focus-ring"
                 placeholder={initialCategory ? `Search in ${initialCategory}...` : "Search workouts..."}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -84,35 +86,35 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
             {(query === '' || filteredItems.length > 0) && (
               <Headless.ComboboxOptions
                 static
-                className="max-h-80 scroll-py-2 overflow-y-auto py-2 text-sm text-zinc-800 dark:text-zinc-200"
+                className="max-h-96 scroll-py-2 overflow-y-auto py-4 text-sm text-foreground"
               >
                 {filteredItems.length > 0 ? (
                   <>
-                    {query === '' && initialCategory && (
-                      <div className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                    {(query === '' && initialCategory) && (
+                      <div className="px-4 py-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
                         {initialCategory} Collection
                       </div>
                     )}
                     {filteredItems.map((item) => (
-                      <ComboboxOption key={item.id} value={item}>
-                        <ComboboxLabel>{item.name}</ComboboxLabel>
-                        <ComboboxDescription>{item.category}</ComboboxDescription>
+                      <ComboboxOption key={item.id} value={item} className="mx-2">
+                        <ComboboxLabel className="font-bold">{item.name}</ComboboxLabel>
+                        <ComboboxDescription className="font-medium opacity-70 tracking-tight">{item.category}</ComboboxDescription>
                       </ComboboxOption>
                     ))}
                   </>
                 ) : query !== '' ? (
                    <div className="px-4 py-14 text-center sm:px-14">
-                    <p className="mt-4 text-sm text-zinc-900 dark:text-zinc-100">No workouts found for this search.</p>
+                    <p className="text-sm font-medium text-muted-foreground">No workouts found for this search.</p>
                   </div>
                 ) : (
                   <>
-                    <div className="px-4 py-2 text-xs font-semibold text-zinc-500 uppercase dark:text-zinc-400">
+                    <div className="px-4 py-2 text-[10px] font-black text-primary uppercase tracking-[0.2em]">
                       Recent Workouts
                     </div>
                     {items.slice(0, 5).map((item) => (
-                      <ComboboxOption key={item.id} value={item}>
-                        <ComboboxLabel>{item.name}</ComboboxLabel>
-                        <ComboboxDescription>{item.category}</ComboboxDescription>
+                      <ComboboxOption key={item.id} value={item} className="mx-2">
+                        <ComboboxLabel className="font-bold">{item.name}</ComboboxLabel>
+                        <ComboboxDescription className="font-medium opacity-70 tracking-tight">{item.category}</ComboboxDescription>
                       </ComboboxOption>
                     ))}
                   </>

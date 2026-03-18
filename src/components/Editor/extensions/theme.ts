@@ -23,8 +23,8 @@ export function editorTheme(isDark: boolean): Extension {
       padding: "0"
     },
     ".cm-gutters": {
-      backgroundColor: isDark ? "#1e1e1e" : "#f5f5f5",
-      color: isDark ? "#858585" : "#999999",
+      backgroundColor: isDark ? "#252841" : "#F5F7FF",
+      color: isDark ? "#A0AEC0" : "#717D96",
       border: "none",
       padding: "0",
     },
@@ -32,14 +32,14 @@ export function editorTheme(isDark: boolean): Extension {
     // Semi-transparent so the drawSelection layer (rendered behind .cm-content)
     // can bleed through and remain visible when text is selected on the active line.
     ".cm-activeLine": {
-      backgroundColor: isDark ? "rgba(255, 255, 255, 0.07)" : "rgba(59, 130, 246, 0.09)"
+      backgroundColor: isDark ? "rgba(165, 180, 252, 0.08)" : "rgba(129, 140, 248, 0.08)"
     },
     ".cm-activeLineGutter": {
-      backgroundColor: isDark ? "rgba(255, 255, 255, 0.07)" : "rgba(59, 130, 246, 0.09)"
+      backgroundColor: isDark ? "rgba(165, 180, 252, 0.08)" : "rgba(129, 140, 248, 0.08)"
     },
     // Selection layer — must be strong enough to show through the transparent line bg.
     "&.cm-focused .cm-selectionBackground": {
-      backgroundColor: isDark ? "rgba(100, 160, 255, 0.35)" : "rgba(30, 100, 230, 0.50)"
+      backgroundColor: isDark ? "rgba(165, 180, 252, 0.3)" : "rgba(129, 140, 248, 0.35)"
     },
     ".cm-selectionBackground": {
       backgroundColor: isDark ? "rgba(100, 160, 255, 0.20)" : "rgba(30, 100, 230, 0.25)"
