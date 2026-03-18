@@ -20,7 +20,7 @@
 
 ```wod
 21-15-9 For Time
-  Thrusters @ 95 lb
+  Thrusters 95 lb
   Pull-ups
 ```
 
@@ -43,7 +43,7 @@
 
 ```wod
 21-15-9
-  Thrusters @ 95 lb
+  Thrusters 95 lb
   Pull-ups
 ```
 
@@ -56,7 +56,7 @@ Same as above but without explicit "For Time" keyword — should compile identic
 A rest period between movements can be skipped early by the athlete if they recover quickly.
 
 ```wod
-  21 Thrusters @ 95 lb
+  21 Thrusters 95 lb
   :30 Rest
   21 Pull-ups
 ```
@@ -79,7 +79,7 @@ A rest period between movements can be skipped early by the athlete if they reco
 When a coach mandates minimum recovery, prefix the rest with `*`. The athlete cannot advance until the timer fires.
 
 ```wod
-  21 Thrusters @ 95 lb
+  21 Thrusters 95 lb
   *:30 Rest
   21 Pull-ups
 ```

@@ -5,7 +5,7 @@
 ## 🟢 Weight Cascading — Parent to Children
 
 ```wod
-@ 95 lb
+95 lb
 (3)
   Clean & Jerk
 ```
@@ -24,8 +24,8 @@
 ## 🟢 Weight Override — Child Overrides Parent
 
 ```wod
-@ 95 lb
-  Clean @ 135 lb
+95 lb
+  Clean 135 lb
   Snatch
 ```
 
@@ -64,7 +64,7 @@
 
 ```wod
 10:00 AMRAP
-  5 Thrusters @ 95 lb
+  5 Thrusters 95 lb
   10 Pushups
 ```
 
@@ -80,7 +80,7 @@
 ## 🔴 Distance Unit Inheritance (`.skip`)
 
 ```wod
-@ 400 m
+400 m
 (3)
   Run
 ```
@@ -94,7 +94,7 @@
 ## 🔴 Three-Level Promotion (`.skip`)
 
 ```wod
-@ 75 kg
+75 kg
 (5) 1:00 EMOM
   (3)
     Clean

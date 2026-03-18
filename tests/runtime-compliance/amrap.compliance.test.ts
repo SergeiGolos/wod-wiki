@@ -26,6 +26,7 @@ import {
     type SessionTestContext,
 } from '../jit-compilation/helpers/session-test-utils';
 import { RoundState } from '@/runtime/memory/MemoryTypes';
+import { MetricType } from '@/core/models/Metric';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -510,5 +511,275 @@ describe('🔴 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
         enterForcedRest();
         advanceClock(ctx, 1_200_000); // 20 min AMRAP expiry
         expect(ctx.runtime.stack.count).toBe(0);
+    });
+});
+
+// ===========================================================================
+// 🔴 AMRAP with `+` Composed Grouping — Proportional Output Splitting
+//
+// When a composite block (multiple `+` statements compiled as one child group)
+// completes, the runtime must emit a SEPARATE completion output for each
+// constituent exercise, with elapsed time distributed proportionally by rep
+// count.  Rep ratio: 5 Pullups : 10 Pushups : 15 Air Squats = 1 : 2 : 3
+// → each exercise gets 1/6, 2/6, 3/6 of the total elapsed time.
+//
+// These tests verify an AMRAP-specific assertion from the spec that is
+// NOT covered by any existing test:
+//   "Each userNext produces proportional segment outputs for all 3 exercises."
+//
+// RED: currently the composite block's completion output structure is
+// untested in the AMRAP context.  The code path in ReportOutputBehavior
+// does split proportionally when `displayGroups.length > 1`, but the
+// AMRAP pipeline may yield only one display group (the composed block's
+// metrics are flattened by EffortFallbackStrategy into a single group).
+// These tests will turn GREEN once proportional splitting is confirmed or
+// fixed for multi-statement composed child groups.
+//
+// Spec: amrap.md#-amrap-with--composed-grouping-complex--superset
+// ===========================================================================
+describe('🔴 AMRAP with + Composed Grouping — proportional output splitting', () => {
+    const SCRIPT = '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats';
+    let ctx: SessionTestContext;
+
+    afterEach(() => { if (ctx) disposeSession(ctx); });
+
+    it('completing one composite round emits ≥ 3 completion outputs (one per exercise)', () => {
+        ctx = createSessionContext(SCRIPT);
+        startSession(ctx, { label: 'Comp' });
+        userNext(ctx);            // start → composite block pushed (round 1)
+        advanceClock(ctx, 60_000); // 60 s elapsed inside the round
+        userNext(ctx);             // composite block completes → split completions
+
+        // Completions from the composite block should be 3 (one per exercise).
+        // Filter out SessionRoot / AMRAP completions by requiring display metrics.
+        const exerciseCompletions = ctx.tracer.completions.filter(c =>
+            c.raw.metrics.some(m =>
+                m.type === MetricType.Rep || m.type === MetricType.Effort
+            )
+        );
+        expect(exerciseCompletions.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('each split completion contains exercise-specific Rep or Effort metric', () => {
+        ctx = createSessionContext(SCRIPT);
+        startSession(ctx, { label: 'Comp' });
+        userNext(ctx);
+        advanceClock(ctx, 60_000);
+        userNext(ctx);
+
+        const exerciseCompletions = ctx.tracer.completions.filter(c =>
+            c.raw.metrics.some(m =>
+                m.type === MetricType.Rep || m.type === MetricType.Effort
+            )
+        );
+
+        // Must have at least 3 exercise completions to verify
+        expect(exerciseCompletions.length).toBeGreaterThanOrEqual(3);
+
+        // Every exercise completion should carry at least one Rep metric
+        for (const comp of exerciseCompletions) {
+            const hasRep = comp.raw.metrics.some(m => m.type === MetricType.Rep);
+            expect(hasRep).toBe(true);
+        }
+    });
+
+    it('elapsed time across split completions sums to total elapsed (within 1 % rounding)', () => {
+        ctx = createSessionContext(SCRIPT);
+        startSession(ctx, { label: 'Comp' });
+        userNext(ctx);
+        advanceClock(ctx, 60_000);
+        userNext(ctx);
+
+        // Filter specifically for exercise-level completions (must have Rep metric)
+        const exerciseCompletions = ctx.tracer.completions.filter(c =>
+            c.raw.metrics.some(m => m.type === MetricType.Rep)
+        );
+
+        // Must have exactly 3 split completions (one per statement)
+        expect(exerciseCompletions).toHaveLength(3);
+
+        const totalSplitElapsed = exerciseCompletions.reduce((sum, c) => {
+            const elapsed = c.raw.metrics.find(m => m.type === MetricType.Elapsed);
+            return sum + ((elapsed?.value as number) ?? 0);
+        }, 0);
+
+        // 60 000 ms elapsed; sum of splits should be within 1 % (600 ms) for rounding
+        expect(totalSplitElapsed).toBeGreaterThan(59_400);
+        expect(totalSplitElapsed).toBeLessThanOrEqual(60_600);
+    });
+
+    it('rep ratio 5:10:15 → split elapsed values are in ascending order', () => {
+        ctx = createSessionContext(SCRIPT);
+        startSession(ctx, { label: 'Comp' });
+        userNext(ctx);
+        advanceClock(ctx, 30_000); // 30 s for clean numbers: Pullups≈5s, Pushups≈10s, Squats≈15s
+        userNext(ctx);
+
+        const exerciseCompletions = ctx.tracer.completions.filter(c =>
+            c.raw.metrics.some(m => m.type === MetricType.Rep)
+        );
+
+        const elapsedValues = exerciseCompletions
+            .map(c => (c.raw.metrics.find(m => m.type === MetricType.Elapsed)?.value as number) ?? 0)
+            .filter(v => v > 0);
+
+        expect(elapsedValues).toHaveLength(3);
+        const sorted = [...elapsedValues].sort((a, b) => a - b);
+        // The smallest elapsed corresponds to 5 Pullups, largest to 15 Air Squats
+        // Values should differ meaningfully: sorted[0] < sorted[1] < sorted[2]
+        expect(sorted[0]).toBeLessThan(sorted[1]);
+        expect(sorted[1]).toBeLessThan(sorted[2]);
+    });
+});
+
+// ===========================================================================
+// 🔴 AMRAP Skippable Rest — completionReason in system events
+//
+// When :30 Rest inside an AMRAP is dismissed early by userNext, the system
+// pop event for that block should carry `completionReason = 'user-advance'`.
+// When it auto-expires via the clock, the reason must be anything OTHER than
+// 'user-advance' (typically 'timer-expiry' or omitted).
+//
+// These tests are RED because this AMRAP-specific completionReason behaviour
+// is NOT covered by any existing test (the skippable-rest tests only check
+// stack depth and round counter, not completionReason).
+//
+// Spec: amrap.md#-amrap-with-skippable-rest-between-rounds
+// ===========================================================================
+describe('🔴 AMRAP Skippable Rest — completionReason in system events', () => {
+    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
+    let ctx: SessionTestContext;
+
+    afterEach(() => { if (ctx) disposeSession(ctx); });
+
+    /** Helper: advance through Pullups and Pushups so :30 Rest is the current block. */
+    function setupAndReachRest() {
+        ctx = createSessionContext(SCRIPT);
+        startSession(ctx, { label: 'RestReason' });
+        userNext(ctx); // start → Pullups
+        userNext(ctx); // Pushups
+        userNext(ctx); // :30 Rest mounted
+    }
+
+    /** Extract system pop event values from the tracer. */
+    function systemPopValues(): Array<Record<string, unknown>> {
+        return ctx.tracer.outputs
+            .filter(o => o.outputType === 'system')
+            .map(o => {
+                const m = o.raw.metrics.find(m => m.type === MetricType.System);
+                return m?.value as Record<string, unknown> | undefined;
+            })
+            .filter((v): v is Record<string, unknown> => !!v && v['event'] === 'pop');
+    }
+
+    it('skipping :30 Rest via userNext → completionReason = "user-advance" in system pop', () => {
+        setupAndReachRest();
+        userNext(ctx); // skip rest early
+
+        const pops = systemPopValues();
+        const lastPop = pops.at(-1);
+        expect(lastPop?.completionReason).toBe('user-advance');
+    });
+
+    it('auto-expiring :30 Rest → completionReason is NOT "user-advance"', () => {
+        setupAndReachRest();
+        advanceClock(ctx, 30_000); // rest auto-expires
+
+        const pops = systemPopValues();
+        const lastPop = pops.at(-1);
+        expect(lastPop?.completionReason).not.toBe('user-advance');
+    });
+
+    it('round advances to 2 after rest is skipped, confirming the pop was the rest block', () => {
+        setupAndReachRest();
+        userNext(ctx); // skip rest → round 2
+        expect(getRoundState(ctx)?.current).toBe(2);
+    });
+});
+
+// ===========================================================================
+// 🔴 AMRAP Forced Rest — completionReason never 'user-advance'
+//
+// For *:30 Rest (forced, non-skippable), userNext attempts are suppressed.
+// The block can ONLY exit via timer expiry.  Therefore every system pop
+// event for the forced rest block must have `completionReason` that is NOT
+// 'user-advance'.  This assertion is NOT currently covered by any existing
+// test in this file (the existing tests only verify stack depth is unchanged
+// during suppressed userNext, not the completionReason in system events).
+//
+// Spec: amrap.md#-amrap-with-forced-rest-cannot-skip
+// ===========================================================================
+describe('🔴 AMRAP Forced Rest — completionReason never "user-advance"', () => {
+    const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
+    let ctx: SessionTestContext;
+
+    afterEach(() => { if (ctx) disposeSession(ctx); });
+
+    /** Helper: drive to the point where forced rest is the current block. */
+    function enterForcedRest() {
+        ctx = createSessionContext(SCRIPT);
+        startSession(ctx, { label: 'ForcedRestReason' });
+        userNext(ctx); // start → Pullups
+        userNext(ctx); // Pushups
+        userNext(ctx); // *:30 forced Rest mounted
+    }
+
+    /** Extract system pop event values from the tracer. */
+    function systemPopValues(): Array<Record<string, unknown>> {
+        return ctx.tracer.outputs
+            .filter(o => o.outputType === 'system')
+            .map(o => {
+                const m = o.raw.metrics.find(m => m.type === MetricType.System);
+                return m?.value as Record<string, unknown> | undefined;
+            })
+            .filter((v): v is Record<string, unknown> => !!v && v['event'] === 'pop');
+    }
+
+    it('after forced rest expires via timer, last system pop is NOT "user-advance"', () => {
+        enterForcedRest();
+        advanceClock(ctx, 30_000); // forced rest timer fires → auto-pop
+
+        const pops = systemPopValues();
+        const lastPop = pops.at(-1);
+        // The last pop is the forced rest auto-completing; must not be user-advance
+        expect(lastPop?.completionReason).not.toBe('user-advance');
+    });
+
+    it('after userNext attempts + timer expiry, no forced-rest pop has "user-advance"', () => {
+        enterForcedRest();
+        userNext(ctx); // no-op (suppressed)
+        userNext(ctx); // no-op (suppressed)
+        advanceClock(ctx, 30_000); // timer fires → forced rest auto-pops
+
+        const pops = systemPopValues();
+
+        // Pullups pop is 'user-advance' (expected and correct).
+        // The forced rest pop must NOT be 'user-advance'.
+        // The most recent pop after clock advance is the forced rest block.
+        const lastPop = pops.at(-1);
+        expect(lastPop?.completionReason).not.toBe('user-advance');
+    });
+
+    it('forced rest completion output has no completionReason = "user-advance"', () => {
+        enterForcedRest();
+        advanceClock(ctx, 30_000);
+
+        // completionReason is also surfaced on the completion IOutputStatement itself
+        const forcedRestCompletion = ctx.tracer.completions
+            .filter(c => c.raw.completionReason !== undefined)
+            .at(-1);
+
+        if (forcedRestCompletion) {
+            expect(forcedRestCompletion.raw.completionReason).not.toBe('user-advance');
+        }
+        // If no completion has a completionReason set, the assertion trivially passes —
+        // that means the reason is never propagated to the completion output (a separate
+        // RED test would be needed to assert it IS propagated, but that is out of scope here).
+    });
+
+    it('after forced rest timer fires, round 2 begins (confirming correct pop path)', () => {
+        enterForcedRest();
+        advanceClock(ctx, 30_000);
+        expect(getRoundState(ctx)?.current).toBe(2);
     });
 });

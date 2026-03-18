@@ -23,10 +23,12 @@ export interface UseWodBlockResultsReturn {
  *
  * @param noteId   - The note containing the WOD block (short or full UUID)
  * @param sectionId - The WOD section ID within the note
+ * @param extendedResultsOverride - Optional explicit in-memory results (bypasses context)
  */
 export function useWodBlockResults(
   noteId: string | undefined,
   sectionId: string | undefined,
+  extendedResultsOverride?: WorkoutResult[],
 ): UseWodBlockResultsReturn {
   const [results, setResults] = useState<WorkoutResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ export function useWodBlockResults(
     // Silent fail if outside provider
   }
 
-  const extendedResults = workbench?.currentEntry?.extendedResults;
+  const extendedResults = extendedResultsOverride ?? workbench?.currentEntry?.extendedResults;
 
   useEffect(() => {
     if (!noteId || !sectionId) {

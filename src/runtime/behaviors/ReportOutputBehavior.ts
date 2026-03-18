@@ -228,8 +228,9 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
 
         if (!timer || timer.spans.length === 0) {
-            return groups.map(() => {
+            return groups.map((group) => {
                 const groupFragments: IMetric[] = [
+                    ...group,
                     new ElapsedMetric(0, blockKey, now),
                     new TotalMetric(0, blockKey, now),
                     new SpansMetric([new TimeSpan(nowMs, nowMs)], blockKey, now),
@@ -258,7 +259,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
 
         // 2. Distribute time and create virtual spans
         let currentOffsetMs = 0;
-        return groups.map((_, i) => {
+        return groups.map((group, i) => {
             const weight = weights[i];
             const ratio = weight / totalWeight;
             const groupElapsed = Math.round(totalElapsed * ratio);
@@ -270,6 +271,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             currentOffsetMs += groupTotal;
 
             const groupFragments: IMetric[] = [
+                ...group,
                 new ElapsedMetric(groupElapsed, blockKey, now),
                 new TotalMetric(groupTotal, blockKey, now),
                 new SpansMetric([new TimeSpan(groupStart, groupEnd)], blockKey, now),

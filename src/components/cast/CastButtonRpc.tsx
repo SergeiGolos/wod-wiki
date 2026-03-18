@@ -26,6 +26,7 @@ import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';
 import { cn } from '@/lib/utils';
 import { ClockSyncService } from '@/services/cast/rpc/ClockSync';
 import { ProjectionSyncProvider } from './ProjectionSyncContext';
+import { useLocation } from 'react-router-dom';
 
 const CHROMECAST_SUBSCRIPTION_ID = 'chromecast';
 
@@ -298,32 +299,34 @@ export const CastButtonRpc: React.FC = () => {
 
     return (
         <ProjectionSyncProvider chromecastSubscription={chromecastSubRef.current ?? null}>
-            <Button
-                ref={buttonRef}
-                variant="ghost"
-                size="icon"
-                disabled={isCurrentlyBusy || !canInteract}
-                className={cn(
-                    "transition-all duration-300",
-                    isConnected ? "text-blue-500 bg-blue-500/10" : "",
-                    isCurrentlyBusy ? "text-blue-400" : "",
-                    isAvailable ? "text-foreground hover:text-blue-500" : ""
-                )}
-                title={isConnected ? "Stop Casting" : (isCurrentlyBusy ? "Connecting..." : "Cast to TV")}
-            >
-                {isConnected ? (
-                    <TvMinimal className={cn(
-                        "h-5 w-5",
-                        !isWebRtcActive && "opacity-50",
-                        isDisconnecting && "animate-pulse"
-                    )} />
-                ) : (
-                    <Cast className={cn(
-                        "h-5 w-5",
-                        isCurrentlyConnecting ? "animate-pulse-opacity" : ""
-                    )} />
-                )}
-            </Button>
+            <div className="relative">
+                <Button
+                    ref={buttonRef}
+                    variant="ghost"
+                    size="icon"
+                    disabled={isCurrentlyBusy || !canInteract}
+                    className={cn(
+                        "transition-all duration-300",
+                        isConnected ? "text-blue-500 bg-blue-500/10" : "",
+                        isCurrentlyBusy ? "text-blue-400" : "",
+                        isAvailable ? "text-foreground hover:text-blue-500" : ""
+                    )}
+                    title={isConnected ? "Stop Casting" : (isCurrentlyBusy ? "Connecting..." : "Cast to TV")}
+                >
+                    {isConnected ? (
+                        <TvMinimal className={cn(
+                            "h-5 w-5",
+                            !isWebRtcActive && "opacity-50",
+                            isDisconnecting && "animate-pulse"
+                        )} />
+                    ) : (
+                        <Cast className={cn(
+                            "h-5 w-5",
+                            isCurrentlyConnecting ? "animate-pulse-opacity" : ""
+                        )} />
+                    )}
+                </Button>
+            </div>
         </ProjectionSyncProvider>
     );
 };

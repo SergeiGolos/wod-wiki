@@ -111,7 +111,9 @@ const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandl
 import {
   wodResultsWidget,
   wodResultsField,
+  wodResultsExpandedField,
   updateSectionResults,
+  toggleWodResults,
   WOD_RESULT_CLICK_EVENT,
   type WodResultClickDetail,
 } from "./extensions/wod-results-widget";
@@ -137,7 +139,7 @@ import { themeCompartment, languageCompartment, modeCompartment } from "./compar
 
 import type { WodBlock } from "./types";
 import { useCommandPalette } from "../command-palette/CommandContext";
-import { Play, Plus, ExternalLink } from "lucide-react";
+import { Play, Plus, ExternalLink, History } from "lucide-react";
 import { buildPlaygroundUrl } from "./md-components/WodPlaygroundButton";
 
 export interface UnifiedEditorProps {
@@ -163,6 +165,10 @@ export interface UnifiedEditorProps {
   onBlocksChange?: (blocks: WodBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a WodScript block */
   onAddToPlan?: (block: WodBlock) => void;
+  /** Called when user wants to review a specific result (for custom routing/popups) */
+  onOpenReview?: (result: WorkoutResult) => void;
+  /** In-memory results fallback (for non-persistent sessions) */
+  extendedResults?: WorkoutResult[];
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */
@@ -183,12 +189,6 @@ export interface UnifiedEditorProps {
    * (those are still accepted for backward compatibility when commands is omitted).
    */
   commands?: WodCommand[];
-  /**
-   * How many commands are shown as direct buttons in the overlay.
-   * Any additional commands are hidden behind a "…" overflow menu.
-   * Default: 1.
-   */
-  visibleCommands?: number;
   /**
    * When true (default), clicking "Run" opens an inline runtime panel below
    * the WOD block instead of calling onStartWorkout / navigating to the track
@@ -214,6 +214,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   onCompleteWorkout,
   onBlocksChange,
   onAddToPlan,
+  onOpenReview,
+  extendedResults,
   onViewCreated,
   mode = "edit",
   lineWrapping: initialLineWrapping = true,
@@ -222,7 +224,6 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   enableLinting = true,
   enableOverlay = true,
   commands,
-  visibleCommands = 1,
   enableInlineRuntime = true,
   widgetComponents,
 }) => {
@@ -318,6 +319,19 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
     if (wodSections.length === 0) return;
 
     for (const section of wodSections) {
+      // 1. Priority: In-memory results from props (Static/Lesson Mode)
+      if (Array.isArray(extendedResults)) {
+        const matches = extendedResults
+          .filter(r => r.sectionId === section.id || r.segmentId === section.id)
+          .sort((a, b) => b.completedAt - a.completedAt);
+        
+        viewRef.current.dispatch({
+          effects: [updateSectionResults.of({ sectionId: section.id, results: matches })],
+        });
+        continue;
+      }
+
+      // 2. Fallback: Persistent storage (History/App Mode)
       indexedDBService
         .getResultsForSection(noteId ?? "", section.id)
         .then((results) => {
@@ -334,7 +348,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           // IndexedDB unavailable (e.g. Storybook) – silently ignore
         });
     }
-  }, [noteId, sections]);
+  }, [noteId, sections, extendedResults]);
 
   // Listen for result pill clicks fired by the CM6 widget and open the
   // full-screen review overlay if the result has detailed logs.
@@ -344,6 +358,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
     const handleResultClick = (e: Event) => {
       const { result } = (e as CustomEvent<WodResultClickDetail>).detail;
+      
+      // If parent provided an onOpenReview handler, use it first
+      if (onOpenReview) {
+        onOpenReview(result);
+        return;
+      }
+
+      // Default behavior: show inline FullscreenReview overlay if logs exist
       if (result?.data?.logs && result.data.logs.length > 0) {
         const { segments } = getAnalyticsFromLogs(
           result.data.logs as any,
@@ -355,7 +377,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
     el.addEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
     return () => el.removeEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-  }, [handleOpenReview]);
+  }, [handleOpenReview, onOpenReview]);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.
@@ -382,14 +404,8 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         onClick: onStartWorkout,
       });
     }
-    if (onAddToPlan) {
-      synthesized.push({
-        id: "plan",
-        label: "Plan",
-        icon: <Plus className="h-3 w-3" />,
-        onClick: onAddToPlan,
-      });
-    }
+
+    // Secondary group: Playground (first), Results, Plan
     synthesized.push({
       id: "playground",
       label: "Playground",
@@ -400,6 +416,16 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         });
       },
     });
+
+    if (onAddToPlan) {
+      synthesized.push({
+        id: "plan",
+        label: "Plan",
+        icon: <Plus className="h-3 w-3" />,
+        onClick: onAddToPlan,
+      });
+    }
+
     return synthesized;
   }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleRun]);
 
@@ -622,7 +648,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           cursorLine={cursorLine}
           docVersion={props.docVersion}
           commands={effectiveCommands}
-          visibleCount={visibleCommands}
+          extendedResults={extendedResults}
           onOpenReview={handleOpenReview}
           hoverLine={props.hoverLine}
           stickyTopOffset={props.stickyTopOffset}
@@ -668,7 +694,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   return (
     <div
       ref={editorRef}
-      className={`cm-unified-editor relative h-full w-full min-w-0 overflow-hidden ${className}`}
+      className={`cm-unified-editor relative w-full min-w-0 ${className}`}
     >
       {enableOverlay && (
         <OverlayTrack

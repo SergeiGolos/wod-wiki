@@ -17,7 +17,7 @@
 ## 🟢 Effort with Weight
 
 ```wod
-10 Clean & Jerk @ 135 lb
+10 Clean & Jerk 135 lb
 ```
 
 | Step | Action | Stack | Expect |
