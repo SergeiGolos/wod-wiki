@@ -341,6 +341,7 @@ const ReceiverApp = () => {
         e.key === 'Ok' || 
         e.key === 'Accept' || 
         e.key === ' ' ||
+        e.key === 'AudioVolumeUp' ||
         e.keyCode === 13 || // Enter
         e.keyCode === 23 || // Center/Select
         e.keyCode === 32;   // Space

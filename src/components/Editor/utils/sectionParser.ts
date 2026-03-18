@@ -134,6 +134,26 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
 }
 
 /**
+ * Detect single-line Markdown embeds: ![label](url) or [label](url).
+ */
+function matchMarkdownEmbed(trimmed: string) {
+  // Pattern: Optional ! for image, then [label](url)
+  const match = trimmed.match(/^(!)?\[([^\]]*)\]\(([^)]+)\)$/);
+  if (!match) return null;
+
+  const isImage = !!match[1];
+  const label = match[2];
+  const url = match[3];
+
+  let type: 'image' | 'link' | 'youtube' = isImage ? 'image' : 'link';
+  if (/youtube\.com|youtu\.be/i.test(url)) {
+    type = 'youtube';
+  }
+
+  return { type, label, url, isImage };
+}
+
+/**
  * Parse a markdown document into an ordered list of sections.
  *
  * Section model (simplified):
@@ -142,6 +162,7 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
  *              grouped into contiguous markdown sections.
  *  - wod:      Each fenced dialect block (```wod / ```log / ```plan)
  *              becomes its own section with `dialect` set.
+ *  - embed:    Single-line markdown links/images ![label](url) or [label](url).
  * 
  * @param content - Full markdown content
  * @param wodBlocks - Pre-detected WOD blocks (optional; will be detected if omitted)
@@ -163,38 +184,86 @@ export function parseDocumentSections(content: string, wodBlocks?: WodBlock[]): 
   function flushMarkdownLines(mdLines: string[], startLine: number) {
     if (mdLines.length === 0) return;
 
-    const raw = mdLines.join('\n');
-    const { metadata, cleanText } = extractMetadata(raw);
-    const cleanLineCount = cleanText.split('\n').length;
+    // Split accumulated markdown at blank-line boundaries
+    let currentGroup: string[] = [];
+    let groupStartLine = startLine;
 
-    if (isFirstTextBlock) {
-      // First text block → title section (renders as markdown, title extracted from first # line)
-      isFirstTextBlock = false;
+    for (let i = 0; i <= mdLines.length; i++) {
+      const isEnd = i === mdLines.length;
+      const line = !isEnd ? mdLines[i] : null;
+      const isBlank = line !== null && line.trim().length === 0;
 
-      sections.push({
-        id: metadata?.id || generateSectionId('title', startLine, cleanText),
-        type: 'title',
-        rawContent: cleanText,
-        displayContent: cleanText, // full markdown preserved — title extracted separately
-        startLine,
-        endLine: startLine + cleanLineCount - 1,
-        lineCount: cleanLineCount,
-        level: undefined,
-        version: metadata?.version || 1,
-        createdAt: metadata?.createdAt || now,
-      });
-    } else {
-      sections.push({
-        id: metadata?.id || generateSectionId('markdown', startLine, cleanText),
-        type: 'markdown',
-        rawContent: cleanText,
-        displayContent: cleanText,
-        startLine,
-        endLine: startLine + cleanLineCount - 1,
-        lineCount: cleanLineCount,
-        version: metadata?.version || 1,
-        createdAt: metadata?.createdAt || now,
-      });
+      if (isEnd || isBlank) {
+        // Flush current group
+        if (currentGroup.length > 0) {
+          const raw = currentGroup.join('\n');
+          const { metadata, cleanText } = extractMetadata(raw);
+          const trimmed = cleanText.trim();
+          
+          // Check for single-line embed
+          const embed = currentGroup.length === 1 ? matchMarkdownEmbed(trimmed) : null;
+
+          if (embed) {
+            sections.push({
+              id: metadata?.id || generateSectionId('embed', groupStartLine, trimmed),
+              type: 'embed',
+              rawContent: cleanText,
+              displayContent: cleanText,
+              startLine: groupStartLine,
+              endLine: groupStartLine,
+              lineCount: 1,
+              embed,
+              version: metadata?.version || 1,
+              createdAt: metadata?.createdAt || now,
+            });
+          } else if (isFirstTextBlock) {
+            isFirstTextBlock = false;
+            sections.push({
+              id: metadata?.id || generateSectionId('title', groupStartLine, cleanText),
+              type: 'title',
+              rawContent: cleanText,
+              displayContent: cleanText,
+              startLine: groupStartLine,
+              endLine: groupStartLine + currentGroup.length - 1,
+              lineCount: currentGroup.length,
+              version: metadata?.version || 1,
+              createdAt: metadata?.createdAt || now,
+            });
+          } else {
+            sections.push({
+              id: metadata?.id || generateSectionId('markdown', groupStartLine, cleanText),
+              type: 'markdown',
+              rawContent: cleanText,
+              displayContent: cleanText,
+              startLine: groupStartLine,
+              endLine: groupStartLine + currentGroup.length - 1,
+              lineCount: currentGroup.length,
+              version: metadata?.version || 1,
+              createdAt: metadata?.createdAt || now,
+            });
+          }
+        }
+
+        // Blank line itself (if not at end)
+        if (isBlank) {
+          sections.push({
+            id: generateSectionId('markdown', startLine + i, ''),
+            type: 'markdown',
+            rawContent: '',
+            displayContent: '',
+            startLine: startLine + i,
+            endLine: startLine + i,
+            lineCount: 1,
+            version: 1,
+            createdAt: now,
+          });
+        }
+
+        currentGroup = [];
+        groupStartLine = startLine + i + 1;
+      } else {
+        currentGroup.push(line!);
+      }
     }
   }
 

@@ -1,28 +1,24 @@
 /**
  * FrontmatterCompanion
  *
- * Overlay companion component for frontmatter sections.
- * Detects the frontmatter subtype (YouTube, Amazon, etc.) and renders
+ * Overlay companion component for frontmatter and embed sections.
+ * Detects the subtype (YouTube, Amazon, etc.) and renders
  * the appropriate preview. For YouTube, embeds the video player.
- *
- * Used by the OverlayTrack — renders inside an overlay slot that is:
- *  - 35% width when the cursor is inside the frontmatter (active)
- *  - 100% width when the cursor is elsewhere (inactive)
  */
 
 import React, { useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
-import { sectionField } from "../extensions/section-state";
+import { sectionField, EditorSection } from "../extensions/section-state";
 
-// ── Frontmatter helpers ──────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────
 
-function parseFrontmatterProps(
-  view: EditorView,
-  sectionId: string,
-): Record<string, string> {
+function getSection(view: EditorView, sectionId: string): EditorSection | undefined {
   const { sections } = view.state.field(sectionField);
-  const section = sections.find((s) => s.id === sectionId);
-  if (!section || section.type !== "frontmatter") return {};
+  return sections.find((s) => s.id === sectionId);
+}
+
+function parseFrontmatter(view: EditorView, section: EditorSection): Record<string, string> {
+  if (section.type !== "frontmatter") return {};
 
   const props: Record<string, string> = {};
   const doc = view.state.doc;
@@ -64,8 +60,9 @@ function extractYouTubeVideoId(url: string): string | null {
 
 // ── Component ────────────────────────────────────────────────────────
 
-interface FrontmatterCompanionProps {
+export interface FrontmatterCompanionProps {
   sectionId: string;
+  section?: EditorSection;
   view: EditorView;
   isActive: boolean;
   widthPercent: number;
@@ -74,27 +71,68 @@ interface FrontmatterCompanionProps {
 
 export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
   sectionId,
+  section: propSection,
   view,
   isActive,
   widthPercent,
   docVersion,
 }) => {
-  const props = useMemo(
-    () => parseFrontmatterProps(view, sectionId),
-    // docVersion ensures we re-parse when frontmatter content changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [view, sectionId, docVersion],
+  const section = useMemo(
+    () => propSection || getSection(view, sectionId),
+    [view, sectionId, docVersion, propSection],
   );
-  const subtype = useMemo(() => detectSubtype(props), [props]);
+
+  if (!section) return null;
+
+  // 1. If it's a dedicated 'embed' section, use its metadata
+  if (section.type === "embed" && section.embed) {
+    const { type, url, label } = section.embed;
+    if (type === "youtube") {
+      const videoId = extractYouTubeVideoId(url);
+      if (videoId) {
+        return (
+          <YouTubePlayer
+            videoId={videoId}
+            title={label}
+            isActive={isActive}
+          />
+        );
+      }
+    }
+    
+    return (
+      <div className="h-full w-full flex flex-col bg-popover/90 backdrop-blur-sm border-l border-border p-3 overflow-auto">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 uppercase font-bold">
+            {section.embed.isImage ? "IMAGE" : "LINK"}
+          </span>
+          <span className="text-xs font-medium truncate">{label || "Untitled"}</span>
+        </div>
+        <div className="text-[10px] text-muted-foreground truncate mb-3">{url}</div>
+        {section.embed.isImage && (
+          <img src={url} alt={label} className="w-full h-auto rounded border border-border shadow-sm bg-muted/20" />
+        )}
+      </div>
+    );
+  }
+
+  // 2. Fallback to Frontmatter YAML parsing (legacy)
+  const props = section.type === "frontmatter" ? parseFrontmatter(view, section) : {};
+  const subtype = detectSubtype(props);
 
   if (subtype === "youtube") {
-    return (
-      <YouTubeCompanion
-        props={props}
-        isActive={isActive}
-        widthPercent={widthPercent}
-      />
-    );
+    const url = props["url"] || props["link"] || "";
+    const title = props["title"] || "YouTube Video";
+    const videoId = extractYouTubeVideoId(url);
+    if (videoId) {
+      return (
+        <YouTubePlayer
+          videoId={videoId}
+          title={title}
+          isActive={isActive}
+        />
+      );
+    }
   }
 
   // Default: show a simple properties summary
@@ -115,37 +153,13 @@ export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
 
 // ── YouTube sub-component ────────────────────────────────────────────
 
-interface YouTubeCompanionProps {
-  props: Record<string, string>;
+const YouTubePlayer: React.FC<{
+  videoId: string;
+  title: string;
   isActive: boolean;
-  widthPercent: number;
-}
-
-const YouTubeCompanion: React.FC<YouTubeCompanionProps> = ({
-  props,
-  isActive,
-}) => {
-  const url = props["url"] || props["link"] || "";
-  const title = props["title"] || "YouTube Video";
-  const videoId = extractYouTubeVideoId(url);
-
-  if (!videoId) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-popover/90 backdrop-blur-sm border-l border-border text-xs text-muted-foreground">
-        No valid YouTube URL
-      </div>
-    );
-  }
-
+}> = ({ videoId, title, isActive }) => {
   return (
-    <div
-      className={`h-full w-full flex flex-col ${
-        isActive
-          ? "bg-popover/90 backdrop-blur-sm border-l border-border"
-          : "bg-black"
-      }`}
-    >
-      {/* 16:9 video container that fills available space */}
+    <div className={`h-full w-full flex flex-col ${isActive ? "bg-popover/90 backdrop-blur-sm border-l border-border" : "bg-black"}`}>
       <div className="relative flex-1 min-h-0">
         <iframe
           className="absolute inset-0 w-full h-full border-0"
@@ -156,8 +170,7 @@ const YouTubeCompanion: React.FC<YouTubeCompanionProps> = ({
           loading="lazy"
         />
       </div>
-      {/* Title bar — only when active (side panel mode) */}
-      {isActive && title !== "YouTube Video" && (
+      {isActive && title && title !== "YouTube Video" && (
         <div className="px-3 py-1.5 text-xs text-muted-foreground truncate border-t border-border bg-popover/90">
           {title}
         </div>

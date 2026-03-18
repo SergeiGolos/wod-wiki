@@ -15,10 +15,14 @@
 
 import { StateField, StateEffect, EditorState, Transaction } from "@codemirror/state";
 
+/** WOD dialect identifiers */
+export type EditorDialect = "wod" | "log" | "plan";
+const VALID_DIALECTS: EditorDialect[] = ["wod", "log", "plan"];
+
 // ── Types ────────────────────────────────────────────────────────────
 
 /** Section types the parser can identify */
-export type EditorSectionType = "markdown" | "wod" | "frontmatter" | "code" | "widget";
+export type EditorSectionType = "markdown" | "wod" | "frontmatter" | "code" | "widget" | "embed";
 
 /** Markdown subtypes for routing per-section UI */
 export type EditorSectionSubtype =
@@ -29,9 +33,8 @@ export type EditorSectionSubtype =
   | "table"
   | "unknown";
 
-/** WOD dialect identifiers */
-export type EditorDialect = "wod" | "log" | "plan";
-const VALID_DIALECTS: EditorDialect[] = ["wod", "log", "plan"];
+/** Embed types for 'embed' section */
+export type EmbedType = "image" | "link" | "youtube";
 
 /** A parsed section range in the document */
 export interface EditorSection {
@@ -59,6 +62,13 @@ export interface EditorSection {
   contentFrom?: number;
   /** Character offset of inner content end (before closing fence / delimiter) */
   contentTo?: number;
+  /** Embed specific data */
+  embed?: {
+    type: EmbedType;
+    label: string;
+    url: string;
+    isImage: boolean;
+  };
 }
 
 /** Document section state */
@@ -176,6 +186,26 @@ function matchGenericFence(trimmed: string): string | null {
   return lang || null;
 }
 
+/**
+ * Detect single-line Markdown embeds: ![label](url) or [label](url).
+ */
+function matchMarkdownEmbed(trimmed: string): EditorSection['embed'] | null {
+  // Pattern: Optional ! for image, then [label](url)
+  const match = trimmed.match(/^(!)?\[([^\]]*)\]\(([^)]+)\)$/);
+  if (!match) return null;
+
+  const isImage = !!match[1];
+  const label = match[2];
+  const url = match[3].trim();
+
+  let type: EmbedType = isImage ? "image" : "link";
+  if (/youtube\.com|youtu\.be/i.test(url)) {
+    type = "youtube";
+  }
+
+  return { type, label, url, isImage };
+}
+
 // ── Markdown Subtype Detection ───────────────────────────────────────
 
 function detectMarkdownSubtype(lines: string[]): EditorSectionSubtype {
@@ -227,6 +257,27 @@ function parseSections(state: EditorState): EditorSection[] {
         // Flush the non-blank group before this blank line (or at end)
         if (i > groupStart) {
           const group = mdLines.slice(groupStart, i);
+          // Check each line in the group for potential single-line embed
+          // If a group has only one line, check if it's an embed.
+          if (group.length === 1) {
+            const trimmed = group[0].text.trim();
+            const embed = matchMarkdownEmbed(trimmed);
+            if (embed) {
+              const line = doc.line(group[0].num);
+              sections.push({
+                id: generateSectionId("embed", group[0].num, trimmed),
+                type: "embed",
+                embed,
+                from: line.from,
+                to: line.to,
+                startLine: group[0].num,
+                endLine: group[0].num,
+              });
+              groupStart = i + 1;
+              continue;
+            }
+          }
+
           const firstLine = doc.line(group[0].num);
           const lastLine = doc.line(group[group.length - 1].num);
           const content = doc.sliceString(firstLine.from, lastLine.to);

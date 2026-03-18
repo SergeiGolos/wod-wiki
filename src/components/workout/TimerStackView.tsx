@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { formatTimeMMSS } from '../../lib/formatTime';
@@ -31,6 +31,8 @@ export interface TimerStackViewProps {
     stackItems?: any[];
     /** Spatial navigation focus props for TV remote support */
     getFocusProps?: (id: string) => FocusProps;
+    /** Whether swipe gestures are enabled (e.g. only in 'track' view) */
+    enableGestures?: boolean;
 }
 
 const formatTime = formatTimeMMSS;
@@ -50,7 +52,50 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
     timerStates,
     getFocusProps,
+    enableGestures = true,
 }) => {
+    // --- Swipe Gesture Logic ---
+    const touchStart = useRef<number | null>(null);
+    const touchEnd = useRef<number | null>(null);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        touchEnd.current = null;
+        touchStart.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        touchEnd.current = e.targetTouches[0].clientX;
+    };
+
+    const onTouchEnd = useCallback(() => {
+        if (!enableGestures || !touchStart.current || !touchEnd.current) return;
+        
+        const distance = touchStart.current - touchEnd.current;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        // Don't trigger if user is typing
+        const activeEl = document.activeElement;
+        const isTyping = activeEl && (
+            activeEl.tagName === 'INPUT' || 
+            activeEl.tagName === 'TEXTAREA' || 
+            (activeEl as HTMLElement).isContentEditable
+        );
+
+        if (!isTyping) {
+            if (isLeftSwipe) {
+                console.log('Swipe Left -> Next');
+                onNext();
+            } else if (isRightSwipe) {
+                console.log('Swipe Right -> Stop');
+                onStop();
+            }
+        }
+        
+        touchStart.current = null;
+        touchEnd.current = null;
+    }, [onNext, onStop]);
 
     // Determine which timer is "Focused" for the big ring
     // Default to the primaryTimer (usually the leaf) if no focus override
@@ -103,7 +148,12 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
 
     return (
-        <div className={`flex flex-col h-full w-full max-w-6xl mx-auto ${compact ? 'p-2' : 'p-4 gap-4'}`}>
+        <div 
+            className={`flex flex-col h-full w-full max-w-6xl mx-auto ${compact ? 'p-2' : 'p-4 gap-4'}`}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
             <style>{`
                 @keyframes pulse-border {
                     0%, 100% { opacity: 1; stroke-width: 8px; }

@@ -10,7 +10,7 @@
  * - This allows parent blocks (For Time, AMRAP) to pin their timer as the main display
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import {
   usePrimaryTimer,
@@ -24,6 +24,7 @@ import { calculateDuration } from '@/lib/timeUtils';
 
 import { TimerStackView } from '@/components/workout/TimerStackView';
 import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
+import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -77,6 +78,7 @@ export interface TimerDisplayProps {
  */
 const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   const runtime = useScriptRuntime();
+  const viewMode = useWorkbenchSyncStore(s => s.viewMode);
 
   // Stack-driven hooks — subscribe to block memory directly
   const primaryTimer = usePrimaryTimer();
@@ -346,6 +348,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
         compact={props.compact}
         focusedBlockId={focusedBlockId}
         timerStates={timerStates}
+        enableGestures={viewMode === 'track'}
       />
     </div>
   );
@@ -355,6 +358,42 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
  * TimerDisplay - Enhanced timer display component
  */
 export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
+  const viewMode = useWorkbenchSyncStore(s => s.viewMode);
+
+  // Global keydown listener for hardware 'Next' button support (Volume Up / Enter)
+  useEffect(() => {
+    // Only fire hardware keys if we are in the track view
+    if (viewMode !== 'track') return;
+
+    const handleHardwareKey = (e: KeyboardEvent) => {
+      // AudioVolumeUp is often sent by hardware volume buttons on mobile
+      // Enter (13) is also common for "Select" or "Next" actions
+      const isNextKey = 
+        e.key === 'AudioVolumeUp' || 
+        e.key === 'Enter' || 
+        e.keyCode === 13;
+
+      if (isNextKey) {
+        // Don't trigger if user is typing in an input or textarea
+        const activeEl = document.activeElement;
+        const isTyping = activeEl && (
+          activeEl.tagName === 'INPUT' || 
+          activeEl.tagName === 'TEXTAREA' || 
+          (activeEl as HTMLElement).isContentEditable
+        );
+        
+        if (!isTyping) {
+          // Prevent default browser behavior (like scrolling on space/enter)
+          e.preventDefault();
+          props.onNext();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleHardwareKey);
+    return () => window.removeEventListener('keydown', handleHardwareKey);
+  }, [props.onNext, viewMode]);
+
   // If display stack is enabled (runtime available), render with runtime hooks
   if (props.enableDisplayStack) {
     return <StackIntegratedTimer {...props} />;
@@ -371,6 +410,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onNext={props.onNext}
       isRunning={props.isRunning}
       compact={props.compact}
+      enableGestures={viewMode === 'track'}
     />
   );
 };

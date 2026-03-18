@@ -14,7 +14,7 @@ import type { WodBlock } from './types';
 import type { Section, SectionType, WodDialect } from './types/section';
 import { useSectionDocument } from './hooks/useSectionDocument';
 import { SectionContainer } from './md-components/SectionContainer';
-import { MarkdownDisplay, WodBlockDisplay, FrontMatterDisplay } from './md-components/section-renderers';
+import { MarkdownDisplay, WodBlockDisplay, FrontMatterDisplay, EmbedDisplay } from './md-components/section-renderers';
 import { SectionEditView } from './md-components/SectionEditView';
 import { WodSectionEditor } from './md-components/WodSectionEditor';
 import { SectionAddBar, type NewSectionType } from './md-components/SectionAddBar';
@@ -101,6 +101,10 @@ const SectionDisplayRenderer: React.FC<{
           sourceNoteId={sourceNoteId}
           mode={mode}
         />
+      );
+    case 'embed':
+      return (
+        <EmbedDisplay section={section as any} />
       );
     default:
       return null;
