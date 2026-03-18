@@ -284,7 +284,7 @@ export function SyntaxPage({ theme }: { theme: string }) {
   return (
     <div className="flex-1 overflow-y-auto bg-background flex flex-col min-h-0">
       {/* Hero Section */}
-      <section id="introduction" className="relative px-6 py-16 lg:py-24 overflow-hidden scroll-mt-24">
+      <section id="introduction" className="relative px-6 pt-32 pb-16 lg:pt-48 lg:pb-24 overflow-hidden scroll-mt-24">
         <CastCallout />
         <div
           className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30"
