@@ -100,11 +100,6 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
             <Headless.Combobox 
               as="div"
               onChange={handleSelect}
-              onKeyDown={(e) => {
-                if (activeStrategy?.onKeyDown) {
-                  activeStrategy.onKeyDown(e)
-                }
-              }}
             >
             <div className="flex items-center px-4 h-14">
               <MagnifyingGlassIcon
@@ -117,6 +112,11 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
                 className="h-full w-full border-0 bg-transparent pl-3 pr-4 text-foreground placeholder:text-muted-foreground focus:ring-0 sm:text-base font-medium outline-hidden"
                 placeholder={activeStrategy?.placeholder || (initialCategory ? `Search in ${initialCategory}...` : "Search workouts...")}
                 onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(e) => {
+                  if (activeStrategy?.onKeyDown) {
+                    activeStrategy.onKeyDown(e)
+                  }
+                }}
               />
             </div>
 

@@ -193,8 +193,7 @@ export function ComboboxLabel({ className, ...props }: React.ComponentPropsWitho
 
 export function ComboboxDescription({ className, children, ...props }: React.ComponentPropsWithoutRef<'span'>) {
   return (
-    <Headless.ComboboxDescription
-      as="span"
+    <span
       {...props}
       data-slot="description"
       className={clsx(
@@ -203,7 +202,7 @@ export function ComboboxDescription({ className, children, ...props }: React.Com
       )}
     >
       <span className="flex-1 truncate">{children}</span>
-    </Headless.ComboboxDescription>
+    </span>
   )
 }
 
