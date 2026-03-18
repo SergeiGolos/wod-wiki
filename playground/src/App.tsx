@@ -18,6 +18,7 @@ import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/pl
 import {
   Sidebar,
   SidebarBody,
+  SidebarDivider,
   SidebarFooter,
   SidebarHeader,
   SidebarItem,
@@ -858,6 +859,16 @@ function AppContent() {
                   ))}
                 </div>
               )}
+              <SidebarItem onClick={handleSearchClick}>
+                <MagnifyingGlassIcon data-slot="icon" />
+                <SidebarLabel>Search</SidebarLabel>
+                <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-[hover]:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-[hover]:text-zinc-400">
+                  <abbr title="Control" className="no-underline">
+                    Ctrl
+                  </abbr>{' '}
+                  K
+                </kbd>
+              </SidebarItem>
               <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
                 <AcademicCapIcon data-slot="icon" />
                 <SidebarLabel>Zero to Hero</SidebarLabel>
@@ -888,23 +899,17 @@ function AppContent() {
                   ))}
                 </div>
               )}
+            </SidebarSection>
+          </SidebarHeader>
+          <SidebarBody>
+            <SidebarDivider />
+            <SidebarSection>
               <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
                 <PlusIcon data-slot="icon" />
                 <SidebarLabel>New Playground</SidebarLabel>
               </SidebarItem>
-              <SidebarItem onClick={handleSearchClick}>
-                <MagnifyingGlassIcon data-slot="icon" />
-                <SidebarLabel>Search</SidebarLabel>
-                <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-[hover]:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-[hover]:text-zinc-400">
-                  <abbr title="Control" className="no-underline">
-                    Ctrl
-                  </abbr>{' '}
-                  K
-                </kbd>
-              </SidebarItem>
             </SidebarSection>
-          </SidebarHeader>
-          <SidebarBody>
+
             <SidebarAccordion title="Collections" count={Object.values(collections).flat().length}>
               {Object.entries(collections).map(([groupName, groupCategories]) => (
                 groupCategories.length > 0 && (
@@ -979,7 +984,7 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
+        {currentWorkout.name !== 'Home' && (
           <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
             <div className="flex items-center justify-between px-6 lg:px-10">
               <div className="flex items-center gap-4">
@@ -1044,10 +1049,25 @@ function AppContent() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// ScrollToTop — reset scroll position on route change
+// ---------------------------------------------------------------------------
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+
+  return null
+}
+
 export function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
       <HashRouter>
+        <ScrollToTop />
         <CommandProvider>
           <Routes>
             <Route path="/" element={<AppContent />} />

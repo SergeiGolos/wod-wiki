@@ -316,7 +316,7 @@ const ResultsBadge: React.FC<{
       )}
     >
       <History className="h-3 w-3" />
-      <span>{count} Result{count !== 1 ? "s" : ""}</span>
+      <span>{count}</span>
       {isExpanded ? (
         <ChevronUp className="h-2.5 w-2.5 opacity-70" />
       ) : (

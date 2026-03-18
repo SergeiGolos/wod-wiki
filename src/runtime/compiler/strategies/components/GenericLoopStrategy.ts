@@ -117,9 +117,15 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
         // Promotion Aspect - Share internal state with children
         // Use execution origin to override parser-based text metrics
+        const hasResistance = statements.some(s => s.metrics.some(m => m.type === MetricType.Resistance));
+        const hasDistance = statements.some(s => s.metrics.some(m => m.type === MetricType.Distance));
+        const promotions = [
+            ...(hasResistance ? [{ metricType: MetricType.Resistance, origin: 'compiler' as const }] : []),
+            ...(hasDistance ? [{ metricType: MetricType.Distance, origin: 'compiler' as const }] : []),
+        ];
         builder.addBehavior(new MetricPromotionBehavior({
             repScheme,
-            promotions: []
+            promotions
         }));
 
         // Leaf Exit Aspect - for round blocks with no children (e.g., "(3) Pullups"),

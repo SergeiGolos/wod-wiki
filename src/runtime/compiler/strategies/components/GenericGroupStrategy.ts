@@ -9,11 +9,9 @@ import { MetricType } from "@/core/models/Metric";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // New aspect-based behaviors
-// CountdownTimerBehavior / CountupTimerBehavior are imported
-// for type-checking only to detect if a higher-priority strategy already set the
-// block identity.
 import {
     LabelingBehavior,
+    MetricPromotionBehavior,
 } from "../../../behaviors";
 
 /**
@@ -73,5 +71,18 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
             mode: 'clock',
             label
         }));
+
+        // =====================================================================
+        // Promotion Aspect — cascade resistance/distance to child blocks
+        // =====================================================================
+        const hasResistance = statements.some(s => s.metrics.some(m => m.type === MetricType.Resistance));
+        const hasDistance = statements.some(s => s.metrics.some(m => m.type === MetricType.Distance));
+        const promotions = [
+            ...(hasResistance ? [{ metricType: MetricType.Resistance, origin: 'compiler' as const }] : []),
+            ...(hasDistance ? [{ metricType: MetricType.Distance, origin: 'compiler' as const }] : []),
+        ];
+        if (promotions.length > 0) {
+            builder.addBehavior(new MetricPromotionBehavior({ promotions }));
+        }
     }
 }

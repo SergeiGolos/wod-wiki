@@ -4,6 +4,7 @@ import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import { BlockBuilder } from '../BlockBuilder';
 import { SessionRootBlock, SessionRootConfig } from '../../blocks/SessionRootBlock';
+import { MetricType } from '../../../core/models/Metric';
 
 /**
  * SessionRootStrategy composes a SessionRootBlock for workout sessions.
@@ -89,8 +90,25 @@ export class SessionRootStrategy implements IRuntimeBlockStrategy {
         statements: ICodeStatement[],
         options?: { label?: string; totalRounds?: number }
     ): IRuntimeBlock {
-        // Each top-level statement becomes its own child group for sequential execution
-        const childGroups = statements.map(s => [s.id]);
+        // Build child groups, merging standalone metric-context statements (e.g. "95 lb",
+        // "400 m") with the immediately following group/loop statement so that the metric
+        // cascades into the group's children via MetricPromotionBehavior.
+        const childGroups: number[][] = [];
+        let i = 0;
+        while (i < statements.length) {
+            const current = statements[i];
+            if (isMetricContextStatement(current) && i + 1 < statements.length) {
+                const next = statements[i + 1];
+                if (isGroupStatement(next)) {
+                    // Merge: put the group stmt first so statements[0].children is valid
+                    childGroups.push([next.id as number, current.id as number]);
+                    i += 2;
+                    continue;
+                }
+            }
+            childGroups.push([current.id as number]);
+            i++;
+        }
 
         const config: SessionRootConfig = {
             childGroups,
@@ -106,3 +124,36 @@ export class SessionRootStrategy implements IRuntimeBlockStrategy {
  * Default instance for convenience.
  */
 export const sessionRootStrategy = new SessionRootStrategy();
+
+// ---------------------------------------------------------------------------
+// Helpers for metric-context detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if the statement carries only metric context (resistance/distance)
+ * with no effort, timer, rounds, or children — indicating it should cascade its
+ * metrics into the immediately following group/loop statement.
+ */
+function isMetricContextStatement(stmt: ICodeStatement): boolean {
+    const metrics = stmt.metrics;
+    return (
+        (!stmt.children || stmt.children.length === 0) &&
+        !metrics.some(m => m.type === MetricType.Effort) &&
+        !metrics.some(m => m.type === MetricType.Duration) &&
+        !metrics.some(m => m.type === MetricType.Rounds) &&
+        !metrics.some(m => m.type === MetricType.Rep) &&
+        metrics.some(m => m.type === MetricType.Resistance || m.type === MetricType.Distance)
+    );
+}
+
+/**
+ * Returns true if the statement represents a group-like block (has children,
+ * rounds, or duration) that can accept metric promotions from a context statement.
+ */
+function isGroupStatement(stmt: ICodeStatement): boolean {
+    return (
+        (!!stmt.children && stmt.children.length > 0) ||
+        stmt.metrics.some(m => m.type === MetricType.Rounds) ||
+        stmt.metrics.some(m => m.type === MetricType.Duration)
+    );
+}

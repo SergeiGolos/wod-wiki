@@ -10,9 +10,12 @@ import {
   Plus,
   Trophy,
   Target,
-  Rocket
+  Rocket,
+  Cast,
+  ArrowUpRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CastCallout } from '@/components/cast/CastCallout'
 
 // ── Data for Sections ────────────────────────────────────────────────
 
@@ -173,7 +176,7 @@ function LessonSection({
   );
 
   const contentPanel = (
-    <div className="w-full lg:w-3/4 bg-background rounded-3xl border border-border shadow-2xl overflow-hidden h-80 relative flex flex-col">
+    <div className="w-full lg:w-3/4 bg-background rounded-3xl border border-border shadow-2xl overflow-hidden h-auto min-h-80 relative flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border">
          <div className="flex gap-1.5">
             <div className="size-2.5 rounded-full bg-red-500/20" />
@@ -182,7 +185,7 @@ function LessonSection({
          </div>
          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Interactive Lesson</span>
       </div>
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 relative">
         <UnifiedEditor
           key={`${id}-${activeIdx}`}
           noteId={`getting-started-${id}-${activeIdx}`}
@@ -194,7 +197,7 @@ function LessonSection({
           showLineNumbers={false}
           enableOverlay={true}
           enableInlineRuntime={true}
-          className="h-full"
+          className=""
         />
       </div>
     </div>
@@ -223,6 +226,8 @@ export function GettingStartedPage({ theme }: { theme: string }) {
     <div className="flex-1 overflow-y-auto bg-background flex flex-col min-h-0">
       {/* Hero Section */}
       <section id="introduction" className="relative px-6 py-20 lg:py-32 overflow-hidden scroll-mt-24">
+        <CastCallout />
+        
         <div
           className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30"
           style={{

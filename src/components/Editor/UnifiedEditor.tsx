@@ -165,6 +165,8 @@ export interface UnifiedEditorProps {
   onBlocksChange?: (blocks: WodBlock[]) => void;
   /** Called when user triggers "Add to Plan" on a WodScript block */
   onAddToPlan?: (block: WodBlock) => void;
+  /** Called when user wants to review a specific result (for custom routing/popups) */
+  onOpenReview?: (result: WorkoutResult) => void;
   /** In-memory results fallback (for non-persistent sessions) */
   extendedResults?: WorkoutResult[];
   /** Exposed EditorView ref */
@@ -212,6 +214,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   onCompleteWorkout,
   onBlocksChange,
   onAddToPlan,
+  onOpenReview,
   extendedResults,
   onViewCreated,
   mode = "edit",
@@ -355,6 +358,14 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
     const handleResultClick = (e: Event) => {
       const { result } = (e as CustomEvent<WodResultClickDetail>).detail;
+      
+      // If parent provided an onOpenReview handler, use it first
+      if (onOpenReview) {
+        onOpenReview(result);
+        return;
+      }
+
+      // Default behavior: show inline FullscreenReview overlay if logs exist
       if (result?.data?.logs && result.data.logs.length > 0) {
         const { segments } = getAnalyticsFromLogs(
           result.data.logs as any,
@@ -366,7 +377,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
 
     el.addEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
     return () => el.removeEventListener(WOD_RESULT_CLICK_EVENT, handleResultClick);
-  }, [handleOpenReview]);
+  }, [handleOpenReview, onOpenReview]);
 
   // Build effective command list: use explicit commands if provided, otherwise
   // synthesize from legacy onStartWorkout / onAddToPlan for backward compat.

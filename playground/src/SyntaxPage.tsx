@@ -11,9 +11,12 @@ import {
   Terminal,
   ChevronRight,
   BookOpen,
-  Cpu
+  Cpu,
+  Cast,
+  ArrowUpRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CastCallout } from '@/components/cast/CastCallout'
 
 // ── Data for Sections ────────────────────────────────────────────────
 
@@ -282,6 +285,7 @@ export function SyntaxPage({ theme }: { theme: string }) {
     <div className="flex-1 overflow-y-auto bg-background flex flex-col min-h-0">
       {/* Hero Section */}
       <section id="introduction" className="relative px-6 py-16 lg:py-24 overflow-hidden scroll-mt-24">
+        <CastCallout />
         <div
           className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30"
           style={{

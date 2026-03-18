@@ -189,7 +189,7 @@ function SideTabsSection({
   );
 
   const contentPanel = (
-    <div className="w-full lg:w-3/4 bg-background rounded-3xl border border-border shadow-2xl overflow-hidden ring-1 ring-primary/5 h-80 relative group flex flex-col">
+    <div className="w-full lg:w-3/4 bg-background rounded-3xl border border-border shadow-2xl overflow-hidden ring-1 ring-primary/5 h-auto min-h-80 relative group flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border">
          <div className="flex gap-1.5">
             <div className="size-3 rounded-full bg-red-500/20" />
@@ -201,7 +201,7 @@ function SideTabsSection({
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Live Preview</span>
          </div>
       </div>
-      <div className="flex-1 overflow-hidden relative bg-background/50">
+      <div className="flex-1 relative bg-background/50">
         <UnifiedEditor
           key={`${id}-${activeIdx}`}
           value={activeTab.content}
@@ -210,7 +210,7 @@ function SideTabsSection({
           showLineNumbers={false}
           enableOverlay={true}
           enableInlineRuntime={true}
-          className="h-full"
+          className=""
         />
       </div>
     </div>

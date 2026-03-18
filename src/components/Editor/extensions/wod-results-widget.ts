@@ -158,13 +158,11 @@ class WodResultsBarWidget extends WidgetType {
     // Header
     const header = document.createElement("div");
     header.className = "cm-wod-results-grid-header";
-    header.innerHTML = `
-        <div class="cm-col-date">Date</div>
-        <div class="cm-col-time">Time</div>
-        <div class="cm-col-dur">Duration</div>
-        <div class="cm-col-stat">Status</div>
-        <div class="cm-col-link"></div>
-    `;
+    header.innerHTML = '<div class="cm-col-date">Date</div>' +
+                      '<div class="cm-col-time">Time</div>' +
+                      '<div class="cm-col-dur">Duration</div>' +
+                      '<div class="cm-col-stat">Status</div>' +
+                      '<div class="cm-col-link"></div>';
     grid.appendChild(header);
 
     // Rows
@@ -177,19 +175,17 @@ class WodResultsBarWidget extends WidgetType {
         const time = formatTime(result.completedAt);
         const isDone = result.data?.state === 'completed' || !!result.data?.duration;
 
-        row.innerHTML = `
-            <div class="cm-col-date">${date}</div>
-            <div class="cm-col-time">${time}</div>
-            <div class="cm-col-dur">${duration}</div>
-            <div class="cm-col-stat">
-                <span class="cm-status-pill ${isDone ? 'status-done' : 'status-partial'}">
-                    ${isDone ? 'Finished' : 'Partial'}
-                </span>
-            </div>
-            <div class="cm-col-link">
-                <button class="cm-review-link" title="Open Review">↗</button>
-            </div>
-        `;
+        row.innerHTML = `<div class="cm-col-date">${date}</div>` +
+                       `<div class="cm-col-time">${time}</div>` +
+                       `<div class="cm-col-dur">${duration}</div>` +
+                       `<div class="cm-col-stat">` +
+                           `<span class="cm-status-pill ${isDone ? 'status-done' : 'status-partial'}">` +
+                               `${isDone ? 'Finished' : 'Partial'}` +
+                           `</span>` +
+                       `</div>` +
+                       `<div class="cm-col-link">` +
+                           `<button class="cm-review-link" title="Open Review">↗</button>` +
+                       `</div>`;
 
         row.addEventListener("click", (e) => {
             e.preventDefault();
@@ -294,23 +290,26 @@ export const wodResultsTheme = EditorView.baseTheme({
   },
   ".cm-wod-results-grid-header": {
     display: "flex",
+    alignItems: "center",
     background: "rgba(128, 128, 128, 0.1)",
     borderBottom: "1px solid rgba(128, 128, 128, 0.15)",
     fontSize: "9px",
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: "0.05em",
-    padding: "2px 8px",
+    padding: "4px 8px",
     color: "rgba(128, 128, 128, 0.6)",
+    lineHeight: "1",
   },
   ".cm-wod-results-grid-row": {
     display: "flex",
     alignItems: "center",
-    padding: "2px 8px",
+    padding: "4px 8px",
     fontSize: "11px",
     borderBottom: "1px solid rgba(128, 128, 128, 0.05)",
     cursor: "pointer",
     transition: "background 0.2s",
+    lineHeight: "1.4",
     "&:last-child": { borderBottom: "none" },
     "&:hover": {
       background: "rgba(59, 130, 246, 0.1)",

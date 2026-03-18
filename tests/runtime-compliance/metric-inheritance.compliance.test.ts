@@ -10,24 +10,24 @@
  *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
  *
  * Implementation Notes (from empirical probe 2026-03-18):
- *   - `@ 95 lb` at root level (same indent as sibling `(3)`) is parsed as a
+ *   - `95 lb` at root level (same indent as sibling `(3)`) is parsed as a
  *     STANDALONE effort block, NOT as a parent-level weight context modifier.
  *     Downstream blocks at the same indentation do NOT inherit the weight.
- *   - `@ 95 lb` with indented children (e.g., `@ 95 lb\n  Clean`) DOES create
+ *   - `95 lb` with indented children (e.g., `95 lb\n  Clean`) DOES create
  *     a group scope, but child efforts still do NOT inherit the parent weight.
- *   - Weight stated directly on an exercise (`5 Thrusters @ 95 lb`) IS stored
+ *   - Weight stated directly on an exercise (`5 Thrusters 95 lb`) IS stored
  *     in that effort's display memory as Resistance.
  *   - Weight does NOT bleed from one sibling effort to another (correct).
  *
  * RED scenarios (currently failing):
- *   - 🔴 Weight Cascading — `@ 95 lb` group header does not propagate to child
+ *   - 🔴 Weight Cascading — `95 lb` group header does not propagate to child
  *     efforts inside `(3)` rounds — child efforts have no Resistance metric.
- *   - 🔴 Weight Override — child specifying `@ 135 lb` works (correct), but
+ *   - 🔴 Weight Override — child specifying `135 lb` works (correct), but
  *     a sibling that does NOT specify a weight fails to inherit the parent's
- *     `@ 95 lb` (Snatch has no Resistance metric).
- *   - 🔴 Distance Unit Inheritance — `@ 400 m` at root does not cascade to
+ *     `95 lb` (Snatch has no Resistance metric).
+ *   - 🔴 Distance Unit Inheritance — `400 m` at root does not cascade to
  *     child Run efforts inside `(3)` rounds.
- *   - 🔴 Three-Level Promotion — `@ 75 kg` at root does not cascade through
+ *   - 🔴 Three-Level Promotion — `75 kg` at root does not cascade through
  *     EMOM → Rounds → Effort nesting hierarchy.
  *
  * Spec: docs/finishline/compliance-scenarios/metric-inheritance.md
@@ -117,13 +117,13 @@ function currentHasDistance(ctx: SessionTestContext): boolean {
 // ===========================================================================
 // 🟢 Weight Inside AMRAP — sibling isolation
 //
-// Weight stated directly on one exercise (Thrusters @ 95 lb) must NOT bleed
+// Weight stated directly on one exercise (Thrusters 95 lb) must NOT bleed
 // to the sibling exercise (Pushups) within the same AMRAP.
 //
 // Spec: metric-inheritance.md#-weight-inside-amrap
 // ===========================================================================
 describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
-    const SCRIPT = '10:00 AMRAP\n  5 Thrusters @ 95 lb\n  10 Pushups';
+    const SCRIPT = '10:00 AMRAP\n  5 Thrusters 95 lb\n  10 Pushups';
     let ctx: SessionTestContext;
 
     afterEach(() => { if (ctx) disposeSession(ctx); });
@@ -135,7 +135,7 @@ describe('🟢 Weight Inside AMRAP — sibling weight isolation', () => {
         expect(ctx.runtime.stack.current?.label).toMatch(/thrusters/i);
     });
 
-    it('Thrusters effort carries a Resistance metric (95 lb explicitly set)', () => {
+    it('Thrusters effort carries a Resistance metric (95 lb, explicitly set)', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'AMRAPWeight' });
         userNext(ctx);
@@ -295,22 +295,22 @@ describe('🟢 Rep Scheme Promotion — (21-15-9) Thrusters + Pull-ups', () => {
 });
 
 // ===========================================================================
-// 🔴 Weight Cascading — Parent group `@ 95 lb` cascades to round children
+// 🔴 Weight Cascading — Parent group `95 lb` cascades to round children
 //
-// When `@ 95 lb` is declared at the root level (same indent as `(3)`), the
+// When `95 lb` is declared at the root level (same indent as `(3)`), the
 // weight should cascade to every child effort in the subsequent rounds block.
-// Currently `@ 95 lb` is parsed as a STANDALONE effort block at root level,
+// Currently `95 lb` is parsed as a STANDALONE effort block at root level,
 // NOT as a context-setting group modifier.  The subsequent rounds/effort
 // blocks do NOT inherit the resistance.
 //
-// RED: these tests will fail until the parser and compiler support the
-// `@`-prefix weight-context cascading semantics.
+// RED: these tests will fail until the parser and compiler support
+// weight-context cascading semantics.
 //
 // Spec: metric-inheritance.md#-weight-cascading--parent-to-children
 // ===========================================================================
-describe('🔴 Weight Cascading — @ 95 lb cascades to round children', () => {
-    // @ 95 lb at root level followed by (3) rounds with Clean & Jerk children.
-    const SCRIPT = '@ 95 lb\n(3)\n  Clean & Jerk';
+describe('🔴 Weight Cascading — 95 lb cascades to round children', () => {
+    // 95 lb at root level followed by (3) rounds with Clean & Jerk children.
+    const SCRIPT = '95 lb\n(3)\n  Clean & Jerk';
     let ctx: SessionTestContext;
 
     afterEach(() => { if (ctx) disposeSession(ctx); });
@@ -319,10 +319,10 @@ describe('🔴 Weight Cascading — @ 95 lb cascades to round children', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'Cascade' });
         // Advance past the root-level weight declaration into the rounds/effort
-        userNext(ctx); // WaitingToStart → first block (could be @ 95 lb effort or rounds)
-        // If @ 95 lb parses as standalone, advance again to reach the rounds child
+        userNext(ctx); // WaitingToStart → first block (could be 95 lb effort or rounds)
+        // If 95 lb parses as standalone, advance again to reach the rounds child
         if (!ctx.runtime.stack.current?.label?.match(/clean/i)) {
-            userNext(ctx); // advance into rounds → effort
+            userNext(ctx); // advance past standalone 95 lb block into rounds → effort
         }
         // The current block should be a Clean & Jerk effort WITH resistance = 95 lb
         expect(currentHasResistance(ctx)).toBe(true);
@@ -375,7 +375,7 @@ describe('🔴 Weight Cascading — @ 95 lb cascades to round children', () => {
 });
 
 // ===========================================================================
-// 🔴 Weight Override — parent `@ 95 lb` + child `Clean @ 135 lb` + `Snatch`
+// 🔴 Weight Override — parent `95 lb` + child `Clean 135 lb` + `Snatch`
 //
 // Clean explicitly overrides to 135 lb (child wins over parent) ← should PASS.
 // Snatch does NOT specify a weight → should inherit parent's 95 lb ← FAILS.
@@ -389,8 +389,8 @@ describe('🔴 Weight Cascading — @ 95 lb cascades to round children', () => {
 // Spec: metric-inheritance.md#-weight-override--child-overrides-parent
 // ===========================================================================
 describe('🔴 Weight Override — child overrides parent; sibling inherits parent', () => {
-    // Clean has its own @ 135 lb; Snatch inherits parent @ 95 lb.
-    const SCRIPT = '@ 95 lb\n  Clean @ 135 lb\n  Snatch';
+    // Clean has its own 135 lb; Snatch inherits parent 95 lb.
+    const SCRIPT = '95 lb\n  Clean 135 lb\n  Snatch';
     let ctx: SessionTestContext;
 
     afterEach(() => { if (ctx) disposeSession(ctx); });
@@ -402,14 +402,14 @@ describe('🔴 Weight Override — child overrides parent; sibling inherits pare
         expect(ctx.runtime.stack.current?.label).toMatch(/clean/i);
     });
 
-    it('Clean effort carries a Resistance metric (overridden to 135 lb)', () => {
+    it('Clean effort carries a Resistance metric (135 lb, child override)', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'Override' });
         userNext(ctx);
         expect(currentHasResistance(ctx)).toBe(true);
     });
 
-    it('Clean resistance amount is 135 (child override wins)', () => {
+    it('Clean resistance amount is 135 (child override wins over parent 95 lb)', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'Override' });
         userNext(ctx);
@@ -431,7 +431,7 @@ describe('🔴 Weight Override — child overrides parent; sibling inherits pare
         expect(ctx.runtime.stack.current?.label).toMatch(/snatch/i);
     });
 
-    it('Snatch effort carries a Resistance metric (inherited from parent @ 95 lb)', () => {
+    it('Snatch effort carries a Resistance metric (inherited from parent 95 lb)', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'Override' });
         userNext(ctx);
@@ -460,17 +460,17 @@ describe('🔴 Weight Override — child overrides parent; sibling inherits pare
 });
 
 // ===========================================================================
-// 🔴 Distance Unit Inheritance — `@ 400 m` cascades to `(3)` Run children
+// 🔴 Distance Unit Inheritance — `400 m` cascades to `(3)` Run children
 //
-// When `@ 400 m` is declared at root level, every child Run effort in the
+// When `400 m` is declared at root level, every child Run effort in the
 // subsequent `(3)` rounds block should inherit the 400 m distance.
-// Currently `@ 400 m` is parsed as a standalone effort block (same behaviour
-// as `@ 95 lb`).  The Run efforts in the rounds block carry NO Distance metric.
+// Currently `400 m` is parsed as a standalone effort block.  The Run
+// efforts in the rounds block carry NO Distance metric.
 //
 // Spec: metric-inheritance.md#-distance-unit-inheritance-skip
 // ===========================================================================
-describe('🔴 Distance Unit Inheritance — @ 400 m cascades to round children', () => {
-    const SCRIPT = '@ 400 m\n(3)\n  Run';
+describe('🔴 Distance Unit Inheritance — 400 m cascades to round children', () => {
+    const SCRIPT = '400 m\n(3)\n  Run';
     let ctx: SessionTestContext;
 
     afterEach(() => { if (ctx) disposeSession(ctx); });
@@ -479,7 +479,7 @@ describe('🔴 Distance Unit Inheritance — @ 400 m cascades to round children'
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'Dist' });
         userNext(ctx); // WaitingToStart → first block
-        // Advance past the @ 400 m standalone effort if it parsed that way
+        // Advance past the standalone 400 m block if it parsed that way
         if (!ctx.runtime.stack.current?.label?.match(/run/i)) {
             userNext(ctx);
         }
@@ -526,19 +526,19 @@ describe('🔴 Distance Unit Inheritance — @ 400 m cascades to round children'
 });
 
 // ===========================================================================
-// 🔴 Three-Level Promotion — @ 75 kg → EMOM → Rounds → Effort
+// 🔴 Three-Level Promotion — 75 kg → EMOM → Rounds → Effort
 //
 // A weight declared at the root level must propagate three levels deep:
-//   root (@ 75 kg) → EMOM interval → round group → individual Clean effort
+//   root (75 kg) → EMOM interval → round group → individual Clean effort
 //
-// Currently `@ 75 kg` is parsed as a standalone block when mixed with EMOM
+// Currently `75 kg` is parsed as a standalone block when mixed with EMOM
 // and round structures at the same indentation level.
 //
 // Spec: metric-inheritance.md#-three-level-promotion-skip
 // ===========================================================================
-describe('🔴 Three-Level Promotion — @ 75 kg through EMOM → Rounds → Effort', () => {
-    // Structure: @ 75 kg / (5) 1:00 EMOM / nested (3) / Clean
-    const SCRIPT = '@ 75 kg\n(5) 1:00 EMOM\n  (3)\n    Clean';
+describe('🔴 Three-Level Promotion — 75 kg through EMOM → Rounds → Effort', () => {
+    // Structure: 75 kg / (5) 1:00 EMOM / nested (3) / Clean
+    const SCRIPT = '75 kg\n(5) 1:00 EMOM\n  (3)\n    Clean';
     let ctx: SessionTestContext;
 
     afterEach(() => { if (ctx) disposeSession(ctx); });
@@ -564,7 +564,7 @@ describe('🔴 Three-Level Promotion — @ 75 kg through EMOM → Rounds → Eff
         expect(found).toBe(true);
     });
 
-    it('Clean effort carries a Resistance metric (75 kg from root @ 75 kg)', () => {
+    it('Clean effort carries a Resistance metric (75 kg from root weight context)', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'ThreeLevel' });
         userNext(ctx);
