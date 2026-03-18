@@ -1,73 +1,205 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Zap, 
-  BookOpen, 
-  Code2, 
-  Play, 
-  ChevronRight, 
+import {
+  Code2,
   Plus,
   Trophy,
-  Target,
   Rocket,
-  Cast,
-  ArrowUpRight
+  Clock,
+  BarChart2,
+  Layers,
+  Zap,
+  FileText,
+  Target,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CastCallout } from '@/components/cast/CastCallout'
 
 // ── Data for Sections ────────────────────────────────────────────────
 
-const BASICS_TABS = [
+const STATEMENT_TABS = [
   {
-    title: 'Headers & Text',
-    subtitle: 'Structure your notes',
-    content: `# My Training Session
-Focusing on upper body strength today.
-The goal is consistency over intensity.`
+    title: 'Just a Movement',
+    subtitle: 'The simplest statement',
+    content: '```wod\nPushups\n```'
   },
   {
-    title: 'Markdown Tables',
-    subtitle: 'Organize equipment',
-    content: `| Equipment | Weight | Notes |
-|-----------|--------|-------|
-| Kettlebell| 24kg   | Main  |
-| Barbell   | 95lb   | Warmup|`
+    title: 'Reps + Movement',
+    subtitle: 'Add a quantity',
+    content: '```wod\n10 Pushups\n```'
   },
   {
-    title: 'Checklists',
-    subtitle: 'Simple tracking',
-    content: `## Prerequisites
-- [x] Mobility work
-- [ ] Fill water bottle
-- [ ] Prep playlist`
+    title: 'Multiple Lines',
+    subtitle: 'Sequence of work',
+    content: '```wod\n10 Pushups\n15 Situps\n20 Air Squats\n```'
+  },
+  {
+    title: 'Order is flexible',
+    subtitle: 'Quantity first or last',
+    content: '```wod\n10 Pushups\nPushups 10\n```'
   }
 ]
 
-const BLOCKS_TABS = [
+const TIMER_TABS = [
   {
-    title: 'WOD Block',
-    subtitle: 'The execution engine',
-    content: '```wod\nTimer 10:00\n- 10 Pushups\n- 15 Air Squats\n```'
+    title: 'Countdown',
+    subtitle: 'Work for a fixed time',
+    content: '```wod\n5:00 Run\n```'
   },
   {
-    title: 'Metadata',
-    subtitle: 'JSON Configuration',
-    content: '```json\n{\n  "difficulty": "Intermediate",\n  "tags": ["Full Body", "Kettlebell"],\n  "equipment": ["24kg KB"]\n}\n```'
+    title: 'Short Burst',
+    subtitle: 'Seconds-only format',
+    content: '```wod\n:30 Jumping Jacks\n```'
   },
   {
-    title: 'Smart Intervals',
-    subtitle: 'Complex logic',
-    content: '```wod\n(4)\n  - :40 Work\n  - :20 Rest\n```'
+    title: 'Count-up Override',
+    subtitle: '^ forces count-up',
+    content: '```wod\n^5:00 Row\n```'
+  },
+  {
+    title: 'Collectible Timer',
+    subtitle: ':? records elapsed time',
+    content: '```wod\n:? Max Effort Pushups\n```'
+  }
+]
+
+const METRICS_TABS = [
+  {
+    title: 'Reps',
+    subtitle: 'Count repetitions',
+    content: '```wod\n10 Pushups\n15 Situps\n20 Air Squats\n```'
+  },
+  {
+    title: 'Add Weight',
+    subtitle: 'lb, kg, or bodyweight',
+    content: '```wod\n5 Back Squat 185lb\n3 Deadlift 100kg\nRing Dip bw\n```'
+  },
+  {
+    title: 'Distance',
+    subtitle: 'm, km, ft, miles',
+    content: '```wod\nRun 400m\nRow 2000m\nBike 10 miles\n```'
+  },
+  {
+    title: 'Unknown Load',
+    subtitle: '? prompts user at runtime',
+    content: '```wod\n5 Deadlifts ?lb\n```'
+  }
+]
+
+const GROUPS_TABS = [
+  {
+    title: 'Simple Rounds',
+    subtitle: 'Repeat a block',
+    content: '```wod\n(3 Rounds)\n  10 Pushups\n  15 Situps\n  20 Air Squats\n```'
+  },
+  {
+    title: 'Rep Sequence',
+    subtitle: '21-15-9 scheme',
+    content: '```wod\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```'
+  },
+  {
+    title: 'Work/Rest Intervals',
+    subtitle: 'Timed loops',
+    content: '```wod\n(4)\n  :40 Work\n  :20 Rest\n  Air Squats\n```'
+  },
+  {
+    title: 'Nested Groups',
+    subtitle: 'Rounds inside rounds',
+    content: '```wod\n(3 Rounds)\n  (4)\n    :20 Work\n    :10 Rest\n    Burpees\n  1:00 Rest\n```'
+  }
+]
+
+const PROTOCOLS_TABS = [
+  {
+    title: 'AMRAP',
+    subtitle: 'As many rounds as possible',
+    content: '```wod\n20:00 (AMRAP)\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n```'
+  },
+  {
+    title: 'EMOM',
+    subtitle: 'Every minute on the minute',
+    content: '```wod\n10:00 (EMOM)\n  3 Clean & Jerk 135lb\n```'
+  },
+  {
+    title: 'FOR TIME',
+    subtitle: 'Complete the work, clock runs',
+    content: '```wod\nFOR TIME\n  21 Thrusters 95lb\n  21 Pullups\n  15 Thrusters 95lb\n  15 Pullups\n  9 Thrusters 95lb\n  9 Pullups\n```'
+  },
+  {
+    title: 'Tabata',
+    subtitle: '20s work / 10s rest',
+    content: '```wod\n(8 Rounds)\n  :20 Max Effort Burpees\n  :10 Rest\n```'
+  }
+]
+
+const NOTEBOOK_TABS = [
+  {
+    title: 'Headers & Notes',
+    subtitle: 'Structure your session',
+    content: `# Tuesday — Upper Body
+
+Focusing on horizontal pushing strength.
+Goal: stay tight, control the descent.
+
+\`\`\`wod
+5:00 (AMRAP)
+  5 Pushups
+  10 Air Squats
+\`\`\``
+  },
+  {
+    title: 'Warmup Checklist',
+    subtitle: 'Prep tasks before the wod',
+    content: `## Warmup
+- [x] 5 min easy bike
+- [ ] Shoulder CARs x 10
+- [ ] Band pull-aparts x 20
+
+\`\`\`wod
+(5 Sets)
+  5 Bench Press 185lb
+  *3:00 Rest
+\`\`\``
+  },
+  {
+    title: 'Full Session Doc',
+    subtitle: 'A complete training day',
+    content: `# Monday — Full Body
+
+## Warmup
+- [ ] 10 min cardio
+- [ ] Hip mobility
+
+## Strength
+\`\`\`wod
+(5 Sets)
+  3 Back Squat 225lb
+  *2:00 Rest
+\`\`\`
+
+## Metcon
+\`\`\`wod
+20:00 (AMRAP)
+  10 Kettlebell Swings 24kg
+  10 Box Jumps
+  10 Situps
+\`\`\`
+
+## Notes
+Felt strong on squats today.`
   }
 ]
 
 const NAV_LINKS = [
-  { id: 'introduction', label: 'Introduction' },
-  { id: 'basics', label: 'Basics' },
-  { id: 'blocks', label: 'Advanced Blocks' },
-  { id: 'mastery', label: 'Final Steps' },
+  { id: 'introduction', label: 'Intro' },
+  { id: 'statement', label: 'First Statement' },
+  { id: 'timer', label: 'Timers' },
+  { id: 'metrics', label: 'Metrics' },
+  { id: 'groups', label: 'Groups' },
+  { id: 'protocols', label: 'Protocols' },
+  { id: 'notebook', label: 'Notebook' },
 ]
 
 // ── Components ───────────────────────────────────────────────────────
@@ -156,32 +288,32 @@ function LessonSection({
   };
 
   const tabsPanel = (
-    <div className="flex flex-col gap-3 w-full lg:w-1/4">
+    <div className="flex flex-col w-full lg:w-1/4 rounded-2xl border border-border/60 bg-card shadow-sm dark:shadow-none p-1.5 gap-0.5">
       {tabs.map((tab, idx) => (
         <button
           key={idx}
           onClick={() => setActiveIdx(idx)}
           className={cn(
-            "text-left px-5 py-4 rounded-2xl transition-all border",
+            "text-left px-4 py-3.5 rounded-xl transition-all",
             activeIdx === idx 
-              ? "bg-primary text-primary-foreground shadow-lg border-primary" 
-              : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-transparent hover:border-border"
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           )}
         >
           <div className="text-sm font-black uppercase tracking-wider">{tab.title}</div>
-          <div className="text-xs font-medium opacity-80 mt-1">{tab.subtitle}</div>
+          <div className="text-xs font-medium opacity-70 mt-1">{tab.subtitle}</div>
         </button>
       ))}
     </div>
   );
 
   const contentPanel = (
-    <div className="w-full lg:w-3/4 bg-background rounded-3xl border border-border shadow-2xl overflow-hidden h-auto min-h-80 relative flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border">
+    <div className="w-full lg:w-3/4 bg-card rounded-3xl border border-border/70 shadow-md dark:shadow-none dark:ring-1 dark:ring-white/[0.06] overflow-hidden h-auto min-h-80 relative flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/15 border-b border-border/60">
          <div className="flex gap-1.5">
-            <div className="size-2.5 rounded-full bg-red-500/20" />
-            <div className="size-2.5 rounded-full bg-amber-500/20" />
-            <div className="size-2.5 rounded-full bg-emerald-500/20" />
+            <div className="size-2.5 rounded-full bg-red-500/60" />
+            <div className="size-2.5 rounded-full bg-amber-500/60" />
+            <div className="size-2.5 rounded-full bg-emerald-500/60" />
          </div>
          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Interactive Lesson</span>
       </div>
@@ -204,7 +336,7 @@ function LessonSection({
   );
 
   return (
-    <section id={id} className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 odd:bg-background even:bg-muted/10">
+    <section id={id} className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 odd:bg-background even:bg-muted/[0.18]">
       <div className="mx-auto max-w-6xl px-6">
         <div className={cn("mb-12 max-w-2xl", align === 'right' && "ml-auto text-right")}>
           <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase">{title}</h2>
@@ -227,7 +359,7 @@ export function GettingStartedPage({ theme }: { theme: string }) {
       {/* Hero Section */}
       <section id="introduction" className="relative px-6 pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden scroll-mt-24">
         <CastCallout />
-        
+
         <div
           className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30"
           style={{
@@ -235,25 +367,41 @@ export function GettingStartedPage({ theme }: { theme: string }) {
               'radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.15) 0%, transparent 80%)',
           }}
         />
-        
+
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-col items-center text-center gap-8">
             <div className="flex size-20 items-center justify-center rounded-[2rem] bg-primary text-primary-foreground shadow-2xl shadow-primary/30 rotate-3">
               <Trophy className="size-10 fill-current" />
             </div>
-            
+
             <div className="space-y-4">
               <h1 className="text-5xl font-black tracking-tighter sm:text-7xl lg:text-8xl text-foreground uppercase">
                 Zero to Hero
               </h1>
               <div className="space-y-2">
                 <p className="text-xl font-black text-primary uppercase tracking-tight sm:text-2xl">
-                  Master the Art of WodScript.
+                  Learn WodScript from the inside out.
                 </p>
                 <p className="mx-auto max-w-3xl text-lg font-medium text-muted-foreground sm:text-xl leading-relaxed">
-                  Go from absolute beginner to workout scripting expert. This interactive guide will teach you everything you need to know about <span className="text-foreground font-bold">WOD.WIKI</span>.
+                  Start with a single line. Build to full workout protocols. Then discover the notebook layer that holds it all together.
                 </p>
               </div>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {[
+                { icon: Target, label: 'Statement' },
+                { icon: Clock, label: 'Timers' },
+                { icon: BarChart2, label: 'Metrics' },
+                { icon: Layers, label: 'Groups' },
+                { icon: Zap, label: 'Protocols' },
+                { icon: FileText, label: 'Notebook' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-muted-foreground text-xs font-bold uppercase tracking-widest">
+                  <Icon size={12} />
+                  {label}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -261,56 +409,92 @@ export function GettingStartedPage({ theme }: { theme: string }) {
 
       <StickyNav />
 
-      <LessonSection 
-        id="basics"
-        title="1. The Basics"
-        description="Every great workout starts with a clear plan. Learn how to use standard Markdown to structure your notes with headers, tables, and checklists."
-        tabs={BASICS_TABS}
+      <LessonSection
+        id="statement"
+        title="1. Your First Statement"
+        description="Every line inside a wod block is a statement. Statements are made of fragments — the smallest units of workout meaning. Start simple: just move."
+        tabs={STATEMENT_TABS}
         align="left"
         actualTheme={theme}
       />
 
-      <LessonSection 
-        id="blocks"
-        title="2. Advanced Blocks"
-        description="The real power of WOD.WIKI lies in executable blocks. Use the WOD block for live timers and JSON for structured workout metadata."
-        tabs={BLOCKS_TABS}
+      <LessonSection
+        id="timer"
+        title="2. Adding a Timer"
+        description="Attach a duration to any statement to add a timer. The format determines direction: an explicit time counts down, while ^ forces count-up. Use :? to record however long something actually takes."
+        tabs={TIMER_TABS}
         align="right"
         actualTheme={theme}
       />
 
-      <section id="mastery" className="scroll-mt-24 py-32 lg:py-48 bg-muted/20 relative overflow-hidden">
+      <LessonSection
+        id="metrics"
+        title="3. Measuring Your Work"
+        description="Quantify effort with reps, weight, and distance. Use ?lb or ?kg when you want the runner to set their own load at runtime — great for strength blocks."
+        tabs={METRICS_TABS}
+        align="left"
+        actualTheme={theme}
+      />
+
+      <LessonSection
+        id="groups"
+        title="4. Groups & Rounds"
+        description="Wrap statements in parentheses to repeat them. Use a single number for simple rounds, a dash-separated sequence for rep schemes like 21-15-9, or nest groups inside each other for complex protocols."
+        tabs={GROUPS_TABS}
+        align="right"
+        actualTheme={theme}
+      />
+
+      <LessonSection
+        id="protocols"
+        title="5. Workout Protocols"
+        description="WodScript recognizes classic CrossFit-style protocols by keyword. AMRAP runs unbounded rounds against a countdown. EMOM fires an interval every minute. FOR TIME runs a stopwatch to completion. Tabata uses preset 20s/10s intervals."
+        tabs={PROTOCOLS_TABS}
+        align="left"
+        actualTheme={theme}
+      />
+
+      <LessonSection
+        id="notebook"
+        title="6. It's a Notebook"
+        description="WodScript lives inside a Markdown document. Everything outside a wod block is standard Markdown — headers, notes, checklists, tables. Use it to structure a full training session, add coach notes, or track multiple workouts in one file."
+        tabs={NOTEBOOK_TABS}
+        align="right"
+        actualTheme={theme}
+      />
+
+      {/* CTA Section */}
+      <section className="scroll-mt-24 py-32 lg:py-48 bg-muted/20 relative overflow-hidden">
         <div className="absolute inset-0 bg-primary/5 opacity-30 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-        
+
         <div className="relative mx-auto max-w-4xl px-6 text-center z-10 space-y-12">
           <div className="flex justify-center">
             <div className="p-6 bg-background rounded-[2.5rem] border border-border shadow-2xl rotate-6">
               <Rocket className="size-16 text-primary" />
             </div>
           </div>
-          
+
           <div className="space-y-6">
-            <h2 className="text-4xl lg:text-6xl font-black tracking-tight text-foreground uppercase">Ready for Hero status?</h2>
+            <h2 className="text-4xl lg:text-6xl font-black tracking-tight text-foreground uppercase">Ready to Build?</h2>
             <p className="text-xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
-              You've mastered the syntax and the structure. Now it's time to create your own legacy. Build your first training playground and start your journey.
+              You know the language. Now write your own workouts, run them live, and build a training library that's entirely yours.
             </p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-6 pt-4">
-            <button 
+            <button
               onClick={() => navigate('/playground')}
               className="flex items-center gap-3 px-10 py-5 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-full shadow-2xl shadow-primary/30 transition-all hover:scale-[1.05] active:scale-95"
             >
               <Plus className="size-5" />
               Create First Playground
             </button>
-            <button 
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+            <button
+              onClick={() => navigate('/syntax')}
               className="flex items-center gap-3 px-10 py-5 bg-background border border-border text-foreground text-sm font-black uppercase tracking-widest rounded-full transition-all hover:bg-muted active:scale-95"
             >
-              Back to Start
+              <BookOpen className="size-5" />
+              View Syntax Reference
             </button>
           </div>
         </div>
@@ -319,16 +503,16 @@ export function GettingStartedPage({ theme }: { theme: string }) {
       <footer className="py-12 border-t border-border bg-background">
         <div className="mx-auto max-w-6xl px-6 flex flex-wrap justify-center gap-x-12 gap-y-6">
           <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            <Target className="size-4" />
-            Objective: Elite Execution
+            <Target size={12} />
+            Inside-Out Learning
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            <BookOpen className="size-4" />
-            Library: Local & Permanent
+            <BookOpen size={12} />
+            6 Progressive Levels
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-widest">
-            <Code2 className="size-4" />
-            Syntax: WodScript v0.5
+            <Code2 size={12} />
+            WodScript v0.5
           </div>
         </div>
       </footer>

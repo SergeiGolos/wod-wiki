@@ -184,39 +184,39 @@ function SideTabsSection({
   const activeTab = tabs[activeIdx];
 
   const tabsPanel = (
-    <div className="flex flex-col gap-3 w-full lg:w-1/4">
+    <div className="flex flex-col w-full lg:w-1/4 rounded-2xl border border-border/60 bg-card shadow-sm dark:shadow-none p-1.5 gap-0.5">
       {tabs.map((tab, idx) => (
         <button
           key={idx}
           onClick={() => setActiveIdx(idx)}
           className={cn(
-            "text-left px-5 py-4 rounded-2xl transition-all border",
+            "text-left px-4 py-3.5 rounded-xl transition-all",
             activeIdx === idx 
-              ? "bg-primary text-primary-foreground shadow-lg border-primary ring-2 ring-primary/20" 
-              : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-transparent hover:border-border"
+              ? "bg-primary text-primary-foreground shadow-sm" 
+              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
           )}
         >
           <div className="text-sm font-black uppercase tracking-wider">{tab.title}</div>
-          {tab.subtitle && <div className="text-xs font-medium opacity-80 mt-1.5">{tab.subtitle}</div>}
+          {tab.subtitle && <div className="text-xs font-medium opacity-70 mt-1">{tab.subtitle}</div>}
         </button>
       ))}
     </div>
   );
 
   const contentPanel = (
-    <div className="w-full lg:w-3/4 bg-background rounded-3xl border border-border shadow-2xl overflow-hidden ring-1 ring-primary/5 h-auto min-h-80 relative group flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b border-border">
+    <div className="w-full lg:w-3/4 bg-card rounded-3xl border border-border/70 shadow-md dark:shadow-none dark:ring-1 dark:ring-white/[0.06] overflow-hidden h-auto min-h-80 relative group flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/15 border-b border-border/60">
          <div className="flex gap-1.5">
-            <div className="size-3 rounded-full bg-red-500/20" />
-            <div className="size-3 rounded-full bg-amber-500/20" />
-            <div className="size-3 rounded-full bg-emerald-500/20" />
+            <div className="size-3 rounded-full bg-red-500/60" />
+            <div className="size-3 rounded-full bg-amber-500/60" />
+            <div className="size-3 rounded-full bg-emerald-500/60" />
          </div>
          <div className="flex gap-2 items-center">
             <div className="size-2 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Live Preview</span>
          </div>
       </div>
-      <div className="flex-1 relative bg-background/50">
+      <div className="flex-1 relative">
         <UnifiedEditor
           key={`${id}-${activeIdx}`}
           value={activeTab.content}
@@ -232,7 +232,7 @@ function SideTabsSection({
   );
 
   return (
-    <section id={id} className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 odd:bg-background even:bg-muted/10">
+    <section id={id} className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 odd:bg-background even:bg-muted/[0.18]">
       <div className="mx-auto max-w-6xl px-6">
         <div className={cn("mb-12 max-w-2xl", align === 'right' && "ml-auto text-right")}>
           <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase">{title}</h2>
@@ -258,7 +258,7 @@ function PrivacySection() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-12">
-           <div className="bg-success/5 border border-success/20 rounded-[2rem] p-8 lg:p-10 relative overflow-hidden shadow-xl shadow-success/5">
+           <div className="bg-card border border-success/30 rounded-[2rem] p-8 lg:p-10 relative overflow-hidden shadow-sm dark:shadow-none dark:ring-1 dark:ring-success/10">
               <h3 className="text-2xl font-black text-success flex items-center gap-3 mb-8 uppercase tracking-tight">
                  <Server className="size-6" /> What stays with you
               </h3>
@@ -270,7 +270,7 @@ function PrivacySection() {
               </ul>
            </div>
            
-           <div className="bg-destructive/5 border border-destructive/20 rounded-[2rem] p-8 lg:p-10 relative overflow-hidden shadow-xl shadow-destructive/5">
+           <div className="bg-card border border-destructive/30 rounded-[2rem] p-8 lg:p-10 relative overflow-hidden shadow-sm dark:shadow-none dark:ring-1 dark:ring-destructive/10">
               <h3 className="text-2xl font-black text-destructive flex items-center gap-3 mb-8 uppercase tracking-tight">
                  <Activity className="size-6" /> What is shared with us
               </h3>

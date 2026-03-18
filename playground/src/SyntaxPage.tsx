@@ -1,125 +1,257 @@
 import React, { useState, useEffect } from 'react'
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { useNavigate } from 'react-router-dom'
-import { 
-  Code2, 
-  Clock, 
-  RotateCcw, 
-  Layers, 
-  Scale, 
-  PlusCircle, 
+import {
+  Code2,
+  Clock,
+  Layers,
   Terminal,
   ChevronRight,
   BookOpen,
-  Cpu,
-  Cast,
-  ArrowUpRight
+  BarChart2,
+  Zap,
+  PlusCircle,
+  FileText,
+  ScanLine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CastCallout } from '@/components/cast/CastCallout'
 
-// ── Data for Sections ────────────────────────────────────────────────
+// ── Fragment Anatomy Data ─────────────────────────────────────────────
 
-const BASICS_TABS = [
+const FRAGMENT_STYLES: Record<string, { bg: string; border: string; text: string; label: string }> = {
+  rep:      { bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-600 dark:text-blue-400',   label: 'Quantity (rep)' },
+  weight:   { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-600 dark:text-orange-400', label: 'Quantity (weight)' },
+  distance: { bg: 'bg-green-500/10',  border: 'border-green-500/30',  text: 'text-green-600 dark:text-green-400',  label: 'Quantity (distance)' },
+  effort:   { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-600 dark:text-purple-400', label: 'Effort' },
+  duration: { bg: 'bg-red-500/10',    border: 'border-red-500/30',    text: 'text-red-600 dark:text-red-400',    label: 'Duration' },
+  rounds:   { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-600 dark:text-yellow-400', label: 'Rounds' },
+  action:   { bg: 'bg-slate-500/10',  border: 'border-slate-500/30',  text: 'text-slate-600 dark:text-slate-400',  label: 'Action' },
+  rest:     { bg: 'bg-teal-500/10',   border: 'border-teal-500/30',   text: 'text-teal-600 dark:text-teal-400',   label: 'Rest (duration)' },
+  comment:  { bg: 'bg-gray-500/10',   border: 'border-gray-500/30',   text: 'text-gray-500 dark:text-gray-400',   label: 'Comment' },
+}
+
+const ANATOMY_EXAMPLES = [
   {
-    title: 'The WOD Block',
-    subtitle: 'Code fences',
-    content: '```wod\nPushups\nSitups\nSquats\n```'
+    line: '10 Thrusters 95lb',
+    fragments: [
+      { token: '10',        type: 'rep',    note: 'Rep count' },
+      { token: 'Thrusters', type: 'effort', note: 'Movement name' },
+      { token: '95lb',      type: 'weight', note: 'Load in pounds' },
+    ],
+    summary: 'Ten thrusters at 95 lb. No timer means stopwatch mode — clock runs up until you complete the reps.',
   },
   {
-    title: 'Simple Lists',
-    subtitle: 'One per line',
-    content: '```wod\n10 Burpees\n20 Air Squats\n30 Situps\n```'
-  }
+    line: '5:00 Run',
+    fragments: [
+      { token: '5:00', type: 'duration', note: 'Countdown timer' },
+      { token: 'Run',  type: 'effort',   note: 'Movement name' },
+    ],
+    summary: 'Run with a 5-minute countdown. The timer counts down to zero then the block ends.',
+  },
+  {
+    line: '^5:00 Row',
+    fragments: [
+      { token: '^5:00', type: 'duration', note: 'Count-up (^ prefix)' },
+      { token: 'Row',   type: 'effort',   note: 'Movement name' },
+    ],
+    summary: 'Row with a count-up reference clock. ^ overrides the default countdown direction — useful for pacing.',
+  },
+  {
+    line: ':? Max Effort Pushups',
+    fragments: [
+      { token: ':?',              type: 'duration', note: 'Collectible timer' },
+      { token: 'Max Effort Pushups', type: 'effort', note: 'Movement name' },
+    ],
+    summary: ':? records however long the effort actually takes. Use it to log real times without setting a target.',
+  },
+  {
+    line: '(21-15-9)',
+    fragments: [
+      { token: '(21-15-9)', type: 'rounds', note: '3-round rep sequence' },
+    ],
+    summary: 'Three rounds with decreasing rep targets: 21 reps first, then 15, then 9. Add child movements below.',
+  },
+  {
+    line: '[Setup Barbell]',
+    fragments: [
+      { token: '[Setup Barbell]', type: 'action', note: 'Non-movement checkpoint' },
+    ],
+    summary: 'An action prompt — appears in the plan and execution view but tracks neither reps nor time.',
+  },
+  {
+    line: '// Stay tight on the descent',
+    fragments: [
+      { token: '// Stay tight on the descent', type: 'comment', note: 'Inline annotation' },
+    ],
+    summary: 'Text comments are visible in the editor but hidden from the execution overlay. Use for coach cues.',
+  },
 ]
+
+// ── Section Data ─────────────────────────────────────────────────────
 
 const TIMERS_TABS = [
   {
-    title: 'AMRAP',
-    subtitle: 'Down timer',
-    content: '```wod\n20:00 (AMRAP)\n  5 Pullups\n  10 Pushups\n  15 Squats\n```'
+    title: 'Countdown',
+    subtitle: 'Explicit duration → counts down',
+    content: '```wod\n5:00 Run\n:30 Jumping Jacks\n1:30:00 Long Row\n```'
   },
   {
-    title: 'EMOM',
-    subtitle: 'Interval timer',
-    content: '```wod\n10:00 (EMOM)\n  3 Clean & Jerk\n```'
+    title: 'Count-up Override',
+    subtitle: '^ prefix forces count-up',
+    content: '```wod\n^5:00 Row\n```'
   },
   {
-    title: 'Tabata',
-    subtitle: 'Work/Rest loops',
-    content: '```wod\n(8 Rounds)\n  :20 Work\n  :10 Rest\n  Air Squats\n```'
+    title: 'Collectible Timer',
+    subtitle: ':? records the actual time taken',
+    content: '```wod\n:? Max Effort Pushups\n:? 1 Mile Run\n```'
+  },
+  {
+    title: 'Rest Marker',
+    subtitle: '* marks an explicit rest period',
+    content: '```wod\n(5 Sets)\n  5 Back Squat 185lb\n  *3:00 Rest\n```'
+  },
+  {
+    title: 'No Timer',
+    subtitle: 'Stopwatch mode — just track reps',
+    content: '```wod\n10 Pushups\n15 Situps\n20 Air Squats\n```'
   }
 ]
 
-const REPEATERS_TABS = [
+const METRICS_TABS = [
   {
-    title: 'Rep Schemes',
-    subtitle: 'Descending reps',
-    content: '```wod\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```'
+    title: 'Reps',
+    subtitle: 'Count repetitions',
+    content: '```wod\n10 Pushups\n15 Situps\n20 Air Squats\n```'
   },
   {
-    title: 'Sets',
-    subtitle: 'Simple volume',
-    content: '```wod\n(5 Sets)\n  10 Deadlift 225lb\n  1:00 Rest\n```'
+    title: 'Weight',
+    subtitle: 'lb, kg, or bodyweight',
+    content: '```wod\n5 Back Squat 225lb\n3 Deadlift 140kg\nDip bw\n```'
+  },
+  {
+    title: 'Distance',
+    subtitle: 'm, km, ft, miles',
+    content: '```wod\nRun 400m\nRow 2000m\nBike 10 miles\nSwim 500m\n```'
+  },
+  {
+    title: 'Combined',
+    subtitle: 'Multiple metrics on one line',
+    content: '```wod\n10 Thrusters 95lb\n5 Deadlifts 225lb\n400m Run\n```'
+  },
+  {
+    title: 'Unknown Load',
+    subtitle: '? prompts user at runtime',
+    content: '```wod\n5 Deadlifts ?lb\n3 Back Squat ?kg\n```'
   }
 ]
 
 const GROUPS_TABS = [
   {
     title: 'Simple Rounds',
-    subtitle: 'Grouping movements',
-    content: '```wod\n(3 Rounds)\n  10 Pushups\n  10 Situps\n```'
+    subtitle: 'Parentheses repeat everything inside',
+    content: '```wod\n(3 Rounds)\n  10 Pushups\n  15 Situps\n  20 Air Squats\n```'
   },
   {
-    title: 'Nested Loops',
-    subtitle: 'Complex structure',
-    content: '```wod\n(3 Rounds)\n  (Tabata)\n    :20 Work\n    :10 Rest\n    Air Squats\n  1:00 Rest\n```'
+    title: 'Rep Sequence',
+    subtitle: 'Dash-separated targets per round',
+    content: '```wod\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```'
+  },
+  {
+    title: 'Work / Rest Loop',
+    subtitle: 'Timed intervals inside rounds',
+    content: '```wod\n(4)\n  :40 Work\n  :20 Rest\n  Air Squats\n```'
+  },
+  {
+    title: 'Nested Groups',
+    subtitle: 'Rounds inside rounds',
+    content: '```wod\n(3 Rounds)\n  (4)\n    :20 Work\n    :10 Rest\n    Burpees\n  1:00 Rest\n```'
   }
 ]
 
-const MEASUREMENTS_TABS = [
+const PROTOCOLS_TABS = [
   {
-    title: 'Weights',
-    subtitle: 'lb, kg, bw',
-    content: '```wod\nBack Squat 225lb\nDeadlift 100kg\nWeighted Pullup 20lb\nAir Squat bw\n```'
+    title: 'AMRAP',
+    subtitle: 'Countdown, unbounded rounds',
+    content: '```wod\n20:00 (AMRAP)\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n```'
   },
   {
-    title: 'Distance',
-    subtitle: 'm, km, ft, miles',
-    content: '```wod\nRun 400m\nRow 2000m\nBike 10 miles\nSwim 500m\n```'
+    title: 'EMOM',
+    subtitle: 'Per-minute intervals, fixed count',
+    content: '```wod\n10:00 (EMOM)\n  3 Clean & Jerk 135lb\n```'
+  },
+  {
+    title: 'FOR TIME',
+    subtitle: 'Stopwatch to completion',
+    content: '```wod\nFOR TIME\n  21 Thrusters 95lb\n  21 Pullups\n  15 Thrusters 95lb\n  15 Pullups\n  9 Thrusters 95lb\n  9 Pullups\n```'
+  },
+  {
+    title: 'Tabata',
+    subtitle: '20s work / 10s rest preset',
+    content: '```wod\n(8 Rounds)\n  :20 Max Effort Burpees\n  :10 Rest\n```'
+  },
+  {
+    title: 'Implicit EMOM',
+    subtitle: 'Rounds + timer auto-detects EMOM',
+    content: '```wod\n(10)\n  1:00 Kettlebell Swings 24kg\n```'
   }
 ]
 
 const SUPPLEMENTAL_TABS = [
   {
-    title: 'Actions & Rest',
-    subtitle: 'Non-movement steps',
-    content: '```wod\n5 Rounds\n  Run 400m\n  2:00 Rest\n  Setup Barbell\n```'
+    title: 'Actions',
+    subtitle: '[Square brackets] = non-movement steps',
+    content: '```wod\n(5 Sets)\n  5 Back Squat ?lb\n  [Adjust plates]\n  *2:00 Rest\n```'
   },
   {
-    title: 'Uncertainty',
-    subtitle: 'Increasing load',
-    content: '```wod\n5 Deadlift ?lb\n```'
+    title: 'Rest Periods',
+    subtitle: '* marks an explicit rest block',
+    content: '```wod\n(3 Rounds)\n  Run 400m\n  *2:00 Rest\n  10 Pullups\n  *1:00 Rest\n```'
+  },
+  {
+    title: 'Comments',
+    subtitle: '// inline coach annotations',
+    content: '```wod\n(5 Sets)\n  5 Back Squat 225lb\n  // Drive knees out, brace hard\n  *3:00 Rest\n```'
+  },
+  {
+    title: 'Unknown Values',
+    subtitle: '? captures user input at runtime',
+    content: '```wod\n(5 Sets)\n  5 Deadlifts ?lb\n  // Choose a challenging working weight\n  *2:30 Rest\n```'
   }
 ]
 
-const AGENTIC_TABS = [
+const DOCUMENT_TABS = [
   {
-    title: 'LLM Extraction',
-    subtitle: 'Natural language',
-    content: '```wod\n// Send your whiteboard photo to the LLM\n// and get back valid WodScript syntax.\n```'
+    title: 'Headers & Notes',
+    subtitle: 'Markdown outside the wod block',
+    content: `# Tuesday \u2014 Upper Body\n\nFocusing on horizontal pushing strength.\nGoal: stay tight, control the descent.\n\n\`\`\`wod\n5:00 (AMRAP)\n  5 Pushups\n  10 Air Squats\n\`\`\``
+  },
+  {
+    title: 'Warmup Checklist',
+    subtitle: '- [ ] tasks before the session',
+    content: `## Warmup\n- [x] 5 min easy bike\n- [ ] Shoulder CARs x 10\n- [ ] Band pull-aparts x 20\n\n\`\`\`wod\n(5 Sets)\n  5 Bench Press 185lb\n  *3:00 Rest\n\`\`\``
+  },
+  {
+    title: 'Multiple Workouts',
+    subtitle: 'Many wod blocks per document',
+    content: `# Monday \u2014 Strength + Metcon\n\n## Strength\n\`\`\`wod\n(5 Sets)\n  3 Back Squat 225lb\n  *2:00 Rest\n\`\`\`\n\n## Metcon\n\`\`\`wod\n20:00 (AMRAP)\n  10 KB Swings 24kg\n  10 Box Jumps\n  10 Situps\n\`\`\``
+  },
+  {
+    title: 'Equipment Table',
+    subtitle: 'Markdown tables for setup',
+    content: `# Equipment Needed\n\n| Item | Spec | Qty |\n|------|------|-----|\n| Barbell | 45lb | 1 |\n| Plates | 45lb | 4 |\n| Kettlebell | 24kg | 1 |\n\n\`\`\`wod\nFOR TIME\n  50 Kettlebell Swings 24kg\n  400m Run\n  25 Kettlebell Swings 24kg\n\`\`\``
   }
 ]
 
 const NAV_LINKS = [
-  { id: 'introduction', label: 'Introduction' },
-  { id: 'basics', label: 'Basics' },
-  { id: 'timers', label: 'Timers' },
-  { id: 'repeaters', label: 'Repeaters' },
-  { id: 'groups', label: 'Groups' },
-  { id: 'measurements', label: 'Measurements' },
+  { id: 'introduction', label: 'Intro' },
+  { id: 'anatomy',     label: 'Anatomy' },
+  { id: 'timers',      label: 'Timers' },
+  { id: 'metrics',     label: 'Metrics' },
+  { id: 'groups',      label: 'Groups' },
+  { id: 'protocols',   label: 'Protocols' },
   { id: 'supplemental', label: 'Supplemental' },
-  { id: 'agentic', label: 'Agentic' },
+  { id: 'document',    label: 'Document' },
 ]
 
 // ── Components ───────────────────────────────────────────────────────
@@ -278,6 +410,94 @@ function SyntaxSection({
   )
 }
 
+function StatementAnatomySection({ id }: { id: string }) {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const example = ANATOMY_EXAMPLES[activeIdx]
+
+  return (
+    <section id={id} className="scroll-mt-24 py-16 lg:py-20 border-b border-border/50 bg-background">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mb-10 max-w-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <ScanLine size={20} />
+            </div>
+            <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase">Statement Anatomy</h2>
+          </div>
+          <p className="text-base text-muted-foreground font-medium leading-relaxed">
+            Every line in a <code className="text-foreground font-mono bg-muted px-1.5 py-0.5 rounded text-sm">wod</code> block is a <strong>statement</strong> — a sequence of typed fragments. Select an example below to see how each token is classified.
+          </p>
+        </div>
+
+        {/* Example picker */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {ANATOMY_EXAMPLES.map((ex, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveIdx(idx)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all border',
+                activeIdx === idx
+                  ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                  : 'bg-card text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
+              )}
+            >
+              {ex.line}
+            </button>
+          ))}
+        </div>
+
+        {/* Anatomy diagram */}
+        <div className="bg-card rounded-2xl border border-border p-6 lg:p-8 shadow-md">
+          <div className="font-mono text-sm text-muted-foreground mb-6">
+            <span className="text-[10px] font-black uppercase tracking-widest mr-3">Input</span>
+            <span className="text-foreground font-bold">{example.line}</span>
+          </div>
+
+          <div className="flex flex-wrap gap-4 mb-6">
+            {example.fragments.map((frag, idx) => {
+              const style = FRAGMENT_STYLES[frag.type]
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    'flex flex-col items-center rounded-xl border-2 p-4 min-w-[120px] transition-all',
+                    style.bg,
+                    style.border
+                  )}
+                >
+                  <div className={cn('text-[9px] font-black uppercase tracking-widest mb-2', style.text)}>
+                    {style.label}
+                  </div>
+                  <div className="font-mono text-lg font-bold text-foreground text-center break-all">
+                    {frag.token}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-2 text-center">
+                    {frag.note}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <p className="text-sm text-muted-foreground italic border-t border-border pt-4">
+            {example.summary}
+          </p>
+        </div>
+
+        {/* Fragment type legend */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {Object.entries(FRAGMENT_STYLES).map(([type, style]) => (
+            <div key={type} className={cn('rounded-lg px-3 py-2 flex items-center gap-2 border', style.bg, style.border)}>
+              <span className={cn('text-[10px] font-black uppercase tracking-wide', style.text)}>{style.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function SyntaxPage({ theme }: { theme: string }) {
   const navigate = useNavigate()
 
@@ -293,23 +513,23 @@ export function SyntaxPage({ theme }: { theme: string }) {
               'radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.15) 0%, transparent 80%)',
           }}
         />
-        
+
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-col items-center text-center gap-6">
             <div className="flex size-16 items-center justify-center rounded-[1.5rem] bg-primary text-primary-foreground shadow-xl shadow-primary/30 rotate-3">
               <Code2 className="size-8 fill-current" />
             </div>
-            
+
             <div className="space-y-4">
               <h1 className="text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl text-foreground uppercase">
                 WodScript Syntax
               </h1>
               <div className="space-y-2">
                 <p className="text-lg font-black text-primary uppercase tracking-tight sm:text-xl">
-                  The Language of Effort.
+                  The Complete Language Reference.
                 </p>
                 <p className="mx-auto max-w-3xl text-base font-medium text-muted-foreground sm:text-lg leading-relaxed">
-                  A comprehensive guide to every command, timer, and repeater in the <span className="text-foreground font-bold">WodScript</span> ecosystem. Designed for speed, precision, and readability.
+                  Every token. Every modifier. Every protocol. A structured reference for authoring precise, executable workout scripts in <span className="text-foreground font-bold">WOD.WIKI</span>.
                 </p>
               </div>
             </div>
@@ -319,87 +539,88 @@ export function SyntaxPage({ theme }: { theme: string }) {
 
       <StickyNav />
 
-      <SyntaxSection 
-        id="basics"
-        title="The Basics"
-        description="Learn the fundamental structure of a WodScript block, from basic code fences to simple movement lists."
-        tabs={BASICS_TABS}
-        align="left"
-        actualTheme={theme}
-        icon={BookOpen}
-      />
+      <StatementAnatomySection id="anatomy" />
 
-      <SyntaxSection 
+      <SyntaxSection
         id="timers"
-        title="Timers & Intervals"
-        description="Master time-cap workouts (AMRAP), interval training (EMOM), and precise work/rest ratios like Tabata."
+        title="Timers & Direction"
+        description="Durations can count down, count up, or record elapsed time. The direction is controlled by the format and optional prefix modifiers. Use * to mark a rest period."
         tabs={TIMERS_TABS}
-        align="right"
+        align="left"
         actualTheme={theme}
         icon={Clock}
       />
 
-      <SyntaxSection 
-        id="repeaters"
-        title="Repeaters"
-        description="Define rep schemes like 21-15-9 or simple set structures with minimal syntax overhead."
-        tabs={REPEATERS_TABS}
-        align="left"
+      <SyntaxSection
+        id="metrics"
+        title="Measuring Effort"
+        description="Quantities attach to movements: reps, load (lb/kg/bw), and distance (m, km, ft, miles). Combine multiple metrics on one line. Use ? for load values you want to capture at runtime."
+        tabs={METRICS_TABS}
+        align="right"
         actualTheme={theme}
-        icon={RotateCcw}
+        icon={BarChart2}
       />
 
-      <SyntaxSection 
+      <SyntaxSection
         id="groups"
-        title="Groups & Nesting"
-        description="Organize your workouts into rounds, named sections, and complex nested structures using parentheses."
+        title="Groups & Repeaters"
+        description="Parentheses group statements into rounds. A single number repeats everything inside. Dash-separated values create a rep sequence. Groups can nest inside each other."
         tabs={GROUPS_TABS}
-        align="right"
+        align="left"
         actualTheme={theme}
         icon={Layers}
       />
 
-      <SyntaxSection 
-        id="measurements"
-        title="Measurements"
-        description="Capture weights in lb or kg, and track distances across all standard units like meters, miles, and feet."
-        tabs={MEASUREMENTS_TABS}
-        align="left"
+      <SyntaxSection
+        id="protocols"
+        title="Workout Protocols"
+        description="WodScript recognizes standard CrossFit protocols by keyword. AMRAP runs unbounded rounds against a countdown. EMOM fires an interval every minute. FOR TIME runs a stopwatch to completion."
+        tabs={PROTOCOLS_TABS}
+        align="right"
         actualTheme={theme}
-        icon={Scale}
+        icon={Zap}
       />
 
-      <SyntaxSection 
+      <SyntaxSection
         id="supplemental"
-        title="Supplemental Data"
-        description="Log rest periods, auxiliary setup actions, and handle uncertainty in your training with specialized markers."
+        title="Supplemental Syntax"
+        description="Square brackets define action checkpoints (non-movement steps). The * prefix marks rest periods. Double-slash starts an inline coach annotation that is hidden from the execution overlay."
         tabs={SUPPLEMENTAL_TABS}
-        align="right"
+        align="left"
         actualTheme={theme}
         icon={PlusCircle}
       />
 
-      <SyntaxSection 
-        id="agentic"
-        title="Agentic Skill"
-        description="Learn how Large Language Models can use WodScript to transform your training ideas into executable code automatically."
-        tabs={AGENTIC_TABS}
-        align="left"
+      <SyntaxSection
+        id="document"
+        title="The Document Layer"
+        description="WodScript lives inside a Markdown document. Everything outside a wod block is standard Markdown: headers, notes, checklists, tables, links. Use multiple wod blocks in one file to structure a full training day."
+        tabs={DOCUMENT_TABS}
+        align="right"
         actualTheme={theme}
-        icon={Cpu}
+        icon={FileText}
       />
 
-      <section id="cta" className="py-20 bg-muted/20 text-center">
+      <section className="py-20 bg-muted/20 text-center">
         <div className="mx-auto max-w-4xl px-6 space-y-8">
           <Terminal className="size-12 mx-auto text-primary opacity-50" />
           <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase italic">Ready to script?</h2>
-          <button 
-            onClick={() => navigate('/playground')}
-            className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-xl shadow-xl shadow-primary/30 transition-all hover:scale-[1.05] active:scale-95"
-          >
-            Start New Playground
-            <ChevronRight size={18} />
-          </button>
+          <div className="flex flex-wrap justify-center gap-4">
+            <button
+              onClick={() => navigate('/playground')}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest rounded-xl shadow-xl shadow-primary/30 transition-all hover:scale-[1.05] active:scale-95"
+            >
+              Start New Playground
+              <ChevronRight size={18} />
+            </button>
+            <button
+              onClick={() => navigate('/getting-started')}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-card border border-border text-foreground text-sm font-black uppercase tracking-widest rounded-xl transition-all hover:bg-muted active:scale-95"
+            >
+              <BookOpen size={16} />
+              Interactive Tutorial
+            </button>
+          </div>
         </div>
       </section>
 
@@ -409,31 +630,13 @@ export function SyntaxPage({ theme }: { theme: string }) {
             <Code2 size={12} /> WodScript v0.5.0
           </div>
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-            <Target size={12} /> Syntax Documentation
+            <ScanLine size={12} /> 7 Fragment Types
+          </div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+            <Zap size={12} /> 4 Workout Protocols
           </div>
         </div>
       </footer>
     </div>
-  )
-}
-
-function Target({ size, className }: { size?: number, className?: string }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size || 24} 
-      height={size || 24} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
   )
 }

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "finishline/compliance-scenarios/state-transitions.md",
+                "file": "playground-guide-redesign-proposal.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "state-transitions"
+              "title": "playground-guide-redesign-proposal"
             }
           }
         ]
@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "fragments",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -74,7 +74,8 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -180,8 +181,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "ce524ac6422799a0",
+  "active": "bb39ce3108c46725",
   "lastOpenFiles": [
+    "editor-display-elements-research.md",
+    "finishline/compliance-scenarios/state-transitions.md",
     "finishline/compliance-scenarios/timer.md",
     "finishline/compliance-scenarios/emom.md",
     "finishline/compliance-scenarios/amrap.md",
@@ -193,7 +196,6 @@
     "finishline/comprehensive-runtime-tests.md",
     "finishline/compliance-scenarios/output-statements.md",
     "finishline/compliance-scenarios/session-lifecycle.md",
-    "finishline/compliance-scenarios/state-transitions.md",
     "finishline/compliance-scenarios/rounds.md",
     "finishline/compliance-scenarios/README.md",
     "finishline/compliance-scenarios",
@@ -210,7 +212,6 @@
     "domain-model/entities.md",
     "unified-editor-prd.md",
     "domain-model",
-    "unified-editor-research-curriculum.md",
     "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",
     "web",
