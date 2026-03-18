@@ -37,7 +37,13 @@ export function Combobox<T>({
         )
 
   return (
-    <Headless.Combobox {...props} multiple={false} virtual={{ options: filteredOptions }} onClose={() => setQuery('')}>
+    <Headless.Combobox 
+      as="div"
+      {...props} 
+      multiple={false} 
+      virtual={{ options: filteredOptions }} 
+      onClose={() => setQuery('')}
+    >
       <span
         data-slot="control"
         className={clsx([
@@ -149,6 +155,7 @@ export function ComboboxOption<T>({
 
   return (
     <Headless.ComboboxOption
+      as="div"
       {...props}
       className={clsx(
         // Basic layout
@@ -181,12 +188,13 @@ export function ComboboxOption<T>({
 }
 
 export function ComboboxLabel({ className, ...props }: React.ComponentPropsWithoutRef<'span'>) {
-  return <span {...props} className={clsx(className, 'ml-2.5 truncate first:ml-0 sm:ml-2 sm:first:ml-0')} />
+  return <Headless.ComboboxLabel as="span" {...props} className={clsx(className, 'ml-2.5 truncate first:ml-0 sm:ml-2 sm:first:ml-0')} />
 }
 
 export function ComboboxDescription({ className, children, ...props }: React.ComponentPropsWithoutRef<'span'>) {
   return (
-    <span
+    <Headless.ComboboxDescription
+      as="span"
       {...props}
       data-slot="description"
       className={clsx(
@@ -195,7 +203,7 @@ export function ComboboxDescription({ className, children, ...props }: React.Com
       )}
     >
       <span className="flex-1 truncate">{children}</span>
-    </span>
+    </Headless.ComboboxDescription>
   )
 }
 
@@ -230,6 +238,7 @@ export function ComboboxInput({
         <Icon className="pointer-events-none absolute top-3 left-3 size-5 text-zinc-500 sm:top-2.5 sm:left-2.5 sm:size-4 dark:text-zinc-400" />
       )}
       <Headless.ComboboxInput
+        as="input"
         {...props}
         className={clsx([
           className,
@@ -271,6 +280,7 @@ export function ComboboxOptions({
 } & Omit<Headless.ComboboxOptionsProps, 'as' | 'className' | 'children'>) {
   return (
     <Headless.ComboboxOptions
+      as="div"
       {...props}
       anchor={anchor}
       className={clsx(

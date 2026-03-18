@@ -8,30 +8,51 @@ export interface Command {
   keywords?: string[]; // For fuzzy search
 }
 
+export interface CommandPaletteResult {
+  id: string;
+  name: string;
+  category: string;
+  content?: string;
+  type?: 'workout' | 'result' | 'action' | 'statement-part';
+  subtitle?: string;
+  payload?: any;
+}
+
 export interface CommandStrategy {
   id: string;
-  /**
-   * Returns the list of commands available in this strategy.
-   * Can be dynamic based on the current state.
-   */
-  getCommands: () => Command[];
-  
-  /**
-   * Optional: Handles text input when the user types in the palette.
-   * If provided, the palette acts as an input field (e.g. for editing text).
-   * Returns true if the input was handled and the palette should close.
-   */
-  handleInput?: (text: string) => boolean | Promise<boolean>;
-  
-  /**
-   * Optional: Placeholder text for the input field.
-   */
   placeholder?: string;
+  initialInputValue?: string;
+  
+  /**
+   * Optional: Custom header element to render below the search bar but before results.
+   * Useful for "Statement Builder" contextual info.
+   */
+  renderHeader?: () => React.ReactNode;
 
   /**
-   * Optional: Initial value for the input field.
+   * Returns results based on the search query.
    */
-  initialInputValue?: string;
+  getResults: (query: string) => CommandPaletteResult[] | Promise<CommandPaletteResult[]>;
+
+  /**
+   * Handles selection of a result.
+   */
+  onSelect: (result: CommandPaletteResult) => void;
+
+  /**
+   * Returns standard commands for this strategy.
+   */
+  getCommands?: () => Command[];
+  
+  /**
+   * Optional: Handles raw text input (e.g. Enter key).
+   */
+  handleInput?: (text: string) => boolean | Promise<boolean>;
+
+  /**
+   * Optional: Global keydown handler when the palette is open.
+   */
+  onKeyDown?: (e: React.KeyboardEvent | KeyboardEvent) => void;
 }
 
 export interface CommandContextType {

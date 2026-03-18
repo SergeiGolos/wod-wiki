@@ -90,6 +90,11 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
+import { 
+  createGlobalSearchStrategy, 
+  createCollectionStrategy, 
+  createStatementBuilderStrategy 
+} from './services/commandStrategies'
 
 /**
  * In-memory store for pending runtimes.
@@ -461,7 +466,7 @@ function AppContent() {
   const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
   const location = useLocation()
   
-  const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen } = useCommandPalette()
+  const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
@@ -552,7 +557,7 @@ function AppContent() {
     refreshResults()
   }, [location.pathname, refreshResults])
 
-  const handleSelectWorkout = (item: any) => {
+  const handleSelectWorkout = useCallback((item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
     if (workout.name === 'Home') {
       navigate('/')
@@ -560,17 +565,28 @@ function AppContent() {
       const category = workout.category || 'General'
       navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
     }
-  }
+  }, [navigate])
 
-  const handleCollectionClick = (category: string) => {
+  const handleCollectionClick = useCallback((category: string) => {
     setActiveCategory(category)
+    setStrategy(createCollectionStrategy(category, workoutItems, handleSelectWorkout))
     setIsCommandPaletteOpen(true)
-  }
+  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     setActiveCategory(null)
+    setStrategy(createGlobalSearchStrategy(workoutItems, handleSelectWorkout))
     setIsCommandPaletteOpen(true)
-  }
+  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
+
+  // Reset strategy when palette closes
+  useEffect(() => {
+    if (!isCommandPaletteOpen) {
+      // Small delay to avoid visual jump during close animation
+      const t = setTimeout(() => setStrategy(null), 300)
+      return () => clearTimeout(t)
+    }
+  }, [isCommandPaletteOpen, setStrategy])
 
   const handleResetData = async () => {
     localStorage.clear()
@@ -587,6 +603,39 @@ function AppContent() {
     a.click()
     URL.revokeObjectURL(url)
   }
+
+  // Keyboard shortcut for command palette
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K: Global Search
+      if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        e.stopPropagation()
+        handleSearchClick()
+      }
+      // Ctrl/Cmd + .: Statement Builder (Interactive Segments)
+      if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        e.stopPropagation()
+        
+        const line = "10 Kettlebell Swings 24kg"
+        const segments = ["10", "Kettlebell Swings", "24kg"]
+        
+        const strategy = createStatementBuilderStrategy({
+          line,
+          segments,
+          activeSegmentIndex: 0,
+          onModifyLine: (newLine) => console.log('Modify line to:', newLine),
+          updateStrategy: (newStrategy) => setStrategy(newStrategy)
+        })
+        
+        setStrategy(strategy)
+        setIsCommandPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', down, true)
+    return () => window.removeEventListener('keydown', down, true)
+  }, [handleSearchClick, setStrategy, setIsCommandPaletteOpen])
 
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -897,10 +946,11 @@ function AppContent() {
                   actualTheme={actualTheme}
                   workoutItems={workoutItems}
                   onSelectWorkout={handleSelectWorkout}
-                  isCommandPaletteOpen={isCommandPaletteOpen}
-                  setIsCommandPaletteOpen={setIsCommandPaletteOpen}
-                  activeCategory={activeCategory}
-                  setActiveCategory={setActiveCategory}
+                  // No internal palette needed here anymore
+                  isCommandPaletteOpen={false} 
+                  setIsCommandPaletteOpen={() => {}}
+                  activeCategory={null}
+                  setActiveCategory={() => {}}
                 />
               </div>
             ) : (
@@ -916,18 +966,16 @@ function AppContent() {
         </div>
       </div>
 
-      {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => {
-            setIsCommandPaletteOpen(false)
-            setActiveCategory(null)
-          }}
-          items={workoutItems}
-          onSelect={handleSelectWorkout}
-          initialCategory={activeCategory}
-        />
-      )}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => {
+          setIsCommandPaletteOpen(false)
+          setActiveCategory(null)
+        }}
+        items={workoutItems}
+        onSelect={handleSelectWorkout}
+        initialCategory={activeCategory}
+      />
 
     </SidebarLayout>
   )

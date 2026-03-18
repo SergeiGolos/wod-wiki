@@ -106,8 +106,11 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                     break;
                   }
                   case terms.Action: {
-                    // Extract name from [:Name]
-                    const actionText = fragText.substring(2, fragText.length - 1).trim();
+                    // Extract name from [:Name] or [Name]
+                    const hasColon = fragText.startsWith('[:');
+                    const actionText = hasColon
+                      ? fragText.substring(2, fragText.length - 1).trim()
+                      : fragText.substring(1, fragText.length - 1).trim();
                     metricPairs.push({ metrics: new ActionMetric(actionText, { raw: actionText }), meta: fragMeta });
                     break;
                   }
