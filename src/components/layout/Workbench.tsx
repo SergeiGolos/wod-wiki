@@ -50,7 +50,7 @@ import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext'
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
-import { HistoryEntry } from '../../types/history';
+import { HistoryEntry, WorkoutResults } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
@@ -66,7 +66,7 @@ import { ReviewGrid } from '../review-grid';
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
-export interface WorkbenchProps extends Omit<UnifiedEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange'> {
+export interface WorkbenchProps extends Omit<UnifiedEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
   initialActiveEntryId?: string;
   initialViewMode?: ViewMode;

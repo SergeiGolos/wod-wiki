@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { WodBlock } from '../Editor/types';
-import { EditableStatementList } from '../Editor/md-components/EditableStatementList';
+import { StatementList } from './StatementList';
 import { Button } from '@/components/ui/button';
 import { Play } from 'lucide-react';
 
@@ -134,13 +134,10 @@ export const WorkoutContextPanel: React.FC<WorkoutContextPanelProps> = ({
         {/* Statement List */}
         <div className="font-mono text-sm relative">
           {hasStatements ? (
-            <EditableStatementList
+            <StatementList
               statements={block.statements || []}
-              onAddStatement={readonly || !onAddStatement ? undefined : onAddStatement}
-              onEditStatement={readonly ? undefined : onEditStatement}
-              onDeleteStatement={readonly ? undefined : onDeleteStatement}
-              readonly={readonly}
               activeStatementIds={activeStatementIds}
+              readonly={readonly}
             />
           ) : (
             <div className="text-muted-foreground italic">

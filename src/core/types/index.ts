@@ -59,6 +59,15 @@ export type {
   WorkoutMetadata,
 } from './providers';
 
+// Editor types (Proxied from components/Editor/types)
+export type {
+  WodBlock,
+  WorkoutResults,
+  WodBlockState,
+  ParseError,
+  WorkoutMetricFragment,
+} from '../../components/Editor/types';
+
 // Clock types
 export type {
   WorkoutType,
@@ -71,6 +80,5 @@ export type {
 
 // Fragment types
 export type {
-  ParseError,
   MetricVisualizerProps,
 } from './metrics';

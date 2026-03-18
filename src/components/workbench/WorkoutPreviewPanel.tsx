@@ -21,13 +21,6 @@ export interface WorkoutPreviewPanelProps {
   /** Raw markdown content of the note */
   content: string;
 
-  /**
-   * Optional list of section types to display.
-   * When set, only sections whose `type` is in this array are rendered.
-   * Defaults to undefined (show all sections).
-   */
-  filter?: SectionType[];
-
   /** Called when the user clicks "Run" on a WOD block */
   onStartWorkout?: (block: WodBlock) => void;
 
@@ -40,7 +33,6 @@ export interface WorkoutPreviewPanelProps {
 
 export const WorkoutPreviewPanel: React.FC<WorkoutPreviewPanelProps> = ({
   content,
-  filter,
   onStartWorkout,
   onBlocksChange,
   className,

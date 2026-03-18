@@ -12,7 +12,7 @@
  */
 
 
-import type { WorkoutResults, Section } from '../components/Editor/types';
+export type { WorkoutResults, Section } from '../components/Editor/types';
 import type { WorkoutResult } from './storage';
 
 /**
