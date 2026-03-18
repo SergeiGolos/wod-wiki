@@ -119,7 +119,7 @@ export const WodPlaygroundButton: React.FC<WodPlaygroundButtonProps> = ({
   return (
     <div
       className={cn(
-        'inline-flex items-stretch rounded-sm overflow-hidden text-[10px] font-medium shadow-sm border border-border/60',
+        'inline-flex items-stretch rounded-lg overflow-hidden text-xs font-medium shadow-md border border-border/70 hover:shadow-lg transition-shadow',
         'bg-muted text-muted-foreground',
         className,
       )}
@@ -130,12 +130,12 @@ export const WodPlaygroundButton: React.FC<WodPlaygroundButtonProps> = ({
         href={href}
         onClick={handleLinkClick}
         className={cn(
-          'flex items-center gap-1 px-2 py-0.5 transition-colors',
+          'flex items-center gap-2 px-3 py-2 transition-colors',
           'hover:bg-accent hover:text-accent-foreground',
         )}
         rel="noopener noreferrer"
       >
-        <ExternalLink className="h-2.5 w-2.5" />
+        <ExternalLink className="h-4 w-4" />
         <span>Playground</span>
       </a>
 
@@ -147,17 +147,17 @@ export const WodPlaygroundButton: React.FC<WodPlaygroundButtonProps> = ({
         onClick={handleCopy}
         disabled={copyState === 'copying'}
         className={cn(
-          'flex items-center justify-center px-1.5 py-0.5 transition-colors',
+          'flex items-center justify-center px-2.5 py-2 transition-all duration-300',
           copyState === 'copied'
-            ? 'text-emerald-500 bg-emerald-500/10'
+            ? 'text-emerald-600 bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-500/20 scale-105'
             : 'hover:bg-accent hover:text-accent-foreground',
         )}
         title="Copy playground link to clipboard"
         type="button"
       >
         {copyState === 'copied'
-          ? <Check className="h-2.5 w-2.5" />
-          : <Copy className="h-2.5 w-2.5" />
+          ? <Check className="h-4 w-4" />
+          : <Copy className="h-4 w-4" />
         }
       </button>
     </div>

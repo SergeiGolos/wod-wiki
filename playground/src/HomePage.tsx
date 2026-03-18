@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { 
-  FileCode2, 
   Zap,
   ShieldCheck,
   Server,
@@ -20,30 +19,36 @@ const WODSCRIPT_TABS = [
   {
     title: 'The Basics',
     subtitle: 'Simple sets and reps',
-    content: `3 Rounds For Time
+    content: `\`\`\`wod
+(3) Rounds For Time
   - 10 Push-ups
   - 15 Air Squats
-  - 20 Sit-ups`
+  - 20 Sit-ups
+\`\`\``
   },
   {
     title: 'Complex Intervals',
     subtitle: 'Nested loops & rests',
-    content: `Timer 12:00
-  - 4x
+    content: `\`\`\`wod
+Timer 12:00
+  - (4)
     - 40s Max Effort Rowing
     - 20s Rest
   - 2:00 Rest
-  - 4x
+  - (4)
     - 40s Burpees
-    - 20s Rest`
+    - 20s Rest
+\`\`\``
   },
   {
     title: 'Loaded Movements',
     subtitle: 'Weights & checkboxes',
-    content: `5x
-  - 5 Back Squats (225 lbs)
+    content: `\`\`\`wod
+5x
+  - 5 Back Squats 225 lb
   - 10 Strict Pull-ups
-  - [ ] 50m Heavy Sandbag Carry`
+  - [ ] 50m Heavy Sandbag Carry
+\`\`\``
   }
 ]
 
@@ -51,21 +56,27 @@ const CLOCK_TABS = [
   {
     title: 'AMRAP',
     subtitle: 'As Many Reps As Possible',
-    content: `AMRAP 10:00
-  - 5 Deadlifts (225 lbs)
-  - 10 Box Jumps (24 in)`
+    content: `\`\`\`wod
+AMRAP 10:00
+  - 5 Deadlifts 225 lb
+  - 10 Box Jumps 24 in
+\`\`\``
   },
   {
     title: 'EMOM',
     subtitle: 'Every Minute on the Minute',
-    content: `EMOM 10:00
-  - 10 Kettlebell Swings (24 kg)`
+    content: `\`\`\`wod
+EMOM 10:00
+  - 10 Kettlebell Swings 24 kg
+\`\`\``
   },
   {
     title: 'Countdown Timer',
     subtitle: 'Precise transitions',
-    content: `:10 Countdown
-  - [ ] Sprint 100m`
+    content: `\`\`\`wod
+:10 Countdown
+  - Sprint 100m
+\`\`\``
   }
 ]
 
@@ -73,17 +84,21 @@ const METRICS_TABS = [
   {
     title: 'Rep Tracking',
     subtitle: 'Volume accumulation',
-    content: `For Time
+    content: `\`\`\`wod
+For Time
   - 100 Double Unders
-  - 50 Thrusters (95 lbs)`
+  - 50 Thrusters 95 lb
+\`\`\``
   },
   {
     title: 'Distance & Output',
     subtitle: 'Intensity tracking',
-    content: `Timer 20:00
-  - [ ] 500m Row { intensity: 80% }
+    content: `\`\`\`wod
+Timer 20:00
+  - 500m Row // intensity: 80%
   - 20 Wall Balls
-  - [ ] 400m Run { intensity: 90% }`
+  - 400m Run // intensity: 90%
+\`\`\``
   }
 ]
 
