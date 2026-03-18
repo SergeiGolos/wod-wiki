@@ -25,7 +25,7 @@ describe('MetricPromotionBehavior', () => {
 
     it('promotes metric by type to metric:promote memory', () => {
         const { block } = setup(
-            { promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round' }] },
+            { promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round' }] },
             { current: 1, total: 5 }
         );
         harness.mount();
@@ -38,7 +38,7 @@ describe('MetricPromotionBehavior', () => {
 
     it('uses configured origin override', () => {
         const { block } = setup(
-            { promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round', origin: 'runtime' }] },
+            { promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round', origin: 'runtime' }] },
             { current: 1 }
         );
         harness.mount();
@@ -48,7 +48,7 @@ describe('MetricPromotionBehavior', () => {
     });
 
     it('skips promotion when source metrics is not found', () => {
-        const { block } = setup({ promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round' }] });
+        const { block } = setup({ promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round' }] });
         harness.mount();
 
         expect(block.getMemoryByTag('metric:promote')).toHaveLength(0);
@@ -56,7 +56,7 @@ describe('MetricPromotionBehavior', () => {
 
     it('does not re-promote on next when enableDynamicUpdates is false', () => {
         const { block } = setup(
-            { promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round' }] },
+            { promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round' }] },
             { current: 1, total: 3 }
         );
         harness.mount();
@@ -73,7 +73,7 @@ describe('MetricPromotionBehavior', () => {
 
     it('re-promotes on next when enableDynamicUpdates is true', () => {
         const { block } = setup(
-            { promotions: [{ type: MetricType.CurrentRound, sourceTag: 'round', enableDynamicUpdates: true }] },
+            { promotions: [{ metricType: MetricType.CurrentRound, sourceTag: 'round', enableDynamicUpdates: true }] },
             { current: 1, total: 3 }
         );
         harness.mount();
@@ -119,8 +119,8 @@ describe('MetricPromotionBehavior', () => {
         harness = new BehaviorTestHarness().withClock(new Date('2024-01-01T00:00:00Z'));
         const behavior = new MetricPromotionBehavior({
             promotions: [
-                { type: MetricType.CurrentRound, sourceTag: 'round' },
-                { type: MetricType.Rep, sourceTag: 'metric' }
+                { metricType: MetricType.CurrentRound, sourceTag: 'round' },
+                { metricType: MetricType.Rep, sourceTag: 'metric' }
             ]
         });
         const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });

@@ -225,7 +225,7 @@ export function GettingStartedPage({ theme }: { theme: string }) {
   return (
     <div className="flex-1 overflow-y-auto bg-background flex flex-col min-h-0">
       {/* Hero Section */}
-      <section id="introduction" className="relative px-6 py-20 lg:py-32 overflow-hidden scroll-mt-24">
+      <section id="introduction" className="relative px-6 pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden scroll-mt-24">
         <CastCallout />
         
         <div
