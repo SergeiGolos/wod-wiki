@@ -1,7 +1,8 @@
 'use client'
 
 import * as Headless from '@headlessui/react'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import { NavbarItem } from './navbar'
 
@@ -52,6 +53,12 @@ export function SidebarLayout({
 }: React.PropsWithChildren<{ navbar: React.ReactNode; sidebar: React.ReactNode }>) {
   let [showSidebar, setShowSidebar] = useState(false)
   let [isCollapsed, setIsCollapsed] = useState(false)
+  const location = useLocation()
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setShowSidebar(false)
+  }, [location])
 
   return (
     <div className="relative isolate flex min-h-svh w-full bg-white max-lg:flex-col lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950">

@@ -169,7 +169,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             if (location.tag === 'metric:promote' || location.tag === 'metric:rep-target') continue;
             if (rule.sourceTag && location.tag !== rule.sourceTag) continue;
 
-            const match = location.metrics.find(metric => metric.type === rule.type);
+            const match = location.metrics.find(metric => metric.type === rule.metricType);
             if (match) return match;
         }
 

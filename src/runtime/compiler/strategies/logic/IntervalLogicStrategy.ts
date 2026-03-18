@@ -13,6 +13,7 @@ import { LabelComposer } from "../../utils/LabelComposer";
 // Specific behaviors not covered by aspect composers
 import {
     LabelingBehavior,
+    MetricPromotionBehavior,
     SoundCueBehavior,
 } from "../../../behaviors";
 
@@ -126,5 +127,16 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
                 { sound: 'interval-complete', trigger: 'complete' }
             ]
         }));
+
+        // Promotion Aspect - cascade resistance/distance to child blocks
+        const hasResistance = statements.some(s => s.metrics.some(m => m.type === MetricType.Resistance));
+        const hasDistance = statements.some(s => s.metrics.some(m => m.type === MetricType.Distance));
+        const promotions = [
+            ...(hasResistance ? [{ metricType: MetricType.Resistance, origin: 'compiler' as const }] : []),
+            ...(hasDistance ? [{ metricType: MetricType.Distance, origin: 'compiler' as const }] : []),
+        ];
+        if (promotions.length > 0) {
+            builder.addBehavior(new MetricPromotionBehavior({ promotions }));
+        }
     }
 }

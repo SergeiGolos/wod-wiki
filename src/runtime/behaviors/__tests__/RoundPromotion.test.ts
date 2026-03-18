@@ -16,7 +16,7 @@ describe('Round Promotion', () => {
 
             const behavior = new MetricPromotionBehavior({
                 promotions: [{
-                    type: MetricType.CurrentRound,
+                    metricType: MetricType.CurrentRound,
                     sourceTag: 'round'
                 }]
             });
@@ -49,7 +49,7 @@ describe('Round Promotion', () => {
 
             const behavior = new MetricPromotionBehavior({
                 promotions: [{
-                    type: MetricType.CurrentRound,
+                    metricType: MetricType.CurrentRound,
                     sourceTag: 'round',
                     enableDynamicUpdates: true
                 }]

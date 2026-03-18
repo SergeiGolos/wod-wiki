@@ -1,7 +1,7 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
-import { SessionRootStrategy } from '../../compiler/strategies/SessionRootStrategy';
+import { SessionRootStrategy, buildChildGroupsWithContext } from '../../compiler/strategies/SessionRootStrategy';
 import { SessionRootConfig } from '../../blocks/SessionRootBlock';
 import { PushBlockAction } from './PushBlockAction';
 
@@ -66,7 +66,7 @@ export class StartSessionAction implements IRuntimeAction {
             }
         }
         const topLevelStatements = statements.filter(s => !childStatementIds.has(s.id));
-        const childGroups = topLevelStatements.map(s => [s.id]);
+        const childGroups = buildChildGroupsWithContext(topLevelStatements);
 
         // Build session root configuration
         const config: SessionRootConfig = {
