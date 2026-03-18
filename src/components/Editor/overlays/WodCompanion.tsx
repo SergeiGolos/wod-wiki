@@ -24,7 +24,9 @@ import { cn } from "@/lib/utils";
 import type { WodBlock } from "../types";
 import type { WodCommand } from "./WodCommand";
 import { useWodBlockResults } from "../hooks/useWodBlockResults";
-import { History, ExternalLink } from "lucide-react";
+import { useWodLineResults } from "../hooks/useWodLineResults";
+import type { LineExecutionSummary } from "../hooks/useWodLineResults";
+import { History, ExternalLink, Activity } from "lucide-react";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 
@@ -113,6 +115,43 @@ function metricChips(statement: ICodeStatement): MetricChip[] {
       };
     });
 }
+
+// ── Line Execution Summary Card ──────────────────────────────────────
+
+const LineExecutionSummaryCard: React.FC<{ summary: LineExecutionSummary }> = ({ summary }) => {
+  // Show at most the 3 most recent entries
+  const recent = summary.entries.slice(0, 3);
+  return (
+    <div className="px-3 py-2 border-t border-border/30 bg-muted/20">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Activity className="h-3 w-3 text-muted-foreground" />
+        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">History</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">
+          {summary.totalHits}× across {summary.resultCount} run{summary.resultCount !== 1 ? "s" : ""}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {recent.map((entry) => (
+          <div
+            key={entry.completedAt}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-background/60 border border-border/40 text-[10px]"
+          >
+            <span className="font-mono font-medium text-foreground">{formatDuration(entry.elapsedMs)}</span>
+            {entry.hitCount > 1 && (
+              <span className="text-muted-foreground">×{entry.hitCount}</span>
+            )}
+            <span className="text-muted-foreground/60">
+              {new Date(entry.completedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+            </span>
+          </div>
+        ))}
+        {summary.entries.length > 3 && (
+          <span className="text-[10px] text-muted-foreground self-center">+{summary.entries.length - 3} more</span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // ── Block resolver ────────────────────────────────────────────────────
 
@@ -414,6 +453,8 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
     [activeStatement],
   );
 
+  const lineSummary = useWodLineResults(results, activeStatement?.id);
+
   if (!section) return null;
 
   const lineText = (activeStatement?.meta as any)?.raw ?? "";
@@ -497,6 +538,9 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
               <span className="text-xs italic text-muted-foreground">No metrics on this line</span>
             )}
           </div>
+
+          {/* Line execution history */}
+          {lineSummary && <LineExecutionSummaryCard summary={lineSummary} />}
 
           {/* Action buttons */}
           <div className="border-t border-border/40 shrink-0">

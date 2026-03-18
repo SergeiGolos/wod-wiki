@@ -14,12 +14,12 @@ As per the refined results rendering strategy, line-specific result information 
 The `WodCompanion` currently shows:
 - [x] Global latest result (to be replaced by line-specific context).
 - [x] Metric chips for the current statement.
-- [ ] Line-specific history/results.
+- [x] Line-specific history/results via `LineExecutionSummaryCard`.
 
 ### Data Requirements
 - The `WorkoutResult` objects stored in `wodResultsField` need to be accessible.
-- We need a way to map global results back to individual lines/statements. 
-- *Note:* This requires the runtime to have logged statement-level events with line identifiers.
+- Line-level mapping uses `sourceStatementId` on `IOutputStatement` logs (equals the 1-based content line number).
+- *Note:* Only `segment`-type output statements are counted (excludes system/event/milestone noise).
 
 ### UI Plan
 1. **Line Performance Indicator:** When a line has been executed in previous runs, show a small sparkline or summary next to the metric chips.
@@ -28,6 +28,8 @@ The `WodCompanion` currently shows:
 3. **Drill-down:** Clicking a line-specific result should open the review overlay filtered or focused on that specific segment.
 
 ## Next Steps
-- [ ] Verify that the runtime logs include enough metadata to identify line-level performance.
-- [ ] Update `useWodBlockResults` or create a new hook `useWodLineResults` to extract line-specific data.
-- [ ] Implement the UI components in `WodCompanion.tsx`.
+- [x] Verify that the runtime logs include enough metadata to identify line-level performance.
+- [x] Create `useWodLineResults` hook to extract line-specific data from `WorkoutResult.data.logs`.
+- [x] Implement the `LineExecutionSummaryCard` UI component in `WodCompanion.tsx`.
+- [ ] Implement the sparkline / visual history indicator.
+- [ ] Drill-down: clicking a line-specific result opens the review overlay filtered on that segment.

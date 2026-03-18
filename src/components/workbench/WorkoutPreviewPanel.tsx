@@ -13,20 +13,13 @@
 import React from 'react';
 import type { SectionType } from '../Editor/types/section';
 import type { WodBlock } from '../Editor/types';
-import { SectionEditor } from '../Editor/SectionEditor';
+import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
 import { cn } from '@/lib/utils';
 import { Dumbbell } from 'lucide-react';
 
 export interface WorkoutPreviewPanelProps {
   /** Raw markdown content of the note */
   content: string;
-
-  /**
-   * Optional list of section types to display.
-   * When set, only sections whose `type` is in this array are rendered.
-   * Defaults to undefined (show all sections).
-   */
-  filter?: SectionType[];
 
   /** Called when the user clicks "Run" on a WOD block */
   onStartWorkout?: (block: WodBlock) => void;
@@ -40,7 +33,6 @@ export interface WorkoutPreviewPanelProps {
 
 export const WorkoutPreviewPanel: React.FC<WorkoutPreviewPanelProps> = ({
   content,
-  filter,
   onStartWorkout,
   onBlocksChange,
   className,
@@ -63,15 +55,14 @@ export const WorkoutPreviewPanel: React.FC<WorkoutPreviewPanelProps> = ({
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <SectionEditor
+        <UnifiedEditor
           value={content}
-          editable={false}
-          mode="preview"
+          onChange={() => {}}
+          readonly={true}
           showLineNumbers={false}
           onStartWorkout={onStartWorkout}
           onBlocksChange={onBlocksChange}
-          filter={filter}
-          height="100%"
+          className="h-full"
         />
       </div>
     </div>

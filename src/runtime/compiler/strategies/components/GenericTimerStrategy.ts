@@ -81,11 +81,18 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // (LeafExit before Timer ensures Pop comes before Rest Push onNext)
         // =====================================================================
 
+        // Check for required-timer hint (user cannot skip with * prefix)
+        const isRequired = statements.some(s => s.hints?.has('behavior.required_timer'));
+
         // Completion Aspect
-        // User can still advance manually (skip or acknowledge completion).
-        // For parent blocks with children, ChildrenStrategy removes
-        // ExitBehavior since children manage advancement.
-        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
+        // For required timers, only exit when the timer:complete event fires (not on user next).
+        // For normal timers, user can still advance manually (skip or acknowledge completion).
+        // For parent blocks with children, ChildrenStrategy removes ExitBehavior since children manage advancement.
+        if (isRequired && durationMs && direction === 'down') {
+            builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: false, onEvents: ['timer:complete'] }));
+        } else {
+            builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
+        }
 
         // =====================================================================
         // ASPECT COMPOSERS - High-level composition
@@ -103,7 +110,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
                 label,
                 role: 'primary',
                 addCompletion: true,  // Timer completion marks block as complete
-                injectRest
+                injectRest,
+                required: isRequired,
             });
         } else {
             // Countup timer without completion

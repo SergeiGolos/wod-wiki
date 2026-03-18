@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
+import { Dumbbell } from 'lucide-react'
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
@@ -10,6 +11,8 @@ import {
   DropdownItem,
   DropdownLabel,
   DropdownMenu,
+  DropdownSection,
+  DropdownHeading,
 } from '@/components/playground/dropdown'
 import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
 import {
@@ -63,6 +66,9 @@ import {
   BugAntIcon,
   ArrowPathIcon,
   TableCellsIcon,
+  SunIcon,
+  MoonIcon,
+  ComputerDesktopIcon,
 } from '@heroicons/react/20/solid'
 import type { WorkoutResult } from '@/types/storage'
 
@@ -84,6 +90,11 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
+import { 
+  createGlobalSearchStrategy, 
+  createCollectionStrategy, 
+  createStatementBuilderStrategy 
+} from './services/commandStrategies'
 
 /**
  * In-memory store for pending runtimes.
@@ -455,7 +466,7 @@ function AppContent() {
   const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
   const location = useLocation()
   
-  const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen } = useCommandPalette()
+  const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
@@ -546,7 +557,7 @@ function AppContent() {
     refreshResults()
   }, [location.pathname, refreshResults])
 
-  const handleSelectWorkout = (item: any) => {
+  const handleSelectWorkout = useCallback((item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
     if (workout.name === 'Home') {
       navigate('/')
@@ -554,17 +565,28 @@ function AppContent() {
       const category = workout.category || 'General'
       navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
     }
-  }
+  }, [navigate])
 
-  const handleCollectionClick = (category: string) => {
+  const handleCollectionClick = useCallback((category: string) => {
     setActiveCategory(category)
+    setStrategy(createCollectionStrategy(category, workoutItems, handleSelectWorkout))
     setIsCommandPaletteOpen(true)
-  }
+  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     setActiveCategory(null)
+    setStrategy(createGlobalSearchStrategy(workoutItems, handleSelectWorkout))
     setIsCommandPaletteOpen(true)
-  }
+  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
+
+  // Reset strategy when palette closes
+  useEffect(() => {
+    if (!isCommandPaletteOpen) {
+      // Small delay to avoid visual jump during close animation
+      const t = setTimeout(() => setStrategy(null), 300)
+      return () => clearTimeout(t)
+    }
+  }, [isCommandPaletteOpen, setStrategy])
 
   const handleResetData = async () => {
     localStorage.clear()
@@ -585,29 +607,63 @@ function AppContent() {
   // Keyboard shortcut for command palette
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K: Global Search
       if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
-        setActiveCategory(null)
-        setIsCommandPaletteOpen(!isCommandPaletteOpen)
+        e.stopPropagation()
+        handleSearchClick()
+      }
+      // Ctrl/Cmd + .: Statement Builder (Interactive Segments)
+      if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        e.stopPropagation()
+        
+        const line = "10 Kettlebell Swings 24kg"
+        const segments = ["10", "Kettlebell Swings", "24kg"]
+        
+        const strategy = createStatementBuilderStrategy({
+          line,
+          segments,
+          activeSegmentIndex: 0,
+          onModifyLine: (newLine) => console.log('Modify line to:', newLine),
+          updateStrategy: (newStrategy) => setStrategy(newStrategy)
+        })
+        
+        setStrategy(strategy)
+        setIsCommandPaletteOpen(true)
       }
     }
-    document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
-  }, [setIsCommandPaletteOpen, isCommandPaletteOpen])
+    window.addEventListener('keydown', down, true)
+    return () => window.removeEventListener('keydown', down, true)
+  }, [handleSearchClick, setStrategy, setIsCommandPaletteOpen])
+
+  const [isSystemDark, setIsSystemDark] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
+
+  useEffect(() => {
+    if (theme !== 'system') return
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const listener = (e: MediaQueryListEvent) => setIsSystemDark(e.matches)
+    mediaQuery.addEventListener('change', listener)
+    return () => mediaQuery.removeEventListener('change', listener)
+  }, [theme])
 
   const actualTheme = useMemo(() => {
     if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'vs'
+      return isSystemDark ? 'vs-dark' : 'vs'
     }
     return theme === 'dark' ? 'vs-dark' : 'vs'
-  }, [theme])
+  }, [theme, isSystemDark])
+
+  const { setTheme } = useTheme()
 
   const ActionsMenu = () => (
     <Dropdown>
       <DropdownButton plain>
         <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
       </DropdownButton>
-      <DropdownMenu className="min-w-48" anchor="bottom end">
+      <DropdownMenu className="min-w-56" anchor="bottom end">
         <DropdownItem onClick={handleDownload}>
           <ArrowDownTrayIcon data-slot="icon" />
           <DropdownLabel>Download Markdown</DropdownLabel>
@@ -616,6 +672,27 @@ function AppContent() {
           <BugAntIcon data-slot="icon" />
           <DropdownLabel>Toggle Debug Mode</DropdownLabel>
         </DropdownItem>
+        <DropdownDivider />
+
+        <DropdownSection>
+          <DropdownHeading>Theme</DropdownHeading>
+          <DropdownItem onClick={() => setTheme('light')}>
+            <SunIcon data-slot="icon" />
+            <DropdownLabel>Light</DropdownLabel>
+            {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+          <DropdownItem onClick={() => setTheme('dark')}>
+            <MoonIcon data-slot="icon" />
+            <DropdownLabel>Dark</DropdownLabel>
+            {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+          <DropdownItem onClick={() => setTheme('system')}>
+            <ComputerDesktopIcon data-slot="icon" />
+            <DropdownLabel>System</DropdownLabel>
+            {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+        </DropdownSection>
+
         <DropdownDivider />
         <DropdownItem onClick={handleResetData}>
           <ArrowPathIcon data-slot="icon" className="text-red-500" />
@@ -691,15 +768,17 @@ function AppContent() {
       sidebar={
         <Sidebar>
           <SidebarHeader>
-            <div className="flex items-center px-2 py-2.5">
-              <Avatar initials="W" className="bg-blue-600 text-white size-6" />
-              <span className="ml-3 text-sm font-semibold text-zinc-950 dark:text-white">Wod Wiki</span>
-              <span className="ml-1.5 text-[10px] font-mono text-zinc-400 dark:text-zinc-500 self-end mb-0.5">v{appVersion}</span>
+            <div className="flex items-center px-2 py-4">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 rotate-3">
+                <Dumbbell size={18} />
+              </div>
+              <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">Wod Wiki</span>
+              <span className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest">v{appVersion}</span>
             </div>
             <SidebarSection>
               <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/'}>
                 <HomeIcon data-slot="icon" />
-                <SidebarLabel>Home</SidebarLabel>
+                <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
               <SidebarItem onClick={handleSearchClick}>
                 <MagnifyingGlassIcon data-slot="icon" />
@@ -840,57 +919,63 @@ function AppContent() {
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
-          <div className="sticky top-0 z-30 bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950 pt-4 lg:pt-6 max-lg:hidden">
+          <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
             <div className="flex items-center justify-between px-6 lg:px-10">
-              <h1 className="text-2xl/8 font-semibold text-zinc-950 sm:text-xl/8 dark:text-white">{currentWorkout.name}</h1>
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-2 rounded-full bg-primary" />
+                <h1 className="text-4xl font-black tracking-tight text-foreground leading-none">{currentWorkout.name}</h1>
+              </div>
               <div className="flex items-center gap-4">
                 <CastButtonRpc />
                 <ActionsMenu />
               </div>
             </div>
-            <hr role="presentation" className="mt-6 w-full border-t border-zinc-950/10 dark:border-white/10" />
+            <hr role="presentation" className="mt-8 w-full border-t border-border opacity-50" />
           </div>
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
-          {location.pathname === '/getting-started' ? (
-            <GettingStartedPage theme={actualTheme} />
-          ) : isPlaygroundRoute && effectivePlaygroundId ? (
-            <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
-          ) : currentWorkout.name === 'Home' ? (
-            <HomePageContent
-              actualTheme={actualTheme}
-              workoutItems={workoutItems}
-              onSelectWorkout={handleSelectWorkout}
-              isCommandPaletteOpen={isCommandPaletteOpen}
-              setIsCommandPaletteOpen={setIsCommandPaletteOpen}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-            />
-          ) : (
-            <WorkoutEditorPage
-              key={`${currentWorkout.category}/${currentWorkout.name}`}
-              category={currentWorkout.category}
-              name={currentWorkout.name}
-              mdContent={currentWorkout.content}
-              theme={actualTheme}
-            />
-          )}
+          <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
+            {location.pathname === '/getting-started' ? (
+              <GettingStartedPage theme={actualTheme} />
+            ) : isPlaygroundRoute && effectivePlaygroundId ? (
+              <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
+            ) : currentWorkout.name === 'Home' ? (
+              <div className="flex-1 flex flex-col min-h-0 rounded-none border-none shadow-none">
+                <HomePageContent
+                  actualTheme={actualTheme}
+                  workoutItems={workoutItems}
+                  onSelectWorkout={handleSelectWorkout}
+                  // No internal palette needed here anymore
+                  isCommandPaletteOpen={false} 
+                  setIsCommandPaletteOpen={() => {}}
+                  activeCategory={null}
+                  setActiveCategory={() => {}}
+                />
+              </div>
+            ) : (
+              <WorkoutEditorPage
+                key={`${currentWorkout.category}/${currentWorkout.name}`}
+                category={currentWorkout.category}
+                name={currentWorkout.name}
+                mdContent={currentWorkout.content}
+                theme={actualTheme}
+              />
+            )}
+          </div>
         </div>
       </div>
 
-      {currentWorkout.name !== 'Home' && currentWorkout.name !== 'Getting Started' && (
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => {
-            setIsCommandPaletteOpen(false)
-            setActiveCategory(null)
-          }}
-          items={workoutItems}
-          onSelect={handleSelectWorkout}
-          initialCategory={activeCategory}
-        />
-      )}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => {
+          setIsCommandPaletteOpen(false)
+          setActiveCategory(null)
+        }}
+        items={workoutItems}
+        onSelect={handleSelectWorkout}
+        initialCategory={activeCategory}
+      />
 
     </SidebarLayout>
   )

@@ -116,11 +116,11 @@ describe('buildRawContent', () => {
 
   it('skips soft-deleted sections', () => {
     const sections = parseDocumentSections('# Title\n\nSome text');
-    if (sections.length >= 2) {
-      sections[1].deleted = true;
-      const rebuilt = buildRawContent(sections);
-      expect(rebuilt).not.toContain('Some text');
-    }
+    const textSection = sections.find(s => s.rawContent.includes('Some text'));
+    expect(textSection).toBeDefined();
+    textSection!.deleted = true;
+    const rebuilt = buildRawContent(sections);
+    expect(rebuilt).not.toContain('Some text');
   });
 });
 

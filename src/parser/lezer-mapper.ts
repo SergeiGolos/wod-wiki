@@ -72,16 +72,16 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                   case terms.Duration: {
                     const trend = metricNode.getChild(terms.Trend);
                     const forceCountUp = !!trend;
-                    // Check for '*' inject-rest modifier
-                    const hasInjectRest = fragText.includes('*');
-                    if (hasInjectRest) {
+                    // Check for '*' required-timer modifier (timer cannot be skipped)
+                    const isRequired = fragText.includes('*');
+                    if (isRequired) {
                       if (!statement.hints) statement.hints = new Set();
-                      statement.hints.add('behavior.inject_rest');
+                      statement.hints.add('behavior.required_timer');
                     }
                     const timerNode = metricNode.getChild(terms.Timer) || metricNode.getChild(terms.CollectibleTimer);
                     if (timerNode) {
                       const timerText = source.slice(timerNode.from, timerNode.to);
-                      metricPairs.push({ metrics: new DurationMetric(timerText, forceCountUp), meta: fragMeta });
+                      metricPairs.push({ metrics: new DurationMetric(timerText, forceCountUp, isRequired), meta: fragMeta });
                     }
                     break;
                   }
@@ -106,8 +106,11 @@ export function extractStatements(state: EditorState): ICodeStatement[] {
                     break;
                   }
                   case terms.Action: {
-                    // Extract name from [:Name]
-                    const actionText = fragText.substring(2, fragText.length - 1).trim();
+                    // Extract name from [:Name] or [Name]
+                    const hasColon = fragText.startsWith('[:');
+                    const actionText = hasColon
+                      ? fragText.substring(2, fragText.length - 1).trim()
+                      : fragText.substring(1, fragText.length - 1).trim();
                     metricPairs.push({ metrics: new ActionMetric(actionText, { raw: actionText }), meta: fragMeta });
                     break;
                   }

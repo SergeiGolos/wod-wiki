@@ -1,13 +1,28 @@
-export const PLAYGROUND_CONTENT = `# Playground
+export const PLAYGROUND_CONTENT = `# My Workout Notebook
 
-Welcome to the WOD.WIKI!
-This is your local notebook where you can experiment with workout scripts.
+Welcome to the **WOD.WIKI** playground. 
+This editor uses **WodScript**, a markdown-based language for defining workouts.
 
+## Getting Started
+1. Hover over a code block below.
+2. Click **Run** to start the interactive timer.
+3. Track your progress with checkboxes and metrics.
+
+## Example Workout
 \`\`\`wod
-Timer 10:00
+Timer 12:00
   - 10 Pushups
   - 10 Situps
   - 10 Squats
+  - [ ] 200m Run { intensity: 80% }
+\`\`\`
+
+## Advanced: Repeaters
+\`\`\`wod
+3x
+  - 10 Kettlebell Swings (24kg)
+  - 5 Burpees
+  - 30s Rest
 \`\`\`
 `;
 

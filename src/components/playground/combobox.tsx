@@ -37,7 +37,13 @@ export function Combobox<T>({
         )
 
   return (
-    <Headless.Combobox {...props} multiple={false} virtual={{ options: filteredOptions }} onClose={() => setQuery('')}>
+    <Headless.Combobox 
+      as="div"
+      {...props} 
+      multiple={false} 
+      virtual={{ options: filteredOptions }} 
+      onClose={() => setQuery('')}
+    >
       <span
         data-slot="control"
         className={clsx([
@@ -149,16 +155,19 @@ export function ComboboxOption<T>({
 
   return (
     <Headless.ComboboxOption
+      as="div"
       {...props}
       className={clsx(
         // Basic layout
         'group/option grid w-full cursor-default grid-cols-[1fr_--spacing(5)] items-baseline gap-x-2 rounded-lg py-2.5 pr-2 pl-3.5 sm:grid-cols-[1fr_--spacing(4)] sm:py-1.5 sm:pr-2 sm:pl-3',
         // Typography
         'text-base/6 text-zinc-950 sm:text-sm/6 dark:text-white forced-colors:text-[CanvasText]',
-        // Focus/Active state (Neutral Catalyst Style)
-        'outline-hidden data-[focus]:bg-zinc-100 dark:data-[focus]:bg-white/10',
-        'data-[active]:bg-zinc-100 dark:data-[active]:bg-white/10',
-        'data-[hover]:bg-zinc-100 dark:data-[hover]:bg-white/10',
+        // Focus/Active state (Theme Primary)
+        'outline-hidden data-[focus]:bg-primary data-[focus]:text-primary-foreground',
+        'data-[active]:bg-primary data-[active]:text-primary-foreground',
+        'data-[hover]:bg-primary data-[hover]:text-primary-foreground',
+        // Update description color on focus
+        'data-[focus]:[&_[data-slot=description]]:text-primary-foreground/70 dark:data-[focus]:[&_[data-slot=description]]:text-primary-foreground/70',
         // Forced colors mode
         'forced-color-adjust-none forced-colors:data-[focus]:bg-[Highlight] forced-colors:data-[focus]:text-[HighlightText]',
         // Disabled
@@ -179,16 +188,17 @@ export function ComboboxOption<T>({
 }
 
 export function ComboboxLabel({ className, ...props }: React.ComponentPropsWithoutRef<'span'>) {
-  return <span {...props} className={clsx(className, 'ml-2.5 truncate first:ml-0 sm:ml-2 sm:first:ml-0')} />
+  return <Headless.ComboboxLabel as="span" {...props} className={clsx(className, 'ml-2.5 truncate first:ml-0 sm:ml-2 sm:first:ml-0')} />
 }
 
 export function ComboboxDescription({ className, children, ...props }: React.ComponentPropsWithoutRef<'span'>) {
   return (
     <span
       {...props}
+      data-slot="description"
       className={clsx(
         className,
-        'flex flex-1 overflow-hidden text-zinc-500 group-data-[focus]/option:text-white before:w-2 before:min-w-0 before:shrink dark:text-zinc-400'
+        'flex flex-1 overflow-hidden text-muted-foreground before:w-2 before:min-w-0 before:shrink transition-colors duration-200'
       )}
     >
       <span className="flex-1 truncate">{children}</span>
@@ -227,6 +237,7 @@ export function ComboboxInput({
         <Icon className="pointer-events-none absolute top-3 left-3 size-5 text-zinc-500 sm:top-2.5 sm:left-2.5 sm:size-4 dark:text-zinc-400" />
       )}
       <Headless.ComboboxInput
+        as="input"
         {...props}
         className={clsx([
           className,
@@ -268,6 +279,7 @@ export function ComboboxOptions({
 } & Omit<Headless.ComboboxOptionsProps, 'as' | 'className' | 'children'>) {
   return (
     <Headless.ComboboxOptions
+      as="div"
       {...props}
       anchor={anchor}
       className={clsx(

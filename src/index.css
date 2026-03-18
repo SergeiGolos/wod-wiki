@@ -4,48 +4,52 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 229 100% 98%;
+    --foreground: 220 23% 23%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 23% 23%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --popover-foreground: 220 23% 23%;
+    --primary: 235 90% 74%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 229 100% 97%;
+    --secondary-foreground: 235 90% 74%;
+    --muted: 229 100% 97%;
+    --muted-foreground: 221 16% 52%;
+    --accent: 235 90% 74%;
+    --accent-foreground: 220 23% 23%;
+    --destructive: 0 91% 71%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 174 59% 56%;
+    --success-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 235 90% 74%;
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    --background: 234 28% 15%;
+    --foreground: 210 38% 95%;
+    --card: 235 28% 20%;
+    --card-foreground: 210 38% 95%;
+    --popover: 235 28% 20%;
+    --popover-foreground: 210 38% 95%;
+    --primary: 231 93% 82%;
+    --primary-foreground: 234 28% 15%;
+    --secondary: 234 26% 29%;
+    --secondary-foreground: 231 93% 82%;
+    --muted: 234 26% 29%;
+    --muted-foreground: 214 20% 69%;
+    --accent: 231 93% 82%;
+    --accent-foreground: 210 38% 95%;
+    --destructive: 0 91% 82%;
+    --destructive-foreground: 234 28% 15%;
+    --success: 172 66% 70%;
+    --success-foreground: 234 28% 15%;
+    --border: 234 26% 29%;
+    --input: 234 26% 29%;
+    --ring: 231 93% 82%;
   }
 }
 
@@ -78,39 +82,22 @@ th {
 
 /* Monaco Editor - WOD Block Decorations */
 .wod-block {
-  background-color: rgba(59, 130, 246, 0.05) !important;
-}
-
-.dark .wod-block {
-  background-color: rgba(59, 130, 246, 0.1) !important;
+  background-color: hsl(var(--primary) / 0.05) !important;
 }
 
 .wod-block-active {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  border-left: 3px solid rgba(59, 130, 246, 0.6);
-}
-
-.dark .wod-block-active {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  border-left: 3px solid rgba(59, 130, 246, 0.8);
+  background-color: hsl(var(--primary) / 0.15) !important;
+  border-left: 4px solid hsl(var(--primary) / 0.8);
 }
 
 .wod-block-glyph {
-  background-color: rgba(59, 130, 246, 0.2);
+  background-color: hsl(var(--primary) / 0.2);
   width: 5px !important;
-}
-
-.dark .wod-block-glyph {
-  background-color: rgba(59, 130, 246, 0.4);
 }
 
 .wod-block-glyph-active {
-  background-color: rgba(59, 130, 246, 0.6);
+  background-color: hsl(var(--primary));
   width: 5px !important;
-}
-
-  .dark .wod-block-glyph-active {
-  background-color: rgba(59, 130, 246, 0.8);
 }
 
 @keyframes pulse-opacity {
@@ -410,9 +397,9 @@ th {
 .tv-focus {
   outline: none !important;
   box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.9),
-    0 0 0 6px rgba(59, 130, 246, 0.7),
-    0 0 20px 4px rgba(59, 130, 246, 0.35);
+    0 0 0 3px hsl(var(--card) / 0.9),
+    0 0 0 6px hsl(var(--primary) / 0.7),
+    0 0 20px 4px hsl(var(--primary) / 0.35);
   transition: box-shadow 150ms ease, transform 200ms ease;
 }
 
@@ -431,6 +418,14 @@ th {
  * The hook manages focus visuals via data attributes instead. */
 .tv-focusable:focus-visible {
   outline: none;
+}
+
+.no-focus-ring:focus,
+.no-focus-ring:focus-visible,
+.no-focus-ring:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  ring: 0 !important;
 }
 
 /* Preview list item focus — lighter card lift + highlight */

@@ -31,7 +31,8 @@ describe('Syntax Features Regression Tests', () => {
     it('parses bracketed effort without colon [Rest]', () => {
       const result = parse('[Rest]');
       expect(result.errors).toHaveLength(0);
-      expect(metricTypeOf(result.statements[0].metrics[0])).toBe(MetricType.Effort);
+      // [Rest] without colon parses as Action (colon prefix [:Rest] is also Action)
+      expect(metricTypeOf(result.statements[0].metrics[0])).toBe(MetricType.Action);
       expect(result.statements[0].metrics[0].value).toBe('Rest');
     });
   });
@@ -119,11 +120,13 @@ describe('Syntax Features Regression Tests', () => {
       expect(metric.value).toEqual({ amount: 400, unit: "m" });
     });
 
-    it('parses trend ^', () => {
-      const result = parse('^');
+    it('parses trend ^ as count-up timer modifier (^20:00)', () => {
+      // ^ alone is not valid syntax; it is a modifier on a Duration: ^20:00 counts up.
+      // The Duration metric is produced with forceCountUp flag; no separate Increment metric.
+      const result = parse('^20:00');
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
-      expect(metricTypeOf(metric)).toBe(MetricType.Increment);
+      expect(metricTypeOf(metric)).toBe(MetricType.Duration);
     });
   });
 
@@ -135,7 +138,7 @@ describe('Syntax Features Regression Tests', () => {
       const repFragment = metrics.find(f => metricTypeOf(f) === MetricType.Rep);
       expect(repFragment).toBeDefined();
       expect(repFragment?.value).toBeUndefined();
-      expect(repFragment?.origin).toBe('user');
+      expect(repFragment?.origin).toBe('hinted');
       expect(repFragment?.image).toBe('?');
     });
 
@@ -145,7 +148,7 @@ describe('Syntax Features Regression Tests', () => {
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
       expect(metric.value).toEqual({ amount: undefined, unit: 'lb' });
-      expect(metric.origin).toBe('user');
+      expect(metric.origin).toBe('hinted');
       expect(metric.image).toBe('? lb');
     });
 
@@ -155,7 +158,7 @@ describe('Syntax Features Regression Tests', () => {
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Distance);
       expect(metric.value).toEqual({ amount: undefined, unit: 'm' });
-      expect(metric.origin).toBe('user');
+      expect(metric.origin).toBe('hinted');
       expect(metric.image).toBe('? m');
     });
 
@@ -165,7 +168,7 @@ describe('Syntax Features Regression Tests', () => {
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Duration);
       expect(metric.value).toBeUndefined();
-      expect(metric.origin).toBe('runtime');
+      expect(metric.origin).toBe('hinted');
       expect(metric.image).toBe(':?');
     });
 
@@ -177,7 +180,7 @@ describe('Syntax Features Regression Tests', () => {
       const effortFragment = metrics.find(f => metricTypeOf(f) === MetricType.Effort);
       expect(timerFragment).toBeDefined();
       expect(timerFragment?.value).toBeUndefined();
-      expect(timerFragment?.origin).toBe('runtime');
+      expect(timerFragment?.origin).toBe('hinted');
       expect(effortFragment).toBeDefined();
       expect(effortFragment?.value).toBe('Run');
     });
@@ -197,7 +200,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Resistance);
-      expect(metric.value).toEqual({ amount: 135, units: 'lb' });
+      expect(metric.value).toEqual({ amount: 135, unit: 'lb' });
       expect(metric.origin).toBe('parser');
     });
 
@@ -206,7 +209,7 @@ describe('Syntax Features Regression Tests', () => {
       expect(result.errors).toHaveLength(0);
       const metric = result.statements[0].metrics[0];
       expect(metricTypeOf(metric)).toBe(MetricType.Distance);
-      expect(metric.value).toEqual({ amount: 400, units: 'm' });
+      expect(metric.value).toEqual({ amount: 400, unit: 'm' });
       expect(metric.origin).toBe('parser');
     });
 

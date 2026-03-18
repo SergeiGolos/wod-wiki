@@ -10,6 +10,7 @@ import { IOutputStatement } from '../../../core/models/OutputStatement';
 export * from './section';
 export type { WodDialect } from './section';
 export { VALID_WOD_DIALECTS } from './section';
+export type { DocumentItem, DocumentItemType } from '../utils/documentStructure';
 
 /**
  * State of a WOD block
@@ -45,7 +46,7 @@ export interface ParseError {
   excerpt?: string;
 }
 
-import { MetricOrigin } from '../../core/models/Metric';
+import { MetricOrigin } from '../../../core/models/Metric';
 
 /**
  * Workout metrics metrics collected during execution.

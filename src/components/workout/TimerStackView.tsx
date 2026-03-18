@@ -33,6 +33,10 @@ export interface TimerStackViewProps {
     getFocusProps?: (id: string) => FocusProps;
     /** Whether swipe gestures are enabled (e.g. only in 'track' view) */
     enableGestures?: boolean;
+    /** When true, flash "Timer can't be skipped!" above the timer circle for 3 seconds */
+    skipFlash?: boolean;
+    /** Unique key incremented on each skip attempt to restart the animation */
+    skipFlashKey?: number;
 }
 
 const formatTime = formatTimeMMSS;
@@ -53,6 +57,8 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     timerStates,
     getFocusProps,
     enableGestures = true,
+    skipFlash = false,
+    skipFlashKey = 0,
 }) => {
     // --- Swipe Gesture Logic ---
     const touchStart = useRef<number | null>(null);
@@ -162,6 +168,14 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                 .animate-pulse-border {
                     animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 }
+                @keyframes skip-flash-fade {
+                    0%   { opacity: 1; transform: translateY(0); }
+                    70%  { opacity: 1; transform: translateY(-4px); }
+                    100% { opacity: 0; transform: translateY(-8px); }
+                }
+                .animate-skip-flash {
+                    animation: skip-flash-fade 3s ease-out forwards;
+                }
             `}</style>
 
             {/* Main Content Area */}
@@ -169,6 +183,15 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
                 {/* Right Panel - Timer & Controls */}
                 <div className="flex flex-col items-center justify-center h-full relative">
+                    {/* Skip-attempt flash message — appears above the timer circle */}
+                    {skipFlash && (
+                        <div
+                            key={skipFlashKey}
+                            className="animate-skip-flash absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-amber-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-lg pointer-events-none z-20"
+                        >
+                            Timer can&#39;t be skipped!
+                        </div>
+                    )}
                     <div className="relative flex items-center justify-center">
                         {/* Main Timer Circle — sizes driven by compact prop (container-aware) */}
                         <div className={`relative flex items-center justify-center z-10 transition-all ${compact ? 'w-[min(12rem,75vw)] h-[min(12rem,75vw)]' : 'w-48 h-48 lg:w-80 lg:h-80'}`}>

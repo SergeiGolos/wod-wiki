@@ -85,24 +85,19 @@ export const SidebarItem = forwardRef(function SidebarItem(
 ) {
   let classes = clsx(
     // Base
-    'group flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-base/6 font-medium text-zinc-950 sm:py-2 sm:text-sm/5',
+    'group flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left text-base/6 font-medium text-foreground sm:py-2 sm:text-sm/5 transition-all duration-200',
     // Leading icon/icon-only
-    '[&>[data-slot=icon]]:size-6 [&>[data-slot=icon]]:shrink-0 [&>[data-slot=icon]]:fill-zinc-500 sm:[&>[data-slot=icon]]:size-5',
+    '[&>[data-slot=icon]]:size-6 [&>[data-slot=icon]]:shrink-0 [&>[data-slot=icon]]:text-muted-foreground sm:[&>[data-slot=icon]]:size-5 [&>[data-slot=icon]]:transition-colors',
     // Trailing icon (down chevron or similar)
     '[&>[data-slot=icon]:last-child]:ml-auto [&>[data-slot=icon]:last-child]:size-5 sm:[&>[data-slot=icon]:last-child]:size-4',
     // Avatar
     '[&>[data-slot=avatar]]:-m-0.5 [&>[data-slot=avatar]]:size-7 sm:[&>[data-slot=avatar]]:size-6',
     // Hover
-    'data-[hover]:bg-zinc-950/5 data-[hover]:[&>[data-slot=icon]]:fill-zinc-950',
+    'data-[hover]:bg-primary/10 data-[hover]:text-primary data-[hover]:[&>[data-slot=icon]]:text-primary',
     // Active
-    'data-[active]:bg-zinc-950/5 data-[active]:[&>[data-slot=icon]]:fill-zinc-950',
+    'data-[active]:bg-primary/15 data-[active]:scale-[0.98]',
     // Current
-    'data-[current]:[&>[data-slot=icon]]:fill-zinc-950',
-    // Dark mode
-    'dark:text-white dark:[&>[data-slot=icon]]:fill-zinc-400',
-    'dark:data-[hover]:bg-white/5 dark:data-[hover]:[&>[data-slot=icon]]:fill-white',
-    'dark:data-[active]:bg-white/5 dark:data-[active]:[&>[data-slot=icon]]:fill-white',
-    'dark:data-[current]:[&>[data-slot=icon]]:fill-white'
+    'data-[current]:bg-primary/10 data-[current]:text-primary data-[current]:[&>[data-slot=icon]]:text-primary font-bold'
   )
 
   return (
@@ -110,7 +105,7 @@ export const SidebarItem = forwardRef(function SidebarItem(
       {current && (
         <motion.span
           layoutId="current-indicator"
-          className="absolute inset-y-2 -left-4 w-0.5 rounded-full bg-zinc-950 dark:bg-white"
+          className="absolute inset-y-2 -left-4 w-1 rounded-full bg-primary shadow-[0_0_8px_rgba(129,140,248,0.5)]"
         />
       )}
       {typeof props.href === 'string' ? (

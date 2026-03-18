@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
-import { MarkdownEditorProps } from '../Editor/MarkdownEditor';
+import { UnifiedEditorProps } from '../Editor/UnifiedEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File } from 'lucide-react';
@@ -50,7 +50,7 @@ import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext'
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
-import { HistoryEntry } from '../../types/history';
+import { HistoryEntry, WorkoutResults } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
@@ -66,7 +66,7 @@ import { ReviewGrid } from '../review-grid';
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
-export interface WorkbenchProps extends Omit<MarkdownEditorProps, 'onMount' | 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine'> {
+export interface WorkbenchProps extends Omit<UnifiedEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
   initialActiveEntryId?: string;
   initialViewMode?: ViewMode;

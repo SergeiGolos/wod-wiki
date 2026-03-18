@@ -1,8 +1,11 @@
 /**
  * wod-results-widget
  *
- * CM6 extension that inserts a compact results bar after the closing fence of
- * every WOD block that has recorded workout results.
+ * CM6 extension that inserts a compact results bar inside every WOD block
+ * (before the closing fence) that has recorded workout results.
+ *
+ * The bar appears after the last line of WOD content, separated by a thin
+ * horizontal rule, keeping the results visually part of the block.
  *
  * Each result appears as a clickable pill showing duration + date.  Clicking a
  * pill emits a `WOD_RESULT_CLICK_EVENT` CustomEvent on the editor DOM so that
@@ -13,7 +16,7 @@
  *      are fetched for a section.
  *   2. `wodResultsField` StateField — holds a Map<sectionId, WorkoutResult[]>.
  *   3. `wodResultsDecorations` StateField — builds block widget decorations
- *      anchored to the end of each wod section's closing fence line.
+ *      anchored to the end of each wod section's last content line.
  *   4. `WodResultsBarWidget` WidgetType — renders the DOM bar.
  */
 
@@ -104,6 +107,14 @@ class WodResultsBarWidget extends WidgetType {
   }
 
   toDOM(view: EditorView): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "cm-wod-results-inlay";
+
+    // Separator line between WOD content and results
+    const sep = document.createElement("div");
+    sep.className = "cm-wod-results-separator";
+    wrapper.appendChild(sep);
+
     const bar = document.createElement("div");
     bar.className = "cm-wod-results-bar";
 
@@ -136,7 +147,8 @@ class WodResultsBarWidget extends WidgetType {
       bar.appendChild(pill);
     }
 
-    return bar;
+    wrapper.appendChild(bar);
+    return wrapper;
   }
 
   /** Let CM6 know this widget takes up vertical space. */
@@ -165,14 +177,17 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
     const doc = state.doc;
     if (section.endLine > doc.lines) continue;
 
-    const closeLine = doc.line(section.endLine);
+    // Anchor inside the block: end of the last content line, before the closing fence.
+    // contentTo is the char offset of the end of the last content line.
+    const anchorPos = section.contentTo ?? doc.line(section.endLine).from - 1;
+    if (anchorPos < 0 || anchorPos > doc.length) continue;
 
     decos.push(
       Decoration.widget({
         widget: new WodResultsBarWidget(section.id, results),
         block: true,
         side: 1,
-      }).range(closeLine.to),
+      }).range(anchorPos),
     );
   }
 
@@ -198,6 +213,14 @@ export const wodResultsDecorations = StateField.define<DecorationSet>({
 // ── Theme ─────────────────────────────────────────────────────────────
 
 export const wodResultsTheme = EditorView.baseTheme({
+  ".cm-wod-results-inlay": {
+    padding: "0",
+  },
+  ".cm-wod-results-separator": {
+    height: "1px",
+    margin: "4px 8px 2px",
+    background: "rgba(128, 128, 128, 0.25)",
+  },
   ".cm-wod-results-container": {
     padding: "4px 8px",
     background: "rgba(128, 128, 128, 0.03)",

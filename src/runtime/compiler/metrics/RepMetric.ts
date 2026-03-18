@@ -10,9 +10,10 @@ export class RepMetric implements IMetric {
       if (reps < 0) {
         throw new Error(`Rep count cannot be negative: ${reps}`);
       }
-      if (!Number.isInteger(reps)) {
-        throw new Error(`Rep count must be an integer: ${reps}`);
-      }
+      // Non-integer values are allowed here because the parser produces
+      // Number fragments before unit fragments (e.g. "1.5" then "km").
+      // mergeFragments() combines them into a DistanceMetric/ResistanceMetric.
+      // Integer-only validation belongs in the runtime strategy layer, not here.
     }
     this.value = reps;
     this.image = reps !== undefined ? reps.toString() : '?';

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { WodWiki } from '../../components/Editor/WodWiki';
+import { UnifiedEditor } from '../../components/Editor/UnifiedEditor';
 import { EditorPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
 
@@ -83,13 +83,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       <div className={panelContent}>
         {/* Editor */}
         <div className="h-96">
-          <WodWiki
-            id="runtime-test-bench-editor"
-            code={value}
-            onValueChange={handleValueChange}
+          <UnifiedEditor
+            value={value}
+            onChange={onChange}
             readonly={readonly}
-            highlightedLine={highlightedLine}
-            onLineClick={onLineClick}
+            showLineNumbers={true}
+            className="h-full"
           />
         </div>
 

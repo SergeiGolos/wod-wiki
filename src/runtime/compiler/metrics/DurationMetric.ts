@@ -26,10 +26,12 @@ export class DurationMetric implements IMetric {
    *
    * @param image The duration string (e.g., "5:00", "1:30:00") or ":?" for collectible
    * @param forceCountUp If true, timer counts up even with explicit duration (^ modifier)
+   * @param required If true, this timer cannot be skipped by the user (`*` prefix)
    */
   constructor(
     public image: string,
-    public readonly forceCountUp: boolean = false
+    public readonly forceCountUp: boolean = false,
+    public readonly required: boolean = false
   ) {
     if (this.image === ':?') {
       this.days = 0;

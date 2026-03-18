@@ -31,10 +31,8 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
   // Handle global keyboard shortcut to open palette
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === '.') {
-        e.preventDefault();
-        setIsOpen((prev) => !prev);
-      }
+      // We'll let specific apps/pages handle their own shortcuts
+      // to allow for custom strategies.
     };
 
     window.addEventListener('keydown', handleKeyDown);

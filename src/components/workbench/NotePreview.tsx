@@ -6,7 +6,7 @@ import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
-import { SectionEditor } from '../Editor/SectionEditor';
+import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
 import { CloneDateDropdown } from './CloneDateDropdown';
 
 export interface NotePreviewProps {
@@ -162,16 +162,15 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                 {/* Section-based document rendering */}
                 <div className="flex-1 min-h-0">
                     {entry ? (
-                        <SectionEditor
+                        <UnifiedEditor
+                            noteId={entry.id}
                             value={entry.rawContent}
+                            onChange={() => {}}
                             onStartWorkout={onStartWorkout ? (block) => onStartWorkout(block.id) : undefined}
                             onAddToPlan={onAddToPlan ? (block) => onAddToPlan(block.id) : undefined}
-                            provider={provider}
-                            sourceNoteId={entry.id}
-                            height="100%"
                             showLineNumbers={!mobile}
-                            editable={false}
-                            mode={entry.type === 'template' ? 'template' : 'preview'}
+                            readonly={true}
+                            className="h-full"
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full">

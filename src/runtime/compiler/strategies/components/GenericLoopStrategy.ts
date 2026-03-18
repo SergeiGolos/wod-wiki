@@ -12,7 +12,8 @@ import { LabelComposer } from "../../utils/LabelComposer";
 // Specific behaviors not covered by aspect composers
 import {
     MetricPromotionBehavior,
-    LabelingBehavior
+    LabelingBehavior,
+    ExitBehavior,
 } from "../../../behaviors";
 
 /**
@@ -120,5 +121,11 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             repScheme,
             promotions: []
         }));
+
+        // Leaf Exit Aspect - for round blocks with no children (e.g., "(3) Pullups"),
+        // add an immediate exit so userNext completes the block.
+        // ChildrenStrategy will remove this if the block has children, replacing it
+        // with a deferred exit that fires after all child iterations complete.
+        builder.addBehavior(new ExitBehavior({ mode: 'immediate', onNext: true }));
     }
 }

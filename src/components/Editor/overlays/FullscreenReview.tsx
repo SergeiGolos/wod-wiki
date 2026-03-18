@@ -49,7 +49,7 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
   };
 
   return (
-    <FocusedDialog title={title} onClose={onClose}>
+    <FocusedDialog title={title} onClose={onClose} variant="minimal">
       <ReviewGrid
         runtime={null}
         segments={segments}
