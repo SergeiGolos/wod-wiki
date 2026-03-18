@@ -1,23 +1,18 @@
 /**
  * wod-results-widget
  *
- * CM6 extension that inserts a compact results bar inside every WOD block
- * (before the closing fence) that has recorded workout results.
+ * CM6 extension that manages workout result visualization within WOD blocks.
  *
- * The bar appears after the last line of WOD content, separated by a thin
- * horizontal rule, keeping the results visually part of the block.
- *
- * Each result appears as a clickable pill showing duration + date.  Clicking a
- * pill emits a `WOD_RESULT_CLICK_EVENT` CustomEvent on the editor DOM so that
- * React components above the editor can open the full-screen review overlay.
+ * Features:
+ *   1. A clickable "Results" badge in the block header (```wod line).
+ *   2. An expandable results table inserted before the closing fence.
+ *   3. Toggling the badge shows/hides the table.
  *
  * Architecture:
- *   1. `updateSectionResults` StateEffect — dispatched from React when results
- *      are fetched for a section.
- *   2. `wodResultsField` StateField — holds a Map<sectionId, WorkoutResult[]>.
- *   3. `wodResultsDecorations` StateField — builds block widget decorations
- *      anchored to the end of each wod section's last content line.
- *   4. `WodResultsBarWidget` WidgetType — renders the DOM bar.
+ *   - `wodResultsField`: Stores the actual result data per section.
+ *   - `wodResultsExpandedField`: Stores the toggle state (expanded or not) per section.
+ *   - `WodResultsBadgeWidget`: The clickable UI in the header.
+ *   - `WodResultsBarWidget`: The expandable table at the bottom.
  */
 
 import {
@@ -32,7 +27,7 @@ import type { WorkoutResult } from "@/types/storage";
 
 // ── Custom DOM event ─────────────────────────────────────────────────
 
-/** Fired on the editor DOM when the user clicks a result pill. */
+/** Fired on the editor DOM when the user clicks a result in the table. */
 export const WOD_RESULT_CLICK_EVENT = "wod-result-click";
 
 export interface WodResultClickDetail {
@@ -40,16 +35,23 @@ export interface WodResultClickDetail {
   result: WorkoutResult;
 }
 
-// ── StateEffect ──────────────────────────────────────────────────────
+// ── StateEffects ─────────────────────────────────────────────────────
 
-/** Dispatch this effect to update (replace) results for a single section. */
+/** Update (replace) results for a single section. */
 export const updateSectionResults = StateEffect.define<{
   sectionId: string;
   results: WorkoutResult[];
 }>();
 
-// ── StateField: results map ──────────────────────────────────────────
+/** Toggle expansion state of the results table for a section. */
+export const toggleWodResults = StateEffect.define<{
+  sectionId: string;
+  expanded?: boolean; // If omitted, toggles.
+}>();
 
+// ── StateFields ──────────────────────────────────────────────────────
+
+/** Field storing the results Map. */
 export const wodResultsField = StateField.define<Map<string, WorkoutResult[]>>({
   create: () => new Map(),
   update(map, tr) {
@@ -62,6 +64,26 @@ export const wodResultsField = StateField.define<Map<string, WorkoutResult[]>>({
     }
     return newMap ?? map;
   },
+});
+
+/** Field storing which sections are currently expanded. */
+export const wodResultsExpandedField = StateField.define<Set<string>>({
+  create: () => new Set(),
+  update(set, tr) {
+    let newSet: Set<string> | null = null;
+    for (const e of tr.effects) {
+      if (e.is(toggleWodResults)) {
+        if (!newSet) newSet = new Set(set);
+        const { sectionId, expanded } = e.value;
+        const isCurrentlyExpanded = set.has(sectionId);
+        const target = expanded !== undefined ? expanded : !isCurrentlyExpanded;
+        
+        if (target) newSet.add(sectionId);
+        else newSet.delete(sectionId);
+      }
+    }
+    return newSet ?? set;
+  }
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -77,27 +99,34 @@ function formatDuration(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function formatDate(ts: number): string {
+function formatDateShort(ts: number): string {
   return new Date(ts).toLocaleDateString([], {
     month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "numeric"
   });
 }
 
-// ── Widget ────────────────────────────────────────────────────────────
+function formatTime(ts: number): string {
+    return new Date(ts).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+// ── Table Widget (Bottom) ───────────────────────────────────────────
 
 class WodResultsBarWidget extends WidgetType {
   constructor(
     readonly sectionId: string,
     readonly results: WorkoutResult[],
+    readonly expanded: boolean
   ) {
     super();
   }
 
   eq(other: WodResultsBarWidget): boolean {
     if (other.sectionId !== this.sectionId) return false;
+    if (other.expanded !== this.expanded) return false;
     if (other.results.length !== this.results.length) return false;
     // Quick equality check: compare completion timestamps of first two entries
     for (let i = 0; i < Math.min(2, this.results.length); i++) {
@@ -109,54 +138,83 @@ class WodResultsBarWidget extends WidgetType {
   toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-wod-results-inlay";
+    
+    if (!this.expanded) {
+        wrapper.style.display = "none";
+        return wrapper;
+    }
 
     // Separator line between WOD content and results
     const sep = document.createElement("div");
     sep.className = "cm-wod-results-separator";
     wrapper.appendChild(sep);
 
-    const bar = document.createElement("div");
-    bar.className = "cm-wod-results-bar";
+    const container = document.createElement("div");
+    container.className = "cm-wod-results-container";
 
-    // Clock icon label
-    const icon = document.createElement("span");
-    icon.className = "cm-wod-results-icon";
-    icon.textContent = "🕐";
-    icon.title = `${this.results.length} result${this.results.length !== 1 ? "s" : ""}`;
-    bar.appendChild(icon);
+    const grid = document.createElement("div");
+    grid.className = "cm-wod-results-grid";
 
-    // Result pills — ordered most-recent first (already sorted by caller)
+    // Header
+    const header = document.createElement("div");
+    header.className = "cm-wod-results-grid-header";
+    header.innerHTML = `
+        <div class="cm-col-date">Date</div>
+        <div class="cm-col-time">Time</div>
+        <div class="cm-col-dur">Duration</div>
+        <div class="cm-col-stat">Status</div>
+        <div class="cm-col-link"></div>
+    `;
+    grid.appendChild(header);
+
+    // Rows
     for (const result of this.results) {
-      const duration = formatDuration(result.data?.duration ?? 0);
-      const date = formatDate(result.completedAt);
+        const row = document.createElement("div");
+        row.className = "cm-wod-results-grid-row";
+        
+        const duration = formatDuration(result.data?.duration ?? 0);
+        const date = formatDateShort(result.completedAt);
+        const time = formatTime(result.completedAt);
+        const isDone = result.data?.state === 'completed' || !!result.data?.duration;
 
-      const pill = document.createElement("button");
-      pill.className = "cm-wod-result-pill";
-      pill.textContent = `${duration}  ${date}`;
-      pill.title = `Recorded: ${new Date(result.completedAt).toLocaleString()}`;
+        row.innerHTML = `
+            <div class="cm-col-date">${date}</div>
+            <div class="cm-col-time">${time}</div>
+            <div class="cm-col-dur">${duration}</div>
+            <div class="cm-col-stat">
+                <span class="cm-status-pill ${isDone ? 'status-done' : 'status-partial'}">
+                    ${isDone ? 'Finished' : 'Partial'}
+                </span>
+            </div>
+            <div class="cm-col-link">
+                <button class="cm-review-link" title="Open Review">↗</button>
+            </div>
+        `;
 
-      pill.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
-        view.dom.dispatchEvent(
-          new CustomEvent(WOD_RESULT_CLICK_EVENT, { detail, bubbles: true }),
-        );
-      });
+        row.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
+            view.dom.dispatchEvent(
+                new CustomEvent(WOD_RESULT_CLICK_EVENT, { detail, bubbles: true }),
+            );
+        });
 
-      bar.appendChild(pill);
+        grid.appendChild(row);
     }
 
-    wrapper.appendChild(bar);
+    container.appendChild(grid);
+    wrapper.appendChild(container);
     return wrapper;
   }
 
-  /** Let CM6 know this widget takes up vertical space. */
+  /** Estimated height of the expanded table. */
   get estimatedHeight(): number {
-    return 24;
+    if (!this.expanded) return 0;
+    // Header (18px) + rows (22px each) + separator/padding (12px)
+    return 18 + (this.results.length * 22) + 12;
   }
 
-  /** Clicks on pills should reach our listener, not be ignored. */
   ignoreEvent(): boolean {
     return false;
   }
@@ -167,6 +225,7 @@ class WodResultsBarWidget extends WidgetType {
 function _buildResultsDecorations(state: EditorState): DecorationSet {
   const { sections } = state.field(sectionField);
   const resultsMap: Map<string, WorkoutResult[]> = state.field(wodResultsField);
+  const expandedSet = state.field(wodResultsExpandedField);
   const decos: Range<Decoration>[] = [];
 
   for (const section of sections) {
@@ -175,16 +234,16 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
     if (!results || results.length === 0) continue;
 
     const doc = state.doc;
-    if (section.endLine > doc.lines) continue;
+    const isExpanded = expandedSet.has(section.id);
 
-    // Anchor inside the block: end of the last content line, before the closing fence.
-    // contentTo is the char offset of the end of the last content line.
+    // 1. Results Table (at the bottom of the content)
+    if (section.endLine > doc.lines) continue;
     const anchorPos = section.contentTo ?? doc.line(section.endLine).from - 1;
     if (anchorPos < 0 || anchorPos > doc.length) continue;
 
     decos.push(
       Decoration.widget({
-        widget: new WodResultsBarWidget(section.id, results),
+        widget: new WodResultsBarWidget(section.id, results, isExpanded),
         block: true,
         side: 1,
       }).range(anchorPos),
@@ -202,7 +261,8 @@ export const wodResultsDecorations = StateField.define<DecorationSet>({
     return _buildResultsDecorations(state);
   },
   update(prev, tr) {
-    if (tr.docChanged || tr.effects.some((e) => e.is(updateSectionResults))) {
+    if (tr.docChanged || 
+        tr.effects.some((e) => e.is(updateSectionResults) || e.is(toggleWodResults))) {
       return _buildResultsDecorations(tr.state);
     }
     return prev.map(tr.changes);
@@ -219,82 +279,51 @@ export const wodResultsTheme = EditorView.baseTheme({
   ".cm-wod-results-separator": {
     height: "1px",
     margin: "4px 8px 2px",
-    background: "rgba(128, 128, 128, 0.25)",
+    background: "rgba(128, 128, 128, 0.15)",
   },
   ".cm-wod-results-container": {
-    padding: "4px 8px",
-    background: "rgba(128, 128, 128, 0.03)",
-    borderTop: "1px solid rgba(128, 128, 128, 0.1)",
-  },
-  ".cm-wod-results-expander": {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-    background: "rgba(128, 128, 128, 0.08)",
-    border: "1px solid rgba(128, 128, 128, 0.2)",
-    borderRadius: "20px",
-    padding: "2px 12px",
-    fontSize: "11px",
-    color: "inherit",
-    "&:hover": {
-      background: "rgba(128, 128, 128, 0.15)",
-    },
-  },
-  ".cm-wod-results-chevron": {
-    fontSize: "8px",
-    opacity: "0.5",
-    width: "8px",
-  },
-  ".cm-wod-results-summary": {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  ".cm-wod-results-last-date": {
-    opacity: "0.5",
-    fontSize: "10px",
-    marginLeft: "4px",
+    padding: "0 8px 4px",
   },
   ".cm-wod-results-grid": {
     display: "flex",
     flexDirection: "column",
-    marginTop: "8px",
     border: "1px solid rgba(128, 128, 128, 0.15)",
-    borderRadius: "6px",
+    borderRadius: "4px",
     overflow: "hidden",
-    background: "var(--cm-background, white)",
+    background: "rgba(128, 128, 128, 0.03)",
   },
   ".cm-wod-results-grid-header": {
     display: "flex",
     background: "rgba(128, 128, 128, 0.1)",
     borderBottom: "1px solid rgba(128, 128, 128, 0.15)",
-    fontSize: "10px",
+    fontSize: "9px",
     fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: "0.05em",
-    padding: "4px 8px",
-    color: "var(--cm-muted-text, #666)",
+    padding: "2px 8px",
+    color: "rgba(128, 128, 128, 0.6)",
   },
   ".cm-wod-results-grid-row": {
     display: "flex",
     alignItems: "center",
-    padding: "4px 8px",
+    padding: "2px 8px",
     fontSize: "11px",
     borderBottom: "1px solid rgba(128, 128, 128, 0.05)",
+    cursor: "pointer",
+    transition: "background 0.2s",
     "&:last-child": { borderBottom: "none" },
     "&:hover": {
-      background: "rgba(59, 130, 246, 0.05)",
+      background: "rgba(59, 130, 246, 0.1)",
     },
   },
   ".cm-col-date": { flex: "0 0 70px" },
   ".cm-col-time": { flex: "0 0 70px", opacity: "0.6" },
-  ".cm-col-dur": { flex: "0 0 60px", fontWeight: "600" },
+  ".cm-col-dur": { flex: "0 0 80px", fontWeight: "600" },
   ".cm-col-stat": { flex: "1" },
-  ".cm-col-link": { flex: "0 0 30px", textAlign: "right" },
+  ".cm-col-link": { flex: "0 0 30px", textAlign: "right", opacity: "0.4" },
   ".cm-status-pill": {
     fontSize: "9px",
-    padding: "1px 6px",
+    padding: "0 6px",
     borderRadius: "10px",
     fontWeight: "600",
   },
@@ -309,13 +338,9 @@ export const wodResultsTheme = EditorView.baseTheme({
   ".cm-review-link": {
     background: "none",
     border: "none",
-    padding: "2px 6px",
+    padding: "0",
     cursor: "pointer",
-    opacity: "0.4",
-    "&:hover": {
-      opacity: "1",
-      color: "#3b82f6",
-    },
+    color: "inherit",
   },
 });
 
@@ -323,6 +348,8 @@ export const wodResultsTheme = EditorView.baseTheme({
 
 export const wodResultsWidget = [
   wodResultsField,
+  wodResultsExpandedField,
   wodResultsDecorations,
   wodResultsTheme,
 ];
+

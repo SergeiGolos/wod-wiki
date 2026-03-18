@@ -26,9 +26,10 @@ import type { WodCommand } from "./WodCommand";
 import { useWodBlockResults } from "../hooks/useWodBlockResults";
 import { useWodLineResults } from "../hooks/useWodLineResults";
 import type { LineExecutionSummary } from "../hooks/useWodLineResults";
-import { History, ExternalLink, Activity } from "lucide-react";
+import { History, ExternalLink, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
+import { toggleWodResults, wodResultsExpandedField } from "../extensions/wod-results-widget";
 
 // ── Singleton parser (created once per module) ───────────────────────
 const parser = new MdTimerRuntime();
@@ -175,23 +176,16 @@ function buildWodBlock(view: EditorView, section: EditorSection): WodBlock {
 
 // ── CommandButtons ────────────────────────────────────────────────────
 /**
- * Renders a row (active) or vertical strip (compact/inactive) of command
- * buttons.  The first `visibleCount` commands are shown directly; any
- * remaining commands are hidden behind a "…" overflow menu.
+ * Renders a row of command buttons.
+ * On small screens (lg:hidden context in parent), labels are hidden to save space.
  */
 const CommandButtons: React.FC<{
   commands: WodCommand[];
-  visibleCount: number;
   section: EditorSection;
   view: EditorView;
   compact?: boolean;
-}> = ({ commands, visibleCount, section, view, compact }) => {
-  const [overflowOpen, setOverflowOpen] = useState(false);
-
+}> = ({ commands, section, view, compact }) => {
   if (!commands.length) return null;
-
-  const visible = commands.slice(0, visibleCount);
-  const overflow = commands.slice(visibleCount);
 
   const fire = (cmd: WodCommand) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -199,11 +193,11 @@ const CommandButtons: React.FC<{
     cmd.onClick(buildWodBlock(view, section));
   };
 
-  // ── COMPACT (inactive strip) ── thin pill buttons, top-right corner
+  // ── COMPACT (inactive strip) ── thin pill buttons
   if (compact) {
     return (
       <div className="flex flex-row items-center gap-1 p-1.5">
-        {visible.map((cmd) => (
+        {commands.map((cmd) => (
           <button
             key={cmd.id}
             title={cmd.label}
@@ -216,41 +210,9 @@ const CommandButtons: React.FC<{
             )}
           >
             <span className="flex items-center h-3 w-3">{cmd.icon}</span>
-            <span>{cmd.label}</span>
+            <span className="hidden sm:inline">{cmd.label}</span>
           </button>
         ))}
-        {overflow.length > 0 && (
-          <div className="relative">
-            <button
-              title="More actions"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setOverflowOpen((o) => !o);
-              }}
-              className="flex items-center px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm bg-muted/60 hover:bg-muted text-muted-foreground border border-border/50"
-            >
-              …
-            </button>
-            {overflowOpen && (
-              <div className="absolute right-0 bottom-full mb-1 z-50 min-w-[110px] bg-popover border border-border rounded-md shadow-lg py-1">
-                {overflow.map((cmd) => (
-                  <button
-                    key={cmd.id}
-                    onClick={(e) => {
-                      setOverflowOpen(false);
-                      fire(cmd)(e);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] hover:bg-muted text-foreground"
-                  >
-                    <span className="flex items-center">{cmd.icon}</span>
-                    <span>{cmd.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
@@ -258,7 +220,7 @@ const CommandButtons: React.FC<{
   // ── FULL ROW (active 35% panel) ── icon + label horizontal
   return (
     <div className="flex items-center gap-1.5 p-2 border-t border-border/50 flex-wrap">
-      {visible.map((cmd) => (
+      {commands.map((cmd) => (
         <button
           key={cmd.id}
           title={cmd.label}
@@ -274,38 +236,6 @@ const CommandButtons: React.FC<{
           <span>{cmd.label}</span>
         </button>
       ))}
-      {overflow.length > 0 && (
-        <div className="relative">
-          <button
-            title="More actions"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setOverflowOpen((o) => !o);
-            }}
-            className="flex items-center px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm bg-muted text-muted-foreground hover:bg-muted/80 border border-border/50"
-          >
-            …
-          </button>
-          {overflowOpen && (
-            <div className="absolute bottom-full right-0 mb-1 z-50 min-w-[120px] bg-popover border border-border rounded-md shadow-lg py-1">
-              {overflow.map((cmd) => (
-                <button
-                  key={cmd.id}
-                  onClick={(e) => {
-                    setOverflowOpen(false);
-                    fire(cmd)(e);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] hover:bg-muted text-foreground"
-                >
-                  <span className="flex items-center">{cmd.icon}</span>
-                  <span>{cmd.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
@@ -357,6 +287,45 @@ const ResultLine: React.FC<{
   );
 };
 
+// ── ResultsBadge ──────────────────────────────────────────────────────
+
+const ResultsBadge: React.FC<{
+  count: number;
+  sectionId: string;
+  view: EditorView;
+}> = ({ count, sectionId, view }) => {
+  const expandedSet = view.state.field(wodResultsExpandedField);
+  const isExpanded = expandedSet.has(sectionId);
+
+  const toggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    view.dispatch({
+      effects: toggleWodResults.of({ sectionId }),
+    });
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className={cn(
+        "flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-all shadow-sm border",
+        isExpanded
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+      )}
+    >
+      <History className="h-3 w-3" />
+      <span>{count} Result{count !== 1 ? "s" : ""}</span>
+      {isExpanded ? (
+        <ChevronUp className="h-2.5 w-2.5 opacity-70" />
+      ) : (
+        <ChevronDown className="h-2.5 w-2.5 opacity-70" />
+      )}
+    </button>
+  );
+};
+
 // ── Main component ───────────────────────────────────────────────────
 
 export interface WodCompanionProps {
@@ -382,8 +351,8 @@ export interface WodCompanionProps {
   docVersion: number;
   /** Commands to display as action buttons. */
   commands: WodCommand[];
-  /** How many commands show as direct buttons. Default: 1. */
-  visibleCount?: number;
+  /** In-memory results fallback */
+  extendedResults?: any[];
   /** Callback to open the full-screen review grid for a set of segments. */
   onOpenReview?: (segments: Segment[]) => void;
 }
@@ -401,11 +370,11 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   rect,
   docVersion,
   commands,
-  visibleCount = 1,
+  extendedResults,
   onOpenReview,
 }) => {
   const noteId = propNoteId || (view.state as any).noteId || "current";
-  const { results } = useWodBlockResults(noteId, sectionId);
+  const { results } = useWodBlockResults(noteId, sectionId, extendedResults);
 
   const section = useMemo(
     () => getSection(view, sectionId),
@@ -489,13 +458,20 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
                    bg-background/70 backdrop-blur-sm border-l border-b border-border/40 rounded-bl-md"
         style={{ top: stickyTopOffset, height: STRIP_H }}
       >
-        <CommandButtons
-          commands={commands}
-          visibleCount={visibleCount}
-          section={section}
-          view={view}
-          compact
-        />
+        <div className="flex items-center gap-1.5">
+          {results.length > 0 && (
+            <>
+              <ResultsBadge count={results.length} sectionId={sectionId} view={view} />
+              <div className="h-3 w-[1px] bg-border/40 mx-0.5" />
+            </>
+          )}
+          <CommandButtons
+            commands={commands}
+            section={section}
+            view={view}
+            compact
+          />
+        </div>
       </div>
 
       {/* ── CARD: compact metric panel on hover / cursor ─────────── */}
@@ -544,7 +520,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
 
           {/* Action buttons */}
           <div className="border-t border-border/40 shrink-0">
-            <CommandButtons commands={commands} visibleCount={visibleCount} section={section} view={view} />
+            <CommandButtons commands={commands} section={section} view={view} />
           </div>
         </div>
       )}

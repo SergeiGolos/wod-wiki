@@ -5,14 +5,15 @@ import { oneDark } from "@codemirror/theme-one-dark";
 export function editorTheme(isDark: boolean): Extension {
   const baseTheme = EditorView.theme({
     "&": {
-      height: "100%",
+      height: "auto",
+      minHeight: "100%",
       width: "100%",
       maxWidth: "100%",
       boxSizing: "border-box",
       fontSize: "14px"
     },
     ".cm-scroller": {
-      overflow: "auto",
+      overflow: "visible",
       width: "100%",
       maxWidth: "100%",
       boxSizing: "border-box",

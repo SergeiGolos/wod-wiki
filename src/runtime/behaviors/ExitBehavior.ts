@@ -101,7 +101,11 @@ export class ExitBehavior implements IRuntimeBehavior {
             return [];
         }
 
-        ctx.markComplete('user-advance');
+        // Only mark user-advance if the block hasn't already been completed
+        // by another mechanism (e.g., timer-expired auto-pop via NextAction).
+        if (!ctx.block.isComplete) {
+            ctx.markComplete('user-advance');
+        }
         return [new PopBlockAction()];
     }
 

@@ -75,11 +75,13 @@ import type { WorkoutResult } from '@/types/storage'
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
+import { cn } from '@/lib/utils'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomePageContent } from './HomePage'
+import { SyntaxPage } from './SyntaxPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { GettingStartedPage } from './GettingStartedPage'
@@ -95,6 +97,60 @@ import {
   createCollectionStrategy, 
   createStatementBuilderStrategy 
 } from './services/commandStrategies'
+
+// ── Constants for Sidebar Navigation ────────────────────────────────
+
+const HOME_LINKS = [
+  { id: 'wodscript', label: 'WodScript' },
+  { id: 'clock', label: 'Actionable Clock' },
+  { id: 'metrics', label: 'Deep Metrics' },
+  { id: 'reports', label: 'Custom Reports' },
+  { id: 'privacy', label: 'Privacy First' },
+]
+
+const ZERO_TO_HERO_LINKS = [
+  { id: 'introduction', label: 'Introduction' },
+  { id: 'basics', label: 'Basics' },
+  { id: 'blocks', label: 'Advanced Blocks' },
+  { id: 'mastery', label: 'Final Steps' },
+]
+
+const SYNTAX_LINKS = [
+  { id: 'introduction', label: 'Introduction' },
+  { id: 'basics', label: 'Basics' },
+  { id: 'timers', label: 'Timers & Intervals' },
+  { id: 'repeaters', label: 'Repeaters' },
+  { id: 'groups', label: 'Groups & Nesting' },
+  { id: 'measurements', label: 'Measurements' },
+  { id: 'supplemental', label: 'Supplemental Data' },
+  { id: 'agentic', label: 'Agentic Skill' },
+]
+
+// ── Sidebar SubItem Component ────────────────────────────────────────
+
+function SidebarSubItem({ 
+  label, 
+  onClick, 
+  active 
+}: { 
+  label: string; 
+  onClick: () => void; 
+  active?: boolean 
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-xs font-medium transition-all duration-200 ml-7 border-l-2 pl-4",
+        active 
+          ? "border-primary text-primary bg-primary/5 font-bold" 
+          : "border-transparent text-muted-foreground hover:text-foreground hover:border-zinc-300 dark:hover:border-zinc-700"
+      )}
+    >
+      {label}
+    </button>
+  )
+}
 
 /**
  * In-memory store for pending runtimes.
@@ -495,7 +551,10 @@ function AppContent() {
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
     if (location.pathname === '/getting-started') {
-      return { name: 'Getting Started', content: '', category: 'system' }
+      return { name: 'Zero to Hero', content: '', category: 'system' }
+    }
+    if (location.pathname === '/syntax') {
+      return { name: 'Syntax', content: '', category: 'system' }
     }
     if (isPlaygroundRoute) {
       return { name: 'Playground', content: '', category: 'playground' }
@@ -641,6 +700,14 @@ function AppContent() {
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
 
+  const scrollToSection = useCallback((id: string) => {
+    const el = document.getElementById(id)
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.scrollY - 80
+      window.scrollTo({ top: y, behavior: 'smooth' })
+    }
+  }, [])
+
   useEffect(() => {
     if (theme !== 'system') return
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -780,6 +847,51 @@ function AppContent() {
                 <HomeIcon data-slot="icon" />
                 <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
+              {location.pathname === '/' && (
+                <div className="flex flex-col gap-0.5 animate-in slide-in-from-top-2 duration-300">
+                  {HOME_LINKS.map(link => (
+                    <SidebarSubItem 
+                      key={link.id} 
+                      label={link.label} 
+                      onClick={() => scrollToSection(link.id)} 
+                    />
+                  ))}
+                </div>
+              )}
+              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
+                <AcademicCapIcon data-slot="icon" />
+                <SidebarLabel>Zero to Hero</SidebarLabel>
+              </SidebarItem>
+              {location.pathname === '/getting-started' && (
+                <div className="flex flex-col gap-0.5 animate-in slide-in-from-top-2 duration-300">
+                  {ZERO_TO_HERO_LINKS.map(link => (
+                    <SidebarSubItem 
+                      key={link.id} 
+                      label={link.label} 
+                      onClick={() => scrollToSection(link.id)} 
+                    />
+                  ))}
+                </div>
+              )}
+              <SidebarItem onClick={() => navigate('/syntax')} current={location.pathname === '/syntax'}>
+                <CodeBracketIcon data-slot="icon" />
+                <SidebarLabel>Syntax</SidebarLabel>
+              </SidebarItem>
+              {location.pathname === '/syntax' && (
+                <div className="flex flex-col gap-0.5 animate-in slide-in-from-top-2 duration-300">
+                  {SYNTAX_LINKS.map(link => (
+                    <SidebarSubItem 
+                      key={link.id} 
+                      label={link.label} 
+                      onClick={() => scrollToSection(link.id)} 
+                    />
+                  ))}
+                </div>
+              )}
+              <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
+                <PlusIcon data-slot="icon" />
+                <SidebarLabel>New Playground</SidebarLabel>
+              </SidebarItem>
               <SidebarItem onClick={handleSearchClick}>
                 <MagnifyingGlassIcon data-slot="icon" />
                 <SidebarLabel>Search</SidebarLabel>
@@ -790,48 +902,9 @@ function AppContent() {
                   K
                 </kbd>
               </SidebarItem>
-              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
-                <AcademicCapIcon data-slot="icon" />
-                <SidebarLabel>Getting Started</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
-                <PlusIcon data-slot="icon" />
-                <SidebarLabel>New Playground</SidebarLabel>
-              </SidebarItem>
             </SidebarSection>
           </SidebarHeader>
           <SidebarBody>
-            <SidebarAccordion title="Syntax" defaultOpen={location.pathname.startsWith('/workout/syntax')} count={7}>
-              <SidebarItem onClick={() => navigate('/workout/syntax/basics')} current={location.pathname === '/workout/syntax/basics'}>
-                <CodeBracketIcon data-slot="icon" />
-                <SidebarLabel>The Basics</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/workout/syntax/timers')} current={location.pathname === '/workout/syntax/timers'}>
-                <ClockIcon data-slot="icon" />
-                <SidebarLabel>Timers & Intervals</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/workout/syntax/repeaters')} current={location.pathname === '/workout/syntax/repeaters'}>
-                <ArrowsRightLeftIcon data-slot="icon" />
-                <SidebarLabel>Repeaters</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/workout/syntax/groups')} current={location.pathname === '/workout/syntax/groups'}>
-                <RectangleStackIcon data-slot="icon" />
-                <SidebarLabel>Groups</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/workout/syntax/measurements')} current={location.pathname === '/workout/syntax/measurements'}>
-                <BeakerIcon data-slot="icon" />
-                <SidebarLabel>Measurements</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/workout/syntax/supplemental')} current={location.pathname === '/workout/syntax/supplemental'}>
-                <CircleStackIcon data-slot="icon" />
-                <SidebarLabel>Supplemental Data</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/workout/syntax/agentic')} current={location.pathname === '/workout/syntax/agentic'}>
-                <CommandLineIcon data-slot="icon" />
-                <SidebarLabel>Agentic Skill</SidebarLabel>
-              </SidebarItem>
-            </SidebarAccordion>
-
             <SidebarAccordion title="Collections" count={Object.values(collections).flat().length}>
               {Object.entries(collections).map(([groupName, groupCategories]) => (
                 groupCategories.length > 0 && (
@@ -848,18 +921,6 @@ function AppContent() {
                   </React.Fragment>
                 )
               ))}
-            </SidebarAccordion>
-
-            <SidebarAccordion title="Recent" count={recentPages.length}>
-              {recentPages.map(pageName => {
-                const item = workoutItems.find(i => i.name === pageName) || (pageName === 'Home' ? { name: 'Home', content: PLAYGROUND_CONTENT } : null)
-                if (!item) return null
-                return (
-                  <SidebarItem key={pageName} onClick={() => handleSelectWorkout(item as any)} current={currentWorkout.name === pageName}>
-                    {pageName}
-                  </SidebarItem>
-                )
-              })}
             </SidebarAccordion>
 
             <SidebarAccordion title="Results" count={recentResults.length}>
@@ -938,6 +999,8 @@ function AppContent() {
           <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
             {location.pathname === '/getting-started' ? (
               <GettingStartedPage theme={actualTheme} />
+            ) : location.pathname === '/syntax' ? (
+              <SyntaxPage theme={actualTheme} />
             ) : isPlaygroundRoute && effectivePlaygroundId ? (
               <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
             ) : currentWorkout.name === 'Home' ? (
@@ -989,6 +1052,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<AppContent />} />
             <Route path="/getting-started" element={<AppContent />} />
+            <Route path="/syntax" element={<AppContent />} />
             <Route path="/workout/:category/:name" element={<AppContent />} />
             <Route path="/load" element={<LoadZipPage />} />
             <Route path="/playground" element={<PlaygroundRedirect />} />
