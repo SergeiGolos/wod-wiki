@@ -32,6 +32,11 @@ export interface CountdownTimerConfig {
     mode?: CountdownMode;
     /** Factory to create a rest block for "next" transitions */
     restBlockFactory?: (durationMs: number, label?: string) => IRuntimeAction[];
+    /**
+     * If true, the user cannot skip this timer. Pressing "Next" emits a
+     * `timer:skip-attempt` event instead of advancing the block.
+     */
+    required?: boolean;
 }
 
 /**
@@ -136,6 +141,16 @@ export class CountdownTimerBehavior implements IRuntimeBehavior {
     }
 
     onNext(ctx: IBehaviorContext): IRuntimeAction[] {
+        // Required timers cannot be skipped — emit a skip-attempt event instead.
+        if (this.config.required && !ctx.block.isComplete) {
+            ctx.emitEvent({
+                name: 'timer:skip-attempt' as any,
+                timestamp: ctx.clock.now,
+                data: { blockKey: ctx.block.key.toString() }
+            });
+            return [];
+        }
+
         // Parent blocks (those with child selection) should NEVER push their own rest.
         // ChildSelectionBehavior handles rest injection (EMOM) or sibling transitions.
         // We use constructor name check to avoid circular dependency.

@@ -164,6 +164,7 @@ export class BlockBuilder {
         addCompletion?: boolean; 
         completionConfig?: TimerCompletionConfig;
         injectRest?: boolean;
+        required?: boolean;
     }): BlockBuilder {
         if (config.direction === 'down' && config.durationMs) {
             const mode: CountdownMode = config.completionConfig?.completesBlock === false
@@ -175,6 +176,7 @@ export class BlockBuilder {
                 label: config.label,
                 role: config.role,
                 mode,
+                required: config.required,
                 restBlockFactory: config.injectRest ? (durationMs, label) => {
                     const restBlock = new RestBlock(this.runtime, { durationMs, label });
                     return [new PushBlockAction(restBlock)];

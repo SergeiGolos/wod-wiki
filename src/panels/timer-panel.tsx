@@ -80,6 +80,28 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   const runtime = useScriptRuntime();
   const viewMode = useWorkbenchSyncStore(s => s.viewMode);
 
+  // Flash message state for required-timer skip attempts
+  // skipFlashKey increments on each skip, giving the flash element a unique key
+  // so React re-mounts it and restarts the animation even on rapid repeated attempts.
+  const [skipFlashKey, setSkipFlashKey] = React.useState(0);
+  const [skipFlash, setSkipFlash] = React.useState(false);
+  const skipFlashTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Subscribe to timer:skip-attempt events from the runtime event bus
+  React.useEffect(() => {
+    if (!runtime) return;
+    const unsubscribe = runtime.eventBus.on('timer:skip-attempt', () => {
+      setSkipFlashKey(k => k + 1);
+      setSkipFlash(true);
+      if (skipFlashTimer.current) clearTimeout(skipFlashTimer.current);
+      skipFlashTimer.current = setTimeout(() => setSkipFlash(false), 3000);
+    }, 'ui-flash');
+    return () => {
+      unsubscribe();
+      if (skipFlashTimer.current) clearTimeout(skipFlashTimer.current);
+    };
+  }, [runtime]);
+
   // Stack-driven hooks — subscribe to block memory directly
   const primaryTimer = usePrimaryTimer();
   const secondaryTimers = useSecondaryTimers();
@@ -314,6 +336,8 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
         onStop={props.onStop}
         onNext={props.onNext}
         actions={actions.length > 0 ? actions : undefined}
+        skipFlash={skipFlash}
+        skipFlashKey={skipFlashKey}
         onAction={(eventName, payload) => {
           // Dispatch the event to the runtime's event bus.
           // For 'next' events, this goes through NextEventHandler → NextAction

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SectionEditor } from '../src/components/Editor/SectionEditor';
+import { UnifiedEditor } from '../src/components/Editor/UnifiedEditor';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../src/components/ui/card';
 import { Button } from '../src/components/ui/button';
 import { 
@@ -231,11 +231,12 @@ export const AISkillPage: React.FC = () => {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <SectionEditor
-            initialContent={markdown}
-            editable={false}
+          <UnifiedEditor
+            value={markdown}
+            onChange={() => {}}
+            readonly={true}
             showLineNumbers={true}
-            contentClassName="px-8 py-10"
+            className="h-full"
           />
         )}
       </div>

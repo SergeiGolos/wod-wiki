@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
-import { WodWiki } from '../../src/components/Editor/WodWiki';
+import { UnifiedEditor } from '../../src/components/Editor/UnifiedEditor';
 import { IScript } from '../../src/WodScript';
 import { MetricVisualizer } from '../../src/components/metrics';
 
@@ -23,15 +23,15 @@ const StatementRow = ({ statement }: { statement: ICodeStatement }) => {
     );
 };
 
-export const Parser = ({ text }: { text: string }) => {
+export const Parser = ({ text: initialText }: { text: string }) => {
     const runtime = new MdTimerRuntime();
-    const initialScript = runtime.read(text);
-    const [script, setScript] = useState<IScript>(initialScript);
+    const [text, setText] = useState(initialText);
+    const [script, setScript] = useState<IScript>(() => runtime.read(initialText));
 
-    const handleValueChange = (newScript?: IScript) => {
-        if (newScript) {
-            setScript(newScript);
-        }
+    const handleValueChange = (newContent: string) => {
+        setText(newContent);
+        const newScript = runtime.read(newContent);
+        setScript(newScript);
     };
 
     const statements = script.statements;
@@ -39,7 +39,12 @@ export const Parser = ({ text }: { text: string }) => {
     return (
         <div className="p-4 font-sans">
             <div className="mb-4">  
-                <WodWiki id="parser-editor" code={text} onValueChange={handleValueChange} />              
+                <UnifiedEditor
+                    value={text}
+                    onChange={handleValueChange}
+                    showLineNumbers={true}
+                    className="h-full"
+                />
             </div>
             <div>                
                 <div className="overflow-hidden rounded-lg border border-gray-200 shadow-md">

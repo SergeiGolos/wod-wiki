@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WodWiki } from '../../src/components/Editor/WodWiki';
+import { UnifiedEditor } from '../../src/components/Editor/UnifiedEditor';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import { WodScript } from '../../src/parser/WodScript';
@@ -99,28 +99,14 @@ function ScriptEditor({
   onChange: (v: string) => void;
   highlightedLine?: number;
 }) {
-  // Create cursor metadata for line highlighting
-  const cursor: CodeMetadata | undefined = highlightedLine
-    ? ({
-        stack: [
-          {
-            meta: { line: highlightedLine },
-          },
-        ],
-      } as unknown as CodeMetadata)
-    : undefined;
-
   return (
     <div className="mb-2">
-      <WodWiki
-        id="jit-compiler-demo-editor"
-        code={value}
-        cursor={cursor}
-        onValueChange={scriptObj => {
-          if (scriptObj && typeof scriptObj === 'object' && 'source' in scriptObj) {
-            onChange((scriptObj as any).source);
-          }
-        }}
+      <UnifiedEditor
+        value={value}
+        onChange={onChange}
+        readonly={false}
+        showLineNumbers={true}
+        className="h-full"
       />
     </div>
   );

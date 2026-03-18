@@ -2,12 +2,7 @@
  * WOD Wiki Types
  * 
  * Centralized type exports for the WOD Wiki library.
- * Import types from here for tree-shakeable, type-only imports.
- * 
- * @example
- * ```typescript
- * import type { IScriptRuntime, IRuntimeBlock } from 'wod-wiki/types';
- * ```
+ * Import types from here for type-only imports.
  */
 
 // Core types
@@ -64,17 +59,6 @@ export type {
   WorkoutMetadata,
 } from './providers';
 
-// Editor types
-export type {
-  WodWikiProps,
-  MarkdownEditorProps,
-  WodBlock,
-  WodWikiTokenHint,
-  WodWikiToken,
-  ExercisePathIndex as EditorExercisePathIndex,
-  ExercisePathEntry as EditorExercisePathEntry,
-} from './editor';
-
 // Clock types
 export type {
   WorkoutType,
@@ -86,7 +70,6 @@ export type {
 } from './clock';
 
 // Fragment types
-// Note: MetricTypeString and FragmentColorMap moved to src/views/runtime/metricColorMap.ts
 export type {
   ParseError,
   MetricVisualizerProps,
