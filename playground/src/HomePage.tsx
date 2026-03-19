@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils'
 // Height of the standard sticky header (px) — used to offset sticky panels below it
 // Standard header: pt-8 (32px) + h-10 accent (40px) + mt-8 hr (32px) ≈ ~104px on desktop
 const STICKY_NAV_HEIGHT = 104
+// Mobile sticky offset — panels sit closer to the top on smaller screens
+const MOBILE_STICKY_TOP = 65
 
 // ── Data ─────────────────────────────────────────────────────────────
 
@@ -159,8 +161,7 @@ const NOTEBOOK_STEPS: ParallaxStep[] = [
     title: 'Checklist Blocks',
     body: 'Checked off during your workout, persisted to history. Mix actionable checklists with training content.',
     examples: [
-      { label: 'Competition', wodScript: '```wod\n# Competition Prep — 4 Weeks Out\n\n- [x] Test 1RM Snatch\n- [x] Test 1RM Clean & Jerk\n- [ ] Practice competition commands\n- [ ] Review attempt selection\n- [ ] Weigh-in rehearsal\n- [ ] Travel logistics\n```' },
-      { label: 'Daily', wodScript: '```wod\n# Morning Routine\n\n- [x] 10 min Mobility\n- [x] Band Pull-Aparts 3x15\n- [ ] Foam Roll Quads & Lats\n- [ ] Deep Squat Hold 2:00\n- [ ] Log bodyweight\n```' },
+      { label: 'Competition', wodScript: '```wod\n# Compe tine\n\n- [x] 10 min Mobility\n- [x] Band Pull-Aparts 3x15\n- [ ] Foam Roll Quads & Lats\n- [ ] Deep Squat Hold 2:00\n- [ ] Log bodyweight\n```' },
     ],
   },
   {
@@ -193,7 +194,7 @@ function scrollToSection(id: string) {
 
 // ── MacOS Chrome Wrapper ───────────────────────────────────────────────
 
-function MacOSChrome({ title, children, onReset }: { title: string; children: ReactNode; onReset?: () => void }) {
+function MacOSChrome({ title, children, onReset, headerActions }: { title: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode }) {
   return (
     <div className="flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background">
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
@@ -204,6 +205,7 @@ function MacOSChrome({ title, children, onReset }: { title: string; children: Re
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</span>
+          {headerActions}
           {onReset && (
             <button
               onClick={onReset}
@@ -232,11 +234,13 @@ interface ParallaxSectionProps {
   chromeTitle?: string
   className?: string
   onReset?: () => void
+  /** Extra actions rendered in the MacOS chrome header bar */
+  headerActions?: ReactNode
   /** Render extra content below the body text for a specific step */
   renderStepExtra?: (stepIdx: number, activeStep: number) => ReactNode | null
 }
 
-function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chromeTitle = 'WodScript', className, onReset, renderStepExtra }: ParallaxSectionProps) {
+function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chromeTitle = 'WodScript', className, onReset, headerActions, renderStepExtra }: ParallaxSectionProps) {
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const [activeStep, setActiveStep] = useState(0)
   const [selectedExamples, setSelectedExamples] = useState<number[]>(() => steps.map(() => 0))
@@ -252,6 +256,12 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
   useEffect(() => {
     // Track cumulative visibility so scroll-back picks the correct step
     const ratioMap = new Map<number, number>()
+    // On mobile the sticky panel covers the top ~40 vh, so shrink the top
+    // dead-zone to just the panel height and keep a smaller bottom margin.
+    const isMobile = window.matchMedia('(max-width: 1023px)').matches
+    const rootMargin = isMobile
+      ? `-${MOBILE_STICKY_TOP + 40}px 0px -20% 0px`
+      : '-30% 0px -30% 0px'
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
@@ -269,7 +279,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
         })
         if (bestIdx >= 0) setActiveStep(bestIdx)
       },
-      { rootMargin: '-20% 0px -50% 0px', threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] }
+      { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] }
     )
     stepRefs.current.forEach(el => { if (el) observer.observe(el) })
     return () => observer.disconnect()
@@ -284,19 +294,21 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
       className="w-[60%] self-start sticky hidden lg:block p-6 pt-8 pb-8"
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
-      <MacOSChrome title={chromeTitle} onReset={onReset}>
+      <MacOSChrome title={chromeTitle} onReset={onReset} headerActions={headerActions}>
         {stickyPanel}
       </MacOSChrome>
     </div>
   )
 
   // ── Mobile: sticky top panel ─
+  // Opaque backdrop fills the gap between the very top and the panel so
+  // scrolling text never shows through behind transparent areas.
   const mobilePanelNode = (
     <div
-      className="lg:hidden sticky z-10 shrink-0 px-4 pt-2 pb-2"
-      style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(50vh - ${STICKY_NAV_HEIGHT / 2}px)`, minHeight: '320px' }}
+      className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
+      style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(40vh - ${MOBILE_STICKY_TOP / 2}px)` }}
     >
-      <MacOSChrome title={chromeTitle} onReset={onReset}>
+      <MacOSChrome title={chromeTitle} onReset={onReset} headerActions={headerActions}>
         {stickyPanel}
       </MacOSChrome>
     </div>
@@ -315,7 +327,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
       >
         <div className={cn(
           "max-w-sm transition-all duration-500",
-          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-10 translate-y-3"
+          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-[0.05] translate-y-3"
         )}>
           <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
             {step.eyebrow}
@@ -362,24 +374,15 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
 
   return (
     <section id={id} className={cn("relative border-b border-border/50", className)}>
-      {/* Mobile: vertical stack — sticky panel on top, text below */}
-      <div className="lg:hidden">
-        {mobilePanelNode}
-        <div>{textSteps}</div>
-      </div>
-      {/* Desktop: side-by-side with sticky panel */}
-      <div className="hidden lg:flex">
-        {stickyAlign === 'left' ? (
-          <>
-            {desktopPanelNode}
-            <div className="w-[40%]">{textSteps}</div>
-          </>
-        ) : (
-          <>
-            <div className="w-[40%]">{textSteps}</div>
-            {desktopPanelNode}
-          </>
-        )}
+      {/* Single layout: text steps rendered once so refs always point to
+          the visible DOM elements (fixes IntersectionObserver on mobile). */}
+      <div className="lg:flex">
+        {stickyAlign === 'left' && desktopPanelNode}
+        <div className="w-full lg:w-[40%]">
+          {mobilePanelNode}
+          {textSteps}
+        </div>
+        {stickyAlign === 'right' && desktopPanelNode}
       </div>
     </section>
   )
@@ -464,9 +467,9 @@ function FrozenEditorPanel({ activeStep, selectedExample, actualTheme, onRun }: 
       >
         <UnifiedEditor
           value={displayScript}
-          onChange={() => {}}
+          onChange={(v) => { setDisplayScript(v); scriptRef.current = v }}
           theme={actualTheme}
-          readonly={true}
+          readonly={false}
           showLineNumbers={false}
           enableOverlay={true}
           enableInlineRuntime={false}
@@ -480,12 +483,11 @@ function FrozenEditorPanel({ activeStep, selectedExample, actualTheme, onRun }: 
 
 // ── LiveTrackerPanel (real runtime) ───────────────────────────────────
 
-function LiveTrackerPanel({ block, onReset, onSearch, preview, onStartPreview, onClearPreview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onReset: () => void; onSearch: () => void; preview: string | null; onStartPreview: (script: string) => void; onClearPreview: () => void; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
-  const handleClose = useCallback(() => {
-    onReset()
-  }, [onReset])
+function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onSearch: () => void; preview: string | null; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
+  // Stop just keeps the panel visible (no-op close) — only Reset clears the engine
+  const handleClose = useCallback(() => {}, [])
 
-  // Preview mode: show loaded workout with Start button
+  // Preview mode: show loaded workout (browse/run buttons are now in the header)
   if (!block && preview) {
     return (
       <div className="flex flex-col w-full h-full overflow-hidden">
@@ -501,22 +503,6 @@ function LiveTrackerPanel({ block, onReset, onSearch, preview, onStartPreview, o
             commands={[]}
             className="h-full"
           />
-        </div>
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-border/60 bg-muted/20 shrink-0">
-          <button
-            onClick={() => onStartPreview(preview)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-primary/30 hover:scale-[1.04] transition-all"
-          >
-            <Play className="h-3 w-3 fill-current" />
-            Start
-          </button>
-          <button
-            onClick={onClearPreview}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted/60 text-muted-foreground font-black text-xs uppercase tracking-wider border border-border/60 hover:bg-muted hover:text-foreground transition-all"
-          >
-            <Search className="size-3" />
-            Browse
-          </button>
         </div>
       </div>
     )
@@ -634,6 +620,28 @@ function EditorParallaxSection({ actualTheme, onRun, onSearch }: { actualTheme: 
 }
 
 function TrackerParallaxSection({ block, onReset, onSearch, preview, onStartPreview, onClearPreview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onReset: () => void; onSearch: () => void; preview: string | null; onStartPreview: (script: string) => void; onClearPreview: () => void; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
+  // Build header actions: Browse + Run (when preview is loaded)
+  const headerActions = (
+    <>
+      {!block && preview && (
+        <button
+          onClick={() => onStartPreview(preview)}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-primary-foreground bg-primary hover:bg-primary/90 transition-all"
+        >
+          <Play className="size-2.5 fill-current" />
+          Run
+        </button>
+      )}
+      <button
+        onClick={onClearPreview}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-transparent hover:border-border/60 transition-all"
+      >
+        <Search className="size-2.5" />
+        Browse
+      </button>
+    </>
+  )
+
   return (
     <ParallaxSection
       id="tracker"
@@ -641,7 +649,8 @@ function TrackerParallaxSection({ block, onReset, onSearch, preview, onStartPrev
       stickyAlign="left"
       chromeTitle="Live Tracker"
       onReset={onReset}
-      stickyContent={() => <LiveTrackerPanel block={block} onReset={onReset} onSearch={onSearch} preview={preview} onStartPreview={onStartPreview} onClearPreview={onClearPreview} actualTheme={actualTheme} onRuntimeReady={onRuntimeReady} />}
+      headerActions={headerActions}
+      stickyContent={() => <LiveTrackerPanel block={block} onSearch={onSearch} preview={preview} actualTheme={actualTheme} onRuntimeReady={onRuntimeReady} />}
       className="bg-zinc-950/[0.03] dark:bg-zinc-900/20"
     />
   )
@@ -918,17 +927,13 @@ export function HomePageContent({
                 WOD.WIKI
               </h1>
               <div className="space-y-4">
-                <p className="text-2xl font-black text-primary uppercase tracking-tight sm:text-3xl">
-                  Master your Training.
-                </p>
                 <p className="mx-auto max-w-3xl text-lg font-medium text-muted-foreground sm:text-xl leading-relaxed">
-                  A unified ecosystem for athletes who want{' '}
                   <button onClick={() => scrollToSection('editor')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Plan</button>
-                  {' '}for performance,{' '}
+                  {' '}your training,{' '}
                   <button onClick={() => { const el = document.querySelector('#editor [data-step="' + (EDITOR_STEPS.length - 1) + '"]'); if (el) { const rect = el.getBoundingClientRect(); window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - STICKY_NAV_HEIGHT - 20), behavior: 'smooth' }); } else { scrollToSection('tracker'); } }} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Track</button>
-                  {' '}insights, analyze collected{' '}
+                  {' '}performance, analyze collected{' '}
                   <button onClick={() => scrollToSection('review')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Metrics</button>
-                  {' '}— all with the simplicity of a wiki{' '}
+                  {' '}for insights — all with the simplicity of a wiki{' '}
                   <button onClick={() => scrollToSection('notebook')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Notebook</button>.
                 </p>
               </div>
