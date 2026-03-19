@@ -312,7 +312,7 @@ A declarative page DSL is premature. With only three page types, direct componen
 
 ## Appendix: Architecture Diagram
 
-See companion canvas file: [`docs/web/view-panel-architecture.canvas`](docs/web/view-panel-architecture.canvas)
+See companion canvas file: [`view-panel-architecture.canvas`](web/view-panel-architecture.canvas)
 
 ### View Type Summary
 
