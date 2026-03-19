@@ -102,54 +102,96 @@ import {
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
 const HOME_LINKS = [
+  { id: 'learn', label: 'Learn' },
   { id: 'wodscript', label: 'WodScript' },
-  { id: 'clock', label: 'Actionable Clock' },
-  { id: 'metrics', label: 'Deep Metrics' },
-  { id: 'reports', label: 'Custom Reports' },
-  { id: 'privacy', label: 'Privacy First' },
+  { id: 'clock', label: 'Clock' },
+  { id: 'metrics', label: 'Metrics' },
+  { id: 'workflow', label: 'Workflow' },
+  { id: 'shortcuts', label: 'Shortcuts' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'privacy', label: 'Privacy' },
 ]
 
 const ZERO_TO_HERO_LINKS = [
   { id: 'introduction', label: 'Introduction' },
-  { id: 'basics', label: 'Basics' },
-  { id: 'blocks', label: 'Advanced Blocks' },
-  { id: 'mastery', label: 'Final Steps' },
+  { id: 'statement', label: 'First Statement' },
+  { id: 'timer', label: 'Timers' },
+  { id: 'metrics', label: 'Metrics' },
+  { id: 'groups', label: 'Groups' },
+  { id: 'protocols', label: 'Protocols' },
+  { id: 'notebook', label: 'Notebook' },
 ]
 
 const SYNTAX_LINKS = [
   { id: 'introduction', label: 'Introduction' },
-  { id: 'basics', label: 'Basics' },
-  { id: 'timers', label: 'Timers & Intervals' },
-  { id: 'repeaters', label: 'Repeaters' },
-  { id: 'groups', label: 'Groups & Nesting' },
-  { id: 'measurements', label: 'Measurements' },
-  { id: 'supplemental', label: 'Supplemental Data' },
-  { id: 'agentic', label: 'Agentic Skill' },
+  { id: 'anatomy', label: 'Statement Anatomy' },
+  { id: 'timers', label: 'Timers & Direction' },
+  { id: 'metrics', label: 'Measuring Effort' },
+  { id: 'groups', label: 'Groups & Repeaters' },
+  { id: 'protocols', label: 'Protocols' },
+  { id: 'supplemental', label: 'Supplemental' },
+  { id: 'document', label: 'Document' },
 ]
 
-// ── Sidebar SubItem Component ────────────────────────────────────────
+// ── Page Nav Dropdown (combobox showing current visible section) ────
 
-function SidebarSubItem({ 
-  label, 
-  onClick, 
-  active 
-}: { 
-  label: string; 
-  onClick: () => void; 
-  active?: boolean 
+function PageNavDropdown({
+  links,
+  scrollToSection,
+}: {
+  links: { id: string; label: string }[]
+  scrollToSection: (id: string) => void
 }) {
+  const [activeId, setActiveId] = useState(links[0]?.id ?? '')
+
+  // Reset when links change (route change)
+  useEffect(() => {
+    setActiveId(links[0]?.id ?? '')
+  }, [links])
+
+  // Track the visible section via IntersectionObserver
+  useEffect(() => {
+    if (links.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+            setActiveId(entry.target.id)
+          }
+        })
+      },
+      { rootMargin: '-60px 0px -40% 0px', threshold: [0, 0.3, 1.0] }
+    )
+    links.forEach(link => {
+      const el = document.getElementById(link.id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [links])
+
+  if (links.length === 0) return null
+
+  const activeLabel = links.find(l => l.id === activeId)?.label ?? links[0]?.label ?? 'Sections'
+
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left text-xs font-medium transition-all duration-200 ml-7 border-l-2 pl-4",
-        active 
-          ? "border-primary text-primary bg-primary/5 font-bold" 
-          : "border-transparent text-muted-foreground hover:text-foreground hover:border-zinc-300 dark:hover:border-zinc-700"
-      )}
-    >
-      {label}
-    </button>
+    <Dropdown>
+      <DropdownButton plain aria-label="Page sections" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+        <DocumentTextIcon className="size-3.5 shrink-0" />
+        <span className="max-w-28 truncate">{activeLabel}</span>
+        <ChevronDownIcon className="size-3 shrink-0" />
+      </DropdownButton>
+      <DropdownMenu className="min-w-48" anchor="bottom end">
+        {links.map(link => (
+          <DropdownItem
+            key={link.id}
+            onClick={() => scrollToSection(link.id)}
+          >
+            <DropdownLabel className={activeId === link.id ? 'font-bold' : undefined}>{link.label}</DropdownLabel>
+            {activeId === link.id && <span className="col-start-5 text-primary text-xs">✓</span>}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+    </Dropdown>
   )
 }
 
@@ -528,6 +570,7 @@ function AppContent() {
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
+  const [homeHeaderVisible, setHomeHeaderVisible] = useState(false)
 
   // Unified note route: /note/playground/:name behaves like /playground/:name
   const isNotePlayground = location.pathname.startsWith('/note/playground/')
@@ -616,6 +659,24 @@ function AppContent() {
   useEffect(() => {
     refreshResults()
   }, [location.pathname, refreshResults])
+
+  // Nav links for the current page (used in the sticky header dropdown)
+  const currentNavLinks = useMemo(() => {
+    if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
+    if (location.pathname === '/syntax') return SYNTAX_LINKS
+    return []
+  }, [location.pathname])
+
+  // Show/hide the home scroll-triggered sticky header
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      setHomeHeaderVisible(false)
+      return
+    }
+    const handleScroll = () => setHomeHeaderVisible(window.scrollY > 350)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [location.pathname])
 
   const handleSelectWorkout = useCallback((item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
@@ -848,17 +909,6 @@ function AppContent() {
                 <HomeIcon data-slot="icon" />
                 <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
-              {location.pathname === '/' && (
-                <div className="flex flex-col gap-0.5 animate-in slide-in-from-top-2 duration-300">
-                  {HOME_LINKS.map(link => (
-                    <SidebarSubItem 
-                      key={link.id} 
-                      label={link.label} 
-                      onClick={() => scrollToSection(link.id)} 
-                    />
-                  ))}
-                </div>
-              )}
               <SidebarItem onClick={handleSearchClick}>
                 <MagnifyingGlassIcon data-slot="icon" />
                 <SidebarLabel>Search</SidebarLabel>
@@ -873,36 +923,13 @@ function AppContent() {
                 <AcademicCapIcon data-slot="icon" />
                 <SidebarLabel>Zero to Hero</SidebarLabel>
               </SidebarItem>
-              {location.pathname === '/getting-started' && (
-                <div className="flex flex-col gap-0.5 animate-in slide-in-from-top-2 duration-300">
-                  {ZERO_TO_HERO_LINKS.map(link => (
-                    <SidebarSubItem 
-                      key={link.id} 
-                      label={link.label} 
-                      onClick={() => scrollToSection(link.id)} 
-                    />
-                  ))}
-                </div>
-              )}
               <SidebarItem onClick={() => navigate('/syntax')} current={location.pathname === '/syntax'}>
                 <CodeBracketIcon data-slot="icon" />
                 <SidebarLabel>Syntax</SidebarLabel>
               </SidebarItem>
-              {location.pathname === '/syntax' && (
-                <div className="flex flex-col gap-0.5 animate-in slide-in-from-top-2 duration-300">
-                  {SYNTAX_LINKS.map(link => (
-                    <SidebarSubItem 
-                      key={link.id} 
-                      label={link.label} 
-                      onClick={() => scrollToSection(link.id)} 
-                    />
-                  ))}
-                </div>
-              )}
             </SidebarSection>
           </SidebarHeader>
           <SidebarBody>
-            <SidebarDivider />
             <SidebarSection>
               <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
                 <PlusIcon data-slot="icon" />
@@ -984,6 +1011,7 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
+        {/* Non-home sticky header with page nav dropdown */}
         {currentWorkout.name !== 'Home' && (
           <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
             <div className="flex items-center justify-between px-6 lg:px-10">
@@ -992,11 +1020,35 @@ function AppContent() {
                 <h1 className="text-4xl font-black tracking-tight text-foreground leading-none">{currentWorkout.name}</h1>
               </div>
               <div className="flex items-center gap-4">
+                <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
                 <CastButtonRpc />
                 <ActionsMenu />
               </div>
             </div>
             <hr role="presentation" className="mt-8 w-full border-t border-border opacity-50" />
+          </div>
+        )}
+
+        {/* Home scroll-triggered sticky header — slides in after scrolling past hero */}
+        {location.pathname === '/' && (
+          <div className={cn(
+            "sticky top-0 z-30 max-lg:hidden transition-all duration-300 overflow-hidden",
+            "bg-background/90 backdrop-blur-sm border-b border-border/50",
+            homeHeaderVisible
+              ? "opacity-100 max-h-20 shadow-sm"
+              : "opacity-0 max-h-0 pointer-events-none"
+          )}>
+            <div className="flex items-center justify-between px-6 lg:px-10 py-3">
+              <div className="flex items-center gap-3">
+                <div className="h-7 w-1.5 rounded-full bg-primary" />
+                <span className="text-base font-black tracking-tight text-foreground uppercase">WOD Wiki</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <PageNavDropdown links={HOME_LINKS} scrollToSection={scrollToSection} />
+                <CastButtonRpc />
+                <ActionsMenu />
+              </div>
+            </div>
           </div>
         )}
         

@@ -387,22 +387,6 @@ export function GettingStartedPage({ theme }: { theme: string }) {
                 </p>
               </div>
             </div>
-
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
-              {[
-                { icon: Target, label: 'Statement' },
-                { icon: Clock, label: 'Timers' },
-                { icon: BarChart2, label: 'Metrics' },
-                { icon: Layers, label: 'Groups' },
-                { icon: Zap, label: 'Protocols' },
-                { icon: FileText, label: 'Notebook' },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-muted-foreground text-xs font-bold uppercase tracking-widest">
-                  <Icon size={12} />
-                  {label}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
