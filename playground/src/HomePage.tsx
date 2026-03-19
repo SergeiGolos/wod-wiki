@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils'
 // Height of the standard sticky header (px) — used to offset sticky panels below it
 // Standard header: pt-8 (32px) + h-10 accent (40px) + mt-8 hr (32px) ≈ ~104px on desktop
 const STICKY_NAV_HEIGHT = 104
+// Mobile sticky offset — panels sit closer to the top on smaller screens
+const MOBILE_STICKY_TOP = 65
 
 // ── Data ─────────────────────────────────────────────────────────────
 
@@ -159,8 +161,7 @@ const NOTEBOOK_STEPS: ParallaxStep[] = [
     title: 'Checklist Blocks',
     body: 'Checked off during your workout, persisted to history. Mix actionable checklists with training content.',
     examples: [
-      { label: 'Competition', wodScript: '```wod\n# Competition Prep — 4 Weeks Out\n\n- [x] Test 1RM Snatch\n- [x] Test 1RM Clean & Jerk\n- [ ] Practice competition commands\n- [ ] Review attempt selection\n- [ ] Weigh-in rehearsal\n- [ ] Travel logistics\n```' },
-      { label: 'Daily', wodScript: '```wod\n# Morning Routine\n\n- [x] 10 min Mobility\n- [x] Band Pull-Aparts 3x15\n- [ ] Foam Roll Quads & Lats\n- [ ] Deep Squat Hold 2:00\n- [ ] Log bodyweight\n```' },
+      { label: 'Competition', wodScript: '```wod\n# Compe tine\n\n- [x] 10 min Mobility\n- [x] Band Pull-Aparts 3x15\n- [ ] Foam Roll Quads & Lats\n- [ ] Deep Squat Hold 2:00\n- [ ] Log bodyweight\n```' },
     ],
   },
   {
@@ -252,6 +253,12 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
   useEffect(() => {
     // Track cumulative visibility so scroll-back picks the correct step
     const ratioMap = new Map<number, number>()
+    // On mobile the sticky panel covers the top ~40 vh, so shrink the top
+    // dead-zone to just the panel height and keep a smaller bottom margin.
+    const isMobile = window.matchMedia('(max-width: 1023px)').matches
+    const rootMargin = isMobile
+      ? `-${MOBILE_STICKY_TOP + 40}px 0px -20% 0px`
+      : '-30% 0px -30% 0px'
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
@@ -269,7 +276,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
         })
         if (bestIdx >= 0) setActiveStep(bestIdx)
       },
-      { rootMargin: '-20% 0px -50% 0px', threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] }
+      { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] }
     )
     stepRefs.current.forEach(el => { if (el) observer.observe(el) })
     return () => observer.disconnect()
@@ -291,10 +298,12 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
   )
 
   // ── Mobile: sticky top panel ─
+  // Opaque backdrop fills the gap between the very top and the panel so
+  // scrolling text never shows through behind transparent areas.
   const mobilePanelNode = (
     <div
-      className="lg:hidden sticky z-10 shrink-0 px-4 pt-2 pb-2"
-      style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(50vh - ${STICKY_NAV_HEIGHT / 2}px)`, minHeight: '320px' }}
+      className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
+      style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(40vh - ${MOBILE_STICKY_TOP / 2}px)` }}
     >
       <MacOSChrome title={chromeTitle} onReset={onReset}>
         {stickyPanel}
@@ -315,7 +324,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
       >
         <div className={cn(
           "max-w-sm transition-all duration-500",
-          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-10 translate-y-3"
+          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-[0.05] translate-y-3"
         )}>
           <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
             {step.eyebrow}
@@ -362,24 +371,15 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
 
   return (
     <section id={id} className={cn("relative border-b border-border/50", className)}>
-      {/* Mobile: vertical stack — sticky panel on top, text below */}
-      <div className="lg:hidden">
-        {mobilePanelNode}
-        <div>{textSteps}</div>
-      </div>
-      {/* Desktop: side-by-side with sticky panel */}
-      <div className="hidden lg:flex">
-        {stickyAlign === 'left' ? (
-          <>
-            {desktopPanelNode}
-            <div className="w-[40%]">{textSteps}</div>
-          </>
-        ) : (
-          <>
-            <div className="w-[40%]">{textSteps}</div>
-            {desktopPanelNode}
-          </>
-        )}
+      {/* Single layout: text steps rendered once so refs always point to
+          the visible DOM elements (fixes IntersectionObserver on mobile). */}
+      <div className="lg:flex">
+        {stickyAlign === 'left' && desktopPanelNode}
+        <div className="w-full lg:w-[40%]">
+          {mobilePanelNode}
+          {textSteps}
+        </div>
+        {stickyAlign === 'right' && desktopPanelNode}
       </div>
     </section>
   )
@@ -918,17 +918,13 @@ export function HomePageContent({
                 WOD.WIKI
               </h1>
               <div className="space-y-4">
-                <p className="text-2xl font-black text-primary uppercase tracking-tight sm:text-3xl">
-                  Master your Training.
-                </p>
                 <p className="mx-auto max-w-3xl text-lg font-medium text-muted-foreground sm:text-xl leading-relaxed">
-                  A unified ecosystem for athletes who want{' '}
                   <button onClick={() => scrollToSection('editor')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Plan</button>
-                  {' '}for performance,{' '}
+                  {' '}your training,{' '}
                   <button onClick={() => { const el = document.querySelector('#editor [data-step="' + (EDITOR_STEPS.length - 1) + '"]'); if (el) { const rect = el.getBoundingClientRect(); window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - STICKY_NAV_HEIGHT - 20), behavior: 'smooth' }); } else { scrollToSection('tracker'); } }} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Track</button>
-                  {' '}insights, analyze collected{' '}
+                  {' '}performance, analyze collected{' '}
                   <button onClick={() => scrollToSection('review')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Metrics</button>
-                  {' '}— all with the simplicity of a wiki{' '}
+                  {' '}for insights — all with the simplicity of a wiki{' '}
                   <button onClick={() => scrollToSection('notebook')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Notebook</button>.
                 </p>
               </div>
