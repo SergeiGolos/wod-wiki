@@ -1,7 +1,7 @@
 ---
-name: Plan
-about: Use the plan prompt to outline a concrete approach before coding
-title: "[Plan] <short title>"
+name: Brainstorm
+about: Use the plan prompt bound ideas about features against existing code
+title: "[Brainstorm] <short title>"
 labels:
   - ai
   - prompt:plan
