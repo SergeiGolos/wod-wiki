@@ -1053,6 +1053,21 @@ function AppContent() {
         )}
         
         <div className="flex-1 flex flex-col min-h-0">
+          {currentWorkout.name === 'Home' ? (
+            /* Home page needs NO overflow-hidden ancestor — sticky parallax requires native document scroll */
+            <div className="flex-1 flex flex-col bg-card">
+              <HomePageContent
+                  actualTheme={actualTheme}
+                  workoutItems={workoutItems}
+                  onSelectWorkout={handleSelectWorkout}
+                  // No internal palette needed here anymore
+                  isCommandPaletteOpen={false} 
+                  setIsCommandPaletteOpen={() => {}}
+                activeCategory={null}
+                setActiveCategory={() => {}}
+              />
+            </div>
+          ) : (
           <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
             {location.pathname === '/getting-started' ? (
               <GettingStartedPage theme={actualTheme} />
@@ -1060,19 +1075,6 @@ function AppContent() {
               <SyntaxPage theme={actualTheme} />
             ) : isPlaygroundRoute && effectivePlaygroundId ? (
               <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
-            ) : currentWorkout.name === 'Home' ? (
-              <div className="flex-1 flex flex-col min-h-0 rounded-none border-none shadow-none">
-                <HomePageContent
-                  actualTheme={actualTheme}
-                  workoutItems={workoutItems}
-                  onSelectWorkout={handleSelectWorkout}
-                  // No internal palette needed here anymore
-                  isCommandPaletteOpen={false} 
-                  setIsCommandPaletteOpen={() => {}}
-                  activeCategory={null}
-                  setActiveCategory={() => {}}
-                />
-              </div>
             ) : (
               <WorkoutEditorPage
                 key={`${currentWorkout.category}/${currentWorkout.name}`}
@@ -1083,6 +1085,7 @@ function AppContent() {
               />
             )}
           </div>
+          )}
         </div>
       </div>
 
