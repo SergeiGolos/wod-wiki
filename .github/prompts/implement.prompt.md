@@ -662,3 +662,226 @@ Use this before marking phase complete:
 - [ ] Ready for code review or next phase
 ```
 
+---
+
+## Phase 10: Create GitHub Issue for Next Phase or Review
+
+**Handoff phase completion to the next step:**
+
+Once phase implementation is complete and validated, create a new GitHub issue for either:
+- **The next phase** (if there are dependent phases in the plan)
+- **Code review and validation** (if this is the final phase)
+
+### Determine the Next Action
+
+**If there are dependent phases** (from plan "Blocks" relationships):
+- Create implementation issue for next phase using implement.md template
+- Reference this phase's completion
+- Unblock the next phase by linking the completed issue
+
+**If this is the final phase** (no dependent phases):
+- Create a validation/review issue using a review template
+- Reference all completed phase issues
+- Document complete implementation artifacts
+
+### GitHub Issue Template for Next Phase
+
+Use: `.github/ISSUE_TEMPLATE/implement.md`
+
+```markdown
+---
+title: "[Implement] [Phase N+1] [Next Phase Name]"
+labels:
+  - phase
+  - phase-[N+1]
+  - implement
+  - features
+milestone: [Sprint/Iteration]
+assignees: []
+---
+
+## Previous Phase
+
+**Completed Phase**: #[current phase issue] — "[Implement] Phase N: [Name]"
+**Plan Reference**: #[parent plan issue]
+**Phase Sequence**: [N+1] of [total]
+
+## Prerequisites Met
+
+✅ Phase [N] completed with all acceptance criteria validated
+✅ No blockers identified for Phase [N+1]
+✅ All artifacts from Phase [N] available for integration
+
+## Phase Objective
+
+[Copy from plan for Phase N+1]
+
+## Core Artifacts from Phase [N]
+
+**Created During Previous Phase**:
+- [List key files created]
+- [List key tests created]
+- [List key exports/APIs]
+- [List components or features added]
+
+**Integration Points**:
+- [How Phase N integrates into Phase N+1]
+- [Dependencies from Phase N that Phase N+1 uses]
+- [Test coverage from Phase N]
+
+## Implementation Tasks
+
+[Copy from plan for Phase N+1]
+
+## Testing Strategy
+
+[Copy from plan for Phase N+1]
+
+## Dependencies
+
+**Unblocked by**: #[current phase issue]
+**Blocks**: #[future phase issues if any]
+
+## Acceptance Criteria
+
+[Copy from plan]
+
+## Technical Notes
+
+[From plan]
+```
+
+### GitHub Issue Template for Final Review
+
+If this is the final phase, create a validation/completion issue:
+
+```markdown
+---
+title: "[Review] [Feature Name] Implementation Complete"
+labels:
+  - review
+  - validation
+  - features
+assignees: []
+---
+
+## Implementation Complete
+
+✅ All delivery phases completed successfully
+
+## Plan Reference
+
+**Plan Issue**: #[parent plan issue]
+**Brainstorm Reference**: #[brainstorm issue]
+
+## Phases Completed
+
+- ✅ #[Phase 1 issue] — [Phase 1 Name]
+- ✅ #[Phase 2 issue] — [Phase 2 Name]
+- ✅ #[Phase 3 issue] — [Phase 3 Name]
+- [etc.]
+
+## Core Artifacts Created
+
+### New Files
+- [src/new/file.ts]
+- [src/new/file.tsx]
+- [src/new/__tests__/file.test.ts]
+- [stories/new/file.stories.tsx]
+- [etc.]
+
+### Modified Files
+- [src/existing/file.ts] — Changes: [summary]
+- [src/existing/file.tsx] — Changes: [summary]
+- [etc.]
+
+### Key Exports & APIs
+- [Export 1]: [file]
+- [Export 2]: [file]
+- [etc.]
+
+## Validation Results
+
+✅ All unit tests passing (`bun run test:all`)
+✅ Type checking clean (`bun x tsc --noEmit`)
+✅ Storybook builds successfully
+✅ No regressions in existing tests
+✅ All acceptance criteria from plan met
+
+## Test Coverage
+
+- [Category]: [Number] tests added
+- [Category]: [Number] tests added
+- Overall coverage: [X]%
+
+## Performance Validation
+
+[If applicable: Performance benchmarks, timing measurements]
+
+## Next Steps
+
+1. Code review: [Specific areas to review]
+2. Testing validation: [Scenarios to test]
+3. Deployment: [Process if applicable]
+4. Documentation: [Updates needed]
+
+## Ready for Review
+
+- [ ] All phases completed
+- [ ] All artifacts identified
+- [ ] Testing validated
+- [ ] Ready for code review
+- [ ] Ready for QA/validation
+```
+
+### What to Include in Handoff Issue
+
+**When creating the next phase or review issue**:
+
+1. **Reference this completed phase** — Link to the current implementation issue
+2. **List artifacts created** — Files, exports, test coverage
+3. **Identify integration points** — How this phase hands off to next
+4. **Confirm prerequisites met** — No blockers for next phase
+5. **Document any gotchas** — Lessons learned or constraints for next phase
+6. **Link to parent plan** — Maintain traceback to original plan
+
+### Key Artifacts to Document
+
+Identify and list:
+
+- **New files created** — With brief description
+- **Files modified** — What changed and why
+- **Tests added** — Test files and coverage
+- **Exports and APIs** — New public interfaces
+- **Storybook stories** — Component demonstrations
+- **Breaking changes** — If any
+- **Performance impact** — If applicable
+- **Known limitations** — For next phase awareness
+
+### Issue Labels & Organization
+
+**For next phase issue**:
+- `phase` — Delivery phase
+- `phase-[N+1]` — Phase number
+- `implement` — Implementation phase
+- Link to parent plan and previous phase
+
+**For review/validation issue**:
+- `review` — Code review needed
+- `validation` — Testing/validation needed
+- `features` — Type of work
+- Link to all phase issues
+
+### Validation Before Creating Handoff Issue
+
+- [ ] Current phase is complete (all acceptance criteria met)
+- [ ] All artifacts are identified and documented
+- [ ] Integration points to next phase are clear
+- [ ] No blockers or missing dependencies
+- [ ] Parent plan issue is referenced
+- [ ] Previous phase issue is linked
+- [ ] Issue title is clear and follows format
+- [ ] Labels are consistently applied
+
+**Action**: Create the next phase or review issue with all implementation artifacts clearly documented, ready for the next stage of delivery.
+

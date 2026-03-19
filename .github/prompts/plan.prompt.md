@@ -388,9 +388,168 @@ Structure your plan delivery as follows:
 
 ## Next Steps
 1. Review plan with team
-2. Create GitHub issues from phase specifications
+2. Create GitHub issues from phase specifications (using implement.md template)
 3. Assign issues to milestone and team members
 4. Proceed with Phase 1 implementation
+
+---
+
+## Phase 8: Create GitHub Issues for Implementation Phases
+
+**Handoff each phase to the implementation stage:**
+
+For each phase in your delivery plan, create a new GitHub issue using the **Implement template** (`.github/ISSUE_TEMPLATE/implement.md`).
+
+### GitHub Issue Template Selection
+
+Use: `.github/ISSUE_TEMPLATE/implement.md`
+
+### Issue Structure for Each Phase
+
+```markdown
+---
+title: "[Implement] [Phase N] [Phase Name]"
+labels:
+  - phase
+  - phase-N
+  - implement
+  - features  # or bugfix, refactor, etc.
+milestone: [Sprint/Iteration]
+assignees: []
+---
+
+## Plan Reference
+
+**Parent Plan Issue**: #[parent issue number] — "[Plan] [Feature Name]"
+**Brainstorm Reference**: #[brainstorm issue number]
+**Phase**: N of [total phases]
+
+## Phase Objective
+
+[Copy the phase objective from your plan — 1-2 sentences]
+
+## Core Artifacts from Plan
+
+- **Phase Name**: [Phase N: Name]
+- **Duration**: [2-5 business days]
+- **Risk Level**: [Low/Medium/High]
+- **Success Criteria**: [Copy the checklist from plan phase spec]
+
+## Implementation Tasks
+
+[Copy each task from the plan phase, formatted as:
+
+### Task 1: [Task Title]
+- **Files affected**: [list]
+- **Changes**: [specific changes]
+- **Test coverage**: [what to test]
+
+Task 2: [...]
+]
+
+## Testing Strategy
+
+- **Unit Tests**: [From plan]
+- **Integration Tests**: [From plan]
+- **Validation Steps**: [From plan]
+
+## Dependencies
+
+**Blocked by**: [Link to earlier phase issues if any]
+**Blocks**: [Link to later phase issues]
+**Related**: [Link to other related issues]
+
+## Acceptance Criteria
+
+[Copy the acceptance criteria checklist from plan phase spec]
+
+## Technical Notes
+
+- **Key Patterns**: [Patterns identified in plan]
+- **Complexity**: [Low/Medium/High]
+- **Known Risks**: [From plan]
+- **Constraints**: [From plan]
+
+## Resources
+- See parent plan issue for full context
+- Architecture: AGENTS.md
+- Test Harness: tests/harness/
+- Pattern Examples: [Reference similar existing code]
+```
+
+### What to Include
+
+**From your plan output, copy these sections into each phase issue**:
+
+1. **Phase Objective** — Exact objective statement from plan
+2. **Success Criteria** — The checklist from plan phase template
+3. **Implementation Tasks** — All tasks with file paths and specific changes
+4. **Testing Strategy** — Unit, integration, validation approach
+5. **Dependencies** — Blocked by / Blocks relationships
+6. **Acceptance Criteria** — Objective, measurable criteria from plan
+7. **Technical Notes** — Key patterns, risks, constraints
+
+### Key Artifacts to Reference
+
+Link to and identify these plan artifacts:
+
+- The **parent plan issue** (helps implement phase understand broader context)
+- The **brainstorm issue** (complete problem analysis)
+- **Dependencies** — Earlier phases that must complete first
+- **Blocking relationships** — Later phases that depend on this
+- **Similar existing code** — Examples of patterns to follow
+
+### Issue Organization
+
+**Organize issues hierarchically**:
+
+```
+Parent: [Plan] Feature Name
+  └─ Child: [Implement] Phase 1: Core Types
+  └─ Child: [Implement] Phase 2: Main Logic
+  └─ Child: [Implement] Phase 3: Components
+  └─ Child: [Implement] Phase 4: Integration
+```
+
+**Link them together**:
+- Phase 1 issue → "Blocks #[Phase 2 issue]"
+- Phase 2 issue → "Blocked by #[Phase 1 issue]", "Blocks #[Phase 3 issue]"
+- All phases → "Related to #[Plan issue]"
+
+### Issue Labels
+
+For each phase issue, add labels:
+- `phase` — This is a delivery phase
+- `phase-N` — Phase number (phase-1, phase-2, etc.)
+- `implement` — Implementation phase designation
+- `feature` or `bugfix` or `refactor` — Type of work
+- Domain labels (e.g., `parser`, `runtime`, `components`)
+
+### Validation Before Creating Issues
+
+For each phase issue:
+
+- [ ] Issue title follows format: "[Implement] [Phase N] [Phase Name]"
+- [ ] All implementation tasks are listed with specific file paths
+- [ ] Success criteria are copied exactly from plan
+- [ ] Testing strategy is detailed and clear
+- [ ] Dependencies are correctly identified and linked
+- [ ] Parent plan issue is referenced
+- [ ] Related phase issues are linked (blocked by/blocks)
+- [ ] Acceptance criteria are objective and measurable
+- [ ] Issue is actionable for implementation phase agent
+
+### Creation Pattern
+
+**Create issues in this order**:
+
+1. Create all phase issues
+2. Link dependencies: Set "blocked by" and "blocks" relationships
+3. Add to milestone and assign
+4. Add labels consistently across all phase issues
+5. If parallelizable, note which phases can happen simultaneously
+
+**Action**: Create GitHub issues for each phase using implement.md template, with clear dependencies and artifact references for handoff to implementation phase.
 ```
 
 ---

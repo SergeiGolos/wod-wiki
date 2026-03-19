@@ -185,6 +185,100 @@ Structure your analysis as follows:
 
 ---
 
+## Phase 6: Create GitHub Issue for Planning Phase
+
+**Handoff the brainstorm analysis to the planning phase:**
+
+Once your brainstorm analysis is complete, create a new GitHub issue using the **Plan template** (`.github/ISSUE_TEMPLATE/plan.md`) to transition to the planning phase.
+
+### GitHub Issue Template Selection
+
+Use: `.github/ISSUE_TEMPLATE/plan.md`
+
+### Issue Structure
+
+```markdown
+---
+title: "[Plan] [Feature/Fix Name]"
+labels:
+  - phase
+  - plan
+  - features  # or bugfix, refactor, etc.
+assignees: []
+---
+
+## Brainstorm Reference
+
+**Brainstorm Issue**: #[number] — "[Feature] Brainstorm"
+**Analysis Date**: [Date of brainstorm completion]
+
+## Recommended Solution
+
+[Copy from brainstorm output: The recommended solution section]
+
+## Core Artifacts from Brainstorm
+
+- **Requirement Analysis**: [Brief bullet summary of problem, success criteria, scope]
+- **Recommended Approach**: [Solution name and why it was chosen]
+- **Implementation Steps**: [Copy or link to the numbered implementation steps from brainstorm]
+- **Affected Components**: [List of files/modules that will change]
+- **Testing Strategy**: [Unit, integration, and validation test categories]
+- **Estimated Complexity**: [Low/Medium/High]
+- **Key Patterns**: [Architectural patterns identified in brainstorm]
+- **Constraints & Risks**: [Dependencies, known limitations, and risks identified]
+
+## Next Steps
+
+1. Review the brainstorm analysis (see reference above)
+2. Execute the planning phase using `.github/prompts/plan.prompt.md`
+3. Break the recommended solution into delivery phases
+4. Create GitHub issues for implementation using implement.md template
+```
+
+### What to Include
+
+**From your brainstorm output, copy these sections into the issue body**:
+
+1. **Recommended Solution Title** — Copy the exact title/name of the solution
+2. **Why This Solution** — Copy the paragraph explaining why this was chosen
+3. **Implementation Steps** — Copy the numbered list from the brainstorm
+4. **Affected Components** — Copy the list of files/modules
+5. **Testing Strategy** — Copy from brainstorm analysis
+6. **Success Criteria** — Copy from brainstorm requirement analysis
+7. **Constraints & Risks** — List any constraints or known limitations from brainstorm
+
+### Key Artifacts to Reference
+
+Identify and link to these brainstorm outputs:
+
+- The **brainstorm analysis document** (if stored separately)
+- The **requirement analysis section** (problem, success criteria)
+- Examples of **similar existing features** you referenced
+- **Edge cases and scenarios** you identified
+- **Performance considerations** if applicable
+
+### Issue Labels
+
+Add labels to categorize the work:
+- `phase` — This is a delivery phase
+- `plan` — Planning phase designation  
+- `feature` or `bugfix` or `refactor` — Type of work
+- Any domain labels (e.g., `parser`, `runtime`, `components`, `editor`)
+
+### Validation Before Creating Issue
+
+- [ ] Issue title is clear: "[Plan] [Feature Name]"
+- [ ] All core artifacts from brainstorm are referenced
+- [ ] Recommended solution is clearly identified
+- [ ] Implementation steps are specific (not vague)
+- [ ] Testing strategy is outlined
+- [ ] Links to related brainstorm materials
+- [ ] Issue is actionable for planning phase agent
+
+**Action**: Create the GitHub issue with all brainstorm artifacts clearly documented for handoff to the planning phase.
+
+---
+
 ## Best Practices for This Analysis
 
 1. **Read AGENTS.md First** — It's the canonical source for project conventions
