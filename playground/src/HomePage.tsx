@@ -269,7 +269,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
         })
         if (bestIdx >= 0) setActiveStep(bestIdx)
       },
-      { rootMargin: '-30% 0px -30% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75] }
+      { rootMargin: '-20% 0px -50% 0px', threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] }
     )
     stepRefs.current.forEach(el => { if (el) observer.observe(el) })
     return () => observer.disconnect()
@@ -293,8 +293,8 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
   // ── Mobile: sticky top panel ─
   const mobilePanelNode = (
     <div
-      className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
-      style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(40vh - ${STICKY_NAV_HEIGHT / 2}px)` }}
+      className="lg:hidden sticky z-10 shrink-0 px-4 pt-2 pb-2"
+      style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(50vh - ${STICKY_NAV_HEIGHT / 2}px)`, minHeight: '320px' }}
     >
       <MacOSChrome title={chromeTitle} onReset={onReset}>
         {stickyPanel}
@@ -315,7 +315,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
       >
         <div className={cn(
           "max-w-sm transition-all duration-500",
-          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-30 translate-y-3"
+          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-10 translate-y-3"
         )}>
           <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
             {step.eyebrow}
