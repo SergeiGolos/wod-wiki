@@ -65,6 +65,8 @@ export interface RuntimeTimerPanelProps {
   onToggleExpand?: () => void;
   /** Whether the timer should start automatically on mount. */
   autoStart?: boolean;
+  /** Called when the internal runtime is created — allows the parent to subscribe. */
+  onRuntimeReady?: (runtime: IScriptRuntime) => void;
 }
 
 
@@ -147,6 +149,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   isExpanded = false,
   onToggleExpand,
   autoStart,
+  onRuntimeReady,
 }) => {
   const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [ready, setReady] = useState(false);
@@ -171,6 +174,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       return;
     }
     setRuntime(rt);
+    onRuntimeReady?.(rt);
 
     // ── Gutter highlighting via stack subscription ──────────────────
     const unsubStack = rt.subscribeToStack(

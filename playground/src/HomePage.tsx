@@ -1,582 +1,820 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import { CommandPalette } from '@/components/playground/CommandPalette'
-import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
-import { 
+import { ReviewGrid } from '@/components/review-grid/ReviewGrid'
+import type { Segment } from '@/core/models/AnalyticsModels'
+import { RuntimeTimerPanel } from '@/components/Editor/overlays/RuntimeTimerPanel'
+import type { WodBlock } from '@/components/Editor/types'
+import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
+import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
+import { getAnalyticsFromRuntime } from '@/services/AnalyticsTransformer'
+import {
   Zap,
-  ShieldCheck,
-  Server,
-  Activity,
-  Check,
-  X,
-  ClipboardList,
-  ArrowRight,
-  Keyboard,
+  Play,
+  ChevronDown,
+  Search,
+  RotateCcw,
   BookOpen,
-  FileCode2,
-  PenLine,
-  PlayCircle,
-  BarChart2,
+  TerminalSquare,
+  Command,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ── Data for Sections ────────────────────────────────────────────────
+// Height of the standard sticky header (px) — used to offset sticky panels below it
+// Standard header: pt-8 (32px) + h-10 accent (40px) + mt-8 hr (32px) ≈ ~104px on desktop
+const STICKY_NAV_HEIGHT = 104
 
-const WODSCRIPT_TABS = [
+// ── Data ─────────────────────────────────────────────────────────────
+
+const SAMPLE_SEGMENTS: Segment[] = [
+  { id: 1, name: 'Deadlifts', type: 'exercise', startTime: 0, endTime: 45, elapsed: 45, total: 45, parentId: null, depth: 1, metric: { reps: 5, weight_lb: 225 }, lane: 0 },
+  { id: 2, name: 'Box Jumps', type: 'exercise', startTime: 46, endTime: 118, elapsed: 72, total: 72, parentId: null, depth: 1, metric: { reps: 10, height_in: 24 }, lane: 0 },
+  { id: 3, name: 'Push-ups', type: 'exercise', startTime: 119, endTime: 177, elapsed: 58, total: 58, parentId: null, depth: 1, metric: { reps: 15 }, lane: 0 },
+  { id: 4, name: 'Deadlifts', type: 'exercise', startTime: 180, endTime: 226, elapsed: 46, total: 46, parentId: null, depth: 1, metric: { reps: 5, weight_lb: 225 }, lane: 0 },
+  { id: 5, name: 'Box Jumps', type: 'exercise', startTime: 227, endTime: 302, elapsed: 75, total: 75, parentId: null, depth: 1, metric: { reps: 10, height_in: 24 }, lane: 0 },
+  { id: 6, name: 'Push-ups', type: 'exercise', startTime: 303, endTime: 360, elapsed: 57, total: 57, parentId: null, depth: 1, metric: { reps: 15 }, lane: 0 },
+]
+
+interface WodExample {
+  label: string
+  wodScript: string
+}
+
+interface ParallaxStep {
+  eyebrow: string
+  title: string
+  body: string
+  examples?: WodExample[]
+  cta?: { label: string; target: string }
+}
+
+const EDITOR_STEPS: ParallaxStep[] = [
   {
-    title: 'The Basics',
-    subtitle: 'Simple sets and reps',
-    content: `\`\`\`wod
-(3) Rounds For Time
-  - 10 Push-ups
-  - 15 Air Squats
-  - 20 Sit-ups
-\`\`\``
+    eyebrow: 'Step 1 · Plan',
+    title: 'Write Like You Think',
+    body: 'WodScript is plain text with a workout superpower. No menus, no drag-and-drop. Type a round, a rep count, or a timer and the editor understands it instantly.',
+    examples: [
+      { label: 'For Time', wodScript: '```wod\n(3) Rounds For Time\n  - 10 Deadlifts 225 lb\n  - 15 Box Jumps 24 in\n  - 20 Push-ups\n```' },
+      { label: 'AMRAP', wodScript: '```wod\nAMRAP 20:00\n  - 5 Pull-ups\n  - 10 Push-ups\n  - 15 Air Squats\n```' },
+      { label: 'EMOM', wodScript: '```wod\nEMOM 12:00\n  - 3 Power Cleans 135 lb\n  - 6 Burpees\n```' },
+    ],
   },
   {
-    title: 'Complex Intervals',
-    subtitle: 'Nested loops & rests',
-    content: `\`\`\`wod
-Timer 12:00
-  - (4)
-    - 40s Max Effort Rowing
-    - 20s Rest
-  - 2:00 Rest
-  - (4)
-    - 40s Burpees
-    - 20s Rest
-\`\`\``
+    eyebrow: 'Step 1 · Plan',
+    title: 'Weights, Distances, Everything.',
+    body: 'Specify loads, distances, and units on any line. The parser handles them automatically — 225lb, 24kg, 400m, 0:90 rest. It just works.',
+    examples: [
+      { label: 'Pounds', wodScript: '```wod\n5x\n  - 5 Back Squats 185 lb\n  - 15 Ring Dips\n  - [ ] 50m Sled Push 90 lb\n```' },
+      { label: 'Kilos', wodScript: '```wod\n5x\n  - 5 Back Squats 84 kg\n  - 10 Kettlebell Swings 24 kg\n  - 400m Run\n```' },
+      { label: 'Intervals', wodScript: '```wod\n(4) Rounds\n  - 0:30 Max Effort Row\n  - 0:90 Rest\n  - 0:30 Max Effort Bike\n  - 0:90 Rest\n```' },
+    ],
   },
   {
-    title: 'Loaded Movements',
-    subtitle: 'Weights & checkboxes',
-    content: `\`\`\`wod
-5x
-  - 5 Back Squats 225 lb
-  - 10 Strict Pull-ups
-  - [ ] 50m Heavy Sandbag Carry
-\`\`\``
+    eyebrow: 'Step 1 · Plan',
+    title: 'Nest Any Structure Inside Any Other.',
+    body: 'An EMOM inside a For Time? A rest interval inside an AMRAP? Trivial in WodScript. The runtime tracks every nesting level and transitions automatically.',
+    examples: [
+      { label: 'Nested AMRAP', wodScript: '```wod\nAMRAP 20:00\n  - (4)\n    - 0:40 Max Effort Row\n    - 0:20 Rest\n  - 2:00 Rest\n  - 10 Thrusters 95 lb\n```' },
+      { label: 'EMOM in For Time', wodScript: '```wod\nFor Time\n  - EMOM 10:00\n    - 5 Deadlifts 275 lb\n    - 7 Burpee Box Jumps 24 in\n  - 50 Wall Balls 20 lb\n```' },
+    ],
+  },
+  {
+    eyebrow: 'Step 2 · Track',
+    title: 'Ready? One Click Changes Everything.',
+    body: 'Pick a workout from the collection or write your own, then hit the Run button in the editor toolbar. The full-screen tracker takes over — hands-free guidance through every rep, rest, and transition.',
+  },
+]
+
+const TRACKER_STEPS: ParallaxStep[] = [
+  {
+    eyebrow: 'Step 2 · Track',
+    title: 'Zero Distractions. Maximum Focus.',
+    body: "The tracker strips away everything except the current movement, your countdown, and what's coming next. Full-screen, full-focus.",
+  },
+  {
+    eyebrow: 'Step 2 · Track',
+    title: 'Auto-Advance. Hands-Free.',
+    body: 'Every timed block advances automatically. Rest periods count down on their own. Stay in the flow without touching the screen.',
+  },
+  {
+    eyebrow: 'Step 2 · Track',
+    title: 'Cast to the Big Screen.',
+    body: 'Stream your workout live to any TV via Chromecast — perfect for group training. The display syncs in real-time with your phone.',
+  },
+  {
+    eyebrow: 'Step 3 · Review',
+    title: 'Workout Done. Instantly Logged.',
+    body: 'Every rep, rest, and elapsed time is captured the moment you finish. Hit End and see your full breakdown immediately.',
+    cta: { label: 'See the Review', target: 'review' },
+  },
+]
+
+const REVIEW_STEPS: ParallaxStep[] = [
+  {
+    eyebrow: 'Step 3 · Review',
+    title: 'Nothing Falls Through the Cracks.',
+    body: 'Every block, rep, and rest period — all timestamped and saved to your local device the moment the workout ends. Nothing gets lost.',
+  },
+  {
+    eyebrow: 'Step 3 · Review',
+    title: 'Per-Exercise Volume at a Glance.',
+    body: 'The review grid pivots your log into a clear table — reps per exercise, total volume, per-set timing, and intensity data all in one view.',
+  },
+  {
+    eyebrow: 'Step 3 · Review',
+    title: 'Your Full Training History.',
+    body: "Every session ever logged is stored on your device, fully queryable. Compare today's deadlift total to last week's. All private, all offline.",
+  },
+]
+
+const NOTEBOOK_STEPS: ParallaxStep[] = [
+  {
+    eyebrow: 'Step 4 · Notebook',
+    title: 'Volume Charts',
+    body: 'Weekly and monthly rep counts per movement — embedded directly in your training log.',
+    examples: [
+      { label: 'Weekly', wodScript: '```wod\n# Monday — Lower Body\n\n5x5 Back Squat 225 lb\n3x10 Romanian Deadlift 135 lb\n4x8 Walking Lunges 95 lb\n\n// Total Volume: 14,375 lb\n// Weekly Trend: ↑ 8%\n```' },
+      { label: 'Monthly', wodScript: '```wod\n# January Volume Report\n\nBack Squat — 45,000 lb\nDeadlift — 38,500 lb\nBench Press — 32,000 lb\nOverhead Press — 18,000 lb\n\n// Monthly Total: 133,500 lb\n// vs December: +12%\n```' },
+    ],
+  },
+  {
+    eyebrow: 'Step 4 · Notebook',
+    title: 'PR Trackers',
+    body: 'Auto-updated personal records for each lift or distance. Hit a new max and your notes know instantly.',
+    examples: [
+      { label: 'Lift PRs', wodScript: '```wod\n# PR Day — Deadlift\n\n1x1 Deadlift 405 lb ★ NEW PR\n  Previous: 395 lb (Jan 15)\n  Goal: 425 lb\n\n1x1 Bench Press 265 lb\n  PR: 275 lb (Dec 3)\n  96% of best\n```' },
+      { label: 'Metcon PRs', wodScript: '```wod\n# Benchmark — Fran\n\n21-15-9\n  Thrusters 95 lb\n  Pull-ups\n\nTime: 3:42 ★ NEW PR\n  Previous: 4:15 (Nov 8)\n  Improvement: -33s\n```' },
+    ],
+  },
+  {
+    eyebrow: 'Step 4 · Notebook',
+    title: 'Progress Trends',
+    body: 'E1RM estimations and intensity curves over time — see your strength trajectory at a glance.',
+    examples: [
+      { label: '12 Week', wodScript: '# Back Squat — 12 Week Block\n\n```wod\nWeek 1:  5x5 @ 185 lb\nWeek 4:  5x5 @ 205 lb\nWeek 8:  5x3 @ 225 lb\nWeek 12: 5x1 @ 265 lb\n\n// Est. 1RM: 280 → 310 lb\n// +10.7% improvement\n```' },
+    ],
+  },
+  {
+    eyebrow: 'Step 4 · Notebook',
+    title: 'Checklist Blocks',
+    body: 'Checked off during your workout, persisted to history. Mix actionable checklists with training content.',
+    examples: [
+      { label: 'Competition', wodScript: '```wod\n# Competition Prep — 4 Weeks Out\n\n- [x] Test 1RM Snatch\n- [x] Test 1RM Clean & Jerk\n- [ ] Practice competition commands\n- [ ] Review attempt selection\n- [ ] Weigh-in rehearsal\n- [ ] Travel logistics\n```' },
+      { label: 'Daily', wodScript: '```wod\n# Morning Routine\n\n- [x] 10 min Mobility\n- [x] Band Pull-Aparts 3x15\n- [ ] Foam Roll Quads & Lats\n- [ ] Deep Squat Hold 2:00\n- [ ] Log bodyweight\n```' },
+    ],
+  },
+  {
+    eyebrow: 'Step 4 · Notebook',
+    title: 'Metric Snapshots',
+    body: 'Inline weight, reps, or split time values. Capture the numbers that matter alongside your training notes.',
+    examples: [
+      { label: 'Session', wodScript: '```wod\n# Today\'s Session\n\nBodyweight: 185 lb\nSleep: 7.5 hrs | HRV: 68\n\n3x5 Front Squat 205 lb\n  RPE: 8 | Volume: 3,075 lb\n\n5x3 Power Clean 185 lb\n  RPE: 7.5 | Volume: 2,775 lb\n```' },
+    ],
+  },
+  {
+    eyebrow: 'Step 4 · Notebook',
+    title: 'Session Archive',
+    body: 'Embed a recent sessions table inside any note. Your full training history, queryable and inline.',
+    examples: [
+      { label: 'Weekly Log', wodScript: '```wod\n# Training Log — January 2024\n\nJan 2:  Push Day — 12,400 lb\nJan 4:  Pull Day — 14,200 lb\nJan 6:  Legs — 18,500 lb\nJan 9:  Push Day — 13,100 lb\nJan 11: Pull Day — 15,000 lb\n\n// Monthly: 73,200 lb\n// Sessions: 5 of 12 planned\n```' },
+    ],
+  },
+]
+
+// ── Helpers ───────────────────────────────────────────────────────────
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id)
+  if (el) {
+    const y = el.getBoundingClientRect().top + window.scrollY - STICKY_NAV_HEIGHT
+    window.scrollTo({ top: y, behavior: 'smooth' })
   }
-]
+}
 
-const CLOCK_TABS = [
-  {
-    title: 'AMRAP',
-    subtitle: 'As Many Reps As Possible',
-    content: `\`\`\`wod
-AMRAP 10:00
-  - 5 Deadlifts 225 lb
-  - 10 Box Jumps 24 in
-\`\`\``
-  },
-  {
-    title: 'EMOM',
-    subtitle: 'Every Minute on the Minute',
-    content: `\`\`\`wod
-EMOM 10:00
-  - 10 Kettlebell Swings 24 kg
-\`\`\``
-  },
-  {
-    title: 'Countdown Timer',
-    subtitle: 'Precise transitions',
-    content: `\`\`\`wod
-:10 Countdown
-  - Sprint 100m
-\`\`\``
-  }
-]
+// ── MacOS Chrome Wrapper ───────────────────────────────────────────────
 
-const METRICS_TABS = [
-  {
-    title: 'Rep Tracking',
-    subtitle: 'Volume accumulation',
-    content: `\`\`\`wod
-For Time
-  - 100 Double Unders
-  - 50 Thrusters 95 lb
-\`\`\``
-  },
-  {
-    title: 'Distance & Output',
-    subtitle: 'Intensity tracking',
-    content: `\`\`\`wod
-Timer 20:00
-  - 500m Row // intensity: 80%
-  - 20 Wall Balls
-  - 400m Run // intensity: 90%
-\`\`\``
-  }
-]
+function MacOSChrome({ title, children, onReset }: { title: string; children: ReactNode; onReset?: () => void }) {
+  return (
+    <div className="flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background">
+      <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
+        <div className="flex gap-1.5">
+          <div className="size-2.5 rounded-full bg-red-500/50" />
+          <div className="size-2.5 rounded-full bg-amber-500/50" />
+          <div className="size-2.5 rounded-full bg-emerald-500/50" />
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</span>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-transparent hover:border-border/60 transition-all"
+            >
+              <RotateCcw className="size-2.5" />
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {children}
+      </div>
+    </div>
+  )
+}
 
-const NAV_LINKS = [
-  { id: 'learn', label: 'Learn' },
-  { id: 'wodscript', label: 'WodScript' },
-  { id: 'clock', label: 'Clock' },
-  { id: 'metrics', label: 'Metrics' },
-  { id: 'workflow', label: 'Workflow' },
-  { id: 'shortcuts', label: 'Shortcuts' },
-  { id: 'reports', label: 'Reports' },
-  { id: 'privacy', label: 'Privacy' },
-]
+// ── ParallaxSection ───────────────────────────────────────────────────
 
-// ── Components ───────────────────────────────────────────────────────
+interface ParallaxSectionProps {
+  id: string
+  steps: ParallaxStep[]
+  stickyContent: (activeStep: number, selectedExample: number) => ReactNode
+  stickyAlign?: 'left' | 'right'
+  chromeTitle?: string
+  className?: string
+  onReset?: () => void
+  /** Render extra content below the body text for a specific step */
+  renderStepExtra?: (stepIdx: number, activeStep: number) => ReactNode | null
+}
 
-function StickyNav() {
-  const [activeId, setActiveId] = useState('learn');
+function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chromeTitle = 'WodScript', className, onReset, renderStepExtra }: ParallaxSectionProps) {
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [activeStep, setActiveStep] = useState(0)
+  const [selectedExamples, setSelectedExamples] = useState<number[]>(() => steps.map(() => 0))
+
+  const selectExample = useCallback((stepIdx: number, exIdx: number) => {
+    setSelectedExamples(prev => {
+      const next = [...prev]
+      next[stepIdx] = exIdx
+      return next
+    })
+  }, [])
 
   useEffect(() => {
+    // Track cumulative visibility so scroll-back picks the correct step
+    const ratioMap = new Map<number, number>()
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            setActiveId(entry.target.id);
+          const idx = parseInt(entry.target.getAttribute('data-step') ?? '0')
+          if (entry.isIntersecting) {
+            ratioMap.set(idx, entry.intersectionRatio)
+          } else {
+            ratioMap.delete(idx)
           }
-        });
+        })
+        let bestIdx = -1
+        let bestRatio = -1
+        ratioMap.forEach((ratio, idx) => {
+          if (ratio > bestRatio) { bestRatio = ratio; bestIdx = idx }
+        })
+        if (bestIdx >= 0) setActiveStep(bestIdx)
       },
-      { rootMargin: '-80px 0px -50% 0px', threshold: [0, 0.5, 1.0] }
-    );
+      { rootMargin: '-30% 0px -30% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75] }
+    )
+    stepRefs.current.forEach(el => { if (el) observer.observe(el) })
+    return () => observer.disconnect()
+  }, [])
 
-    NAV_LINKS.forEach(link => {
-      const el = document.getElementById(link.id);
-      if (el) observer.observe(el);
-    });
+  const currentExample = selectedExamples[activeStep] ?? 0
+  const stickyPanel = stickyContent(activeStep, currentExample)
 
-    return () => observer.disconnect();
-  }, []);
+  // ── Desktop: 60% sticky panel ────────────────
+  const desktopPanelNode = (
+    <div
+      className="w-[60%] self-start sticky hidden lg:block p-6 pt-8 pb-8"
+      style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
+    >
+      <MacOSChrome title={chromeTitle} onReset={onReset}>
+        {stickyPanel}
+      </MacOSChrome>
+    </div>
+  )
+
+  // ── Mobile: sticky top panel ─
+  const mobilePanelNode = (
+    <div
+      className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
+      style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(40vh - ${STICKY_NAV_HEIGHT / 2}px)` }}
+    >
+      <MacOSChrome title={chromeTitle} onReset={onReset}>
+        {stickyPanel}
+      </MacOSChrome>
+    </div>
+  )
+
+  const textSteps = steps.map((step, idx) => {
+    const examples = step.examples ?? []
+    const selIdx = selectedExamples[idx] ?? 0
+
+    return (
+      <div
+        key={idx}
+        ref={el => { stepRefs.current[idx] = el }}
+        data-step={String(idx)}
+        className="min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10"
+      >
+        <div className={cn(
+          "max-w-sm transition-all duration-500",
+          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-30 translate-y-3"
+        )}>
+          <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
+            {step.eyebrow}
+          </div>
+          <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
+            {step.title}
+          </h2>
+          <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
+            {step.body}
+          </p>
+          {/* Example selector tabs */}
+          {examples.length > 1 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {examples.map((ex, exIdx) => (
+                <button
+                  key={exIdx}
+                  onClick={() => selectExample(idx, exIdx)}
+                  className={cn(
+                    "text-[10px] font-black uppercase tracking-[0.12em] px-3.5 py-1.5 rounded-full transition-all ring-1",
+                    selIdx === exIdx
+                      ? "bg-primary text-primary-foreground ring-primary/30 shadow-md"
+                      : "bg-muted/50 text-muted-foreground ring-transparent hover:bg-muted hover:ring-border"
+                  )}
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {step.cta && (
+            <button
+              onClick={() => scrollToSection(step.cta!.target)}
+              className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full bg-primary text-primary-foreground font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-primary/30 hover:scale-[1.04] transition-all"
+            >
+              {step.cta.label}
+              <ChevronDown className="size-4" />
+            </button>
+          )}
+          {renderStepExtra?.(idx, activeStep)}
+        </div>
+      </div>
+    )
+  })
 
   return (
-    <div className="sticky top-0 bg-background/90 backdrop-blur-md border-b border-border/50 shadow-sm transition-all">
-      <div className="mx-auto max-w-6xl px-6 flex items-center justify-start lg:justify-center gap-2 sm:gap-6 overflow-x-auto py-4 no-scrollbar scroll-smooth">
-        {NAV_LINKS.map(link => (
-          <a
-            key={link.id}
-            href={`#${link.id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              const el = document.getElementById(link.id);
-              if (el) {
-                const y = el.getBoundingClientRect().top + window.scrollY - 80;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-              }
-            }}
-            className={cn(
-              "text-[11px] sm:text-xs font-black uppercase tracking-[0.1em] whitespace-nowrap px-4 py-2 rounded-full transition-all ring-1 ring-transparent",
-              activeId === link.id
-                ? "bg-primary text-primary-foreground shadow-md ring-primary/20 scale-105"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground hover:ring-border"
-            )}
-          >
-            {link.label}
-          </a>
-        ))}
+    <section id={id} className={cn("relative border-b border-border/50", className)}>
+      {/* Mobile: vertical stack — sticky panel on top, text below */}
+      <div className="lg:hidden">
+        {mobilePanelNode}
+        <div>{textSteps}</div>
       </div>
-    </div>
+      {/* Desktop: side-by-side with sticky panel */}
+      <div className="hidden lg:flex">
+        {stickyAlign === 'left' ? (
+          <>
+            {desktopPanelNode}
+            <div className="w-[40%]">{textSteps}</div>
+          </>
+        ) : (
+          <>
+            <div className="w-[40%]">{textSteps}</div>
+            {desktopPanelNode}
+          </>
+        )}
+      </div>
+    </section>
   )
 }
 
-function SideTabsSection({ 
-  id, 
-  title, 
-  description, 
-  tabs, 
-  align = 'left', 
-  actualTheme 
-}: { 
-  id: string, 
-  title: string, 
-  description: string, 
-  tabs: any[], 
-  align?: 'left' | 'right',
-  actualTheme: string 
-}) {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const activeTab = tabs[activeIdx];
+// Module-level ref so HomePageContent can push scripts into FrozenEditorPanel
+let frozenEditorLoadRef: { current: ((script: string) => void) | null } = { current: null }
 
-  const tabsPanel = (
-    <div className="flex flex-col w-full lg:w-1/4 rounded-2xl border border-border/60 bg-card shadow-sm dark:shadow-none p-1.5 gap-0.5">
-      {tabs.map((tab, idx) => (
-        <button
-          key={idx}
-          onClick={() => setActiveIdx(idx)}
-          className={cn(
-            "text-left px-4 py-3.5 rounded-xl transition-all",
-            activeIdx === idx 
-              ? "bg-primary text-primary-foreground shadow-sm" 
-              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-          )}
-        >
-          <div className="text-sm font-black uppercase tracking-wider">{tab.title}</div>
-          {tab.subtitle && <div className="text-xs font-medium opacity-70 mt-1">{tab.subtitle}</div>}
-        </button>
-      ))}
-    </div>
-  );
+// ── FrozenEditorPanel ─────────────────────────────────────────────────
 
-  const contentPanel = (
-    <div className="w-full lg:w-3/4 bg-card rounded-3xl border border-border/70 shadow-md dark:shadow-none dark:ring-1 dark:ring-white/[0.06] overflow-hidden h-auto min-h-80 relative group flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/15 border-b border-border/60">
-         <div className="flex gap-1.5">
-            <div className="size-3 rounded-full bg-red-500/60" />
-            <div className="size-3 rounded-full bg-amber-500/60" />
-            <div className="size-3 rounded-full bg-emerald-500/60" />
-         </div>
-         <div className="flex gap-2 items-center">
-            <div className="size-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Live Preview</span>
-         </div>
-      </div>
-      <div className="flex-1 relative">
+function FrozenEditorPanel({ activeStep, selectedExample, actualTheme, onRun }: { activeStep: number; selectedExample: number; actualTheme: string; onRun: (script: string) => void }) {
+  const [displayScript, setDisplayScript] = useState(
+    EDITOR_STEPS[0]?.examples?.[0]?.wodScript ?? ''
+  )
+  const [opacity, setOpacity] = useState(1)
+  const prevKey = useRef('0-0')
+  const scriptRef = useRef(displayScript)
+
+  // Determine the last editor step index (the one with a CTA to tracker)
+  const isLastStep = activeStep === EDITOR_STEPS.length - 1
+
+  /** Load an external script (e.g. from command palette) */
+  const loadScript = useCallback((script: string) => {
+    setDisplayScript(script)
+    scriptRef.current = script
+    prevKey.current = `ext-${Date.now()}`
+    setOpacity(1)
+  }, [])
+
+  // Expose loadScript via ref so parent can call it
+  const loadScriptRef = useRef(loadScript)
+  loadScriptRef.current = loadScript
+
+  // Store the ref on a module-level so HomePageContent can reach it
+  useEffect(() => {
+    frozenEditorLoadRef.current = loadScriptRef.current
+    return () => { frozenEditorLoadRef.current = null }
+  }, [])
+
+  useEffect(() => {
+    const step = EDITOR_STEPS[Math.min(activeStep, EDITOR_STEPS.length - 1)]
+    const examples = step.examples ?? []
+    const exIdx = Math.min(selectedExample, Math.max(0, examples.length - 1))
+    const target = examples[exIdx]?.wodScript ?? scriptRef.current
+    const key = `${activeStep}-${exIdx}`
+    if (key === prevKey.current) return
+    prevKey.current = key
+    // If content is unchanged (e.g. rapid scroll back), just restore visibility
+    if (target === scriptRef.current) {
+      setOpacity(1)
+      return
+    }
+    setOpacity(0)
+    const t = setTimeout(() => {
+      setDisplayScript(target)
+      scriptRef.current = target
+      setOpacity(1)
+    }, 200)
+    return () => clearTimeout(t)
+  }, [activeStep, selectedExample])
+
+  // On the last step, show a Run button that launches the tracker with the current script.
+  // On all other steps, no buttons at all.
+  const commands: WodCommand[] = isLastStep
+    ? [{
+        id: 'run-to-tracker',
+        label: 'Run',
+        icon: <Play className="h-3 w-3 fill-current" />,
+        primary: true,
+        onClick: () => {
+          onRun(scriptRef.current)
+          scrollToSection('tracker')
+        },
+      }]
+    : []
+
+  return (
+    <div className="w-full h-full overflow-hidden">
+      <div
+        className="w-full h-full"
+        style={{ opacity, transition: 'opacity 200ms ease' }}
+      >
         <UnifiedEditor
-          key={`${id}-${activeIdx}`}
-          value={activeTab.content}
+          value={displayScript}
           onChange={() => {}}
           theme={actualTheme}
+          readonly={true}
           showLineNumbers={false}
           enableOverlay={true}
-          enableInlineRuntime={true}
-          className=""
+          enableInlineRuntime={false}
+          commands={commands}
+          className="h-full"
         />
       </div>
     </div>
-  );
-
-  return (
-    <section id={id} className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 odd:bg-background even:bg-muted/[0.18]">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className={cn("mb-12 max-w-2xl", align === 'right' && "ml-auto text-right")}>
-          <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase">{title}</h2>
-          <p className="mt-4 text-lg text-muted-foreground font-medium leading-relaxed">{description}</p>
-        </div>
-        <div className={cn("flex flex-col gap-8 lg:gap-12 items-center", align === 'left' ? "lg:flex-row" : "lg:flex-row-reverse")}>
-          {tabsPanel}
-          {contentPanel}
-        </div>
-      </div>
-    </section>
   )
 }
 
-function PrivacySection() {
-  return (
-    <section id="privacy" className="scroll-mt-24 py-20 lg:py-32 border-b border-border/50 bg-background">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-16 text-center max-w-2xl mx-auto">
-          <ShieldCheck className="size-16 mx-auto mb-6 text-primary" />
-          <h2 className="text-4xl font-black tracking-tight text-foreground uppercase">Privacy First. Local Always.</h2>
-          <p className="mt-6 text-lg font-medium text-muted-foreground leading-relaxed">We don't want your data. All workout logs, metrics, and scripts are stored directly in your browser's local storage. Your fitness journey is your business, and yours alone.</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-12">
-           <div className="bg-card border border-success/30 rounded-[2rem] p-8 lg:p-10 relative overflow-hidden shadow-sm dark:shadow-none dark:ring-1 dark:ring-success/10">
-              <h3 className="text-2xl font-black text-success flex items-center gap-3 mb-8 uppercase tracking-tight">
-                 <Server className="size-6" /> What stays with you
-              </h3>
-              <ul className="space-y-5">
-                 <li className="flex items-start gap-4"><Check className="size-6 text-success shrink-0"/> <span className="text-foreground font-medium text-lg">Workout Scripts & Notebooks</span></li>
-                 <li className="flex items-start gap-4"><Check className="size-6 text-success shrink-0"/> <span className="text-foreground font-medium text-lg">Performance Logs & Metrics</span></li>
-                 <li className="flex items-start gap-4"><Check className="size-6 text-success shrink-0"/> <span className="text-foreground font-medium text-lg">Custom Exercise Definitions</span></li>
-                 <li className="flex items-start gap-4"><Check className="size-6 text-success shrink-0"/> <span className="text-foreground font-medium text-lg">Personal Settings & Preferences</span></li>
-              </ul>
-           </div>
-           
-           <div className="bg-card border border-destructive/30 rounded-[2rem] p-8 lg:p-10 relative overflow-hidden shadow-sm dark:shadow-none dark:ring-1 dark:ring-destructive/10">
-              <h3 className="text-2xl font-black text-destructive flex items-center gap-3 mb-8 uppercase tracking-tight">
-                 <Activity className="size-6" /> What is shared with us
-              </h3>
-              <ul className="space-y-5 text-muted-foreground">
-                 <li className="flex items-start gap-4"><X className="size-6 text-destructive shrink-0"/> <span className="font-medium text-lg">Zero. Nothing. Nada.</span></li>
-                 <li className="flex items-start gap-4"><X className="size-6 text-destructive shrink-0"/> <span className="font-medium text-lg">No accounts to create.</span></li>
-                 <li className="flex items-start gap-4"><X className="size-6 text-destructive shrink-0"/> <span className="font-medium text-lg">No analytics tracking your behavior.</span></li>
-                 <li className="flex items-start gap-4"><X className="size-6 text-destructive shrink-0"/> <span className="font-medium text-lg">No cloud sync sending data away.</span></li>
-              </ul>
-           </div>
-        </div>
-      </div>
-    </section>
-  )
-}
+// ── LiveTrackerPanel (real runtime) ───────────────────────────────────
 
-function ReportsSection() {
-  return (
-    <section id="reports" className="scroll-mt-24 py-32 lg:py-48 border-b border-border/50 bg-muted/10 relative overflow-hidden">
-       {/* Background placeholder */}
-       <div className="absolute inset-0 bg-primary/5 opacity-50 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-       
-       <div className="relative mx-auto max-w-4xl px-6 text-center z-10">
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <ClipboardList className="size-20 text-muted-foreground/30" />
-              <div className="absolute -top-2 -right-2 bg-background rounded-full p-1 border border-border shadow-sm">
-                 <div className="size-3 bg-amber-500 rounded-full animate-pulse" />
-              </div>
-            </div>
-          </div>
-          <h2 className="text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase opacity-50">Custom Reports</h2>
-          <div className="mt-8 inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black tracking-[0.2em] uppercase shadow-sm">
-             Coming Soon
-          </div>
-          <p className="mt-8 text-xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
-             Data is useless without reflection. We are building a comprehensive reporting engine to help you generate weekly, monthly, or yearly summaries that show you exactly where you are improving.
-          </p>
-       </div>
-    </section>
-  )
-}
+function LiveTrackerPanel({ block, onReset, onSearch, preview, onStartPreview, onClearPreview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onReset: () => void; onSearch: () => void; preview: string | null; onStartPreview: (script: string) => void; onClearPreview: () => void; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
+  const handleClose = useCallback(() => {
+    onReset()
+  }, [onReset])
 
-function GuideSection() {
-  const navigate = useNavigate()
-  return (
-    <section id="learn" className="scroll-mt-24 py-16 lg:py-20 border-b border-border/50 bg-muted/[0.18]">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase">Start Here</h2>
-          <p className="mt-4 text-lg text-muted-foreground font-medium">New to WOD.WIKI? These two guides have everything you need.</p>
+  // Preview mode: show loaded workout with Start button
+  if (!block && preview) {
+    return (
+      <div className="flex flex-col w-full h-full overflow-hidden">
+        <div className="flex-1 min-h-0">
+          <UnifiedEditor
+            value={preview}
+            onChange={() => {}}
+            theme={actualTheme}
+            readonly={true}
+            showLineNumbers={false}
+            enableOverlay={true}
+            enableInlineRuntime={false}
+            commands={[]}
+            className="h-full"
+          />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-border/60 bg-muted/20 shrink-0">
           <button
-            onClick={() => navigate('/getting-started')}
-            className="group flex flex-col items-start gap-4 p-8 rounded-3xl bg-card border border-border/60 shadow-sm hover:border-primary/40 hover:shadow-md transition-all text-left"
+            onClick={() => onStartPreview(preview)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-primary/30 hover:scale-[1.04] transition-all"
           >
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <BookOpen className="size-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black tracking-tight text-foreground uppercase">Zero to Hero</h3>
-              <p className="mt-2 text-sm font-medium text-muted-foreground leading-relaxed">
-                Interactive step-by-step lessons from your first statement to full workout programs.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-primary text-sm font-bold group-hover:gap-3 transition-all mt-auto">
-              Start Learning <ArrowRight className="size-4" />
-            </div>
+            <Play className="h-3 w-3 fill-current" />
+            Start
           </button>
           <button
-            onClick={() => navigate('/syntax')}
-            className="group flex flex-col items-start gap-4 p-8 rounded-3xl bg-card border border-border/60 shadow-sm hover:border-primary/40 hover:shadow-md transition-all text-left"
+            onClick={onClearPreview}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted/60 text-muted-foreground font-black text-xs uppercase tracking-wider border border-border/60 hover:bg-muted hover:text-foreground transition-all"
           >
-            <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <FileCode2 className="size-6" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black tracking-tight text-foreground uppercase">Syntax Reference</h3>
-              <p className="mt-2 text-sm font-medium text-muted-foreground leading-relaxed">
-                The complete WodScript language reference with interactive examples for every fragment type.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-primary text-sm font-bold group-hover:gap-3 transition-all mt-auto">
-              Browse Reference <ArrowRight className="size-4" />
-            </div>
+            <Search className="size-3" />
+            Browse
           </button>
         </div>
       </div>
-    </section>
-  )
-}
+    )
+  }
 
-// ── Workflow Section ──────────────────────────────────────────────────
+  if (!block) {
+    return (
+      <button
+        onClick={onSearch}
+        className="w-full h-full flex flex-col items-center justify-center gap-4 bg-background text-muted-foreground cursor-pointer hover:bg-muted/30 transition-colors"
+      >
+        <Search className="size-10 text-muted-foreground/30" />
+        <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50">Browse Collections</p>
+      </button>
+    )
+  }
 
-interface WorkflowStep {
-  step: number
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  title: string
-  description: string
-  badge: string
-  badgeStyle: string
-  iconColor: string
-  iconBg: string
-  dimmed: boolean
-}
-
-const WORKFLOW_STEPS: WorkflowStep[] = [
-  {
-    step: 1,
-    icon: PenLine,
-    label: 'Plan',
-    title: 'Write Your Workout',
-    description: 'Use WodScript in the editor to define reps, sets, timers, and metrics. Fast as you can think.',
-    badge: 'Editor',
-    badgeStyle: 'bg-blue-500/10 text-blue-500',
-    iconColor: 'text-blue-500',
-    iconBg: 'bg-blue-500/10',
-    dimmed: false,
-  },
-  {
-    step: 2,
-    icon: PlayCircle,
-    label: 'Track',
-    title: 'Fullscreen Timer',
-    description: 'Hit Run. A fullscreen timer guides you through each block automatically — hands-free.',
-    badge: '/tracker/:id',
-    badgeStyle: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-500/10',
-    dimmed: false,
-  },
-  {
-    step: 3,
-    icon: BarChart2,
-    label: 'Review',
-    title: 'Instant Summary',
-    description: 'After completion, every segment, rep count, and elapsed time is saved and displayed automatically.',
-    badge: '/review/:id',
-    badgeStyle: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    iconColor: 'text-amber-500',
-    iconBg: 'bg-amber-500/10',
-    dimmed: false,
-  },
-  {
-    step: 4,
-    icon: ClipboardList,
-    label: 'Report',
-    title: 'Trends & Analytics',
-    description: 'Weekly and monthly reports to track volume, intensity, and progression over time.',
-    badge: 'Coming Soon',
-    badgeStyle: 'bg-muted/60 text-muted-foreground',
-    iconColor: 'text-muted-foreground/40',
-    iconBg: 'bg-muted/30',
-    dimmed: true,
-  },
-]
-
-function WorkflowSection() {
   return (
-    <section id="workflow" className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 bg-muted/[0.18]">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mb-12 text-center max-w-2xl mx-auto">
-          <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase">The Workflow</h2>
-          <p className="mt-4 text-lg text-muted-foreground font-medium leading-relaxed">
-            Four views. One seamless flow from plan to performance insight.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {WORKFLOW_STEPS.map((step, idx) => {
-            const Icon = step.icon
-            return (
-              <div key={step.step} className="relative">
-                {idx < WORKFLOW_STEPS.length - 1 && (
-                  <div className="hidden lg:flex absolute -right-3 top-10 z-10 items-center justify-center">
-                    <ArrowRight className="size-5 text-border" />
-                  </div>
-                )}
-                <div className={cn(
-                  "flex flex-col gap-4 p-6 rounded-3xl border border-border/60 h-full bg-card shadow-sm",
-                  step.dimmed && "opacity-50"
-                )}>
-                  <div className="flex items-center justify-between">
-                    <div className={cn("flex size-11 items-center justify-center rounded-xl", step.iconBg)}>
-                      <Icon className={cn("size-5", step.iconColor)} />
-                    </div>
-                    <div className={cn("text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full font-mono", step.badgeStyle)}>
-                      {step.badge}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black tracking-[0.2em] uppercase text-muted-foreground mb-1">
-                      Step {step.step} · {step.label}
-                    </div>
-                    <h3 className="text-lg font-black tracking-tight text-foreground">{step.title}</h3>
-                    <p className="mt-2 text-sm font-medium text-muted-foreground leading-relaxed">{step.description}</p>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </section>
+    <div className="w-full h-full overflow-hidden">
+      <RuntimeTimerPanel
+        key={block.id}
+        block={block}
+        onClose={handleClose}
+        autoStart={true}
+        onRuntimeReady={onRuntimeReady}
+      />
+    </div>
   )
 }
 
-// ── Shortcuts Section ─────────────────────────────────────────────────
+// ── FrozenReviewPanel ─────────────────────────────────────────────────
 
-interface ShortcutDef {
-  mac: string[]
-  win: string[]
-  description: string
+function FrozenReviewPanel({ runtime }: { runtime: IScriptRuntime | null }) {
+  const [revision, setRevision] = useState(0)
+
+  // Subscribe to runtime output events to trigger re-renders
+  useEffect(() => {
+    if (!runtime) { setRevision(0); return }
+    const unsub = runtime.subscribeToOutput(() => {
+      setRevision(r => r + 1)
+    })
+    return unsub
+  }, [runtime])
+
+  const { segments, groups } = useMemo(() => {
+    if (!runtime) return { segments: SAMPLE_SEGMENTS, groups: [] }
+    const result = getAnalyticsFromRuntime(runtime)
+    return result.segments.length > 0 ? result : { segments: SAMPLE_SEGMENTS, groups: [] }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runtime, revision])
+
+  return (
+    <div className="w-full h-full overflow-hidden bg-background">
+      <div className="w-full h-full pointer-events-none">
+        <ReviewGrid
+          runtime={null}
+          segments={segments}
+          selectedSegmentIds={new Set()}
+          onSelectSegment={() => {}}
+          groups={groups}
+        />
+      </div>
+    </div>
+  )
 }
 
-const SHORTCUTS: ShortcutDef[] = [
-  {
-    mac: ['⌘', 'K'],
-    win: ['Ctrl', 'K'],
-    description: 'Open global search — find any workout in your library',
-  },
-  {
-    mac: ['⌘', 'P'],
-    win: ['Ctrl', 'P'],
-    description: 'Command palette (same as ⌘K / Ctrl+K)',
-  },
-  {
-    mac: ['⌘', '.'],
-    win: ['Ctrl', '.'],
-    description: 'Statement builder — insert a WodScript line interactively',
-  },
-  {
-    mac: ['Esc'],
-    win: ['Esc'],
-    description: 'Close palette or overlay / cancel current action',
-  },
-]
+// ── Section wrappers ──────────────────────────────────────────────────
 
-function ShortcutsSection() {
-  const [isMac, setIsMac] = useState(true)
+function EditorParallaxSection({ actualTheme, onRun, onSearch }: { actualTheme: string; onRun: (script: string) => void; onSearch: () => void }) {
+  return (
+    <ParallaxSection
+      id="editor"
+      steps={EDITOR_STEPS}
+      stickyAlign="right"
+      chromeTitle="WodScript Editor"
+      stickyContent={(activeStep, selectedExample) => (
+        <FrozenEditorPanel activeStep={activeStep} selectedExample={selectedExample} actualTheme={actualTheme} onRun={onRun} />
+      )}
+      renderStepExtra={(stepIdx, _activeStep) => {
+        if (stepIdx !== EDITOR_STEPS.length - 1) return null
+        return (
+          <div className="flex flex-col gap-3 mt-2">
+            <button
+              onClick={onSearch}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted/60 text-foreground text-xs font-black uppercase tracking-wider border border-border/60 shadow-sm hover:bg-muted hover:scale-[1.03] transition-all w-fit"
+            >
+              <Search className="size-3.5" />
+              Browse Workouts
+            </button>
+            <button
+              onClick={() => {
+                // Trigger Run via the frozen editor’s current script
+                if (frozenEditorLoadRef.current) {
+                  // The editor already has content — just run it
+                }
+                // Get script from the editor ref and run
+                const editorEl = document.querySelector('#editor .cm-content')
+                const script = editorEl?.textContent ?? ''
+                if (script.trim()) {
+                  onRun('```wod\n' + script + '\n```')
+                  scrollToSection('tracker')
+                }
+              }}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-primary/30 hover:scale-[1.04] transition-all w-fit"
+            >
+              <Play className="h-3 w-3 fill-current" />
+              Run
+            </button>
+          </div>
+        )
+      }}
+      className="bg-background"
+    />
+  )
+}
+
+function TrackerParallaxSection({ block, onReset, onSearch, preview, onStartPreview, onClearPreview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onReset: () => void; onSearch: () => void; preview: string | null; onStartPreview: (script: string) => void; onClearPreview: () => void; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
+  return (
+    <ParallaxSection
+      id="tracker"
+      steps={TRACKER_STEPS}
+      stickyAlign="left"
+      chromeTitle="Live Tracker"
+      onReset={onReset}
+      stickyContent={() => <LiveTrackerPanel block={block} onReset={onReset} onSearch={onSearch} preview={preview} onStartPreview={onStartPreview} onClearPreview={onClearPreview} actualTheme={actualTheme} onRuntimeReady={onRuntimeReady} />}
+      className="bg-zinc-950/[0.03] dark:bg-zinc-900/20"
+    />
+  )
+}
+
+function ReviewParallaxSection({ onReset, runtime }: { onReset: () => void; runtime: IScriptRuntime | null }) {
+  return (
+    <ParallaxSection
+      id="review"
+      steps={REVIEW_STEPS}
+      stickyAlign="right"
+      chromeTitle="Review"
+      onReset={onReset}
+      stickyContent={() => <FrozenReviewPanel runtime={runtime} />}
+      className="bg-background"
+    />
+  )
+}
+
+// ── FrozenNotebookPanel ───────────────────────────────────────────────
+
+function FrozenNotebookPanel({ activeStep, selectedExample, actualTheme }: { activeStep: number; selectedExample: number; actualTheme: string }) {
+  const [displayScript, setDisplayScript] = useState(
+    NOTEBOOK_STEPS[0]?.examples?.[0]?.wodScript ?? ''
+  )
+  const [opacity, setOpacity] = useState(1)
+  const prevKey = useRef('0-0')
+  const scriptRef = useRef(displayScript)
 
   useEffect(() => {
-    setIsMac(typeof navigator !== 'undefined' && /mac/i.test(navigator.platform))
-  }, [])
+    const step = NOTEBOOK_STEPS[Math.min(activeStep, NOTEBOOK_STEPS.length - 1)]
+    const examples = step.examples ?? []
+    const exIdx = Math.min(selectedExample, Math.max(0, examples.length - 1))
+    const target = examples[exIdx]?.wodScript ?? scriptRef.current
+    const key = `${activeStep}-${exIdx}`
+    if (key === prevKey.current) return
+    prevKey.current = key
+    if (target === scriptRef.current) {
+      setOpacity(1)
+      return
+    }
+    setOpacity(0)
+    const t = setTimeout(() => {
+      setDisplayScript(target)
+      scriptRef.current = target
+      setOpacity(1)
+    }, 200)
+    return () => clearTimeout(t)
+  }, [activeStep, selectedExample])
 
   return (
-    <section id="shortcuts" className="scroll-mt-24 py-20 lg:py-28 border-b border-border/50 bg-background">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
-          <div className="lg:w-72 shrink-0">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-6">
-              <Keyboard className="size-7" />
-            </div>
-            <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase">Keyboard Shortcuts</h2>
-            <p className="mt-4 text-base font-medium text-muted-foreground leading-relaxed">
-              Designed for speed. Find, build, and run workouts without reaching for the mouse.
+    <div
+      className="w-full h-full overflow-hidden"
+      style={{ opacity, transition: 'opacity 200ms ease' }}
+    >
+      <UnifiedEditor
+        value={displayScript}
+        onChange={() => {}}
+        theme={actualTheme}
+        readonly={true}
+        showLineNumbers={false}
+        enableOverlay={true}
+        enableInlineRuntime={false}
+        commands={[]}
+        className="h-full"
+      />
+    </div>
+  )
+}
+
+// ── Section wrappers (Notebook) ───────────────────────────────────────
+
+function NotebookParallaxSection({ actualTheme }: { actualTheme: string }) {
+  return (
+    <ParallaxSection
+      id="notebook"
+      steps={NOTEBOOK_STEPS}
+      stickyAlign="left"
+      chromeTitle="Training Notebook"
+      stickyContent={(activeStep, selectedExample) => (
+        <FrozenNotebookPanel activeStep={activeStep} selectedExample={selectedExample} actualTheme={actualTheme} />
+      )}
+      className="bg-zinc-950/[0.03] dark:bg-zinc-900/20"
+    />
+  )
+}
+
+// ── NextStepsSection ──────────────────────────────────────────────────
+
+function NextStepsSection({ onSearch }: { onSearch: () => void }) {
+  return (
+    <section id="next-steps" className="relative border-b border-border/50 overflow-hidden">
+      <div className="py-24 lg:py-32 bg-primary/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-50 pointer-events-none" />
+        <div className="relative mx-auto max-w-3xl px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase">
+              Next Steps
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground font-medium">
+              Pick your path.
             </p>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => setIsMac(true)}
-                className={cn("text-xs font-bold px-3 py-1.5 rounded-lg transition-colors", isMac ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}
-              >
-                macOS
-              </button>
-              <button
-                onClick={() => setIsMac(false)}
-                className={cn("text-xs font-bold px-3 py-1.5 rounded-lg transition-colors", !isMac ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}
-              >
-                Windows / Linux
-              </button>
-            </div>
           </div>
-          <div className="flex-1 flex flex-col gap-3 w-full">
-            {SHORTCUTS.map((shortcut, idx) => (
-              <div key={idx} className="flex items-center gap-4 p-5 rounded-2xl bg-card border border-border/60 shadow-sm">
-                <div className="flex items-center gap-1.5 shrink-0 min-w-[90px]">
-                  {(isMac ? shortcut.mac : shortcut.win).map((key, ki) => (
-                    <span
-                      key={ki}
-                      className="inline-flex items-center justify-center min-w-[36px] px-2 py-1.5 text-[11px] font-black tracking-wide bg-muted border border-border rounded-lg font-mono shadow-[0_2px_0_0_var(--border)] uppercase"
-                    >
-                      {key}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-sm font-medium text-foreground">{shortcut.description}</p>
+
+          <div className="flex flex-col gap-5">
+            {/* Zero To Hero */}
+            <a
+              href="#/getting-started"
+              className="group flex items-start gap-5 p-6 rounded-2xl border border-border/60 bg-background hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all"
+            >
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <BookOpen className="size-6" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">
+                  Zero to Hero
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                  Get up and running with wod.lang — or take a deep dive into the{' '}
+                  <span
+                    className="inline text-primary font-bold cursor-pointer hover:underline"
+                    onClick={(e) => { e.preventDefault(); window.location.hash = '#/syntax' }}
+                  >
+                    Syntax
+                  </span>.
+                </p>
+              </div>
+            </a>
+
+            {/* New Playground */}
+            <a
+              href="#/playground"
+              className="group flex items-start gap-5 p-6 rounded-2xl border border-border/60 bg-background hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all"
+            >
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <TerminalSquare className="size-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">
+                  New Playground
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                  Throwaway scratch space — experiment freely, nothing is saved unless you want it to be.
+                </p>
+              </div>
+            </a>
+
+            {/* Command Palette */}
+            <button
+              onClick={onSearch}
+              className="group flex items-start gap-5 p-6 rounded-2xl border border-border/60 bg-background hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all text-left w-full"
+            >
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <Command className="size-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-foreground">
+                  <kbd className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-xs font-mono font-bold text-muted-foreground border border-border/60 mr-2 align-middle">Ctrl K</kbd>
+                  Command Palette
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                  Search pre-built content from the workout collections — WODs, benchmarks, and templates.
+                </p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
     </section>
   )
 }
+
+
 
 // ── HomePageContent ───────────────────────────────────────────────────
 
@@ -599,9 +837,69 @@ export function HomePageContent({
   activeCategory,
   setActiveCategory,
 }: HomePageContentProps) {
+  const [trackerBlock, setTrackerBlock] = useState<WodBlock | null>(null)
+  const runIdRef = useRef(0)
+  const [homePaletteOpen, setHomePaletteOpen] = useState(false)
+  const [trackerPreview, setTrackerPreview] = useState<string | null>(null)
+  const paletteSourceRef = useRef<'editor' | 'tracker'>('editor')
+  const [liveRuntime, setLiveRuntime] = useState<IScriptRuntime | null>(null)
+
+  /** Called by the editor's Run button — creates (or resets) the tracker runtime */
+  const launchTracker = useCallback((script: string) => {
+    // Strip markdown fences if present
+    const content = script.replace(/^```\w*\n/, '').replace(/\n```$/, '')
+    runIdRef.current += 1
+    setTrackerBlock({
+      id: `home-tracker-${runIdRef.current}`,
+      startLine: 0,
+      endLine: content.split('\n').length,
+      content,
+      state: 'idle',
+      widgetIds: {},
+      version: 1,
+      createdAt: Date.now(),
+    })
+  }, [])
+
+  /** Reset: clear runtime, scroll back to the editor's last (Track) step */
+  const resetDemo = useCallback(() => {
+    setTrackerBlock(null)
+    setLiveRuntime(null)
+    // Scroll to the last editor step which is the "Ready? One Click" slide
+    // Use requestAnimationFrame to ensure DOM has updated after state clear
+    requestAnimationFrame(() => {
+      const lastStepEl = document.querySelector('#editor [data-step="' + (EDITOR_STEPS.length - 1) + '"]')
+      if (lastStepEl) {
+        const rect = lastStepEl.getBoundingClientRect()
+        const scrollTop = window.scrollY + rect.top - STICKY_NAV_HEIGHT - 20
+        window.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
+      } else {
+        scrollToSection('editor')
+      }
+    })
+  }, [])
+
+  /** Extract wod blocks from selected workout content and load into frozen editor */
+  const handleWorkoutSelect = useCallback((item: { id: string; name: string; category: string; content?: string }) => {
+    if (!item.content) return
+    // Extract only ```wod ... ``` blocks
+    const wodBlocks: string[] = []
+    const regex = /```wod\n([\s\S]*?)\n```/g
+    let match: RegExpExecArray | null
+    while ((match = regex.exec(item.content)) !== null) {
+      wodBlocks.push('```wod\n' + match[1] + '\n```')
+    }
+    const script = wodBlocks.length > 0 ? wodBlocks.join('\n\n') : item.content
+    // Load into the frozen editor panel
+    if (frozenEditorLoadRef.current) {
+      frozenEditorLoadRef.current(script)
+    }
+    setHomePaletteOpen(false)
+  }, [])
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Hero Section */}
+      {/* Hero */}
       <section className="relative px-6 pt-24 pb-16 lg:pt-36 lg:pb-24 overflow-hidden">
         <div
           className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30"
@@ -610,13 +908,11 @@ export function HomePageContent({
               'radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.15) 0%, transparent 80%)',
           }}
         />
-        
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-col items-center text-center gap-8">
             <div className="flex size-24 items-center justify-center rounded-[2rem] bg-primary text-primary-foreground shadow-2xl shadow-primary/30 rotate-3 animate-in zoom-in duration-500">
               <Zap className="size-12 fill-current" />
             </div>
-            
             <div className="space-y-6">
               <h1 className="text-6xl font-black tracking-tighter sm:text-8xl lg:text-9xl text-foreground uppercase drop-shadow-sm">
                 WOD.WIKI
@@ -626,85 +922,78 @@ export function HomePageContent({
                   Master your Training.
                 </p>
                 <p className="mx-auto max-w-3xl text-lg font-medium text-muted-foreground sm:text-xl leading-relaxed">
-                  A unified ecosystem for athletes who want <span className="text-foreground">precision, privacy, and performance insight</span> without the subscription — <span className="text-foreground">100% locally.</span>
+                  A unified ecosystem for athletes who want{' '}
+                  <button onClick={() => scrollToSection('editor')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Plan</button>
+                  {' '}for performance,{' '}
+                  <button onClick={() => { const el = document.querySelector('#editor [data-step="' + (EDITOR_STEPS.length - 1) + '"]'); if (el) { const rect = el.getBoundingClientRect(); window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - STICKY_NAV_HEIGHT - 20), behavior: 'smooth' }); } else { scrollToSection('tracker'); } }} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Track</button>
+                  {' '}insights, analyze collected{' '}
+                  <button onClick={() => scrollToSection('review')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Metrics</button>
+                  {' '}— all with the simplicity of a wiki{' '}
+                  <button onClick={() => scrollToSection('notebook')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Notebook</button>.
                 </p>
               </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 mt-4 text-muted-foreground/40">
+              <span className="text-[9px] font-black uppercase tracking-[0.35em]">Scroll to explore</span>
+              <ChevronDown className="size-4 animate-bounce" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Sticky Navigation */}
-      <StickyNav />
+      {/* Act 1 — Editor */}
+      <EditorParallaxSection actualTheme={actualTheme} onRun={launchTracker} onSearch={() => { paletteSourceRef.current = 'editor'; setHomePaletteOpen(true) }} />
 
-      {/* Guide Links */}
-      <GuideSection />
-
-      {/* Feature Sections */}
-      <SideTabsSection 
-        id="wodscript"
-        title="WodScript"
-        description="Markdown with Mermaid-inspired syntax designed specifically for workout definitions. Stop struggling with complex apps; write as fast as you think."
-        tabs={WODSCRIPT_TABS}
-        align="left"
+      {/* Act 2 — Tracker */}
+      <TrackerParallaxSection
+        block={trackerBlock}
+        onReset={resetDemo}
+        onSearch={() => { paletteSourceRef.current = 'tracker'; setHomePaletteOpen(true) }}
+        preview={trackerPreview}
+        onStartPreview={(script) => { setTrackerPreview(null); launchTracker(script) }}
+        onClearPreview={() => { paletteSourceRef.current = 'tracker'; setTrackerPreview(null); setHomePaletteOpen(true) }}
         actualTheme={actualTheme}
+        onRuntimeReady={setLiveRuntime}
       />
 
-      <SideTabsSection 
-        id="clock"
-        title="Actionable Clock"
-        description="The clock isn't just a timer; it's an execution engine. It understands your script, provides countdowns for transitions, and casts to your TV."
-        tabs={CLOCK_TABS}
-        align="right"
-        actualTheme={actualTheme}
-      />
+      {/* Act 3 — Review */}
+      <ReviewParallaxSection onReset={resetDemo} runtime={liveRuntime} />
 
-      <SideTabsSection 
-        id="metrics"
-        title="Deep Metrics"
-        description="Every repetition and second is captured. WOD.WIKI automatically parses your results to provide volume tracking and progression charts."
-        tabs={METRICS_TABS}
-        align="left"
-        actualTheme={actualTheme}
-      />
+      {/* Act 4 — Notebook */}
+      <NotebookParallaxSection actualTheme={actualTheme} />
 
-      <WorkflowSection />
-
-      <ReportsSection />
-      
-      {/* Keyboard Shortcuts */}
-      <ShortcutsSection />
-
-      <PrivacySection />
-
-      {/* Main Playground Editor (Always at bottom for quick access) */}
-      <section id="full-editor" className="flex flex-1 flex-col min-h-[700px] border-t border-border">
-        <div className="flex items-center justify-between px-6 py-4 bg-muted/40 border-b border-border">
-           <div className="flex items-center gap-3">
-              <div className="size-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_var(--primary)]" />
-              <h2 className="text-xs font-black uppercase tracking-[0.15em] text-foreground">Main Playground</h2>
-           </div>
-           <div className="text-[10px] font-mono text-muted-foreground font-bold uppercase tracking-tighter bg-muted/50 px-3 py-1.5 rounded-md border border-border/50">
-              Storage: Local IndexedDB // Persistence: Active
-           </div>
-        </div>
-        <UnifiedEditor
-          key="home-playground"
-          value={localStorage.getItem('playground-content') || PLAYGROUND_CONTENT}
-          onChange={(val) => localStorage.setItem('playground-content', val)}
-          className="flex-1 min-h-0 w-full"
-          theme={actualTheme}
-        />
-      </section>
+      {/* Next Steps */}
+      <NextStepsSection onSearch={() => { paletteSourceRef.current = 'editor'; setHomePaletteOpen(true) }} />
 
       <CommandPalette
-        isOpen={isCommandPaletteOpen}
+        isOpen={isCommandPaletteOpen || homePaletteOpen}
         onClose={() => {
           setIsCommandPaletteOpen(false)
+          setHomePaletteOpen(false)
           setActiveCategory(null)
         }}
         items={workoutItems}
-        onSelect={onSelectWorkout}
+        onSelect={(item) => {
+          if (homePaletteOpen) {
+            if (paletteSourceRef.current === 'tracker') {
+              // From tracker: extract wod blocks and show preview
+              if (!item.content) return
+              const wodBlocks: string[] = []
+              const regex = /```wod\n([\s\S]*?)\n```/g
+              let match: RegExpExecArray | null
+              while ((match = regex.exec(item.content)) !== null) {
+                wodBlocks.push('```wod\n' + match[1] + '\n```')
+              }
+              const script = wodBlocks.length > 0 ? wodBlocks.join('\n\n') : item.content
+              setTrackerPreview(script)
+              setHomePaletteOpen(false)
+            } else {
+              handleWorkoutSelect(item)
+            }
+          } else {
+            onSelectWorkout(item)
+          }
+        }}
         initialCategory={activeCategory}
       />
     </div>

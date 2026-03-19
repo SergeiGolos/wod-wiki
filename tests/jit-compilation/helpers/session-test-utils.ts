@@ -22,6 +22,7 @@ import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/Inter
 import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '@/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '@/runtime/compiler/strategies/components/GenericGroupStrategy';
+import { RestBlockStrategy } from '@/runtime/compiler/strategies/components/RestBlockStrategy';
 import { SoundStrategy } from '@/runtime/compiler/strategies/enhancements/SoundStrategy';
 import { ReportOutputStrategy } from '@/runtime/compiler/strategies/enhancements/ReportOutputStrategy';
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
@@ -41,6 +42,7 @@ export function createFullCompiler(): JitCompiler {
     compiler.registerStrategy(new GenericTimerStrategy());
     compiler.registerStrategy(new GenericLoopStrategy());
     compiler.registerStrategy(new GenericGroupStrategy());
+    compiler.registerStrategy(new RestBlockStrategy());
 
     // Enhancement strategies (Priority 15-50)
     compiler.registerStrategy(new SoundStrategy());
