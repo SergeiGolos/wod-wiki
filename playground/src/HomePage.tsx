@@ -194,7 +194,7 @@ function scrollToSection(id: string) {
 
 // ── MacOS Chrome Wrapper ───────────────────────────────────────────────
 
-function MacOSChrome({ title, children, onReset }: { title: string; children: ReactNode; onReset?: () => void }) {
+function MacOSChrome({ title, children, onReset, headerActions }: { title: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode }) {
   return (
     <div className="flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background">
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
@@ -205,6 +205,7 @@ function MacOSChrome({ title, children, onReset }: { title: string; children: Re
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</span>
+          {headerActions}
           {onReset && (
             <button
               onClick={onReset}
@@ -233,11 +234,13 @@ interface ParallaxSectionProps {
   chromeTitle?: string
   className?: string
   onReset?: () => void
+  /** Extra actions rendered in the MacOS chrome header bar */
+  headerActions?: ReactNode
   /** Render extra content below the body text for a specific step */
   renderStepExtra?: (stepIdx: number, activeStep: number) => ReactNode | null
 }
 
-function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chromeTitle = 'WodScript', className, onReset, renderStepExtra }: ParallaxSectionProps) {
+function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chromeTitle = 'WodScript', className, onReset, headerActions, renderStepExtra }: ParallaxSectionProps) {
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const [activeStep, setActiveStep] = useState(0)
   const [selectedExamples, setSelectedExamples] = useState<number[]>(() => steps.map(() => 0))
@@ -291,7 +294,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
       className="w-[60%] self-start sticky hidden lg:block p-6 pt-8 pb-8"
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
-      <MacOSChrome title={chromeTitle} onReset={onReset}>
+      <MacOSChrome title={chromeTitle} onReset={onReset} headerActions={headerActions}>
         {stickyPanel}
       </MacOSChrome>
     </div>
@@ -305,7 +308,7 @@ function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chro
       className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
       style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(40vh - ${MOBILE_STICKY_TOP / 2}px)` }}
     >
-      <MacOSChrome title={chromeTitle} onReset={onReset}>
+      <MacOSChrome title={chromeTitle} onReset={onReset} headerActions={headerActions}>
         {stickyPanel}
       </MacOSChrome>
     </div>
@@ -464,9 +467,9 @@ function FrozenEditorPanel({ activeStep, selectedExample, actualTheme, onRun }: 
       >
         <UnifiedEditor
           value={displayScript}
-          onChange={() => {}}
+          onChange={(v) => { setDisplayScript(v); scriptRef.current = v }}
           theme={actualTheme}
-          readonly={true}
+          readonly={false}
           showLineNumbers={false}
           enableOverlay={true}
           enableInlineRuntime={false}
@@ -480,12 +483,11 @@ function FrozenEditorPanel({ activeStep, selectedExample, actualTheme, onRun }: 
 
 // ── LiveTrackerPanel (real runtime) ───────────────────────────────────
 
-function LiveTrackerPanel({ block, onReset, onSearch, preview, onStartPreview, onClearPreview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onReset: () => void; onSearch: () => void; preview: string | null; onStartPreview: (script: string) => void; onClearPreview: () => void; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
-  const handleClose = useCallback(() => {
-    onReset()
-  }, [onReset])
+function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onSearch: () => void; preview: string | null; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
+  // Stop just keeps the panel visible (no-op close) — only Reset clears the engine
+  const handleClose = useCallback(() => {}, [])
 
-  // Preview mode: show loaded workout with Start button
+  // Preview mode: show loaded workout (browse/run buttons are now in the header)
   if (!block && preview) {
     return (
       <div className="flex flex-col w-full h-full overflow-hidden">
@@ -501,22 +503,6 @@ function LiveTrackerPanel({ block, onReset, onSearch, preview, onStartPreview, o
             commands={[]}
             className="h-full"
           />
-        </div>
-        <div className="flex items-center gap-2 px-4 py-3 border-t border-border/60 bg-muted/20 shrink-0">
-          <button
-            onClick={() => onStartPreview(preview)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-primary/30 hover:scale-[1.04] transition-all"
-          >
-            <Play className="h-3 w-3 fill-current" />
-            Start
-          </button>
-          <button
-            onClick={onClearPreview}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted/60 text-muted-foreground font-black text-xs uppercase tracking-wider border border-border/60 hover:bg-muted hover:text-foreground transition-all"
-          >
-            <Search className="size-3" />
-            Browse
-          </button>
         </div>
       </div>
     )
@@ -634,6 +620,28 @@ function EditorParallaxSection({ actualTheme, onRun, onSearch }: { actualTheme: 
 }
 
 function TrackerParallaxSection({ block, onReset, onSearch, preview, onStartPreview, onClearPreview, actualTheme, onRuntimeReady }: { block: WodBlock | null; onReset: () => void; onSearch: () => void; preview: string | null; onStartPreview: (script: string) => void; onClearPreview: () => void; actualTheme: string; onRuntimeReady?: (runtime: IScriptRuntime) => void }) {
+  // Build header actions: Browse + Run (when preview is loaded)
+  const headerActions = (
+    <>
+      {!block && preview && (
+        <button
+          onClick={() => onStartPreview(preview)}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-primary-foreground bg-primary hover:bg-primary/90 transition-all"
+        >
+          <Play className="size-2.5 fill-current" />
+          Run
+        </button>
+      )}
+      <button
+        onClick={onClearPreview}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-transparent hover:border-border/60 transition-all"
+      >
+        <Search className="size-2.5" />
+        Browse
+      </button>
+    </>
+  )
+
   return (
     <ParallaxSection
       id="tracker"
@@ -641,7 +649,8 @@ function TrackerParallaxSection({ block, onReset, onSearch, preview, onStartPrev
       stickyAlign="left"
       chromeTitle="Live Tracker"
       onReset={onReset}
-      stickyContent={() => <LiveTrackerPanel block={block} onReset={onReset} onSearch={onSearch} preview={preview} onStartPreview={onStartPreview} onClearPreview={onClearPreview} actualTheme={actualTheme} onRuntimeReady={onRuntimeReady} />}
+      headerActions={headerActions}
+      stickyContent={() => <LiveTrackerPanel block={block} onSearch={onSearch} preview={preview} actualTheme={actualTheme} onRuntimeReady={onRuntimeReady} />}
       className="bg-zinc-950/[0.03] dark:bg-zinc-900/20"
     />
   )
