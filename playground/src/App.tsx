@@ -102,14 +102,11 @@ import {
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
 const HOME_LINKS = [
-  { id: 'learn', label: 'Learn' },
-  { id: 'wodscript', label: 'WodScript' },
-  { id: 'clock', label: 'Clock' },
-  { id: 'metrics', label: 'Metrics' },
-  { id: 'workflow', label: 'Workflow' },
-  { id: 'shortcuts', label: 'Shortcuts' },
-  { id: 'reports', label: 'Reports' },
-  { id: 'privacy', label: 'Privacy' },
+  { id: 'editor', label: 'Plan' },
+  { id: 'tracker', label: 'Track' },
+  { id: 'review', label: 'Metrics' },
+  { id: 'notebook', label: 'Notebook' },
+  { id: 'next-steps', label: 'Next Steps' },
 ]
 
 const ZERO_TO_HERO_LINKS = [
@@ -570,7 +567,6 @@ function AppContent() {
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
-  const [homeHeaderVisible, setHomeHeaderVisible] = useState(false)
 
   // Unified note route: /note/playground/:name behaves like /playground/:name
   const isNotePlayground = location.pathname.startsWith('/note/playground/')
@@ -662,20 +658,10 @@ function AppContent() {
 
   // Nav links for the current page (used in the sticky header dropdown)
   const currentNavLinks = useMemo(() => {
+    if (location.pathname === '/') return HOME_LINKS
     if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
     if (location.pathname === '/syntax') return SYNTAX_LINKS
     return []
-  }, [location.pathname])
-
-  // Show/hide the home scroll-triggered sticky header
-  useEffect(() => {
-    if (location.pathname !== '/') {
-      setHomeHeaderVisible(false)
-      return
-    }
-    const handleScroll = () => setHomeHeaderVisible(window.scrollY > 350)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
   }, [location.pathname])
 
   const handleSelectWorkout = useCallback((item: any) => {
@@ -909,6 +895,14 @@ function AppContent() {
                 <HomeIcon data-slot="icon" />
                 <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
+              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
+                <AcademicCapIcon data-slot="icon" />
+                <SidebarLabel>Zero to Hero</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem onClick={() => navigate('/syntax')} current={location.pathname === '/syntax'}>
+                <CodeBracketIcon data-slot="icon" />
+                <SidebarLabel>Syntax</SidebarLabel>
+              </SidebarItem>
               <SidebarItem onClick={handleSearchClick}>
                 <MagnifyingGlassIcon data-slot="icon" />
                 <SidebarLabel>Search</SidebarLabel>
@@ -918,14 +912,6 @@ function AppContent() {
                   </abbr>{' '}
                   K
                 </kbd>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
-                <AcademicCapIcon data-slot="icon" />
-                <SidebarLabel>Zero to Hero</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/syntax')} current={location.pathname === '/syntax'}>
-                <CodeBracketIcon data-slot="icon" />
-                <SidebarLabel>Syntax</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
           </SidebarHeader>
@@ -1011,46 +997,21 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        {/* Non-home sticky header with page nav dropdown */}
-        {currentWorkout.name !== 'Home' && (
-          <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
-            <div className="flex items-center justify-between px-6 lg:px-10">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-2 rounded-full bg-primary" />
-                <h1 className="text-4xl font-black tracking-tight text-foreground leading-none">{currentWorkout.name}</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
-                <CastButtonRpc />
-                <ActionsMenu />
-              </div>
+        {/* Sticky header with page nav dropdown — shown on all pages */}
+        <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
+          <div className="flex items-center justify-between px-6 lg:px-10">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-2 rounded-full bg-primary" />
+              <h1 className="text-4xl font-black tracking-tight text-foreground leading-none">{currentWorkout.name}</h1>
             </div>
-            <hr role="presentation" className="mt-8 w-full border-t border-border opacity-50" />
-          </div>
-        )}
-
-        {/* Home scroll-triggered sticky header — slides in after scrolling past hero */}
-        {location.pathname === '/' && (
-          <div className={cn(
-            "sticky top-0 z-30 max-lg:hidden transition-all duration-300 overflow-hidden",
-            "bg-background/90 backdrop-blur-sm border-b border-border/50",
-            homeHeaderVisible
-              ? "opacity-100 max-h-20 shadow-sm"
-              : "opacity-0 max-h-0 pointer-events-none"
-          )}>
-            <div className="flex items-center justify-between px-6 lg:px-10 py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-7 w-1.5 rounded-full bg-primary" />
-                <span className="text-base font-black tracking-tight text-foreground uppercase">WOD Wiki</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <PageNavDropdown links={HOME_LINKS} scrollToSection={scrollToSection} />
-                <CastButtonRpc />
-                <ActionsMenu />
-              </div>
+            <div className="flex items-center gap-4">
+              <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
+              <CastButtonRpc />
+              <ActionsMenu />
             </div>
           </div>
-        )}
+          <hr role="presentation" className="mt-8 w-full border-t border-border opacity-50" />
+        </div>
         
         <div className="flex-1 flex flex-col min-h-0">
           {currentWorkout.name === 'Home' ? (

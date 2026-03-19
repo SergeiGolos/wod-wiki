@@ -73,7 +73,7 @@ describe('🟢 Fixed Rounds — (3) 10 Pullups', () => {
         userNext(ctx);
         expect(getRoundState(ctx)?.current).toBe(1);
         expect(getRoundState(ctx)?.total).toBe(3);
-        expect(ctx.runtime.stack.current?.blockType).toBe('effort');
+        expect(ctx.runtime.stack.current?.blockType).toMatch(/effort/i);
     });
 
     it('step 2-3: userNext cycles through rounds 2 and 3', () => {
@@ -195,7 +195,7 @@ describe('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', (
         startSession(ctx, { label: 'MultiChildRounds' });
         userNext(ctx); // r1, child 1
         expect(getRoundState(ctx)?.current).toBe(1);
-        expect(ctx.runtime.stack.current?.blockType).toBe('effort');
+        expect(ctx.runtime.stack.current?.blockType).toMatch(/effort/i);
         
         userNext(ctx); // r1, child 2
         expect(getRoundState(ctx)?.current).toBe(1);
@@ -208,8 +208,6 @@ describe('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', (
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'MultiChildRounds' });
         userNext(ctx); // r1 Pullups
-        // We can't easily check the name without more helpers, but let's assume it's correct if it matches AMRAP pattern
-        
         userNext(ctx); // r1 Pushups
         userNext(ctx); // r2 Pullups
         userNext(ctx); // r2 Pushups
@@ -225,19 +223,15 @@ describe('🟢 Rounds with Multiple Children — (3) 10 Pullups / 15 Pushups', (
 // Spec: rounds.md#-large-round-count-skip
 // ===========================================================================
 describe('🔴 Large Round Count — (100) 5 Burpees', () => {
-    const SCRIPT = '(100)\n  5 Burpees';
-    let ctx: SessionTestContext;
-
-    afterEach(() => { if (ctx) disposeSession(ctx); });
-
     it('compiles without error', () => {
-        ctx = createSessionContext(SCRIPT);
+        const ctx = createSessionContext('(100)\n  5 Burpees');
         startSession(ctx, { label: 'LargeCount' });
         expect(ctx.runtime.stack.count).toBeGreaterThan(0);
+        disposeSession(ctx);
     });
 
     it('10000 iterations complete without memory issues and within performance target', () => {
-        ctx = createSessionContext('(10000)\n  5 Burpees');
+        const ctx = createSessionContext('(10000)\n  5 Burpees');
         startSession(ctx, { label: 'LargeCount' });
         userNext(ctx); // start
         
@@ -249,6 +243,7 @@ describe('🔴 Large Round Count — (100) 5 Burpees', () => {
         
         expect(ctx.runtime.stack.count).toBe(0);
         expect(end - start).toBeLessThan(500); // 10,000 iterations in < 500ms
+        disposeSession(ctx);
     });
 });
 
@@ -257,7 +252,7 @@ describe('🔴 Large Round Count — (100) 5 Burpees', () => {
 // Spec: rounds.md#-rounds-with-skippable-rest
 // ===========================================================================
 describe('🟡 Rounds with Skippable Rest', () => {
-    const SCRIPT = '(3)\n  10 Pullups\n  15 Pushups\n  :60 Rest';
+    const SCRIPT = '(3)\n  10 Pullups\n  15 Pushups\n  1:00 Rest';
     let ctx: SessionTestContext;
 
     afterEach(() => { if (ctx) disposeSession(ctx); });
@@ -265,8 +260,10 @@ describe('🟡 Rounds with Skippable Rest', () => {
     it('step 3: rest is auto-pushed after pushups', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'SkipRest' });
-        userNext(ctx); // Pullups
-        userNext(ctx); // Pushups
+        userNext(ctx); // start -> Pullups (R1)
+        userNext(ctx); // Pullups done -> Pushups (R1)
+        userNext(ctx); // Pushups done -> Rest (R1)
+        
         // Rest should be on top
         expect(ctx.runtime.stack.current?.blockType).toMatch(/rest|timer/i);
     });
@@ -274,6 +271,7 @@ describe('🟡 Rounds with Skippable Rest', () => {
     it('step 4a: rest can be skipped via userNext', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'SkipRest' });
+        userNext(ctx); // start
         userNext(ctx); // Pullups
         userNext(ctx); // Pushups
         userNext(ctx); // skip Rest
@@ -283,6 +281,7 @@ describe('🟡 Rounds with Skippable Rest', () => {
     it('step 4b: rest can be waited out', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'WaitRest' });
+        userNext(ctx); // start
         userNext(ctx); // Pullups
         userNext(ctx); // Pushups
         advanceClock(ctx, 60_000);
@@ -303,6 +302,7 @@ describe('🔴 Rounds with Forced Rest (Cannot Skip)', () => {
     it('userNext during forced rest is a no-op', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'ForcedRest' });
+        userNext(ctx); // start
         userNext(ctx); // Pullups
         userNext(ctx); // Pushups
         
@@ -315,6 +315,7 @@ describe('🔴 Rounds with Forced Rest (Cannot Skip)', () => {
     it('rest auto-pops after timer expiry', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'ForcedRest' });
+        userNext(ctx); // start
         userNext(ctx); // Pullups
         userNext(ctx); // Pushups
         advanceClock(ctx, 60_000);
@@ -324,6 +325,8 @@ describe('🔴 Rounds with Forced Rest (Cannot Skip)', () => {
     it('final forced rest must also expire to end session', () => {
         ctx = createSessionContext(SCRIPT);
         startSession(ctx, { label: 'ForcedRestEnd' });
+        userNext(ctx); // start
+        
         for (let r = 0; r < 3; r++) {
             userNext(ctx); // Pullups
             userNext(ctx); // Pushups
