@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "playground-guide-redesign-proposal.md",
+                "file": "2026-03-19.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "playground-guide-redesign-proposal"
+              "title": "2026-03-19"
             }
           }
         ]
@@ -74,8 +74,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -95,8 +94,9 @@
             "state": {
               "type": "backlink",
               "state": {
-                "collapseAll": false,
-                "extraContext": false,
+                "file": "2026-03-19.md",
+                "collapseAll": true,
+                "extraContext": true,
                 "sortOrder": "alphabetical",
                 "showSearch": false,
                 "searchQuery": "",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for 2026-03-19"
             }
           },
           {
@@ -155,20 +155,21 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "2026-03-19.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline"
+              "title": "Outline of 2026-03-19"
             }
           }
-        ]
+        ],
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -181,8 +182,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "bb39ce3108c46725",
+  "active": "f6ff0127789936f8",
   "lastOpenFiles": [
+    "playground-guide-redesign-proposal.md",
+    "2026-03-19.md",
     "editor-display-elements-research.md",
     "finishline/compliance-scenarios/state-transitions.md",
     "finishline/compliance-scenarios/timer.md",
@@ -209,8 +212,6 @@
     "finishline",
     "domain-model/README.md",
     "domain-model/overview.md",
-    "domain-model/entities.md",
-    "unified-editor-prd.md",
     "domain-model",
     "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",
