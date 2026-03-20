@@ -2,7 +2,7 @@
 
 ## 1. Requirement Analysis
 
-- **Core Problem**: Metrics currently flow through a flat precedence system (`ORIGIN_PRECEDENCE` in `metricPrecedence.ts`) that only distinguishes *where* a metric was created (parser, compiler, runtime, user) but does not model the full lifecycle of metric ownership across layers. The issue requests a clearly defined order of precedence where each layer (dialect, user-plan, runtime, user-entry) can **add**, **replace/override**, **null out**, or **create a new instance** of a metric — preserving the original while the container returns the higher-level instance.
+- **Core Problem**: Metrics currently flow through a flat precedence system (`ORIGIN_PRECEDENCE` in `metricPrecedence.ts`) that only distinguishes *where* a metric was created (parser, compiler, runtime, user) but does not model the full lifecycle of metric ownership across layers. The issue requests a clearly defined order of precedence where each layer (dialect, user-plan, runtime, user-entry) can **add**, **replace/override**, **null out**, or **shadow** a metric — creating a new instance of the same type at a higher layer while preserving the original (reading the container returns the higher-level instance; the original remains accessible via `rawMetrics`).
 - **Success Criteria**:
   - Each layer can introduce new metrics not present in lower layers.
   - Each layer can "null out" (suppress) a metric so downstream consumers no longer see it.
@@ -59,8 +59,8 @@ Introduce new `MetricOrigin` values (`'dialect'` and `'user-plan'`) and adjust `
 
 | Tier | Origin | Description |
 |------|--------|-------------|
-| 0 | `user-entry`, `collected` | Post-execution user corrections |
-| 1 | `runtime`, `tracked`, `execution` | Execution-generated data |
+| 0 | `user-entry`, `collected`, `execution` | Post-execution user corrections |
+| 1 | `runtime`, `tracked`, `analyzed` | Execution-generated data |
 | 2 | `user-plan` | Pre-execution user composition |
 | 3 | `dialect`, `hinted` | Domain-specific overrides |
 | 4 | `compiler` | Synthesized during compilation |
@@ -190,7 +190,7 @@ The simplest approach would be to document the existing `ORIGIN_PRECEDENCE` tier
 | **Empty dialect**: Dialect returns no overrides or nullifications | No-op. Statement metrics pass through unchanged. Backward compatible. |
 | **Conflicting user layers**: user-plan sets Rep=10, user-entry sets Rep=12 | user-entry wins (tier 0 > tier 2). Both preserved in raw access. |
 | **Promotion across layers**: Parent has dialect-origin metric, child should inherit | `MetricPromotionBehavior` already copies metrics to `metric:promote` memory. Origin is preserved, so child sees it at dialect tier. |
-| **Runtime overwrites user-plan**: Runtime generates same metric type as user-plan | Runtime (tier 1) has higher precedence than user-plan (tier 2), so runtime wins. This is correct — actual execution data should override planned values. |
+| **Runtime overwrites user-plan**: Runtime generates same metric type as user-plan | If the same `MetricType` is used (e.g., both produce `Rep`), runtime (tier 1) wins over user-plan (tier 2). However, "target" and "actual" should typically use distinct `MetricType` values so they coexist — e.g., user-plan sets a *target* rep count while runtime tracks *actual* reps completed. When semantically distinct, both are preserved. |
 
 ### Performance Implications
 

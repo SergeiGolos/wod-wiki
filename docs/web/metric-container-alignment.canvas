@@ -167,7 +167,7 @@
 			"y": 380,
 			"width": 400,
 			"height": 260,
-			"text": "### Precedence Table\n\n| Tier | Origin | Layer |\n|------|--------|-------|\n| 0 | `user-entry`, `collected` | User corrections |\n| 1 | `runtime`, `tracked` | Execution data |\n| 2 | `user-plan` | User composition |\n| 3 | `dialect`, `hinted` | Domain overrides |\n| 4 | `compiler` | JIT synthesis |\n| 5 | `parser` | Source text |\n\nLower tier number = higher precedence.",
+			"text": "### Precedence Table\n\n| Tier | Origin | Layer |\n|------|--------|-------|\n| 0 | `user-entry`, `collected`, `execution` | User corrections |\n| 1 | `runtime`, `tracked`, `analyzed` | Execution data |\n| 2 | `user-plan` | User composition |\n| 3 | `dialect`, `hinted` | Domain overrides |\n| 4 | `compiler` | JIT synthesis |\n| 5 | `parser` | Source text |\n\nLower tier number = higher precedence.",
 			"color": "6"
 		},
 		{
