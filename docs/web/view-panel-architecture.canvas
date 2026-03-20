@@ -1,0 +1,298 @@
+{
+	"nodes": [
+		{
+			"id": "a1b2c3d4e5f60001",
+			"type": "text",
+			"text": "# Page Shell Layer\n\nThree page archetypes, each with distinct layout needs but shared panel infrastructure.\n\n- **DocsPageShell** — Parallax, hero, sticky nav\n- **JournalPageShell** — Workbench wrapper\n- **CalendarPageShell** — Date picker + tabbed content",
+			"x": -400,
+			"y": -800,
+			"width": 540,
+			"height": 220,
+			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f60002",
+			"type": "text",
+			"text": "# DocsPageShell\n\nLayout for landing, getting-started, and syntax pages.\n\n```\n┌─────────────────────────────┐\n│        HeroBanner           │\n├──────────┬──────────────────┤\n│ StickyNav│ ParallaxSection  │\n│          │ ScrollSection    │\n│          │ [LiveDemo]       │\n└──────────┴──────────────────┘\n```\n\n**Runtime:** 0..N scoped runtimes (one per live demo section)\n\n**Primitives used:**\n- `HeroBanner`\n- `StickyNavPanel` (hero-follow or top-fixed)\n- `ParallaxSection` (IntersectionObserver steps)\n- `ScrollSection` (plain content)\n- `ScopedRuntimeProvider` (optional, per demo)",
+			"x": -1100,
+			"y": -440,
+			"width": 480,
+			"height": 540,
+			"color": "2"
+		},
+		{
+			"id": "a1b2c3d4e5f60003",
+			"type": "text",
+			"text": "# JournalPageShell\n\nWorkout editing and execution — wraps existing Workbench.\n\n```\n┌─────────────────────────────┐\n│         Workbench           │\n│   Plan │ Track │ Review     │\n│        │       │            │\n└─────────────────────────────┘\n```\n\n**Runtime:** 1 runtime via `RuntimeLifecycleProvider`\n\n**Primitives used:**\n- Existing `PanelGrid` / `PanelShell`\n- Existing `ResponsiveViewport`\n- Existing `ViewDescriptor` (Plan/Track/Review)\n- `NotebookProvider` for journal state",
+			"x": -400,
+			"y": -440,
+			"width": 480,
+			"height": 460,
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f60004",
+			"type": "text",
+			"text": "# CalendarPageShell\n\nDate-based workout browsing with list/detail/results tabs.\n\n**Desktop:**\n```\n┌──────────────┬─────────────┐\n│ CalendarWidget│ SummaryPanel│\n├──────────────┴─────────────┤\n│  TabbedContent             │\n│  [List] [Detail] [Results] │\n│  ┌─────────────────────┐   │\n│  │  Scrollable content │   │\n│  └─────────────────────┘   │\n└────────────────────────────┘\n```\n\n**Mobile:**\n```\n┌────────────────────────────┐\n│     CalendarWidget         │\n├────────────────────────────┤\n│ [List] [Detail] [Results]  │\n├────────────────────────────┤\n│     Scrollable content     │\n└────────────────────────────┘\n```\n\n**Runtime:** 0..1 (in Detail tab only)\n\n**Primitives used:**\n- `CalendarWidget` (month view / week-strip mobile)\n- `TabbedContentPanel` (ARIA tablist)\n- `ScopedRuntimeProvider` (Detail tab)",
+			"x": 280,
+			"y": -440,
+			"width": 500,
+			"height": 680,
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f60005",
+			"type": "text",
+			"text": "# Runtime Binding Layer\n\nDecoupled runtime-to-panel binding.\n\n**Pattern:** `ScopedRuntimeProvider`\n- Wraps `RuntimeLifecycleProvider`\n- Panel-local scope\n- Auto-disposal on unmount\n- No conflict with sibling/parent providers\n\n**Per Page Type:**\n- Docs: 0..N scoped (per live demo)\n- Journal: 1 (workbench-level)\n- Calendar: 0..1 (Detail tab only)\n\n**Key Interfaces:**\n- `IScriptRuntime`\n- `IRuntimeSubscription`\n- `SubscriptionManager` (fan-out)",
+			"x": -400,
+			"y": 160,
+			"width": 480,
+			"height": 380,
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f60006",
+			"type": "text",
+			"text": "# Layout Primitives\n\nReusable building blocks for all page shells.\n\n| Primitive | Purpose |\n|-----------|--------|\n| `HeroBanner` | Full-width hero section |\n| `StickyNavPanel` | Scroll-following navigation |\n| `ParallaxSection` | IntersectionObserver step sections |\n| `ScrollSection` | Simple scrollable content |\n| `CalendarWidget` | Month/week date picker |\n| `TabbedContentPanel` | Tab switcher (List/Detail/Results) |\n| `ScopedRuntimeProvider` | Optional runtime binding |\n\n**All primitives compose into `PanelGrid` / `PanelShell`**",
+			"x": -1100,
+			"y": 160,
+			"width": 480,
+			"height": 340,
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f60007",
+			"type": "text",
+			"text": "# Responsive Behavior\n\n**Desktop (≥1024px)**\n- Multi-column layouts\n- Calendar + Summary side-by-side\n- Sticky nav alongside content\n\n**Tablet (768–1023px)**\n- 50/50 split layouts\n- Calendar above summary\n- Parallax with reduced motion\n\n**Mobile (<768px)**\n- Single column stacked\n- Calendar as week-strip\n- Tabs at top, content below\n- 50vh sticky panels (320px min)\n- `hideOnMobile` panels embedded",
+			"x": 280,
+			"y": 360,
+			"width": 380,
+			"height": 380,
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f60008",
+			"type": "text",
+			"text": "# Fan-Out Subscription Pattern\n\n```\nIScriptRuntime\n     │\n     ▼\nSubscriptionManager\n     │\n     ├──→ LocalRuntimeSubscription (browser UI)\n     ├──→ ChromecastSubscription (TV)\n     └──→ AnalyticsSubscription (metrics)\n```\n\n**Multi-Runtime Extension:**\nEach `ScopedRuntimeProvider` creates its own `SubscriptionManager`. Panels bind to the nearest provider in the React tree.\n\n**Disposal Order:**\n1. SubscriptionManager.dispose()\n2. Runtime.dispose()\n3. Hooks auto-unsubscribe",
+			"x": -1100,
+			"y": 620,
+			"width": 480,
+			"height": 400,
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f60009",
+			"type": "text",
+			"text": "# Calendar View — Tab Content\n\n**[List] tab:**\n- Workout entries for selected date range\n- Source: IndexedDB query\n- Virtual scrolling for large sets\n\n**[Detail] tab:**\n- Embedded `JournalPageShell` (mini-workbench)\n- `ScopedRuntimeProvider` for execution\n- Loads selected workout note\n\n**[Results] tab:**\n- Analytics/metrics from store\n- `ReviewGrid` component reuse\n- Aggregated across date range",
+			"x": 800,
+			"y": -200,
+			"width": 380,
+			"height": 400,
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f60010",
+			"type": "text",
+			"text": "# Docs View — Section Types\n\n**Parallax Section:**\n- Steps with transition actions\n- IntersectionObserver detection\n- rootMargin: '-20% 0px -50% 0px'\n\n**Scroll Section:**\n- Plain content, natural scroll\n- Reference documentation\n\n**Sticky Navigation:**\n- `hero-follow`: After hero, sticks to top\n- `top-fixed`: Always at top (syntax page)\n\n**Hero Banner:**\n- Full-width feature showcase\n- Sliding hero of core features\n\n**Live Demo:**\n- `ScopedRuntimeProvider` wrapping editor\n- Independent runtime per demo",
+			"x": -1700,
+			"y": -200,
+			"width": 420,
+			"height": 440,
+			"color": "2"
+		},
+		{
+			"id": "a1b2c3d4e5f60011",
+			"type": "text",
+			"text": "# Chromecast Integration\n\n**Which pages cast?**\n- ✅ Journal (Track view)\n- ❌ Docs (no runtime to cast)\n- ⚠️ Calendar Detail tab (optional)\n\n**Existing pattern:**\n`DisplaySyncBridge` → serializes UI state → `CastTransport` → Receiver\n\n**Extension:** CastButton visibility controlled by page shell. Only Journal shell enables cast controls.",
+			"x": -400,
+			"y": 620,
+			"width": 420,
+			"height": 300,
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f60012",
+			"type": "text",
+			"text": "# Implementation Phases\n\n**Phase 1: Layout Primitives** (Medium)\n- ParallaxSection, StickyNavPanel\n- HeroBanner, ScrollSection\n- Extract from HomePage.tsx\n\n**Phase 2: Page Shells** (Medium)\n- DocsPageShell, JournalPageShell\n- CalendarPageShell\n- CalendarWidget, TabbedContentPanel\n\n**Phase 3: Runtime Scoping** (Low)\n- ScopedRuntimeProvider\n- Validate nesting behavior\n\n**Phase 4: Integration** (Medium)\n- Route updates in App.tsx\n- Migrate HomePage content\n- Wire calendar → journal navigation",
+			"x": 280,
+			"y": -800,
+			"width": 420,
+			"height": 400,
+			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f60013",
+			"type": "text",
+			"text": "# Consistent Parallax Framework\n\nAbstract parallax page primitive driven by a section manifest.\n\n**Core Components:**\n- `ParallaxPage` — reads `ParallaxPageManifest`, renders sections\n- `ParallaxSectionConfig` — type, steps, runtimeId, stickyPanel, transitions\n- `StickyPanel` — swaps content based on active section/step\n\n**Multi-Engine Binding:**\n```\nSection[1] → ScopedRuntime(\"editor-demo\")\n  └─ stickyPanel uses editor runtime\n\nSection[2] → ScopedRuntime(\"timer-demo\")\n  └─ stickyPanel uses timer runtime\n```\n\n**Transition Points:**\n- `onEnter` / `onLeave` per section\n- Cross-fade sticky panel content\n- Lazy runtime init/dispose on viewport entry\n- Scroll-snap at section boundaries\n\n**Responsive:**\n- Desktop: side sticky (60%) + scrolling steps\n- Tablet: top sticky + stacked steps\n- Mobile: 40vh top panel, `prefers-reduced-motion` fallback",
+			"x": -1700,
+			"y": -800,
+			"width": 480,
+			"height": 600,
+			"color": "2"
+		},
+		{
+			"id": "a1b2c3d4e5f60014",
+			"type": "text",
+			"text": "# Journal View\n\nConsistent journal experience across all viewport sizes.\n\n**Editor Config:**\n- `showLineNumbers={false}` (writing, not coding)\n- `lineWrapping={true}`, `max-w-4xl` on desktop\n\n**Journal Page Index — 3 Variants:**\n\n**Mobile (<768px):** Hamburger submenu\n```\n☰ → Submenu under parent sections\n    ▸ Warm Up\n    ▸ Main Work\n      ├ 5x5 Back Squat\n      └ AMRAP 10:00\n[Full-width editor below]\n```\n\n**Tablet (768–1023px):** Navigation select\n```\n[▾ Current Section] ← dropdown in nav bar\n[Full-width editor below]\n```\n\n**Desktop (≥1024px):** Sticky side panel\n```\n┌──────────────┬─────────────┐\n│ Editor       │ Sticky Index│\n│ (max-w-4xl)  │ (right)     │\n│              │ ▸ Warm Up   │\n│              │ ▸ Main Work │\n│              │   ├ Squat ● │\n│              │   └ AMRAP ◷ │\n└──────────────┴─────────────┘\n```\n\n**Shared:** `useJournalIndex` hook + IntersectionObserver scroll tracking\n\n**Data source:** `WodIndexPanel` (headings + WOD blocks + badges)",
+			"x": 800,
+			"y": -800,
+			"width": 500,
+			"height": 740,
+			"color": "5"
+		}
+	],
+	"edges": [
+		{
+			"id": "e1b2c3d4e5f60001",
+			"fromNode": "a1b2c3d4e5f60001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60002",
+			"toSide": "top",
+			"label": "Docs"
+		},
+		{
+			"id": "e1b2c3d4e5f60002",
+			"fromNode": "a1b2c3d4e5f60001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60003",
+			"toSide": "top",
+			"label": "Journal"
+		},
+		{
+			"id": "e1b2c3d4e5f60003",
+			"fromNode": "a1b2c3d4e5f60001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60004",
+			"toSide": "top",
+			"label": "Calendar"
+		},
+		{
+			"id": "e1b2c3d4e5f60004",
+			"fromNode": "a1b2c3d4e5f60002",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60006",
+			"toSide": "top",
+			"label": "uses primitives"
+		},
+		{
+			"id": "e1b2c3d4e5f60005",
+			"fromNode": "a1b2c3d4e5f60003",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60005",
+			"toSide": "top",
+			"label": "binds runtime"
+		},
+		{
+			"id": "e1b2c3d4e5f60006",
+			"fromNode": "a1b2c3d4e5f60004",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60005",
+			"toSide": "right",
+			"label": "Detail tab runtime"
+		},
+		{
+			"id": "e1b2c3d4e5f60007",
+			"fromNode": "a1b2c3d4e5f60005",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60008",
+			"toSide": "right",
+			"label": "creates SubscriptionManager"
+		},
+		{
+			"id": "e1b2c3d4e5f60008",
+			"fromNode": "a1b2c3d4e5f60004",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60009",
+			"toSide": "left",
+			"label": "tab content"
+		},
+		{
+			"id": "e1b2c3d4e5f60009",
+			"fromNode": "a1b2c3d4e5f60002",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60010",
+			"toSide": "right",
+			"label": "section types"
+		},
+		{
+			"id": "e1b2c3d4e5f60010",
+			"fromNode": "a1b2c3d4e5f60003",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60011",
+			"toSide": "top",
+			"label": "cast support"
+		},
+		{
+			"id": "e1b2c3d4e5f60011",
+			"fromNode": "a1b2c3d4e5f60001",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60012",
+			"toSide": "left",
+			"label": "phased delivery"
+		},
+		{
+			"id": "e1b2c3d4e5f60012",
+			"fromNode": "a1b2c3d4e5f60006",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60008",
+			"toSide": "left",
+			"label": "fan-out pattern"
+		},
+		{
+			"id": "e1b2c3d4e5f60013",
+			"fromNode": "a1b2c3d4e5f60002",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60005",
+			"toSide": "left",
+			"label": "scoped runtimes"
+		},
+		{
+			"id": "e1b2c3d4e5f60014",
+			"fromNode": "a1b2c3d4e5f60007",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60006",
+			"toSide": "right",
+			"label": "drives layout"
+		},
+		{
+			"id": "e1b2c3d4e5f60015",
+			"fromNode": "a1b2c3d4e5f60013",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60002",
+			"toSide": "left",
+			"label": "abstracts into"
+		},
+		{
+			"id": "e1b2c3d4e5f60016",
+			"fromNode": "a1b2c3d4e5f60013",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60010",
+			"toSide": "top",
+			"label": "section types"
+		},
+		{
+			"id": "e1b2c3d4e5f60017",
+			"fromNode": "a1b2c3d4e5f60013",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60005",
+			"toSide": "top",
+			"label": "multi-engine binding"
+		},
+		{
+			"id": "e1b2c3d4e5f60018",
+			"fromNode": "a1b2c3d4e5f60014",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60003",
+			"toSide": "right",
+			"label": "enhances"
+		},
+		{
+			"id": "e1b2c3d4e5f60019",
+			"fromNode": "a1b2c3d4e5f60014",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60007",
+			"toSide": "top",
+			"label": "3 responsive variants"
+		}
+	]
+}
