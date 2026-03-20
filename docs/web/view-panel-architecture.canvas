@@ -119,6 +119,26 @@
 			"width": 420,
 			"height": 400,
 			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f60013",
+			"type": "text",
+			"text": "# Consistent Parallax Framework\n\nAbstract parallax page primitive driven by a section manifest.\n\n**Core Components:**\n- `ParallaxPage` — reads `ParallaxPageManifest`, renders sections\n- `ParallaxSectionConfig` — type, steps, runtimeId, stickyPanel, transitions\n- `StickyPanel` — swaps content based on active section/step\n\n**Multi-Engine Binding:**\n```\nSection[1] → ScopedRuntime(\"editor-demo\")\n  └─ stickyPanel uses editor runtime\n\nSection[2] → ScopedRuntime(\"timer-demo\")\n  └─ stickyPanel uses timer runtime\n```\n\n**Transition Points:**\n- `onEnter` / `onLeave` per section\n- Cross-fade sticky panel content\n- Lazy runtime init/dispose on viewport entry\n- Scroll-snap at section boundaries\n\n**Responsive:**\n- Desktop: side sticky (60%) + scrolling steps\n- Tablet: top sticky + stacked steps\n- Mobile: 40vh top panel, `prefers-reduced-motion` fallback",
+			"x": -1700,
+			"y": -800,
+			"width": 480,
+			"height": 600,
+			"color": "2"
+		},
+		{
+			"id": "a1b2c3d4e5f60014",
+			"type": "text",
+			"text": "# Journal View\n\nConsistent journal experience across all viewport sizes.\n\n**Editor Config:**\n- `showLineNumbers={false}` (writing, not coding)\n- `lineWrapping={true}`, `max-w-4xl` on desktop\n\n**Journal Page Index — 3 Variants:**\n\n**Mobile (<768px):** Hamburger submenu\n```\n☰ → Submenu under parent sections\n    ▸ Warm Up\n    ▸ Main Work\n      ├ 5x5 Back Squat\n      └ AMRAP 10:00\n[Full-width editor below]\n```\n\n**Tablet (768–1023px):** Navigation select\n```\n[▾ Current Section] ← dropdown in nav bar\n[Full-width editor below]\n```\n\n**Desktop (≥1024px):** Sticky side panel\n```\n┌──────────────┬─────────────┐\n│ Editor       │ Sticky Index│\n│ (max-w-4xl)  │ (right)     │\n│              │ ▸ Warm Up   │\n│              │ ▸ Main Work │\n│              │   ├ Squat ● │\n│              │   └ AMRAP ◷ │\n└──────────────┴─────────────┘\n```\n\n**Shared:** `useJournalIndex` hook + IntersectionObserver scroll tracking\n\n**Data source:** `WodIndexPanel` (headings + WOD blocks + badges)",
+			"x": 800,
+			"y": -800,
+			"width": 500,
+			"height": 740,
+			"color": "5"
 		}
 	],
 	"edges": [
@@ -233,6 +253,46 @@
 			"toNode": "a1b2c3d4e5f60006",
 			"toSide": "right",
 			"label": "drives layout"
+		},
+		{
+			"id": "e1b2c3d4e5f60015",
+			"fromNode": "a1b2c3d4e5f60013",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60002",
+			"toSide": "left",
+			"label": "abstracts into"
+		},
+		{
+			"id": "e1b2c3d4e5f60016",
+			"fromNode": "a1b2c3d4e5f60013",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60010",
+			"toSide": "top",
+			"label": "section types"
+		},
+		{
+			"id": "e1b2c3d4e5f60017",
+			"fromNode": "a1b2c3d4e5f60013",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60005",
+			"toSide": "top",
+			"label": "multi-engine binding"
+		},
+		{
+			"id": "e1b2c3d4e5f60018",
+			"fromNode": "a1b2c3d4e5f60014",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60003",
+			"toSide": "right",
+			"label": "enhances"
+		},
+		{
+			"id": "e1b2c3d4e5f60019",
+			"fromNode": "a1b2c3d4e5f60014",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60007",
+			"toSide": "top",
+			"label": "3 responsive variants"
 		}
 	]
 }

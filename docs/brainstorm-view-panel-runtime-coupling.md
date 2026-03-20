@@ -310,6 +310,302 @@ A declarative page DSL is premature. With only three page types, direct componen
 
 ---
 
+## 7. Feature Deep-Dive: Consistent Parallax Framework
+
+### Problem
+
+The current parallax implementation in `HomePage.tsx` is inline and page-specific. Each parallax section duplicates `IntersectionObserver` setup, sticky panel management, and step-transition logic. There is no abstract framework for scripting parallax-driven pages, and no mechanism to link different views within a parallax flow to independent runtime engines.
+
+### Goals
+
+- **Abstract parallax page primitive** — A single, configurable `ParallaxPage` component that accepts a section manifest and renders the full parallax experience.
+- **Section composition** — Each section declares its content type (parallax steps, scroll content, hero banner), sticky panel binding, and optional runtime engine.
+- **Multi-engine support** — Different sections on the same page can bind to different runtime engines (e.g., an editor demo in section 2, a timer demo in section 4).
+- **Transition points** — Defined, observable points between sections where transition actions fire (e.g., change sticky panel content, swap runtime, trigger animation).
+- **Easy to script** — Page authors define sections as data; the framework handles observers, sticky behavior, and transitions.
+
+### Proposed Architecture
+
+#### Section Manifest
+
+```typescript
+interface ParallaxPageManifest {
+  sections: ParallaxSectionConfig[];
+  stickyNavVariant: 'hero-follow' | 'top-fixed';
+}
+
+interface ParallaxSectionConfig {
+  id: string;
+  type: 'parallax' | 'scroll' | 'hero' | 'sticky-content';
+  /** Steps within a parallax section */
+  steps?: ParallaxStepConfig[];
+  /** Content for scroll/hero/sticky sections */
+  content?: React.ReactNode;
+  /** Optional runtime binding for live demos in this section */
+  runtimeId?: string;
+  /** Sticky panel content that appears alongside this section */
+  stickyPanel?: {
+    position: 'left' | 'right';
+    content: React.ReactNode | ((activeStep: number) => React.ReactNode);
+  };
+  /** Transition actions fired when entering/leaving this section */
+  onEnter?: () => void;
+  onLeave?: () => void;
+}
+
+interface ParallaxStepConfig {
+  id: string;
+  content: React.ReactNode;
+  /** Tab examples within this step (e.g., code variants, visual demos the user can switch between) */
+  examples?: { label: string; content: React.ReactNode }[];
+}
+```
+
+#### Core Component: `ParallaxPage`
+
+```
+┌─────────────────────────────────────────────┐
+│ ParallaxPage                                │
+│                                             │
+│  ┌─────────────────────────────────────────┐│
+│  │ Section[0]: hero                        ││
+│  │  → HeroBanner                           ││
+│  └─────────────────────────────────────────┘│
+│  ┌──────────┬──────────────────────────────┐│
+│  │ Sticky   │ Section[1]: parallax         ││
+│  │ Panel    │  → Step 0 (IntersectionObs)  ││
+│  │ (bound   │  → Step 1                    ││
+│  │  to      │  → Step 2                    ││
+│  │  active  │  → [ScopedRuntime: engine-1] ││
+│  │  step)   │                              ││
+│  ├──────────┼──────────────────────────────┤│
+│  │ Sticky   │ Section[2]: parallax         ││
+│  │ Panel    │  → Step 0                    ││
+│  │ (new     │  → Step 1                    ││
+│  │  content)│  → [ScopedRuntime: engine-2] ││
+│  ├──────────┴──────────────────────────────┤│
+│  │ Section[3]: scroll                      ││
+│  │  → Plain content, natural scroll        ││
+│  └─────────────────────────────────────────┘│
+└─────────────────────────────────────────────┘
+```
+
+#### Multi-Engine Binding
+
+Each section with a `runtimeId` gets a `ScopedRuntimeProvider`. The sticky panel receives the active step index and can render content driven by the section's runtime:
+
+```
+Section[1] ──→ ScopedRuntimeProvider("editor-demo")
+  └─ stickyPanel receives: useScriptRuntime() from "editor-demo" scope
+
+Section[2] ──→ ScopedRuntimeProvider("timer-demo")
+  └─ stickyPanel receives: useScriptRuntime() from "timer-demo" scope
+```
+
+Runtimes are lazily created when the section enters the viewport and disposed when scrolled far out of view (using `IntersectionObserver` with generous `rootMargin`).
+
+#### Transition Points
+
+Between sections, the framework fires `onLeave` / `onEnter` callbacks. These allow:
+- Swapping sticky panel content with a cross-fade animation
+- Preloading the next section's runtime engine
+- Triggering scroll-snap behavior at section boundaries
+- Analytics events (section viewed, time spent)
+
+#### IntersectionObserver Configuration
+
+Extracted from `HomePage.tsx` and made configurable:
+
+| Parameter | Desktop | Mobile | Purpose |
+|-----------|---------|--------|---------|
+| `rootMargin` | `-30% 0px -30% 0px` | `-${headerHeight}px 0px -20% 0px` | Detection zone |
+| `threshold` | `[0, 0.1, 0.25, 0.5, 0.75]` | Same | Granularity |
+| Sticky height | `calc(100vh - headerHeight)` | `40vh` (320px min) | Panel sizing |
+| Sticky position | Side (left/right, 60% width) | Top (full width) | Layout |
+
+#### Responsive Behavior
+
+- **Desktop (≥1024px):** Side-by-side sticky panel + scrolling steps. Section transitions fire at defined scroll points.
+- **Tablet (768–1023px):** Sticky panel stacks above content at reduced height. Transition points same as desktop.
+- **Mobile (<768px):** Sticky panel at top (40vh). Steps scroll beneath. `prefers-reduced-motion` disables parallax transitions and uses simple opacity fades.
+
+### Implementation Steps
+
+1. Extract `ParallaxSection` from `HomePage.tsx` into `src/panels/page-shells/ParallaxSection.tsx`
+2. Create `ParallaxPage` component that reads a `ParallaxPageManifest` and renders sections
+3. Add `ScopedRuntimeProvider` integration per section with lazy init/dispose
+4. Add transition point callbacks with `onEnter`/`onLeave` per section
+5. Create `StickyPanel` component that swaps content based on active section
+6. Migrate `HomePage.tsx` to use `ParallaxPage` with manifest-driven configuration
+7. Create Storybook stories demonstrating multi-section, multi-engine parallax pages
+
+---
+
+## 8. Feature Deep-Dive: Journal View
+
+### Problem
+
+The current journal/playground experience is inconsistent across viewport sizes. The editor shows line numbers by default (inappropriate for journal/note-taking context), and there is no structured page index for navigating within a journal document. The page index needs three responsive variants depending on available screen width.
+
+### Goals
+
+- **Consistent journal view** across all viewport sizes — the editor and surrounding chrome adapt fluidly without layout jumps.
+- **Remove line numbers** — Journal mode uses `showLineNumbers={false}` on the `UnifiedEditor`. Line numbers create visual clutter in writing-focused contexts and confuse non-technical users who expect a notebook, not a code editor.
+- **Journal page index** — A navigation sidebar showing the document's structure (headings + WOD blocks) with three responsive layout variants.
+
+### Journal Page Index — Responsive Variants
+
+The page index shows the same data at all sizes (headings, WOD block titles, active/complete badges) but renders differently:
+
+#### Variant 1: Hamburger Submenu (Mobile, <768px)
+
+```
+┌──────────────────────────────┐
+│ ☰  Journal Title        [▶]  │ ← Hamburger menu in header
+├──────────────────────────────┤
+│ ┌──────────────────────────┐ │
+│ │ ▸ Warm Up               │ │ ← Submenu under parent section
+│ │ ▸ Main Work             │ │
+│ │   ├ 5x5 Back Squat      │ │ ← Child entries
+│ │   └ AMRAP 10:00         │ │
+│ │ ▸ Cool Down             │ │
+│ └──────────────────────────┘ │
+│                              │
+│ ┌──────────────────────────┐ │
+│ │ Full-width Editor        │ │
+│ │ (no line numbers)        │ │
+│ │                          │ │
+│ └──────────────────────────┘ │
+└──────────────────────────────┘
+```
+
+- Index appears as a collapsible submenu under the hamburger navigation.
+- Grouped under correct parent sections (h1 → h2 → WOD blocks).
+- Tapping an item scrolls the editor to that section and closes the menu.
+- Uses existing `WodIndexPanel` data but rendered as a `DropdownMenu` variant.
+
+#### Variant 2: Navigation Select (Tablet, 768–1023px)
+
+```
+┌──────────────────────────────────┐
+│  [▾ Warm Up ∕ Main Work ∕ ...]   │ ← Compact select/dropdown in nav bar
+├──────────────────────────────────┤
+│ ┌──────────────────────────────┐ │
+│ │ Full-width Editor            │ │
+│ │ (no line numbers)            │ │
+│ │                              │ │
+│ │                              │ │
+│ └──────────────────────────────┘ │
+└──────────────────────────────────┘
+```
+
+- Index appears as a dropdown select in the navigation panel area.
+- Shows the currently active section name; opens a list on click.
+- Editor occupies full content width below the select.
+- The select tracks scroll position — as the user scrolls, the active item updates.
+
+#### Variant 3: Sticky Side Panel (Desktop, ≥1024px with xl-4 max-width)
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Header / Navigation Bar                                  │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌────────────────────────┐  ┌─────────────────────────┐│
+│  │ Editor (max-w-4xl)     │  │ Sticky Index Panel      ││
+│  │ (no line numbers)      │  │                         ││
+│  │                        │  │ ▸ Warm Up               ││
+│  │                        │  │ ▸ Main Work             ││
+│  │                        │  │   ├ 5x5 Back Squat  ●   ││
+│  │                        │  │   └ AMRAP 10:00     ◷   ││
+│  │                        │  │ ▸ Cool Down             ││
+│  │                        │  │                         ││
+│  │                        │  │ (right-aligned, sticky) ││
+│  └────────────────────────┘  └─────────────────────────┘│
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Editor constrained to `max-w-4xl` (56rem / 896px) for comfortable reading width.
+- Index panel floats to the right of the editor, `position: sticky` with `top: headerHeight`.
+- Panel tracks scroll position — the active section highlights as the user scrolls.
+- Clicking an index item scrolls the editor/page to that section.
+- Mirrors the `WodIndexPanel` component but with sticky behavior and right-alignment.
+- The sticky panel itself controls page scroll (clicking an item scrolls the page, not just the editor).
+
+### Editor Configuration for Journal Mode
+
+```typescript
+// Journal mode editor props
+<UnifiedEditor
+  showLineNumbers={false}    // ← No line numbers in journal
+  lineWrapping={true}        // Wrap long lines for readability
+  enablePreview={true}       // Show markdown preview for non-active sections
+  enableLinting={true}       // Keep syntax checking
+  enableOverlay={true}       // Keep interactive overlay
+  enableInlineRuntime={true} // Keep inline run controls
+  mode="edit"                // Default edit mode
+/>
+```
+
+### WodIndexPanel Integration
+
+The existing `WodIndexPanel` (`src/components/layout/WodIndexPanel.tsx`) already:
+- Extracts document structure (headers h1/h2 + WOD blocks)
+- Supports click-to-jump navigation
+- Shows hover highlighting and preview text
+- Has compact mode for smaller containers
+
+New work needed:
+- **DropdownIndex variant** — Renders the same data as a collapsible dropdown menu (for hamburger)
+- **SelectIndex variant** — Renders as a select/dropdown in the nav bar (for tablet)
+- **StickyIndex variant** — Renders as a right-aligned sticky panel (for desktop)
+- **Scroll tracking** — `IntersectionObserver` on section headings to update the active item as the user scrolls
+
+### Data Flow
+
+```
+UnifiedEditor
+  │
+  ├─→ Document structure (headings, blocks)
+  │     │
+  │     ▼
+  │   JournalIndex (shared data model)
+  │     │
+  │     ├─→ DropdownIndex (mobile hamburger)
+  │     ├─→ SelectIndex (tablet nav bar)
+  │     └─→ StickyIndex (desktop side panel)
+  │
+  └─→ IntersectionObserver on section headings
+        │
+        ▼
+      Active section tracking → drives all three index variants
+```
+
+### Responsive Transitions
+
+| Breakpoint | Index Variant | Editor Width | Line Numbers |
+|------------|---------------|-------------|-------------|
+| <768px (mobile) | Hamburger submenu | 100% | Hidden |
+| 768–1023px (tablet) | Navigation select | 100% | Hidden |
+| ≥1024px (desktop) | Sticky side panel | `max-w-4xl` | Hidden |
+
+All three variants use the same underlying data model (`JournalIndex`) and scroll-tracking logic. The `useScreenMode()` hook (from `src/panels/panel-system/useScreenMode.ts`) selects which variant to render. Transitions between breakpoints are seamless — the index data persists; only the rendering container changes.
+
+### Implementation Steps
+
+1. Create `JournalIndex` data model — extract structure from `WodIndexPanel` into a shared hook (`useJournalIndex`)
+2. Add scroll tracking via `IntersectionObserver` on section headings
+3. Create `DropdownIndex` component for mobile hamburger submenu
+4. Create `SelectIndex` component for tablet navigation bar
+5. Create `StickyIndex` component for desktop right-aligned panel
+6. Update `JournalPageShell` to compose the correct index variant based on `useScreenMode()`
+7. Set `showLineNumbers={false}` on the journal editor
+8. Set editor `max-w-4xl` on desktop when sticky index is active
+9. Create Storybook stories for each index variant at each breakpoint
+
+---
+
 ## Appendix: Architecture Diagram
 
 See companion canvas file: [`view-panel-architecture.canvas`](web/view-panel-architecture.canvas)
