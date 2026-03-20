@@ -1,0 +1,268 @@
+{
+	"nodes": [
+		{
+			"id": "a1b2c3d4e5f70001",
+			"type": "text",
+			"x": -250,
+			"y": -800,
+			"width": 500,
+			"height": 140,
+			"text": "# Better Syntax Feedback\n\nReplace overlay-based WOD companion with inline hover popovers, cursor-focus panels, and inline error display. Eliminates horizontal space consumption.",
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f70010",
+			"type": "group",
+			"x": -700,
+			"y": -580,
+			"width": 1400,
+			"height": 480,
+			"label": "Three Feedback Modes",
+			"color": "0"
+		},
+		{
+			"id": "a1b2c3d4e5f70002",
+			"type": "text",
+			"x": -660,
+			"y": -540,
+			"width": 400,
+			"height": 400,
+			"text": "## Mode 1: Hover Popover\n\n**Trigger:** Mouse over WOD line\n**Tech:** CM6 `hoverTooltip()`\n\n**Behavior:**\n- Compact tooltip near cursor\n- Shows metric type icons + values\n- Updates on line crossing\n- Hides outside WOD sections\n\n**Example:**\n```\n⏱️ 10:00  ⚡ Run  ⚖️ 95lb\n```\n\n**File:** `metric-hover.ts`",
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f70003",
+			"type": "text",
+			"x": -200,
+			"y": -540,
+			"width": 400,
+			"height": 400,
+			"text": "## Mode 2: Cursor Focus Panel\n\n**Trigger:** Cursor on WOD line\n**Tech:** CM6 `Decoration.widget()` + React portal\n\n**Behavior:**\n- Block widget below cursor line\n- Colored metric breakdown row\n- Action button slots\n- Colored underlines on source tokens\n\n**Visual:**\n```\n  10 Squats 95lb          ← underlines\n─────────────────────────────\n| reps | effort | resistance | [Ctrl+↑]\n```\n\n**Files:** `cursor-focus-panel.ts`, `MetricBreakdownPanel.tsx`",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f70004",
+			"type": "text",
+			"x": 260,
+			"y": -540,
+			"width": 400,
+			"height": 400,
+			"text": "## Mode 3: Inline Errors\n\n**Trigger:** Parser error on line\n**Tech:** CM6 Diagnostic system\n\n**Behavior:**\n- Squiggly underline on error tokens\n- Error message below offending line\n- Clears when error is fixed\n- Coexists with metric underlines\n\n**Visual:**\n```\n  10 Squts 95lb\n     ~~~~~ ← squiggly\n  ⚠️ Unknown effort: \"Squts\"\n```\n\n**File:** `inline-errors.ts`",
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f70020",
+			"type": "group",
+			"x": -700,
+			"y": 0,
+			"width": 1400,
+			"height": 400,
+			"label": "Architecture Layers",
+			"color": "0"
+		},
+		{
+			"id": "a1b2c3d4e5f70021",
+			"type": "text",
+			"x": -660,
+			"y": 40,
+			"width": 420,
+			"height": 320,
+			"text": "### CM6 Extension Layer\n\n**Pure CodeMirror 6 extensions:**\n\n1. `metric-hover.ts`\n   - `hoverTooltip()` callback\n   - Resolves position → CodeStatement\n   - Returns DOM tooltip element\n\n2. `cursor-focus-panel.ts`\n   - `StateField` tracking cursor line\n   - `Decoration.widget()` for inline panel\n   - `Decoration.mark()` for underlines\n   - Placeholder `<div>` for React portal\n\n3. `inline-errors.ts`\n   - Maps parser errors → `Diagnostic[]`\n   - Integrates with `lintGutter()`",
+			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f70022",
+			"type": "text",
+			"x": -180,
+			"y": 40,
+			"width": 420,
+			"height": 320,
+			"text": "### React Component Layer\n\n**Interactive UI via portals:**\n\n1. `MetricBreakdownPanel.tsx`\n   - Portals into CM6 widget placeholder\n   - Colored metric blocks with labels\n   - Action button slots from command registry\n   - Focused metric highlight\n   - Tailwind CSS styling\n\n2. `InlineCommand` registry\n   - Generic command slot system\n   - Keyboard shortcut mapping\n   - Per-metric-type actions\n   - Example: Ctrl+↑/↓ for numeric adjustment\n\n**Hooks:** `useWodLineResults`, `useWodBlockResults`",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f70023",
+			"type": "text",
+			"x": 300,
+			"y": 40,
+			"width": 360,
+			"height": 320,
+			"text": "### Data Layer\n\n**Metric resolution pipeline:**\n\n```\nSource Text\n  → Chevrotain Parser\n  → CodeStatement {\n      metrics: IMetric[]\n      semanticHints: string[]\n    }\n  → Metric Color Mapping\n  → Token Range Resolution\n```\n\n**Input:** Parser AST nodes\n**Output:**\n- Metric type + value + color\n- Token character ranges\n- Error positions + messages",
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f70030",
+			"type": "text",
+			"x": -660,
+			"y": 500,
+			"width": 440,
+			"height": 280,
+			"text": "### Metric Color System\n\n| Type | Color | Emoji |\n|------|-------|-------|\n| Duration | Blue `#3b82f6` | ⏱️ |\n| Rep | Green `#22c55e` | × |\n| Resistance | Orange `#f97316` | ⚖️ |\n| Rounds | Purple `#a855f7` | ↻ |\n| Distance | Cyan `#06b6d4` | 📏 |\n| Effort | Red `#ef4444` | ⚡ |\n\nColors shared between underlines and panel chips.",
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f70031",
+			"type": "text",
+			"x": -160,
+			"y": 500,
+			"width": 440,
+			"height": 280,
+			"text": "### Command Slot System\n\n```typescript\ninterface InlineCommand {\n  id: string;\n  label: string;\n  icon: React.ReactNode;\n  shortcut?: string;\n  description?: string;\n  execute: (ctx: MetricCommandContext) => void;\n}\n```\n\n**Built-in commands:**\n- Ctrl+↑ — Increment numeric value\n- Ctrl+↓ — Decrement numeric value\n- Ctrl+/ — Add comment annotation\n\nExtensible: plugins register custom commands.",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f70032",
+			"type": "text",
+			"x": 340,
+			"y": 500,
+			"width": 360,
+			"height": 280,
+			"text": "### Migration Path\n\n**Phase 1:** Add new extensions\n- `metric-hover.ts`\n- `cursor-focus-panel.ts`\n- `inline-errors.ts`\n- Feature flags in UnifiedEditor\n\n**Phase 2:** Slim overlay\n- Reduce OverlayTrack to commands only\n- Move metrics to inline panel\n\n**Phase 3:** Deprecate overlay\n- Move commands to inline panel\n- Remove OverlayTrack\n- Remove WodCompanion\n- Remove section-geometry",
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f70040",
+			"type": "text",
+			"x": -660,
+			"y": 880,
+			"width": 500,
+			"height": 240,
+			"text": "### Current System (Deprecated Path)\n\n```\nUnifiedEditor\n  → sectionField (parse sections)\n  → sectionGeometry (measure pixel rects)\n  → OverlayTrack (absolute positioned overlay)\n    → WodCompanion (metric chips, commands)\n      → Strip (28px sticky, always visible)\n      → Card (200px, hover/cursor)\n```\n\n⚠️ Consumes 15–35% horizontal width\n⚠️ Block-level info, not line-level\n⚠️ Poor mobile experience",
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f70041",
+			"type": "text",
+			"x": -100,
+			"y": 880,
+			"width": 500,
+			"height": 240,
+			"text": "### New System (Recommended)\n\n```\nUnifiedEditor\n  → sectionField (parse sections)\n  → metric-hover.ts (CM6 tooltip)\n  → cursor-focus-panel.ts (CM6 widget)\n    → MetricBreakdownPanel (React portal)\n      → Metric blocks + colored underlines\n      → Action button slots\n  → inline-errors.ts (CM6 diagnostics)\n```\n\n✅ Zero horizontal space\n✅ Line-level context\n✅ Mobile-friendly\n✅ Extensible commands",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f70050",
+			"type": "text",
+			"x": -250,
+			"y": 1200,
+			"width": 500,
+			"height": 160,
+			"text": "### Key Files to Create/Modify\n\n- **New:** `extensions/metric-hover.ts`\n- **New:** `extensions/cursor-focus-panel.ts`\n- **New:** `extensions/inline-errors.ts`\n- **New:** `components/MetricBreakdownPanel.tsx`\n- **Modify:** `UnifiedEditor.tsx` (integration)\n- **Deprecate:** `OverlayTrack.tsx`, `WodCompanion.tsx`",
+			"color": "0"
+		}
+	],
+	"edges": [
+		{
+			"id": "e1f2a3b4c5d70001",
+			"fromNode": "a1b2c3d4e5f70001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70002",
+			"toSide": "top",
+			"label": "hover mode"
+		},
+		{
+			"id": "e1f2a3b4c5d70002",
+			"fromNode": "a1b2c3d4e5f70001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70003",
+			"toSide": "top",
+			"label": "cursor mode"
+		},
+		{
+			"id": "e1f2a3b4c5d70003",
+			"fromNode": "a1b2c3d4e5f70001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70004",
+			"toSide": "top",
+			"label": "error mode"
+		},
+		{
+			"id": "e1f2a3b4c5d70010",
+			"fromNode": "a1b2c3d4e5f70002",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70021",
+			"toSide": "top",
+			"label": "CM6 extension"
+		},
+		{
+			"id": "e1f2a3b4c5d70011",
+			"fromNode": "a1b2c3d4e5f70003",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70022",
+			"toSide": "top",
+			"label": "React portal"
+		},
+		{
+			"id": "e1f2a3b4c5d70012",
+			"fromNode": "a1b2c3d4e5f70004",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70021",
+			"toSide": "top",
+			"label": "CM6 diagnostics"
+		},
+		{
+			"id": "e1f2a3b4c5d70013",
+			"fromNode": "a1b2c3d4e5f70003",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70021",
+			"toSide": "top",
+			"label": "widget + marks"
+		},
+		{
+			"id": "e1f2a3b4c5d70020",
+			"fromNode": "a1b2c3d4e5f70021",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f70023",
+			"toSide": "left",
+			"label": "consumes"
+		},
+		{
+			"id": "e1f2a3b4c5d70021",
+			"fromNode": "a1b2c3d4e5f70022",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f70023",
+			"toSide": "left",
+			"label": "consumes"
+		},
+		{
+			"id": "e1f2a3b4c5d70030",
+			"fromNode": "a1b2c3d4e5f70021",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70030",
+			"toSide": "top",
+			"label": "uses colors"
+		},
+		{
+			"id": "e1f2a3b4c5d70031",
+			"fromNode": "a1b2c3d4e5f70022",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70031",
+			"toSide": "top",
+			"label": "command registry"
+		},
+		{
+			"id": "e1f2a3b4c5d70032",
+			"fromNode": "a1b2c3d4e5f70023",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70032",
+			"toSide": "top",
+			"label": "phased delivery"
+		},
+		{
+			"id": "e1f2a3b4c5d70040",
+			"fromNode": "a1b2c3d4e5f70040",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f70041",
+			"toSide": "left",
+			"label": "migrates to"
+		},
+		{
+			"id": "e1f2a3b4c5d70041",
+			"fromNode": "a1b2c3d4e5f70041",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f70050",
+			"toSide": "top",
+			"label": "implementation"
+		}
+	]
+}
