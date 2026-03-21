@@ -197,26 +197,26 @@ On scrolling parallax documentation pages, scroll events need to:
 
 ### Key Patterns
 
-| Pattern | How It Applies |
-|---------|---------------|
-| **Fan-out Subscriptions** | `SubscriptionManager` already distributes one runtime's events to N subscribers. Extending to N runtimes means N managers, each with their own subscriber set. |
-| **ViewDescriptor composition** | Views are defined as `{ id, label, icon, panels[] }`. New page types (Docs, Journal, Calendar) can each define their own `ViewDescriptor` sets. |
-| **PanelSpan responsive layout** | The `PanelSpan` (1/3, 2/3, 3/3) system handles desktop/tablet/mobile. New panels (calendar widget, scrollable list, parallax section) plug into this. |
-| **Zustand selector subscriptions** | `workbenchSyncStore` uses Zustand for efficient cross-panel state. Multiple runtimes could each have their own store slice or separate stores. |
-| **Strategy pattern** | Runtime block compilation uses strategies. Page-level view composition can use a similar pattern — page type → view strategy → panel set. |
+| Pattern                            | How It Applies                                                                                                                                                 |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fan-out Subscriptions**          | `SubscriptionManager` already distributes one runtime's events to N subscribers. Extending to N runtimes means N managers, each with their own subscriber set. |
+| **ViewDescriptor composition**     | Views are defined as `{ id, label, icon, panels[] }`. New page types (Docs, Journal, Calendar) can each define their own `ViewDescriptor` sets.                |
+| **PanelSpan responsive layout**    | The `PanelSpan` (1/3, 2/3, 3/3) system handles desktop/tablet/mobile. New panels (calendar widget, scrollable list, parallax section) plug into this.          |
+| **Zustand selector subscriptions** | `workbenchSyncStore` uses Zustand for efficient cross-panel state. Multiple runtimes could each have their own store slice or separate stores.                 |
+| **Strategy pattern**               | Runtime block compilation uses strategies. Page-level view composition can use a similar pattern — page type → view strategy → panel set.                      |
 
 ### Mapping: New Terms → Existing Code
 
-| Term | Existing Code | Gap |
-|------|---------------|-----|
-| **Workbench** | `Workbench.tsx` + `workbenchSyncStore.ts` | Currently hardcoded to one runtime. Needs to support 0..N runtimes and multiple notes. |
-| **Runtime** | `ScriptRuntime.ts` + `RuntimeLifecycleProvider.tsx` | Per-block runtime already works. Lifecycle provider needs scoping for multiple simultaneous runtimes. |
-| **Note (in-memory)** | `HomePage.tsx` inline `useState` for editor content | No formal "note" abstraction. Content is ad-hoc per page. |
-| **Note (stored)** | `NotebookProvider` + IndexedDB | Exists for playground/journal notes. Needs clean API for views to bind to. |
-| **View** | `ViewDescriptor` + `ResponsiveViewport` | Existing views (Plan/Track/Review) transition sequentially. Multi-view simultaneous display is not supported. |
-| **Panel** | `PanelDescriptor` + `PanelShell` + concrete panels | Well-defined. No changes needed to panel internals. |
-| **View ↔ Runtime binding** | `RuntimeContext` + `SubscriptionManagerContext` | Currently 1:1 (one runtime per provider tree). Needs to support views subscribing to any runtime on the workbench. |
-| **Configuration 3 dialog** | `TrackerPage` / `ReviewPage` as routes | Today these are full routes (`/tracker/:id`, `/review/:id`). Need abstraction as dialog views for consistency. |
+| Term                       | Existing Code                                       | Gap                                                                                                                |
+| -------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Workbench**              | `Workbench.tsx` + `workbenchSyncStore.ts`           | Currently hardcoded to one runtime. Needs to support 0..N runtimes and multiple notes.                             |
+| **Runtime**                | `ScriptRuntime.ts` + `RuntimeLifecycleProvider.tsx` | Per-block runtime already works. Lifecycle provider needs scoping for multiple simultaneous runtimes.              |
+| **Note (in-memory)**       | `HomePage.tsx` inline `useState` for editor content | No formal "note" abstraction. Content is ad-hoc per page.                                                          |
+| **Note (stored)**          | `NotebookProvider` + IndexedDB                      | Exists for playground/journal notes. Needs clean API for views to bind to.                                         |
+| **View**                   | `ViewDescriptor` + `ResponsiveViewport`             | Existing views (Plan/Track/Review) transition sequentially. Multi-view simultaneous display is not supported.      |
+| **Panel**                  | `PanelDescriptor` + `PanelShell` + concrete panels  | Well-defined. No changes needed to panel internals.                                                                |
+| **View ↔ Runtime binding** | `RuntimeContext` + `SubscriptionManagerContext`     | Currently 1:1 (one runtime per provider tree). Needs to support views subscribing to any runtime on the workbench. |
+| **Configuration 3 dialog** | `TrackerPage` / `ReviewPage` as routes              | Today these are full routes (`/tracker/:id`, `/review/:id`). Need abstraction as dialog views for consistency.     |
 
 ---
 

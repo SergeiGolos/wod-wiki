@@ -258,15 +258,15 @@ Solution B provides the best balance of architectural improvement and practical 
 
 The inline panel and underline decorations share a consistent color scheme per metric type:
 
-| Metric Type | Color | CSS Class | Emoji |
-|-------------|-------|-----------|-------|
-| Duration | Blue (`#3b82f6`) | `cm-metric-duration` | ⏱️ |
-| Rep | Green (`#22c55e`) | `cm-metric-rep` | × |
-| Resistance | Orange (`#f97316`) | `cm-metric-resistance` | ⚖️ |
-| Rounds | Purple (`#a855f7`) | `cm-metric-rounds` | ↻ |
-| Distance | Cyan (`#06b6d4`) | `cm-metric-distance` | 📏 |
-| Action/Effort | Red (`#ef4444`) | `cm-metric-effort` | ⚡ |
-
+| Metric Type   | Color              | CSS Class              | Emoji |
+| ------------- | ------------------ | ---------------------- | ----- |
+| Duration      | Blue (`#3b82f6`)   | `cm-metric-duration`   | ⏱️    |
+| Rep           | Green (`#22c55e`)  | `cm-metric-rep`        | ×     |
+| Resistance    | Orange (`#f97316`) | `cm-metric-resistance` | ⚖️    |
+| Rounds        | Purple (`#a855f7`) | `cm-metric-rounds`     | ↻     |
+| Distance      | Cyan (`#06b6d4`)   | `cm-metric-distance`   | 📏    |
+| Action/Effort | Red (`#ef4444`)    | `cm-metric-effort`     | ⚡     |
+ 
 ### Command Slot System
 
 The inline panel's action area uses a generic command registry pattern:

@@ -327,7 +327,7 @@ function LessonSection({
           extendedResults={sessionResults}
           theme={actualTheme}
           showLineNumbers={false}
-          enableOverlay={true}
+          enableOverlay={false}
           enableInlineRuntime={true}
           className=""
         />

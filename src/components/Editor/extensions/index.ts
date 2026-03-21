@@ -9,3 +9,4 @@ export * from "./wod-linter";
 export * from "./wod-autocomplete";
 export * from "./wod-overlay";
 export * from "./link-open";
+export * from "./cursor-focus-panel";

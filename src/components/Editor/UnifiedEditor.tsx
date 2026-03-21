@@ -58,6 +58,7 @@ import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterUnified } from "./extensions/gutter-unified";
+import { cursorFocusExtension } from "./extensions/cursor-focus-panel";
 
 /** File drop handler extension */
 const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandlers({
@@ -222,7 +223,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   showLineNumbers: showLineNums = true,
   enablePreview = true,
   enableLinting = true,
-  enableOverlay = true,
+  enableOverlay = false,
   commands,
   enableInlineRuntime = true,
   widgetComponents,
@@ -510,8 +511,13 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       // Section geometry measurement (for overlay track)
       sectionGeometry,
 
-      // Ctrl+Click link opening + hover tooltip
+      // Ctrl+Click link opening
       linkOpen,
+
+      // Inline metric hover tooltip
+
+      // Cursor focus: mark decorations + focus state for MetricInlinePanel
+      cursorFocusExtension,
 
       // Unified gutter: lint diagnostics + runtime highlights in one column
       ...gutterUnified,
@@ -734,6 +740,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         editorState={viewRef.current?.state ?? null}
         onSelectBlock={handleCastSelectBlock}
       />
+
     </div>
   );
 };
