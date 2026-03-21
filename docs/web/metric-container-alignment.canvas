@@ -1,0 +1,289 @@
+{
+	"nodes": [
+		{
+			"id": "a1b2c3d4e5f60001",
+			"type": "text",
+			"x": 0,
+			"y": -600,
+			"width": 500,
+			"height": 120,
+			"text": "# Metric Container Alignment\n\nLayered precedence system for metric ownership across parser, dialect, user-plan, runtime, and user-entry layers.",
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f60010",
+			"type": "group",
+			"x": -100,
+			"y": -420,
+			"width": 700,
+			"height": 1680,
+			"label": "Metric Precedence Stack (lowest → highest)",
+			"color": "0"
+		},
+		{
+			"id": "a1b2c3d4e5f60002",
+			"type": "text",
+			"x": 0,
+			"y": -380,
+			"width": 500,
+			"height": 200,
+			"text": "## Layer 1: Parser (Tier 5)\n\n**Origin:** `parser`\n**Source:** Source text parsing\n\n- Base metrics from WOD script\n- `DurationMetric`, `RepMetric`, `EffortMetric`, etc.\n- Read-only baseline — never modified by higher layers\n- Preserved in `rawMetrics` for debugging",
+			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f60003",
+			"type": "text",
+			"x": 0,
+			"y": -140,
+			"width": 500,
+			"height": 220,
+			"text": "## Layer 2: Dialect (Tier 3)\n\n**Origin:** `dialect`\n**Source:** `IDialect.analyze()` overrides\n\n**Operations:**\n- ✅ **Add** new metrics (e.g., CrossFit scoring metric)\n- 🔄 **Replace** parser metrics with domain-specific versions\n- ❌ **Nullify** parser metrics that don't apply\n- ⬆️ **Promote** metrics for child inheritance",
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f60004",
+			"type": "text",
+			"x": 0,
+			"y": 120,
+			"width": 500,
+			"height": 220,
+			"text": "## Layer 3: User-Plan (Tier 2)\n\n**Origin:** `user-plan`\n**Source:** User composition before execution\n\n**Operations:**\n- ✅ **Add** personal target metrics\n- 🔄 **Replace** dialect defaults with personal goals\n- ❌ **Nullify** metrics not relevant to this session\n- 📝 **Compose** multiple metrics into planned workout",
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f60005",
+			"type": "text",
+			"x": 0,
+			"y": 380,
+			"width": 500,
+			"height": 220,
+			"text": "## Layer 4: Runtime (Tier 1)\n\n**Origin:** `runtime`, `tracked`, `analyzed`\n**Source:** Execution engine output\n\n**Operations:**\n- ✅ **Add** execution-time metrics (elapsed, spans)\n- 🔄 **Override** projected metrics with actual values\n- 📊 **Track** live metrics during execution\n- 📤 **Emit** results via `ReportOutputBehavior`",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f60006",
+			"type": "text",
+			"x": 0,
+			"y": 640,
+			"width": 500,
+			"height": 220,
+			"text": "## Layer 5: User-Entry (Tier 0)\n\n**Origin:** `user-entry`, `collected`, `execution`\n**Source:** Post-execution user corrections\n\n**Operations:**\n- ✅ **Add** metrics the runtime didn't capture\n- 🔄 **Correct** runtime values (actual reps, actual weight)\n- ❌ **Nullify** erroneous runtime metrics\n- 📝 **Annotate** with notes and observations",
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f60007",
+			"type": "text",
+			"x": 0,
+			"y": 920,
+			"width": 500,
+			"height": 140,
+			"text": "## Resolution Output\n\n`MetricContainer.resolve()` → For each `MetricType`, returns metric(s) from the **highest-precedence tier** present. Lower-tier originals preserved in `rawMetrics`.",
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f60020",
+			"type": "text",
+			"x": 700,
+			"y": -380,
+			"width": 400,
+			"height": 160,
+			"text": "### Parser Pipeline\n\n```\nSource Text\n  → Chevrotain Tokenizer\n  → timer.parser.ts\n  → timer.visitor.ts\n  → CodeStatement { metrics[] }\n```\n\nOrigin: `parser` (tier 5)",
+			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f60021",
+			"type": "text",
+			"x": 700,
+			"y": -140,
+			"width": 400,
+			"height": 180,
+			"text": "### Dialect Pipeline\n\n```\nCodeStatement\n  → DialectRegistry.processAll()\n  → IDialect.analyze()\n  → DialectAnalysis {\n      hints[],\n      metricOverrides[],  ← NEW\n      nullifiedTypes[]    ← NEW\n    }\n```\n\nOrigin: `dialect` (tier 3)",
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f60022",
+			"type": "text",
+			"x": 700,
+			"y": 120,
+			"width": 400,
+			"height": 140,
+			"text": "### User-Plan Pipeline\n\n```\nCodeStatement + dialect overrides\n  → User customization UI\n  → Add/replace/null metrics\n  → Modified CodeStatement\n```\n\nOrigin: `user-plan` (tier 2)",
+			"color": "3"
+		},
+		{
+			"id": "a1b2c3d4e5f60023",
+			"type": "text",
+			"x": 700,
+			"y": 380,
+			"width": 400,
+			"height": 180,
+			"text": "### Runtime Pipeline\n\n```\nCodeStatement\n  → JitCompiler\n  → BlockBuilder.build()\n  → IRuntimeBlock {\n      memory: MemoryLocation[]\n      behaviors: IRuntimeBehavior[]\n    }\n  → Behavior lifecycle\n  → OutputStatement\n```\n\nOrigin: `runtime` (tier 1)",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f60024",
+			"type": "text",
+			"x": 700,
+			"y": 640,
+			"width": 400,
+			"height": 140,
+			"text": "### User-Entry Pipeline\n\n```\nOutputStatement\n  → User data entry UI\n  → Correct/add metrics\n  → Final IMetricSource\n```\n\nOrigin: `user-entry` (tier 0)",
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f60030",
+			"type": "text",
+			"x": -600,
+			"y": -380,
+			"width": 400,
+			"height": 200,
+			"text": "### Nullification\n\nAny layer can suppress a metric type from lower layers:\n\n```\nDialect: nullify(Rep)\n  → Parser Rep metrics hidden\n  → Dialect can add its own Rep\n\nUser-Plan: nullify(Distance)\n  → Distance hidden from display\n  → Runtime can still override\n```\n\nNull markers are origin-aware sentinel values.",
+			"color": "1"
+		},
+		{
+			"id": "a1b2c3d4e5f60031",
+			"type": "text",
+			"x": -600,
+			"y": -140,
+			"width": 400,
+			"height": 200,
+			"text": "### Metric Preservation\n\nOverridden metrics are **never deleted**:\n\n```\nrawMetrics: [\n  Rep(21, origin=parser),\n  Rep(10, origin=dialect),\n  Rep(12, origin=user-plan)\n]\n\nresolve() → Rep(12, origin=user-plan)\n```\n\nAll layers accessible via `MetricFilter.origins`.",
+			"color": "4"
+		},
+		{
+			"id": "a1b2c3d4e5f60032",
+			"type": "text",
+			"x": -600,
+			"y": 120,
+			"width": 400,
+			"height": 200,
+			"text": "### Promotion Across Layers\n\n`MetricPromotionBehavior` cascades metrics from parent to child blocks:\n\n```\nParent (dialect-origin Rep)\n  ↓ getPromotedFragments()\nChild receives Rep with\n  origin preserved as 'dialect'\n  ↓ child's own layers\n  can still override\n```\n\nOrigin-aware promotion works naturally.",
+			"color": "5"
+		},
+		{
+			"id": "a1b2c3d4e5f60040",
+			"type": "text",
+			"x": -600,
+			"y": 380,
+			"width": 400,
+			"height": 260,
+			"text": "### Precedence Table\n\n| Tier | Origin | Layer |\n|------|--------|-------|\n| 0 | `user-entry`, `collected`, `execution` | User corrections |\n| 1 | `runtime`, `tracked`, `analyzed` | Execution data |\n| 2 | `user-plan` | User composition |\n| 3 | `dialect`, `hinted` | Domain overrides |\n| 4 | `compiler` | JIT synthesis |\n| 5 | `parser` | Source text |\n\nLower tier number = higher precedence.",
+			"color": "6"
+		},
+		{
+			"id": "a1b2c3d4e5f60050",
+			"type": "text",
+			"x": -600,
+			"y": 700,
+			"width": 400,
+			"height": 200,
+			"text": "### Key Files to Modify\n\n- `src/core/models/Metric.ts` — New origins\n- `src/core/utils/metricPrecedence.ts` — 6-tier map\n- `src/core/models/MetricContainer.ts` — Null support\n- `src/core/models/Dialect.ts` — Metric overrides\n- `src/services/DialectRegistry.ts` — Inject overrides\n- `src/core/contracts/IMetricSource.ts` — Layer access",
+			"color": "0"
+		}
+	],
+	"edges": [
+		{
+			"id": "e1f2a3b4c5d60001",
+			"fromNode": "a1b2c3d4e5f60001",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60002",
+			"toSide": "top"
+		},
+		{
+			"id": "e1f2a3b4c5d60002",
+			"fromNode": "a1b2c3d4e5f60002",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60003",
+			"toSide": "top",
+			"label": "dialect overrides"
+		},
+		{
+			"id": "e1f2a3b4c5d60003",
+			"fromNode": "a1b2c3d4e5f60003",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60004",
+			"toSide": "top",
+			"label": "user composition"
+		},
+		{
+			"id": "e1f2a3b4c5d60004",
+			"fromNode": "a1b2c3d4e5f60004",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60005",
+			"toSide": "top",
+			"label": "execution"
+		},
+		{
+			"id": "e1f2a3b4c5d60005",
+			"fromNode": "a1b2c3d4e5f60005",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60006",
+			"toSide": "top",
+			"label": "user corrections"
+		},
+		{
+			"id": "e1f2a3b4c5d60006",
+			"fromNode": "a1b2c3d4e5f60006",
+			"fromSide": "bottom",
+			"toNode": "a1b2c3d4e5f60007",
+			"toSide": "top",
+			"label": "resolved output"
+		},
+		{
+			"id": "e1f2a3b4c5d60010",
+			"fromNode": "a1b2c3d4e5f60002",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60020",
+			"toSide": "left"
+		},
+		{
+			"id": "e1f2a3b4c5d60011",
+			"fromNode": "a1b2c3d4e5f60003",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60021",
+			"toSide": "left"
+		},
+		{
+			"id": "e1f2a3b4c5d60012",
+			"fromNode": "a1b2c3d4e5f60004",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60022",
+			"toSide": "left"
+		},
+		{
+			"id": "e1f2a3b4c5d60013",
+			"fromNode": "a1b2c3d4e5f60005",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60023",
+			"toSide": "left"
+		},
+		{
+			"id": "e1f2a3b4c5d60014",
+			"fromNode": "a1b2c3d4e5f60006",
+			"fromSide": "right",
+			"toNode": "a1b2c3d4e5f60024",
+			"toSide": "left"
+		},
+		{
+			"id": "e1f2a3b4c5d60020",
+			"fromNode": "a1b2c3d4e5f60002",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60031",
+			"toSide": "right"
+		},
+		{
+			"id": "e1f2a3b4c5d60021",
+			"fromNode": "a1b2c3d4e5f60003",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60030",
+			"toSide": "right"
+		},
+		{
+			"id": "e1f2a3b4c5d60022",
+			"fromNode": "a1b2c3d4e5f60005",
+			"fromSide": "left",
+			"toNode": "a1b2c3d4e5f60032",
+			"toSide": "right"
+		}
+	]
+}

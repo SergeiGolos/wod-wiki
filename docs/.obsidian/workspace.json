@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "playground-guide-redesign-proposal.md",
+                "file": "brainstorm-view-panel-runtime-coupling.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "playground-guide-redesign-proposal"
+              "title": "brainstorm-view-panel-runtime-coupling"
             }
           }
         ]
@@ -74,8 +74,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -95,8 +94,9 @@
             "state": {
               "type": "backlink",
               "state": {
-                "collapseAll": false,
-                "extraContext": false,
+                "file": "brainstorm-view-panel-runtime-coupling.md",
+                "collapseAll": true,
+                "extraContext": true,
                 "sortOrder": "alphabetical",
                 "showSearch": false,
                 "searchQuery": "",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for brainstorm-view-panel-runtime-coupling"
             }
           },
           {
@@ -155,20 +155,21 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "brainstorm-view-panel-runtime-coupling.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline"
+              "title": "Outline of brainstorm-view-panel-runtime-coupling"
             }
           }
-        ]
+        ],
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -181,8 +182,18 @@
       "bases:Create new base": false
     }
   },
-  "active": "bb39ce3108c46725",
+  "active": "ce524ac6422799a0",
   "lastOpenFiles": [
+    "brainstorm-syntax-feedback.md",
+    "web/syntax-feedback.canvas",
+    "web/dialect-architecture.canvas",
+    "brainstorm-metric-container-alignment.md",
+    "brainstorm-dialects.md",
+    "brainstorm-view-panel-runtime-coupling.md",
+    "web/view-panel-architecture.canvas",
+    "web/metric-container-alignment.canvas",
+    "2026-03-19.md",
+    "playground-guide-redesign-proposal.md",
     "editor-display-elements-research.md",
     "finishline/compliance-scenarios/state-transitions.md",
     "finishline/compliance-scenarios/timer.md",
@@ -203,14 +214,7 @@
     "finishline/report-renderer.md",
     "finishline/results-in-overlay.md",
     "finishline/dialect-system.md",
-    "finishline/query-language.md",
-    "finishline/README.md",
-    "domain-model/repositories.md",
     "finishline",
-    "domain-model/README.md",
-    "domain-model/overview.md",
-    "domain-model/entities.md",
-    "unified-editor-prd.md",
     "domain-model",
     "web/wod.wiki.canvas",
     "web/planner.wod.wiki.canvas",

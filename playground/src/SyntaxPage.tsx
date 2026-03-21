@@ -381,7 +381,7 @@ function SyntaxSection({
           extendedResults={sessionResults}
           theme={actualTheme}
           showLineNumbers={false}
-          enableOverlay={true}
+          enableOverlay={false}
           enableInlineRuntime={true}
           className="h-full text-sm"
         />

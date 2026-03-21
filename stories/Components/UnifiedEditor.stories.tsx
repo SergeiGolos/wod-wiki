@@ -343,7 +343,7 @@ export const Default: Story = {
     readonly: false,
     enablePreview: true,
     enableLinting: true,
-    enableOverlay: true,
+    enableOverlay: false,
     showLineNumbers: true,
     height: "700px",
   },
@@ -646,6 +646,64 @@ elevation: 340m
 # Hill Training
 
 Strava link auto-detected from URL.`,
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. Inline Metric Feedback stories
+// ─────────────────────────────────────────────────────────────────────────────
+
+const METRIC_FEEDBACK_CONTENT = `# Inline Metric Feedback Demo
+
+Hover over any line inside a WOD block to see the **metric hover tooltip**.
+Click inside a WOD block to move the cursor — the **metric inline panel**
+appears below the active line with colored underlines on each metric token.
+
+\`\`\`wod
+5:00 Run
+(3)
+  21 Thrusters 95lb
+  15 Box Jumps 24inch
+  9 Bar Muscle-ups
+\`\`\`
+
+Mix of timer, reps, resistance, and distance:
+
+\`\`\`wod
+10:00 AMRAP
+  400m Run
+  21 KB Swings 53lb
+  12 Pull-ups
+\`\`\`
+
+Rounds-based work:
+
+\`\`\`wod
+(5)
+  1:00 Row
+  30 Double-unders
+  15 Toes-to-bar
+\`\`\`
+`;
+
+export const InlineMetricFeedback: Story = {
+  name: "Inline Metric Feedback",
+  args: {
+    initialContent: METRIC_FEEDBACK_CONTENT,
+    theme: "vs",
+    enablePreview: true,
+    enableLinting: true,
+    enableOverlay: false,
+    showLineNumbers: true,
+    height: "600px",
+  },
+};
+
+export const InlineMetricFeedbackDark: Story = {
+  name: "Inline Metric Feedback — Dark",
+  args: {
+    ...InlineMetricFeedback.args,
+    theme: "dark",
   },
 };
 

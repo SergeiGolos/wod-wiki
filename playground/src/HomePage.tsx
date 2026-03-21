@@ -471,7 +471,7 @@ function FrozenEditorPanel({ activeStep, selectedExample, actualTheme, onRun }: 
           theme={actualTheme}
           readonly={false}
           showLineNumbers={false}
-          enableOverlay={true}
+          enableOverlay={false}
           enableInlineRuntime={false}
           commands={commands}
           className="h-full"
@@ -498,7 +498,7 @@ function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRuntimeRead
             theme={actualTheme}
             readonly={true}
             showLineNumbers={false}
-            enableOverlay={true}
+            enableOverlay={false}
             enableInlineRuntime={false}
             commands={[]}
             className="h-full"
@@ -712,7 +712,7 @@ function FrozenNotebookPanel({ activeStep, selectedExample, actualTheme }: { act
         theme={actualTheme}
         readonly={true}
         showLineNumbers={false}
-        enableOverlay={true}
+        enableOverlay={false}
         enableInlineRuntime={false}
         commands={[]}
         className="h-full"
