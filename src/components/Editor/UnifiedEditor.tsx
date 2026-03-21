@@ -128,6 +128,7 @@ import type { WidgetRegistry } from "./overlays/WidgetCompanion";
 import type { WodCommand } from "./overlays/WodCommand";
 import { FullscreenTimer } from "./overlays/FullscreenTimer";
 import { FullscreenReview } from "./overlays/FullscreenReview";
+import { InlineCommandBar } from "./overlays/InlineCommandBar";
 import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { indexedDBService } from "@/services/db/IndexedDBService";
@@ -715,6 +716,12 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
           activeSectionId={activeSectionId}
           renderSlot={renderSlot}
           cursorLine={cursorLine}
+        />
+      )}
+      {!enableOverlay && effectiveCommands.length > 0 && (
+        <InlineCommandBar
+          view={viewRef.current}
+          commands={effectiveCommands}
         />
       )}
       {fullscreenTimerBlock && viewRef.current && (
