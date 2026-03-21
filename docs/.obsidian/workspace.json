@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "brainstorm-view-panel-runtime-coupling.md",
+                "file": "decoupling-planner-workbench.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "brainstorm-view-panel-runtime-coupling"
+              "title": "decoupling-planner-workbench"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 269.5
+    "width": 509.5055847167969
   },
   "right": {
     "id": "c1fb46b8873a0f9a",
@@ -94,7 +94,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "brainstorm-view-panel-runtime-coupling.md",
                 "collapseAll": true,
                 "extraContext": true,
                 "sortOrder": "alphabetical",
@@ -104,7 +103,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for brainstorm-view-panel-runtime-coupling"
+              "title": "Backlinks"
             }
           },
           {
@@ -155,13 +154,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "brainstorm-view-panel-runtime-coupling.md",
+                "file": "web/reporting-targets.canvas",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of brainstorm-view-panel-runtime-coupling"
+              "title": "Outline of reporting-targets"
             }
           }
         ],
@@ -182,14 +181,18 @@
       "bases:Create new base": false
     }
   },
-  "active": "ce524ac6422799a0",
+  "active": "f6ff0127789936f8",
   "lastOpenFiles": [
+    "web/reporting-targets.canvas",
+    "brainstorm-reporting-targets.md",
+    "decoupling-planner-workbench.md",
     "brainstorm-syntax-feedback.md",
+    "brainstorm-view-panel-runtime-coupling.md",
+    "implement-page-shell-pattern.md",
     "web/syntax-feedback.canvas",
     "web/dialect-architecture.canvas",
     "brainstorm-metric-container-alignment.md",
     "brainstorm-dialects.md",
-    "brainstorm-view-panel-runtime-coupling.md",
     "web/view-panel-architecture.canvas",
     "web/metric-container-alignment.canvas",
     "2026-03-19.md",
@@ -211,9 +214,6 @@
     "finishline/compliance-scenarios/README.md",
     "finishline/compliance-scenarios",
     "finishline/command-palette-editor.md",
-    "finishline/report-renderer.md",
-    "finishline/results-in-overlay.md",
-    "finishline/dialect-system.md",
     "finishline",
     "domain-model",
     "web/wod.wiki.canvas",
@@ -223,7 +223,6 @@
     "Behavior Map.canvas",
     "diagrams/runtime-state-machine.canvas",
     "diagrams/domain-model-overview.canvas",
-    "diagrams/behavior-overview.canvas",
     "tv",
     "restructure/post-restructure-bugs",
     "restructure",
