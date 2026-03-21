@@ -58,7 +58,7 @@ import { wodOverlayPanel } from "./extensions/wod-overlay";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterUnified } from "./extensions/gutter-unified";
-import { cursorFocusExtension } from "./extensions/cursor-focus-panel";
+import { cursorFocusExtension, getCursorFocusState } from "./extensions/cursor-focus-panel";
 
 /** File drop handler extension */
 const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandlers({
@@ -477,6 +477,22 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
         {
           key: "Mod-p",
           run: () => {
+            setIsOpen(true);
+            return true;
+          },
+        },
+        {
+          // Ctrl+. — open command palette when cursor is on a text metric
+          // (Effort / Action). Falls through for numeric metrics so the OS
+          // or default binding can handle it.
+          key: "Ctrl-.",
+          run: (view) => {
+            const focus = getCursorFocusState(view.state);
+            if (!focus?.focusedMetric) return false;
+            const type = focus.focusedMetric.type as string;
+            // Only intercept for non-numeric (label) metrics
+            const numeric = new Set(["duration", "rep", "rounds", "distance", "resistance"]);
+            if (numeric.has(type)) return false;
             setIsOpen(true);
             return true;
           },
