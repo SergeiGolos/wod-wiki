@@ -163,9 +163,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
   if (!view || commands.length === 0) return null;
 
   // Only render for WOD sections
-  const wodRects = rects.filter(
-    (r) => r.type === "wod",
-  );
+  const wodRects = rects.filter((r) => r.type === "wod");
 
   if (wodRects.length === 0) return null;
 
