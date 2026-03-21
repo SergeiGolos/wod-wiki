@@ -1,21 +1,158 @@
 # Feature: Page-Level View / Panel → Runtime Coupling
 
 **Brainstorm Date:** March 19, 2026
+**Updated:** March 21, 2026 — Added formal term definitions, supported configuration scenarios, scroll-driven state changes, and high-level goals.
 **Status:** Draft
 **Issue:** Decoupled panels / views / pages with multiple running engines
 
 ---
 
+## Terms & Definitions
+
+The following terms define the architectural layers from outermost container down to the execution engine. These terms are used consistently throughout this document and in the codebase.
+
+### Workbench
+
+The **Workbench** is the top-level page container loaded in the browser. A single workbench instance manages the full surface area of a loaded page.
+
+- Contains one or more **notes** (loaded documents).
+- Contains zero or more **runtimes** running simultaneously.
+- Hosts one or more **views**, each of which subscribes to the state of any note or runtime available on the workbench.
+- Manages cross-cutting concerns: theme, audio, command palette, navigation, and persistence.
+
+> **Existing code:** `src/components/layout/Workbench.tsx` + `workbenchSyncStore.ts` (Zustand store for cross-panel state).
+
+### Runtime
+
+A **Runtime** is a stateful execution engine unique to a single WOD block.
+
+- Created when the user clicks "Run" on a note's editor toolbar.
+- Manages its own `RuntimeStack`, `RuntimeClock`, `RuntimeMemory`, and `SubscriptionManager`.
+- One workbench can have zero or more active runtimes (one per running WOD block).
+- Emits events (stack snapshots, output statements, tracker updates) to its `SubscriptionManager`, which fans them out to subscribers.
+
+> **Existing code:** `src/runtime/ScriptRuntime.ts`, `src/components/layout/RuntimeLifecycleProvider.tsx`, `src/runtime/subscriptions/SubscriptionManager.ts`.
+
+### Note
+
+A **Note** is a document containing WOD blocks and prose. Notes can be:
+
+- **In-memory** — created on page load, not persisted. Used for documentation/tutorial pages where the content is ephemeral. A page reload resets to the default content.
+- **Stored** — persisted to IndexedDB (and eventually a server). Used for journal entries, workout collections, and user-created content. All data (content, run history, analytics) is preserved.
+
+### Views
+
+A **View** is a container that displays one or more **panels**. Views are responsible for:
+
+- **Layout management** — sizing panels within their container (responsive grid, split panes, full-screen).
+- **Responsive adaptation** — adjusting panel arrangement across breakpoints (desktop, tablet, mobile).
+- **Panel binding** — connecting a panel to a specific runtime or note on the workbench. A view can rebind its panels to a different runtime or note without rebuilding the panel components.
+
+Views do *not* own runtime lifecycle — they subscribe to runtimes managed by the workbench.
+
+> **Existing code:** `src/panels/panel-system/types.ts` (`ViewDescriptor`), `src/panels/panel-system/ResponsiveViewport.tsx`, `src/panels/panel-system/PanelGrid.tsx`.
+
+### Panels
+
+**Panels** are the concrete UI components that display information from a subscribed runtime or note. Each panel type has a single responsibility:
+
+- **Editor Panel** — Displays the CodeMirror editor wired to a note on the workbench. Provides editing, syntax highlighting, inline run controls, and the overlay companion.
+- **Timer Panel** — Subscribes to events on a live runtime and displays the countdown/count-up timers, the runtime stack, and execution controls (start/pause/stop/next).
+- **Review Panel** — Displays the output statements from a completed (or running) runtime as grid views with analytics, segments, and metric breakdowns.
+
+> **Note:** The panels themselves are well-defined in the current codebase. The changes proposed here primarily affect the *view layer* that manages panel sizing, layout, and runtime binding — not the panels' internal implementations.
+
+> **Existing code:** `src/panels/plan-panel.tsx`, `src/panels/timer-panel.tsx`, `src/panels/track-panel.tsx`, `src/panels/analyze-panel.tsx`.
+
+---
+
 ## 1. Requirement Analysis
 
-- **Core Problem**: The application needs a unified page/view architecture that decouples UI panels from runtime engines, enabling multiple independent runtimes across different view contexts (Docs, Journal, Calendar) while supporting mobile, Chromecast, and web targets.
-- **Success Criteria**: Each page type (Docs, Journal, Calendar) renders correctly across breakpoints, can optionally bind to zero or more runtime engines, and views compose from reusable panel primitives without hard coupling.
+- **Core Problem**: The application needs a unified page/view architecture that decouples UI panels from runtime engines, enabling multiple independent runtimes across different view contexts (Docs, Journal, Calendar) while supporting mobile, Chromecast, and web targets. The workbench must support multiple notes and runtimes simultaneously, with views that can subscribe to any combination of notes and runtimes available on the page.
+- **Success Criteria**: Each page type (Docs, Journal, Calendar) renders correctly across breakpoints, can optionally bind to zero or more runtime engines, and views compose from reusable panel primitives without hard coupling. The three supported configurations (see below) all work correctly with consistent panel components.
 - **Scope**: Architecture — new view types, panel composition patterns, and runtime binding strategy. Touches playground pages, panel system, and runtime lifecycle.
 - **User Impact**: End users get a cohesive multi-page experience where documentation pages, workout journals, and calendar views all share consistent navigation, responsive behavior, and optional workout execution.
 
 ### Summary
 
 The current system tightly couples the Workbench component to a single runtime instance. This brainstorm proposes an architecture where pages are built from composable view primitives (parallax sections, sticky navs, hero banners, scrollable lists), each optionally bound to independent runtime engines. Three page archetypes emerge — Docs, Journal, and Calendar — each with distinct layout needs but shared panel infrastructure.
+
+### Supported Configurations
+
+The architecture must support three distinct workbench configurations, each combining notes, views, and runtimes differently.
+
+#### Configuration 1: In-Memory Note — Single View Transition
+
+A single view bound to an in-memory note. The view transitions between panels as the workflow progresses:
+
+```
+[Editor Panel] ──(run)──→ [Timer Panel] ──(complete)──→ [Review Panel]
+```
+
+- **Note type:** In-memory (not persisted). Page reload returns to a fresh state.
+- **Views:** One view that transitions between panels sequentially.
+- **Runtime:** Created when "Run" is clicked; disposed when the user resets or navigates away.
+- **Use case:** Tutorial steps, interactive documentation, getting-started pages — where the user is guided through a Plan → Track → Review flow in a focused, single-panel experience.
+
+#### Configuration 2: In-Memory Note — Multi-View Simultaneous
+
+Multiple views subscribed to the same in-memory note, showing the Editor, Timer, and Review panels simultaneously:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ View A: Editor Panel │ View B: Timer Panel          │
+│                      │                              │
+├──────────────────────┴──────────────────────────────┤
+│ View C: Review Panel                                │
+└─────────────────────────────────────────────────────┘
+```
+
+- **Note type:** In-memory.
+- **Views:** Multiple independent views, each showing a different panel, all subscribed to the same note and runtime.
+- **Runtime:** Shared across views via workbench-level subscription.
+- **Use case:** Long-scrolling parallax documentation pages where the user can see the editor, live timer, and review output at different scroll positions. Also useful for side-by-side tutorial layouts.
+
+#### Configuration 3: Stored Note — Dialog-Based Timer
+
+An editor view bound to a stored (persisted) note. Running a workout launches the timer in a separate fullscreen dialog view. Completion shows a fullscreen review:
+
+```
+[Editor Panel]
+      │
+      ├──(run)──→ [Fullscreen Timer Dialog]
+      │                    │
+      │           (complete)
+      │                    │
+      └──(return)←─ [Fullscreen Review Dialog]
+```
+
+- **Note type:** Stored (IndexedDB now, server-side later). All content and run data is preserved.
+- **Views:** The editor lives in the base page view. The timer and review each open as fullscreen dialog views overlaid on the editor.
+- **Runtime:** Created in the dialog scope; analytics persisted back to the stored note on completion.
+- **Use case:** Collection pages, journal notes — where the user has an editor as their primary workspace and the timer/review are immersive overlays. This is the behavior that exists today but needs to be abstracted for consistency with the other configurations.
+
+### High-Level Goals
+
+#### Documentation Pages (Home, Getting Started, Syntax)
+
+- Use **in-memory notes** with **Configuration 1** (single view transition) for focused step-through experiences.
+- Use **Configuration 2** (multi-view) for long-scrolling parallax pages where views are visible at different scroll positions.
+- Scroll events on parallax pages drive runtime state changes (see [Section 9: Scroll-Driven Runtime State Changes](#9-feature-deep-dive-scroll-driven-runtime-state-changes)).
+
+#### Collection & Journal Pages
+
+- Use **stored notes** with **Configuration 3** (dialog-based timer/review).
+- The editor is always visible as the primary workspace.
+- The timer launches as a fullscreen dialog (existing behavior today).
+- On completion, the fullscreen review dialog renders with analytics.
+- All data is persisted — content, run history, and analytics survive page reloads.
+
+#### Parallax Scroll Integration
+
+On scrolling parallax documentation pages, scroll events need to:
+- Support state changes in the runtime (e.g., scrolling to a new section activates a different demo runtime).
+- Progress through the parallax story based on timer events (timer start → auto-scroll to next step, timer complete → auto-scroll to next step).
+- Respond to user scroll actions (scrolling to a step ensures the views/panels and note/runtime state are correctly set or updated).
 
 ---
 
@@ -67,6 +204,19 @@ The current system tightly couples the Workbench component to a single runtime i
 | **PanelSpan responsive layout** | The `PanelSpan` (1/3, 2/3, 3/3) system handles desktop/tablet/mobile. New panels (calendar widget, scrollable list, parallax section) plug into this. |
 | **Zustand selector subscriptions** | `workbenchSyncStore` uses Zustand for efficient cross-panel state. Multiple runtimes could each have their own store slice or separate stores. |
 | **Strategy pattern** | Runtime block compilation uses strategies. Page-level view composition can use a similar pattern — page type → view strategy → panel set. |
+
+### Mapping: New Terms → Existing Code
+
+| Term | Existing Code | Gap |
+|------|---------------|-----|
+| **Workbench** | `Workbench.tsx` + `workbenchSyncStore.ts` | Currently hardcoded to one runtime. Needs to support 0..N runtimes and multiple notes. |
+| **Runtime** | `ScriptRuntime.ts` + `RuntimeLifecycleProvider.tsx` | Per-block runtime already works. Lifecycle provider needs scoping for multiple simultaneous runtimes. |
+| **Note (in-memory)** | `HomePage.tsx` inline `useState` for editor content | No formal "note" abstraction. Content is ad-hoc per page. |
+| **Note (stored)** | `NotebookProvider` + IndexedDB | Exists for playground/journal notes. Needs clean API for views to bind to. |
+| **View** | `ViewDescriptor` + `ResponsiveViewport` | Existing views (Plan/Track/Review) transition sequentially. Multi-view simultaneous display is not supported. |
+| **Panel** | `PanelDescriptor` + `PanelShell` + concrete panels | Well-defined. No changes needed to panel internals. |
+| **View ↔ Runtime binding** | `RuntimeContext` + `SubscriptionManagerContext` | Currently 1:1 (one runtime per provider tree). Needs to support views subscribing to any runtime on the workbench. |
+| **Configuration 3 dialog** | `TrackerPage` / `ReviewPage` as routes | Today these are full routes (`/tracker/:id`, `/review/:id`). Need abstraction as dialog views for consistency. |
 
 ---
 
@@ -275,6 +425,12 @@ A declarative page DSL is premature. With only three page types, direct componen
 - [ ] Migrate playground routes to use page shells
 - [ ] Test mobile layouts on viewport < 768px
 - [ ] Test Chromecast integration with new page shells
+- [ ] Validate Configuration 1: Single view transitions (Editor → Timer → Review) with in-memory note
+- [ ] Validate Configuration 2: Multi-view simultaneous display with shared runtime subscription
+- [ ] Validate Configuration 3: Dialog-based timer/review overlay on stored notes
+- [ ] Prototype `ScrollRuntimeBridge` for bidirectional scroll ↔ runtime sync on parallax pages
+- [ ] Formalize `INote` interface (`type: 'memory' | 'stored'`) for uniform note access
+- [ ] Abstract `TrackerPage`/`ReviewPage` into `DialogView` component for Config 3 consistency
 
 ---
 
@@ -307,6 +463,13 @@ A declarative page DSL is premature. With only three page types, direct componen
 - **Parallax sections:** Ensure all content is accessible without scroll-based animations. Provide skip links.
 - **Calendar keyboard navigation:** Arrow keys for date navigation, Enter for selection, Escape to close popups.
 - **Tab panels:** ARIA roles for `tablist`, `tab`, `tabpanel` on the Calendar's List/Detail/Results switcher.
+
+### Scroll-Runtime Sync
+
+- **Infinite loop risk:** Bidirectional scroll ↔ runtime sync must guard against loops where a runtime event triggers a scroll, which triggers a state change, which triggers another scroll. The `ScrollSource` anti-loop mechanism (see [Section 9](#9-feature-deep-dive-scroll-driven-runtime-state-changes)) addresses this.
+- **Scroll jank:** Programmatic `scrollTo` during active user scrolling can cause visual jitter. Use `requestAnimationFrame` batching and debounce runtime-driven scrolls.
+- **Reduced motion:** Users with `prefers-reduced-motion` should get instant position changes (no smooth scroll, no parallax transforms). All `scroll-behavior: smooth` must be conditional.
+- **Multiple runtimes on one page:** Parallax pages with multiple live demos need clear rules for which runtime "owns" the scroll. Only the most recently interacted-with demo should drive auto-scroll behavior.
 
 ---
 
@@ -606,9 +769,236 @@ All three variants use the same underlying data model (`JournalIndex`) and scrol
 
 ---
 
+## 9. Feature Deep-Dive: Scroll-Driven Runtime State Changes
+
+### Problem
+
+On parallax documentation pages, the scrolling experience and the runtime state are currently independent systems. Scroll position determines which parallax step is visually active (via `IntersectionObserver`), and the runtime operates independently when a user clicks "Run." There is no bidirectional link: timer events don't drive scroll position, and scroll actions don't affect runtime state.
+
+The issue requires a tighter coupling where:
+1. **Timer events drive scroll** — When a timer starts, the page auto-scrolls to the next step. When the timer completes, the page scrolls to the review step.
+2. **Scroll drives runtime state** — When a user manually scrolls to a new step, the workbench ensures the correct views/panels and note/runtime states are set (e.g., scrolling to the timer section activates the timer view if a runtime is running).
+3. **Bidirectional sync** — The scroll position and the runtime lifecycle form a synchronized state machine.
+
+### Goals
+
+- **Scroll → Runtime:** When the user scrolls to a parallax section bound to a runtime, that runtime's view should activate (lazy-start if needed, show the correct panel).
+- **Runtime → Scroll:** When a runtime event fires (start, complete, transition), the page should auto-scroll to the corresponding parallax section.
+- **No loops:** Bidirectional sync must not create infinite scroll ↔ runtime update loops. Use a "source of truth" flag or debounce to determine whether scroll was user-initiated or runtime-initiated.
+- **Graceful degradation:** If `prefers-reduced-motion` is set, replace smooth scroll transitions with immediate jumps or opacity fades.
+
+### Proposed Architecture
+
+#### State Machine
+
+The scroll-runtime binding follows a state machine per parallax page:
+
+```
+┌──────────────┐       scroll to editor section        ┌───────────────┐
+│   Idle       │ ────────────────────────────────────→ │  Editor Active │
+│ (no runtime) │ ←──────────────────────────────────── │  (editing)     │
+└──────────────┘       scroll away / reset              └───────┬───────┘
+                                                                │
+                                                          user clicks Run
+                                                                │
+                                                                ▼
+┌──────────────────┐    timer complete           ┌──────────────────────┐
+│  Review Active   │ ←────────────────────────── │    Timer Active      │
+│  (auto-scrolled) │                             │  (auto-scrolled to   │
+│                  │                             │   timer section)     │
+└──────────────────┘                             └──────────────────────┘
+```
+
+#### Event Bridge: `ScrollRuntimeBridge`
+
+A new component or hook that connects `IntersectionObserver` scroll tracking with runtime lifecycle events:
+
+```typescript
+interface ScrollRuntimeBridgeProps {
+  /** Map of section IDs to their scroll targets */
+  sections: Map<string, HTMLElement>;
+  /** Active runtime (if any) */
+  runtime: IScriptRuntime | null;
+  /** Callback when scroll should be driven by runtime events */
+  onRuntimeDrivenScroll: (sectionId: string) => void;
+  /** Callback when runtime state should be driven by scroll */
+  onScrollDrivenStateChange: (sectionId: string) => void;
+}
+```
+
+**Runtime → Scroll events:**
+- `runtime.start` → scroll to timer section
+- `runtime.complete` → scroll to review section
+- `runtime.block.transition` → scroll within timer section (step change)
+
+**Scroll → Runtime effects:**
+- Scroll to editor section → ensure editor panel is active, show note content
+- Scroll to timer section → if runtime exists and is paused, show timer panel (don't auto-start)
+- Scroll to review section → if runtime has output, show review panel
+- Scroll away from all sections → no runtime action (keep current state)
+
+#### Anti-Loop Mechanism
+
+```typescript
+type ScrollSource = 'user' | 'runtime';
+
+// Track who initiated the last scroll
+let lastScrollSource: ScrollSource = 'user';
+
+function onRuntimeEvent(event: RuntimeEvent) {
+  lastScrollSource = 'runtime';
+  scrollToSection(event.targetSection);
+  // Reset after scroll completes
+  setTimeout(() => { lastScrollSource = 'user'; }, 500);
+}
+
+function onIntersectionChange(sectionId: string) {
+  if (lastScrollSource === 'runtime') return; // Ignore runtime-initiated scrolls
+  applyScrollDrivenStateChange(sectionId);
+}
+```
+
+### Integration with Parallax Framework
+
+The `ParallaxPage` component (from [Section 7](#7-feature-deep-dive-consistent-parallax-framework)) gains a new optional `runtimeBridge` prop:
+
+```typescript
+interface ParallaxPageManifest {
+  sections: ParallaxSectionConfig[];
+  stickyNavVariant: 'hero-follow' | 'top-fixed';
+  /** Optional: Enable scroll ↔ runtime bidirectional sync */
+  runtimeBridge?: {
+    /** Section ID that should activate when runtime starts */
+    timerSection: string;
+    /** Section ID that should activate when runtime completes */
+    reviewSection: string;
+    /** Whether to auto-scroll on runtime events (default: true) */
+    autoScroll?: boolean;
+  };
+}
+```
+
+### Configuration Support
+
+| Configuration | Scroll → Runtime | Runtime → Scroll |
+|---------------|-----------------|-----------------|
+| **Config 1** (single view transition) | Scroll to step → activate corresponding panel | Timer start → scroll to timer step; complete → scroll to review step |
+| **Config 2** (multi-view simultaneous) | Scroll to section → highlight corresponding view | Timer events update the visible timer view in place (no scroll needed) |
+| **Config 3** (dialog-based) | N/A — dialog overlays the page | N/A — dialog is fullscreen, no scroll interaction |
+
+### Implementation Steps
+
+1. Create `useScrollRuntimeBridge` hook — coordinates `IntersectionObserver` + runtime event listeners
+2. Add anti-loop mechanism with `ScrollSource` tracking and debounce
+3. Extend `ParallaxSectionConfig` with `runtimeBridge` options
+4. Wire `ParallaxPage` to use the bridge when `runtimeBridge` is configured
+5. Add `scrollToSection` utility that respects `prefers-reduced-motion`
+6. Test bidirectional sync: runtime events → scroll, scroll → state changes, no infinite loops
+7. Create Storybook story demonstrating scroll-driven runtime state changes
+
+---
+
+## 10. Reconciliation with Existing Code
+
+### What Changes
+
+The new Workbench → View → Panel hierarchy refines but does *not* replace the existing code. The changes required are:
+
+| Layer | Current State | Target State |
+|-------|---------------|--------------|
+| **Workbench** | `Workbench.tsx` manages one runtime via `RuntimeLifecycleProvider` | Workbench manages 0..N runtimes via scoped providers, exposes runtime registry to child views |
+| **View** | `ViewDescriptor` defines Plan/Track/Review as sequential tabs | Views can be tabs (Config 3), sequential transitions (Config 1), or simultaneous panels (Config 2) |
+| **View binding** | Views implicitly use the single runtime from context | Views explicitly declare which runtime they subscribe to via `runtimeId` or nearest scoped provider |
+| **Panel** | Panels render content from hooks that read the single runtime context | No change — panels continue to use `useScriptRuntime()` and `useWorkbenchSyncStore()` |
+| **Note** | In-memory content is ad-hoc `useState`; stored content goes through `NotebookProvider` | Formalize `INote` interface with `type: 'memory' | 'stored'` and uniform access API |
+| **Dialog views** | `TrackerPage` and `ReviewPage` are full routes | Abstract into `DialogView` component that wraps Timer/Review panels in a fullscreen overlay |
+
+### What Stays the Same
+
+- `PanelGrid`, `PanelShell`, `PanelSizeContext` — no changes
+- `SubscriptionManager` fan-out pattern — already supports N subscribers
+- `workbenchSyncStore` — Zustand selector pattern works for multi-runtime (one store per workbench)
+- All concrete panel implementations (Editor, Timer, Review) — internals unchanged
+- `RuntimeLifecycleProvider` — used as-is within scoped providers
+
+---
+
 ## Appendix: Architecture Diagram
 
 See companion canvas file: [`view-panel-architecture.canvas`](web/view-panel-architecture.canvas)
+
+### Workbench → View → Panel Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         WORKBENCH                                    │
+│  Manages: Notes (in-memory + stored), Runtimes (0..N), Theme, Nav   │
+│                                                                     │
+│  ┌──────────── Note ─────────────┐  ┌──── Runtime (per WOD) ─────┐ │
+│  │ Content (CodeMirror doc)      │  │ ScriptRuntime              │ │
+│  │ Type: memory | stored         │  │ SubscriptionManager        │ │
+│  │ Persistence: none | IndexedDB │  │ RuntimeStack + Clock       │ │
+│  └───────────────────────────────┘  └────────────────────────────┘ │
+│                                                                     │
+│  ┌──────────────────── Views ──────────────────────────────────┐   │
+│  │                                                              │   │
+│  │  ┌─ View A ────────────┐  ┌─ View B ─────────────────────┐ │   │
+│  │  │ Subscribes to:      │  │ Subscribes to:                │ │   │
+│  │  │   Note #1            │  │   Note #1 + Runtime #1       │ │   │
+│  │  │                      │  │                               │ │   │
+│  │  │ ┌──────────────────┐│  │ ┌───────────────────────────┐ │ │   │
+│  │  │ │  Editor Panel    ││  │ │     Timer Panel            │ │ │   │
+│  │  │ │  (bound to note) ││  │ │     (bound to runtime)     │ │ │   │
+│  │  │ └──────────────────┘│  │ └───────────────────────────┘ │ │   │
+│  │  └──────────────────────┘  └───────────────────────────────┘ │   │
+│  │                                                              │   │
+│  │  ┌─ View C (Dialog) ──────────────────────────────────────┐ │   │
+│  │  │ Subscribes to: Runtime #1                               │ │   │
+│  │  │ ┌────────────────────────────────────────────────────┐  │ │   │
+│  │  │ │              Review Panel (fullscreen)              │  │ │   │
+│  │  │ └────────────────────────────────────────────────────┘  │ │   │
+│  │  └─────────────────────────────────────────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Supported Configuration Layouts
+
+```
+Config 1 — Single View Transition (In-Memory Note):
+┌─────────────────────────────────────┐
+│  Workbench (1 in-memory note)       │
+│  ┌─ Single View ──────────────────┐ │
+│  │  [Editor] ──→ [Timer] ──→ [Review] │
+│  │  (transitions between panels)  │ │
+│  └────────────────────────────────┘ │
+└─────────────────────────────────────┘
+
+Config 2 — Multi-View Simultaneous (In-Memory Note):
+┌─────────────────────────────────────┐
+│  Workbench (1 in-memory note)       │
+│  ┌─ View A ──────┐ ┌─ View B ────┐ │
+│  │ Editor Panel  │ │ Timer Panel  │ │
+│  ├───────────────┘ └──────────────┤ │
+│  │  ┌─ View C ──────────────────┐ │ │
+│  │  │ Review Panel              │ │ │
+│  │  └───────────────────────────┘ │ │
+│  └────────────────────────────────┘ │
+└─────────────────────────────────────┘
+
+Config 3 — Dialog-Based (Stored Note):
+┌─────────────────────────────────────┐
+│  Workbench (1 stored note)          │
+│  ┌─ Base View ────────────────────┐ │
+│  │ Editor Panel                   │ │
+│  │  ┌─ Dialog View ────────────┐  │ │
+│  │  │ Timer Panel (fullscreen) │  │ │
+│  │  │  or                      │  │ │
+│  │  │ Review Panel (fullscreen)│  │ │
+│  │  └──────────────────────────┘  │ │
+│  └────────────────────────────────┘ │
+└─────────────────────────────────────┘
+```
 
 ### View Type Summary
 
@@ -648,12 +1038,16 @@ Docs Page:
   LiveDemo section ──→ ScopedRuntimeProvider ──→ local IScriptRuntime
                                                └→ SubscriptionManager
                                                └→ LocalRuntimeSubscription
+  ScrollRuntimeBridge ──→ bidirectional sync:
+    runtime events ──→ auto-scroll to section
+    scroll position ──→ runtime state changes
 
 Journal Page:
   Workbench ──→ RuntimeLifecycleProvider ──→ IScriptRuntime
                                            └→ SubscriptionManager
                                                 ├→ LocalRuntimeSubscription
                                                 └→ ChromecastSubscription (if casting)
+  Dialog views ──→ fullscreen Timer/Review overlaid on editor
 
 Calendar Page:
   CalendarWidget ──→ date selection ──→ IndexedDB query
