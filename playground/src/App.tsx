@@ -86,6 +86,7 @@ import { SyntaxPage } from './SyntaxPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { GettingStartedPage } from './GettingStartedPage'
+import { JournalPageShell } from '@/panels/page-shells'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { decodeZip } from './services/decodeZip'
@@ -553,6 +554,92 @@ function TrackerPage() {
       onClose={handleClose}
       onCompleteWorkout={handleComplete}
       autoStart
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// #/journal/:id — stored-note page using JournalPageShell
+// ---------------------------------------------------------------------------
+
+function JournalPage({ theme }: { theme: string }) {
+  const { id } = useParams<{ id: string }>()
+  const noteId = id!
+  const [isTimerOpen, setIsTimerOpen] = useState(false)
+  const [isReviewOpen, setIsReviewOpen] = useState(false)
+  const [timerBlock, setTimerBlock] = useState<WodBlock | null>(null)
+  const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
+  const { content, loading, onChange } = usePlaygroundContent({
+    category: 'journal',
+    name: noteId,
+    mdContent: '',
+  })
+
+  const handleStartWorkout = useCallback(
+    (block: WodBlock) => {
+      setTimerBlock(block)
+      setIsTimerOpen(true)
+    },
+    [],
+  )
+
+  const handleTimerComplete = useCallback(
+    (_blockId: string, results: any) => {
+      setIsTimerOpen(false)
+      if (results?.data?.logs) {
+        const { segments } = getAnalyticsFromLogs(results.data.logs, results.data.startTime)
+        setReviewSegments(segments)
+        setIsReviewOpen(true)
+      }
+    },
+    [],
+  )
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-400">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <JournalPageShell
+      editor={
+        <UnifiedEditor
+          value={content}
+          onChange={onChange}
+          noteId={noteId}
+          onStartWorkout={handleStartWorkout}
+          enableInlineRuntime={false}
+          visibleCommands={2}
+          className="flex-1 min-h-0 w-full"
+          theme={theme}
+        />
+      }
+      timerOverlay={
+        timerBlock ? (
+          <FullscreenTimer
+            block={timerBlock}
+            onClose={() => setIsTimerOpen(false)}
+            onCompleteWorkout={handleTimerComplete}
+            autoStart
+          />
+        ) : undefined
+      }
+      reviewOverlay={
+        reviewSegments.length > 0 ? (
+          <FullscreenReview
+            segments={reviewSegments}
+            onClose={() => { setIsReviewOpen(false); setReviewSegments([]) }}
+            title="Workout Review"
+          />
+        ) : undefined
+      }
+      isTimerOpen={isTimerOpen}
+      isReviewOpen={isReviewOpen}
+      onCloseTimer={() => setIsTimerOpen(false)}
+      onCloseReview={() => { setIsReviewOpen(false); setReviewSegments([]) }}
     />
   )
 }
@@ -1094,6 +1181,7 @@ export function App() {
             <Route path="/playground" element={<PlaygroundRedirect />} />
             <Route path="/playground/:id" element={<AppContent />} />
             <Route path="/note/:category/:name" element={<AppContent />} />
+            <Route path="/journal/:id" element={<JournalPage theme="vs" />} />
             <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
             <Route path="/review/:runtimeId" element={<ReviewPage />} />
             <Route path="*" element={<AppContent />} />
