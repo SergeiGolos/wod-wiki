@@ -595,6 +595,11 @@ function JournalPage({ theme }: { theme: string }) {
     [],
   )
 
+  const handleCloseReview = useCallback(() => {
+    setIsReviewOpen(false)
+    setReviewSegments([])
+  }, [])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -631,7 +636,7 @@ function JournalPage({ theme }: { theme: string }) {
         reviewSegments.length > 0 ? (
           <FullscreenReview
             segments={reviewSegments}
-            onClose={() => { setIsReviewOpen(false); setReviewSegments([]) }}
+            onClose={handleCloseReview}
             title="Workout Review"
           />
         ) : undefined
@@ -639,7 +644,7 @@ function JournalPage({ theme }: { theme: string }) {
       isTimerOpen={isTimerOpen}
       isReviewOpen={isReviewOpen}
       onCloseTimer={() => setIsTimerOpen(false)}
-      onCloseReview={() => { setIsReviewOpen(false); setReviewSegments([]) }}
+      onCloseReview={handleCloseReview}
     />
   )
 }
