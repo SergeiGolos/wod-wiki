@@ -34,44 +34,44 @@ The view-panel-runtime-coupling brainstorm established the infrastructure layer 
 
 ### Relevant Files
 
-| File | Role |
-|------|------|
-| `playground/src/HomePage.tsx` | Current home page (~1006 lines). Implements 4-act parallax with FrozenEditorPanel, LiveTrackerPanel, FrozenReviewPanel, FrozenNotebookPanel. Contains inline step data and ad-hoc runtime binding via module-level refs. |
-| `src/panels/page-shells/ParallaxSection.tsx` | Extracted parallax primitive. IntersectionObserver step detection, sticky panel layout (60/40 desktop, stacked mobile), `onStepChange` callback. |
-| `src/panels/page-shells/DocsPageShell.tsx` | Documentation page shell. Composes HeroBanner + StickyNavPanel + Sections with optional ScopedRuntimeProvider. |
-| `src/panels/page-shells/ScopedRuntimeProvider.tsx` | Isolated runtime scope wrapper. Safe to nest; each instance has its own SubscriptionManager. |
-| `src/panels/page-shells/HeroBanner.tsx` | Hero section with gradient/image/plain variants. |
-| `src/panels/page-shells/StickyNavPanel.tsx` | Scroll-tracking navigation bar. `hero-follow` or `top-fixed` variants. |
-| `src/panels/page-shells/ScrollSection.tsx` | Simple bounded scrollable content area. |
-| `src/panels/panel-system/viewDescriptors.ts` | View factory: Plan (editor), Track (timer + history), Review (grid). Span-based layout (1/3, 2/3, 3/3). |
-| `src/components/Editor/overlays/RuntimeTimerPanel.tsx` | Timer component: start/pause/stop, lap/next, countdown/count-up display. |
-| `src/components/review-grid/ReviewGrid.tsx` | Analytics grid: Recharts visualization of workout segments and metrics. |
-| `src/services/AnalyticsTransformer.ts` | `getAnalyticsFromRuntime()` — converts runtime output to UI-ready segments with metrics. |
-| `playground/src/services/commandStrategies.tsx` | Command palette strategies: global search, collection search, statement builder. |
-| `src/repositories/wod-collections.ts` | Collection data: built-in workout collections (CrossFit benchmarks, etc.). |
-| `src/components/workbench/CollectionItemList.tsx` | Collection item browser with category filtering. |
-| `docs/brainstorm-view-panel-runtime-coupling.md` | Prior brainstorm establishing the Workbench → View → Panel hierarchy and page shell architecture. |
+| File                                                   | Role                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `playground/src/HomePage.tsx`                          | Current home page (~1006 lines). Implements 4-act parallax with FrozenEditorPanel, LiveTrackerPanel, FrozenReviewPanel, FrozenNotebookPanel. Contains inline step data and ad-hoc runtime binding via module-level refs. |
+| `src/panels/page-shells/ParallaxSection.tsx`           | Extracted parallax primitive. IntersectionObserver step detection, sticky panel layout (60/40 desktop, stacked mobile), `onStepChange` callback.                                                                         |
+| `src/panels/page-shells/DocsPageShell.tsx`             | Documentation page shell. Composes HeroBanner + StickyNavPanel + Sections with optional ScopedRuntimeProvider.                                                                                                           |
+| `src/panels/page-shells/ScopedRuntimeProvider.tsx`     | Isolated runtime scope wrapper. Safe to nest; each instance has its own SubscriptionManager.                                                                                                                             |
+| `src/panels/page-shells/HeroBanner.tsx`                | Hero section with gradient/image/plain variants.                                                                                                                                                                         |
+| `src/panels/page-shells/StickyNavPanel.tsx`            | Scroll-tracking navigation bar. `hero-follow` or `top-fixed` variants.                                                                                                                                                   |
+| `src/panels/page-shells/ScrollSection.tsx`             | Simple bounded scrollable content area.                                                                                                                                                                                  |
+| `src/panels/panel-system/viewDescriptors.ts`           | View factory: Plan (editor), Track (timer + history), Review (grid). Span-based layout (1/3, 2/3, 3/3).                                                                                                                  |
+| `src/components/Editor/overlays/RuntimeTimerPanel.tsx` | Timer component: start/pause/stop, lap/next, countdown/count-up display.                                                                                                                                                 |
+| `src/components/review-grid/ReviewGrid.tsx`            | Analytics grid: Recharts visualization of workout segments and metrics.                                                                                                                                                  |
+| `src/services/AnalyticsTransformer.ts`                 | `getAnalyticsFromRuntime()` — converts runtime output to UI-ready segments with metrics.                                                                                                                                 |
+| `playground/src/services/commandStrategies.tsx`        | Command palette strategies: global search, collection search, statement builder.                                                                                                                                         |
+| `src/repositories/wod-collections.ts`                  | Collection data: built-in workout collections (CrossFit benchmarks, etc.).                                                                                                                                               |
+| `src/components/workbench/CollectionItemList.tsx`      | Collection item browser with category filtering.                                                                                                                                                                         |
+| `docs/brainstorm-view-panel-runtime-coupling.md`       | Prior brainstorm establishing the Workbench → View → Panel hierarchy and page shell architecture.                                                                                                                        |
 
 ### Similar Existing Features
 
-| Feature | Location | Relevance |
-|---------|----------|-----------|
-| **4-Act HomePage** | `playground/src/HomePage.tsx` | Current implementation of the parallax tour. Defines EditorParallaxSection, TrackerParallaxSection, ReviewParallaxSection, NotebookParallaxSection as inline sub-components with step arrays. |
-| **GettingStartedPage** | `playground/src/GettingStartedPage.tsx` | 6-level progressive tutorial. Uses LessonSection with tabbed examples and `enableInlineRuntime={true}`. Demonstrates the pattern of embedded interactive content alongside explanatory text. |
-| **SyntaxPage** | `playground/src/SyntaxPage.tsx` | Reference page for WodScript syntax. Demonstrates another content layout using the same editor component. |
-| **ParallaxSection primitive** | `src/panels/page-shells/ParallaxSection.tsx` | Desktop: sticky panel (60%) + scrolling steps (40%). Mobile: sticky top (40vh) + stacked steps. Transitions use `duration-500`, `translate-y-3`, `opacity-[0.05]`. |
-| **Chromecast receiver** | `playground/src/receiver-rpc.tsx` | WebRTC-based cast receiver. Demonstrates the cast-to-TV workflow described in the feature callout section. |
-| **Collection browser** | `src/app/pages/CollectionsPage.tsx`, `src/components/workbench/CollectionItemList.tsx` | Existing collection browsing UI with category filter and workout previews. |
+| Feature                       | Location                                                                               | Relevance                                                                                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **4-Act HomePage**            | `playground/src/HomePage.tsx`                                                          | Current implementation of the parallax tour. Defines EditorParallaxSection, TrackerParallaxSection, ReviewParallaxSection, NotebookParallaxSection as inline sub-components with step arrays. |
+| **GettingStartedPage**        | `playground/src/GettingStartedPage.tsx`                                                | 6-level progressive tutorial. Uses LessonSection with tabbed examples and `enableInlineRuntime={true}`. Demonstrates the pattern of embedded interactive content alongside explanatory text.  |
+| **SyntaxPage**                | `playground/src/SyntaxPage.tsx`                                                        | Reference page for WodScript syntax. Demonstrates another content layout using the same editor component.                                                                                     |
+| **ParallaxSection primitive** | `src/panels/page-shells/ParallaxSection.tsx`                                           | Desktop: sticky panel (60%) + scrolling steps (40%). Mobile: sticky top (40vh) + stacked steps. Transitions use `duration-500`, `translate-y-3`, `opacity-[0.05]`.                            |
+| **Chromecast receiver**       | `playground/src/receiver-rpc.tsx`                                                      | WebRTC-based cast receiver. Demonstrates the cast-to-TV workflow described in the feature callout section.                                                                                    |
+| **Collection browser**        | `src/app/pages/CollectionsPage.tsx`, `src/components/workbench/CollectionItemList.tsx` | Existing collection browsing UI with category filter and workout previews.                                                                                                                    |
 
 ### Key Patterns
 
-| Pattern | How It Applies |
-|---------|---------------|
-| **ParallaxStepDescriptor** | Each slide in the narrative maps to a step descriptor with `content` (React node), `label`, and optional `id`. The sticky panel renders a different component based on the active step index. |
-| **ScopedRuntimeProvider nesting** | The tracker slides need a live runtime. A `ScopedRuntimeProvider` wraps only the tracker section, providing an isolated runtime that initializes on scroll-into-view and disposes on scroll-out. |
-| **Scroll-Runtime Bridge** | Runtime events (start, block transition, complete) trigger scroll position changes. The `onStepChange` callback from `ParallaxSection` and runtime event subscriptions coordinate bidirectional sync. |
-| **CommandPalette integration** | The Collections section can trigger `setStrategy(collectionStrategy)` to open the command palette filtered to a specific collection, loading selected workouts into the editor demo. |
-| **View transition choreography** | The sticky panel needs to transition between Editor → Track → Review panels as the user scrolls. This maps to the existing `ViewDescriptor` concept: each section binds to a different view configuration. |
+| Pattern                           | How It Applies                                                                                                                                                                                             |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ParallaxStepDescriptor**        | Each slide in the narrative maps to a step descriptor with `content` (React node), `label`, and optional `id`. The sticky panel renders a different component based on the active step index.              |
+| **ScopedRuntimeProvider nesting** | The tracker slides need a live runtime. A `ScopedRuntimeProvider` wraps only the tracker section, providing an isolated runtime that initializes on scroll-into-view and disposes on scroll-out.           |
+| **Scroll-Runtime Bridge**         | Runtime events (start, block transition, complete) trigger scroll position changes. The `onStepChange` callback from `ParallaxSection` and runtime event subscriptions coordinate bidirectional sync.      |
+| **CommandPalette integration**    | The Collections section can trigger `setStrategy(collectionStrategy)` to open the command palette filtered to a specific collection, loading selected workouts into the editor demo.                       |
+| **View transition choreography**  | The sticky panel needs to transition between Editor → Track → Review panels as the user scrolls. This maps to the existing `ViewDescriptor` concept: each section binds to a different view configuration. |
 
 ---
 
