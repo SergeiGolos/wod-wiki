@@ -7,12 +7,12 @@ import {
   Zap,
   ChevronDown,
 } from 'lucide-react'
-import { scrollToSection, STICKY_NAV_HEIGHT } from './components/ParallaxSection'
+import { scrollToSection } from './components/ParallaxSection'
 import type { FrozenEditorPanelHandle } from './components/FrozenEditorPanel'
-import { EDITOR_STEPS } from './data/parallaxActSteps'
 
 // Section components
 import { Act1EditorSection } from './sections/Act1EditorSection'
+import { ActBrowseSection } from './sections/ActBrowseSection'
 import { Act2TrackSection } from './sections/Act2TrackSection'
 import { Act3RestSection } from './sections/Act3RestSection'
 import { Act4ReviewSection } from './sections/Act4ReviewSection'
@@ -46,9 +46,10 @@ export function HomePageContent({
   const runIdRef = useRef(0)
   const [homePaletteOpen, setHomePaletteOpen] = useState(false)
   const [trackerPreview, setTrackerPreview] = useState<string | null>(null)
-  const paletteSourceRef = useRef<'editor' | 'tracker'>('editor')
+  const paletteSourceRef = useRef<'editor' | 'tracker' | 'browse'>('editor')
   const [liveRuntime, setLiveRuntime] = useState<IScriptRuntime | null>(null)
   const editorRef = useRef<FrozenEditorPanelHandle>(null)
+  const browseRef = useRef<FrozenEditorPanelHandle>(null)
 
   // Collections data
   const allCollections = useMemo(() => getWodCollections(), [])
@@ -130,6 +131,7 @@ export function HomePageContent({
       </section>
 
       {/* Act 1 — Editor (stickyAlign='right', bg-background) */}
+      {/* Act 1b — Browse Collections (stickyAlign='right', bg-muted/[0.03]) */}
       <Act1EditorSection
         actualTheme={actualTheme}
         onRun={launchTracker}
@@ -141,6 +143,13 @@ export function HomePageContent({
         onStartPreview={(script) => { setTrackerPreview(null); launchTracker(script) }}
         onRuntimeReady={setLiveRuntime}
         liveRuntime={liveRuntime}
+      />
+
+      <ActBrowseSection
+        actualTheme={actualTheme}
+        onRun={launchTracker}
+        onSearch={() => { paletteSourceRef.current = 'browse'; setHomePaletteOpen(true) }}
+        browseRef={browseRef}
       />
 
       {/* Acts 2–4 share the same runtime scope */}
@@ -193,7 +202,18 @@ export function HomePageContent({
         items={workoutItems}
         onSelect={(item) => {
           if (homePaletteOpen) {
-            if (paletteSourceRef.current === 'tracker') {
+            if (paletteSourceRef.current === 'browse') {
+              if (!item.content) return
+              const wodBlocks: string[] = []
+              const regex = /```wod\n([\s\S]*?)\n```/g
+              let match: RegExpExecArray | null
+              while ((match = regex.exec(item.content)) !== null) {
+                wodBlocks.push('```wod\n' + match[1] + '\n```')
+              }
+              const script = wodBlocks.length > 0 ? wodBlocks.join('\n\n') : item.content
+              browseRef.current?.loadScript(script)
+              setHomePaletteOpen(false)
+            } else if (paletteSourceRef.current === 'tracker') {
               if (!item.content) return
               const wodBlocks: string[] = []
               const regex = /```wod\n([\s\S]*?)\n```/g

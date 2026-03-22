@@ -45,10 +45,14 @@ export const EDITOR_STEPS: ParallaxStep[] = [
     body: 'Click the ▶ Run button in the wod block header — or the inline button — to hand off to the timer.',
     cta: { label: '▶ Run', target: 'tracker' },
   },
+]
+
+// ACT 1b — Browse Collections
+export const BROWSE_STEPS: ParallaxStep[] = [
   {
-    eyebrow: 'Step 2 · Track',
+    eyebrow: 'Step 1 · Plan',
     title: 'Or browse collections',
-    body: 'Load a pre-built workout from the collection library. Each item loads directly into the editor in this panel.',
+    body: 'Not sure what to write? Load a pre-built workout from the collection library. Each item loads directly into the editor — then hit Run when you\'re ready.',
   },
 ]
 

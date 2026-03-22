@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { Play, Search } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { ParallaxSection } from '../components/ParallaxSection'
 import { FrozenEditorPanel, type FrozenEditorPanelHandle } from '../components/FrozenEditorPanel'
 import { LiveTrackerPanel } from '../components/LiveTrackerPanel'
@@ -83,15 +83,6 @@ export function Act1EditorSection({
           Run
         </button>
       )}
-      {isTracking && (
-        <button
-          onClick={onSearch}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-transparent hover:border-border/60 transition-all"
-        >
-          <Search className="size-2.5" />
-          Browse
-        </button>
-      )}
     </>
   ) : undefined
 
@@ -127,20 +118,6 @@ export function Act1EditorSection({
             actualTheme={actualTheme}
             onRun={onRun}
           />
-        )
-      }}
-      renderStepExtra={(stepIdx, _activeStep) => {
-        if (stepIdx !== EDITOR_STEPS.length - 1) return null
-        return (
-          <div className="flex flex-col gap-3 mt-2">
-            <button
-              onClick={onSearch}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-muted/60 text-foreground text-xs font-black uppercase tracking-wider border border-border/60 shadow-sm hover:bg-muted hover:scale-[1.03] transition-all w-fit"
-            >
-              <Search className="size-3.5" />
-              Browse Workouts
-            </button>
-          </div>
         )
       }}
       className="bg-background"

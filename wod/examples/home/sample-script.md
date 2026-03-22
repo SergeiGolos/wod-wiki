@@ -7,7 +7,7 @@ order: 1
 # Pushup Benchmarkn
 
 ```wod
-3 rounds
+(3) Rounds
   5 Pushups
   :10 Rest
 ```
