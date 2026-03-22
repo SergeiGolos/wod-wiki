@@ -210,15 +210,6 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
     });
   }, []);
 
-  const handleToggleColumnVisibility = useCallback((columnId: string) => {
-    setColumnVisibilityOverrides((prev) => {
-      const col = columns.find((c) => c.id === columnId);
-      if (!col) return prev;
-      const currentlyVisible = columnId in prev ? prev[columnId] : col.visible;
-      return { ...prev, [columnId]: !currentlyVisible };
-    });
-  }, [columns]);
-
   const handlePresetChange = useCallback(
     (presetId: string) => {
       // Reset local overrides when switching presets
@@ -315,8 +306,6 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
         onPresetChange={handlePresetChange}
         searchText={searchText}
         onSearchChange={setSearchText}
-        columns={visibleColumns}
-        onToggleColumnVisibility={handleToggleColumnVisibility}
         showFilters={showFilters}
         onToggleFilters={() => setShowFilters((p) => !p)}
         totalRows={totalRows}

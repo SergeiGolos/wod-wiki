@@ -10,9 +10,8 @@
  */
 
 import React from 'react';
-import type { GridColumn, GridViewPreset } from './types';
+import type { GridViewPreset } from './types';
 import { GRID_PRESETS } from './gridPresets';
-import { getMetricIcon } from '@/views/runtime/metricColorMap';
 
 interface GridToolbarProps {
   /** Currently active preset */
@@ -23,10 +22,6 @@ interface GridToolbarProps {
   searchText: string;
   /** Callback to update search text */
   onSearchChange: (text: string) => void;
-  /** Column definitions (for visibility toggles) */
-  columns: GridColumn[];
-  /** Callback to toggle column visibility */
-  onToggleColumnVisibility: (columnId: string) => void;
   /** Whether per-column filter row is showing */
   showFilters: boolean;
   /** Callback to toggle filter row visibility */
@@ -42,16 +37,11 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
   onPresetChange,
   searchText,
   onSearchChange,
-  columns,
-  onToggleColumnVisibility,
   showFilters,
   onToggleFilters,
   totalRows,
   visibleRows,
 }) => {
-  // Only show metrics columns in the visibility toggles
-  const metricColumns = columns.filter((c) => c.type);
-
   return (
     <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border bg-muted/10 dark:bg-muted/5">
       {/* Preset selector */}
@@ -73,42 +63,24 @@ export const GridToolbar: React.FC<GridToolbarProps> = ({
       {/* Separator */}
       <div className="w-px h-5 bg-border" />
 
-      {/* Global search */}
-      <div className="flex items-center gap-1 flex-1 max-w-xs">
-        <span className="text-muted-foreground text-sm">🔍</span>
-        <input
-          type="text"
-          className="w-full px-2 py-1 text-xs rounded border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
-          placeholder="Search all cells…"
-          value={searchText}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
-
-      {/* Separator */}
-      <div className="w-px h-5 bg-border" />
-
-      {/* Column visibility chips */}
-      <div className="flex flex-wrap items-center gap-1">
-        {metricColumns.map((col) => {
-          const icon = col.type ? getMetricIcon(col.type) : null;
-          return (
-            <button
-              key={col.id}
-              className={[
-                'text-[11px] px-1.5 py-0.5 rounded border transition-colors',
-                col.visible
-                  ? 'bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40'
-                  : 'bg-muted/30 border-border text-muted-foreground opacity-50',
-              ].join(' ')}
-              onClick={() => onToggleColumnVisibility(col.id)}
-              title={`${col.visible ? 'Hide' : 'Show'} ${col.label} column`}
-            >
-              {icon && <span className="mr-0.5">{icon}</span>}
-              {col.label}
-            </button>
-          );
-        })}
+      {/* MQL Search */}
+      <div className="flex items-center flex-1 max-w-md">
+        <div className="flex w-full group">
+          <input
+            type="text"
+            className="flex-1 px-2.5 py-1 text-xs rounded-l border border-r-0 border-border bg-background text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/40 focus:z-10"
+            placeholder="MQL (not current implement)"
+            value={searchText}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+          <button
+            className="px-2.5 py-1 text-xs rounded-r border border-border bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors flex items-center gap-1.5 border-l-0"
+            title="Search with MQL"
+          >
+            <span>🔍</span>
+            <span className="font-medium">Search</span>
+          </button>
+        </div>
       </div>
 
       {/* Separator */}

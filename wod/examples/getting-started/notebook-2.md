@@ -1,0 +1,16 @@
+---
+title: "Warmup Checklist"
+subtitle: "Prep tasks before the wod"
+section: notebook
+order: 2
+---
+## Warmup
+- [x] 5 min easy bike
+- [ ] Shoulder CARs x 10
+- [ ] Band pull-aparts x 20
+
+```wod
+(5 Sets)
+  5 Bench Press 185lb
+  *3:00 Rest
+```
