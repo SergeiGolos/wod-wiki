@@ -32,16 +32,14 @@ export function FrozenReviewPanel({ runtime }: { runtime: IScriptRuntime | null 
   }, [runtime, revision])
 
   return (
-    <div className="w-full h-full overflow-hidden bg-background">
-      <div className="w-full h-full pointer-events-none">
-        <ReviewGrid
-          runtime={null}
-          segments={segments}
-          selectedSegmentIds={new Set()}
-          onSelectSegment={() => {}}
-          groups={groups}
-        />
-      </div>
+    <div className="w-full h-full overflow-auto bg-background">
+      <ReviewGrid
+        runtime={null}
+        segments={segments}
+        selectedSegmentIds={new Set()}
+        onSelectSegment={() => {}}
+        groups={groups}
+      />
     </div>
   )
 }

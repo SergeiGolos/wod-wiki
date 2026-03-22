@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
-import { Play } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
+import { Play, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MacOSChrome } from '../components/MacOSChrome'
 import type { ParallaxStep } from '../data/parallaxActSteps'
@@ -27,17 +27,70 @@ export interface ParallaxSectionProps {
   onReset?: () => void
   /** Extra actions rendered in the MacOS chrome header bar */
   headerActions?: ReactNode
-  /** Content rendered above the step list in the text column.
-   * On mobile, this appears below the sticky panel (visible while scrolling). */
+  /** Content rendered above the step list in the text column */
   headerContent?: ReactNode
   /** Render extra content below the body text for a specific step */
   renderStepExtra?: (stepIdx: number, activeStep: number) => ReactNode | null
+  /** Called whenever the active (most-visible) step index changes */
+  onStepChange?: (stepIndex: number) => void
 }
 
-export function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right', chromeTitle = 'WodScript', className, onReset, headerActions, headerContent, renderStepExtra }: ParallaxSectionProps) {
+// ─── Step grouping ────────────────────────────────────────────────────────────
+
+type StepMeta = { step: ParallaxStep; idx: number }
+type StepGroup =
+  | { kind: 'normal'; item: StepMeta }
+  | { kind: 'clear'; item: StepMeta }
+  | { kind: 'stickyGroup'; header: StepMeta; subs: StepMeta[] }
+
+function buildGroups(steps: ParallaxStep[]): StepGroup[] {
+  const groups: StepGroup[] = []
+  let current: Extract<StepGroup, { kind: 'stickyGroup' }> | null = null
+
+  steps.forEach((step, idx) => {
+    if (step.sticky) {
+      if (current) groups.push(current)
+      current = { kind: 'stickyGroup', header: { step, idx }, subs: [] }
+    } else if (step.subsection && current) {
+      current.subs.push({ step, idx })
+    } else if (step.clear) {
+      if (current) { groups.push(current); current = null }
+      groups.push({ kind: 'clear', item: { step, idx } })
+    } else {
+      if (current) { groups.push(current); current = null }
+      groups.push({ kind: 'normal', item: { step, idx } })
+    }
+  })
+
+  if (current) groups.push(current)
+  return groups
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function ParallaxSection({
+  id,
+  steps,
+  stickyContent,
+  stickyAlign = 'right',
+  chromeTitle = 'WodScript',
+  className,
+  onReset,
+  headerActions,
+  headerContent,
+  renderStepExtra,
+  onStepChange,
+}: ParallaxSectionProps) {
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const [activeStep, setActiveStep] = useState(0)
   const [selectedExamples, setSelectedExamples] = useState<number[]>(() => steps.map(() => 0))
+
+  const groups = useMemo(() => buildGroups(steps), [steps])
+
+  // Notify parent when active step changes
+  useEffect(() => {
+    onStepChange?.(activeStep)
+  }, [activeStep, onStepChange])
 
   const selectExample = useCallback((stepIdx: number, exIdx: number) => {
     setSelectedExamples(prev => {
@@ -79,7 +132,206 @@ export function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right
   const currentExample = selectedExamples[activeStep] ?? 0
   const stickyPanel = stickyContent(activeStep, currentExample)
 
-  // ── Desktop: 60% sticky panel
+  // ── Inline markdown parser (bold + code only, no HTML injection) ─────────
+  function parseInlineMarkdown(text: string): React.ReactNode[] {
+    const regex = /(\*\*[^*]+\*\*|`[^`]+`)/g
+    const parts: React.ReactNode[] = []
+    let lastIndex = 0
+    let key = 0
+    let match: RegExpExecArray | null
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+      const m = match[0]
+      if (m.startsWith('**')) {
+        parts.push(<strong key={key++} className="font-bold text-foreground/90">{m.slice(2, -2)}</strong>)
+      } else {
+        parts.push(<code key={key++} className="font-mono text-[0.85em] bg-muted px-1 rounded">{m.slice(1, -1)}</code>)
+      }
+      lastIndex = match.index + m.length
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+    return parts
+  }
+
+  // ── Shared step body renderer ────────────────────────────────────────────
+  function renderStepBody(
+    item: StepMeta,
+    variant: 'normal' | 'sub' | 'clear',
+  ) {
+    const { step, idx } = item
+    const selIdx = selectedExamples[idx] ?? 0
+    const isActive = activeStep === idx
+    const examples = step.examples ?? []
+
+    return (
+      <div className={cn(
+        'transition-all duration-500',
+        isActive ? 'opacity-100 translate-y-0' : 'opacity-60',
+        variant === 'clear' ? 'text-center max-w-md w-full' : 'max-w-sm',
+      )}>
+        {variant === 'clear' && <div className="w-12 h-px bg-border/50 mx-auto mb-6" />}
+        {variant !== 'sub' && (
+          <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
+            {step.eyebrow}
+          </div>
+        )}
+        {variant === 'sub' ? (
+          <h3 className="text-base lg:text-lg font-black tracking-tight text-foreground uppercase leading-tight mb-4">
+            {step.title}
+          </h3>
+        ) : (
+          <h2 className={cn(
+            'font-black tracking-tight text-foreground uppercase leading-tight mb-5',
+            variant === 'normal' ? 'text-2xl lg:text-3xl' : 'text-xl lg:text-2xl',
+          )}>
+            {step.title}
+          </h2>
+        )}
+        <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
+          {parseInlineMarkdown(step.body)}
+        </p>
+        {step.bullets && step.bullets.length > 0 && (
+          <ul className="space-y-3 mb-6">
+            {step.bullets.map((b, i) => (
+              <li key={i} className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black tracking-[0.1em] uppercase text-foreground/80">{b.label}</span>
+                  {b.example && (
+                    <code className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{b.example}</code>
+                  )}
+                </div>
+                <span className="text-[11px] text-muted-foreground leading-snug">{b.detail}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {examples.length > 1 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {examples.map((ex, exIdx) => (
+              <button
+                key={exIdx}
+                onClick={() => selectExample(idx, exIdx)}
+                className={cn(
+                  'text-[10px] font-black uppercase tracking-[0.12em] px-3.5 py-1.5 rounded-full transition-all ring-1',
+                  selIdx === exIdx
+                    ? 'bg-primary text-primary-foreground ring-primary/30 shadow-md'
+                    : 'bg-muted/50 text-muted-foreground ring-transparent hover:bg-muted hover:ring-border',
+                )}
+              >
+                {ex.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {step.cta && (
+          <button
+            onClick={() => scrollToSection(step.cta!.target)}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-primary text-primary-foreground text-[10px] font-medium shadow-sm hover:bg-primary/90 transition-colors"
+          >
+            <Play className="h-3 w-3 fill-current" />
+            {step.cta.label}
+          </button>
+        )}
+        {renderStepExtra?.(idx, activeStep)}
+      </div>
+    )
+  }
+
+  // ── Normal step ──────────────────────────────────────────────────────────
+  function renderNormal(item: StepMeta) {
+    return (
+      <div
+        key={item.idx}
+        ref={el => { stepRefs.current[item.idx] = el }}
+        data-step={String(item.idx)}
+        className="min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10"
+      >
+        {renderStepBody(item, 'normal')}
+      </div>
+    )
+  }
+
+  // ── Clear (section-break) step ───────────────────────────────────────────
+  function renderClear(item: StepMeta) {
+    return (
+      <div
+        key={item.idx}
+        ref={el => { stepRefs.current[item.idx] = el }}
+        data-step={String(item.idx)}
+        className="min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10"
+      >
+        {renderStepBody(item, 'clear')}
+      </div>
+    )
+  }
+
+  // ── Sticky group ─────────────────────────────────────────────────────────
+  function renderStickyGroup(group: Extract<StepGroup, { kind: 'stickyGroup' }>) {
+    const { header, subs } = group
+    const groupIndices = [header.idx, ...subs.map(s => s.idx)]
+    const isGroupActive = groupIndices.includes(activeStep)
+
+    return (
+      <div key={header.idx}>
+        {/* Visual sticky header — CSS position:sticky within this group container */}
+        <div
+          className="sticky z-10 px-6 lg:px-10 py-5 bg-background border-b border-border/25"
+          style={{ top: STICKY_NAV_HEIGHT }}
+        >
+          <div className={cn(
+            'max-w-sm transition-all duration-500',
+            isGroupActive ? 'opacity-100' : 'opacity-60',
+          )}>
+            <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-2">
+              {header.step.eyebrow}
+            </div>
+            <h2 className="text-xl lg:text-2xl font-black tracking-tight text-foreground uppercase leading-tight">
+              {header.step.title}
+            </h2>
+            {header.step.body && (
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-2">
+                {parseInlineMarkdown(header.step.body)}
+              </p>
+            )}
+            {header.step.subsectionHint && (
+              <div className="flex items-center gap-1.5 mt-3 text-muted-foreground/40">
+                <span className="text-[8px] font-black uppercase tracking-[0.3em]">{header.step.subsectionHint}</span>
+                <ChevronDown className="size-3 animate-bounce" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Invisible spacer observed for the header step index */}
+        <div
+          ref={el => { stepRefs.current[header.idx] = el }}
+          data-step={String(header.idx)}
+          className={header.step.subsectionHint ? 'min-h-[15vh]' : 'min-h-[25vh]'}
+        />
+
+        {/* Subsection steps scroll under the sticky header */}
+        {subs.map(subItem => (
+          <div
+            key={subItem.idx}
+            ref={el => { stepRefs.current[subItem.idx] = el }}
+            data-step={String(subItem.idx)}
+            className="min-h-[55vh] lg:min-h-[65vh] flex items-center py-12 lg:py-16 px-8 lg:px-14 border-t border-border/10"
+          >
+            {renderStepBody(subItem, 'sub')}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // ── Full text column ─────────────────────────────────────────────────────
+  const textContent = groups.map(group => {
+    if (group.kind === 'normal') return renderNormal(group.item)
+    if (group.kind === 'clear') return renderClear(group.item)
+    return renderStickyGroup(group)
+  })
+
+  // ── Sticky panel (right/left) ────────────────────────────────────────────
   const desktopPanelNode = (
     <div
       className="w-[60%] self-start sticky hidden lg:block p-6 pt-8 pb-8"
@@ -91,7 +343,6 @@ export function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right
     </div>
   )
 
-  // ── Mobile: sticky top panel
   const mobilePanelNode = (
     <div
       className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
@@ -103,67 +354,8 @@ export function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right
     </div>
   )
 
-  const textSteps = steps.map((step, idx) => {
-    const examples = step.examples ?? []
-    const selIdx = selectedExamples[idx] ?? 0
-
-    return (
-      <div
-        key={idx}
-        ref={el => { stepRefs.current[idx] = el }}
-        data-step={String(idx)}
-        className="min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10"
-      >
-        <div className={cn(
-          "max-w-sm transition-all duration-500",
-          activeStep === idx ? "opacity-100 translate-y-0" : "opacity-[0.05] translate-y-3"
-        )}>
-          <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-            {step.eyebrow}
-          </div>
-          <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
-            {step.title}
-          </h2>
-          <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
-            {step.body}
-          </p>
-          {/* Example selector tabs */}
-          {examples.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {examples.map((ex, exIdx) => (
-                <button
-                  key={exIdx}
-                  onClick={() => selectExample(idx, exIdx)}
-                  className={cn(
-                    "text-[10px] font-black uppercase tracking-[0.12em] px-3.5 py-1.5 rounded-full transition-all ring-1",
-                    selIdx === exIdx
-                      ? "bg-primary text-primary-foreground ring-primary/30 shadow-md"
-                      : "bg-muted/50 text-muted-foreground ring-transparent hover:bg-muted hover:ring-border"
-                  )}
-                >
-                  {ex.label}
-                </button>
-              ))}
-            </div>
-          )}
-          {step.cta && (
-            // Styled to match the Run CommandPill in the wod block header
-            <button
-              onClick={() => scrollToSection(step.cta!.target)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-primary text-primary-foreground text-[10px] font-medium shadow-sm hover:bg-primary/90 transition-colors"
-            >
-              <Play className="h-3 w-3 fill-current" />
-              {step.cta.label}
-            </button>
-          )}
-          {renderStepExtra?.(idx, activeStep)}
-        </div>
-      </div>
-    )
-  })
-
   return (
-    <section id={id} className={cn("relative border-b border-border/50", className)}>
+    <section id={id} className={cn('relative border-b border-border/50', className)}>
       <div className="lg:flex">
         {stickyAlign === 'left' && desktopPanelNode}
         <div className="w-full lg:w-[40%]">
@@ -173,10 +365,11 @@ export function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right
               {headerContent}
             </div>
           )}
-          {textSteps}
+          {textContent}
         </div>
         {stickyAlign === 'right' && desktopPanelNode}
       </div>
     </section>
   )
 }
+

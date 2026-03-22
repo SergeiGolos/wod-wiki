@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { scrollToSection } from './components/ParallaxSection'
 import type { FrozenEditorPanelHandle } from './components/FrozenEditorPanel'
+import { SAMPLE_SCRIPT } from './data/parallaxActSteps'
 
 // Section components
 import { Act1EditorSection } from './sections/Act1EditorSection'
@@ -145,13 +146,6 @@ export function HomePageContent({
         liveRuntime={liveRuntime}
       />
 
-      <ActBrowseSection
-        actualTheme={actualTheme}
-        onRun={launchTracker}
-        onSearch={() => { paletteSourceRef.current = 'browse'; setHomePaletteOpen(true) }}
-        browseRef={browseRef}
-      />
-
       {/* Acts 2–4 share the same runtime scope */}
       {/* Act 2 — Track (stickyAlign='left', bg-zinc-950/[0.03]) */}
       <Act2TrackSection
@@ -163,6 +157,7 @@ export function HomePageContent({
         onStartPreview={(script) => { setTrackerPreview(null); launchTracker(script) }}
         onClearPreview={() => { paletteSourceRef.current = 'tracker'; setTrackerPreview(null); setHomePaletteOpen(true) }}
         onRuntimeReady={setLiveRuntime}
+        onAutoStart={() => { if (!trackerBlock) launchTracker(SAMPLE_SCRIPT) }}
       />
 
       {/* Act 3 — Rest (stickyAlign='left', bg-zinc-950/[0.03]) */}
@@ -178,6 +173,14 @@ export function HomePageContent({
 
       {/* Act 5 — Records (stickyAlign='right', bg-background) */}
       <Act5RecordsSection actualTheme={actualTheme} />
+
+      {/* Browse (stickyAlign='right') — follows records so it doesn't interrupt the Act 1 flow */}
+      <ActBrowseSection
+        actualTheme={actualTheme}
+        onRun={launchTracker}
+        onSearch={() => { paletteSourceRef.current = 'browse'; setHomePaletteOpen(true) }}
+        browseRef={browseRef}
+      />
 
       {/* Collections (stickyAlign='right', bg-background) */}
       <CollectionsParallaxSection

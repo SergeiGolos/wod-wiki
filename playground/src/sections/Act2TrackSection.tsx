@@ -1,4 +1,5 @@
 import { Play, Search } from 'lucide-react'
+import { useRef, useCallback } from 'react'
 import { ParallaxSection } from '../components/ParallaxSection'
 import { LiveTrackerPanel } from '../components/LiveTrackerPanel'
 import { TRACKER_STEPS } from '../data/parallaxActSteps'
@@ -14,6 +15,8 @@ export interface Act2TrackSectionProps {
   onStartPreview: (script: string) => void
   onClearPreview: () => void
   onRuntimeReady?: (runtime: IScriptRuntime) => void
+  /** Called when the tracker section scrolls into view with no workout running */
+  onAutoStart?: () => void
 }
 
 export function Act2TrackSection({
@@ -25,7 +28,29 @@ export function Act2TrackSection({
   onStartPreview,
   onClearPreview,
   onRuntimeReady,
+  onAutoStart,
 }: Act2TrackSectionProps) {
+  // Track block in a ref so the step-change callback always sees the latest value
+  const blockRef = useRef(block)
+  blockRef.current = block
+
+  // Once auto-start fires it should never re-fire (e.g. after reset the block
+  // becomes null again but the step is still 0, which would cause an instant
+  // restart loop).
+  const autoStartFiredRef = useRef(false)
+
+  const handleStepChange = useCallback((step: number) => {
+    if (step !== 0 || blockRef.current || autoStartFiredRef.current) return
+    // Guard against premature fire while the user is still on the Plan section:
+    // only proceed when the tracker section has scrolled meaningfully into view.
+    const section = document.getElementById('tracker')
+    if (section) {
+      const rect = section.getBoundingClientRect()
+      if (rect.top > window.innerHeight * 0.5) return
+    }
+    autoStartFiredRef.current = true
+    onAutoStart?.()
+  }, [onAutoStart])
   const headerActions = (
     <>
       {!block && preview && (
@@ -65,6 +90,7 @@ export function Act2TrackSection({
         />
       )}
       className="bg-zinc-950/[0.03] dark:bg-zinc-900/20"
+      onStepChange={handleStepChange}
     />
   )
 }
