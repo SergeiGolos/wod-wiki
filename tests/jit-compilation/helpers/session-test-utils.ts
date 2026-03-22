@@ -107,6 +107,18 @@ export function userNext(ctx: SessionTestContext): void {
 }
 
 /**
+ * Dispatches a named event to the runtime.
+ * Use this to simulate user-driven or system events (e.g. 'timer:pause', 'timer:resume').
+ */
+export function simulateEvent(ctx: SessionTestContext, name: string, data: Record<string, unknown> = {}): void {
+    ctx.runtime.handle({
+        name: name as any,
+        timestamp: ctx.clock.now,
+        data,
+    });
+}
+
+/**
  * Advances the mock clock and dispatches a tick event.
  * Use this to trigger timer-based behaviors (countdown completion, sound cues).
  */
