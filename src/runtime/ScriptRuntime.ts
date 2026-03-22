@@ -11,6 +11,7 @@ import {
 } from './contracts/IRuntimeOptions';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
+import { AbortEventHandler } from './events/AbortEventHandler';
 import { IOutputStatement, OutputStatement } from '../core/models/OutputStatement';
 import { IRuntimeAction } from './contracts';
 import { IEvent } from './contracts/events/IEvent';
@@ -64,6 +65,9 @@ export class ScriptRuntime implements IScriptRuntime {
     // Unsubscribe function for the global NextEventHandler
     private _nextHandlerUnsub: (() => void) | null = null;
 
+    // Unsubscribe function for the global AbortEventHandler
+    private _abortHandlerUnsub: (() => void) | null = null;
+
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
@@ -79,6 +83,9 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Handle explicit next events to advance the current block once per request
         this._nextHandlerUnsub = this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
+
+        // Handle abort events to force-terminate the session
+        this._abortHandlerUnsub = this.eventBus.register('abort', new AbortEventHandler('runtime-abort-handler'), 'runtime', { scope: 'global' });
 
         this.jit = compiler;
 
@@ -370,6 +377,12 @@ export class ScriptRuntime implements IScriptRuntime {
         if (this._nextHandlerUnsub) {
             this._nextHandlerUnsub();
             this._nextHandlerUnsub = null;
+        }
+
+        // Unregister the global AbortEventHandler
+        if (this._abortHandlerUnsub) {
+            this._abortHandlerUnsub();
+            this._abortHandlerUnsub = null;
         }
 
         // Clear output state to release references
