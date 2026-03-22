@@ -365,8 +365,8 @@ export function ParallaxSection({
 
   const mobilePanelNode = (
     <div
-      className="lg:hidden sticky z-20 shrink-0 px-4 pt-4 pb-3"
-      style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(40vh - ${MOBILE_STICKY_TOP / 2}px)` }}
+      className="lg:hidden sticky z-20 shrink-0 px-4 pt-[2px] pb-3"
+      style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(50vh - ${MOBILE_STICKY_TOP / 2}px)` }}
     >
       <MacOSChrome title={chromeTitle} onReset={onReset} headerActions={headerActions}>
         {stickyPanel}
