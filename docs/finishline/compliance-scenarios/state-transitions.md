@@ -50,7 +50,7 @@
 
 ---
 
-### 🔴 Pause / Resume (`.skip`)
+### 🟢 Pause / Resume
 
 ```wod
 5:00 Run
