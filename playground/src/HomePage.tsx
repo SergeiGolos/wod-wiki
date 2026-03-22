@@ -51,7 +51,16 @@ export function HomePageContent({
 
   /** Called by the editor's Run button — creates (or resets) the tracker runtime */
   const launchTracker = useCallback((script: string) => {
-    const content = script.replace(/^```\w*\n/, '').replace(/\n```$/, '')
+    // If the script is markdown with an embedded ```wod block, extract the wod content.
+    // This handles the SAMPLE_SCRIPT and any user-edited markdown documents.
+    let content: string
+    const embeddedWod = script.match(/```(?:wod|log|plan)\n([\s\S]*?)(?:\n```|$)/)
+    if (embeddedWod) {
+      content = embeddedWod[1].trim()
+    } else {
+      // Bare ```wod...``` fence at the document root (e.g. from CollectionRun)
+      content = script.replace(/^```\w*\n/, '').replace(/\n```$/, '').trim()
+    }
     runIdRef.current += 1
     setTrackerBlock({
       id: `home-tracker-${runIdRef.current}`,
@@ -62,6 +71,14 @@ export function HomePageContent({
       widgetIds: {},
       version: 1,
       createdAt: Date.now(),
+    })
+    // Scroll to the tracker phase (step 3 within the #editor section)
+    requestAnimationFrame(() => {
+      const el = document.querySelector('#editor [data-step="3"]')
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 110
+        window.scrollTo({ top, behavior: 'smooth' })
+      }
     })
   }, [])
 
@@ -106,11 +123,11 @@ export function HomePageContent({
                 WOD.WIKI
               </h1>
               {/* 3-column mode cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2 max-w-3xl mx-auto w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-2 max-w-5xl mx-auto w-full">
                 {[
                   {
                     id: 'editor',
-                    icon: <PenLine className="size-5" />,
+                    icon: <PenLine className="size-6" />,
                     label: 'Editor',
                     tagline: 'Plan your training',
                     color: 'text-blue-600 dark:text-blue-400',
@@ -125,7 +142,7 @@ export function HomePageContent({
                   },
                   {
                     id: 'tracker',
-                    icon: <Timer className="size-5" />,
+                    icon: <Timer className="size-6" />,
                     label: 'Timer',
                     tagline: 'Track performance',
                     color: 'text-orange-600 dark:text-orange-400',
@@ -140,7 +157,7 @@ export function HomePageContent({
                   },
                   {
                     id: 'review',
-                    icon: <BarChart2 className="size-5" />,
+                    icon: <BarChart2 className="size-6" />,
                     label: 'Review',
                     tagline: 'Analyze your metrics',
                     color: 'text-purple-600 dark:text-purple-400',
@@ -157,29 +174,35 @@ export function HomePageContent({
                   <button
                     key={card.id}
                     onClick={() => scrollToSection(card.id)}
-                    className={`group flex flex-col items-start gap-3 rounded-xl border border-border p-5 text-left transition-all ${
+                    className={`group flex flex-col items-start rounded-xl border border-border p-6 text-left transition-all ${
                       card.ring
                     } hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5`}
                   >
-                    <div className={`flex size-10 items-center justify-center rounded-xl ${card.bg} ${card.color} transition-colors`}>
+                    <div className={`flex size-12 items-center justify-center rounded-xl ${card.bg} ${card.color} mb-4 transition-colors`}>
                       {card.icon}
                     </div>
                     <div>
-                      <div className={`text-xs font-black uppercase tracking-[0.15em] ${card.color} mb-0.5`}>
+                      <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${card.color} mb-1`}>
                         {card.label}
                       </div>
-                      <div className="text-sm font-bold text-foreground">
+                      <div className="text-base font-black uppercase tracking-tight text-foreground mb-3 leading-tight">
                         {card.tagline}
                       </div>
                     </div>
-                    <ul className="text-left space-y-1">
+                    <ul className="text-left space-y-1.5 mb-5 flex-1">
                       {card.bullets.map((b) => (
-                        <li key={b} className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-snug">
+                        <li key={b} className="flex items-start gap-1.5 text-[12px] text-muted-foreground leading-snug">
                           <span className={`mt-0.5 text-[8px] shrink-0 ${card.color}`}>▸</span>
                           {b}
                         </li>
                       ))}
                     </ul>
+                    <div className="w-full pt-4 border-t border-border/50 mt-auto">
+                      <div className={`inline-flex items-center gap-1 text-[10px] font-bold ${card.color}`}>
+                        Explore {card.label}
+                        <ChevronDown className="size-3 rotate-[-90deg]" />
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
