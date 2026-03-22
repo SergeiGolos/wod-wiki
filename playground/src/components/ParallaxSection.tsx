@@ -274,9 +274,10 @@ export function ParallaxSection({
     return (
       <div key={header.idx}>
         {/* Visual sticky header — CSS position:sticky within this group container */}
+        {/* On mobile, top must clear the sticky panel (65px + calc(40vh - 32.5px) = calc(40vh + 32.5px)).
+            On desktop, the panel is side-by-side so top: 104px (STICKY_NAV_HEIGHT) is correct. */}
         <div
-          className="sticky z-10 px-6 lg:px-10 py-5 bg-background border-b border-border/25"
-          style={{ top: STICKY_NAV_HEIGHT }}
+          className="sticky z-10 px-6 lg:px-10 py-5 bg-background border-b border-border/25 top-[calc(40vh_+_32.5px)] lg:top-[104px]"
         >
           <div className={cn(
             'max-w-sm transition-all duration-500',
