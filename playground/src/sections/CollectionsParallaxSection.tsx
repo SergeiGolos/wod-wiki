@@ -43,11 +43,11 @@ export function CollectionsParallaxSection({
       steps={COLLECTIONS_STEPS}
       stickyAlign="right"
       chromeTitle="Collections — Plan"
-      stickyContent={() => (
+      stickyContent={(activeStep, selectedExample) => (
         <FrozenEditorPanel
           ref={collectionsEditorRef}
-          activeStep={0}
-          selectedExample={0}
+          activeStep={activeStep}
+          selectedExample={selectedExample}
           actualTheme={actualTheme}
           onRun={handleCollectionRun}
           steps={COLLECTIONS_STEPS}

@@ -27,7 +27,8 @@ export interface ParallaxSectionProps {
   onReset?: () => void
   /** Extra actions rendered in the MacOS chrome header bar */
   headerActions?: ReactNode
-  /** Content rendered above the step list in the text column */
+  /** Content rendered above the step list in the text column.
+   * On mobile, this appears below the sticky panel (visible while scrolling). */
   headerContent?: ReactNode
   /** Render extra content below the body text for a specific step */
   renderStepExtra?: (stepIdx: number, activeStep: number) => ReactNode | null

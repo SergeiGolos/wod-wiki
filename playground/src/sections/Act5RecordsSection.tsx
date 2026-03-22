@@ -23,7 +23,7 @@ export function Act5RecordsSection({ actualTheme }: Act5RecordsSectionProps) {
           selectedExample={selectedExample}
           actualTheme={actualTheme}
           onRun={() => {}}
-          showRecords
+          showRecords /* Display completed runtime records inline with the script */
           steps={RECORDS_STEPS}
         />
       )}

@@ -14,9 +14,13 @@ interface FrozenEditorPanelProps {
   selectedExample: number
   actualTheme: string
   onRun: (script: string) => void
-  /** When true, shows records below the wod block */
+  /** When true, enables inline runtime to show records below the wod block */
   showRecords?: boolean
-  /** Step data to use (defaults to EDITOR_STEPS) */
+  /**
+   * Step data to use for extracting examples. Defaults to EDITOR_STEPS.
+   * When provided, `activeStep` and `selectedExample` index into this
+   * array to determine which example script to display.
+   */
   steps?: ParallaxStep[]
 }
 
