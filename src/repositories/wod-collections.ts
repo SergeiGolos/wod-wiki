@@ -83,6 +83,9 @@ export function getWodCollections(): WodCollection[] {
     };
 
     for (const [path, content] of Object.entries(collectionModules)) {
+        // Skip the examples/ directory — those are page-level content, not collections
+        if (path.includes('/wod/examples/')) continue;
+
         // Two-level deep: wod/parent/child/file.md
         // e.g. wod/kettlebell/dan-john/armor-building-complex.md
         //   or wod/swimming/college/distance-freestyle.md

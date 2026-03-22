@@ -3,7 +3,6 @@ import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
 import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 import { Play } from 'lucide-react'
 import { EDITOR_STEPS, type ParallaxStep } from '../data/parallaxActSteps'
-import { scrollToSection } from './ParallaxSection'
 
 export interface FrozenEditorPanelHandle {
   loadScript: (script: string) => void
@@ -37,8 +36,6 @@ export const FrozenEditorPanel = forwardRef<FrozenEditorPanelHandle, FrozenEdito
   const prevKey = useRef('0-0')
   const scriptRef = useRef(displayScript)
 
-  const isLastStep = activeStep === stepsData.length - 1
-
   /** Load an external script (e.g. from command palette or collection) */
   const loadScript = useCallback((script: string) => {
     setDisplayScript(script)
@@ -71,18 +68,16 @@ export const FrozenEditorPanel = forwardRef<FrozenEditorPanelHandle, FrozenEdito
     return () => clearTimeout(t)
   }, [activeStep, selectedExample, stepsData])
 
-  const commands: WodCommand[] = isLastStep
-    ? [{
-        id: 'run-to-tracker',
-        label: 'Run',
-        icon: <Play className="h-3 w-3 fill-current" />,
-        primary: true,
-        onClick: () => {
-          onRun(scriptRef.current)
-          scrollToSection('tracker')
-        },
-      }]
-    : []
+  // Always show Run — the home page editor panel never shows Playground links.
+  const commands: WodCommand[] = [{
+    id: 'run-to-tracker',
+    label: 'Run',
+    icon: <Play className="h-3 w-3 fill-current" />,
+    primary: true,
+    onClick: () => {
+      onRun(scriptRef.current)
+    },
+  }]
 
   return (
     <div className="w-full h-full overflow-hidden">

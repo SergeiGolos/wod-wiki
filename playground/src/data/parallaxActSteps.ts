@@ -1,3 +1,5 @@
+import { getHomeExample } from '@/repositories/page-examples'
+
 export interface WodExample {
   label: string
   wodScript: string
@@ -11,7 +13,9 @@ export interface ParallaxStep {
   cta?: { label: string; target: string }
 }
 
-export const SAMPLE_SCRIPT = `# Pushup Benchmark
+// Loaded from wod/examples/home/sample-script.md — edit that file to tweak
+export const SAMPLE_SCRIPT = getHomeExample('sample-script') ||
+`# Pushup Benchmark
 3 rounds
   5 Pushups
   :10 Rest

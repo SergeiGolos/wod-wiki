@@ -11,10 +11,12 @@ interface LiveTrackerPanelProps {
   preview: string | null
   actualTheme: string
   onRuntimeReady?: (runtime: IScriptRuntime) => void
+  /** Called when the workout completes (all blocks done) or the user hits Stop */
+  onComplete?: () => void
 }
 
-export function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRuntimeReady }: LiveTrackerPanelProps) {
-  const handleClose = useCallback(() => {}, [])
+export function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRuntimeReady, onComplete }: LiveTrackerPanelProps) {
+  const handleClose = useCallback(() => { onComplete?.() }, [onComplete])
 
   // Preview mode: show loaded workout
   if (!block && preview) {
@@ -57,6 +59,7 @@ export function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRunt
         onClose={handleClose}
         autoStart={true}
         onRuntimeReady={onRuntimeReady}
+        onComplete={onComplete ? () => onComplete() : undefined}
       />
     </div>
   )

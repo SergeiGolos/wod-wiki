@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MacOSChrome } from '../components/MacOSChrome'
 import type { ParallaxStep } from '../data/parallaxActSteps'
@@ -147,12 +147,13 @@ export function ParallaxSection({ id, steps, stickyContent, stickyAlign = 'right
             </div>
           )}
           {step.cta && (
+            // Styled to match the Run CommandPill in the wod block header
             <button
               onClick={() => scrollToSection(step.cta!.target)}
-              className="inline-flex items-center gap-3 px-7 py-3.5 rounded-full bg-primary text-primary-foreground font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-primary/30 hover:scale-[1.04] transition-all"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-primary text-primary-foreground text-[10px] font-medium shadow-sm hover:bg-primary/90 transition-colors"
             >
+              <Play className="h-3 w-3 fill-current" />
               {step.cta.label}
-              <ChevronDown className="size-4" />
             </button>
           )}
           {renderStepExtra?.(idx, activeStep)}

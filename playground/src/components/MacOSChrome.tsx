@@ -6,10 +6,19 @@ export function MacOSChrome({ title, children, onReset, headerActions }: { title
   return (
     <div className="flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background">
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
+        {/* Traffic lights — red is a clickable reset when onReset is provided */}
         <div className="flex gap-1.5">
-          <div className="size-2.5 rounded-full bg-red-500/50" />
-          <div className="size-2.5 rounded-full bg-amber-500/50" />
-          <div className="size-2.5 rounded-full bg-emerald-500/50" />
+          {onReset ? (
+            <button
+              onClick={onReset}
+              title="Reset"
+              className="size-2.5 rounded-full bg-red-500 hover:bg-red-400 transition-colors cursor-pointer ring-1 ring-red-500/40 hover:ring-red-400/60"
+            />
+          ) : (
+            <div className="size-2.5 rounded-full bg-red-500/30" />
+          )}
+          <div className="size-2.5 rounded-full bg-amber-500/30" />
+          <div className="size-2.5 rounded-full bg-emerald-500/30" />
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</span>
@@ -17,9 +26,9 @@ export function MacOSChrome({ title, children, onReset, headerActions }: { title
           {onReset && (
             <button
               onClick={onReset}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-transparent hover:border-border/60 transition-all"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider text-destructive-foreground bg-destructive/80 hover:bg-destructive border border-destructive/40 shadow-sm transition-all"
             >
-              <RotateCcw className="size-2.5" />
+              <RotateCcw className="size-3" />
               Reset
             </button>
           )}

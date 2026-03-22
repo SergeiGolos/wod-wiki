@@ -69,20 +69,10 @@ export function HomePageContent({
     })
   }, [])
 
-  /** Reset: clear runtime, scroll back to the editor's last (Track) step */
+  /** Reset: clear runtime state without scrolling (panel transitions in-place) */
   const resetDemo = useCallback(() => {
     setTrackerBlock(null)
     setLiveRuntime(null)
-    requestAnimationFrame(() => {
-      const lastStepEl = document.querySelector('#editor [data-step="' + (EDITOR_STEPS.length - 1) + '"]')
-      if (lastStepEl) {
-        const rect = lastStepEl.getBoundingClientRect()
-        const scrollTop = window.scrollY + rect.top - STICKY_NAV_HEIGHT - 20
-        window.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' })
-      } else {
-        scrollToSection('editor')
-      }
-    })
   }, [])
 
   /** Extract wod blocks from selected workout content and load into frozen editor */
@@ -145,6 +135,12 @@ export function HomePageContent({
         onRun={launchTracker}
         onSearch={() => { paletteSourceRef.current = 'editor'; setHomePaletteOpen(true) }}
         editorRef={editorRef}
+        trackerBlock={trackerBlock}
+        trackerPreview={trackerPreview}
+        onReset={resetDemo}
+        onStartPreview={(script) => { setTrackerPreview(null); launchTracker(script) }}
+        onRuntimeReady={setLiveRuntime}
+        liveRuntime={liveRuntime}
       />
 
       {/* Acts 2–4 share the same runtime scope */}
