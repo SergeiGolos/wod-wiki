@@ -6,6 +6,22 @@ import type { ParallaxStep } from '../data/parallaxActSteps'
 
 // Height of the standard sticky header (px) — used to offset sticky panels below it
 export const STICKY_NAV_HEIGHT = 104
+
+// ── Bullet color map ─────────────────────────────────────────────────────────
+const BULLET_LABEL_COLOR: Record<string, string> = {
+  green:  'text-green-700 dark:text-green-400',
+  blue:   'text-blue-700 dark:text-blue-400',
+  orange: 'text-orange-700 dark:text-orange-400',
+  purple: 'text-purple-700 dark:text-purple-400',
+  cyan:   'text-cyan-700 dark:text-cyan-400',
+  red:    'text-red-700 dark:text-red-400',
+  pink:   'text-pink-700 dark:text-pink-400',
+}
+
+function bulletColorClass(label: string): string {
+  const keyword = label.split(/[\s·]/)[0].toLowerCase().trim()
+  return BULLET_LABEL_COLOR[keyword] ?? ''
+}
 // Mobile sticky offset — panels sit closer to the top on smaller screens
 export const MOBILE_STICKY_TOP = 65
 
@@ -192,17 +208,20 @@ export function ParallaxSection({
         </p>
         {step.bullets && step.bullets.length > 0 && (
           <ul className="space-y-3 mb-6">
-            {step.bullets.map((b, i) => (
-              <li key={i} className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black tracking-[0.1em] uppercase text-foreground/80">{b.label}</span>
-                  {b.example && (
-                    <code className="text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{b.example}</code>
-                  )}
-                </div>
-                <span className="text-[11px] text-muted-foreground leading-snug">{b.detail}</span>
-              </li>
-            ))}
+            {step.bullets.map((b, i) => {
+              const colorCls = bulletColorClass(b.label)
+              return (
+                <li key={i} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-[10px] font-black tracking-[0.1em] uppercase', colorCls || 'text-foreground/80')}>{b.label}</span>
+                    {b.example && (
+                      <code className={cn('text-[9px] font-mono bg-muted px-1.5 py-0.5 rounded', colorCls || 'text-muted-foreground')}>{b.example}</code>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground leading-snug">{b.detail}</span>
+                </li>
+              )
+            })}
           </ul>
         )}
         {examples.length > 1 && (
@@ -346,7 +365,7 @@ export function ParallaxSection({
 
   const mobilePanelNode = (
     <div
-      className="lg:hidden sticky z-10 shrink-0 px-4 pt-4 pb-3"
+      className="lg:hidden sticky z-20 shrink-0 px-4 pt-4 pb-3"
       style={{ top: `${MOBILE_STICKY_TOP}px`, height: `calc(40vh - ${MOBILE_STICKY_TOP / 2}px)` }}
     >
       <MacOSChrome title={chromeTitle} onReset={onReset} headerActions={headerActions}>

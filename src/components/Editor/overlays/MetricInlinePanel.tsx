@@ -44,15 +44,15 @@ const METRIC_STYLES: Partial<Record<string, MetricStyle>> = {
   },
   [MetricType.Rep]: {
     label: "Reps", icon: "✕",
-    textClass: "text-green-600 dark:text-green-400",
-    bgClass:   "bg-green-500/10",
-    borderClass: "border-green-500/30",
+    textClass: "text-orange-600 dark:text-orange-400",
+    bgClass:   "bg-orange-500/10",
+    borderClass: "border-orange-500/30",
   },
   [MetricType.Effort]: {
     label: "Exercise", icon: "🏋",
-    textClass: "text-red-600 dark:text-red-400",
-    bgClass:   "bg-red-500/10",
-    borderClass: "border-red-500/30",
+    textClass: "text-green-600 dark:text-green-400",
+    bgClass:   "bg-green-500/10",
+    borderClass: "border-green-500/30",
   },
   [MetricType.Rounds]: {
     label: "Rounds", icon: "↻",
@@ -68,9 +68,9 @@ const METRIC_STYLES: Partial<Record<string, MetricStyle>> = {
   },
   [MetricType.Resistance]: {
     label: "Weight", icon: "⚖",
-    textClass: "text-orange-600 dark:text-orange-400",
-    bgClass:   "bg-orange-500/10",
-    borderClass: "border-orange-500/30",
+    textClass: "text-red-600 dark:text-red-400",
+    bgClass:   "bg-red-500/10",
+    borderClass: "border-red-500/30",
   },
   [MetricType.Action]: {
     label: "Action", icon: "⚡",

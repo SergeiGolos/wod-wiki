@@ -73,11 +73,11 @@ interface MetricStyle {
 
 const METRIC_STYLES: Partial<Record<string, MetricStyle>> = {
   [MetricType.Duration]:   { label: "Timer",    color: "#3b82f6" },
-  [MetricType.Rep]:        { label: "Reps",     color: "#22c55e" },
-  [MetricType.Effort]:     { label: "Exercise", color: "#ec4899" },
+  [MetricType.Rep]:        { label: "Reps",     color: "#f97316" },
+  [MetricType.Effort]:     { label: "Exercise", color: "#22c55e" },
   [MetricType.Rounds]:     { label: "Rounds",   color: "#a855f7" },
   [MetricType.Distance]:   { label: "Distance", color: "#06b6d4" },
-  [MetricType.Resistance]: { label: "Weight",   color: "#f97316" },
+  [MetricType.Resistance]: { label: "Weight",   color: "#ef4444" },
   [MetricType.Action]:     { label: "Action",   color: "#eab308" },
 };
 
@@ -440,22 +440,41 @@ const metricNavKeymap = Prec.high(keymap.of([
 
 const metricUnderlineTheme = EditorView.baseTheme({
   // ── Metric token underlines (full opacity — cursor line) ──────────
-  ".cm-metric-underline-duration":   { borderBottom: "2px solid #3b82f6" },
-  ".cm-metric-underline-rep":        { borderBottom: "2px solid #22c55e" },
-  ".cm-metric-underline-effort":     { borderBottom: "2px solid #ec4899" },
-  ".cm-metric-underline-rounds":     { borderBottom: "2px solid #a855f7" },
-  ".cm-metric-underline-distance":   { borderBottom: "2px solid #06b6d4" },
-  ".cm-metric-underline-resistance": { borderBottom: "2px solid #f97316" },
-  ".cm-metric-underline-action":     { borderBottom: "2px solid #eab308" },
+  ".cm-metric-underline-duration":   { borderBottom: "2px solid #3b82f6", color: "#1d4ed8" },
+  ".cm-metric-underline-rep":        { borderBottom: "2px solid #f97316", color: "#c2410c" },
+  ".cm-metric-underline-effort":     { borderBottom: "2px solid #22c55e", color: "#15803d" },
+  ".cm-metric-underline-rounds":     { borderBottom: "2px solid #a855f7", color: "#7e22ce" },
+  ".cm-metric-underline-distance":   { borderBottom: "2px solid #06b6d4", color: "#0e7490" },
+  ".cm-metric-underline-resistance": { borderBottom: "2px solid #ef4444", color: "#b91c1c" },
+  ".cm-metric-underline-action":     { borderBottom: "2px solid #eab308", color: "#a16207" },
 
-  // ── Metric token underlines (dim — 20% opacity — always visible) ──
-  ".cm-metric-underline-duration-dim":   { borderBottom: "2px solid #3b82f633" },
-  ".cm-metric-underline-rep-dim":        { borderBottom: "2px solid #22c55e33" },
-  ".cm-metric-underline-effort-dim":     { borderBottom: "2px solid #ec489933" },
-  ".cm-metric-underline-rounds-dim":     { borderBottom: "2px solid #a855f733" },
-  ".cm-metric-underline-distance-dim":   { borderBottom: "2px solid #06b6d433" },
-  ".cm-metric-underline-resistance-dim": { borderBottom: "2px solid #f9731633" },
-  ".cm-metric-underline-action-dim":     { borderBottom: "2px solid #eab30833" },
+  // ── Metric token text colors — dark mode overrides ────────────────
+  "&dark .cm-metric-underline-duration":   { color: "#93c5fd" },
+  "&dark .cm-metric-underline-rep":        { color: "#fdba74" },
+  "&dark .cm-metric-underline-effort":     { color: "#86efac" },
+  "&dark .cm-metric-underline-rounds":     { color: "#d8b4fe" },
+  "&dark .cm-metric-underline-distance":   { color: "#67e8f9" },
+  "&dark .cm-metric-underline-resistance": { color: "#fca5a5" },
+  "&dark .cm-metric-underline-action":     { color: "#fde68a" },
+
+  // ── Metric token underlines (dim — non-cursor WOD lines) ──────────
+  // Both border and text color are set so every WOD line shows metric colors.
+  ".cm-metric-underline-duration-dim":   { borderBottom: "2px solid #3b82f633", color: "#3b82f6" },
+  ".cm-metric-underline-rep-dim":        { borderBottom: "2px solid #f9731633", color: "#f97316" },
+  ".cm-metric-underline-effort-dim":     { borderBottom: "2px solid #22c55e33", color: "#22c55e" },
+  ".cm-metric-underline-rounds-dim":     { borderBottom: "2px solid #a855f733", color: "#a855f7" },
+  ".cm-metric-underline-distance-dim":   { borderBottom: "2px solid #06b6d433", color: "#06b6d4" },
+  ".cm-metric-underline-resistance-dim": { borderBottom: "2px solid #ef444433", color: "#ef4444" },
+  ".cm-metric-underline-action-dim":     { borderBottom: "2px solid #eab30833", color: "#eab308" },
+
+  // ── Dim text colors — dark mode overrides ─────────────────────────
+  "&dark .cm-metric-underline-duration-dim":   { color: "#93c5fd" },
+  "&dark .cm-metric-underline-rep-dim":        { color: "#fdba74" },
+  "&dark .cm-metric-underline-effort-dim":     { color: "#86efac" },
+  "&dark .cm-metric-underline-rounds-dim":     { color: "#d8b4fe" },
+  "&dark .cm-metric-underline-distance-dim":   { color: "#67e8f9" },
+  "&dark .cm-metric-underline-resistance-dim": { color: "#fca5a5" },
+  "&dark .cm-metric-underline-action-dim":     { color: "#fde68a" },
 
   // ── Block widget panel ────────────────────────────────────────────
   ".cm-wod-metric-panel": {
