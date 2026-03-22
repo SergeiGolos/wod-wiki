@@ -70,7 +70,7 @@
 
 ---
 
-## � Timer — Normal (Skippable by Default)
+## 🟡 Timer — Normal (Skippable by Default)
 
 All plain countdown timers can be dismissed early by `userNext`. The timer records however much time elapsed and closes with `completionReason = 'user-advance'`.
 
@@ -88,7 +88,7 @@ All plain countdown timers can be dismissed early by `userNext`. The timer recor
 
 ---
 
-## 🔴 Forced Timer — Cannot Skip (`*` prefix)
+## 🟢 Forced Timer — Cannot Skip (`*` prefix)
 
 Prefixing a timer with `*` makes it **required** — `userNext` is suppressed until the countdown reaches zero. Use this to enforce minimum work intervals, mandatory rest, or legally required holds.
 
@@ -112,7 +112,7 @@ Prefixing a timer with `*` makes it **required** — `userNext` is suppressed un
 
 ---
 
-## �🔴 Collectible Timer (`.skip`)
+## 🟢 Collectible Timer (`.skip`)
 
 ```wod
 :? Sprint
