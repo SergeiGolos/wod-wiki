@@ -6,6 +6,7 @@ export type { EventHandlerRegistration } from './EventBus';
 export { NextEvent } from './NextEvent';
 export { TickEvent } from './TickEvent';
 export { NextEventHandler } from './NextEventHandler';
+export { AbortEventHandler } from './AbortEventHandler';
 
 // Memory events
 export { MemoryAllocateEvent, MemorySetEvent, MemoryReleaseEvent } from './MemoryEvents';

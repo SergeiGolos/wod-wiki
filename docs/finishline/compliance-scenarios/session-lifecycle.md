@@ -64,7 +64,7 @@
 
 ---
 
-## 🔴 Early Termination / Abort (`.skip`)
+## 🟢 Early Termination / Abort (`.skip`)
 
 ```wod
 20:00 AMRAP
