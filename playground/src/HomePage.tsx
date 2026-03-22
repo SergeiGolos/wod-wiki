@@ -1,11 +1,13 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import type { WodBlock } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
-import { getWodCollections } from '@/repositories/wod-collections'
 import {
   Zap,
   ChevronDown,
+  PenLine,
+  Timer,
+  BarChart2,
 } from 'lucide-react'
 import { scrollToSection } from './components/ParallaxSection'
 import type { FrozenEditorPanelHandle } from './components/FrozenEditorPanel'
@@ -14,8 +16,6 @@ import { SAMPLE_SCRIPT } from './data/parallaxActSteps'
 // Section components
 import { Act1EditorSection } from './sections/Act1EditorSection'
 import { ActBrowseSection } from './sections/ActBrowseSection'
-import { CollectionsParallaxSection } from './sections/CollectionsParallaxSection'
-import { ChromecastSection } from './sections/ChromecastSection'
 import { DeepDiveSection } from './sections/DeepDiveSection'
 
 // ── HomePageContent ───────────────────────────────────────────────────
@@ -48,8 +48,6 @@ export function HomePageContent({
   const editorRef = useRef<FrozenEditorPanelHandle>(null)
   const browseRef = useRef<FrozenEditorPanelHandle>(null)
 
-  // Collections data
-  const allCollections = useMemo(() => getWodCollections(), [])
 
   /** Called by the editor's Run button — creates (or resets) the tracker runtime */
   const launchTracker = useCallback((script: string) => {
@@ -107,16 +105,83 @@ export function HomePageContent({
               <h1 className="text-6xl font-black tracking-tighter sm:text-8xl lg:text-9xl text-foreground uppercase drop-shadow-sm">
                 WOD.WIKI
               </h1>
-              <div className="space-y-4">
-                <p className="mx-auto max-w-3xl text-lg font-medium text-muted-foreground sm:text-xl leading-relaxed">
-                  <button onClick={() => scrollToSection('editor')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Plan</button>
-                  {' '}your training,{' '}
-                  <button onClick={() => scrollToSection('tracker')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Track</button>
-                  {' '}performance, analyze collected{' '}
-                  <button onClick={() => scrollToSection('review')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Metrics</button>
-                  {' '}for insights — all with the simplicity of a wiki{' '}
-                  <button onClick={() => scrollToSection('records')} className="inline-flex items-baseline px-2.5 py-0.5 rounded-lg bg-primary/10 text-primary font-black cursor-pointer hover:bg-primary/20 hover:scale-105 transition-all">Notebook</button>.
-                </p>
+              {/* 3-column mode cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2 max-w-3xl mx-auto w-full">
+                {[
+                  {
+                    id: 'editor',
+                    icon: <PenLine className="size-5" />,
+                    label: 'Editor',
+                    tagline: 'Plan your training',
+                    color: 'text-blue-600 dark:text-blue-400',
+                    ring: 'hover:border-blue-400/50',
+                    bg: 'bg-blue-500/10',
+                    bullets: [
+                      'Write workouts in plain markdown',
+                      'Syntax highlights every metric type',
+                      'Live parse feedback as you type',
+                      'Load from your workout library',
+                    ],
+                  },
+                  {
+                    id: 'tracker',
+                    icon: <Timer className="size-5" />,
+                    label: 'Timer',
+                    tagline: 'Track performance',
+                    color: 'text-orange-600 dark:text-orange-400',
+                    ring: 'hover:border-orange-400/50',
+                    bg: 'bg-orange-500/10',
+                    bullets: [
+                      'Smart lap timer built from your script',
+                      'Countdown or count-up per block',
+                      'Collects reps, rest, and effort',
+                      'Advance manually or automatically',
+                    ],
+                  },
+                  {
+                    id: 'review',
+                    icon: <BarChart2 className="size-5" />,
+                    label: 'Review',
+                    tagline: 'Analyze your metrics',
+                    color: 'text-purple-600 dark:text-purple-400',
+                    ring: 'hover:border-purple-400/50',
+                    bg: 'bg-purple-500/10',
+                    bullets: [
+                      'Per-set performance breakdown',
+                      'Volume, load & distance projections',
+                      'Records written inline in your notebook',
+                      'Historical session comparison',
+                    ],
+                  },
+                ].map((card) => (
+                  <button
+                    key={card.id}
+                    onClick={() => scrollToSection(card.id)}
+                    className={`group flex flex-col items-start gap-3 rounded-xl border border-border p-5 text-left transition-all ${
+                      card.ring
+                    } hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5`}
+                  >
+                    <div className={`flex size-10 items-center justify-center rounded-xl ${card.bg} ${card.color} transition-colors`}>
+                      {card.icon}
+                    </div>
+                    <div>
+                      <div className={`text-xs font-black uppercase tracking-[0.15em] ${card.color} mb-0.5`}>
+                        {card.label}
+                      </div>
+                      <div className="text-sm font-bold text-foreground">
+                        {card.tagline}
+                      </div>
+                    </div>
+                    <ul className="text-left space-y-1">
+                      {card.bullets.map((b) => (
+                        <li key={b} className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-snug">
+                          <span className={`mt-0.5 text-[8px] shrink-0 ${card.color}`}>▸</span>
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                ))}
               </div>
             </div>
             <div className="flex flex-col items-center gap-2 mt-4 text-muted-foreground/40">
@@ -151,16 +216,6 @@ export function HomePageContent({
         onSearch={() => { paletteSourceRef.current = 'browse'; setHomePaletteOpen(true) }}
         browseRef={browseRef}
       />
-
-      {/* Collections (stickyAlign='right', bg-background) */}
-      <CollectionsParallaxSection
-        actualTheme={actualTheme}
-        collections={allCollections}
-        onRun={launchTracker}
-      />
-
-      {/* Chromecast (ScrollSection, no sticky) */}
-      <ChromecastSection />
 
       {/* Resources / Deep Dive (ScrollSection, no sticky) */}
       <DeepDiveSection />

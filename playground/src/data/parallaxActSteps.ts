@@ -188,6 +188,14 @@ export const BROWSE_STEPS: ParallaxStep[] = [
     eyebrow: 'Step 1 · Plan',
     title: 'Or browse collections',
     body: 'Not sure what to write? Load a pre-built workout from the collection library. Each item loads directly into the editor — then hit Run when you\'re ready.',
+    sticky: true,
+    subsectionHint: 'More ways to use it',
+  },
+  {
+    eyebrow: 'Chromecast',
+    title: 'Cast to your TV',
+    body: 'Use Chromecast to send your workout to a TV screen. The remote becomes a lap timer. Built for the home gym.',
+    subsection: true,
   },
 ]
 
