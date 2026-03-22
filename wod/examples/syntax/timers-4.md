@@ -1,0 +1,11 @@
+---
+title: "Rest Marker"
+subtitle: "* marks an explicit rest period"
+section: timers
+order: 4
+---
+```wod
+(5 Sets)
+  5 Back Squat 185lb
+  *3:00 Rest
+```

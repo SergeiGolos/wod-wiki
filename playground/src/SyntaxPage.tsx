@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CastCallout } from '@/components/cast/CastCallout'
+import { getTabExamples } from '@/repositories/page-examples'
 
 // ── Fragment Anatomy Data ─────────────────────────────────────────────
 
@@ -88,160 +89,15 @@ const ANATOMY_EXAMPLES = [
   },
 ]
 
-// ── Section Data ─────────────────────────────────────────────────────
+// ── Section Data (loaded from wod/examples/syntax/) ──────────────────
 
-const TIMERS_TABS = [
-  {
-    title: 'Countdown',
-    subtitle: 'Explicit duration → counts down',
-    content: '```wod\n5:00 Run\n:30 Jumping Jacks\n1:30:00 Long Row\n```'
-  },
-  {
-    title: 'Count-up Override',
-    subtitle: '^ prefix forces count-up',
-    content: '```wod\n^5:00 Row\n```'
-  },
-  {
-    title: 'Collectible Timer',
-    subtitle: ':? records the actual time taken',
-    content: '```wod\n:? Max Effort Pushups\n:? 1 Mile Run\n```'
-  },
-  {
-    title: 'Rest Marker',
-    subtitle: '* marks an explicit rest period',
-    content: '```wod\n(5 Sets)\n  5 Back Squat 185lb\n  *3:00 Rest\n```'
-  },
-  {
-    title: 'No Timer',
-    subtitle: 'Stopwatch mode — just track reps',
-    content: '```wod\n10 Pushups\n15 Situps\n20 Air Squats\n```'
-  }
-]
+const TIMERS_TABS      = getTabExamples('syntax', 'timers')
+const METRICS_TABS     = getTabExamples('syntax', 'metrics')
+const GROUPS_TABS      = getTabExamples('syntax', 'groups')
+const PROTOCOLS_TABS   = getTabExamples('syntax', 'protocols')
+const SUPPLEMENTAL_TABS = getTabExamples('syntax', 'supplemental')
+const DOCUMENT_TABS    = getTabExamples('syntax', 'document')
 
-const METRICS_TABS = [
-  {
-    title: 'Reps',
-    subtitle: 'Count repetitions',
-    content: '```wod\n10 Pushups\n15 Situps\n20 Air Squats\n```'
-  },
-  {
-    title: 'Weight',
-    subtitle: 'lb, kg, or bodyweight',
-    content: '```wod\n5 Back Squat 225lb\n3 Deadlift 140kg\nDip bw\n```'
-  },
-  {
-    title: 'Distance',
-    subtitle: 'm, km, ft, miles',
-    content: '```wod\nRun 400m\nRow 2000m\nBike 10 miles\nSwim 500m\n```'
-  },
-  {
-    title: 'Combined',
-    subtitle: 'Multiple metrics on one line',
-    content: '```wod\n10 Thrusters 95lb\n5 Deadlifts 225lb\n400m Run\n```'
-  },
-  {
-    title: 'Unknown Load',
-    subtitle: '? prompts user at runtime',
-    content: '```wod\n5 Deadlifts ?lb\n3 Back Squat ?kg\n```'
-  }
-]
-
-const GROUPS_TABS = [
-  {
-    title: 'Simple Rounds',
-    subtitle: 'Parentheses repeat everything inside',
-    content: '```wod\n(3 Rounds)\n  10 Pushups\n  15 Situps\n  20 Air Squats\n```'
-  },
-  {
-    title: 'Rep Sequence',
-    subtitle: 'Dash-separated targets per round',
-    content: '```wod\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```'
-  },
-  {
-    title: 'Work / Rest Loop',
-    subtitle: 'Timed intervals inside rounds',
-    content: '```wod\n(4)\n  :40 Work\n  :20 Rest\n  Air Squats\n```'
-  },
-  {
-    title: 'Nested Groups',
-    subtitle: 'Rounds inside rounds',
-    content: '```wod\n(3 Rounds)\n  (4)\n    :20 Work\n    :10 Rest\n    Burpees\n  1:00 Rest\n```'
-  }
-]
-
-const PROTOCOLS_TABS = [
-  {
-    title: 'AMRAP',
-    subtitle: 'Countdown, unbounded rounds',
-    content: '```wod\n20:00 (AMRAP)\n  5 Pullups\n  10 Pushups\n  15 Air Squats\n```'
-  },
-  {
-    title: 'EMOM',
-    subtitle: 'Per-minute intervals, fixed count',
-    content: '```wod\n10:00 (EMOM)\n  3 Clean & Jerk 135lb\n```'
-  },
-  {
-    title: 'FOR TIME',
-    subtitle: 'Stopwatch to completion',
-    content: '```wod\nFOR TIME\n  21 Thrusters 95lb\n  21 Pullups\n  15 Thrusters 95lb\n  15 Pullups\n  9 Thrusters 95lb\n  9 Pullups\n```'
-  },
-  {
-    title: 'Tabata',
-    subtitle: '20s work / 10s rest preset',
-    content: '```wod\n(8 Rounds)\n  :20 Max Effort Burpees\n  :10 Rest\n```'
-  },
-  {
-    title: 'Implicit EMOM',
-    subtitle: 'Rounds + timer auto-detects EMOM',
-    content: '```wod\n(10)\n  1:00 Kettlebell Swings 24kg\n```'
-  }
-]
-
-const SUPPLEMENTAL_TABS = [
-  {
-    title: 'Actions',
-    subtitle: '[Square brackets] = non-movement steps',
-    content: '```wod\n(5 Sets)\n  5 Back Squat ?lb\n  [Adjust plates]\n  *2:00 Rest\n```'
-  },
-  {
-    title: 'Rest Periods',
-    subtitle: '* marks an explicit rest block',
-    content: '```wod\n(3 Rounds)\n  Run 400m\n  *2:00 Rest\n  10 Pullups\n  *1:00 Rest\n```'
-  },
-  {
-    title: 'Comments',
-    subtitle: '// inline coach annotations',
-    content: '```wod\n(5 Sets)\n  5 Back Squat 225lb\n  // Drive knees out, brace hard\n  *3:00 Rest\n```'
-  },
-  {
-    title: 'Unknown Values',
-    subtitle: '? captures user input at runtime',
-    content: '```wod\n(5 Sets)\n  5 Deadlifts ?lb\n  // Choose a challenging working weight\n  *2:30 Rest\n```'
-  }
-]
-
-const DOCUMENT_TABS = [
-  {
-    title: 'Headers & Notes',
-    subtitle: 'Markdown outside the wod block',
-    content: `# Tuesday \u2014 Upper Body\n\nFocusing on horizontal pushing strength.\nGoal: stay tight, control the descent.\n\n\`\`\`wod\n5:00 (AMRAP)\n  5 Pushups\n  10 Air Squats\n\`\`\``
-  },
-  {
-    title: 'Warmup Checklist',
-    subtitle: '- [ ] tasks before the session',
-    content: `## Warmup\n- [x] 5 min easy bike\n- [ ] Shoulder CARs x 10\n- [ ] Band pull-aparts x 20\n\n\`\`\`wod\n(5 Sets)\n  5 Bench Press 185lb\n  *3:00 Rest\n\`\`\``
-  },
-  {
-    title: 'Multiple Workouts',
-    subtitle: 'Many wod blocks per document',
-    content: `# Monday \u2014 Strength + Metcon\n\n## Strength\n\`\`\`wod\n(5 Sets)\n  3 Back Squat 225lb\n  *2:00 Rest\n\`\`\`\n\n## Metcon\n\`\`\`wod\n20:00 (AMRAP)\n  10 KB Swings 24kg\n  10 Box Jumps\n  10 Situps\n\`\`\``
-  },
-  {
-    title: 'Equipment Table',
-    subtitle: 'Markdown tables for setup',
-    content: `# Equipment Needed\n\n| Item | Spec | Qty |\n|------|------|-----|\n| Barbell | 45lb | 1 |\n| Plates | 45lb | 4 |\n| Kettlebell | 24kg | 1 |\n\n\`\`\`wod\nFOR TIME\n  50 Kettlebell Swings 24kg\n  400m Run\n  25 Kettlebell Swings 24kg\n\`\`\``
-  }
-]
 
 const NAV_LINKS = [
   { id: 'introduction', label: 'Intro' },
