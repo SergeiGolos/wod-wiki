@@ -1,14 +1,17 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
-import { Play } from 'lucide-react'
+import { useRef, useState, useCallback } from 'react'
+import { Play, Search } from 'lucide-react'
 import { ParallaxSection } from '../components/ParallaxSection'
 import { FrozenEditorPanel, type FrozenEditorPanelHandle } from '../components/FrozenEditorPanel'
 import { LiveTrackerPanel } from '../components/LiveTrackerPanel'
 import { FrozenReviewPanel } from '../components/FrozenReviewPanel'
-import { EDITOR_STEPS } from '../data/parallaxActSteps'
+import {
+  EDITOR_STEPS,
+  TRACK_STEP_START,
+  REVIEW_STEP_START,
+  RECORDS_STEP_START,
+} from '../data/parallaxActSteps'
 import type { WodBlock } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
-
-type PanelMode = 'editor' | 'tracking' | 'reviewing'
 
 export interface Act1EditorSectionProps {
   actualTheme: string
@@ -16,7 +19,7 @@ export interface Act1EditorSectionProps {
   onSearch: () => void
   /** Ref exposed so parent can push scripts into the editor */
   editorRef?: React.RefObject<FrozenEditorPanelHandle | null>
-  /** When set, the sticky panel switches from editor → live tracker */
+  /** When set, the sticky panel shows the live tracker */
   trackerBlock?: WodBlock | null
   /** Preview script loaded from command palette but not yet started */
   trackerPreview?: string | null
@@ -24,10 +27,14 @@ export interface Act1EditorSectionProps {
   onReset?: () => void
   /** Called when the tracker's preview Run button is clicked */
   onStartPreview?: (script: string) => void
+  /** Opens the browse/collection palette from inside the tracker header */
+  onClearPreview?: () => void
   /** Receives the live runtime when the tracker mounts */
   onRuntimeReady?: (runtime: IScriptRuntime) => void
   /** Live runtime lifted from RuntimeTimerPanel — drives the review panel */
   liveRuntime?: IScriptRuntime | null
+  /** Called when the Track phase scrolls into view with no workout running */
+  onAutoStart?: () => void
 }
 
 export function Act1EditorSection({
@@ -39,40 +46,44 @@ export function Act1EditorSection({
   trackerPreview = null,
   onReset,
   onStartPreview,
+  onClearPreview,
   onRuntimeReady,
   liveRuntime = null,
+  onAutoStart,
 }: Act1EditorSectionProps) {
   const internalRef = useRef<FrozenEditorPanelHandle>(null)
   const ref = editorRef ?? internalRef
 
-  const [panelMode, setPanelMode] = useState<PanelMode>('editor')
+  // Track the active scroll step so we can drive chromeTitle / headerActions
+  const [currentStep, setCurrentStep] = useState(0)
 
-  // Sync mode with trackerBlock lifecycle
-  useEffect(() => {
-    if (trackerBlock || trackerPreview) {
-      setPanelMode(prev => prev === 'reviewing' ? prev : 'tracking')
-    } else {
-      setPanelMode('editor')
+  // Refs for stable callbacks
+  const blockRef = useRef(trackerBlock)
+  blockRef.current = trackerBlock
+  const autoStartFiredRef = useRef(false)
+
+  const inPlan    = currentStep < TRACK_STEP_START
+  const inTrack   = currentStep >= TRACK_STEP_START && currentStep < REVIEW_STEP_START
+  const inReview  = currentStep >= REVIEW_STEP_START && currentStep < RECORDS_STEP_START
+  const inRecords = currentStep >= RECORDS_STEP_START
+
+  const chromeTitle = inReview ? 'Review' : inTrack ? 'Track' : 'Plan'
+
+  const handleStepChange = useCallback((step: number) => {
+    setCurrentStep(step)
+    // One-shot auto-start when the Track phase's sticky header first becomes active
+    if (step === TRACK_STEP_START && !blockRef.current && !autoStartFiredRef.current) {
+      autoStartFiredRef.current = true
+      onAutoStart?.()
     }
-  }, [trackerBlock, trackerPreview])
-
-  const handleComplete = useCallback(() => {
-    setPanelMode('reviewing')
-  }, [])
+  }, [onAutoStart])
 
   const handleReset = useCallback(() => {
-    setPanelMode('editor')
     onReset?.()
   }, [onReset])
 
-  const isTracking = panelMode === 'tracking'
-  const isReviewing = panelMode === 'reviewing'
-  const isActive = isTracking || isReviewing
-
-  const chromeTitle = isReviewing ? 'Review' : isTracking ? 'Track' : 'Plan'
-
-  // Header actions
-  const activeHeaderActions = isActive ? (
+  // Header actions shown in the MacOS chrome bar
+  const headerActions = (inTrack || inReview || inRecords) ? (
     <>
       {!trackerBlock && trackerPreview && onStartPreview && (
         <button
@@ -81,6 +92,15 @@ export function Act1EditorSection({
         >
           <Play className="size-2.5 fill-current" />
           Run
+        </button>
+      )}
+      {inTrack && onClearPreview && (
+        <button
+          onClick={onClearPreview}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted border border-transparent hover:border-border/60 transition-all"
+        >
+          <Search className="size-2.5" />
+          Browse
         </button>
       )}
     </>
@@ -92,13 +112,26 @@ export function Act1EditorSection({
       steps={EDITOR_STEPS}
       stickyAlign="right"
       chromeTitle={chromeTitle}
-      onReset={isActive ? handleReset : undefined}
-      headerActions={activeHeaderActions}
+      onReset={(inTrack || inReview || inRecords) ? handleReset : undefined}
+      headerActions={headerActions}
+      onStepChange={handleStepChange}
       stickyContent={(activeStep, selectedExample) => {
-        if (isReviewing) {
+        if (activeStep >= RECORDS_STEP_START) {
+          return (
+            <FrozenEditorPanel
+              ref={ref}
+              activeStep={activeStep}
+              selectedExample={selectedExample}
+              actualTheme={actualTheme}
+              onRun={onRun}
+              showRecords
+            />
+          )
+        }
+        if (activeStep >= REVIEW_STEP_START) {
           return <FrozenReviewPanel runtime={liveRuntime} />
         }
-        if (isTracking) {
+        if (activeStep >= TRACK_STEP_START) {
           return (
             <LiveTrackerPanel
               block={trackerBlock}
@@ -106,7 +139,6 @@ export function Act1EditorSection({
               preview={trackerPreview}
               actualTheme={actualTheme}
               onRuntimeReady={onRuntimeReady}
-              onComplete={handleComplete}
             />
           )
         }
@@ -124,3 +156,4 @@ export function Act1EditorSection({
     />
   )
 }
+

@@ -14,10 +14,6 @@ import { SAMPLE_SCRIPT } from './data/parallaxActSteps'
 // Section components
 import { Act1EditorSection } from './sections/Act1EditorSection'
 import { ActBrowseSection } from './sections/ActBrowseSection'
-import { Act2TrackSection } from './sections/Act2TrackSection'
-import { Act3RestSection } from './sections/Act3RestSection'
-import { Act4ReviewSection } from './sections/Act4ReviewSection'
-import { Act5RecordsSection } from './sections/Act5RecordsSection'
 import { CollectionsParallaxSection } from './sections/CollectionsParallaxSection'
 import { ChromecastSection } from './sections/ChromecastSection'
 import { DeepDiveSection } from './sections/DeepDiveSection'
@@ -142,39 +138,13 @@ export function HomePageContent({
         trackerPreview={trackerPreview}
         onReset={resetDemo}
         onStartPreview={(script) => { setTrackerPreview(null); launchTracker(script) }}
-        onRuntimeReady={setLiveRuntime}
-        liveRuntime={liveRuntime}
-      />
-
-      {/* Acts 2–4 share the same runtime scope */}
-      {/* Act 2 — Track (stickyAlign='left', bg-zinc-950/[0.03]) */}
-      <Act2TrackSection
-        actualTheme={actualTheme}
-        block={trackerBlock}
-        preview={trackerPreview}
-        onReset={resetDemo}
-        onSearch={() => { paletteSourceRef.current = 'tracker'; setHomePaletteOpen(true) }}
-        onStartPreview={(script) => { setTrackerPreview(null); launchTracker(script) }}
         onClearPreview={() => { paletteSourceRef.current = 'tracker'; setTrackerPreview(null); setHomePaletteOpen(true) }}
         onRuntimeReady={setLiveRuntime}
+        liveRuntime={liveRuntime}
         onAutoStart={() => { if (!trackerBlock) launchTracker(SAMPLE_SCRIPT) }}
       />
 
-      {/* Act 3 — Rest (stickyAlign='left', bg-zinc-950/[0.03]) */}
-      <Act3RestSection
-        actualTheme={actualTheme}
-        block={trackerBlock}
-        onSearch={() => { paletteSourceRef.current = 'tracker'; setHomePaletteOpen(true) }}
-        onRuntimeReady={setLiveRuntime}
-      />
-
-      {/* Act 4 — Review (stickyAlign='left', bg-zinc-950/[0.03]) */}
-      <Act4ReviewSection runtime={liveRuntime} />
-
-      {/* Act 5 — Records (stickyAlign='right', bg-background) */}
-      <Act5RecordsSection actualTheme={actualTheme} />
-
-      {/* Browse (stickyAlign='right') — follows records so it doesn't interrupt the Act 1 flow */}
+      {/* Browse — follows the main act so it doesn't interrupt the Plan→Track flow */}
       <ActBrowseSection
         actualTheme={actualTheme}
         onRun={launchTracker}
