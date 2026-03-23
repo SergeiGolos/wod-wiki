@@ -279,7 +279,7 @@ function UnifiedEditorWrapper(props: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof UnifiedEditorWrapper> = {
-  title: "Components/UnifiedEditor",
+  title: "Panels/UnifiedEditor/Web",
   component: UnifiedEditorWrapper,
   parameters: {
     layout: "fullscreen",

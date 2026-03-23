@@ -9,7 +9,7 @@ import { DocsPageShell } from '@/panels/page-shells/DocsPageShell';
 import { HeroBanner } from '@/panels/page-shells/HeroBanner';
 
 const meta: Meta<typeof DocsPageShell> = {
-  title: 'Components/Page Shells/DocsPageShell',
+  title: 'Pages/Docs',
   component: DocsPageShell,
   parameters: {
     layout: 'fullscreen',

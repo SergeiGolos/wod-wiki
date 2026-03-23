@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { JournalPageShell } from '@/panels/page-shells/JournalPageShell';
 
 const meta: Meta<typeof JournalPageShell> = {
-  title: 'Components/Page Shells/JournalPageShell',
+  title: 'Pages/Journal',
   component: JournalPageShell,
   parameters: {
     layout: 'fullscreen',

@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { StickyNavPanel } from '@/panels/page-shells/StickyNavPanel';
 
 const meta: Meta<typeof StickyNavPanel> = {
-  title: 'Components/Page Shells/StickyNavPanel',
+  title: 'Pages/StickyNavPanel',
   component: StickyNavPanel,
   parameters: {
     layout: 'fullscreen',

@@ -8,7 +8,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HeroBanner } from '@/panels/page-shells/HeroBanner';
 
 const meta: Meta<typeof HeroBanner> = {
-  title: 'Components/Page Shells/HeroBanner',
+  title: 'Pages/HeroBanner',
   component: HeroBanner,
   parameters: {
     layout: 'fullscreen',

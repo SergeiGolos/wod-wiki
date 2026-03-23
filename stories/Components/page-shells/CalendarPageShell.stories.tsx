@@ -10,7 +10,7 @@ import { Edit, BarChart2, Eye } from 'lucide-react';
 import React from 'react';
 
 const meta: Meta<typeof CalendarPageShell> = {
-  title: 'Components/Page Shells/CalendarPageShell',
+  title: 'Pages/Calendar',
   component: CalendarPageShell,
   parameters: {
     layout: 'fullscreen',

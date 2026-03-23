@@ -210,8 +210,11 @@ async function main() {
   // Print service information
   log('INFO', colors.cyan, 'Starting services...');
   console.log('');
+  console.log(`  ${colors.green}🔒 Storybook: HTTPS Active (using pluto.forest-adhara.ts.net.crt)${colors.reset}`);
+  console.log('');
   console.log(`${colors.bright}Services:${colors.reset}`);
-  console.log(`  ${colors.green}▸ Storybook (Web):${colors.reset}      http://localhost:6006`);
+  console.log(`  ${colors.green}▸ Storybook (Web):${colors.reset}      https://pluto.forest-adhara.ts.net:6006/`);
+  console.log(`  ${colors.green}▸ Storybook (Local):${colors.reset}    https://localhost:6006/`);
   console.log(`  ${colors.yellow}▸ Relay Server (WS):${colors.reset}    ws://localhost:8080/ws`);
   if (!options.webOnly) {
     console.log(`  ${colors.magenta}▸ Metro Bundler:${colors.reset}        http://localhost:8081`);

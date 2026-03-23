@@ -1,19 +1,17 @@
 /**
- * Tracker-Web Stories
+ * Tracker-Mobile Stories
  *
- * Showcases the web-based workout tracking panel (`TimerScreen` / `VisualStatePanel`)
- * using a real ScriptRuntime backed by a JIT-compiled workout script.
+ * Showcases the workout tracking panel in a mobile (portrait) viewport.
+ * The layout stacks the timer controls above the visual state panel
+ * rather than side-by-side, matching the narrow screen experience.
  *
- * The harness stands up a real runtime, pushes blocks onto the stack, and
- * renders the actual production components — nothing is mocked at the
- * component level.  The Storybook Controls/actions panel lets you inspect
- * the events fired from the UI controls (start, pause, stop, next).
+ * Uses the same real ScriptRuntime as TrackerWeb — nothing is mocked.
  *
  * States illustrated:
- *  1. NoBlock      — no runtime; shows the preview / "select a workout" panel
- *  2. ReadyToStart — runtime initialised with a WaitingToStart block on the stack
- *  3. ActiveFran   — Fran (21-15-9 Thrusters & Pull-ups) with active session block
- *  4. AmrapRunning — 20-min AMRAP with a running AMRAP block
+ *  1. NoBlock      — no runtime; "select a workout" placeholder
+ *  2. ReadyToStart — WaitingToStart block on the stack
+ *  3. ActiveFran   — Fran (21-15-9) first block active
+ *  4. AmrapRunning — 20-min AMRAP running
  */
 
 import React, { useEffect, useState } from 'react';
@@ -28,7 +26,7 @@ import { RuntimeClock } from '@/runtime/RuntimeClock';
 import { sharedParser } from '@/parser/parserInstance';
 import { WodScript } from '@/parser/WodScript';
 
-// Strategies — the same set used in production
+// Strategies
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
 import { IntervalLogicStrategy } from '@/runtime/compiler/strategies/logic/IntervalLogicStrategy';
 import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
@@ -39,7 +37,7 @@ import { ReportOutputStrategy } from '@/runtime/compiler/strategies/enhancements
 import { ChildrenStrategy } from '@/runtime/compiler/strategies/enhancements/ChildrenStrategy';
 import { EffortFallbackStrategy } from '@/runtime/compiler/strategies/fallback/EffortFallbackStrategy';
 
-// Actions (runtime control)
+// Actions
 import { StartSessionAction } from '@/runtime/actions/stack/StartSessionAction';
 import { NextAction } from '@/runtime/actions/stack/NextAction';
 
@@ -50,6 +48,7 @@ import { DebugModeProvider } from '@/components/layout/DebugModeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { TimerDisplay } from '@/panels/timer-panel';
 import { useRuntimeExecution } from '@/runtime-test-bench/hooks/useRuntimeExecution';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,27 +77,27 @@ function buildRuntime(scriptText: string): ScriptRuntime {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TrackerWebHarness — the shared storybook component
+// TrackerMobileHarness
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface TrackerWebHarnessProps {
+export interface TrackerMobileHarnessProps {
   /** Workout script text to compile and execute */
   script: string;
   /**
    * Initial stack state:
-   *  - 'empty'  : no blocks pushed — shows preview/no-runtime UI
-   *  - 'ready'  : StartSessionAction pushed so WaitingToStart is on the stack
-   *  - 'active' : StartSessionAction + one NextAction to transition past WaitingToStart
+   *  - 'empty'  : no blocks pushed — shows the placeholder
+   *  - 'ready'  : WaitingToStart block on the stack
+   *  - 'active' : first exercise block active
    */
   initialState: 'empty' | 'ready' | 'active';
   /** Height of the story canvas */
   height?: string;
 }
 
-const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
+const TrackerMobileHarness: React.FC<TrackerMobileHarnessProps> = ({
   script,
   initialState,
-  height = '600px',
+  height = '844px',
 }) => {
   const [runtime, setRuntime] = useState<ScriptRuntime | null>(null);
 
@@ -107,7 +106,6 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
   const onStop = fn().mockName('tracker:stop');
   const onNext = fn().mockName('tracker:next');
 
-  // Build and initialise the runtime once on mount
   useEffect(() => {
     if (initialState === 'empty') {
       setRuntime(null);
@@ -115,11 +113,8 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
     }
 
     const rt = buildRuntime(script);
-
-    // Push the session root so WaitingToStart lands on the stack
     rt.do(new StartSessionAction({ label: 'Story Session' }));
 
-    // Advance past WaitingToStart into the first real block
     if (initialState === 'active') {
       rt.do(new NextAction());
     }
@@ -129,15 +124,14 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
     return () => {
       rt.dispose();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!runtime) {
-    // Empty / no-runtime state
     return (
       <div style={{ height }} className="flex items-center justify-center bg-background text-muted-foreground border rounded-lg">
-        <div className="text-center p-8 max-w-sm">
-          <h3 className="text-lg font-semibold mb-2 text-foreground">No Workout Selected</h3>
+        <div className="text-center p-6 max-w-xs">
+          <h3 className="text-base font-semibold mb-2 text-foreground">No Workout Selected</h3>
           <p className="text-sm text-muted-foreground">Select a WOD block from the planner to start tracking.</p>
         </div>
       </div>
@@ -148,13 +142,10 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
     <ScriptRuntimeProvider runtime={runtime}>
       <DebugModeProvider>
         <PanelSizeProvider>
-          <div style={{ height }} className="flex overflow-hidden border rounded-lg bg-background">
-            {/* Left: Visual State (stack + lookahead) */}
-            <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
-              <VisualStatePanel />
-            </div>
-            {/* Right: Timer & Controls */}
-            <div className="w-1/2 flex flex-col">
+          {/* Mobile: stack vertically — timer on top, visual state below */}
+          <div style={{ height }} className="flex flex-col overflow-hidden border rounded-lg bg-background">
+            {/* Top: Timer & Controls */}
+            <div className="shrink-0 border-b border-border">
               <ExecutionBound
                 runtime={runtime}
                 onStart={onStart}
@@ -163,6 +154,10 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
                 onNext={onNext}
               />
             </div>
+            {/* Bottom: Visual State (stack + lookahead) */}
+            <div className="flex-1 min-h-0 bg-secondary/10 overflow-y-auto">
+              <VisualStatePanel />
+            </div>
           </div>
         </PanelSizeProvider>
       </DebugModeProvider>
@@ -170,10 +165,6 @@ const TrackerWebHarness: React.FC<TrackerWebHarnessProps> = ({
   );
 };
 
-/**
- * Inner component that has access to the runtime execution hook and wires
- * up TimerDisplay. Lives inside the ScriptRuntimeProvider tree so hooks work.
- */
 const ExecutionBound: React.FC<{
   runtime: ScriptRuntime;
   onStart: (...args: unknown[]) => void;
@@ -201,7 +192,7 @@ const ExecutionBound: React.FC<{
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center p-4">
+    <div className="flex justify-center p-3">
       <TimerDisplay
         elapsedMs={execution.elapsedTime}
         hasActiveBlock={runtime.stack.count > 0}
@@ -220,17 +211,24 @@ const ExecutionBound: React.FC<{
 // Meta
 // ─────────────────────────────────────────────────────────────────────────────
 
-const meta: Meta<typeof TrackerWebHarness> = {
-  title: 'Panels/Tracker/Web',
-  component: TrackerWebHarness,
+const meta: Meta<typeof TrackerMobileHarness> = {
+  title: 'Panels/Tracker/Mobile',
+  component: TrackerMobileHarness,
+  decorators: [
+    (Story) => (
+      <div style={{ width: '390px', margin: '0 auto' }}>
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: 'padded',
+    layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Web-based workout tracking panel backed by a real ScriptRuntime. ' +
-          'Blocks are compiled and pushed onto the stack so components render ' +
-          'their true production state. Use the Actions panel to see events fired.',
+          'Mobile workout tracking panel backed by a real ScriptRuntime. ' +
+          'Timer controls are stacked above the visual state panel to fit a ' +
+          'narrow portrait screen (< 768 px). Same runtime as the Web variant.',
       },
     },
   },
@@ -258,35 +256,24 @@ type Story = StoryObj<typeof meta>;
 // Stories
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * No WOD block selected — displays the "select a workout" placeholder.
- */
 export const NoBlock: Story = {
   name: 'No Block Selected',
   args: {
     script: '21 Thrusters\n21 Pull-ups',
     initialState: 'empty',
-    height: '500px',
+    height: '844px',
   },
 };
 
-/**
- * Ready to Start — runtime initialised, WaitingToStart block is on the stack.
- * Press Start / Next to transition into the workout.
- */
 export const ReadyToStart: Story = {
   name: 'Ready To Start',
   args: {
     script: '21 Thrusters\n21 Pull-ups\n15 Thrusters\n15 Pull-ups\n9 Thrusters\n9 Pull-ups',
     initialState: 'ready',
-    height: '600px',
+    height: '844px',
   },
 };
 
-/**
- * Active Fran — classic CrossFit benchmark 21-15-9 Thrusters & Pull-ups.
- * The session has been started and the first exercise block is active.
- */
 export const ActiveFran: Story = {
   name: 'Active: Fran (21-15-9)',
   args: {
@@ -299,42 +286,24 @@ export const ActiveFran: Story = {
       '9 Pull-ups',
     ].join('\n'),
     initialState: 'active',
-    height: '650px',
+    height: '844px',
   },
 };
 
-/**
- * Active AMRAP — 20-minute As Many Rounds As Possible.
- */
-export const ActiveAmrap: Story = {
+export const AmrapRunning: Story = {
   name: 'Active: AMRAP 20',
   args: {
     script: '20:00 AMRAP\n5 Pull-ups\n10 Push-ups\n15 Air Squats',
     initialState: 'active',
-    height: '650px',
+    height: '844px',
   },
 };
 
-/**
- * Active Rounds — 5 rounds of 10 Thrusters.
- */
-export const ActiveRounds: Story = {
-  name: 'Active: 5×10 Thrusters',
-  args: {
-    script: '5x\n10 Thrusters @95lb',
-    initialState: 'active',
-    height: '650px',
-  },
-};
-
-/**
- * Active EMOM — 10-minute Every Minute On the Minute.
- */
-export const ActiveEmom: Story = {
+export const EmomRunning: Story = {
   name: 'Active: EMOM 10',
   args: {
     script: '10x 1:00\n10 Thrusters @95lb',
     initialState: 'active',
-    height: '650px',
+    height: '844px',
   },
 };

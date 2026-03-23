@@ -203,7 +203,7 @@ const CollectionsViewHarness: React.FC<CollectionsViewHarnessProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof CollectionsViewHarness> = {
-  title: 'Components/Collections',
+  title: 'Collections',
   component: CollectionsViewHarness,
   parameters: {
     layout: 'padded',
