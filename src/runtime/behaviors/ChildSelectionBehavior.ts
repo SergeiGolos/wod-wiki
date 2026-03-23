@@ -123,16 +123,22 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
             actions.push(new TrackRoundAction(blockId, this.config.startRound, this.config.totalRounds));
         }
 
-        // Handle interval timer resets for EMOM synchronization
+        // Handle interval timer resets for EMOM synchronization.
+        // Use 'bubble' scope so this fires even when child blocks are active
+        // on top of the stack (e.g. mid-round when the 60s EMOM interval fires).
+        // We filter on blockKey so only our own timer triggers the reset.
         if (this.config.injectRest) {
-            ctx.subscribe('timer:complete' as any, (_event, _ctx) => {
+            const ownBlockKey = ctx.block.key.toString();
+            ctx.subscribe('timer:complete' as any, (event, _ctx) => {
+                const eventBlockKey = (event as { data?: { blockKey?: string } }).data?.blockKey;
+                if (eventBlockKey !== ownBlockKey) return [];
                 // Interval over — advance round and reset for the next cycle
                 const advanceActions = this.advanceRound(ctx);
                 this.childIndex = 0;
                 this.restState = 'idle';
                 this.writeChildrenStatus(ctx);
                 return advanceActions;
-            }, { scope: 'active' });
+            }, { scope: 'bubble' });
         }
 
         if (this.config.skipOnMount) {

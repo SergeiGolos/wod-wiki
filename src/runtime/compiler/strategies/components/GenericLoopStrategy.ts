@@ -28,7 +28,15 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
 
     match(statements: ICodeStatement[], _runtime: IScriptRuntime): boolean {
         if (!statements || statements.length === 0) return false;
-        return statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds));
+        // Match explicit rounds metric (e.g. "(3)" parentheses notation)
+        if (statements.some(s => s.metrics.some(f => f.type === MetricType.Rounds))) return true;
+        // Also match rep-scheme For Time (e.g. "21-15-9 For Time") which produces
+        // multiple Rep metrics but no RoundsMetric. Two or more numeric Rep values
+        // on the same statement indicate a rep scheme that defines the loop count.
+        const repCount = statements[0]?.metrics.filter(
+            f => f.type === MetricType.Rep && typeof f.value === 'number'
+        ).length ?? 0;
+        return repCount > 1;
     }
 
     apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
@@ -45,19 +53,18 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             f => f.type === MetricType.Rounds
         ) as RoundsMetric | undefined;
 
-        if (!roundsFragment) return;
-
         // Parse rounds value
         let totalRounds = 1;
         let repScheme: number[] | undefined = undefined;
 
-        if (typeof roundsFragment.value === 'number') {
+        if (typeof roundsFragment?.value === 'number') {
             totalRounds = roundsFragment.value;
         }
 
         // Collect individual RepMetrics from ALL statements to build a rep scheme.
         // The parser creates separate RepMetric instances (e.g., 21-15-9 becomes
         // three RepMetrics with values 21, 15, 9) alongside a RoundsMetric.
+        // For "21-15-9 For Time" there is no RoundsMetric, so repScheme drives rounds.
         const repFragments = statements.flatMap(s => 
             s.metrics.filter(f => f.type === MetricType.Rep && typeof f.value === 'number')
         ).map(f => f.value as number);
@@ -69,6 +76,13 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
                 totalRounds = repScheme.length;
             }
         }
+
+        // If neither a RoundsMetric nor a rep scheme is present, skip.
+        // This guard keeps apply() a no-op for statements that matched only
+        // via hasRoundsMetric=false but also have no rep scheme (shouldn't
+        // happen, but guards against future match() widening).
+        if (!roundsFragment && repScheme === undefined) return;
+
 
         // Use LabelComposer for a standardized, descriptive label
         const label = LabelComposer.build(statements, {

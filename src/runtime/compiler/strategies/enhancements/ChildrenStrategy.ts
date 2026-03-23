@@ -28,7 +28,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
             statements[0].children.length > 0;
     }
 
-    apply(builder: BlockBuilder, statements: ICodeStatement[], _runtime: IScriptRuntime): void {
+    apply(builder: BlockBuilder, statements: ICodeStatement[], runtime: IScriptRuntime): void {
         // Skip if children already handled
         if (builder.hasBehavior(ChildSelectionBehavior)) {
             return;
@@ -38,7 +38,7 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         const children = statements[0].children!;
 
         // Filter out empty groups
-        const childGroups = children.filter(group => group.length > 0);
+        let childGroups = children.filter(group => group.length > 0);
 
         // Check if rounds were already set up by another strategy (e.g., GenericLoopStrategy)
         // This indicates multi-round blocks like Annie (50-40-30-20-10) that need child looping
@@ -79,6 +79,36 @@ export class ChildrenStrategy implements IRuntimeBlockStrategy {
         // Only inject rest for interval-based countdowns (EMOM).
         // For block-capping countdowns (AMRAP), rounds should restart immediately.
         const shouldInjectRest = hasCountdownCompletion && countdown?.config.mode === 'reset-interval';
+
+        // For non-interval blocks (no injectRest), filter out child groups whose
+        // statement IDs are already covered as grandchildren of other child groups.
+        // Example: "21-15-9 For Time\n  3:00 AMRAP\n    10 Pushups" parses the
+        // AMRAP (id=2) and Pushups (id=3) both as children of the For Time, but
+        // Pushups is also a child of the AMRAP.  Without filtering, the For Time
+        // dispatches the Pushups block directly after the AMRAP expires instead of
+        // launching a fresh AMRAP for the next round.
+        // EMOM blocks keep all groups because the interval-timer subscription
+        // (timer:complete/bubble) drives round advancement independently.
+        if (!shouldInjectRest) {
+            const grandchildIds = new Set<number>();
+            for (const group of childGroups) {
+                for (const id of group) {
+                    const stmt = runtime.script.getId(id);
+                    if (stmt?.children) {
+                        for (const childGroup of stmt.children) {
+                            for (const childId of childGroup) {
+                                grandchildIds.add(childId);
+                            }
+                        }
+                    }
+                }
+            }
+            if (grandchildIds.size > 0) {
+                childGroups = childGroups.filter(
+                    group => !group.every(id => grandchildIds.has(id))
+                );
+            }
+        }
 
         builder.asContainer({
             childGroups,

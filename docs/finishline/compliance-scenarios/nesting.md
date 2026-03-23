@@ -58,7 +58,7 @@
 
 ---
 
-## 🔴 EMOM Containing Rounds (`.skip`)
+## 🟢 EMOM Containing Rounds
 
 ```wod
 (5) 1:00 EMOM
@@ -74,7 +74,7 @@
 
 ---
 
-## 🔴 AMRAP Inside For Time (`.skip`)
+## 🟢 AMRAP Inside For Time
 
 ```wod
 21-15-9 For Time
@@ -90,7 +90,7 @@
 
 ---
 
-## 🔴 Back-to-Back AMRAPs (`.skip`)
+## 🟢 Back-to-Back AMRAPs
 
 ```wod
 10:00 AMRAP
