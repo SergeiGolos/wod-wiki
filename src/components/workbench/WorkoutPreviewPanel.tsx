@@ -13,7 +13,7 @@
 import React from 'react';
 import type { SectionType } from '../Editor/types/section';
 import type { WodBlock } from '../Editor/types';
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
+import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { cn } from '@/lib/utils';
 import { Dumbbell } from 'lucide-react';
 
@@ -55,7 +55,7 @@ export const WorkoutPreviewPanel: React.FC<WorkoutPreviewPanelProps> = ({
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-auto">
-        <UnifiedEditor
+        <NoteEditor
           value={content}
           onChange={() => {}}
           readonly={true}

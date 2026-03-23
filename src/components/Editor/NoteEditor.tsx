@@ -1,5 +1,5 @@
 /**
- * UnifiedEditor
+ * NoteEditor
  * 
  * Single-instance CodeMirror 6 editor for the entire document.
  * Replaces the fragmented SectionEditor approach with a cohesive
@@ -46,7 +46,7 @@ import { wodscriptLanguage } from "../../parser/wodscript-language";
 import { editorTheme } from "./extensions/theme";
 import { smartIncrement } from "./extensions/smart-increment";
 
-// Unified editor extensions
+// Note editor extensions
 import { sectionField, SectionState, activeCursorSection, type EditorSection } from "./extensions/section-state";
 import { previewDecorations } from "./extensions/preview-decorations";
 import { embedPreviewDecorations } from "./extensions/embed-preview";
@@ -112,9 +112,7 @@ const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandl
 import {
   wodResultsWidget,
   wodResultsField,
-  wodResultsExpandedField,
   updateSectionResults,
-  toggleWodResults,
   WOD_RESULT_CLICK_EVENT,
   type WodResultClickDetail,
 } from "./extensions/wod-results-widget";
@@ -134,6 +132,7 @@ import type { Segment } from "@/core/models/AnalyticsModels";
 import { indexedDBService } from "@/services/db/IndexedDBService";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 import { v4 as uuidv4 } from "uuid";
+import type { WorkoutResult } from "@/types/storage";
 
 // Existing state fields
 import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
@@ -141,10 +140,10 @@ import { themeCompartment, languageCompartment, modeCompartment } from "./compar
 
 import type { WodBlock } from "./types";
 import { useCommandPalette } from "../command-palette/CommandContext";
-import { Play, Plus, ExternalLink, History, Copy, Check } from "lucide-react";
+import { Play, Plus, ExternalLink, Copy, Check } from "lucide-react";
 import { buildPlaygroundUrl } from "./md-components/WodPlaygroundButton";
 
-export interface UnifiedEditorProps {
+export interface NoteEditorProps {
   /** Note ID for result lookup */
   noteId?: string;
   /** Document content */
@@ -204,7 +203,7 @@ export interface UnifiedEditorProps {
   widgetComponents?: WidgetRegistry;
 }
 
-export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
+export const NoteEditor: React.FC<NoteEditorProps> = ({
   noteId,
   value,
   onChange,
@@ -502,7 +501,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
       // Existing extensions
       smartIncrement,
 
-      // ---- Unified Editor Extensions ----
+      // ---- Note Editor Extensions ----
 
       // Section tracking (required by all other unified extensions)
       sectionField,
@@ -723,7 +722,7 @@ export const UnifiedEditor: React.FC<UnifiedEditorProps> = ({
   return (
     <div
       ref={editorRef}
-      className={`cm-unified-editor relative w-full min-w-0 ${className}`}
+      className={`cm-note-editor relative w-full min-w-0 ${className}`}
     >
       {enableOverlay && (
         <OverlayTrack

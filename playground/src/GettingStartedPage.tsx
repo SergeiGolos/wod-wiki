@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { useNavigate } from 'react-router-dom'
 import {
   Code2,
@@ -153,7 +153,7 @@ function LessonSection({
          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Interactive Lesson</span>
       </div>
       <div className="flex-1 relative">
-        <UnifiedEditor
+        <NoteEditor
           key={`${id}-${activeIdx}`}
           noteId={`getting-started-${id}-${activeIdx}`}
           value={activeTab.content}

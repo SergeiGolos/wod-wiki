@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
-import { UnifiedEditorProps } from '../Editor/UnifiedEditor';
+import { NoteEditorProps } from '../Editor/NoteEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
 import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File } from 'lucide-react';
@@ -66,7 +66,7 @@ import { ReviewGrid } from '../review-grid';
 // Create singleton factory instance
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 
-export interface WorkbenchProps extends Omit<UnifiedEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
+export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
   initialActiveEntryId?: string;
   initialViewMode?: ViewMode;

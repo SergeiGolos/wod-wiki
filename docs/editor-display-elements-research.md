@@ -1,6 +1,6 @@
 # Editor Display Elements & Decoration System
 
-Research document mapping every display element type supported by the **UnifiedEditor** (CodeMirror 6-based) and the decorations each one applies to the text it covers.
+Research document mapping every display element type supported by the **NoteEditor** (CodeMirror 6-based) and the decorations each one applies to the text it covers.
 
 ---
 

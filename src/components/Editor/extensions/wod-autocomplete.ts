@@ -178,7 +178,7 @@ export const wodEditorKeymap = keymap.of([
 ]);
 
 /**
- * Combined autocomplete sources for the unified editor.
+ * Combined autocomplete sources for the note editor.
  */
 export const wodAutocompletion: Extension = autocompletion({
   override: [dialectCompletion, embedCompletion],

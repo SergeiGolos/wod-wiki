@@ -1,7 +1,7 @@
 /**
- * UnifiedEditor-Mobile Stories
+ * NoteEditor-Mobile Stories
  *
- * Showcases the UnifiedEditor in a mobile (portrait) viewport.
+ * Showcases the NoteEditor in a mobile (portrait) viewport.
  * The editor is fullscreen and fills the phone screen — same component
  * as the Web variant, rendered at narrow width so responsive behaviours
  * (e.g. hidden preview panel, compact toolbar) are visible.
@@ -16,7 +16,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react";
-import { UnifiedEditor } from "@/components/Editor/UnifiedEditor";
+import { NoteEditor } from "@/components/Editor/NoteEditor";
 import { CommandProvider } from "@/components/command-palette/CommandContext";
 import { fn } from "storybook/test";
 import { useState } from "react";
@@ -84,7 +84,7 @@ const WEEKLY_PLAN_CONTENT = `# Week Training Plan
 // Wrapper
 // ─────────────────────────────────────────────────────────────────────────────
 
-function UnifiedEditorWrapper(props: {
+function NoteEditorWrapper(props: {
   initialContent?: string;
   theme?: string;
   readonly?: boolean;
@@ -101,7 +101,7 @@ function UnifiedEditorWrapper(props: {
     <CommandProvider>
       <div className="h-full w-full flex flex-col box-border">
         <div className="border rounded-lg overflow-hidden w-full flex-1 min-h-0">
-          <UnifiedEditor
+          <NoteEditor
             value={content}
             onChange={setContent}
             theme={props.theme}
@@ -123,9 +123,9 @@ function UnifiedEditorWrapper(props: {
 // Meta
 // ─────────────────────────────────────────────────────────────────────────────
 
-const meta: Meta<typeof UnifiedEditorWrapper> = {
-  title: "Panels/UnifiedEditor/Mobile",
-  component: UnifiedEditorWrapper,
+const meta: Meta<typeof NoteEditorWrapper> = {
+  title: "Panels/NoteEditor/Mobile",
+  component: NoteEditorWrapper,
   decorators: [
     (Story) => (
       <div style={{ width: '390px', margin: '0 auto' }}>
@@ -138,7 +138,7 @@ const meta: Meta<typeof UnifiedEditorWrapper> = {
     docs: {
       description: {
         component:
-          "UnifiedEditor rendered at mobile (portrait) dimensions. " +
+          "NoteEditor rendered at mobile (portrait) dimensions. " +
           "Use this to verify responsive behaviours — compact toolbar, " +
           "hidden preview panel — that only appear below 768 px.",
       },

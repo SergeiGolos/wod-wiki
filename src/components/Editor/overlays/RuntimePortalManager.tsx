@@ -2,7 +2,7 @@
  * RuntimePortalManager — DEPRECATED
  *
  * Replaced by the fixed-position RuntimePanel portals rendered directly in
- * UnifiedEditor.  This file is kept for reference only and exports a no-op.
+ * NoteEditor.  This file is kept for reference only and exports a no-op.
  */
 
 import React from "react";

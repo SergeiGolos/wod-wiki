@@ -613,7 +613,7 @@ The current journal/playground experience is inconsistent across viewport sizes.
 ### Goals
 
 - **Consistent journal view** across all viewport sizes — the editor and surrounding chrome adapt fluidly without layout jumps.
-- **Remove line numbers** — Journal mode uses `showLineNumbers={false}` on the `UnifiedEditor`. Line numbers create visual clutter in writing-focused contexts and confuse non-technical users who expect a notebook, not a code editor.
+- **Remove line numbers** — Journal mode uses `showLineNumbers={false}` on the `NoteEditor`. Line numbers create visual clutter in writing-focused contexts and confuse non-technical users who expect a notebook, not a code editor.
 - **Journal page index** — A navigation sidebar showing the document's structure (headings + WOD blocks) with three responsive layout variants.
 
 ### Journal Page Index — Responsive Variants
@@ -700,7 +700,7 @@ The page index shows the same data at all sizes (headings, WOD block titles, act
 
 ```typescript
 // Journal mode editor props
-<UnifiedEditor
+<NoteEditor
   showLineNumbers={false}    // ← No line numbers in journal
   lineWrapping={true}        // Wrap long lines for readability
   enablePreview={true}       // Show markdown preview for non-active sections
@@ -728,7 +728,7 @@ New work needed:
 ### Data Flow
 
 ```
-UnifiedEditor
+NoteEditor
   │
   ├─→ Document structure (headings, blocks)
   │     │

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../src/components/ui/button';
 
-import { UnifiedEditor } from '../src/components/Editor/UnifiedEditor';
+import { NoteEditor } from '../src/components/Editor/NoteEditor';
 import { WorkbenchProps } from '../src/components/layout/Workbench';
 import { useWorkbenchSyncStore } from '../src/components/layout/workbenchSyncStore';
 import { useInMemoryNavigation } from '../src/hooks/useInMemoryNavigation';
@@ -133,7 +133,7 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
 
       {/* Editor fills remaining height */}
       <div className="flex-1 min-h-0">
-        <UnifiedEditor
+        <NoteEditor
           value={content}
           onChange={setContent}
           onStartWorkout={handleStartWorkoutAction}

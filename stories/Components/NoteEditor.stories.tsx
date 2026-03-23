@@ -1,5 +1,5 @@
 /**
- * UnifiedEditor Stories
+ * NoteEditor Stories
  *
  * Mirrors the full set of stories from the planner view (PlanView + SectionTypes)
  * so both editors can be compared side-by-side.
@@ -11,7 +11,7 @@
  */
 
 import type { Meta, StoryObj } from "@storybook/react";
-import { UnifiedEditor } from "@/components/Editor/UnifiedEditor";
+import { NoteEditor } from "@/components/Editor/NoteEditor";
 import { CommandProvider } from "@/components/command-palette/CommandContext";
 import { fn } from "storybook/test";
 import { useState } from "react";
@@ -237,7 +237,7 @@ A mixed conditioning week combining gymnastics, strength, and cardio.
 // Wrapper
 // ─────────────────────────────────────────────────────────────────────────────
 
-function UnifiedEditorWrapper(props: {
+function NoteEditorWrapper(props: {
   initialContent?: string;
   theme?: string;
   readonly?: boolean;
@@ -256,7 +256,7 @@ function UnifiedEditorWrapper(props: {
         <div
           className="border rounded-lg overflow-hidden w-full flex-1 min-h-0"
         >
-        <UnifiedEditor
+        <NoteEditor
           value={content}
           onChange={setContent}
           theme={props.theme}
@@ -278,9 +278,9 @@ function UnifiedEditorWrapper(props: {
 // Meta
 // ─────────────────────────────────────────────────────────────────────────────
 
-const meta: Meta<typeof UnifiedEditorWrapper> = {
-  title: "Panels/UnifiedEditor/Web",
-  component: UnifiedEditorWrapper,
+const meta: Meta<typeof NoteEditorWrapper> = {
+  title: "Panels/NoteEditor/Web",
+  component: NoteEditorWrapper,
   parameters: {
     layout: "fullscreen",
     docs: {

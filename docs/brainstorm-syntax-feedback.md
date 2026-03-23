@@ -51,7 +51,7 @@ The current overlay system (`OverlayTrack` + `WodCompanion`) renders a side pane
 | `src/components/Editor/extensions/wod-decorations.ts` | Line decorations, gutter markers (▶️), inline metric emoji hints (⏱️ ⚖️ × ↻ 📏) |
 | `src/components/Editor/extensions/section-state.ts` | Parses document into sections (markdown, wod, code, widget) with cursor tracking |
 | `src/components/Editor/extensions/section-geometry.ts` | Measures pixel rectangles for sections, feeds OverlayTrack via listener subscription |
-| `src/components/Editor/UnifiedEditor.tsx` | Main editor component — orchestrates all extensions and overlay rendering |
+| `src/components/Editor/NoteEditor.tsx` | Main editor component — orchestrates all extensions and overlay rendering |
 | `src/components/Editor/hooks/useWodBlockResults.ts` | Fetches workout results for a WOD section |
 | `src/components/Editor/hooks/useWodLineResults.ts` | Extracts per-line execution history from results |
 | `src/parser/timer.parser.ts` | Chevrotain parser for WOD syntax |
@@ -101,7 +101,7 @@ The current overlay system (`OverlayTrack` + `WodCompanion`) renders a side pane
 - New: `src/components/Editor/extensions/metric-hover.ts` (hover tooltip extension)
 - New: `src/components/Editor/extensions/cursor-focus-panel.ts` (inline widget + mark decorations)
 - New: `src/components/Editor/extensions/inline-errors.ts` (diagnostic-based error display)
-- Modified: `src/components/Editor/UnifiedEditor.tsx` (replace overlay setup with new extensions)
+- Modified: `src/components/Editor/NoteEditor.tsx` (replace overlay setup with new extensions)
 - Deprecated: `OverlayTrack.tsx`, `WodCompanion.tsx`, `useOverlayWidthState.ts`, `OverlayWidthPolicy.ts`, `section-geometry.ts`
 
 **Implementation Complexity:** High
@@ -145,7 +145,7 @@ The current overlay system (`OverlayTrack` + `WodCompanion`) renders a side pane
 - New: `src/components/Editor/components/MetricBreakdownPanel.tsx` (React inline panel)
 - Modified: `src/components/Editor/overlays/OverlayTrack.tsx` (slim down to command strip only)
 - Modified: `src/components/Editor/overlays/WodCompanion.tsx` (remove metric display, keep commands)
-- Modified: `src/components/Editor/UnifiedEditor.tsx` (add new extensions, configure portal bridge)
+- Modified: `src/components/Editor/NoteEditor.tsx` (add new extensions, configure portal bridge)
 
 **Implementation Complexity:** Medium
 **Alignment with Existing Patterns:** Good — preserves React component patterns for interactive UI while using CM6 for editor-native features. The portal pattern is well-established in CM6+React codebases.
@@ -182,7 +182,7 @@ The current overlay system (`OverlayTrack` + `WodCompanion`) renders a side pane
 **Affected Components:**
 - Modified: `src/components/Editor/extensions/wod-decorations.ts` (major extension — add hover, focus, error decorations)
 - New: `src/components/Editor/extensions/metric-focus-widget.ts` (if extracted for clarity)
-- Modified: `src/components/Editor/UnifiedEditor.tsx` (add new extension, begin overlay deprecation)
+- Modified: `src/components/Editor/NoteEditor.tsx` (add new extension, begin overlay deprecation)
 - No new React components — all DOM rendering via CM6 `WidgetType`
 
 **Implementation Complexity:** Low–Medium
@@ -243,7 +243,7 @@ Solution B provides the best balance of architectural improvement and practical 
    - Provides squiggly underlines via `lintGutter()` integration
    - Renders error messages as inline widgets below the error line
 
-5. **Modify `UnifiedEditor.tsx`** — Integration:
+5. **Modify `NoteEditor.tsx`** — Integration:
    - Add new extensions to the extension array
    - Set up React portal bridge for `MetricBreakdownPanel`
    - Configure slim command strip (or move commands to inline panel)
@@ -323,7 +323,7 @@ Example built-in commands:
 - [ ] Create `cursor-focus-panel.ts` CM6 extension with widget + mark decorations
 - [ ] Create `MetricBreakdownPanel.tsx` React component with metric display and command slots
 - [ ] Create `inline-errors.ts` CM6 extension for error display
-- [ ] Integrate new extensions into `UnifiedEditor.tsx`
+- [ ] Integrate new extensions into `NoteEditor.tsx`
 - [ ] Add Storybook story demonstrating all three feedback modes
 - [ ] Test on mobile viewport (375px width) — verify no horizontal overflow
 - [ ] Validate metric color consistency between underlines and panel

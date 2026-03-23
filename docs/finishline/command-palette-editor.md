@@ -12,7 +12,7 @@ Transform the existing command palette into a primary input mechanism for creati
 | `CommandStrategy` interface | `src/components/command-palette/types.ts` | `getCommands()` + `handleInput()` pattern |
 | `WodNavigationStrategy` | `strategies/WodNavigationStrategy.ts` | Example: navigation commands from palette |
 | Edit strategy pattern | `EditableStatementList` usage | Inline editing via `handleInput` + `initialInputValue` |
-| UnifiedEditor (CodeMirror 6) | `src/components/Editor/UnifiedEditor.tsx` | Full editor — heavy for mobile |
+| NoteEditor (CodeMirror 6) | `src/components/Editor/NoteEditor.tsx` | Full editor — heavy for mobile |
 | WOD parser (Lezer) | `src/parser/`, `src/grammar/` | Parses WOD syntax into `ICodeStatement[]` |
 | Section renderers | `src/components/Editor/md-components/section-renderers/` | Render parsed statements as UI |
 
@@ -296,7 +296,7 @@ src/
 
 **Key decisions for mobile:**
 - Detect viewport width (`useMediaQuery` or Tailwind `md:` breakpoint)
-- Swap `UnifiedEditor` for `MobileWorkoutView` on narrow screens
+- Swap `NoteEditor` for `MobileWorkoutView` on narrow screens
 - Palette renders full-screen (bottom sheet pattern) on mobile
 - Touch targets minimum 44px
 

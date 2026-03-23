@@ -1,4 +1,4 @@
-# ADR: Single-Instance Unified Editor Architecture
+# ADR: Single-Instance Note Editor Architecture
 
 **Status**: Proposed
 

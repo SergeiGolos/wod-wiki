@@ -6,7 +6,7 @@ import React from 'react';
 import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
+import { NoteEditor } from '@/components/Editor/NoteEditor';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
 
 export interface CollectionPreviewProps {
@@ -42,7 +42,7 @@ export const CollectionPreview: React.FC<CollectionPreviewProps> = ({
 
                 {/* Content */}
                 <div className="flex-1 min-h-0">
-                    <UnifiedEditor
+                    <NoteEditor
                         value={item.content}
                         onChange={() => {}}
                         onStartWorkout={onStartWorkout ? (block) => onStartWorkout(block.id) : undefined}

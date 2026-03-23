@@ -12,8 +12,10 @@
  */
 
 
-export type { WorkoutResults, Section } from '../components/Editor/types';
+import type { WorkoutResults, Section } from '../components/Editor/types';
 import type { WorkoutResult } from './storage';
+
+export type { WorkoutResults, Section };
 
 /**
  * A stored workout entry in the history.

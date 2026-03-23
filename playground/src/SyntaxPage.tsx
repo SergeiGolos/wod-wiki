@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { useNavigate } from 'react-router-dom'
 import {
   Code2,
@@ -228,7 +228,7 @@ function SyntaxSection({
          <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">WodScript v0.5</span>
       </div>
       <div className="flex-1 overflow-hidden relative">
-        <UnifiedEditor
+        <NoteEditor
           key={`${id}-${activeIdx}`}
           noteId={`syntax-${id}-${activeIdx}`}
           value={activeTab.content}

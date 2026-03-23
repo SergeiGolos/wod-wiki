@@ -5,7 +5,7 @@
  * Combines section metadata + active section + user overrides + policy
  * to produce a Map<sectionId, effectiveWidth>.
  *
- * Intended to be called from UnifiedEditor and passed to OverlayTrack.
+ * Intended to be called from NoteEditor and passed to OverlayTrack.
  */
 
 import { useCallback, useReducer, useMemo } from "react";

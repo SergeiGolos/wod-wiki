@@ -1,6 +1,5 @@
 import React from 'react';
 import { StorybookWorkbench as Workbench } from './StorybookWorkbench';
-import { AISkillPage } from './AI-SkillPage';
 import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta = {
@@ -12,19 +11,7 @@ const meta: Meta = {
 
 export default meta;
 
-// 1. AI Skill Story (using the specialized AISkillPage)
-export const AISkill: StoryObj = {
-  render: () => <AISkillPage />,
-  parameters: {
-    docs: {
-      description: {
-        story: 'Detailed documentation for the WOD Extraction skill used by LLMs to convert natural language workouts to WOD Wiki syntax.'
-      }
-    }
-  }
-};
-
-// 2. Syntax Reference Stories (using the StorybookWorkbench)
+// 1. Syntax Reference Stories (using the StorybookWorkbench)
 const WorkbenchTemplate: StoryObj<typeof Workbench> = {
   render: (args) => <Workbench {...args} />,
   args: {

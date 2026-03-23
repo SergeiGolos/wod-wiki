@@ -73,7 +73,7 @@ import {
 } from '@heroicons/react/20/solid'
 import type { WorkoutResult } from '@/types/storage'
 
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { cn } from '@/lib/utils'
@@ -265,7 +265,7 @@ function WorkoutEditorPage({
   }
 
   return (
-    <UnifiedEditor
+    <NoteEditor
       value={content}
       onChange={onChange}
       noteId={noteId}
@@ -416,7 +416,7 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
   }
 
   return (
-    <UnifiedEditor
+    <NoteEditor
       value={content}
       onChange={onChange}
       noteId={noteId}
@@ -611,7 +611,7 @@ function JournalPage({ theme }: { theme: string }) {
   return (
     <JournalPageShell
       editor={
-        <UnifiedEditor
+        <NoteEditor
           value={content}
           onChange={onChange}
           noteId={noteId}

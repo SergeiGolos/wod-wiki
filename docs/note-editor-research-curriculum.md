@@ -1,10 +1,10 @@
-# Unified Editor Research Curriculum
+# Note Editor Research Curriculum
 
 ## Goal
 
 Define a consistent editor architecture where CodeMirror remains the single source of truth for text editing, while section-aware overlays, hints, and inline companion UI behave predictably across markdown, frontmatter, and WOD blocks.
 
-This curriculum is designed for the current transition from the legacy section-based editor to the single-instance UnifiedEditor.
+This curriculum is designed for the current transition from the legacy section-based editor to the single-instance NoteEditor.
 
 ## Problem Framing
 
@@ -29,10 +29,10 @@ That means the research has to answer three different questions:
 
 The current code already contains the starting pieces for this work.
 
-- The single-editor direction is defined in [unified-editor-adr.md](./unified-editor-adr.md).
-- The intended UX is defined in [unified-editor-prd.md](./unified-editor-prd.md).
-- The active CM6 implementation is in [../src/components/Editor/UnifiedEditor.tsx](../src/components/Editor/UnifiedEditor.tsx).
-- Section parsing for the unified editor is in [../src/components/Editor/extensions/section-state.ts](../src/components/Editor/extensions/section-state.ts).
+- The single-editor direction is defined in [note-editor-adr.md](./note-editor-adr.md).
+- The intended UX is defined in [note-editor-prd.md](./note-editor-prd.md).
+- The active CM6 implementation is in [../src/components/Editor/NoteEditor.tsx](../src/components/Editor/NoteEditor.tsx).
+- Section parsing for the note editor is in [../src/components/Editor/extensions/section-state.ts](../src/components/Editor/extensions/section-state.ts).
 - Current WOD visual treatment is in [../src/components/Editor/extensions/preview-decorations.ts](../src/components/Editor/extensions/preview-decorations.ts).
 - Current floating WOD actions are in [../src/components/Editor/extensions/wod-overlay.ts](../src/components/Editor/extensions/wod-overlay.ts).
 - The legacy multi-section editor remains in [../src/components/Editor/SectionEditor.tsx](../src/components/Editor/SectionEditor.tsx).
@@ -46,7 +46,7 @@ At the end of this curriculum, the team should be able to produce:
 - A rendering strategy matrix for each section type.
 - A focus and interaction policy.
 - A geometry and measurement strategy for inline second-column UI.
-- A phased implementation plan for UnifiedEditor.
+- A phased implementation plan for NoteEditor.
 - A rejection list of approaches that look attractive but will produce unstable behavior.
 
 ## Guiding Architecture Hypothesis
@@ -101,7 +101,7 @@ Deliverables:
 Repo tasks:
 
 - Compare [../src/components/Editor/extensions/section-state.ts](../src/components/Editor/extensions/section-state.ts) against the older plan-view section model stored in repo memory.
-- Decide whether UnifiedEditor should adopt the richer older section identity model instead of using sequential ids like sec-0.
+- Decide whether NoteEditor should adopt the richer older section identity model instead of using sequential ids like sec-0.
 
 ### Stream 2: Rendering Modes Per Section Type
 
@@ -280,7 +280,7 @@ Deliverables:
 
 ### Phase 1: Normalize the Document Model
 
-- Audit current UnifiedEditor section parsing.
+- Audit current NoteEditor section parsing.
 - Compare it with the older plan-view section model.
 - Write the canonical section grammar with examples.
 - Decide which section types exist in v1.
@@ -363,7 +363,7 @@ These are the exact topics worth deeper external research.
 
 If the team wants the shortest path with the highest chance of staying stable:
 
-- Keep UnifiedEditor as one CM6 instance.
+- Keep NoteEditor as one CM6 instance.
 - Upgrade section parsing first.
 - Do not start with full replacement previews for all markdown blocks.
 - Treat the active section as the only section allowed to show rich companion UI.
