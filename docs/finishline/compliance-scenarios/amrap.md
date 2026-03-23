@@ -126,7 +126,7 @@ Lines prefixed with `+` are merged into a **single composite block** by the pars
 ---
 
 
-## 🟡 AMRAP with Skippable Rest Between Rounds
+## 🟢 AMRAP with Skippable Rest Between Rounds
 
 A plain timer child (`:30 Rest`) starts a countdown but **can be dismissed early** by `userNext`. This lets an athlete who finishes early start the next round immediately.
 
@@ -158,7 +158,7 @@ A plain timer child (`:30 Rest`) starts a countdown but **can be dismissed early
 
 ---
 
-## 🔴 AMRAP with Forced Rest (Cannot Skip)
+## 🟢 AMRAP with Forced Rest (Cannot Skip)
 
 Prefixing a timer with `*` marks it as **required** — `userNext` is ignored while the countdown is active. The block only pops when the timer expires. This enforces minimum recovery time regardless of athlete readiness.
 
