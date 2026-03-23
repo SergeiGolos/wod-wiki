@@ -1,114 +1,107 @@
 /**
- * JournalPageShell Stories
+ * JournalPageShell Stories — Pages/Note
  *
- * Demonstrates the JournalPageShell with editor and dialog overlays.
+ * Uses the real StorybookWorkbench (same shell as Syntax stories) for
+ * a consistent editor experience with scrollable content and the
+ * standard EditorShellHeader toolbar.
  */
 
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { useState } from 'react';
-import { JournalPageShell } from '@/panels/page-shells/JournalPageShell';
+import { StorybookWorkbench } from '../../StorybookWorkbench';
 
-const meta: Meta<typeof JournalPageShell> = {
+const meta: Meta = {
   title: 'Pages/Note',
-  component: JournalPageShell,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Layout shell for stored-note / journal pages. Renders a full-width editor with dialog-based timer and review overlays.',
+          'Full-page note editor — write and structure workouts with live parsing. Uses the same web editor shell as the Syntax reference stories.',
       },
     },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
 
-function MockEditor() {
-  return (
-    <div className="w-full h-full flex items-center justify-center bg-muted/10 border border-border/50 rounded-lg">
-      <div className="text-center space-y-2">
-        <p className="text-lg font-black text-foreground uppercase">
-          Editor Panel
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Full-width stored note editor
-        </p>
-      </div>
-    </div>
-  );
-}
+const BLANK_NOTE = '';
 
-function MockTimerOverlay() {
-  return (
-    <div className="w-full h-full flex items-center justify-center bg-primary/5">
-      <div className="text-center space-y-2">
-        <p className="text-4xl font-black text-primary">03:42</p>
-        <p className="text-sm text-muted-foreground">
-          Fullscreen Timer Overlay
-        </p>
-      </div>
-    </div>
-  );
-}
+const FRAN_NOTE = `# Fran
 
-function MockReviewOverlay() {
-  return (
-    <div className="w-full h-full flex items-center justify-center bg-emerald-500/5">
-      <div className="text-center space-y-2">
-        <p className="text-2xl font-black text-foreground uppercase">
-          Workout Complete
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Fullscreen Review Overlay
-        </p>
-      </div>
-    </div>
-  );
-}
+Classic benchmark girl WOD.
 
-/**
- * Empty note — editor only, no overlays active.
- */
-export const EmptyNote: Story = {
-  render: () => <JournalPageShell editor={<MockEditor />} />,
+\`\`\`wod
+(21-15-9)
+  Thrusters 95lb
+  Pullups
+\`\`\`
+`;
+
+const EMOM_NOTE = `# EMOM 10
+
+Every minute on the minute for 10 minutes.
+
+\`\`\`wod
+10:00 EMOM
+  10 Kettlebell Swings 53lb
+  10 Box Jumps 24"
+\`\`\`
+`;
+
+const LONG_NOTE = `# Week 1 — Strength Cycle
+
+## Monday
+
+\`\`\`wod
+Back Squat
+  5 @ 65%
+  5 @ 75%
+  5+ @ 85%
+\`\`\`
+
+## Wednesday
+
+\`\`\`wod
+Deadlift
+  5 @ 65%
+  5 @ 75%
+  5+ @ 85%
+\`\`\`
+
+## Friday
+
+\`\`\`wod
+Bench Press
+  5 @ 65%
+  5 @ 75%
+  5+ @ 85%
+\`\`\`
+
+## Conditioning (daily)
+
+\`\`\`wod
+20:00 AMRAP
+  400m Run
+  21 Kettlebell Swings 53lb
+  12 Pullups
+\`\`\`
+`;
+
+export const Empty: StoryObj = {
+  render: () => <StorybookWorkbench initialContent={BLANK_NOTE} title="New Note" />,
 };
 
-/**
- * Loaded workout — interactive demo with timer/review overlay toggles.
- */
-export const LoadedWorkout: Story = {
-  render: () => {
-    const [isTimerOpen, setIsTimerOpen] = useState(false);
-    const [isReviewOpen, setIsReviewOpen] = useState(false);
+export const Fran: StoryObj = {
+  render: () => <StorybookWorkbench initialContent={FRAN_NOTE} title="Fran" />,
+};
 
-    return (
-      <div>
-        <div className="fixed top-4 right-4 z-[100] flex gap-2">
-          <button
-            onClick={() => setIsTimerOpen(true)}
-            className="px-3 py-1.5 bg-primary text-primary-foreground text-xs font-bold rounded-md"
-          >
-            Open Timer
-          </button>
-          <button
-            onClick={() => setIsReviewOpen(true)}
-            className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-md"
-          >
-            Open Review
-          </button>
-        </div>
-        <JournalPageShell
-          editor={<MockEditor />}
-          timerOverlay={<MockTimerOverlay />}
-          reviewOverlay={<MockReviewOverlay />}
-          isTimerOpen={isTimerOpen}
-          isReviewOpen={isReviewOpen}
-          onCloseTimer={() => setIsTimerOpen(false)}
-          onCloseReview={() => setIsReviewOpen(false)}
-        />
-      </div>
-    );
-  },
+export const Emom: StoryObj = {
+  render: () => <StorybookWorkbench initialContent={EMOM_NOTE} title="EMOM 10" />,
+};
+
+export const LongNote: StoryObj = {
+  render: () => (
+    <StorybookWorkbench initialContent={LONG_NOTE} title="Week 1 — Strength Cycle" />
+  ),
 };

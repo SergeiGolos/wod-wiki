@@ -5,15 +5,15 @@
  * and open individual entries in a detail view.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { ArrowLeft } from 'lucide-react';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { CollectionBrowsePanel } from '@/components/collections/CollectionBrowsePanel';
 import { NotePreview } from '@/components/workbench/NotePreview';
 import { getWodCollections } from '@/repositories/wod-collections';
 import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
 import type { HistoryEntry } from '@/types/history';
+import { EditorShellHeader } from '../../EditorShellHeader';
 
 function itemToEntry(item: WodCollectionItem, collection: WodCollection): HistoryEntry {
   return {
@@ -46,6 +46,19 @@ const CollectionsPageShell: React.FC = () => {
 
   const showJournal = journalState !== null;
 
+  const handleDownload = useCallback(() => {
+    if (!journalState) return;
+    const blob = new Blob([journalState.item.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${journalState.item.name.replace(/\s+/g, '-').toLowerCase()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [journalState]);
+
   return (
     <PanelSizeProvider>
       <div className="relative w-full h-screen overflow-hidden bg-background">
@@ -74,27 +87,12 @@ const CollectionsPageShell: React.FC = () => {
             pointerEvents: showJournal ? 'auto' : 'none',
           }}
         >
-          <div className="shrink-0 flex items-center gap-3 px-4 h-12 border-b border-border bg-background">
-            <button
-              type="button"
-              onClick={() => setJournalState(null)}
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back</span>
-            </button>
-            {journalState && (
-              <>
-                <span className="text-border">|</span>
-                <span className="text-sm font-medium text-foreground truncate">
-                  {journalState.item.name}
-                </span>
-                <span className="ml-auto text-xs text-muted-foreground/60">
-                  {journalState.collection.name}
-                </span>
-              </>
-            )}
-          </div>
+          <EditorShellHeader
+            onBack={() => setJournalState(null)}
+            collection={journalState?.collection.name}
+            title={journalState?.item.name}
+            onDownload={handleDownload}
+          />
           <div className="flex-1 overflow-auto">
             {journalEntry && (
               <NotePreview
