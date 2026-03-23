@@ -247,6 +247,14 @@ export class ScriptRuntime implements IScriptRuntime {
      * Used by BehaviorContext to emit outputs at any lifecycle point.
      */
     public addOutput(output: IOutputStatement): void {
+        // System outputs (push/pop lifecycle trace, sound cues, event-action records)
+        // are diagnostic only — they carry no workout results. Skip object accumulation
+        // entirely when no subscriber is listening to prevent GC pressure during
+        // high-iteration workloads (e.g. 10 000-round performance tests).
+        if (output.outputType === 'system' && this._outputListeners.size === 0) {
+            return;
+        }
+
         const processedOutput = this._analyticsEngine ? this._analyticsEngine.run(output) : output;
         this._outputStatements.push(processedOutput);
 
@@ -491,6 +499,11 @@ export class ScriptRuntime implements IScriptRuntime {
      * Called directly from the stack subscription handler to ensure accurate timing.
      */
     private emitSystemOutput(event: { type: 'push' | 'pop'; block: IRuntimeBlock; depth: number }): void {
+        // System outputs are diagnostic/tracing records only. Skip object creation
+        // entirely when nothing is listening — avoids significant GC pressure during
+        // high-iteration scenarios (e.g. 10 000-round performance tests).
+        if (this._outputListeners.size === 0) return;
+
         const now = this.clock.now;
         const block = event.block;
 

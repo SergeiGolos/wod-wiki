@@ -153,3 +153,49 @@ export function disposeSession(ctx: SessionTestContext): void {
     ctx.tracer.dispose();
     ctx.runtime.dispose();
 }
+
+/**
+ * Lightweight runtime context for performance tests.
+ *
+ * Identical to `SessionTestContext` except no `OutputTracingHarness` is
+ * attached. Output callbacks add measurable overhead when millions of events
+ * are emitted across many rounds, which would artificially inflate timing
+ * numbers in performance-focused tests. Use this when the test only needs to
+ * verify correctness (stack count, timing) rather than inspect output content.
+ */
+export interface PerfSessionContext {
+    runtime: ScriptRuntime;
+    clock: MockClock;
+    /** Advance to the next step (equivalent to `userNext`). */
+    next: () => void;
+    /** Dispose the runtime. */
+    dispose: () => void;
+}
+
+/**
+ * Creates a minimal ScriptRuntime **without** an OutputTracingHarness and
+ * immediately starts the session, ready for iteration.
+ *
+ * Use in performance tests where tracer overhead would skew timing results.
+ */
+export function createStartedPerfContext(
+    scriptText: string,
+    label = 'PerfTest',
+    clockTime: Date = new Date('2024-01-01T12:00:00Z')
+): PerfSessionContext {
+    const script = sharedParser.read(scriptText) as WodScript;
+    const compiler = createFullCompiler();
+    const clock = createMockClock(clockTime);
+    const stack = new RuntimeStack();
+    const eventBus = new EventBus();
+
+    const runtime = new ScriptRuntime(script, compiler, { stack, clock, eventBus });
+    runtime.do(new StartSessionAction({ label }));
+
+    return {
+        runtime,
+        clock,
+        next: () => runtime.do(new NextAction()),
+        dispose: () => runtime.dispose(),
+    };
+}
