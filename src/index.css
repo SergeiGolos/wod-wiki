@@ -428,6 +428,17 @@ th {
   ring: 0 !important;
 }
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 /* Preview list item focus — lighter card lift + highlight */
 .tv-focusable[data-nav-id^="preview-block-"][data-nav-focused="true"] {
   background-color: hsl(var(--card));

@@ -128,8 +128,9 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
         onReset={handleReset}
       />
 
-      {/* Editor fills remaining height */}
-      <div className="flex-1 min-h-0">
+      {/* Editor fills remaining height; overflow-y:scroll keeps the header
+          pinned and always shows the scrollbar even when content is short */}
+      <div className="flex-1 min-h-0 overflow-y-scroll">
         <NoteEditor
           value={content}
           onChange={setContent}
