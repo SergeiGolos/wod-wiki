@@ -45,7 +45,7 @@
 
 ---
 
-## 🔴 EMOM — Overrun Scenario (`.skip`)
+## 🟢 EMOM — Overrun Scenario
 
 ```wod
 (3) :30 EMOM
