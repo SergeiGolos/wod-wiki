@@ -42,7 +42,7 @@
 
 ---
 
-## � Timed Rest — Skip vs. Wait (Skippable)
+## 🟢 Timed Rest — Skip vs. Wait (Skippable)
 
 A plain timed rest (no `*` prefix) can be ended by `userNext` before the countdown expires. Both paths produce a rest output statement; only the `completionReason` differs.
 
@@ -61,7 +61,7 @@ A plain timed rest (no `*` prefix) can be ended by `userNext` before the countdo
 
 ---
 
-## 🔴 Forced Timed Rest — Cannot Skip (`*` prefix)
+## 🟢 Forced Timed Rest — Cannot Skip (`*` prefix)
 
 Prefixing any timer with `*` makes it **required**. `userNext` is silently ignored while the countdown is active. The block only exits when the timer fires.
 
@@ -85,7 +85,7 @@ Prefixing any timer with `*` makes it **required**. `userNext` is silently ignor
 
 ---
 
-## 🟡 Forced Rest in a Loop
+## 🟢 Forced Rest in a Loop
 
 Forced rest inside a rounds block means athletes must wait out every rest period — no fast cycling through rounds.
 
@@ -114,7 +114,7 @@ Forced rest inside a rounds block means athletes must wait out every rest period
 
 ---
 
-## �🔴 Short Rest Modifier (`.skip`)
+## 🟢 Short Rest Modifier (`*` prefix without keyword)
 
 ```wod
 *:30
