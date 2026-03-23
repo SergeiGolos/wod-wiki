@@ -55,14 +55,6 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
             .setBlockType('effort')
             .setLabel(label);
 
-        // Timer Aspect: Simple countup timer for tracking elapsed time
-        builder.asTimer({
-            direction: 'up',
-            label,
-            role: 'secondary', // Secondary because it's not a primary goal timer
-            addCompletion: false // Manual advance only
-        });
-
         // Filter out runtime-generated metrics from all statements
         const metricPerStatement = statements.map(s => 
             s.metrics.filter(f => f.origin !== 'runtime')
@@ -77,8 +69,8 @@ export class EffortFallbackStrategy implements IRuntimeBlockStrategy {
         // ASPECT COMPOSERS - High-level composition
         // =====================================================================
 
-        // Timer Aspect - track elapsed time with a secondary countup timer
-        // Role is 'secondary' so effort timers don't steal primary display from parent
+        // Timer Aspect - track elapsed time with a secondary countup timer.
+        // Role is 'secondary' so effort timers don't steal primary display from parent.
         builder.asTimer({
             direction: 'up',
             role: 'secondary',

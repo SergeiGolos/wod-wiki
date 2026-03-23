@@ -71,7 +71,7 @@
 
 ---
 
-## 🔴 Large Round Count (`.skip`)
+## 🟢 Large Round Count
 
 ```wod
 (100)
@@ -86,7 +86,7 @@
 
 ---
 
-## 🟡 Rounds with Skippable Rest
+## 🟢 Rounds with Skippable Rest
 
 A plain `:XX Rest` child can be dismissed early by `userNext`. Athletes who recover quickly can advance before the rest timer expires.
 
@@ -112,7 +112,7 @@ A plain `:XX Rest` child can be dismissed early by `userNext`. Athletes who reco
 
 ---
 
-## 🔴 Rounds with Forced Rest (Cannot Skip)
+## 🟢 Rounds with Forced Rest (Cannot Skip)
 
 A `*:XX Rest` child enforces a minimum recovery period. `userNext` during the countdown is silently ignored.
 
