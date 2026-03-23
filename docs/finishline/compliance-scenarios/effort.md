@@ -59,7 +59,7 @@
 
 ---
 
-## 🔴 Effort with Distance (`.skip`)
+## 🟢 Effort with Distance
 
 ```wod
 400 m Run
@@ -89,7 +89,7 @@ A plain effort block (no timer prefix) is **always user-driven**. `userNext` imm
 
 ---
 
-## 🟡 Effort with Timed Rest After (Skippable)
+## 🟢 Effort with Timed Rest After (Skippable)
 
 A plain timer child (`:30 Rest`) auto-pops when its countdown expires **or** when the user calls `userNext` early. The rest is advisory — skipping is permitted.
 
@@ -112,7 +112,7 @@ A plain timer child (`:30 Rest`) auto-pops when its countdown expires **or** whe
 
 ---
 
-## 🔴 Effort with Forced Rest After (Cannot Skip)
+## 🟢 Effort with Forced Rest After (Cannot Skip)
 
 Prefixing a rest timer with `*` marks it as **required**. `userNext` during the countdown is silently swallowed — the block can only exit when the timer expires.
 
