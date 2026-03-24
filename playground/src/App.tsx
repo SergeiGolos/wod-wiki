@@ -83,6 +83,8 @@ import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomePageContent } from './HomePage'
 import { SyntaxPage } from './SyntaxPage'
+import { canvasRoutes, findCanvasPage } from './canvas/canvasRoutes'
+import { CanvasPage } from './canvas/CanvasPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { GettingStartedPage } from './GettingStartedPage'
@@ -657,7 +659,7 @@ function AppContent() {
   const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useQueryState('cat')
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
   // Unified note route: /note/playground/:name behaves like /playground/:name
@@ -680,6 +682,9 @@ function AppContent() {
     })
   }, [])
 
+  // Canvas page for the current pathname (null if not a canvas route)
+  const canvasPage = findCanvasPage(location.pathname)
+
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
     if (location.pathname === '/getting-started') {
@@ -690,6 +695,9 @@ function AppContent() {
     }
     if (isPlaygroundRoute) {
       return { name: 'Playground', content: '', category: 'playground' }
+    }
+    if (canvasPage) {
+      return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
     }
     if (location.pathname === '/' || !urlName) {
       return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
@@ -1106,9 +1114,16 @@ function AppContent() {
         </div>
         
         <div className="flex-1 flex flex-col min-h-0">
-          {currentWorkout.name === 'Home' ? (
-            /* Home page needs NO overflow-hidden ancestor — sticky parallax requires native document scroll */
+          {currentWorkout.name === 'Home' || currentWorkout.category === 'canvas' ? (
+            /* Canvas pages (incl. Home) need NO overflow-hidden — sticky parallax requires native document scroll */
             <div className="flex-1 flex flex-col bg-card">
+              {canvasPage ? (
+                <CanvasPage
+                  page={canvasPage}
+                  wodFiles={workoutFiles as Record<string, string>}
+                  theme={actualTheme}
+                />
+              ) : (
               <HomePageContent
                   actualTheme={actualTheme}
                   workoutItems={workoutItems}
@@ -1119,6 +1134,7 @@ function AppContent() {
                 activeCategory={null}
                 setActiveCategory={() => {}}
               />
+              )}
             </div>
           ) : (
           <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
@@ -1171,27 +1187,35 @@ function ScrollToTop() {
   return null
 }
 
+import { NuqsAdapter } from 'nuqs/adapters/react-router'
+import { useQueryState } from 'nuqs'
+
 export function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
       <HashRouter>
-        <ScrollToTop />
-        <CommandProvider>
-          <Routes>
-            <Route path="/" element={<AppContent />} />
-            <Route path="/getting-started" element={<AppContent />} />
-            <Route path="/syntax" element={<AppContent />} />
-            <Route path="/workout/:category/:name" element={<AppContent />} />
-            <Route path="/load" element={<LoadZipPage />} />
-            <Route path="/playground" element={<PlaygroundRedirect />} />
-            <Route path="/playground/:id" element={<AppContent />} />
-            <Route path="/note/:category/:name" element={<AppContent />} />
-            <Route path="/journal/:id" element={<JournalPage theme="vs" />} />
-            <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
-            <Route path="/review/:runtimeId" element={<ReviewPage />} />
-            <Route path="*" element={<AppContent />} />
-          </Routes>
-        </CommandProvider>
+        <NuqsAdapter>
+          <ScrollToTop />
+          <CommandProvider>
+            <Routes>
+              <Route path="/" element={<AppContent />} />
+              <Route path="/getting-started" element={<AppContent />} />
+              <Route path="/syntax" element={<AppContent />} />
+              {canvasRoutes.map(r => (
+                <Route key={r.route} path={r.route} element={<AppContent />} />
+              ))}
+              <Route path="/workout/:category/:name" element={<AppContent />} />
+              <Route path="/load" element={<LoadZipPage />} />
+              <Route path="/playground" element={<PlaygroundRedirect />} />
+              <Route path="/playground/:id" element={<AppContent />} />
+              <Route path="/note/:category/:name" element={<AppContent />} />
+              <Route path="/journal/:id" element={<JournalPage theme="vs" />} />
+              <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
+              <Route path="/review/:runtimeId" element={<ReviewPage />} />
+              <Route path="*" element={<AppContent />} />
+            </Routes>
+          </CommandProvider>
+        </NuqsAdapter>
       </HashRouter>
     </ThemeProvider>
   )

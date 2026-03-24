@@ -16,9 +16,8 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ isOpen, onClose, items, onSelect, initialCategory }: CommandPaletteProps) {
-  const [query, setQuery] = useState('')
+  const { search: query, setSearch: setQuery, activeStrategy } = useCommandPalette()
   const [strategyResults, setStrategyResults] = useState<CommandPaletteResult[]>([])
-  const { activeStrategy } = useCommandPalette()
 
   // Default filtering when no strategy is active
   const filteredItems = useMemo(() => {

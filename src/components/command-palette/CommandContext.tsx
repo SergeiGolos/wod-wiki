@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { Command, CommandContextType, CommandStrategy } from './types';
+import { useQueryState, parseAsBoolean, parseAsString } from 'nuqs';
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
 
 export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpen?: boolean }> = ({ children, initialIsOpen = false }) => {
   const [commands, setCommands] = useState<Command[]>([]);
-  const [isOpen, setIsOpen] = useState(initialIsOpen);
+  const [isOpen, setIsOpen] = useQueryState('cmd', parseAsBoolean.withDefault(initialIsOpen).withOptions({ clearOnDefault: true }));
   const [activeContext, setActiveContext] = useState('global');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useQueryState('q', parseAsString.withDefault('').withOptions({ clearOnDefault: true, shallow: true }));
   const [activeStrategy, setStrategy] = useState<CommandStrategy | null>(null);
 
   const registerCommand = useCallback((command: Command) => {
@@ -25,7 +26,7 @@ export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpe
   // Use refs for state accessed in event handlers to avoid re-attaching listeners
   const stateRef = useRef({ commands, isOpen, activeContext, activeStrategy });
   useEffect(() => {
-    stateRef.current = { commands, isOpen, activeContext, activeStrategy };
+    stateRef.current = { commands, isOpen: !!isOpen, activeContext, activeStrategy };
   }, [commands, isOpen, activeContext, activeStrategy]);
 
   // Handle global keyboard shortcut to open palette
