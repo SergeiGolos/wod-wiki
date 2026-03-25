@@ -1,13 +1,13 @@
 /**
- * WOD Collections — Reads the wod/ directory structure to build
+ * WOD Collections — Reads the markdown/collections/ directory structure to build
  * collections from subdirectories. Each subdirectory becomes a
  * "collection" with its markdown files as items.
  *
  * Uses Vite's import.meta.glob feature to discover files at build time.
  */
 
-// Glob all markdown files inside wod/ — both nested and root-level
-const collectionModules = import.meta.glob(['../../wod/**/*.md', '../../wod/*.md'], {
+// Glob all markdown files inside markdown/collections/ — both nested and root-level
+const collectionModules = import.meta.glob(['../../markdown/collections/**/*.md', '../../markdown/collections/*.md'], {
     query: '?raw',
     eager: true,
     import: 'default',
@@ -25,16 +25,16 @@ export interface WodCollectionItem {
 }
 
 export interface WodCollection {
-    /** Directory name, e.g. "crossfit-girls" or "kettlebell-dan-john" */
+    /** Directory name, e.g. "crossfit-girls" or "dan-john" */
     id: string;
     /** Display name, e.g. "Crossfit Girls" or "Dan John" */
     name: string;
-    /** Parent collection ID for nested collections, e.g. "kettlebell" for "kettlebell-dan-john" */
-    parent?: string;
-    /** Number of markdown files */
+    /** Number of workout files (excluding README) */
     count: number;
     /** Markdown files in this collection */
     items: WodCollectionItem[];
+    /** The content of README.md if it exists */
+    readme?: string;
 }
 
 /**
@@ -54,6 +54,7 @@ function toDisplayName(dirName: string): string {
  */
 function fileToDisplayName(filename: string): string {
     const base = filename.replace(/\.md$/, '');
+    if (base.toUpperCase() === 'README') return 'Overview';
     return base
         .split(/[-_]/)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -64,76 +65,41 @@ function fileToDisplayName(filename: string): string {
 let _collections: WodCollection[] | null = null;
 
 /**
- * Get all WOD collections derived from wod/ subdirectories.
- * Supports up to two levels of nesting:
- *   wod/{dir}/{file}.md           → collection id = "{dir}"
- *   wod/{parent}/{child}/{file}.md → collection id = "{parent}-{child}"
- *   wod/{YYYY}.{NN}.md            → merged into "crossfit-games" collection
+ * Get all WOD collections derived from markdown/collections/ subdirectories.
+ * Supports one level of nesting:
+ *   markdown/collections/{dir}/{file}.md           → collection id = "{dir}"
  * Results are cached after first call.
  */
 export function getWodCollections(): WodCollection[] {
     if (_collections) return _collections;
 
-    const dirMap = new Map<string, { name: string; parent?: string; items: WodCollectionItem[] }>();
+    const dirMap = new Map<string, { name: string; items: WodCollectionItem[]; readme?: string }>();
 
-    const ensureCollection = (id: string, name: string, parent?: string) => {
+    const ensureCollection = (id: string, name: string) => {
         if (!dirMap.has(id)) {
-            dirMap.set(id, { name, parent, items: [] });
+            dirMap.set(id, { name, items: [] });
         }
     };
 
     for (const [path, content] of Object.entries(collectionModules)) {
-        // Skip the examples/ directory — those are page-level content, not collections
-        if (path.includes('/wod/examples/')) continue;
-
-        // Two-level deep: wod/parent/child/file.md
-        // e.g. wod/kettlebell/dan-john/armor-building-complex.md
-        //   or wod/swimming/college/distance-freestyle.md
-        const match2 = path.match(/\/wod\/([^/]+)\/([^/]+)\/([^/]+\.md)$/);
-        if (match2) {
-            const [, parentDir, childDir, fileName] = match2;
-            const collectionId = `${parentDir}-${childDir}`;
-            // Short name (just the child) for grouped display; parent is the parent dir
-            ensureCollection(collectionId, toDisplayName(childDir), parentDir);
-            const fileId = fileName.replace(/\.md$/, '');
-            dirMap.get(collectionId)!.items.push({
-                id: fileId,
-                name: fileToDisplayName(fileName),
-                content: content as string,
-                path,
-            });
-            continue;
-        }
-
-        // One-level deep: wod/dir/file.md
-        // e.g. wod/crossfit-girls/fran.md, wod/crossfit-games/2020.01.md
-        const match1 = path.match(/\/wod\/([^/]+)\/([^/]+\.md)$/);
+        // One-level deep: markdown/collections/dir/file.md
+        // e.g. markdown/collections/crossfit-girls/fran.md, markdown/collections/dan-john/README.md
+        const match1 = path.match(/\/markdown\/collections\/([^/]+)\/([^/]+\.md)$/);
         if (match1) {
             const [, dirName, fileName] = match1;
             ensureCollection(dirName, toDisplayName(dirName));
-            const fileId = fileName.replace(/\.md$/, '');
-            dirMap.get(dirName)!.items.push({
-                id: fileId,
-                name: fileToDisplayName(fileName),
-                content: content as string,
-                path,
-            });
-            continue;
-        }
-
-        // Root-level CrossFit Games files: wod/2007.01.md … wod/2019.14.md
-        // Merge these into the shared "crossfit-games" collection.
-        const matchYear = path.match(/\/wod\/(\d{4})\.(\d+)\.md$/);
-        if (matchYear) {
-            const [, year, num] = matchYear;
-            ensureCollection('crossfit-games', 'Crossfit Games');
-            const fileId = `${year}.${num.padStart(2, '0')}`;
-            dirMap.get('crossfit-games')!.items.push({
-                id: fileId,
-                name: fileId,
-                content: content as string,
-                path,
-            });
+            
+            if (fileName.toLowerCase() === 'readme.md') {
+                dirMap.get(dirName)!.readme = content as string;
+            } else {
+                const fileId = fileName.replace(/\.md$/, '');
+                dirMap.get(dirName)!.items.push({
+                    id: fileId,
+                    name: fileToDisplayName(fileName),
+                    content: content as string,
+                    path,
+                });
+            }
             continue;
         }
 
@@ -141,25 +107,15 @@ export function getWodCollections(): WodCollection[] {
     }
 
     _collections = Array.from(dirMap.entries())
-        .filter(([, { items }]) => items.length > 0)
-        .map(([id, { name, parent, items }]) => ({
+        .filter(([, { items, readme }]) => items.length > 0 || readme)
+        .map(([id, { name, items, readme }]) => ({
             id,
             name,
-            parent,
             count: items.length,
             items: items.sort((a, b) => a.name.localeCompare(b.name)),
+            readme,
         }))
-        .sort((a, b) => {
-            // Sort: root collections alphabetically, children right after their parent
-            const aRoot = a.parent ?? a.id;
-            const bRoot = b.parent ?? b.id;
-            const rootCmp = aRoot.localeCompare(bRoot);
-            if (rootCmp !== 0) return rootCmp;
-            // Same root: parent (no parent field) comes before children
-            if (!a.parent && b.parent) return -1;
-            if (a.parent && !b.parent) return 1;
-            return a.name.localeCompare(b.name);
-        });
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     return _collections;
 }

@@ -1,5 +1,5 @@
 /**
- * Page Examples — Loads markdown files from wod/examples/ to provide
+ * Page Examples — Loads markdown files from markdown/canvas/ to provide
  * editable example content for the home page, getting-started, and syntax pages.
  *
  * Frontmatter format:
@@ -14,7 +14,7 @@
  * Uses Vite's import.meta.glob — resolved at build time.
  */
 
-const exampleModules = import.meta.glob('../../wod/examples/**/*.md', {
+const exampleModules = import.meta.glob('../../markdown/canvas/**/*.md', {
     query: '?raw',
     eager: true,
     import: 'default',
@@ -51,14 +51,15 @@ function parseFrontmatter(raw: string): { meta: Record<string, string | number>;
 /**
  * Return all tab examples for a given page and section, sorted by order.
  *
- * @param page    Subdirectory name under wod/examples/, e.g. 'getting-started' or 'syntax'
+ * @param page    Subdirectory name under markdown/canvas/, e.g. 'getting-started' or 'syntax'
  * @param section Value of the `section` frontmatter field, e.g. 'statement'
  */
 export function getTabExamples(page: string, section: string): PageTabExample[] {
     const results: PageTabExample[] = [];
 
     for (const [path, content] of Object.entries(exampleModules)) {
-        const match = path.match(/\/wod\/examples\/([^/]+)\/[^/]+\.md$/);
+        // Path: ../../markdown/canvas/{page}/{file}.md
+        const match = path.match(/\/markdown\/canvas\/([^/]+)\/[^/]+\.md$/);
         if (!match || match[1] !== page) continue;
 
         const { meta, body } = parseFrontmatter(content as string);
@@ -77,12 +78,12 @@ export function getTabExamples(page: string, section: string): PageTabExample[] 
 }
 
 /**
- * Return the raw markdown content of a single named file from wod/examples/home/.
+ * Return the raw markdown content of a single named file from markdown/canvas/home/.
  * Used for wod script examples on the home page parallax.
  */
 export function getHomeExample(name: string): string {
     const key = Object.keys(exampleModules).find(k =>
-        k.endsWith(`/wod/examples/home/${name}.md`)
+        k.endsWith(`/markdown/canvas/home/${name}.md`)
     );
     if (!key) return '';
     const { body } = parseFrontmatter(exampleModules[key] as string);

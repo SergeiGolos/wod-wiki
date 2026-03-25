@@ -1,0 +1,4 @@
+---
+template: canvas
+---
+# CrossFit Girls

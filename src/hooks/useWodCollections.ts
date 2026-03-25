@@ -1,6 +1,6 @@
 /**
  * useWodCollections — React hook for accessing WOD collections
- * derived from wod/ subdirectories.
+ * derived from markdown/collections/ subdirectories.
  */
 import { useState, useMemo, useCallback } from 'react';
 import { getWodCollections, getWodCollection } from '@/repositories/wod-collections';

@@ -5,7 +5,14 @@ import '../src/index.css';
 /** @type { import('@storybook/react-vite').Preview } */
 const preview = {
   decorators: [
-    (Story) => React.createElement(StorybookHost, null, React.createElement(Story, null)),
+    (Story, context) => {
+      const initialEntries = context.parameters?.router?.initialEntries;
+      return React.createElement(
+        StorybookHost,
+        initialEntries ? { initialEntries } : null,
+        React.createElement(Story, null)
+      );
+    },
   ],
   tags: ['!autodocs'],
   parameters: {

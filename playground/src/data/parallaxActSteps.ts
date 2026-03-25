@@ -43,7 +43,7 @@ export interface ParallaxStep {
   autoStartTimer?: boolean
 }
 
-// Loaded from wod/examples/home/sample-script.md — edit that file to tweak
+// Loaded from markdown/canvas/home/sample-script.md — edit that file to tweak
 export const SAMPLE_SCRIPT = getHomeExample('sample-script') ||
 `# Pushup Benchmark
 3 rounds

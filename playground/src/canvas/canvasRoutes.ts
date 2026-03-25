@@ -1,5 +1,5 @@
 /**
- * Canvas Routes — loads all wods/routes/**\/*.md files at build time via
+ * Canvas Routes — loads all markdown/canvas/routes/**/*.md files at build time via
  * import.meta.glob and parses them into typed `CanvasRoute` objects.
  *
  * Vite resolves the glob at compile time so the final bundle contains the
@@ -8,9 +8,15 @@
 
 import { parseCanvasMarkdown, type ParsedCanvasPage } from './parseCanvasMarkdown'
 
-// Path is relative to this file (playground/src/canvas/).
-// ../../../wods/routes/ resolves to <repo-root>/wods/routes/
-const routeFiles = import.meta.glob('../../../wods/routes/**/*.md', {
+// Routes from markdown/canvas/**/*.md (explicit routes)
+const routeFiles = import.meta.glob('../../../markdown/canvas/**/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>
+
+// Collection READMEs from markdown/collections/**/README.md
+const collectionFiles = import.meta.glob('../../../markdown/collections/**/README.md', {
   eager: true,
   query: '?raw',
   import: 'default',
@@ -21,10 +27,22 @@ export interface CanvasRoute {
   page: ParsedCanvasPage
 }
 
-export const canvasRoutes: CanvasRoute[] = Object.values(routeFiles)
+const routes1: CanvasRoute[] = Object.values(routeFiles)
   .map(raw => parseCanvasMarkdown(raw))
   .filter((p): p is ParsedCanvasPage => p !== null)
   .map(page => ({ route: page.route, page }))
+
+const routes2: CanvasRoute[] = Object.entries(collectionFiles)
+  .map(([path, raw]) => {
+    // ../../../markdown/collections/dan-john/README.md -> /collections/dan-john
+    const parts = path.split('/')
+    const slug = parts[parts.length - 2]
+    return parseCanvasMarkdown(raw, `/collections/${slug}`)
+  })
+  .filter((p): p is ParsedCanvasPage => p !== null)
+  .map(page => ({ route: page.route, page }))
+
+export const canvasRoutes: CanvasRoute[] = [...routes1, ...routes2]
 
 /** Fast O(1)-ish lookup used in AppContent on every render. */
 const routeMap = new Map<string, ParsedCanvasPage>(

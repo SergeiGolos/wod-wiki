@@ -89,7 +89,7 @@ const ANATOMY_EXAMPLES = [
   },
 ]
 
-// ── Section Data (loaded from wod/examples/syntax/) ──────────────────
+// ── Section Data (loaded from markdown/canvas/syntax/) ──────────────────
 
 const TIMERS_TABS      = getTabExamples('syntax', 'timers')
 const METRICS_TABS     = getTabExamples('syntax', 'metrics')

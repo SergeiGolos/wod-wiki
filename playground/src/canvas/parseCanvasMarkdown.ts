@@ -6,6 +6,15 @@
  * into a structured `ParsedCanvasPage` that `CanvasPage.tsx` renders.
  */
 
+/** Where the runtime opens when set-state: track fires. */
+export type OpenMode = 'view' | 'dialog' | 'route'
+
+export interface ViewButton {
+  label: string
+  open?: OpenMode
+  pipeline: PipelineStep[]
+}
+
 export interface ViewBlock {
   name: string
   state: string
@@ -14,6 +23,8 @@ export interface ViewBlock {
   launch?: string
   align: 'left' | 'right'
   width: string
+  /** Buttons rendered directly on the sticky panel. */
+  buttons: ViewButton[]
 }
 
 export interface PipelineStep {
@@ -23,12 +34,16 @@ export interface PipelineStep {
 
 export interface CommandBlock {
   target: string
+  /** Where set-state:track opens the runtime. Default: 'dialog'. */
+  open?: OpenMode
   pipeline: PipelineStep[]
 }
 
 export interface ButtonBlock {
   label: string
   target: string
+  /** Where the runtime opens. Default: 'dialog'. */
+  open?: OpenMode
   pipeline: PipelineStep[]
 }
 
@@ -96,7 +111,7 @@ function parseKeyValue(lines: string[]): Record<string, string> {
 function parsePipelineSteps(lines: string[]): PipelineStep[] {
   const steps: PipelineStep[] = []
   for (const line of lines) {
-    // Matches:  - set-source: wods/syntax/rest.md
+    // Matches:  - set-source: markdown/canvas/syntax/rest.md
     const m = line.match(/^\s*-\s+([\w-]+):\s+(.+)$/)
     if (m) steps.push({ action: m[1], value: m[2].trim() })
   }
@@ -104,7 +119,26 @@ function parsePipelineSteps(lines: string[]): PipelineStep[] {
 }
 
 function parseViewBlock(content: string): ViewBlock {
-  const kv = parseKeyValue(content.split('\n'))
+  const lines = content.split('\n')
+  const kv = parseKeyValue(lines)
+
+  // Parse inline button lines: `button: Label | set-state: track | open: dialog`
+  const buttons: ViewButton[] = []
+  for (const line of lines) {
+    const m = line.match(/^button:\s*(.+)$/)
+    if (!m) continue
+    const parts = m[1].split('|').map(p => p.trim())
+    const label = parts[0] ?? 'Run'
+    let open: OpenMode | undefined
+    const pipelineParts: string[] = []
+    for (const part of parts.slice(1)) {
+      const openM = part.match(/^open:\s*(view|dialog|route)$/)
+      if (openM) { open = openM[1] as OpenMode; continue }
+      pipelineParts.push(`- ${part}`)
+    }
+    buttons.push({ label, open, pipeline: parsePipelineSteps(pipelineParts) })
+  }
+
   return {
     name:    kv['name']    ?? 'view',
     state:   kv['state']   ?? 'note',
@@ -113,37 +147,51 @@ function parseViewBlock(content: string): ViewBlock {
     launch:  kv['launch'],
     align:   (kv['align'] as 'left' | 'right') ?? 'right',
     width:   kv['width']   ?? '48%',
+    buttons,
   }
 }
 
 function parseCommandBlock(content: string): CommandBlock {
   const lines = content.split('\n')
   let target = ''
+  let open: OpenMode | undefined
   for (const line of lines) {
     const m = line.match(/^target:\s*(.+)$/)
-    if (m) { target = m[1].trim(); break }
+    if (m) { target = m[1].trim(); continue }
+    const openM = line.match(/^open:\s*(view|dialog|route)$/)
+    if (openM) { open = openM[1] as OpenMode; continue }
   }
-  return { target, pipeline: parsePipelineSteps(lines) }
+  return { target, open, pipeline: parsePipelineSteps(lines) }
 }
 
 function parseButtonBlock(content: string): ButtonBlock {
   const lines = content.split('\n')
   let label = 'Button'
   let target = ''
+  let open: OpenMode | undefined
   for (const line of lines) {
     const labelM = line.match(/^label:\s*(.+)$/)
     if (labelM) { label = labelM[1].trim(); continue }
     const targetM = line.match(/^target:\s*(.+)$/)
     if (targetM) { target = targetM[1].trim(); continue }
+    const openM = line.match(/^open:\s*(view|dialog|route)$/)
+    if (openM) { open = openM[1] as OpenMode; continue }
   }
-  return { label, target, pipeline: parsePipelineSteps(lines) }
+  return { label, target, open, pipeline: parsePipelineSteps(lines) }
 }
+
+/** Canvas-DSL block types — these are stripped from prose; all other fenced
+ *  blocks (javascript, bash, etc.) are preserved so markdown renderers can
+ *  display them as styled code blocks. */
+const CANVAS_BLOCK_TYPES = new Set(['view', 'command', 'button'])
 
 /**
  * Extract view / command / button fenced blocks from section text,
  * returning the remaining prose and parsed block objects.
  *
  * Regex: matches opening ```<type>\n ... closing ``` on its own line.
+ * Only canvas DSL blocks (view/command/button) are excised from the prose;
+ * all other fenced blocks (code, etc.) are kept so they render in markdown.
  */
 function extractBlocks(text: string): {
   prose: string
@@ -166,12 +214,16 @@ function extractBlocks(text: string): {
     })
   }
 
-  // Build prose by excising fence ranges
+  // Build prose by excising ONLY canvas-specific fence ranges.
+  // Non-canvas fenced blocks (code, etc.) are left in place so markdown
+  // renderers can display them as styled code/language blocks.
   let prose = ''
   let pos = 0
-  for (const { start, end } of fences) {
-    prose += text.slice(pos, start)
-    pos = end
+  for (const { start, end, type } of fences) {
+    if (CANVAS_BLOCK_TYPES.has(type)) {
+      prose += text.slice(pos, start)
+      pos = end
+    }
   }
   prose += text.slice(pos)
   prose = prose.trim()
@@ -191,11 +243,11 @@ function extractBlocks(text: string): {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export function parseCanvasMarkdown(raw: string): ParsedCanvasPage | null {
+export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): ParsedCanvasPage | null {
   const { meta, body } = parseFrontmatter(raw)
   if (meta['template'] !== 'canvas') return null
 
-  const route = meta['route'] ?? '/'
+  const route = meta['route'] ?? defaultRoute
   const sections: CanvasSection[] = []
 
   type Acc = { heading: string; level: number; attrs: string[]; lines: string[] }

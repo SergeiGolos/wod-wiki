@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import { CastCallout } from '@/components/cast/CastCallout'
 import { getTabExamples } from '@/repositories/page-examples'
 
-// ── Data for Sections (loaded from wod/examples/getting-started/) ─────
+// ── Data for Sections (loaded from markdown/canvas/getting-started/) ─────
 
 const STATEMENT_TABS = getTabExamples('getting-started', 'statement')
 const TIMER_TABS     = getTabExamples('getting-started', 'timer')
