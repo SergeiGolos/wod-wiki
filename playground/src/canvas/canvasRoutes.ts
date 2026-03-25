@@ -1,6 +1,6 @@
 /**
- * Canvas Routes — loads all markdown/canvas/routes/**/*.md files at build time via
- * import.meta.glob and parses them into typed `CanvasRoute` objects.
+ * Canvas Routes — loads markdown canvas and collection files at build time
+ * via import.meta.glob and parses them into typed CanvasRoute objects.
  *
  * Vite resolves the glob at compile time so the final bundle contains the
  * markdown content as inlined strings — no runtime file I/O is required.
