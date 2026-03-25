@@ -1,0 +1,4 @@
+---
+template: canvas
+---
+# Workouts Home

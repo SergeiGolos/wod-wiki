@@ -6,9 +6,9 @@
 
 // Main editor components
 
-// Unified editor (single CM6 instance for full document editing)
-export { UnifiedEditor } from './components/Editor/UnifiedEditor';
-export type { UnifiedEditorProps } from './components/Editor/UnifiedEditor';
+// Note editor (single CM6 instance for full document editing)
+export { NoteEditor } from './components/Editor/NoteEditor';
+export type { NoteEditorProps } from './components/Editor/NoteEditor';
 
 // Exercise management
 export { ExerciseIndexManager } from './components/Editor/ExerciseIndexManager';

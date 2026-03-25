@@ -7,14 +7,6 @@
  *
  * Legend:
  *   🟢 Expected to pass — behaviour is fully implemented
- *   🟡 Potentially borderline — implementation may differ
- *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
- *
- * RED scenarios in this file:
- *   - 🔴 Forced Rest (*:30) — userNext must be a no-op while the countdown
- *     is active.  Currently the `*` prefix sets `behavior.inject_rest` on the
- *     child timer, which does NOT suppress userNext.  These tests will fail
- *     until RequiredTimerBehavior (or an equivalent guard) is implemented.
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import {
@@ -381,7 +373,7 @@ describe('🟢 AMRAP with + Composed Grouping (single child group)', () => {
 // :30 Rest child — userNext dismisses early OR timer auto-completes.
 // Spec: amrap.md#-amrap-with-skippable-rest-between-rounds
 // ===========================================================================
-describe('🟡 AMRAP with Skippable Rest (:30 Rest)', () => {
+describe('🟢 AMRAP with Skippable Rest (:30 Rest)', () => {
     const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
     let ctx: SessionTestContext;
 
@@ -439,23 +431,16 @@ describe('🟡 AMRAP with Skippable Rest (:30 Rest)', () => {
 });
 
 // ===========================================================================
-// 🔴 AMRAP with Forced Rest (Cannot Skip)
+// 🟢 AMRAP with Forced Rest (Cannot Skip)
 // *:30 Rest — userNext MUST be a no-op while countdown is active.
 //
-// These tests are RED — they document behaviour that is NOT yet implemented.
-// Currently the `*` prefix sets `behavior.inject_rest` on the child timer,
-// which does NOT suppress userNext.  ExitBehavior still fires, making the
-// rest block skippable just like a plain :30 Rest.
-//
-// Required implementation:
-//   - Parser must emit `required: true` (or a dedicated hint) on the
-//     DurationMetric when `*` prefix is detected.
-//   - A RequiredTimerBehavior (or flag on CountdownTimerBehavior) must
-//     intercept onNext() and return [] while the countdown is active.
+// The `*` prefix on a timer marks it as required — the block is non-skippable
+// and only exits when the countdown timer expires. Any userNext attempt while
+// the forced rest is active is suppressed and produces no stack changes.
 //
 // Spec: amrap.md#-amrap-with-forced-rest-cannot-skip
 // ===========================================================================
-describe('🔴 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
+describe('🟢 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
     const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
     let ctx: SessionTestContext;
 
@@ -515,29 +500,17 @@ describe('🔴 AMRAP with Forced Rest (*:30 — Cannot Skip)', () => {
 });
 
 // ===========================================================================
-// 🔴 AMRAP with `+` Composed Grouping — Proportional Output Splitting
+// 🟢 AMRAP with `+` Composed Grouping — Proportional Output Splitting
 //
 // When a composite block (multiple `+` statements compiled as one child group)
-// completes, the runtime must emit a SEPARATE completion output for each
+// completes, the runtime emits a SEPARATE completion output for each
 // constituent exercise, with elapsed time distributed proportionally by rep
 // count.  Rep ratio: 5 Pullups : 10 Pushups : 15 Air Squats = 1 : 2 : 3
 // → each exercise gets 1/6, 2/6, 3/6 of the total elapsed time.
 //
-// These tests verify an AMRAP-specific assertion from the spec that is
-// NOT covered by any existing test:
-//   "Each userNext produces proportional segment outputs for all 3 exercises."
-//
-// RED: currently the composite block's completion output structure is
-// untested in the AMRAP context.  The code path in ReportOutputBehavior
-// does split proportionally when `displayGroups.length > 1`, but the
-// AMRAP pipeline may yield only one display group (the composed block's
-// metrics are flattened by EffortFallbackStrategy into a single group).
-// These tests will turn GREEN once proportional splitting is confirmed or
-// fixed for multi-statement composed child groups.
-//
 // Spec: amrap.md#-amrap-with--composed-grouping-complex--superset
 // ===========================================================================
-describe('🔴 AMRAP with + Composed Grouping — proportional output splitting', () => {
+describe('🟢 AMRAP with + Composed Grouping — proportional output splitting', () => {
     const SCRIPT = '20:00 AMRAP\n  + 5 Pullups\n  + 10 Pushups\n  + 15 Air Squats';
     let ctx: SessionTestContext;
 
@@ -633,20 +606,16 @@ describe('🔴 AMRAP with + Composed Grouping — proportional output splitting'
 });
 
 // ===========================================================================
-// 🔴 AMRAP Skippable Rest — completionReason in system events
+// 🟢 AMRAP Skippable Rest — completionReason in system events
 //
 // When :30 Rest inside an AMRAP is dismissed early by userNext, the system
-// pop event for that block should carry `completionReason = 'user-advance'`.
-// When it auto-expires via the clock, the reason must be anything OTHER than
+// pop event for that block carries `completionReason = 'user-advance'`.
+// When it auto-expires via the clock, the reason is anything OTHER than
 // 'user-advance' (typically 'timer-expiry' or omitted).
-//
-// These tests are RED because this AMRAP-specific completionReason behaviour
-// is NOT covered by any existing test (the skippable-rest tests only check
-// stack depth and round counter, not completionReason).
 //
 // Spec: amrap.md#-amrap-with-skippable-rest-between-rounds
 // ===========================================================================
-describe('🔴 AMRAP Skippable Rest — completionReason in system events', () => {
+describe('🟢 AMRAP Skippable Rest — completionReason in system events', () => {
     const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  :30 Rest';
     let ctx: SessionTestContext;
 
@@ -698,18 +667,16 @@ describe('🔴 AMRAP Skippable Rest — completionReason in system events', () =
 });
 
 // ===========================================================================
-// 🔴 AMRAP Forced Rest — completionReason never 'user-advance'
+// 🟢 AMRAP Forced Rest — completionReason never 'user-advance'
 //
 // For *:30 Rest (forced, non-skippable), userNext attempts are suppressed.
 // The block can ONLY exit via timer expiry.  Therefore every system pop
-// event for the forced rest block must have `completionReason` that is NOT
-// 'user-advance'.  This assertion is NOT currently covered by any existing
-// test in this file (the existing tests only verify stack depth is unchanged
-// during suppressed userNext, not the completionReason in system events).
+// event for the forced rest block has `completionReason` that is NOT
+// 'user-advance'.
 //
 // Spec: amrap.md#-amrap-with-forced-rest-cannot-skip
 // ===========================================================================
-describe('🔴 AMRAP Forced Rest — completionReason never "user-advance"', () => {
+describe('🟢 AMRAP Forced Rest — completionReason never "user-advance"', () => {
     const SCRIPT = '20:00 AMRAP\n  5 Pullups\n  10 Pushups\n  *:30 Rest';
     let ctx: SessionTestContext;
 

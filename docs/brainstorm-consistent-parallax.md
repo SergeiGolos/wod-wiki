@@ -385,6 +385,6 @@ Acts 1 and 5 use a **frozen editor** (no runtime) showing the WodScript source w
 |---------|-------------|
 | **Chromecast** | Not active during parallax demo (no cast button). Only the Collections section (Config 3 fullscreen) would show cast controls, consistent with the journal-only cast policy from the view-panel brainstorm. |
 | **Command palette** | Ctrl+K opens global search (existing behavior). Collections section sets strategy to collection-scoped search. Parallax acts do not interact with the command palette. |
-| **Syntax highlighting** | Editor panels in Acts 1 and 5 use the same `UnifiedEditor` with WodScript language support. Syntax colors match the narrative descriptions in Act 1, Step 2. |
+| **Syntax highlighting** | Editor panels in Acts 1 and 5 use the same `NoteEditor` with WodScript language support. Syntax colors match the narrative descriptions in Act 1, Step 2. |
 | **Analytics pipeline** | Act 4 consumes `getAnalyticsFromRuntime()` output. The same `AnalyticsTransformer` → `Segment[]` → `ProjectionResult[]` pipeline used by the Workbench review panel. No special handling needed. |
 | **Responsive viewport** | The parallax layout is independent of `ResponsiveViewport` (which manages panel stacking within a view). Each act's sticky panel is a single component, not a multi-panel grid. |

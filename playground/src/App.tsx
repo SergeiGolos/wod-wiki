@@ -73,7 +73,7 @@ import {
 } from '@heroicons/react/20/solid'
 import type { WorkoutResult } from '@/types/storage'
 
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { cn } from '@/lib/utils'
@@ -81,11 +81,11 @@ import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
-import { HomePageContent } from './HomePage'
-import { SyntaxPage } from './SyntaxPage'
+import { HomeView } from './views/HomeView'
+import { findCanvasPage } from './canvas/canvasRoutes'
+import { CanvasPage } from './canvas/CanvasPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
-import { GettingStartedPage } from './GettingStartedPage'
 import { JournalPageShell } from '@/panels/page-shells'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
@@ -193,12 +193,8 @@ function PageNavDropdown({
   )
 }
 
-/**
- * In-memory store for pending runtimes.
- * When Run is clicked, we stash { block, noteId } here keyed by runtimeId,
- * then navigate to #/tracker/:runtimeId. TrackerPage consumes and deletes.
- */
-const pendingRuntimes = new Map<string, { block: WodBlock; noteId: string }>()
+// Shared in-memory store for pending runtimes (also used by CanvasPage).
+import { pendingRuntimes } from './runtimeStore'
 
 const CURSOR_TOKEN = '$CURSOR'
 
@@ -214,8 +210,8 @@ function applyTemplate(raw: string): { content: string; cursorOffset: number } {
 
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
-// Load all markdown files from the wod directory
-const workoutFiles = import.meta.glob('../../wod/**/*.md', { eager: true, query: '?raw', import: 'default' })
+// Load all markdown files from the markdown directory
+const workoutFiles = import.meta.glob('../../markdown/**/*.md', { eager: true, query: '?raw', import: 'default' })
 
 interface WorkoutItem {
   id: string
@@ -265,7 +261,7 @@ function WorkoutEditorPage({
   }
 
   return (
-    <UnifiedEditor
+    <NoteEditor
       value={content}
       onChange={onChange}
       noteId={noteId}
@@ -416,7 +412,7 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
   }
 
   return (
-    <UnifiedEditor
+    <NoteEditor
       value={content}
       onChange={onChange}
       noteId={noteId}
@@ -611,7 +607,7 @@ function JournalPage({ theme }: { theme: string }) {
   return (
     <JournalPageShell
       editor={
-        <UnifiedEditor
+        <NoteEditor
           value={content}
           onChange={onChange}
           noteId={noteId}
@@ -657,7 +653,7 @@ function AppContent() {
   const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
   const { theme } = useTheme()
   const [recentPages, setRecentPages] = useState<string[]>(['Home'])
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useQueryState('cat')
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
   // Unified note route: /note/playground/:name behaves like /playground/:name
@@ -670,7 +666,15 @@ function AppContent() {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
       const parts = path.split('/')
       const fileName = parts[parts.length - 1].replace('.md', '')
-      const category = parts[parts.length - 2] === 'wod' ? 'General' : parts[parts.length - 2]
+      
+      // Path format: ../../markdown/{collections|canvas}/{category}/{file}.md
+      // or ../../markdown/{collections|canvas}/{file}.md
+      let category = 'General'
+      const markdownIdx = parts.indexOf('markdown')
+      if (markdownIdx !== -1 && parts.length > markdownIdx + 2) {
+        category = parts[markdownIdx + 2]
+      }
+
       return {
         id: path,
         name: fileName,
@@ -678,18 +682,18 @@ function AppContent() {
         content: fileContent as string,
       }
     })
-  }, [])
+  }, [workoutFiles])
+
+  // Canvas page for the current pathname (null if not a canvas route)
+  const canvasPage = findCanvasPage(location.pathname)
 
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
-    if (location.pathname === '/getting-started') {
-      return { name: 'Zero to Hero', content: '', category: 'system' }
-    }
-    if (location.pathname === '/syntax') {
-      return { name: 'Syntax', content: '', category: 'system' }
-    }
     if (isPlaygroundRoute) {
       return { name: 'Playground', content: '', category: 'playground' }
+    }
+    if (canvasPage) {
+      return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
     }
     if (location.pathname === '/' || !urlName) {
       return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
@@ -713,8 +717,8 @@ function AppContent() {
         'crossfit-games', 'crossfit-girls'
       ],
       Swimming: [
-        'pre-hishschool', 'highschool', 'college', 'post-college', 
-        'masters', 'olympic', 'triathlete'
+        'swimming-pre-highschool', 'swimming-highschool', 'swimming-college', 'swimming-post-college', 
+        'swimming-masters', 'swimming-olympic', 'swimming-triathlete'
       ],
       Other: [
         'unconventional'
@@ -767,10 +771,8 @@ function AppContent() {
   }, [navigate])
 
   const handleCollectionClick = useCallback((category: string) => {
-    setActiveCategory(category)
-    setStrategy(createCollectionStrategy(category, workoutItems, handleSelectWorkout))
-    setIsCommandPaletteOpen(true)
-  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
+    navigate(`/collections/${encodeURIComponent(category)}`)
+  }, [navigate])
 
   const handleSearchClick = useCallback(() => {
     setActiveCategory(null)
@@ -1106,27 +1108,28 @@ function AppContent() {
         </div>
         
         <div className="flex-1 flex flex-col min-h-0">
-          {currentWorkout.name === 'Home' ? (
-            /* Home page needs NO overflow-hidden ancestor — sticky parallax requires native document scroll */
+          {location.pathname === '/' ? (
             <div className="flex-1 flex flex-col bg-card">
-              <HomePageContent
-                  actualTheme={actualTheme}
-                  workoutItems={workoutItems}
-                  onSelectWorkout={handleSelectWorkout}
-                  // No internal palette needed here anymore
-                  isCommandPaletteOpen={false} 
-                  setIsCommandPaletteOpen={() => {}}
-                activeCategory={null}
-                setActiveCategory={() => {}}
+              <HomeView
+                wodFiles={workoutFiles as Record<string, string>}
+                theme={actualTheme}
+                workoutItems={workoutItems}
+                onSelect={handleSelectWorkout}
+              />
+            </div>
+          ) : canvasPage ? (
+            <div className="flex-1 flex flex-col bg-card">
+              <CanvasPage
+                page={canvasPage}
+                wodFiles={workoutFiles as Record<string, string>}
+                theme={actualTheme}
+                workoutItems={workoutItems}
+                onSelect={handleSelectWorkout}
               />
             </div>
           ) : (
           <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
-            {location.pathname === '/getting-started' ? (
-              <GettingStartedPage theme={actualTheme} />
-            ) : location.pathname === '/syntax' ? (
-              <SyntaxPage theme={actualTheme} />
-            ) : isPlaygroundRoute && effectivePlaygroundId ? (
+            {isPlaygroundRoute && effectivePlaygroundId ? (
               <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
             ) : (
               <WorkoutEditorPage
@@ -1171,27 +1174,33 @@ function ScrollToTop() {
   return null
 }
 
+import { NuqsAdapter } from 'nuqs/adapters/react-router'
+import { useQueryState } from 'nuqs'
+
 export function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
       <HashRouter>
-        <ScrollToTop />
-        <CommandProvider>
-          <Routes>
-            <Route path="/" element={<AppContent />} />
-            <Route path="/getting-started" element={<AppContent />} />
-            <Route path="/syntax" element={<AppContent />} />
-            <Route path="/workout/:category/:name" element={<AppContent />} />
-            <Route path="/load" element={<LoadZipPage />} />
-            <Route path="/playground" element={<PlaygroundRedirect />} />
-            <Route path="/playground/:id" element={<AppContent />} />
-            <Route path="/note/:category/:name" element={<AppContent />} />
-            <Route path="/journal/:id" element={<JournalPage theme="vs" />} />
-            <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
-            <Route path="/review/:runtimeId" element={<ReviewPage />} />
-            <Route path="*" element={<AppContent />} />
-          </Routes>
-        </CommandProvider>
+        <NuqsAdapter>
+          <ScrollToTop />
+          <CommandProvider>
+            <Routes>
+              <Route path="/" element={<AppContent />} />
+              <Route path="/getting-started" element={<AppContent />} />
+              <Route path="/syntax" element={<AppContent />} />
+              <Route path="/collections/:slug" element={<AppContent />} />
+              <Route path="/workout/:category/:name" element={<AppContent />} />
+              <Route path="/load" element={<LoadZipPage />} />
+              <Route path="/playground" element={<PlaygroundRedirect />} />
+              <Route path="/playground/:id" element={<AppContent />} />
+              <Route path="/note/:category/:name" element={<AppContent />} />
+              <Route path="/journal/:id" element={<JournalPage theme="vs" />} />
+              <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
+              <Route path="/review/:runtimeId" element={<ReviewPage />} />
+              <Route path="*" element={<AppContent />} />
+            </Routes>
+          </CommandProvider>
+        </NuqsAdapter>
       </HashRouter>
     </ThemeProvider>
   )

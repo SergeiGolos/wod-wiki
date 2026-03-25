@@ -51,7 +51,7 @@ Same as above but without explicit "For Time" keyword — should compile identic
 
 ---
 
-## 🟡 For Time with Skippable Rest
+## 🟢 For Time with Skippable Rest
 
 A rest period between movements can be skipped early by the athlete if they recover quickly.
 
@@ -74,7 +74,7 @@ A rest period between movements can be skipped early by the athlete if they reco
 
 ---
 
-## 🔴 For Time with Forced Rest (Cannot Skip)
+## 🟢 For Time with Forced Rest (Cannot Skip)
 
 When a coach mandates minimum recovery, prefix the rest with `*`. The athlete cannot advance until the timer fires.
 

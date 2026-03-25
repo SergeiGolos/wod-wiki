@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 import { Play } from 'lucide-react'
 import { EDITOR_STEPS, type ParallaxStep } from '../data/parallaxActSteps'
@@ -85,7 +85,7 @@ export const FrozenEditorPanel = forwardRef<FrozenEditorPanelHandle, FrozenEdito
         className="w-full h-full"
         style={{ opacity, transition: 'opacity 200ms ease' }}
       >
-        <UnifiedEditor
+        <NoteEditor
           value={displayScript}
           onChange={(v) => { setDisplayScript(v); scriptRef.current = v }}
           theme={actualTheme}

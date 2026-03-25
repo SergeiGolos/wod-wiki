@@ -369,7 +369,7 @@ Felt strong today. Consider bumping to 195lb next session.
 ## 5. View Type Recommendations
 
 ### 5.1 Interactive Editor (Existing)
-The current `UnifiedEditor` with live runtime. Keep this as the "do it" view.
+The current `NoteEditor` with live runtime. Keep this as the "do it" view.
 
 ### 5.2 Statement Anatomy View (New — High Priority)
 

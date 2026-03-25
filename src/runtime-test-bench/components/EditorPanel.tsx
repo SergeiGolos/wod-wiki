@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { UnifiedEditor } from '../../components/Editor/UnifiedEditor';
+import { NoteEditor } from '../../components/Editor/NoteEditor';
 import { EditorPanelProps } from '../types/interfaces';
 import { panelBase, panelHeader, panelHeaderTitle, panelContent } from '../styles/tailwind-components';
 
@@ -83,7 +83,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       <div className={panelContent}>
         {/* Editor */}
         <div className="h-96">
-          <UnifiedEditor
+          <NoteEditor
             value={value}
             onChange={onChange}
             readonly={readonly}

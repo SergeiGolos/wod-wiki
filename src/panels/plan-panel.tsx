@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import type { WodBlock, WorkoutResults } from '@/components/Editor/types';
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
+import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
 export interface PlanPanelProps {
   initialContent?: string;
   value?: string;
-  /** @deprecated Ignored — sections are parsed internally by UnifiedEditor */
+  /** @deprecated Ignored — sections are parsed internally by NoteEditor */
   sections?: any[] | null;
   onStartWorkout: (block: WodBlock) => void;
   onCompleteWorkout?: (blockId: string, results: WorkoutResults) => void;
@@ -15,7 +15,7 @@ export interface PlanPanelProps {
   setBlocks: (blocks: any[]) => void;
   setContent: (content: string) => void;
   readOnly?: boolean;
-  /** @deprecated Ignored — content provider not needed by UnifiedEditor */
+  /** @deprecated Ignored — content provider not needed by NoteEditor */
   provider?: any;
   /** @deprecated Ignored */
   sourceNoteId?: string;
@@ -47,7 +47,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   return (
     <div className="h-full w-full relative flex flex-col group/plan-panel">
       <div className="flex-1 min-h-0 relative">
-        <UnifiedEditor
+        <NoteEditor
           noteId={sourceNoteId}
           value={value ?? initialContent ?? ''}
           onChange={setContent}

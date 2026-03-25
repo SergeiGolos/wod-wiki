@@ -18,7 +18,7 @@ export interface DialogProps {
 export const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
   return (
     <Transition appear show={open} as={Fragment}>
-      <HeadlessDialog as="div" className="relative z-50" onClose={() => onOpenChange?.(false)}>
+      <HeadlessDialog as="div" className="relative z-[200]" onClose={() => onOpenChange?.(false)}>
         {children}
       </HeadlessDialog>
     </Transition>

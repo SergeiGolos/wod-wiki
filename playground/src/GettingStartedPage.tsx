@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { useNavigate } from 'react-router-dom'
 import {
   Code2,
@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import { CastCallout } from '@/components/cast/CastCallout'
 import { getTabExamples } from '@/repositories/page-examples'
 
-// ── Data for Sections (loaded from wod/examples/getting-started/) ─────
+// ── Data for Sections (loaded from markdown/canvas/getting-started/) ─────
 
 const STATEMENT_TABS = getTabExamples('getting-started', 'statement')
 const TIMER_TABS     = getTabExamples('getting-started', 'timer')
@@ -153,7 +153,7 @@ function LessonSection({
          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Interactive Lesson</span>
       </div>
       <div className="flex-1 relative">
-        <UnifiedEditor
+        <NoteEditor
           key={`${id}-${activeIdx}`}
           noteId={`getting-started-${id}-${activeIdx}`}
           value={activeTab.content}

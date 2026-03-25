@@ -147,7 +147,7 @@ export const MemoryValueDialog: React.FC<{
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-[200]" onClose={onClose}>
         {/* Backdrop */}
         <TransitionChild
           as={Fragment}

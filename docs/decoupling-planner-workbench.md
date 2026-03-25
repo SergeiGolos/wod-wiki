@@ -1,7 +1,7 @@
 # Architectural Decoupling: Planner vs. Workbench
 
 ## 1. Overview
-This document outlines the strategy for decoupling the **Planner** (editing/authoring) from the **Workbench** (runtime execution/tracking). The goal is to move towards a **Unified Editor** architecture where the Workbench acts as a standalone unit that hosts a runtime, capable of being initialized from any `WodBlock`.
+This document outlines the strategy for decoupling the **Planner** (editing/authoring) from the **Workbench** (runtime execution/tracking). The goal is to move towards a **Note Editor** architecture where the Workbench acts as a standalone unit that hosts a runtime, capable of being initialized from any `WodBlock`.
 
 ## 2. Current Architecture (Monolithic Workbench)
 
@@ -16,7 +16,7 @@ graph TD
         WorkbenchSyncStore[WorkbenchSyncStore - Zustand Store for Runtime]
         
         subgraph Viewport [Responsive Viewport]
-            PlanPanel --> UnifiedEditor
+            PlanPanel --> NoteEditor
             TrackPanel --> TimerScreen
             ReviewPanel --> ReviewGrid
         end
@@ -24,7 +24,7 @@ graph TD
         WorkbenchSyncBridge[WorkbenchSyncBridge - Bridges Context to Runtime]
     end
     
-    UnifiedEditor -- "onStartWorkout(block)" --> WorkbenchContext
+    NoteEditor -- "onStartWorkout(block)" --> WorkbenchContext
     WorkbenchContext -- "startWorkout action" --> Navigation[URL Change /track/:id]
     Navigation -- "route change" --> WorkbenchSyncBridge
     WorkbenchSyncBridge -- "initializeRuntime(block)" --> WorkbenchSyncStore
@@ -41,8 +41,8 @@ graph TD
 | **Execution Progress** | `WorkbenchSyncStore` | Updated by Runtime |
 
 ### 2.3. The "Run" Action Flow
-1. User clicks **"Run"** in the `UnifiedEditor` (overlay or menu).
-2. `UnifiedEditor` calls `onStartWorkout(block)`.
+1. User clicks **"Run"** in the `NoteEditor` (overlay or menu).
+2. `NoteEditor` calls `onStartWorkout(block)`.
 3. `Workbench` receives this through `WorkbenchContext.startWorkout`.
 4. `WorkbenchContext` calls `navigation.goToTrack(noteId, block.id)`.
 5. The URL changes to `/note/:noteId/track/:sectionId`.
@@ -63,7 +63,7 @@ graph TD
     
     subgraph Planner [Planner Unit]
         DocumentContext[DocumentContext - Content/Parsing]
-        UnifiedEditor[UnifiedEditor]
+        NoteEditor[NoteEditor]
     end
     
     subgraph WorkbenchHost [Workbench Unit]
@@ -72,7 +72,7 @@ graph TD
         ReviewGrid
     end
     
-    UnifiedEditor -- "Run Clicked" --> Action[Launch Runtime Host]
+    NoteEditor -- "Run Clicked" --> Action[Launch Runtime Host]
     Action -- "Passes Block" --> WorkbenchHost
 ```
 
@@ -98,10 +98,10 @@ The `Workbench` (or a new `RuntimeHost` component) should accept:
 - `onComplete?: (results) => void`: Callback when the workout finishes.
 - `onExit?: () => void`: Callback when the user leaves the runtime.
 
-### 4.3. Unified Editor "Run" Integration
-The `UnifiedEditor` is the entry point for the "Run" action.
+### 4.3. Note Editor "Run" Integration
+The `NoteEditor` is the entry point for the "Run" action.
 - It already has an `onStartWorkout` prop.
-- In the decoupled model, the parent of `UnifiedEditor` (the `Planner`) will handle this by:
+- In the decoupled model, the parent of `NoteEditor` (the `Planner`) will handle this by:
     1. Persisting the current document state (if needed).
     2. Navigating to the `WorkbenchHost` route or switching the active view.
 
@@ -135,5 +135,5 @@ const App = () => {
 ## 5. Benefits of Decoupling
 1. **Testing**: The `WorkbenchHost` can be tested in isolation with mock blocks without needing a full `DocumentProvider`.
 2. **Reusability**: The `WorkbenchHost` can be used in other parts of the app (e.g., "Daily WOD" widget) without the Editor.
-3. **Simplicity**: `UnifiedEditor` doesn't need to know about the complex sliding viewport of the `Workbench`. It just emits an event.
+3. **Simplicity**: `NoteEditor` doesn't need to know about the complex sliding viewport of the `Workbench`. It just emits an event.
 4. **Performance**: Smaller context providers mean fewer re-renders across the entire application.

@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor'
+import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { RuntimeTimerPanel } from '@/components/Editor/overlays/RuntimeTimerPanel'
 import type { WodBlock } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
@@ -23,7 +23,7 @@ export function LiveTrackerPanel({ block, onSearch, preview, actualTheme, onRunt
     return (
       <div className="flex flex-col w-full h-full overflow-hidden">
         <div className="flex-1 min-h-0">
-          <UnifiedEditor
+          <NoteEditor
             value={preview}
             onChange={() => {}}
             theme={actualTheme}

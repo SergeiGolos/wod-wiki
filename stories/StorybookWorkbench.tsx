@@ -7,17 +7,13 @@ import { WorkbenchSyncBridge } from '../src/components/layout/WorkbenchSyncBridg
 import { DisplaySyncBridge } from '../src/components/layout/DisplaySyncBridge';
 import { WorkbenchCastBridge } from '../src/components/cast/WorkbenchCastBridge';
 import { useWorkbenchSync } from '../src/components/layout/useWorkbenchSync';
-import { DebugButton, useDebugMode } from '../src/components/layout/DebugModeContext';
-import { CastButtonRpc } from '../src/components/cast/CastButtonRpc';
+import { useDebugMode } from '../src/components/layout/DebugModeContext';
+import { useTheme } from '../src/components/theme/ThemeProvider';
 import { RuntimeFactory } from '../src/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../src/runtime-test-bench/services/testbench-services';
-import { 
-  Download, 
-  RotateCcw, 
-} from 'lucide-react';
-import { Button } from '../src/components/ui/button';
+import { EditorShellHeader } from './EditorShellHeader';
 
-import { UnifiedEditor } from '../src/components/Editor/UnifiedEditor';
+import { NoteEditor } from '../src/components/Editor/NoteEditor';
 import { WorkbenchProps } from '../src/components/layout/Workbench';
 import { useWorkbenchSyncStore } from '../src/components/layout/workbenchSyncStore';
 import { useInMemoryNavigation } from '../src/hooks/useInMemoryNavigation';
@@ -77,10 +73,16 @@ function useZParamContent(): { content: string | undefined; ready: boolean } {
 
 interface StorybookWorkbenchProps extends WorkbenchProps {
   initialContent?: string;
+  /** Optional collection label shown in the header breadcrumb */
+  collection?: string;
+  /** Page title shown in the header (defaults to "WOD Wiki") */
+  title?: string;
 }
 
 const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
   initialContent,
+  collection,
+  title,
 }) => {
   const {
     content,
@@ -89,6 +91,9 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
     setActiveBlockId,
     resetResults,
   } = useWorkbench();
+
+  const { theme } = useTheme();
+  const editorTheme = theme === 'dark' ? 'dark' : 'vs';
 
   const resetStore = useWorkbenchSyncStore(s => s.resetStore);
   const { handleStartWorkoutAction, execution } = useWorkbenchSync();
@@ -116,29 +121,22 @@ const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      {/* Minimal toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background shrink-0">
-        <span className="text-sm font-semibold text-foreground">WOD Wiki</span>
-        <div className="flex items-center gap-2">
-          <CastButtonRpc />
-          <DebugButton />
-          <Button variant="ghost" size="icon" title="Download" onClick={handleDownload}>
-            <Download className="size-4" />
-          </Button>
-          <Button variant="ghost" size="icon" title="Reset" onClick={handleReset}>
-            <RotateCcw className="size-4 text-red-500" />
-          </Button>
-        </div>
-      </div>
+      <EditorShellHeader
+        collection={collection}
+        title={title}
+        onDownload={handleDownload}
+        onReset={handleReset}
+      />
 
-      {/* Editor fills remaining height */}
-      <div className="flex-1 min-h-0">
-        <UnifiedEditor
+      {/* Editor fills remaining height; overflow-y:scroll keeps the header
+          pinned and always shows the scrollbar even when content is short */}
+      <div className="flex-1 min-h-0 overflow-y-scroll">
+        <NoteEditor
           value={content}
           onChange={setContent}
           onStartWorkout={handleStartWorkoutAction}
           className="h-full w-full"
-          theme="vs-dark"
+          theme={editorTheme}
         />
       </div>
     </div>

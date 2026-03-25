@@ -6,7 +6,7 @@ import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
-import { UnifiedEditor } from '@/components/Editor/UnifiedEditor';
+import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { CloneDateDropdown } from './CloneDateDropdown';
 
 export interface NotePreviewProps {
@@ -162,7 +162,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                 {/* Section-based document rendering */}
                 <div className="flex-1 min-h-0">
                     {entry ? (
-                        <UnifiedEditor
+                        <NoteEditor
                             noteId={entry.id}
                             value={entry.rawContent}
                             onChange={() => {}}

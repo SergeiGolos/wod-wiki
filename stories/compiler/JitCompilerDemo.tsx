@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UnifiedEditor } from '../../src/components/Editor/UnifiedEditor';
+import { NoteEditor } from '../../src/components/Editor/NoteEditor';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
 import { WodScript } from '../../src/parser/WodScript';
@@ -101,7 +101,7 @@ function ScriptEditor({
 }) {
   return (
     <div className="mb-2">
-      <UnifiedEditor
+      <NoteEditor
         value={value}
         onChange={onChange}
         readonly={false}

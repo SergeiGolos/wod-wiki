@@ -2,7 +2,7 @@
  * EditorCastBridge — renderless component that sends preview data to the
  * Chromecast receiver when a cast session is active but no runtime is running.
  *
- * Placement: inside UnifiedEditor, alongside the OverlayTrack.
+ * Placement: inside NoteEditor, alongside the OverlayTrack.
  *
  * Responsibilities:
  * - When castTransport is connected and no inline runtime is active:

@@ -1,7 +1,7 @@
 /**
  * WodCommand — public command interface for WodScript block overlays.
  *
- * Pass an array to UnifiedEditor via the `commands` prop.
+ * Pass an array to NoteEditor via the `commands` prop.
  * The first `visibleCommands` items (default 1) render as direct buttons.
  * Any remaining commands are grouped behind a "…" overflow menu.
  */

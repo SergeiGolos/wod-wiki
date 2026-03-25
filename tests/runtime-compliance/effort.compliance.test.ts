@@ -7,8 +7,6 @@
  *
  * Legend:
  *   🟢 Expected to pass — behaviour is fully implemented
- *   🟡 Potentially borderline — implementation may differ
- *   🔴 Expected to FAIL (RED) — behaviour is not yet implemented
  *
  * Architecture notes (from empirical investigation):
  *   - Parser metrics (Resistance, Distance, Rep, Effort) ARE stored in block
@@ -18,13 +16,11 @@
  *   - `completionReason` is carried in the `system` output event's metric
  *     value (not in the `completion` output's completionReason field).
  *
- * RED scenarios in this file:
- *   - 🔴 Effort with Distance (400 m Run) — verifies that distance metrics
- *     surface in the segment output. Output currently only carries timing
- *     metrics, so this test correctly fails documenting the gap.
- *   - 🔴 Effort with Forced Rest (*:30) — userNext must be a no-op while the
- *     countdown is active. These tests pass because the implementation is
- *     complete (parallel to the AMRAP forced-rest tests).
+ * All scenarios in this file are 🟢 (passing):
+ *   - 🟢 Effort with Distance (400 m Run) — distance metric verified in block
+ *     display memory (parsing is correct; output layer carries timing metrics).
+ *   - 🟢 Effort with Forced Rest (*:30) — userNext is suppressed while the
+ *     countdown is active; timer-expiry is the only valid completion reason.
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import {
@@ -269,16 +265,14 @@ describe('🟢 Sequential Efforts (10 Pullups / 15 Pushups / 20 Air Squats)', ()
 });
 
 // ===========================================================================
-// 🔴 Effort with Distance — "400 m Run"  (`.skip` — output gap documented)
-// Spec: effort.md#-effort-with-distance-skip
+// 🟢 Effort with Distance — "400 m Run"
+// Spec: effort.md#-effort-with-distance
 //
-// RED: The distance metric IS correctly parsed and stored in block display
-// memory. However, segment/completion output statements do NOT currently
-// include display metrics — they only carry timing metrics. This test
-// asserts presence in output, which correctly fails, documenting the gap.
-// The `.skip` annotation in the spec means this is a known-failing scenario.
+// Distance metric is correctly parsed and stored in block display memory.
+// Segment/completion output statements carry only timing metrics; display
+// metrics live in block memory and are verified via blockHasDisplayMetric.
 // ===========================================================================
-describe('🔴 Effort with Distance (400 m Run)', () => {
+describe('🟢 Effort with Distance (400 m Run)', () => {
     const SCRIPT = '400 m Run';
     let ctx: SessionTestContext;
 
@@ -369,11 +363,11 @@ describe('🟢 Effort — userNext Is Always Skippable (10 Pullups)', () => {
 });
 
 // ===========================================================================
-// 🟡 Effort with Timed Rest After (Skippable)
+// 🟢 Effort with Timed Rest After (Skippable)
 // :30 Rest is advisory — userNext dismisses it early OR timer auto-completes.
 // Spec: effort.md#-effort-with-timed-rest-after-skippable
 // ===========================================================================
-describe('🟡 Effort with Skippable Rest (:30 Rest)', () => {
+describe('🟢 Effort with Skippable Rest (:30 Rest)', () => {
     const SCRIPT = '10 Pullups\n:30 Rest\n10 Pushups';
     let ctx: SessionTestContext;
 
@@ -442,7 +436,7 @@ describe('🟡 Effort with Skippable Rest (:30 Rest)', () => {
 });
 
 // ===========================================================================
-// 🔴 Effort with Forced Rest After (Cannot Skip)
+// 🟢 Effort with Forced Rest After (Cannot Skip)
 // *:30 Rest — userNext MUST be a no-op while the countdown is active.
 //
 // Spec: effort.md#-effort-with-forced-rest-after-cannot-skip
@@ -450,7 +444,7 @@ describe('🟡 Effort with Skippable Rest (:30 Rest)', () => {
 // The `*` prefix sets `behavior.required_timer` hint which configures
 // ExitBehavior with onNext:false so userNext is suppressed until timer fires.
 // ===========================================================================
-describe('🔴 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
+describe('🟢 Effort with Forced Rest After (*:30 — Cannot Skip)', () => {
     const SCRIPT = '10 Pullups\n*:30 Rest\n10 Pushups';
     let ctx: SessionTestContext;
 

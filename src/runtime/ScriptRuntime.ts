@@ -11,6 +11,7 @@ import {
 } from './contracts/IRuntimeOptions';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
+import { AbortEventHandler } from './events/AbortEventHandler';
 import { IOutputStatement, OutputStatement } from '../core/models/OutputStatement';
 import { IRuntimeAction } from './contracts';
 import { IEvent } from './contracts/events/IEvent';
@@ -64,6 +65,9 @@ export class ScriptRuntime implements IScriptRuntime {
     // Unsubscribe function for the global NextEventHandler
     private _nextHandlerUnsub: (() => void) | null = null;
 
+    // Unsubscribe function for the global AbortEventHandler
+    private _abortHandlerUnsub: (() => void) | null = null;
+
     constructor(
         public readonly script: WodScript,
         compiler: JitCompiler,
@@ -79,6 +83,9 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // Handle explicit next events to advance the current block once per request
         this._nextHandlerUnsub = this.eventBus.register('next', new NextEventHandler('runtime-next-handler'), 'runtime', { scope: 'global' });
+
+        // Handle abort events to force-terminate the session
+        this._abortHandlerUnsub = this.eventBus.register('abort', new AbortEventHandler('runtime-abort-handler'), 'runtime', { scope: 'global' });
 
         this.jit = compiler;
 
@@ -240,6 +247,14 @@ export class ScriptRuntime implements IScriptRuntime {
      * Used by BehaviorContext to emit outputs at any lifecycle point.
      */
     public addOutput(output: IOutputStatement): void {
+        // System outputs (push/pop lifecycle trace, sound cues, event-action records)
+        // are diagnostic only — they carry no workout results. Skip object accumulation
+        // entirely when no subscriber is listening to prevent GC pressure during
+        // high-iteration workloads (e.g. 10 000-round performance tests).
+        if (output.outputType === 'system' && this._outputListeners.size === 0) {
+            return;
+        }
+
         const processedOutput = this._analyticsEngine ? this._analyticsEngine.run(output) : output;
         this._outputStatements.push(processedOutput);
 
@@ -372,6 +387,12 @@ export class ScriptRuntime implements IScriptRuntime {
             this._nextHandlerUnsub = null;
         }
 
+        // Unregister the global AbortEventHandler
+        if (this._abortHandlerUnsub) {
+            this._abortHandlerUnsub();
+            this._abortHandlerUnsub = null;
+        }
+
         // Clear output state to release references
         this._outputStatements = [];
         this._outputListeners.clear();
@@ -478,6 +499,11 @@ export class ScriptRuntime implements IScriptRuntime {
      * Called directly from the stack subscription handler to ensure accurate timing.
      */
     private emitSystemOutput(event: { type: 'push' | 'pop'; block: IRuntimeBlock; depth: number }): void {
+        // System outputs are diagnostic/tracing records only. Skip object creation
+        // entirely when nothing is listening — avoids significant GC pressure during
+        // high-iteration scenarios (e.g. 10 000-round performance tests).
+        if (this._outputListeners.size === 0) return;
+
         const now = this.clock.now;
         const block = event.block;
 

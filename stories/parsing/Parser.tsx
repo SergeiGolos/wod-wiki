@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
-import { UnifiedEditor } from '../../src/components/Editor/UnifiedEditor';
+import { NoteEditor } from '../../src/components/Editor/NoteEditor';
 import { IScript } from '../../src/WodScript';
 import { MetricVisualizer } from '../../src/components/metrics';
 
@@ -39,7 +39,7 @@ export const Parser = ({ text: initialText }: { text: string }) => {
     return (
         <div className="p-4 font-sans">
             <div className="mb-4">  
-                <UnifiedEditor
+                <NoteEditor
                     value={text}
                     onChange={handleValueChange}
                     showLineNumbers={true}

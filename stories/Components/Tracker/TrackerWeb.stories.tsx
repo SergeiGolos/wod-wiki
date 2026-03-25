@@ -221,7 +221,7 @@ const ExecutionBound: React.FC<{
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof TrackerWebHarness> = {
-  title: 'Components/Tracker/Web',
+  title: 'Panels/Tracker/Web',
   component: TrackerWebHarness,
   parameters: {
     layout: 'padded',

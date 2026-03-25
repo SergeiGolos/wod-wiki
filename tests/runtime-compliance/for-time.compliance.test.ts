@@ -18,11 +18,6 @@
  *     memory, NOT in output.
  *   - `completionReason` is carried in the `system` output event's metric
  *     value (not in the `completion` output's completionReason field).
- *
- * RED scenarios in this file:
- *   - 🔴 For Time with Forced Rest (*:30) — userNext must be a no-op while
- *     the countdown is active. The block may only exit via timer expiry.
- *     `completionReason = 'user-advance'` must never appear on forced-rest pop.
  */
 import { describe, it, expect, afterEach } from 'bun:test';
 import {
@@ -315,7 +310,7 @@ describe('🟢 Classic Fran (21-15-9 without "For Time" keyword)', () => {
 });
 
 // ===========================================================================
-// 🟡 For Time with Skippable Rest
+// 🟢 For Time with Skippable Rest
 //
 //   21 Thrusters @ 95 lb
 //   :30 Rest
@@ -327,7 +322,7 @@ describe('🟢 Classic Fran (21-15-9 without "For Time" keyword)', () => {
 // When skipped: completionReason = 'user-advance'.
 // When waited: completionReason ≠ 'user-advance' (timer-expiry or omitted).
 // ===========================================================================
-describe('🟡 For Time with Skippable Rest (:30 Rest)', () => {
+describe('🟢 For Time with Skippable Rest (:30 Rest)', () => {
     const SCRIPT = '21 Thrusters 95lb\n:30 Rest\n21 Pullups';
     let ctx: SessionTestContext;
 
@@ -427,7 +422,7 @@ describe('🟡 For Time with Skippable Rest (:30 Rest)', () => {
 });
 
 // ===========================================================================
-// 🔴 For Time with Forced Rest (Cannot Skip)
+// 🟢 For Time with Forced Rest (Cannot Skip)
 //
 //   21 Thrusters @ 95 lb
 //   *:30 Rest
@@ -437,21 +432,8 @@ describe('🟡 For Time with Skippable Rest (:30 Rest)', () => {
 //
 // The `*` prefix marks the rest as required — userNext is IGNORED while the
 // countdown is active. The block only exits when the timer fires.
-//
-// These tests are RED — they document behaviour that should be enforced:
-//   - userNext during *:30 Rest MUST be a no-op (stack depth unchanged)
-//   - completionReason = 'user-advance' MUST NOT appear on the forced-rest pop
-//   - The forced rest MUST auto-pop when advanceClock(30_000) fires
-//
-// Implementation requirement:
-//   - Parser must emit `required: true` (or a dedicated hint) on the
-//     DurationMetric when the `*` prefix is present.
-//   - A RequiredTimerBehavior (or flag on CountdownTimerBehavior) must
-//     intercept onNext() and return [] while the countdown is active.
-//
-// If all of these tests pass, the forced-rest feature is fully implemented.
 // ===========================================================================
-describe('🔴 For Time with Forced Rest (*:30 — Cannot Skip)', () => {
+describe('🟢 For Time with Forced Rest (*:30 — Cannot Skip)', () => {
     const SCRIPT = '21 Thrusters 95lb\n*:30 Rest\n21 Pullups';
     let ctx: SessionTestContext;
 

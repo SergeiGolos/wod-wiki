@@ -77,7 +77,7 @@
 
 ---
 
-## 🔴 Distance Unit Inheritance (`.skip`)
+## 🟢 Distance Unit Inheritance
 
 ```wod
 400 m
@@ -91,7 +91,7 @@
 
 ---
 
-## 🔴 Three-Level Promotion (`.skip`)
+## 🟢 Three-Level Promotion
 
 ```wod
 75 kg
