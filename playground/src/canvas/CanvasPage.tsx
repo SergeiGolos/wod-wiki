@@ -224,6 +224,7 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
   const stepRefs            = useRef<Map<string, Element>>(new Map())
   const lastActiveSectionId = useRef<string | null>(null)
   const ratioMap            = useRef(new Map<string, number>())
+  const scrollDirRef        = useRef<1 | -1>(1)
   const executePipelineRef  = useRef(executePipeline)
   executePipelineRef.current = executePipeline
   const setHeadingParamRef  = useRef(setHeadingParam)
@@ -237,6 +238,14 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
   useEffect(() => {
     if (contentSections.length === 0) return
 
+    let lastScrollY = window.scrollY
+    const trackScroll = () => {
+      const y = window.scrollY
+      if (y !== lastScrollY) scrollDirRef.current = y > lastScrollY ? 1 : -1
+      lastScrollY = y
+    }
+    window.addEventListener('scroll', trackScroll, { passive: true })
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
@@ -246,12 +255,23 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
           else                      ratioMap.current.delete(id)
         })
 
-        // Find the section with the highest intersection ratio
+        if (ratioMap.current.size === 0) return
+
         let bestId: string | null = null
-        let bestRatio = -1
-        ratioMap.current.forEach((ratio, id) => {
-          if (ratio > bestRatio) { bestRatio = ratio; bestId = id }
-        })
+        if (scrollDirRef.current === -1) {
+          // Scrolling up: pick the topmost (earliest in doc order) intersecting section
+          let bestOrder = Infinity
+          ratioMap.current.forEach((_, id) => {
+            const order = contentSections.findIndex(s => s.id === id)
+            if (order >= 0 && order < bestOrder) { bestOrder = order; bestId = id }
+          })
+        } else {
+          // Scrolling down: pick the section with the highest intersection ratio
+          let bestRatio = -1
+          ratioMap.current.forEach((ratio, id) => {
+            if (ratio > bestRatio) { bestRatio = ratio; bestId = id }
+          })
+        }
 
         if (bestId && bestId !== lastActiveSectionId.current) {
           lastActiveSectionId.current = bestId
@@ -269,7 +289,10 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
     )
 
     stepRefs.current.forEach(el => observer.observe(el))
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', trackScroll)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentSections])
 

@@ -122,6 +122,16 @@ export function ParallaxSection({
     const rootMargin = isMobile
       ? `-${MOBILE_STICKY_TOP + 40}px 0px -20% 0px`
       : '-30% 0px -30% 0px'
+
+    let lastScrollY = window.scrollY
+    let scrollDir: 1 | -1 = 1
+    const trackScroll = () => {
+      const y = window.scrollY
+      if (y !== lastScrollY) scrollDir = y > lastScrollY ? 1 : -1
+      lastScrollY = y
+    }
+    window.addEventListener('scroll', trackScroll, { passive: true })
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
@@ -132,17 +142,29 @@ export function ParallaxSection({
             ratioMap.delete(idx)
           }
         })
+        if (ratioMap.size === 0) return
         let bestIdx = -1
-        let bestRatio = -1
-        ratioMap.forEach((ratio, idx) => {
-          if (ratio > bestRatio) { bestRatio = ratio; bestIdx = idx }
-        })
+        if (scrollDir === -1) {
+          // Scrolling up: activate the topmost (lowest-index) intersecting step
+          ratioMap.forEach((_, idx) => {
+            if (bestIdx < 0 || idx < bestIdx) bestIdx = idx
+          })
+        } else {
+          // Scrolling down: activate the step with the highest intersection ratio
+          let bestRatio = -1
+          ratioMap.forEach((ratio, idx) => {
+            if (ratio > bestRatio) { bestRatio = ratio; bestIdx = idx }
+          })
+        }
         if (bestIdx >= 0) setActiveStep(bestIdx)
       },
       { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] }
     )
     stepRefs.current.forEach(el => { if (el) observer.observe(el) })
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', trackScroll)
+    }
   }, [])
 
   const currentExample = selectedExamples[activeStep] ?? 0

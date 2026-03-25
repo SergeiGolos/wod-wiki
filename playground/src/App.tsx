@@ -80,7 +80,7 @@ import { cn } from '@/lib/utils'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
-import { HashRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
 import { CanvasPage } from './canvas/CanvasPage'
@@ -1180,7 +1180,7 @@ import { useQueryState } from 'nuqs'
 export function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <HashRouter>
+      <BrowserRouter>
         <NuqsAdapter>
           <ScrollToTop />
           <CommandProvider>
@@ -1201,7 +1201,7 @@ export function App() {
             </Routes>
           </CommandProvider>
         </NuqsAdapter>
-      </HashRouter>
+      </BrowserRouter>
     </ThemeProvider>
   )
 }
