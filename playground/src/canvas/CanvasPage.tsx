@@ -15,17 +15,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
+import { ArrowLeft } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
 import { RuntimeTimerPanel } from '@/components/Editor/overlays/RuntimeTimerPanel'
+import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
+import type { Segment } from '@/core/models/AnalyticsModels'
+import type { WorkoutResults } from '@/components/Editor/types'
 import { MacOSChrome } from '../components/MacOSChrome'
+import { SplitRunButton } from '../components/SplitRunButton'
 import { cn } from '@/lib/utils'
 import { CanvasProse } from './CanvasProse'
 import type { ParsedCanvasPage, CanvasSection, PipelineStep, OpenMode, ViewButton } from './parseCanvasMarkdown'
 import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
-import { pendingRuntimes } from '../runtimeStore'
+import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
 
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
@@ -71,16 +76,56 @@ const isDark      = (s: CanvasSection) => hasAttr(s, 'dark')
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+interface RunButtonState {
+  /** True when a runtime for this button's block is active but hidden */
+  isReconnect: boolean
+  onReconnect: () => void
+  onRun: () => void
+  onFullscreen: () => void
+}
+
 function SectionButtons({
   section,
   fullBleed,
   onPipeline,
+  runState,
 }: {
   section: CanvasSection
   fullBleed: boolean
   onPipeline: (p: PipelineStep[], open?: OpenMode) => void
+  runState?: RunButtonState
 }) {
   if (section.buttons.length === 0) return null
+
+  // Check if any button is a run-type pipeline (set-state:track)
+  const firstBtn = section.buttons[0]
+  const isRunButton = firstBtn.pipeline.some(s => s.action === 'set-state' && s.value === 'track')
+
+  if (isRunButton && runState) {
+    const rest = section.buttons.slice(1)
+    return (
+      <div className={cn('flex flex-wrap items-center gap-4 mt-8', fullBleed && 'justify-center')}>
+        <SplitRunButton
+          onRun={runState.onRun}
+          onFullscreen={runState.onFullscreen}
+          isReconnect={runState.isReconnect}
+          onReconnect={runState.onReconnect}
+          label={firstBtn.label}
+          center={fullBleed}
+        />
+        {rest.map((btn, i) => (
+          <button
+            key={i}
+            onClick={() => onPipeline(btn.pipeline, btn.open)}
+            className="flex items-center gap-2 px-6 py-2 text-xs font-black uppercase tracking-widest rounded-full bg-background border border-border text-foreground hover:bg-muted transition-all active:scale-95"
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className={cn('flex flex-wrap gap-4 mt-8', fullBleed && 'justify-center')}>
       {section.buttons.map((btn, i) => (
@@ -105,11 +150,41 @@ function SectionButtons({
 function ViewPanelButtons({
   buttons,
   onPipeline,
+  runState,
 }: {
   buttons: ViewButton[]
   onPipeline: (p: PipelineStep[], open?: OpenMode) => void
+  runState?: RunButtonState
 }) {
   if (buttons.length === 0) return null
+
+  const firstBtn = buttons[0]
+  const isRunButton = firstBtn.pipeline.some(s => s.action === 'set-state' && s.value === 'track')
+
+  if (isRunButton && runState) {
+    const rest = buttons.slice(1)
+    return (
+      <div className="flex flex-wrap items-center gap-3 justify-end pt-3 px-1">
+        <SplitRunButton
+          onRun={runState.onRun}
+          onFullscreen={runState.onFullscreen}
+          isReconnect={runState.isReconnect}
+          onReconnect={runState.onReconnect}
+          label={firstBtn.label}
+        />
+        {rest.map((btn, i) => (
+          <button
+            key={i}
+            onClick={() => onPipeline(btn.pipeline, btn.open)}
+            className="px-5 py-2 text-[11px] font-black uppercase tracking-widest rounded-full bg-muted border border-border text-foreground hover:bg-muted/80 transition-all active:scale-95"
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-wrap gap-3 justify-end pt-3 px-1">
       {buttons.map((btn, i) => (
@@ -169,9 +244,20 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
 
   // Tracks the compiled WodBlocks from the NoteEditor so set-state:track can grab one
   const wodBlocksRef = useRef<WodBlock[]>([])
-  const [fullscreenBlock, setFullscreenBlock] = useState<WodBlock | null>(null)
-  // Inline timer shown inside the sticky panel (open: view)
+
+  // ── Panel state machine ────────────────────────────────────────────────────
+  // 'editor'    — NoteEditor shown (default)
+  // 'running'   — RuntimeTimerPanel shown (open: view)
+  // 'review'    — FullscreenReview shown inline after completion
+  type PanelMode = 'editor' | 'running' | 'review'
+  const [panelMode, setPanelMode] = useState<PanelMode>('editor')
   const [viewTimerBlock, setViewTimerBlock] = useState<WodBlock | null>(null)
+  const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
+  // Block that was last launched in view mode — kept for reconnect support
+  const activeViewBlockRef = useRef<WodBlock | null>(null)
+
+  // ── Fullscreen (dialog) block ───────────────────────────────────────────
+  const [fullscreenBlock, setFullscreenBlock] = useState<WodBlock | null>(null)
 
   // Stable ref for wodFiles so the observer never stale-closes over a new map
   const wodFilesRef = useRef(wodFiles)
@@ -190,6 +276,41 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
     }, 180)
   }, [])
 
+  // Launch a block in view (inline) mode
+  const launchViewRuntime = useCallback((block: WodBlock) => {
+    activeViewBlockRef.current = block
+    activeRuntimes.set(block.id, block)
+    setViewTimerBlock(block)
+    setPanelMode('running')
+  }, [])
+
+  // Called when the view-mode runtime stops or the user closes it
+  const closeViewRuntime = useCallback(() => {
+    const block = activeViewBlockRef.current
+    if (block) activeRuntimes.delete(block.id)
+    activeViewBlockRef.current = null
+    setViewTimerBlock(null)
+    setPanelMode('editor')
+  }, [])
+
+  // Called when a view-mode runtime completes naturally
+  const handleViewComplete = useCallback((_blockId: string, results: WorkoutResults) => {
+    const block = activeViewBlockRef.current
+    if (block) activeRuntimes.delete(block.id)
+    activeViewBlockRef.current = null
+    setViewTimerBlock(null)
+    if (results.completed && results.logs && results.logs.length > 0) {
+      const { segments } = getAnalyticsFromLogs(results.logs as any, results.startTime)
+      setReviewSegments(segments)
+    } else {
+      setReviewSegments([])
+    }
+    setPanelMode('review')
+  }, [])
+
+  // Whether any active runtime is currently tracked for view-mode reconnect
+  const hasActiveViewRuntime = viewTimerBlock !== null
+
   const executePipeline = useCallback((pipeline: PipelineStep[], openMode: OpenMode = 'dialog') => {
     for (const step of pipeline) {
       if (step.action === 'set-source') {
@@ -200,7 +321,7 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
         const block = wodBlocksRef.current[0] ?? null
         if (!block) break
         if (openMode === 'view') {
-          setViewTimerBlock(block)
+          launchViewRuntime(block)
         } else if (openMode === 'dialog') {
           setFullscreenBlock(block)
         } else if (openMode === 'route') {
@@ -210,7 +331,25 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
         }
       }
     }
-  }, [navigate, swapSource])
+  }, [navigate, swapSource, launchViewRuntime])
+
+  // RunButtonState passed down to both SectionButtons and ViewPanelButtons
+  const runState: RunButtonState = {
+    isReconnect: hasActiveViewRuntime && panelMode !== 'running',
+    onReconnect: () => setPanelMode('running'),
+    onRun: () => {
+      const block = wodBlocksRef.current[0] ?? null
+      if (!block) return
+      launchViewRuntime(block)
+    },
+    onFullscreen: () => {
+      const block = wodBlocksRef.current[0] ?? null
+      if (!block) return
+      const runtimeId = uuidv4()
+      pendingRuntimes.set(runtimeId, { block, noteId: '' })
+      navigate(`/tracker/${runtimeId}`)
+    },
+  }
 
   // ── Query-param tracking: ?h=section-slug ───────────────────────────────
   const [headingParam, setHeadingParam] = useQueryState('h', {
@@ -315,30 +454,69 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
 
   // ── Panel node — shared between desktop and mobile ────────────────────────
 
-  // When a view-mode timer is active, swap the editor out for the timer panel
-  const panelContent = viewTimerBlock ? (
-    <RuntimeTimerPanel
-      block={viewTimerBlock}
-      autoStart
-      onClose={() => setViewTimerBlock(null)}
-      isExpanded
-    />
-  ) : (
-    <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }}>
-      <NoteEditor
-        value={editorSource}
-        onChange={v => { setEditorSource(v); editorSourceRef.current = v }}
-        onBlocksChange={blocks => { wodBlocksRef.current = blocks }}
-        theme={theme}
-        readonly={false}
-        showLineNumbers={false}
-        enableOverlay={false}
-        enableInlineRuntime={false}
-        commands={[]}
-        className="h-full"
-      />
-    </div>
-  )
+  // ── Panel content: editor → running → review ─────────────────────────────
+  const panelTitle =
+    panelMode === 'running' ? 'Running…' :
+    panelMode === 'review'  ? 'Review'   :
+    chromeTitle
+
+  const panelContent = (() => {
+    if (panelMode === 'running' && viewTimerBlock) {
+      return (
+        <RuntimeTimerPanel
+          block={viewTimerBlock}
+          autoStart
+          onClose={closeViewRuntime}
+          onComplete={handleViewComplete}
+          isExpanded
+        />
+      )
+    }
+    if (panelMode === 'review') {
+      return (
+        <div className="flex flex-col h-full">
+          {/* Back to editor */}
+          <button
+            onClick={() => setPanelMode('editor')}
+            className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors shrink-0 border-b border-border/40"
+          >
+            <ArrowLeft className="size-3" />
+            Back to editor
+          </button>
+          <div className="flex-1 min-h-0 overflow-auto">
+            <div className="p-3">
+              {reviewSegments.length > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Workout complete — {reviewSegments.length} segment{reviewSegments.length !== 1 ? 's' : ''} recorded.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Workout complete.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+    // Default: editor
+    return (
+      <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }}>
+        <NoteEditor
+          value={editorSource}
+          onChange={v => { setEditorSource(v); editorSourceRef.current = v }}
+          onBlocksChange={blocks => { wodBlocksRef.current = blocks }}
+          theme={theme}
+          readonly={false}
+          showLineNumbers={false}
+          enableOverlay={false}
+          enableInlineRuntime={false}
+          commands={[]}
+          className="h-full"
+        />
+      </div>
+    )
+  })()
+
+  const showPanelButtons = viewDef && panelMode === 'editor'
 
   const desktopPanel = viewDef && (
     <div
@@ -346,11 +524,17 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
       <div className="flex-1 min-h-0">
-        <MacOSChrome title={viewTimerBlock ? 'Running' : chromeTitle}>
+        <MacOSChrome title={panelTitle}>
           {panelContent}
         </MacOSChrome>
       </div>
-      {!viewTimerBlock && <ViewPanelButtons buttons={viewDef.buttons} onPipeline={executePipeline} />}
+      {showPanelButtons && (
+        <ViewPanelButtons
+          buttons={viewDef.buttons}
+          onPipeline={executePipeline}
+          runState={runState}
+        />
+      )}
     </div>
   )
 
@@ -361,11 +545,17 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
     >
       <div className="flex flex-col gap-2" style={{ height: '100%' }}>
         <div className="flex-1 min-h-0">
-          <MacOSChrome title={viewTimerBlock ? 'Running' : chromeTitle}>
+          <MacOSChrome title={panelTitle}>
             {panelContent}
           </MacOSChrome>
         </div>
-        {!viewTimerBlock && <ViewPanelButtons buttons={viewDef.buttons} onPipeline={executePipeline} />}
+        {showPanelButtons && (
+          <ViewPanelButtons
+            buttons={viewDef.buttons}
+            onPipeline={executePipeline}
+            runState={runState}
+          />
+        )}
       </div>
     </div>
   )
@@ -379,6 +569,7 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
           block={fullscreenBlock}
           onClose={() => setFullscreenBlock(null)}
           autoStart
+          onCompleteWorkout={() => setFullscreenBlock(null)}
         />
       )}
 
@@ -446,6 +637,7 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
                       section={section}
                       fullBleed={fullBleed}
                       onPipeline={executePipeline}
+                      runState={viewDef ? runState : undefined}
                     />
                   </div>
                 </div>

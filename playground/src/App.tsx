@@ -1,3 +1,4 @@
+// Trigger HMR reload - 1
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
 import { Dumbbell } from 'lucide-react'
@@ -84,6 +85,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useS
 import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
 import { CanvasPage } from './canvas/CanvasPage'
+import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { JournalPageShell } from '@/panels/page-shells'
@@ -95,7 +97,6 @@ import type { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
 import { 
-  createGlobalSearchStrategy, 
   createCollectionStrategy, 
   createStatementBuilderStrategy 
 } from './services/commandStrategies'
@@ -213,7 +214,7 @@ const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 // Load all markdown files from the markdown directory
 const workoutFiles = import.meta.glob('../../markdown/**/*.md', { eager: true, query: '?raw', import: 'default' })
 
-interface WorkoutItem {
+export interface WorkoutItem {
   id: string
   name: string
   category: string
@@ -267,10 +268,9 @@ function WorkoutEditorPage({
       noteId={noteId}
       onStartWorkout={usePopup ? undefined : handleStartWorkout}
       enableInlineRuntime={usePopup}
-      visibleCommands={2}
-      className="flex-1 min-h-0 w-full"
       theme={theme}
-    />
+      />
+
   )
 }
 
@@ -419,10 +419,9 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
       onStartWorkout={handleStartWorkout}
       enableInlineRuntime={false}
       onViewCreated={handleViewCreated}
-      visibleCommands={2}
-      className="flex-1 min-h-0 w-full"
       theme={theme}
-    />
+      />
+
   )
 }
 
@@ -613,10 +612,9 @@ function JournalPage({ theme }: { theme: string }) {
           noteId={noteId}
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}
-          visibleCommands={2}
-          className="flex-1 min-h-0 w-full"
           theme={theme}
-        />
+          />
+
       }
       timerOverlay={
         timerBlock ? (
@@ -774,12 +772,6 @@ function AppContent() {
     navigate(`/collections/${encodeURIComponent(category)}`)
   }, [navigate])
 
-  const handleSearchClick = useCallback(() => {
-    setActiveCategory(null)
-    setStrategy(createGlobalSearchStrategy(workoutItems, handleSelectWorkout))
-    setIsCommandPaletteOpen(true)
-  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
-
   // Reset strategy when palette closes
   useEffect(() => {
     if (!isCommandPaletteOpen) {
@@ -812,7 +804,7 @@ function AppContent() {
       if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
-        handleSearchClick()
+        navigate('/search')
       }
       // Ctrl/Cmd + .: Statement Builder (Interactive Segments)
       if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
@@ -836,7 +828,7 @@ function AppContent() {
     }
     window.addEventListener('keydown', down, true)
     return () => window.removeEventListener('keydown', down, true)
-  }, [handleSearchClick, setStrategy, setIsCommandPaletteOpen])
+  }, [navigate, setStrategy, setIsCommandPaletteOpen])
 
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -922,14 +914,8 @@ function AppContent() {
           </div>
           <NavbarSpacer />
           <NavbarSection>
-            <NavbarItem onClick={handleSearchClick} aria-label="Search">
+            <NavbarItem href="/search" aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
-              <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-[hover]:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-[hover]:text-zinc-400">
-                <abbr title="Control" className="no-underline">
-                  Ctrl
-                </abbr>{' '}
-                K
-              </kbd>
             </NavbarItem>
             <div className="lg:hidden">
               <CastButtonRpc />
@@ -997,15 +983,17 @@ function AppContent() {
                 <CodeBracketIcon data-slot="icon" />
                 <SidebarLabel>Syntax</SidebarLabel>
               </SidebarItem>
-              <SidebarItem onClick={handleSearchClick}>
+              <SidebarItem href="/calendar" current={location.pathname === '/calendar'}>
+                <ClockIcon data-slot="icon" />
+                <SidebarLabel>Calendar</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/journal" current={location.pathname === '/journal'}>
+                <RectangleStackIcon data-slot="icon" />
+                <SidebarLabel>Journal</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/search" current={location.pathname === '/search'}>
                 <MagnifyingGlassIcon data-slot="icon" />
                 <SidebarLabel>Search</SidebarLabel>
-                <kbd className="ml-auto hidden font-sans text-xs text-zinc-400 group-data-[hover]:text-zinc-500 lg:inline dark:text-zinc-500 dark:group-data-[hover]:text-zinc-400">
-                  <abbr title="Control" className="no-underline">
-                    Ctrl
-                  </abbr>{' '}
-                  K
-                </kbd>
               </SidebarItem>
             </SidebarSection>
           </SidebarHeader>
@@ -1016,24 +1004,6 @@ function AppContent() {
                 <SidebarLabel>New Playground</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
-
-            <SidebarAccordion title="Collections" count={Object.values(collections).flat().length}>
-              {Object.entries(collections).map(([groupName, groupCategories]) => (
-                groupCategories.length > 0 && (
-                  <React.Fragment key={groupName}>
-                    <div className="px-2 pt-4 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">
-                      {groupName}
-                    </div>
-                    {groupCategories.map(category => (
-                      <SidebarItem key={category} onClick={() => handleCollectionClick(category)} current={currentWorkout.category === category}>
-                        <FolderIcon data-slot="icon" />
-                        <SidebarLabel>{category}</SidebarLabel>
-                      </SidebarItem>
-                    ))}
-                  </React.Fragment>
-                )
-              ))}
-            </SidebarAccordion>
 
             <SidebarAccordion title="Results" count={recentResults.length}>
               {recentResults.length === 0 ? (
@@ -1117,6 +1087,27 @@ function AppContent() {
                 onSelect={handleSelectWorkout}
               />
             </div>
+          ) : location.pathname === '/calendar' ? (
+            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+              <CalendarPage 
+                workoutItems={workoutItems}
+                onSelect={handleSelectWorkout}
+              />
+            </div>
+          ) : location.pathname === '/journal' ? (
+            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+              <JournalWeeklyPage 
+                workoutItems={workoutItems}
+                onSelect={handleSelectWorkout}
+              />
+            </div>
+          ) : location.pathname === '/search' ? (
+            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+              <SearchPage 
+                workoutItems={workoutItems}
+                onSelect={handleSelectWorkout}
+              />
+            </div>
           ) : canvasPage ? (
             <div className="flex-1 flex flex-col bg-card">
               <CanvasPage
@@ -1188,6 +1179,9 @@ export function App() {
               <Route path="/" element={<AppContent />} />
               <Route path="/getting-started" element={<AppContent />} />
               <Route path="/syntax" element={<AppContent />} />
+              <Route path="/calendar" element={<AppContent />} />
+              <Route path="/journal" element={<AppContent />} />
+              <Route path="/search" element={<AppContent />} />
               <Route path="/collections/:slug" element={<AppContent />} />
               <Route path="/workout/:category/:name" element={<AppContent />} />
               <Route path="/load" element={<LoadZipPage />} />
