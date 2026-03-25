@@ -73,6 +73,7 @@ export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, sel
         return (
           <div 
             key={group.dateKey} 
+            id={group.dateKey}
             ref={el => itemRefs.current[group.dateKey] = el}
             className="flex flex-col"
           >

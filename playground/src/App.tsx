@@ -914,11 +914,38 @@ function AppContent() {
 
   // Nav links for the current page (used in the sticky header dropdown)
   const currentNavLinks = useMemo(() => {
-    if (location.pathname === '/' || location.pathname === '') return HOME_LINKS
+    // 1. Canvas pages (including Home)
+    if (canvasPage) {
+      return canvasPage.sections.map(s => ({ id: s.id, label: s.heading }))
+    }
+
+    // 2. Docs pages
     if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
     if (location.pathname === '/syntax') return SYNTAX_LINKS
+    
+    // 3. List based pages (Calendar, Search, etc.)
+    if (location.pathname === '/calendar' || location.pathname === '/journal' || location.pathname === '/search') {
+      const dates = new Set<string>()
+      recentResults.forEach(r => {
+        const d = new Date(r.completedAt).toISOString().split('T')[0]
+        dates.add(d)
+      })
+      workoutItems.forEach(item => {
+        const d = (item as any).payload?.targetDate || (item as any).payload?.updatedAt
+        if (d) {
+          const ds = new Date(d).toISOString().split('T')[0]
+          dates.add(ds)
+        }
+      })
+      const sorted = Array.from(dates).sort().reverse()
+      return sorted.slice(0, 10).map(d => ({
+        id: d,
+        label: new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      }))
+    }
+
     return []
-  }, [location.pathname])
+  }, [location.pathname, canvasPage, recentResults, workoutItems])
 
   const handleSelectWorkout = useCallback((item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
@@ -1189,7 +1216,7 @@ function AppContent() {
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <SimplePageShell title="Home" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
@@ -1198,21 +1225,21 @@ function AppContent() {
               />
             </SimplePageShell>
           ) : location.pathname === '/calendar' ? (
-            <SimplePageShell title="Calendar" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CalendarPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/journal' ? (
-            <SimplePageShell title="Journal" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/search' ? (
-            <SimplePageShell title="Search" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Search" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <SearchPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
