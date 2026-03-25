@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { cn } from '@/lib/utils';
 import { QueryOrganism, QueryObject, FilteredListItem } from './types';
 import { FilteredList } from './FilteredList';
 
@@ -8,6 +9,8 @@ interface QueriableListViewProps {
   items: { id: string; name: string; category: string; content?: string }[];
   results: any[]; // Recent results from IndexedDB
   onSelect: (item: FilteredListItem) => void;
+  className?: string;
+  hideBackground?: boolean;
 }
 
 export function QueriableListView({ 
@@ -15,7 +18,9 @@ export function QueriableListView({
   initialQuery: externalInitialQuery,
   items, 
   results: historicalResults,
-  onSelect 
+  onSelect,
+  className,
+  hideBackground
 }: QueriableListViewProps) {
   const [query, setQuery] = useState<QueryObject>(externalInitialQuery || {});
 
@@ -73,7 +78,11 @@ export function QueriableListView({
   }, [items, historicalResults, query]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-card">
+    <div className={cn(
+      "flex flex-col h-full overflow-hidden",
+      !hideBackground && "bg-card",
+      className
+    )}>
       <QueryOrganism onQueryChange={setQuery} initialQuery={externalInitialQuery} />
       <div className="flex-1 overflow-y-auto">
         <FilteredList items={filteredItems} onSelect={onSelect} />

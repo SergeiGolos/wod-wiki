@@ -18,8 +18,6 @@ import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/pl
 import {
   Sidebar,
   SidebarBody,
-  SidebarDivider,
-  SidebarFooter,
   SidebarHeader,
   SidebarItem,
   SidebarLabel,
@@ -35,30 +33,20 @@ import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
   ArrowRightStartOnRectangleIcon,
   ChevronDownIcon,
-  ChevronUpIcon,
   Cog8ToothIcon,
   LightBulbIcon,
+  PlusIcon,
   ShieldCheckIcon,
   UserIcon,
   AcademicCapIcon,
 } from '@heroicons/react/16/solid'
 import {
-  Cog6ToothIcon,
   HomeIcon,
   InboxIcon,
   MagnifyingGlassIcon,
-  MegaphoneIcon,
-  QuestionMarkCircleIcon,
-  SparklesIcon,
-  Square2StackIcon,
-  TicketIcon,
   CodeBracketIcon,
   ClockIcon,
-  ArrowsRightLeftIcon,
   RectangleStackIcon,
-  BeakerIcon,
-  CircleStackIcon,
-  CommandLineIcon,
   DocumentTextIcon,
   FolderIcon,
   EllipsisVerticalIcon,
@@ -75,7 +63,6 @@ import type { WorkoutResult } from '@/types/storage'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
-import { cn } from '@/lib/utils'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
@@ -96,7 +83,6 @@ import type { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
 import { 
-  createCollectionStrategy, 
   createStatementBuilderStrategy 
 } from './services/commandStrategies'
 
@@ -130,14 +116,6 @@ const SYNTAX_LINKS = [
   { id: 'supplemental', label: 'Supplemental' },
   { id: 'document', label: 'Document' },
 ]
-
-const syntaxPages = canvasRoutes
-  .filter(r => r.route.startsWith('/syntax/'))
-  .map(r => ({
-    route: r.route,
-    label: r.route.split('/').pop()!.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-  }))
-  .sort((a, b) => a.label.localeCompare(b.label))
 
 // ── Page Nav Dropdown (combobox showing current visible section) ────
 
@@ -227,6 +205,8 @@ export interface WorkoutItem {
   category: string
   content: string
 }
+
+const syntaxPages = canvasRoutes
 
 /**
  * Wrapper that loads workout content via IndexedDB (or falls back to MD).
@@ -654,7 +634,6 @@ function AppContent() {
   
   const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
   const { theme } = useTheme()
-  const [recentPages, setRecentPages] = useState<string[]>(['Home'])
   const [activeCategory, setActiveCategory] = useQueryState('cat')
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
@@ -707,42 +686,6 @@ function AppContent() {
     return workoutItems.find(item => item.name === name && item.category === category) || { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
   }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute])
 
-  const collections = useMemo(() => {
-    const categories = Array.from(new Set(workoutItems.map(item => item.category)))
-    
-    const groups = {
-      Kettlebell: [
-        'kettlebell', 'dan-john', 'geoff-neupert', 'girevoy-sport', 
-        'joe-daniels', 'keith-weber', 'mark-wildman', 'steve-cotter', 'strongfirst'
-      ],
-      Crossfit: [
-        'crossfit-games', 'crossfit-girls'
-      ],
-      Swimming: [
-        'swimming-pre-highschool', 'swimming-highschool', 'swimming-college', 'swimming-post-college', 
-        'swimming-masters', 'swimming-olympic', 'swimming-triathlete'
-      ],
-      Other: [
-        'unconventional'
-      ]
-    }
-
-    return {
-      Kettlebell: groups.Kettlebell.filter(c => categories.includes(c)),
-      Crossfit: groups.Crossfit.filter(c => categories.includes(c)),
-      Swimming: groups.Swimming.filter(c => categories.includes(c)),
-      Other: groups.Other.filter(c => categories.includes(c))
-    }
-  }, [workoutItems])
-
-  // Update recent pages whenever currentWorkout changes
-  useEffect(() => {
-    setRecentPages(prev => {
-      const filtered = prev.filter(name => name !== currentWorkout.name)
-      return [currentWorkout.name, ...filtered].slice(0, 5)
-    })
-  }, [currentWorkout.name])
-
   // Load recent workout results from IndexedDB
   const refreshResults = useCallback(() => {
     indexedDBService.getRecentResults(20).then(results => {
@@ -756,7 +699,7 @@ function AppContent() {
 
   // Nav links for the current page (used in the sticky header dropdown)
   const currentNavLinks = useMemo(() => {
-    if (location.pathname === '/') return HOME_LINKS
+    if (location.pathname === '/' || location.pathname === '') return HOME_LINKS
     if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
     if (location.pathname === '/syntax') return SYNTAX_LINKS
     return []
@@ -770,10 +713,6 @@ function AppContent() {
       const category = workout.category || 'General'
       navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
     }
-  }, [navigate])
-
-  const handleCollectionClick = useCallback((category: string) => {
-    navigate(`/collections/${encodeURIComponent(category)}`)
   }, [navigate])
 
   // Reset strategy when palette closes
@@ -975,7 +914,7 @@ function AppContent() {
               <span className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest">v{appVersion}</span>
             </div>
             <SidebarSection>
-              <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/'}>
+              <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/' || location.pathname === ''}>
                 <HomeIcon data-slot="icon" />
                 <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
@@ -1014,8 +953,6 @@ function AppContent() {
                 </SidebarItem>
               ))}
             </SidebarAccordion>
-
-            <SidebarDivider />
 
             <SidebarAccordion title="Results" count={recentResults.length}>
               {recentResults.length === 0 ? (
@@ -1090,7 +1027,7 @@ function AppContent() {
         </div>
         
         <div className="flex-1 flex flex-col min-h-0">
-          {location.pathname === '/' ? (
+          {location.pathname === '/' || location.pathname === '' ? (
             <div className="flex-1 flex flex-col bg-card">
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}

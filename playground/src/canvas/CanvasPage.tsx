@@ -31,6 +31,7 @@ import type { ParsedCanvasPage, CanvasSection, PipelineStep, OpenMode, ViewButto
 import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
+import { CollectionWorkoutsList } from '../views/queriable-list/CollectionWorkoutsList'
 
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
@@ -222,9 +223,6 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
 
   const isCollection = route.startsWith('/collections/')
   const collectionSlug = isCollection ? route.split('/').pop() : null
-  const collectionWorkouts = isCollection && workoutItems 
-    ? workoutItems.filter(item => item.category === collectionSlug)
-    : []
 
   // Hero = first section; content = the rest (observed by IntersectionObserver)
   const contentSections = sections.slice(1)
@@ -645,43 +643,26 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
             })}
 
             {/* Collection workouts list if applicable */}
-            {isCollection && (
-              <div className="min-h-[50vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50">
+            {isCollection && collectionSlug && workoutItems && (
+              <div className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50">
                 <div className="max-w-sm mb-12">
                   <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-                    List
+                    Explore
                   </div>
                   <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
                     Collection Workouts
                   </h2>
+                  <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                    Browse and search every workout in the {collectionSlug.replace(/-/g, ' ')} collection.
+                  </p>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                  {collectionWorkouts.length > 0 ? (
-                    collectionWorkouts.map((workout) => (
-                      <button
-                        key={workout.id}
-                        onClick={() => onSelect?.(workout)}
-                        className="group flex flex-col p-6 rounded-2xl border border-border bg-card hover:border-primary/50 transition-all text-left active:scale-[0.98]"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-black uppercase tracking-widest text-primary">
-                            Workout
-                          </span>
-                          <span className="text-xs font-bold text-muted-foreground uppercase">
-                            Load &rarr;
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
-                          {workout.name}
-                        </h3>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="p-8 rounded-2xl border border-dashed border-border text-center text-muted-foreground text-sm font-medium">
-                      No individual workouts found in this collection.
-                    </div>
-                  )}
+                <div className="flex-1 min-h-[500px] h-[600px] flex flex-col">
+                  <CollectionWorkoutsList
+                    category={collectionSlug}
+                    workoutItems={workoutItems}
+                    onSelect={onSelect ?? (() => {})}
+                  />
                 </div>
               </div>
             )}
