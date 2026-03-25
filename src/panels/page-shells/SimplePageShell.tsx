@@ -45,6 +45,7 @@ export function SimplePageShell({
   const [activeId, setActiveId] = useQueryState('s', {
     defaultValue: activeSectionId ?? index[0]?.id ?? '',
     shallow: false,
+    history: 'push',
   });
 
   // Internal scroll tracking
@@ -80,7 +81,7 @@ export function SimplePageShell({
 
   return (
     <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
-      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-6xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen">
+      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen">
         {/* Sticky header */}
         <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md pt-4 lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">

@@ -323,6 +323,7 @@ function WorkoutEditorPage({
           onStartWorkout={usePopup ? undefined : handleStartWorkout}
           enableInlineRuntime={usePopup}
           theme={theme}
+          showLineNumbers={false}
         />
       }
     />
@@ -577,6 +578,7 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
           enableInlineRuntime={false}
           onViewCreated={handleViewCreated}
           theme={theme}
+          showLineNumbers={false}
         />
       }
     />
@@ -792,6 +794,7 @@ function JournalPage({ theme }: { theme: string }) {
           enableInlineRuntime={false}
           onViewCreated={handleViewCreated}
           theme={theme}
+          showLineNumbers={false}
         />
       }
       timerOverlay={
