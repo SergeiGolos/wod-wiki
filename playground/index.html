@@ -10,6 +10,16 @@
 </head>
 
 <body class="min-h-svh w-full bg-white dark:bg-zinc-900">
+  <script>
+    // Restore path stored by 404.html (GitHub Pages SPA routing)
+    (function () {
+      var r = sessionStorage.getItem('spa-redirect');
+      if (r) {
+        sessionStorage.removeItem('spa-redirect');
+        history.replaceState(null, '', r.replace(location.origin, '') || '/');
+      }
+    })();
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

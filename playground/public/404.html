@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WOD Wiki</title>
+  <script>
+    // GitHub Pages SPA routing trick.
+    // When GitHub Pages 404s on a deep route (e.g. /playground/abc), it serves
+    // this page. We store the intended path and redirect to the root so the
+    // React app can boot and BrowserRouter restores the route.
+    sessionStorage.setItem('spa-redirect', location.href);
+    location.href = '/';
+  </script>
+</head>
+<body></body>
+</html>
