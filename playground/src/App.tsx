@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import * as Headless from '@headlessui/react'
 import { Avatar } from '@/components/playground/avatar'
 import { Dumbbell } from 'lucide-react'
 
@@ -76,7 +77,8 @@ import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
-import { JournalPageShell } from '@/panels/page-shells'
+import { SimplePageShell, JournalPageShell } from '@/panels/page-shells'
+import { PageNavDropdown } from '@/components/playground/PageNavDropdown'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { decodeZip } from './services/decodeZip'
@@ -91,11 +93,10 @@ import {
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
 const HOME_LINKS = [
-  { id: 'editor', label: 'Plan' },
-  { id: 'tracker', label: 'Track' },
-  { id: 'review', label: 'Metrics' },
-  { id: 'notebook', label: 'Notebook' },
-  { id: 'next-steps', label: 'Next Steps' },
+  { id: 'editor', label: 'Live Demo' },
+  { id: 'features', label: 'Features' },
+  { id: 'explore', label: 'Library' },
+  { id: 'deep-dive', label: 'Getting Started' },
 ]
 
 const ZERO_TO_HERO_LINKS = [
@@ -119,72 +120,11 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document' },
 ]
 
-// ── Page Nav Dropdown (combobox showing current visible section) ────
-
-function PageNavDropdown({
-  links,
-  scrollToSection,
-}: {
-  links: { id: string; label: string }[]
-  scrollToSection: (id: string) => void
-}) {
-  const [activeId, setActiveId] = useState(links[0]?.id ?? '')
-
-  // Reset when links change (route change)
-  useEffect(() => {
-    setActiveId(links[0]?.id ?? '')
-  }, [links])
-
-  // Track the visible section via IntersectionObserver
-  useEffect(() => {
-    if (links.length === 0) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-            setActiveId(entry.target.id)
-          }
-        })
-      },
-      { rootMargin: '-60px 0px -40% 0px', threshold: [0, 0.3, 1.0] }
-    )
-    links.forEach(link => {
-      const el = document.getElementById(link.id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
-  }, [links])
-
-  if (links.length === 0) return null
-
-  const activeLabel = links.find(l => l.id === activeId)?.label ?? links[0]?.label ?? 'Sections'
-
-  return (
-    <Dropdown>
-      <DropdownButton plain aria-label="Page sections" className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
-        <DocumentTextIcon className="size-3.5 shrink-0" />
-        <span className="max-w-28 truncate">{activeLabel}</span>
-        <ChevronDownIcon className="size-3 shrink-0" />
-      </DropdownButton>
-      <DropdownMenu className="min-w-48" anchor="bottom end">
-        {links.map(link => (
-          <DropdownItem
-            key={link.id}
-            onClick={() => scrollToSection(link.id)}
-          >
-            <DropdownLabel className={activeId === link.id ? 'font-bold' : undefined}>{link.label}</DropdownLabel>
-            {activeId === link.id && <span className="col-start-5 text-primary text-xs">✓</span>}
-          </DropdownItem>
-        ))}
-      </DropdownMenu>
-    </Dropdown>
-  )
-}
-
 // ── New Journal Entry Split Button ─────────────────────────────────
 
 function NewEntryButton() {
   const navigate = useNavigate()
+  const [conflictIso, setConflictIso] = useState<string | null>(null)
 
   const todayISO = () => new Date().toISOString().slice(0, 10)
 
@@ -207,45 +147,89 @@ function NewEntryButton() {
     return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   }
 
-  const pick = (iso: string) => {
+  const pick = async (iso: string) => {
     setSelectedIso(iso)
+    const pageId = PlaygroundDBService.pageId('journal', iso)
+    const existing = await playgroundDB.getPage(pageId)
+    if (existing) {
+      setConflictIso(iso)
+      return
+    }
     navigate(`/journal/${iso}`)
   }
 
+  const handleOpenExisting = () => {
+    if (!conflictIso) return
+    const iso = conflictIso
+    setConflictIso(null)
+    navigate(`/journal/${iso}`)
+  }
+
+  const handleCreateNew = () => {
+    if (!conflictIso) return
+    const iso = conflictIso
+    const now = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const uniqueId = `${iso}-${pad(now.getHours())}-${pad(now.getMinutes())}`
+    setConflictIso(null)
+    navigate(`/journal/${uniqueId}`)
+  }
+
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => pick(selectedIso)}
-        aria-label={`New journal entry for ${selectedIso}`}
-        className="gap-1.5 text-xs font-semibold"
-      >
-        <PlusIcon className="size-4 shrink-0" />
-        <span className="hidden sm:inline">{formatLabel(selectedIso)}</span>
-      </Button>
-      <Dropdown>
-        <DropdownButton plain aria-label="New entry for a specific date">
-          <CalendarDaysIcon data-slot="icon" className="size-5 text-zinc-500" />
-        </DropdownButton>
-        <DropdownMenu className="min-w-40" anchor="bottom end">
-          <DropdownItem onClick={() => pick(offsetISO(0))}>
-            <DropdownLabel>Today</DropdownLabel>
-          </DropdownItem>
-          <DropdownItem onClick={() => pick(offsetISO(-1))}>
-            <DropdownLabel>Yesterday</DropdownLabel>
-          </DropdownItem>
-          <DropdownItem onClick={() => pick(offsetISO(1))}>
-            <DropdownLabel>Tomorrow</DropdownLabel>
-          </DropdownItem>
-          <DropdownDivider />
-          <DropdownItem onClick={() => navigate('/calendar')}>
-            <CalendarDaysIcon data-slot="icon" />
-            <DropdownLabel>Calendar…</DropdownLabel>
-          </DropdownItem>
-        </DropdownMenu>
-      </Dropdown>
-    </div>
+    <>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => pick(selectedIso)}
+          aria-label={`New journal entry for ${selectedIso}`}
+          className="gap-1.5 text-xs font-semibold"
+        >
+          <PlusIcon className="size-4 shrink-0" />
+          <span className="hidden sm:inline">{formatLabel(selectedIso)}</span>
+        </Button>
+        <Dropdown>
+          <DropdownButton plain aria-label="New entry for a specific date">
+            <CalendarDaysIcon data-slot="icon" className="size-5 text-zinc-500" />
+          </DropdownButton>
+          <DropdownMenu className="min-w-40" anchor="bottom end">
+            <DropdownItem onClick={() => pick(offsetISO(0))}>
+              <DropdownLabel>Today</DropdownLabel>
+            </DropdownItem>
+            <DropdownItem onClick={() => pick(offsetISO(-1))}>
+              <DropdownLabel>Yesterday</DropdownLabel>
+            </DropdownItem>
+            <DropdownItem onClick={() => pick(offsetISO(1))}>
+              <DropdownLabel>Tomorrow</DropdownLabel>
+            </DropdownItem>
+            <DropdownDivider />
+            <DropdownItem onClick={() => navigate('/calendar')}>
+              <CalendarDaysIcon data-slot="icon" />
+              <DropdownLabel>Calendar…</DropdownLabel>
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </div>
+
+      <Headless.Dialog open={conflictIso !== null} onClose={() => setConflictIso(null)} className="relative z-50">
+        <Headless.DialogBackdrop className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Headless.DialogPanel className="bg-card border border-border rounded-2xl shadow-2xl p-6 max-w-xs w-full">
+            <Headless.DialogTitle className="text-xs font-black uppercase tracking-widest text-foreground mb-2">
+              Entry already exists
+            </Headless.DialogTitle>
+            <p className="text-xs text-muted-foreground mb-5">
+              A journal entry for <span className="font-bold text-foreground">{conflictIso}</span> already exists. Open it or create a separate entry timestamped to now?
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleOpenExisting} className="w-full justify-center">Open existing</Button>
+              <Button variant="outline" onClick={handleCreateNew} className="w-full justify-center">Create new entry</Button>
+              <Button variant="ghost" onClick={() => setConflictIso(null)} className="w-full justify-center text-muted-foreground">Cancel</Button>
+            </div>
+          </Headless.DialogPanel>
+        </div>
+      </Headless.Dialog>
+    </>
   )
 }
 
@@ -310,6 +294,8 @@ function WorkoutEditorPage({
     [noteId, navigate],
   )
 
+  const index = useMemo(() => extractHeaders(content), [content])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -319,13 +305,26 @@ function WorkoutEditorPage({
   }
 
   return (
-    <NoteEditor
-      value={content}
-      onChange={onChange}
-      noteId={noteId}
-      onStartWorkout={usePopup ? undefined : handleStartWorkout}
-      enableInlineRuntime={usePopup}
-      theme={theme}
+    <JournalPageShell
+      title={name}
+      index={index}
+      actions={
+        <div className="flex items-center gap-4">
+          <NewEntryButton />
+          <CastButtonRpc />
+          <ActionsMenu currentWorkout={{ name: noteId, content }} />
+        </div>
+      }
+      editor={
+        <NoteEditor
+          value={content}
+          onChange={onChange}
+          noteId={noteId}
+          onStartWorkout={usePopup ? undefined : handleStartWorkout}
+          enableInlineRuntime={usePopup}
+          theme={theme}
+        />
+      }
     />
   )
 }
@@ -427,6 +426,96 @@ function PlaygroundRedirect() {
   )
 }
 
+// ── Actions Menu (Theme, Download, Reset) ──────────────────────────
+
+function ActionsMenu({ 
+  currentWorkout, 
+  onDownload 
+}: { 
+  currentWorkout: { name: string, content: string },
+  onDownload?: () => void
+}) {
+  const { theme, setTheme } = useTheme()
+
+  const handleResetData = async () => {
+    localStorage.clear()
+    await playgroundDB.clearAll()
+    window.location.reload()
+  }
+
+  const handleDownload = () => {
+    if (onDownload) {
+      onDownload()
+      return
+    }
+    const blob = new Blob([currentWorkout.content], { type: 'text/markdown' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${currentWorkout.name}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <Dropdown>
+      <DropdownButton plain>
+        <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
+      </DropdownButton>
+      <DropdownMenu className="min-w-56" anchor="bottom end">
+        <DropdownItem onClick={handleDownload}>
+          <ArrowDownTrayIcon data-slot="icon" />
+          <DropdownLabel>Download Markdown</DropdownLabel>
+        </DropdownItem>
+        <DropdownItem href="#/debug">
+          <BugAntIcon data-slot="icon" />
+          <DropdownLabel>Toggle Debug Mode</DropdownLabel>
+        </DropdownItem>
+        <DropdownDivider />
+
+        <DropdownSection>
+          <DropdownHeading>Theme</DropdownHeading>
+          <DropdownItem onClick={() => setTheme('light')}>
+            <SunIcon data-slot="icon" />
+            <DropdownLabel>Light</DropdownLabel>
+            {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+          <DropdownItem onClick={() => setTheme('dark')}>
+            <MoonIcon data-slot="icon" />
+            <DropdownLabel>Dark</DropdownLabel>
+            {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+          <DropdownItem onClick={() => setTheme('system')}>
+            <ComputerDesktopIcon data-slot="icon" />
+            <DropdownLabel>System</DropdownLabel>
+            {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
+          </DropdownItem>
+        </DropdownSection>
+
+        <DropdownDivider />
+        <DropdownItem onClick={handleResetData}>
+          <ArrowPathIcon data-slot="icon" className="text-red-500" />
+          <DropdownLabel className="text-red-500">Reset & Clear Cache</DropdownLabel>
+        </DropdownItem>
+      </DropdownMenu>
+    </Dropdown>
+  )
+}
+
+function extractHeaders(content: string): PageNavLink[] {
+  const lines = content.split('\n')
+  const headers: PageNavLink[] = []
+  for (const line of lines) {
+    const match = line.match(/^(#{1,6})\s+(.*)$/)
+    if (match) {
+      const label = match[2].trim()
+      const id = label.toLowerCase().replace(/[^\w]+/g, '-')
+      headers.push({ id, label })
+    }
+  }
+  return headers
+}
+
 // ---------------------------------------------------------------------------
 // #/playground/:id — load page by UUID from DB, render in editor
 // ---------------------------------------------------------------------------
@@ -459,6 +548,8 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
     [noteId, navigate],
   )
 
+  const index = useMemo(() => extractHeaders(content), [content])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -468,14 +559,26 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
   }
 
   return (
-    <NoteEditor
-      value={content}
-      onChange={onChange}
-      noteId={noteId}
-      onStartWorkout={handleStartWorkout}
-      enableInlineRuntime={false}
-      onViewCreated={handleViewCreated}
-      theme={theme}
+    <JournalPageShell
+      title={noteId}
+      index={index}
+      actions={
+        <div className="flex items-center gap-4">
+          <NewEntryButton />
+          <CastButtonRpc />
+        </div>
+      }
+      editor={
+        <NoteEditor
+          value={content}
+          onChange={onChange}
+          noteId={noteId}
+          onStartWorkout={handleStartWorkout}
+          enableInlineRuntime={false}
+          onViewCreated={handleViewCreated}
+          theme={theme}
+        />
+      }
     />
   )
 }
@@ -659,6 +762,8 @@ function JournalPage({ theme }: { theme: string }) {
     setReviewSegments([])
   }, [])
 
+  const index = useMemo(() => extractHeaders(content), [content])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -669,6 +774,15 @@ function JournalPage({ theme }: { theme: string }) {
 
   return (
     <JournalPageShell
+      title={noteId}
+      index={index}
+      actions={
+        <div className="flex items-center gap-4">
+          <NewEntryButton />
+          <CastButtonRpc />
+          <ActionsMenu currentWorkout={{ name: noteId, content }} />
+        </div>
+      }
       editor={
         <NoteEditor
           value={content}
@@ -722,9 +836,9 @@ function AppContent() {
   const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground
   // For /note/playground/:name, use urlName as the playground ID
   const effectivePlaygroundId = playgroundId || (isNotePlayground ? urlName : undefined)
-  // Journal entry route: /journal/:id
-  const isJournalEntryRoute = location.pathname.startsWith('/journal/') && !!urlName
-  const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName!) : undefined
+  // Journal entry route: /journal/:id  — note: the route param is :id → playgroundId
+  const isJournalEntryRoute = location.pathname.startsWith('/journal/') && (!!urlName || !!playgroundId)
+  const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
 
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
@@ -900,50 +1014,6 @@ function AppContent() {
 
   const { setTheme } = useTheme()
 
-  const ActionsMenu = () => (
-    <Dropdown>
-      <DropdownButton plain>
-        <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
-      </DropdownButton>
-      <DropdownMenu className="min-w-56" anchor="bottom end">
-        <DropdownItem onClick={handleDownload}>
-          <ArrowDownTrayIcon data-slot="icon" />
-          <DropdownLabel>Download Markdown</DropdownLabel>
-        </DropdownItem>
-        <DropdownItem href="#/debug">
-          <BugAntIcon data-slot="icon" />
-          <DropdownLabel>Toggle Debug Mode</DropdownLabel>
-        </DropdownItem>
-        <DropdownDivider />
-
-        <DropdownSection>
-          <DropdownHeading>Theme</DropdownHeading>
-          <DropdownItem onClick={() => setTheme('light')}>
-            <SunIcon data-slot="icon" />
-            <DropdownLabel>Light</DropdownLabel>
-            {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
-          </DropdownItem>
-          <DropdownItem onClick={() => setTheme('dark')}>
-            <MoonIcon data-slot="icon" />
-            <DropdownLabel>Dark</DropdownLabel>
-            {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
-          </DropdownItem>
-          <DropdownItem onClick={() => setTheme('system')}>
-            <ComputerDesktopIcon data-slot="icon" />
-            <DropdownLabel>System</DropdownLabel>
-            {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
-          </DropdownItem>
-        </DropdownSection>
-
-        <DropdownDivider />
-        <DropdownItem onClick={handleResetData}>
-          <ArrowPathIcon data-slot="icon" className="text-red-500" />
-          <DropdownLabel className="text-red-500">Reset & Clear Cache</DropdownLabel>
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
-  )
-
   return (
     <SidebarLayout
       navbar={
@@ -955,9 +1025,12 @@ function AppContent() {
           </div>
           <NavbarSpacer />
           <NavbarSection>
-            <div className="lg:hidden">
-              <NewEntryButton />
-            </div>
+            {currentNavLinks.length > 0 && (
+              <div className="lg:hidden">
+                <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
+              </div>
+            )}
+            <NewEntryButton />
             <NavbarItem href="/search" aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
             </NavbarItem>
@@ -968,7 +1041,7 @@ function AppContent() {
               <InboxIcon data-slot="icon" />
             </NavbarItem>
             <div className="lg:hidden">
-              <ActionsMenu />
+              <ActionsMenu currentWorkout={currentWorkout} />
             </div>
             <div className="max-lg:hidden">
               <Dropdown>
@@ -1111,60 +1184,43 @@ function AppContent() {
       }
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
-        {/* Sticky header with page nav dropdown — shown on all pages */}
-        <div className="sticky top-0 z-30 bg-background pt-4 lg:pt-8 max-lg:hidden">
-          <div className="flex items-center justify-between px-6 lg:px-10">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-2 rounded-full bg-primary" />
-              <h1 className="text-4xl font-black tracking-tight text-foreground leading-none">{currentWorkout.name}</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
-              <NewEntryButton />
-              <CastButtonRpc />
-              <ActionsMenu />
-            </div>
-          </div>
-          <hr role="presentation" className="mt-8 w-full border-t border-border opacity-50" />
-        </div>
-        
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <div className="flex-1 flex flex-col bg-card">
+            <SimplePageShell title="Home" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </div>
+            </SimplePageShell>
           ) : location.pathname === '/calendar' ? (
-            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+            <SimplePageShell title="Calendar" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CalendarPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </div>
+            </SimplePageShell>
           ) : location.pathname === '/journal' ? (
-            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+            <SimplePageShell title="Journal" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </div>
+            </SimplePageShell>
           ) : location.pathname === '/search' ? (
-            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+            <SimplePageShell title="Search" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <SearchPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </div>
+            </SimplePageShell>
           ) : location.pathname === '/collections' ? (
-            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+            <SimplePageShell title="Collections" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
-            </div>
+            </SimplePageShell>
           ) : canvasPage ? (
-            <div className="flex-1 flex flex-col bg-card">
+            <SimplePageShell title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><CastButtonRpc /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
@@ -1172,9 +1228,9 @@ function AppContent() {
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </div>
+            </SimplePageShell>
           ) : (
-            <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
+            <>
               {isPlaygroundRoute && effectivePlaygroundId ? (
                 <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
               ) : isJournalEntryRoute && journalEntryId ? (
@@ -1188,7 +1244,7 @@ function AppContent() {
                   theme={actualTheme}
                 />
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

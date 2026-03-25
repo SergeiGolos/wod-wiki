@@ -5,124 +5,137 @@ route: /
 
 # WOD Wiki {sticky dark full-bleed}
 
-Write workouts. Track them live. Review what you did.
-WOD Wiki turns a simple markdown syntax into a real-time workout timer and result log — all in your browser.
-
-```view
-name:    hero-demo
-state:   note
-source:  wods/examples/home/sample-script.md
-runtime: in-memory
-launch:  host
-align:   right
-width:   45%
-```
+## Your workout — written once, run forever.
+WOD Wiki is a workout studio for coaches, trainers, and home gym enthusiasts. Write your session in a simple notation, hit play, and let the timer do the rest. Every rep, every round, tracked automatically.
 
 ```button
-label:  Try It Live
+label:  Try it Now
 target: hero-demo
 pipeline:
   - set-state: track
 ```
 
 ```button
-label:  Open Today's Workout
-target: hero-demo
+label:  Open Journal →
 pipeline:
-  - set-source: query:today
-  - set-state: note
-  - launch: dialog
+  - navigate: /journal
 ```
 
-## Write {sticky}
+## Pillars {full-bleed}
 
-Describe your workout in plain text. No special app, no complicated interface — just a `wod` block inside a note.
+### ✍️ Write Like a Coach
+Plan sessions in plain text, exactly the way coaches whiteboard workouts — reps, rounds, distances, rest. No forms, no dropdowns.
+
+### ⏱ Smart Timer Runs the Show
+Hit play and follow along. The timer knows when each round ends, when to rest, and what's coming next.
+
+### 📊 Analytics That Make Sense
+See your work calculated — total volume, time under load, intensity. Pre-workout estimates, post-workout totals.
+
+## Live Demo {sticky}
+
+### Act 1 — Write the Plan
+Start with what you're going to do. WOD Wiki reads like a whiteboard — rounds, reps, load, or time. That's it.
 
 ```view
 name:    write-demo
 state:   note
-source:  wods/examples/getting-started/statement-1.md
+source:  markdown/canvas/home/sample-script.md
 runtime: in-memory
 launch:  host
 align:   right
 width:   45%
 ```
 
-```command
-target: write-demo
-pipeline:
-  - set-source: wods/examples/getting-started/statement-1.md
-  - set-state: note
-```
+**Parsing**
+Under the hood, each line becomes a typed statement. Reps are counted. Weights are tracked. Timers are discovered automatically.
 
-Add reps, timers, rounds, and weights using a readable syntax that stays out of your way.
-[Learn the syntax →](/syntax)
+**Dialects**
+Dialects let WOD Wiki understand shorthand — CrossFit notation, swim yard totals, kettlebell volume. The same syntax works for every discipline.
 
-## Track {sticky}
-
-Hit play and WOD Wiki takes over. Your workout runs as a live timer — section by section, movement by movement.
+### Act 2 — Track the Workout
+Hit run. The smart timer counts down each block, advances automatically, and keeps you in the flow state.
 
 ```view
 name:    track-demo
 state:   track
-source:  wods/examples/getting-started/timer-1.md
+source:  markdown/canvas/home/sample-script.md
 runtime: in-memory
 launch:  host
 align:   right
 width:   45%
 ```
 
-```command
-target: track-demo
-open:   view
-pipeline:
-  - set-source: wods/examples/getting-started/timer-1.md
-  - set-state: track
-```
+**Live Metrics**
+As you work, values are collected per block. Total reps accumulate. An overlay shows your progress through the workout.
 
-```button
-label:  See It Run
-target: track-demo
-open:   view
-pipeline:
-  - set-state: track
-```
-
-## Review {sticky}
-
-After every session, your results are saved. See reps, load, and time for each movement. Compare across weeks.
+### Act 3 — Review the Results
+When the last round finishes, your results appear immediately. Volume, intensity, durations — all ready without any manual entry.
 
 ```view
 name:    review-demo
 state:   review
-source:  wods/examples/getting-started/groups-1.md
+source:  markdown/canvas/home/sample-script.md
 runtime: in-memory
 launch:  host
 align:   right
 width:   45%
 ```
 
-```command
-target: review-demo
-pipeline:
-  - set-source: wods/examples/getting-started/groups-1.md
-  - set-state: review
+**Share or Save**
+Results live in your browser's local IndexedDB — your data, your device, no account required. Export anywhere, anytime.
+
+## Features {full-bleed dark}
+
+### ⏱ Smart Timer
+- Counts up / down / interval based on your script
+- Automatic advance between blocks
+- Audio and visual cues for transitions
+- Full-screen mode during workouts
+
+### 📊 Pre & Post Analytics
+- **Pre-run**: estimated time, total reps, projected volume
+- **Post-run**: actual vs. estimated, intensity graph, per-block breakdown
+
+### 📺 Chromecast — Home Gym Ready
+- Cast the timer to any TV in your gym with one click
+- Full-screen display readable from across the room
+
+### 🗂 Collections & Library
+- Organize workouts into named collections
+- Browse by category (strength, cardio, mobility)
+
+## Browse the Library {sticky}
+
+Hundreds of ready-to-run workouts across every discipline. Click any card to load it in the editor and run immediately.
+
+```view
+name:    browse-demo
+state:   browse
+source:  markdown/collections/
+runtime: in-memory
+launch:  host
+align:   full
 ```
 
-## Get Started {sticky full-bleed dark}
+## Ready to write your own? {full-bleed dark}
 
-New to WOD Wiki? The Zero to Hero guide walks you through everything — from your first movement to a full AMRAP.
+The syntax takes about 10 minutes to learn. The deep-dive guide walks you from your first statement to complex interval protocols.
 
 ```button
-label:  Zero to Hero →
-target: hero-demo
+label:  Start Zero to Hero →
 pipeline:
-  - navigate: /zero-to-hero
+  - navigate: /getting-started
 ```
 
+## Start your training journal. {full-bleed}
+
+Every workout you run is automatically logged. Open today's journal entry and add your notes, load records, and session intentions — all in the same syntax.
+
 ```button
-label:  Browse the Syntax →
-target: hero-demo
+label:  Open Today's Journal →
 pipeline:
-  - navigate: /syntax
+  - navigate: query:today-journal
 ```
+
+No cloud required. Your data stays on your device. Export or import any time.

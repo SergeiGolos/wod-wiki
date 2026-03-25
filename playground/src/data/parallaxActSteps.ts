@@ -45,133 +45,80 @@ export interface ParallaxStep {
 
 // Loaded from markdown/canvas/home/sample-script.md — edit that file to tweak
 export const SAMPLE_SCRIPT = getHomeExample('sample-script') ||
-`# Pushup Benchmark
+`# Morning Strength
 3 rounds
-  5 Pushups
-  :10 Rest
+  10 Kettlebell Swings 24kg
+  :30 Rest
 `
 
 // Step index boundaries — used by Act1EditorSection to pick the sticky panel
 export const TRACK_STEP_START = 3    // sticky "Session Started"
-export const REVIEW_STEP_START = 10  // sticky "Metrics Collected"
-export const RECORDS_STEP_START = 14 // sticky "In your Notebook"
+export const REVIEW_STEP_START = 5   // sticky "Metrics Collected"
+export const RECORDS_STEP_START = 7  // sticky "In your Notebook"
 
 // All phases combined — one ParallaxSection scrolls through the full lifecycle
 export const EDITOR_STEPS: ParallaxStep[] = [
   // ── Phase 1: Plan (steps 0–2) ───────────────────────────────────────────
   {
-    eyebrow: 'Step 1 · Plan',
-    title: 'Your Workouts as Markdown',
-    body: 'WodWiki uses plain text **markdown**, but sprinkles some parsing magic on the special `\`\`\`wod` sections to understand workout structure and create smart **lap timers** to extract and collect the workout **metrics**.',
+    eyebrow: 'Act 1 · Write',
+    title: 'Write the Plan',
+    body: "Start with what you're going to do. WOD Wiki reads like a whiteboard — rounds, reps, load, or time. That's it.",
     examples: [
-      { label: 'Simple', wodScript: SAMPLE_SCRIPT },
+      { label: 'The Editor', wodScript: SAMPLE_SCRIPT },
     ],
     sticky: true,
     subsectionHint: 'Scroll to explore',
   },
   {
-    eyebrow: 'Step 1 · Plan',
-    title: 'Colors map to metrics',
-    body: 'The editor hints at **metrics** being collected with some syntax highlighting.',
-    examples: [
-      { label: 'Annotated', wodScript: SAMPLE_SCRIPT },
-    ],
+    eyebrow: 'Act 1 · Write',
+    title: 'Parsing',
+    body: 'Under the hood, each line becomes a typed statement. Reps are counted. Weights are tracked. Timers are discovered automatically.',
     subsection: true,
     bullets: [
-      { label: 'Green · Movement', detail: 'Exercise names like Pushups — identified as bare words or known exercise tokens.', example: 'Pushups' },
-      { label: 'Blue · Duration', detail: 'Timer expressions in :SS or MM:SS format — counted down or up automatically.', example: ':10' },
-      { label: 'Orange · Reps', detail: 'Quantities before a movement — the rep count becomes the target metric.', example: '5 Pushups' },
-      { label: 'Purple · Rounds', detail: 'Group quantifiers that define repetitions of nested blocks.', example: '(3) Rounds' },
+      { label: 'Green · Token', detail: 'Exercise names like Kettlebell Swings — identified as known exercise tokens.', example: 'Kettlebell Swings' },
+      { label: 'Orange · Reps', detail: 'Quantities before a movement — the rep count becomes the target metric.', example: '10' },
+      { label: 'Blue · Timer', detail: 'Timer expressions in :SS or MM:SS format — counted down or up automatically.', example: ':30 Rest' },
     ],
   },
   {
-    eyebrow: 'Step 1 · Plan',
-    title: 'Ready to run',
-    body: 'Click the **Run** button in the wod block header — or the inline button — to hand off to the timer.',
+    eyebrow: 'Act 1 · Write',
+    title: 'Dialects',
+    body: 'Dialects let WOD Wiki understand shorthand — CrossFit notation, swim yard totals, kettlebell volume. The same syntax works for every discipline.',
     subsection: true,
   },
-  // ── Phase 2: Track (steps 3–9) ──────────────────────────────────────────
+  // ── Phase 2: Track (steps 3–4) ──────────────────────────────────────────
   {
-    eyebrow: 'Step 2 · Track',
-    title: 'Session Started',
-    body: 'The primary button controlling your workout is the **lap / next** button — step through the specialized timer built from the **metrics** in your script.',
+    eyebrow: 'Act 2 · Track',
+    title: 'Track the Workout',
+    body: 'Hit run. The smart timer counts down each block, advances automatically, and keeps you in the flow state.',
     sticky: true,
     autoStartTimer: true,
   },
   {
-    eyebrow: 'Step 2 · Track',
-    title: 'Timer counts up',
-    body: 'The `5 Pushups` block has no time set, so the timer counts up. Your actual rep time becomes the recorded metric.',
+    eyebrow: 'Act 2 · Track',
+    title: 'Live Metrics',
+    body: 'As you work, values are collected per block. Total reps accumulate. An overlay shows your progress through the workout.',
     subsection: true,
   },
+  // ── Phase 3: Review (steps 5–6) ───────────────────────────────────────
   {
-    eyebrow: 'Step 2 · Track',
-    title: 'Child of a round',
-    body: 'This block is a child of the 3-round outer block. The header shows your current **round context**.',
-    subsection: true,
-  },
-  {
-    eyebrow: 'Step 2 · Track',
-    title: 'Click Next when done',
-    body: 'Tap **Next** to signal you finished the set. The `:10 Rest` countdown starts immediately.',
-    subsection: true,
-  },
-  {
-    eyebrow: 'Step 2 · Track',
-    title: 'Next card preview',
-    body: "The faded card below the timer shows what's coming next, so you never lose your place in the workout.",
-    subsection: true,
-  },
-  // Rest still belongs to Track — same timer view, same sticky header
-  {
-    eyebrow: 'Step 2 · Track',
-    title: 'Countdown from :10',
-    body: 'The Rest block counts down automatically. When it hits zero the runtime advances to the next set.',
-    subsection: true,
-  },
-  {
-    eyebrow: 'Step 2 · Track',
-    title: 'Auto-advance',
-    body: 'No button needed — the timer auto-advances when the countdown finishes.',
-    subsection: true,
-  },
-  // ── Phase 3: Review (steps 10–13) ───────────────────────────────────────
-  {
-    eyebrow: 'Step 3 · Review',
-    title: 'Metrics Collected',
-    body: 'Every completed block writes a segment: duration, reps, and effort — your raw workout receipts.',
+    eyebrow: 'Act 3 · Review',
+    title: 'Review the Results',
+    body: 'When the last round finishes, your results appear immediately. Volume, intensity, durations — all ready without any manual entry.',
     sticky: true,
   },
   {
-    eyebrow: 'Step 3 · Review',
-    title: 'Micro-metrics collected',
-    body: 'Every completed block writes a segment: duration, reps, and effort. These are your raw workout receipts.',
+    eyebrow: 'Act 3 · Review',
+    title: 'Share or Save',
+    body: "Results live in your browser's local IndexedDB — your data, your device, no account required. Export anywhere, anytime.",
     subsection: true,
   },
-  {
-    eyebrow: 'Step 3 · Review',
-    title: 'Projection engines',
-    body: 'The analytics transformer aggregates segments through projection engines: Volume, Rep, Distance, SessionLoad, MetMinute.',
-    subsection: true,
-  },
-  {
-    eyebrow: 'Step 3 · Review',
-    title: 'Calculated projections',
-    body: 'Total reps, session load, and estimated MET-minutes are calculated from your actual timing and rep data.',
-    subsection: true,
-  },
-  // ── Phase 4: Records (steps 14–16) ──────────────────────────────────────
+  // ── Phase 4: Records (steps 7–8) ──────────────────────────────────────
   {
     eyebrow: 'Step 4 · Records',
     title: 'In your Notebook',
     body: 'Back in the editor, the completed runtime writes records below the wod block — your times and reps inline with the script.',
     sticky: true,
-  },
-  {
-    eyebrow: 'Step 4 · Records',
-    title: 'Runtime records visible',
-    body: 'After a session, records appear inline with each block — lap times, rep counts, and effort scores side by side.',
-    subsection: true,
   },
   {
     eyebrow: 'Step 4 · Records',

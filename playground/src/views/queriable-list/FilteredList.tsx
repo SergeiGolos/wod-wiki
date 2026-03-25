@@ -7,6 +7,7 @@ interface FilteredListProps {
   items: FilteredListItem[];
   onSelect: (item: FilteredListItem) => void;
   selectedDate?: Date;
+  stickyOffset?: number;
 }
 
 const ItemIcon = ({ type }: { type: FilteredListItem['type'] }) => {
@@ -17,7 +18,7 @@ const ItemIcon = ({ type }: { type: FilteredListItem['type'] }) => {
   }
 };
 
-export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, selectedDate }) => {
+export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, selectedDate, stickyOffset = 0 }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -53,7 +54,7 @@ export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, sel
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [selectedDate]);
+  }, [selectedDate, stickyOffset]);
 
   if (items.length === 0) {
     return (
@@ -75,11 +76,13 @@ export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, sel
             ref={el => itemRefs.current[group.dateKey] = el}
             className="flex flex-col"
           >
-            <div className={cn(
-              "sticky top-0 z-10 px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2",
-              isSelectedGroup && "bg-primary/10 border-primary/20"
-            )}>
-              <CalendarIcon className={cn("size-3", isSelectedGroup ? "text-primary" : "text-muted-foreground")} />
+            <div
+              className={cn(
+                "sticky z-10 px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2",
+                isSelectedGroup && "bg-primary/10 border-primary/20"
+              )}
+              style={{ top: stickyOffset }}
+            >              <CalendarIcon className={cn("size-3", isSelectedGroup ? "text-primary" : "text-muted-foreground")} />
               <span className={cn(
                 "text-[10px] font-black uppercase tracking-widest",
                 isSelectedGroup ? "text-primary" : "text-muted-foreground"

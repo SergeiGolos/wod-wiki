@@ -13,7 +13,7 @@ export const FuzzySearchQuery: React.FC<QueryOrganismProps> = ({ onQueryChange, 
   }, [text, onQueryChange, initialQuery]);
 
   return (
-    <div className="flex items-center px-4 py-3 bg-card border-b border-border sticky top-0 z-10">
+    <div className="flex items-center px-4 py-3 bg-card border-b border-border">
       <MagnifyingGlassIcon className="size-5 text-muted-foreground mr-3" />
       <input
         type="text"

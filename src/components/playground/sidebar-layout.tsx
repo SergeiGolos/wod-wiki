@@ -114,11 +114,11 @@ export function SidebarLayout({
       <main 
         className={clsx(
           "flex flex-1 flex-col pb-2 lg:min-w-0 lg:pt-2 lg:pr-2 transition-all duration-700 ease-in-out",
-          "bg-white lg:bg-zinc-100 dark:bg-zinc-900 dark:lg:bg-zinc-950",
+          "bg-zinc-50 dark:bg-zinc-950",
           isCollapsed ? "lg:pl-2" : "lg:pl-64"
         )}
       >
-        <div className="grow lg:rounded-lg lg:bg-white lg:shadow-xs lg:ring-1 lg:ring-zinc-950/5 dark:lg:bg-zinc-900 dark:lg:ring-white/10">
+        <div className="grow w-full">
           {children}
         </div>
       </main>
