@@ -7,11 +7,14 @@ import {
   PenLine,
   Timer,
   BarChart2,
+  Play,
 } from 'lucide-react'
 import { scrollToSection } from './ParallaxSection'
+import { useNavigate } from 'react-router-dom'
 
 export function HomeHero() {
   const scrollerRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
 
   const scrollScroller = (direction: 'left' | 'right') => {
     if (scrollerRef.current) {
@@ -22,49 +25,34 @@ export function HomeHero() {
 
   const HERO_CARDS = [
     {
-      id: 'write',
+      id: 'editor',
       icon: <PenLine className="size-6" />,
-      label: 'Editor',
-      tagline: 'Plan your training',
+      label: 'Write Like a Coach',
+      tagline: 'Plan sessions in plain text',
+      copy: 'Exactly the way coaches whiteboard workouts — reps, rounds, distances, rest. No forms, no dropdowns.',
       color: 'text-blue-600 dark:text-blue-400',
       ring: 'hover:border-blue-400/50',
       bg: 'bg-blue-500/10',
-      bullets: [
-        'Write workouts in plain markdown',
-        'Syntax highlights every metric type',
-        'Live parse feedback as you type',
-        'Load from your workout library',
-      ],
     },
     {
-      id: 'track',
+      id: 'editor', // Scrolls to the live demo
       icon: <Timer className="size-6" />,
-      label: 'Timer',
-      tagline: 'Track performance',
+      label: 'Smart Timer Runs the Show',
+      tagline: 'Hit play and follow along',
+      copy: "The timer knows when each round ends, when to rest, and what's coming next.",
       color: 'text-orange-600 dark:text-orange-400',
       ring: 'hover:border-orange-400/50',
       bg: 'bg-orange-500/10',
-      bullets: [
-        'Smart lap timer built from your script',
-        'Countdown or count-up per block',
-        'Collects reps, rest, and effort',
-        'Advance manually or automatically',
-      ],
     },
     {
-      id: 'review',
+      id: 'editor', // Scrolls to the live demo
       icon: <BarChart2 className="size-6" />,
-      label: 'Review',
-      tagline: 'Analyze your metrics',
+      label: 'Analytics That Make Sense',
+      tagline: 'See your work calculated',
+      copy: 'Total volume, time under load, intensity. Pre-workout estimates, post-workout totals.',
       color: 'text-purple-600 dark:text-purple-400',
       ring: 'hover:border-purple-400/50',
       bg: 'bg-purple-500/10',
-      bullets: [
-        'Per-set performance breakdown',
-        'Volume, load & distance projections',
-        'Records written inline in your notebook',
-        'Historical session comparison',
-      ],
     },
   ]
 
@@ -82,12 +70,34 @@ export function HomeHero() {
           <div className="flex size-24 items-center justify-center rounded-[2rem] bg-primary text-primary-foreground shadow-2xl shadow-primary/30 rotate-3 animate-in zoom-in duration-500">
             <Zap className="size-12 fill-current" />
           </div>
-          <div className="space-y-6">
-            <h1 className="text-6xl font-black tracking-tighter sm:text-8xl lg:text-9xl text-foreground uppercase drop-shadow-sm">
-              WOD.WIKI
+          <div className="space-y-6 max-w-4xl">
+            <h1 className="text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl text-foreground uppercase drop-shadow-sm leading-tight">
+              Your workout — written once, run forever.
             </h1>
-            {/* Card Scroller / Spotlight */}
-            <div className="relative mt-2 max-w-5xl mx-auto w-full group/scroller">
+            <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+              WOD Wiki is a workout studio for coaches, trainers, and home gym enthusiasts. 
+              Write your session in a simple notation, hit play, and let the timer do the rest. 
+              Every rep, every round, tracked automatically.
+            </p>
+            
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+              <button
+                onClick={() => scrollToSection('editor')}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-sm font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+              >
+                <Play className="size-4 fill-current" />
+                Try it Now
+              </button>
+              <button
+                onClick={() => navigate('/journal')}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-background px-8 text-sm font-black uppercase tracking-widest text-foreground hover:bg-muted transition-all"
+              >
+                Open Journal →
+              </button>
+            </div>
+
+            {/* Value Pillars / Card Scroller */}
+            <div className="relative mt-12 max-w-5xl mx-auto w-full group/scroller">
               <button
                 onClick={() => scrollScroller('left')}
                 className="absolute -left-12 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-muted transition-all opacity-0 group-hover/scroller:opacity-100 hidden lg:flex text-muted-foreground hover:text-foreground"
@@ -108,7 +118,7 @@ export function HomeHero() {
               >
                 {HERO_CARDS.map((card) => (
                   <button
-                    key={card.id}
+                    key={card.label}
                     onClick={() => scrollToSection(card.id)}
                     className={`
                       snap-center shrink-0 w-[85vw] sm:w-auto sm:flex-1 sm:min-w-[300px]
@@ -128,17 +138,12 @@ export function HomeHero() {
                         {card.tagline}
                       </div>
                     </div>
-                    <ul className="text-left space-y-1.5 mb-5 flex-1">
-                      {card.bullets.map((b) => (
-                        <li key={b} className="flex items-start gap-1.5 text-[12px] text-muted-foreground leading-snug">
-                          <span className={`mt-0.5 text-[8px] shrink-0 ${card.color}`}>▸</span>
-                          {b}
-                        </li>
-                      ))}
-                    </ul>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                      {card.copy}
+                    </p>
                     <div className="w-full pt-4 border-t border-border/50 mt-auto">
                       <div className={`inline-flex items-center gap-1 text-[10px] font-bold ${card.color}`}>
-                        Explore {card.label}
+                        See it in action
                         <ChevronDown className="size-3 rotate-[-90deg]" />
                       </div>
                     </div>

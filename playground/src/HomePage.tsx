@@ -50,6 +50,7 @@ export function HomePageContent({
   const editorRef = useRef<FrozenEditorPanelHandle>(null)
   const browseRef = useRef<FrozenEditorPanelHandle>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
 
   const scrollScroller = (direction: 'left' | 'right') => {
     if (scrollerRef.current) {
@@ -128,12 +129,34 @@ export function HomePageContent({
             <div className="flex size-24 items-center justify-center rounded-[2rem] bg-primary text-primary-foreground shadow-2xl shadow-primary/30 rotate-3 animate-in zoom-in duration-500">
               <Zap className="size-12 fill-current" />
             </div>
-            <div className="space-y-6">
-              <h1 className="text-6xl font-black tracking-tighter sm:text-8xl lg:text-9xl text-foreground uppercase drop-shadow-sm">
-                WOD.WIKI
+            <div className="space-y-6 max-w-4xl">
+              <h1 className="text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl text-foreground uppercase drop-shadow-sm leading-tight">
+                Your workout — written once, run forever.
               </h1>
-              {/* Card Scroller / Spotlight */}
-              <div className="relative mt-2 max-w-5xl mx-auto w-full group/scroller">
+              <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                WOD Wiki is a workout studio for coaches, trainers, and home gym enthusiasts. 
+                Write your session in a simple notation, hit play, and let the timer do the rest. 
+                Every rep, every round, tracked automatically.
+              </p>
+              
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+                <button
+                  onClick={() => scrollToSection('editor')}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-sm font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
+                >
+                  <Play className="size-4 fill-current" />
+                  Try it Now
+                </button>
+                <button
+                  onClick={() => navigate('/journal')}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-background px-8 text-sm font-black uppercase tracking-widest text-foreground hover:bg-muted transition-all"
+                >
+                  Open Journal →
+                </button>
+              </div>
+
+              {/* Value Pillars / Card Scroller */}
+              <div className="relative mt-12 max-w-5xl mx-auto w-full group/scroller">
                 <button
                   onClick={() => scrollScroller('left')}
                   className="absolute -left-12 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-muted transition-all opacity-0 group-hover/scroller:opacity-100 hidden lg:flex text-muted-foreground hover:text-foreground"
@@ -156,52 +179,37 @@ export function HomePageContent({
                     {
                       id: 'editor',
                       icon: <PenLine className="size-6" />,
-                      label: 'Editor',
-                      tagline: 'Plan your training',
+                      label: 'Write Like a Coach',
+                      tagline: 'Plan sessions in plain text',
+                      copy: 'Exactly the way coaches whiteboard workouts — reps, rounds, distances, rest. No forms, no dropdowns.',
                       color: 'text-blue-600 dark:text-blue-400',
                       ring: 'hover:border-blue-400/50',
                       bg: 'bg-blue-500/10',
-                      bullets: [
-                        'Write workouts in plain markdown',
-                        'Syntax highlights every metric type',
-                        'Live parse feedback as you type',
-                        'Load from your workout library',
-                      ],
                     },
                     {
                       id: 'tracker',
                       icon: <Timer className="size-6" />,
-                      label: 'Timer',
-                      tagline: 'Track performance',
+                      label: 'Smart Timer Runs the Show',
+                      tagline: 'Hit play and follow along',
+                      copy: "The timer knows when each round ends, when to rest, and what's coming next.",
                       color: 'text-orange-600 dark:text-orange-400',
                       ring: 'hover:border-orange-400/50',
                       bg: 'bg-orange-500/10',
-                      bullets: [
-                        'Smart lap timer built from your script',
-                        'Countdown or count-up per block',
-                        'Collects reps, rest, and effort',
-                        'Advance manually or automatically',
-                      ],
                     },
                     {
                       id: 'review',
                       icon: <BarChart2 className="size-6" />,
-                      label: 'Review',
-                      tagline: 'Analyze your metrics',
+                      label: 'Analytics That Make Sense',
+                      tagline: 'See your work calculated',
+                      copy: 'Total volume, time under load, intensity. Pre-workout estimates, post-workout totals.',
                       color: 'text-purple-600 dark:text-purple-400',
                       ring: 'hover:border-purple-400/50',
                       bg: 'bg-purple-500/10',
-                      bullets: [
-                        'Per-set performance breakdown',
-                        'Volume, load & distance projections',
-                        'Records written inline in your notebook',
-                        'Historical session comparison',
-                      ],
                     },
                   ].map((card) => (
                     <button
                       key={card.id}
-                      onClick={() => scrollToSection(card.id)}
+                      onClick={() => scrollToSection('editor')}
                       className={`
                         snap-center shrink-0 w-[85vw] sm:w-auto sm:flex-1 sm:min-w-[300px]
                         group flex flex-col items-start rounded-xl border border-border p-6 text-left transition-all ${
@@ -220,17 +228,12 @@ export function HomePageContent({
                           {card.tagline}
                         </div>
                       </div>
-                      <ul className="text-left space-y-1.5 mb-5 flex-1">
-                        {card.bullets.map((b) => (
-                          <li key={b} className="flex items-start gap-1.5 text-[12px] text-muted-foreground leading-snug">
-                            <span className={`mt-0.5 text-[8px] shrink-0 ${card.color}`}>▸</span>
-                            {b}
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                        {card.copy}
+                      </p>
                       <div className="w-full pt-4 border-t border-border/50 mt-auto">
                         <div className={`inline-flex items-center gap-1 text-[10px] font-bold ${card.color}`}>
-                          Explore {card.label}
+                          See it in action
                           <ChevronDown className="size-3 rotate-[-90deg]" />
                         </div>
                       </div>
@@ -239,16 +242,11 @@ export function HomePageContent({
                 </div>
               </div>
             </div>
-            <div className="flex flex-col items-center gap-2 mt-4 text-muted-foreground/40">
-              <span className="text-[9px] font-black uppercase tracking-[0.35em]">Scroll to explore</span>
-              <ChevronDown className="size-4 animate-bounce" />
-            </div>
           </div>
         </div>
       </section>
 
       {/* Act 1 — Editor (stickyAlign='right', bg-background) */}
-      {/* Act 1b — Browse Collections (stickyAlign='right', bg-muted/[0.03]) */}
       <Act1EditorSection
         actualTheme={actualTheme}
         onRun={launchTracker}
@@ -264,16 +262,110 @@ export function HomePageContent({
         onAutoStart={() => { if (!trackerBlock) launchTracker(SAMPLE_SCRIPT) }}
       />
 
-      {/* Browse — follows the main act so it doesn't interrupt the Plan→Track flow */}
-      <ActBrowseSection
-        actualTheme={actualTheme}
-        onRun={launchTracker}
-        onSearch={() => { paletteSourceRef.current = 'browse'; setHomePaletteOpen(true) }}
-        browseRef={browseRef}
-      />
+      {/* Features Spotlight */}
+      <section id="features" className="px-6 py-24 bg-muted/30 border-y border-border/50">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter">Everything you need to train</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Key capabilities at a glance.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                icon: <Timer className="size-6" />,
+                title: 'Smart Timer',
+                bullets: ['Counts up / down / interval', 'Automatic advance', 'Audio and visual cues', 'Full-screen mode'],
+                color: 'text-orange-600 dark:text-orange-400',
+                bg: 'bg-orange-500/10'
+              },
+              {
+                icon: <BarChart2 className="size-6" />,
+                title: 'Pre & Post Analytics',
+                bullets: ['Estimated time and reps', 'Projected volume', 'Actual vs. estimated', 'Intensity graphs'],
+                color: 'text-purple-600 dark:text-purple-400',
+                bg: 'bg-purple-500/10'
+              },
+              {
+                icon: <Tv className="size-6" />,
+                title: 'Chromecast Ready',
+                bullets: ['Cast to any gym TV', 'Readable across room', 'No TV app required', 'One-click cast'],
+                color: 'text-blue-600 dark:text-blue-400',
+                bg: 'bg-blue-500/10'
+              },
+              {
+                icon: <RectangleStackIcon className="size-6" />,
+                title: 'Collections & Library',
+                bullets: ['Organize into collections', 'Browse by category', 'One-click load', 'Inline search'],
+                color: 'text-emerald-600 dark:text-emerald-400',
+                bg: 'bg-emerald-500/10'
+              }
+            ].map(f => (
+              <div key={f.title} className="flex flex-col items-start gap-4">
+                <div className={`flex size-12 items-center justify-center rounded-xl ${f.bg} ${f.color}`}>
+                  {f.icon}
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-wider">{f.title}</h3>
+                <ul className="space-y-2">
+                  {f.bullets.map(b => (
+                    <li key={b} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className={`size-1 rounded-full ${f.bg} ${f.color} bg-current`} />
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Explore — follows the main act so it doesn't interrupt the Plan→Track flow */}
+      <section id="explore" className="px-6 py-24 bg-background">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 space-y-4">
+            <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter">Browse the Library</h2>
+            <p className="text-muted-foreground max-w-2xl leading-relaxed">
+              Hundreds of ready-to-run workouts across every discipline. 
+              Click any card to load it in the editor and run immediately.
+            </p>
+          </div>
+          <div className="h-[600px] flex flex-col rounded-3xl border border-border bg-muted/10 overflow-hidden shadow-2xl shadow-black/5">
+             <ActBrowseSection
+                actualTheme={actualTheme}
+                onRun={launchTracker}
+                onSearch={() => { paletteSourceRef.current = 'browse'; setHomePaletteOpen(true) }}
+                browseRef={browseRef}
+              />
+          </div>
+        </div>
+      </section>
 
       {/* Resources / Deep Dive (ScrollSection, no sticky) */}
       <DeepDiveSection />
+
+      {/* Journal CTA */}
+      <section className="px-6 py-24 bg-primary text-primary-foreground overflow-hidden relative">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+        <div className="relative mx-auto max-w-4xl text-center space-y-8">
+          <h2 className="text-4xl sm:text-5xl font-black uppercase tracking-tighter">
+            Start your training journal.
+          </h2>
+          <p className="text-lg opacity-90 max-w-2xl mx-auto leading-relaxed">
+            Every workout you run is automatically logged. Open today's journal entry and add your notes, load records, and session intentions — all in the same syntax.
+          </p>
+          <div className="flex flex-col items-center gap-4 pt-4">
+            <button
+              onClick={() => navigate('/journal/' + new Date().toISOString().slice(0, 10))}
+              className="inline-flex h-14 items-center justify-center rounded-xl bg-primary-foreground px-10 text-sm font-black uppercase tracking-widest text-primary shadow-xl hover:scale-105 active:scale-95 transition-all"
+            >
+              Open Today's Journal →
+            </button>
+            <p className="text-xs opacity-70 font-bold uppercase tracking-widest">
+              No cloud required. Your data stays on your device.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <CommandPalette
         isOpen={isCommandPaletteOpen || homePaletteOpen}

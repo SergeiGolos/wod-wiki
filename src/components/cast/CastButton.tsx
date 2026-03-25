@@ -288,7 +288,7 @@ export const CastButton: React.FC = () => {
             size="icon" 
             onClick={handleCast} 
             className={cn(
-                "transition-all duration-300",
+                "transition-all duration-300 rounded-full",
                 isConnected ? "text-blue-500 bg-blue-500/10" : "",
                 isCurrentlyConnecting ? "text-blue-400" : "",
                 isAvailable ? "text-foreground hover:text-blue-500" : ""

@@ -26,7 +26,7 @@ export const WeekPlannerQuery: React.FC<QueryOrganismProps> = ({ onQueryChange, 
   };
 
   return (
-    <div className="bg-card border-b border-border sticky top-0 z-10 px-4 py-3 overflow-x-auto">
+    <div className="bg-card border-b border-border px-4 py-3 overflow-x-auto">
       <div className="flex justify-between gap-2 min-w-max">
         {days.map((date, i) => {
           const isToday = date.toDateString() === new Date().toDateString();

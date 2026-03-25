@@ -9,7 +9,14 @@ const COLLECTION_GROUPS: Record<string, string[]> = {
     'kettlebell', 'dan-john', 'geoff-neupert', 'girevoy-sport',
     'joe-daniels', 'keith-weber', 'mark-wildman', 'steve-cotter', 'strongfirst',
   ],
-  Crossfit: ['crossfit-games', 'crossfit-girls'],
+  Crossfit: [
+    'crossfit-games - 2020', 
+    'crossfit-games - 2021', 
+    'crossfit-games - 2022', 
+    'crossfit-games - 2023', 
+    'crossfit-games - 2024',
+    'crossfit-girls'
+  ],
   Swimming: [
     'swimming-pre-highschool', 'swimming-highschool', 'swimming-college',
     'swimming-post-college', 'swimming-masters', 'swimming-olympic', 'swimming-triathlete',

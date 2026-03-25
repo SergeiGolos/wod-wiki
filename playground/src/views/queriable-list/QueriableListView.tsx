@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { QueryOrganism, QueryObject, FilteredListItem } from './types';
 import { FilteredList } from './FilteredList';
@@ -11,6 +11,7 @@ interface QueriableListViewProps {
   onSelect: (item: FilteredListItem) => void;
   className?: string;
   hideBackground?: boolean;
+  disableDateFiltering?: boolean;
 }
 
 export function QueriableListView({ 
@@ -20,9 +21,22 @@ export function QueriableListView({
   results: historicalResults,
   onSelect,
   className,
-  hideBackground
+  hideBackground,
+  disableDateFiltering
 }: QueriableListViewProps) {
   const [query, setQuery] = useState<QueryObject>(externalInitialQuery || {});
+  const queryRef = useRef<HTMLDivElement>(null);
+  const [queryHeight, setQueryHeight] = useState(0);
+
+  useEffect(() => {
+    const el = queryRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(entries => {
+      setQueryHeight(entries[0].borderBoxSize[0].blockSize);
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const filteredItems = useMemo(() => {
     let combined: FilteredListItem[] = [];
@@ -34,6 +48,7 @@ export function QueriableListView({
         type: 'note',
         title: item.name,
         subtitle: item.category,
+        date: (item.payload as any)?.targetDate || (item.payload as any)?.updatedAt,
         payload: item
       });
     });
@@ -59,7 +74,7 @@ export function QueriableListView({
       );
     }
 
-    if (query.startDate) {
+    if (query.startDate && !disableDateFiltering) {
       const start = new Date(query.startDate).setHours(0,0,0,0);
       const end = query.endDate ? new Date(query.endDate).setHours(23,59,59,999) : new Date(query.startDate).setHours(23,59,59,999);
       
@@ -75,18 +90,26 @@ export function QueriableListView({
 
     // Sort by date (descending)
     return combined.sort((a, b) => (b.date || 0) - (a.date || 0));
-  }, [items, historicalResults, query]);
+  }, [items, historicalResults, query, disableDateFiltering]);
 
   return (
-    <div className={cn(
-      "flex flex-col h-full overflow-hidden",
-      !hideBackground && "bg-card",
-      className
-    )}>
-      <QueryOrganism onQueryChange={setQuery} initialQuery={externalInitialQuery} />
-      <div className="flex-1 overflow-y-auto">
-        <FilteredList items={filteredItems} onSelect={onSelect} />
+    <div
+      className={cn(
+        "flex-1 min-h-0 overflow-y-auto",
+        !hideBackground && "bg-card",
+        className
+      )}
+      style={{ scrollPaddingTop: `${queryHeight}px` }}
+    >
+      <div ref={queryRef} className="sticky top-0 z-20">
+        <QueryOrganism onQueryChange={setQuery} initialQuery={externalInitialQuery} />
       </div>
+      <FilteredList 
+        items={filteredItems} 
+        onSelect={onSelect} 
+        selectedDate={query.startDate}
+        stickyOffset={queryHeight}
+      />
     </div>
   );
 }

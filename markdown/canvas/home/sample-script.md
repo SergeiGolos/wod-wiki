@@ -1,13 +1,4 @@
----
-title: Pushup Benchmark
-subtitle: A simple 3-round workout to demonstrate the editor
-section: home
-order: 1
----
-# Pushup Benchmarkn
-
-```wod
-(3) Rounds
-  5 Pushups
-  :10 Rest
-```
+# Morning Strength
+3 rounds
+  10 Kettlebell Swings 24kg
+  :30 Rest

@@ -18,3 +18,4 @@ export { ScopedRuntimeProvider, type ScopedRuntimeProviderProps } from './Scoped
 export { DocsPageShell, type DocsPageShellProps } from './DocsPageShell';
 export { JournalPageShell, type JournalPageShellProps } from './JournalPageShell';
 export { CalendarPageShell, type CalendarPageShellProps } from './CalendarPageShell';
+export { SimplePageShell, type SimplePageShellProps } from './SimplePageShell';

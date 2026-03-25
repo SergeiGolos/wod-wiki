@@ -52,6 +52,7 @@ import { previewDecorations } from "./extensions/preview-decorations";
 import { embedPreviewDecorations } from "./extensions/embed-preview";
 import { frontmatterPreview } from "./extensions/frontmatter-preview";
 import { markdownTablePreview } from "./extensions/markdown-tables";
+import { markdownSyntaxHiding } from "./extensions/markdown-syntax-hiding";
 import { wodLinter } from "./extensions/wod-linter";
 import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplete";
 import { wodOverlayPanel } from "./extensions/wod-overlay";
@@ -508,10 +509,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Block-level preview decorations
       ...(enablePreview ? [
-        previewDecorations, 
-        embedPreviewDecorations, 
-        frontmatterPreview, 
-        markdownTablePreview
+        previewDecorations,
+        embedPreviewDecorations,
+        frontmatterPreview,
+        markdownTablePreview,
+        markdownSyntaxHiding(),
       ] : []),
 
       // WodScript linting (no separate lintGutter — unified gutter handles it)

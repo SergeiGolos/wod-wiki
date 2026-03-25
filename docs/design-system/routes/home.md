@@ -9,23 +9,20 @@
 
 ## Page Outline
 
-The Home route is unique as it uses a wrapper component `HomeView` to prepend a specialized Hero section before the standard Canvas content.
+The Home route uses a wrapper component `HomeView` to prepend a specialized Hero section before the standard Canvas content.
 
 | Component | Location | Responsibility |
 |-----------|----------|----------------|
 | `HomeView` | `playground/src/views/HomeView.tsx` | Main view wrapper; renders `HomeHero` and `CanvasPage`. |
-| `HomeHero` | `playground/src/components/HomeHero.tsx` | Visual splash with feature cards; provides quick-scroll links to content sections. |
+| `HomeHero` | `playground/src/components/HomeHero.tsx` | Visual splash with value pillars; provides quick-scroll links to content sections. |
 | `CanvasPage`| `playground/src/canvas/CanvasPage.tsx` | Renders the scroll-driven interactive markdown content. |
 
 ### Header Navigation (TSX Hardcoded)
 The global `PageNavDropdown` (defined in `App.tsx`) shows the following links when on the Home route:
-- **Plan** (id: `editor`)
-- **Track** (id: `tracker`)
-- **Metrics** (id: `review`)
-- **Notebook** (id: `notebook`)
-- **Next Steps** (id: `next-steps`)
-
-*Note: There is a discrepancy between these hardcoded IDs and the actual slugified heading IDs in the markdown (e.g., `write` vs `editor`).*
+- **Live Demo** (id: `editor`)
+- **Features** (id: `features`)
+- **Library** (id: `explore`)
+- **Getting Started** (id: `deep-dive`)
 
 ## Sections Outline
 
@@ -34,31 +31,15 @@ Sections are derived from `markdown/canvas/home/README.md`.
 | Section | Slug (ID) | Sticky/Dark | Alignment | View Target |
 |---------|-----------|-------------|-----------|-------------|
 | **WOD Wiki** | `wod-wiki` | Sticky, Dark, Full-Bleed | Right | `hero-demo` |
-| **Write** | `write` | Sticky | Right | `write-demo` |
-| **Track** | `track` | Sticky | Right | `track-demo` |
-| **Review** | `review` | Sticky | Right | `review-demo` |
-| **Get Started** | `get-started` | Sticky, Dark, Full-Bleed | - | - |
+| **Live Demo** | `editor` | Sticky | Right | `write-demo`, `track-demo`, `review-demo` |
+| **Features** | `features` | Full-Bleed, Dark | - | - |
+| **Browse the Library** | `explore` | Sticky | Full | `browse-demo` |
+| **Ready to write your own?** | `deep-dive` | Full-Bleed, Dark | - | - |
+| **Start your training journal** | `journal-cta` | Full-Bleed | - | - |
 
-## Special Actions & Pipelines
+## Tone & Voice
 
-The following interactive actions are defined within the markdown blocks:
-
-### Loading Actions (Commands)
-Executed automatically when the section scrolls into view.
-
-| Target        | Pipeline Actions                                                              |
-| ------------- | ----------------------------------------------------------------------------- |
-| `write-demo`  | `set-source: wods/examples/getting-started/statement-1.md`, `set-state: note` |
-| `track-demo`  | `set-source: wods/examples/getting-started/timer-1.md`, `set-state: track`    |
-| `review-demo` | `set-source: wods/examples/getting-started/groups-1.md`, `set-state: review`  |
-
-### Button Actions
-Rendered as interactive buttons within or below the prose.
-
-| Label | Target | Pipeline Actions | Open Mode |
-|-------|--------|------------------|-----------|
-| **Try It Live** | `hero-demo` | `set-state: track` | - |
-| **Open Today's Workout** | `hero-demo` | `set-source: query:today`, `set-state: note` | `dialog` |
-| **See It Run** | `track-demo` | `set-state: track` | `view` |
-| **Zero to Hero →** | `hero-demo` | `navigate: /zero-to-hero` | - |
-| **Browse the Syntax →** | `hero-demo` | `navigate: /syntax` | - |
+- **Confident, direct.** Coaches don't hedge.
+- **Specific.** "10 Kettlebell Swings 24kg" not "your exercise."
+- **No jargon** until the syntax docs section.
+- **Short sentences.** Write like a whiteboard, not a manual.
