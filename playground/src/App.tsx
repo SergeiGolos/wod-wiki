@@ -1,4 +1,3 @@
-// Trigger HMR reload - 1
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Avatar } from '@/components/playground/avatar'
 import { Dumbbell } from 'lucide-react'
@@ -39,7 +38,6 @@ import {
   ChevronUpIcon,
   Cog8ToothIcon,
   LightBulbIcon,
-  PlusIcon,
   ShieldCheckIcon,
   UserIcon,
   AcademicCapIcon,
@@ -83,9 +81,10 @@ import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
-import { findCanvasPage } from './canvas/canvasRoutes'
+import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { CanvasPage } from './canvas/CanvasPage'
 import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
+import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { JournalPageShell } from '@/panels/page-shells'
@@ -131,6 +130,14 @@ const SYNTAX_LINKS = [
   { id: 'supplemental', label: 'Supplemental' },
   { id: 'document', label: 'Document' },
 ]
+
+const syntaxPages = canvasRoutes
+  .filter(r => r.route.startsWith('/syntax/'))
+  .map(r => ({
+    route: r.route,
+    label: r.route.split('/').pop()!.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label))
 
 // ── Page Nav Dropdown (combobox showing current visible section) ────
 
@@ -269,8 +276,7 @@ function WorkoutEditorPage({
       onStartWorkout={usePopup ? undefined : handleStartWorkout}
       enableInlineRuntime={usePopup}
       theme={theme}
-      />
-
+    />
   )
 }
 
@@ -420,8 +426,7 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
       enableInlineRuntime={false}
       onViewCreated={handleViewCreated}
       theme={theme}
-      />
-
+    />
   )
 }
 
@@ -613,8 +618,7 @@ function JournalPage({ theme }: { theme: string }) {
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}
           theme={theme}
-          />
-
+        />
       }
       timerOverlay={
         timerBlock ? (
@@ -975,21 +979,17 @@ function AppContent() {
                 <HomeIcon data-slot="icon" />
                 <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
-              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
-                <AcademicCapIcon data-slot="icon" />
-                <SidebarLabel>Zero to Hero</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/syntax')} current={location.pathname === '/syntax'}>
-                <CodeBracketIcon data-slot="icon" />
-                <SidebarLabel>Syntax</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/calendar" current={location.pathname === '/calendar'}>
-                <ClockIcon data-slot="icon" />
-                <SidebarLabel>Calendar</SidebarLabel>
+              <SidebarItem onClick={() => navigate('/collections')} current={location.pathname.startsWith('/collections')}>
+                <FolderIcon data-slot="icon" />
+                <SidebarLabel>Collections</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/journal" current={location.pathname === '/journal'}>
                 <RectangleStackIcon data-slot="icon" />
                 <SidebarLabel>Journal</SidebarLabel>
+              </SidebarItem>
+              <SidebarItem href="/calendar" current={location.pathname === '/calendar'}>
+                <ClockIcon data-slot="icon" />
+                <SidebarLabel>Calendar</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/search" current={location.pathname === '/search'}>
                 <MagnifyingGlassIcon data-slot="icon" />
@@ -999,11 +999,23 @@ function AppContent() {
           </SidebarHeader>
           <SidebarBody>
             <SidebarSection>
-              <SidebarItem onClick={() => navigate('/playground')} current={isPlaygroundRoute}>
-                <PlusIcon data-slot="icon" />
-                <SidebarLabel>New Playground</SidebarLabel>
+              <div className="px-2 pt-3 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">Docs</div>
+              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
+                <AcademicCapIcon data-slot="icon" />
+                <SidebarLabel>Zero to Hero</SidebarLabel>
               </SidebarItem>
             </SidebarSection>
+
+            <SidebarAccordion title="Syntax" count={syntaxPages.length}>
+              {syntaxPages.map(page => (
+                <SidebarItem key={page.route} onClick={() => navigate(page.route)} current={location.pathname === page.route}>
+                  <CodeBracketIcon data-slot="icon" />
+                  <SidebarLabel>{page.label}</SidebarLabel>
+                </SidebarItem>
+              ))}
+            </SidebarAccordion>
+
+            <SidebarDivider />
 
             <SidebarAccordion title="Results" count={recentResults.length}>
               {recentResults.length === 0 ? (
@@ -1108,6 +1120,10 @@ function AppContent() {
                 onSelect={handleSelectWorkout}
               />
             </div>
+          ) : location.pathname === '/collections' ? (
+            <div className="flex-1 flex flex-col bg-card overflow-hidden">
+              <CollectionsPage />
+            </div>
           ) : canvasPage ? (
             <div className="flex-1 flex flex-col bg-card">
               <CanvasPage
@@ -1119,19 +1135,19 @@ function AppContent() {
               />
             </div>
           ) : (
-          <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
-            {isPlaygroundRoute && effectivePlaygroundId ? (
-              <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
-            ) : (
-              <WorkoutEditorPage
-                key={`${currentWorkout.category}/${currentWorkout.name}`}
-                category={currentWorkout.category}
-                name={currentWorkout.name}
-                mdContent={currentWorkout.content}
-                theme={actualTheme}
-              />
-            )}
-          </div>
+            <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
+              {isPlaygroundRoute && effectivePlaygroundId ? (
+                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
+              ) : (
+                <WorkoutEditorPage
+                  key={`${currentWorkout.category}/${currentWorkout.name}`}
+                  category={currentWorkout.category}
+                  name={currentWorkout.name}
+                  mdContent={currentWorkout.content}
+                  theme={actualTheme}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1146,7 +1162,6 @@ function AppContent() {
         onSelect={handleSelectWorkout}
         initialCategory={activeCategory}
       />
-
     </SidebarLayout>
   )
 }
@@ -1182,6 +1197,7 @@ export function App() {
               <Route path="/calendar" element={<AppContent />} />
               <Route path="/journal" element={<AppContent />} />
               <Route path="/search" element={<AppContent />} />
+              <Route path="/collections" element={<AppContent />} />
               <Route path="/collections/:slug" element={<AppContent />} />
               <Route path="/workout/:category/:name" element={<AppContent />} />
               <Route path="/load" element={<LoadZipPage />} />
