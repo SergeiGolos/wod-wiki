@@ -1,4 +1,0 @@
----
-template: canvas
----
-# CrossFit Games

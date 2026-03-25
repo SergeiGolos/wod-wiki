@@ -43,6 +43,7 @@ export function CalendarPage({ workoutItems, onSelect }: BaseProps) {
       results={results}
       onSelect={handleSelect}
       initialQuery={initialQuery}
+      disableDateFiltering={true}
     />
   );
 }
@@ -76,6 +77,7 @@ export function JournalWeeklyPage({ workoutItems, onSelect }: BaseProps) {
       results={results}
       onSelect={handleSelect}
       initialQuery={initialQuery}
+      disableDateFiltering={true}
     />
   );
 }

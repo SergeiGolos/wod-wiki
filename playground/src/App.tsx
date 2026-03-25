@@ -57,6 +57,7 @@ import {
   SunIcon,
   MoonIcon,
   ComputerDesktopIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/20/solid'
 import type { WorkoutResult } from '@/types/storage'
 
@@ -73,6 +74,7 @@ import { CanvasPage } from './canvas/CanvasPage'
 import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
+import { Button } from '@/components/ui/button'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { JournalPageShell } from '@/panels/page-shells'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
@@ -176,6 +178,74 @@ function PageNavDropdown({
         ))}
       </DropdownMenu>
     </Dropdown>
+  )
+}
+
+// ── New Journal Entry Split Button ─────────────────────────────────
+
+function NewEntryButton() {
+  const navigate = useNavigate()
+
+  const todayISO = () => new Date().toISOString().slice(0, 10)
+
+  const offsetISO = (days: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    return d.toISOString().slice(0, 10)
+  }
+
+  const [selectedIso, setSelectedIso] = useState(todayISO)
+
+  const formatLabel = (iso: string) => {
+    const today = todayISO()
+    const yesterday = offsetISO(-1)
+    const tomorrow = offsetISO(1)
+    if (iso === today) return 'Today'
+    if (iso === yesterday) return 'Yesterday'
+    if (iso === tomorrow) return 'Tomorrow'
+    // Short date: "Mar 25"
+    return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }
+
+  const pick = (iso: string) => {
+    setSelectedIso(iso)
+    navigate(`/journal/${iso}`)
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => pick(selectedIso)}
+        aria-label={`New journal entry for ${selectedIso}`}
+        className="gap-1.5 text-xs font-semibold"
+      >
+        <PlusIcon className="size-4 shrink-0" />
+        <span className="hidden sm:inline">{formatLabel(selectedIso)}</span>
+      </Button>
+      <Dropdown>
+        <DropdownButton plain aria-label="New entry for a specific date">
+          <CalendarDaysIcon data-slot="icon" className="size-5 text-zinc-500" />
+        </DropdownButton>
+        <DropdownMenu className="min-w-40" anchor="bottom end">
+          <DropdownItem onClick={() => pick(offsetISO(0))}>
+            <DropdownLabel>Today</DropdownLabel>
+          </DropdownItem>
+          <DropdownItem onClick={() => pick(offsetISO(-1))}>
+            <DropdownLabel>Yesterday</DropdownLabel>
+          </DropdownItem>
+          <DropdownItem onClick={() => pick(offsetISO(1))}>
+            <DropdownLabel>Tomorrow</DropdownLabel>
+          </DropdownItem>
+          <DropdownDivider />
+          <DropdownItem onClick={() => navigate('/calendar')}>
+            <CalendarDaysIcon data-slot="icon" />
+            <DropdownLabel>Calendar…</DropdownLabel>
+          </DropdownItem>
+        </DropdownMenu>
+      </Dropdown>
+    </div>
   )
 }
 
@@ -552,8 +622,17 @@ function JournalPage({ theme }: { theme: string }) {
   const { content, loading, onChange } = usePlaygroundContent({
     category: 'journal',
     name: noteId,
-    mdContent: '',
+    mdContent: PLAYGROUND_TEMPLATE.content,
   })
+
+  // Place cursor at the $CURSOR token position on first mount (new entries only)
+  const cursorPlaced = useRef(false)
+  const handleViewCreated = useCallback((view: EditorView) => {
+    if (cursorPlaced.current) return
+    cursorPlaced.current = true
+    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
+    view.dispatch({ selection: EditorSelection.cursor(offset) })
+  }, [])
 
   const handleStartWorkout = useCallback(
     (block: WodBlock) => {
@@ -597,6 +676,7 @@ function JournalPage({ theme }: { theme: string }) {
           noteId={noteId}
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}
+          onViewCreated={handleViewCreated}
           theme={theme}
         />
       }
@@ -642,6 +722,9 @@ function AppContent() {
   const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground
   // For /note/playground/:name, use urlName as the playground ID
   const effectivePlaygroundId = playgroundId || (isNotePlayground ? urlName : undefined)
+  // Journal entry route: /journal/:id
+  const isJournalEntryRoute = location.pathname.startsWith('/journal/') && !!urlName
+  const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName!) : undefined
 
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
@@ -673,18 +756,33 @@ function AppContent() {
     if (isPlaygroundRoute) {
       return { name: 'Playground', content: '', category: 'playground' }
     }
+    if (isJournalEntryRoute && journalEntryId) {
+      return { name: journalEntryId, content: '', category: 'journal' }
+    }
     if (canvasPage) {
       return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
     }
-    if (location.pathname === '/' || !urlName) {
+    // Named routes without params
+    const named: Record<string, string> = {
+      '/': 'Home',
+      '/calendar': 'Calendar',
+      '/journal': 'Journal',
+      '/search': 'Search',
+      '/getting-started': 'Zero to Hero',
+      '/syntax': 'Syntax',
+      '/collections': 'Collections',
+    }
+    const namedMatch = named[location.pathname]
+    if (namedMatch) {
+      return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
+    }
+    if (!urlName) {
       return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
     }
-    
     const name = decodeURIComponent(urlName)
     const category = urlCategory ? decodeURIComponent(urlCategory) : 'General'
-    
-    return workoutItems.find(item => item.name === name && item.category === category) || { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
-  }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute])
+    return workoutItems.find(item => item.name === name && item.category === category) || { name, content: PLAYGROUND_CONTENT, category: 'General' }
+  }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute, isJournalEntryRoute, journalEntryId])
 
   // Load recent workout results from IndexedDB
   const refreshResults = useCallback(() => {
@@ -857,6 +955,9 @@ function AppContent() {
           </div>
           <NavbarSpacer />
           <NavbarSection>
+            <div className="lg:hidden">
+              <NewEntryButton />
+            </div>
             <NavbarItem href="/search" aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
             </NavbarItem>
@@ -1019,6 +1120,7 @@ function AppContent() {
             </div>
             <div className="flex items-center gap-4">
               <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
+              <NewEntryButton />
               <CastButtonRpc />
               <ActionsMenu />
             </div>
@@ -1075,6 +1177,8 @@ function AppContent() {
             <div className="flex-1 flex flex-col min-h-0 bg-card overflow-hidden">
               {isPlaygroundRoute && effectivePlaygroundId ? (
                 <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
+              ) : isJournalEntryRoute && journalEntryId ? (
+                <JournalPage key={journalEntryId} theme={actualTheme} />
               ) : (
                 <WorkoutEditorPage
                   key={`${currentWorkout.category}/${currentWorkout.name}`}
@@ -1141,7 +1245,7 @@ export function App() {
               <Route path="/playground" element={<PlaygroundRedirect />} />
               <Route path="/playground/:id" element={<AppContent />} />
               <Route path="/note/:category/:name" element={<AppContent />} />
-              <Route path="/journal/:id" element={<JournalPage theme="vs" />} />
+              <Route path="/journal/:id" element={<AppContent />} />
               <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
               <Route path="/review/:runtimeId" element={<ReviewPage />} />
               <Route path="*" element={<AppContent />} />

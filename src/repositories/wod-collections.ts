@@ -43,7 +43,8 @@ export interface WodCollection {
  */
 function toDisplayName(dirName: string): string {
     return dirName
-        .split(/[-_]/)
+        .split(/[-_\s]+/)
+        .filter(Boolean)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 }

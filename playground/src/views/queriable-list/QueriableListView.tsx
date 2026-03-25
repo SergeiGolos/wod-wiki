@@ -11,6 +11,7 @@ interface QueriableListViewProps {
   onSelect: (item: FilteredListItem) => void;
   className?: string;
   hideBackground?: boolean;
+  disableDateFiltering?: boolean;
 }
 
 export function QueriableListView({ 
@@ -20,7 +21,8 @@ export function QueriableListView({
   results: historicalResults,
   onSelect,
   className,
-  hideBackground
+  hideBackground,
+  disableDateFiltering
 }: QueriableListViewProps) {
   const [query, setQuery] = useState<QueryObject>(externalInitialQuery || {});
 
@@ -34,6 +36,7 @@ export function QueriableListView({
         type: 'note',
         title: item.name,
         subtitle: item.category,
+        date: (item.payload as any)?.targetDate || (item.payload as any)?.updatedAt,
         payload: item
       });
     });
@@ -59,7 +62,7 @@ export function QueriableListView({
       );
     }
 
-    if (query.startDate) {
+    if (query.startDate && !disableDateFiltering) {
       const start = new Date(query.startDate).setHours(0,0,0,0);
       const end = query.endDate ? new Date(query.endDate).setHours(23,59,59,999) : new Date(query.startDate).setHours(23,59,59,999);
       
@@ -75,7 +78,7 @@ export function QueriableListView({
 
     // Sort by date (descending)
     return combined.sort((a, b) => (b.date || 0) - (a.date || 0));
-  }, [items, historicalResults, query]);
+  }, [items, historicalResults, query, disableDateFiltering]);
 
   return (
     <div className={cn(
@@ -85,7 +88,11 @@ export function QueriableListView({
     )}>
       <QueryOrganism onQueryChange={setQuery} initialQuery={externalInitialQuery} />
       <div className="flex-1 overflow-y-auto">
-        <FilteredList items={filteredItems} onSelect={onSelect} />
+        <FilteredList 
+          items={filteredItems} 
+          onSelect={onSelect} 
+          selectedDate={query.startDate}
+        />
       </div>
     </div>
   );

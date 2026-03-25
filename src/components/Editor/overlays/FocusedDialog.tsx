@@ -23,6 +23,8 @@ export interface FocusedDialogProps {
   floatingClose?: boolean;
   /** Visual variant of the dialog. 'default' uses theme background, 'minimal' uses white/excel style. */
   variant?: 'default' | 'minimal';
+  /** Optional actions (e.g. Cast button) to show to the left of the close button. */
+  actions?: React.ReactNode;
 }
 
 export const FocusedDialog: React.FC<FocusedDialogProps> = ({
@@ -32,6 +34,7 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
   closeButtonClassName,
   floatingClose = false,
   variant = 'default',
+  actions,
 }) => {
   // Prevent scrolling on the body while the dialog is open
   useEffect(() => {
@@ -61,11 +64,17 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
   return (ReactDOM as any).createPortal(
     <div className={`fixed inset-0 z-[100] flex flex-col ${isMinimal ? 'bg-white text-zinc-950' : 'bg-background'} animate-in fade-in duration-200`}>
       {floatingClose || (isMinimal && !title) ? (
-        <div className="absolute top-4 right-4 z-[110]">{closeBtn}</div>
+        <div className="absolute top-4 right-4 z-[110] flex items-center gap-2">
+          {actions}
+          {closeBtn}
+        </div>
       ) : title ? (
         <div className={`flex items-center justify-between px-6 py-4 border-b border-border ${isMinimal ? 'bg-zinc-50/50' : 'bg-muted/30'} shrink-0`}>
           <h2 className={`text-lg ${isMinimal ? 'font-black tracking-tight uppercase text-[11px] text-zinc-400' : 'font-semibold'}`}>{title}</h2>
-          {closeBtn}
+          <div className="flex items-center gap-2">
+            {actions}
+            {closeBtn}
+          </div>
         </div>
       ) : null}
 
