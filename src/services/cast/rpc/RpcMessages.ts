@@ -259,6 +259,16 @@ export interface RpcAnalyticsSummary {
 }
 
 /**
+ * Audio playback request.
+ * Sent by browser to trigger a sound on the receiver.
+ */
+export interface RpcAudio {
+    type: 'rpc-audio';
+    name: string;
+    volume?: number;
+}
+
+/**
  * Union of all RPC message types sent over the DataChannel.
  */
 export type RpcMessage =
@@ -271,4 +281,5 @@ export type RpcMessage =
     | RpcClockSyncRequest
     | RpcClockSyncResponse
     | RpcClockSyncResult
-    | RpcAnalyticsSummary;
+    | RpcAnalyticsSummary
+    | RpcAudio;

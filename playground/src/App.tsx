@@ -66,6 +66,7 @@ import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
+import { AudioProvider } from '@/components/audio/AudioContext'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
@@ -75,10 +76,11 @@ import { CanvasPage } from './canvas/CanvasPage'
 import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
+import { AudioToggle } from '@/components/audio/AudioToggle'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { SimplePageShell, JournalPageShell } from '@/panels/page-shells'
-import { PageNavDropdown } from '@/components/playground/PageNavDropdown'
+import { PageNavDropdown, type PageNavLink } from '@/components/playground/PageNavDropdown'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { decodeZip } from './services/decodeZip'
@@ -274,11 +276,13 @@ function WorkoutEditorPage({
   name,
   mdContent,
   theme,
+  onViewCreated,
 }: {
   category: string
   name: string
   mdContent: string
   theme: string
+  onViewCreated?: (view: EditorView) => void
 }) {
   const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
   const noteId = PlaygroundDBService.pageId(category, name)
@@ -294,7 +298,17 @@ function WorkoutEditorPage({
     [noteId, navigate],
   )
 
-  const index = useMemo(() => extractHeaders(content), [content])
+  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
+  const index = useMemo((): PageNavLink[] => {
+    const base = extractPageIndex(content)
+    return base.map(link => {
+      if (link.type !== 'wod') return link
+      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
+      const block = wodBlocks.find(b => b.startLine + 1 === lineNum)
+      if (!block) return link
+      return { ...link, onRun: () => handleStartWorkout(block) }
+    })
+  }, [content, wodBlocks, handleStartWorkout])
 
   if (loading) {
     return (
@@ -312,6 +326,7 @@ function WorkoutEditorPage({
         <div className="flex items-center gap-4">
           <NewEntryButton />
           <CastButtonRpc />
+          <AudioToggle />
           <ActionsMenu currentWorkout={{ name: noteId, content }} />
         </div>
       }
@@ -322,8 +337,10 @@ function WorkoutEditorPage({
           noteId={noteId}
           onStartWorkout={usePopup ? undefined : handleStartWorkout}
           enableInlineRuntime={usePopup}
+          onViewCreated={onViewCreated}
           theme={theme}
           showLineNumbers={false}
+          onBlocksChange={setWodBlocks}
         />
       }
     />
@@ -503,25 +520,32 @@ function ActionsMenu({
   )
 }
 
-function extractHeaders(content: string): PageNavLink[] {
+function extractPageIndex(content: string): PageNavLink[] {
   const lines = content.split('\n')
-  const headers: PageNavLink[] = []
-  for (const line of lines) {
+  const links: PageNavLink[] = []
+  let wodCount = 0
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const match = line.match(/^(#{1,6})\s+(.*)$/)
     if (match) {
       const label = match[2].trim()
       const id = label.toLowerCase().replace(/[^\w]+/g, '-')
-      headers.push({ id, label })
+      links.push({ id, label, type: 'heading' })
+      continue
+    }
+    if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
+      wodCount++
+      links.push({ id: `wod-line-${i + 1}`, label: `Workout ${wodCount}`, type: 'wod' })
     }
   }
-  return headers
+  return links
 }
 
 // ---------------------------------------------------------------------------
 // #/playground/:id — load page by UUID from DB, render in editor
 // ---------------------------------------------------------------------------
 
-function PlaygroundNotePage({ theme }: { theme: string }) {
+function PlaygroundNotePage({ theme, onViewCreated }: { theme: string, onViewCreated?: (view: EditorView) => void }) {
   const { id } = useParams<{ id: string }>()
   const noteId = id!
   const navigate = useNavigate()
@@ -533,12 +557,13 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
 
   // Place cursor at the $CURSOR token position on first mount
   const cursorPlaced = useRef(false)
-  const handleViewCreated = useCallback((view: EditorView) => {
+  const handleInternalViewCreated = useCallback((view: EditorView) => {
+    onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
     const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [])
+  }, [onViewCreated])
 
   const handleStartWorkout = useCallback(
     (block: WodBlock) => {
@@ -549,7 +574,17 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
     [noteId, navigate],
   )
 
-  const index = useMemo(() => extractHeaders(content), [content])
+  const [wodBlocks_pnp, setWodBlocks_pnp] = useState<WodBlock[]>([])
+  const index = useMemo((): PageNavLink[] => {
+    const base = extractPageIndex(content)
+    return base.map(link => {
+      if (link.type !== 'wod') return link
+      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
+      const block = wodBlocks_pnp.find(b => b.startLine + 1 === lineNum)
+      if (!block) return link
+      return { ...link, onRun: () => handleStartWorkout(block) }
+    })
+  }, [content, wodBlocks_pnp, handleStartWorkout])
 
   if (loading) {
     return (
@@ -567,6 +602,7 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
         <div className="flex items-center gap-4">
           <NewEntryButton />
           <CastButtonRpc />
+          <AudioToggle />
         </div>
       }
       editor={
@@ -576,9 +612,10 @@ function PlaygroundNotePage({ theme }: { theme: string }) {
           noteId={noteId}
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}
-          onViewCreated={handleViewCreated}
+          onViewCreated={handleInternalViewCreated}
           theme={theme}
           showLineNumbers={false}
+          onBlocksChange={setWodBlocks_pnp}
         />
       }
     />
@@ -717,7 +754,7 @@ function TrackerPage() {
 // #/journal/:id — stored-note page using JournalPageShell
 // ---------------------------------------------------------------------------
 
-function JournalPage({ theme }: { theme: string }) {
+function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: (view: EditorView) => void }) {
   const { id } = useParams<{ id: string }>()
   const noteId = id!
   const [isTimerOpen, setIsTimerOpen] = useState(false)
@@ -732,12 +769,13 @@ function JournalPage({ theme }: { theme: string }) {
 
   // Place cursor at the $CURSOR token position on first mount (new entries only)
   const cursorPlaced = useRef(false)
-  const handleViewCreated = useCallback((view: EditorView) => {
+  const handleInternalViewCreated = useCallback((view: EditorView) => {
+    onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
     const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [])
+  }, [onViewCreated])
 
   const handleStartWorkout = useCallback(
     (block: WodBlock) => {
@@ -764,7 +802,17 @@ function JournalPage({ theme }: { theme: string }) {
     setReviewSegments([])
   }, [])
 
-  const index = useMemo(() => extractHeaders(content), [content])
+  const [wodBlocks_jp, setWodBlocks_jp] = useState<WodBlock[]>([])
+  const index = useMemo((): PageNavLink[] => {
+    const base = extractPageIndex(content)
+    return base.map(link => {
+      if (link.type !== 'wod') return link
+      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
+      const block = wodBlocks_jp.find(b => b.startLine + 1 === lineNum)
+      if (!block) return link
+      return { ...link, onRun: () => handleStartWorkout(block) }
+    })
+  }, [content, wodBlocks_jp, handleStartWorkout])
 
   if (loading) {
     return (
@@ -782,6 +830,7 @@ function JournalPage({ theme }: { theme: string }) {
         <div className="flex items-center gap-4">
           <NewEntryButton />
           <CastButtonRpc />
+          <AudioToggle />
           <ActionsMenu currentWorkout={{ name: noteId, content }} />
         </div>
       }
@@ -792,9 +841,10 @@ function JournalPage({ theme }: { theme: string }) {
           noteId={noteId}
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}
-          onViewCreated={handleViewCreated}
+          onViewCreated={handleInternalViewCreated}
           theme={theme}
           showLineNumbers={false}
+          onBlocksChange={setWodBlocks_jp}
         />
       }
       timerOverlay={
@@ -1019,11 +1069,50 @@ function AppContent() {
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
 
+  const editorViewRef = useRef<EditorView | null>(null)
+  const handleViewCreated = useCallback((view: EditorView) => {
+    editorViewRef.current = view
+  }, [])
+
   const scrollToSection = useCallback((id: string) => {
+    // 1. Try standard DOM element (Canvas/List pages)
     const el = document.getElementById(id)
     if (el) {
       const y = el.getBoundingClientRect().top + window.scrollY - 80
       window.scrollTo({ top: y, behavior: 'smooth' })
+      return
+    }
+
+    // 2. Try CodeMirror line (Editor pages)
+    // The ID format from extractHeaders is typically lowercase-slugified-header
+    if (editorViewRef.current) {
+      const view = editorViewRef.current
+      const content = view.state.doc.toString()
+      const lines = content.split('\n')
+      
+      const lineIdx = lines.findIndex(line => {
+        const match = line.match(/^(#{1,6})\s+(.*)$/)
+        if (match) {
+          const label = match[2].trim()
+          const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
+          return headerId === id
+        }
+        return false
+      })
+
+      if (lineIdx !== -1) {
+        const pos = view.state.doc.line(lineIdx + 1).from
+        view.dispatch({
+          selection: { anchor: pos, head: pos },
+          scrollIntoView: true
+        })
+        // Also scroll the window to the editor's container if needed
+        const editorEl = view.dom.parentElement
+        if (editorEl) {
+          const y = editorEl.getBoundingClientRect().top + window.scrollY - 120
+          window.scrollTo({ top: y, behavior: 'smooth' })
+        }
+      }
     }
   }, [])
 
@@ -1066,6 +1155,7 @@ function AppContent() {
             </NavbarItem>
             <div className="lg:hidden">
               <CastButtonRpc />
+              <AudioToggle />
             </div>
             <NavbarItem href="/inbox" className="max-lg:hidden" aria-label="Inbox">
               <InboxIcon data-slot="icon" />
@@ -1216,7 +1306,7 @@ function AppContent() {
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <SimplePageShell title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
@@ -1225,32 +1315,32 @@ function AppContent() {
               />
             </SimplePageShell>
           ) : location.pathname === '/calendar' ? (
-            <SimplePageShell title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CalendarPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/journal' ? (
-            <SimplePageShell title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/search' ? (
-            <SimplePageShell title="Search" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Search" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <SearchPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/collections' ? (
-            <SimplePageShell title="Collections" actions={<div className="flex items-center gap-4"><NewEntryButton /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Collections" actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
             </SimplePageShell>
           ) : canvasPage ? (
-            <SimplePageShell title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><CastButtonRpc /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
@@ -1262,9 +1352,9 @@ function AppContent() {
           ) : (
             <>
               {isPlaygroundRoute && effectivePlaygroundId ? (
-                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} />
+                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} />
               ) : isJournalEntryRoute && journalEntryId ? (
-                <JournalPage key={journalEntryId} theme={actualTheme} />
+                <JournalPage key={journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} />
               ) : (
                 <WorkoutEditorPage
                   key={`${currentWorkout.category}/${currentWorkout.name}`}
@@ -1272,6 +1362,7 @@ function AppContent() {
                   name={currentWorkout.name}
                   mdContent={currentWorkout.content}
                   theme={actualTheme}
+                  onViewCreated={handleViewCreated}
                 />
               )}
             </>
@@ -1313,32 +1404,34 @@ import { useQueryState } from 'nuqs'
 export function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <BrowserRouter>
-        <NuqsAdapter>
-          <ScrollToTop />
-          <CommandProvider>
-            <Routes>
-              <Route path="/" element={<AppContent />} />
-              <Route path="/getting-started" element={<AppContent />} />
-              <Route path="/syntax" element={<AppContent />} />
-              <Route path="/calendar" element={<AppContent />} />
-              <Route path="/journal" element={<AppContent />} />
-              <Route path="/search" element={<AppContent />} />
-              <Route path="/collections" element={<AppContent />} />
-              <Route path="/collections/:slug" element={<AppContent />} />
-              <Route path="/workout/:category/:name" element={<AppContent />} />
-              <Route path="/load" element={<LoadZipPage />} />
-              <Route path="/playground" element={<PlaygroundRedirect />} />
-              <Route path="/playground/:id" element={<AppContent />} />
-              <Route path="/note/:category/:name" element={<AppContent />} />
-              <Route path="/journal/:id" element={<AppContent />} />
-              <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
-              <Route path="/review/:runtimeId" element={<ReviewPage />} />
-              <Route path="*" element={<AppContent />} />
-            </Routes>
-          </CommandProvider>
-        </NuqsAdapter>
-      </BrowserRouter>
+      <AudioProvider>
+        <BrowserRouter>
+          <NuqsAdapter>
+            <ScrollToTop />
+            <CommandProvider>
+              <Routes>
+                <Route path="/" element={<AppContent />} />
+                <Route path="/getting-started" element={<AppContent />} />
+                <Route path="/syntax" element={<AppContent />} />
+                <Route path="/calendar" element={<AppContent />} />
+                <Route path="/journal" element={<AppContent />} />
+                <Route path="/search" element={<AppContent />} />
+                <Route path="/collections" element={<AppContent />} />
+                <Route path="/collections/:slug" element={<AppContent />} />
+                <Route path="/workout/:category/:name" element={<AppContent />} />
+                <Route path="/load" element={<LoadZipPage />} />
+                <Route path="/playground" element={<PlaygroundRedirect />} />
+                <Route path="/playground/:id" element={<AppContent />} />
+                <Route path="/note/:category/:name" element={<AppContent />} />
+                <Route path="/journal/:id" element={<AppContent />} />
+                <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
+                <Route path="/review/:runtimeId" element={<ReviewPage />} />
+                <Route path="*" element={<AppContent />} />
+              </Routes>
+            </CommandProvider>
+          </NuqsAdapter>
+        </BrowserRouter>
+      </AudioProvider>
     </ThemeProvider>
   )
 }

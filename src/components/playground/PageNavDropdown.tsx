@@ -6,11 +6,15 @@ import {
   DropdownLabel,
   DropdownMenu,
 } from '@/components/playground/dropdown'
-import { DocumentTextIcon, ChevronDownIcon } from '@heroicons/react/20/solid'
+import { DocumentTextIcon, ChevronDownIcon, PlayIcon } from '@heroicons/react/20/solid'
 
 export interface PageNavLink {
   id: string
   label: string
+  /** 'heading' (default) or 'wod' for workout blocks */
+  type?: 'heading' | 'wod'
+  /** When set, a small Play button is rendered aligned to the right */
+  onRun?: () => void
 }
 
 export interface PageNavDropdownProps {
@@ -69,10 +73,22 @@ export function PageNavDropdown({
         {links.map(link => (
           <DropdownItem
             key={link.id}
-            onClick={() => scrollToSection(link.id)}
+            onClick={() => { if (link.type !== 'wod') scrollToSection(link.id) }}
           >
-            <DropdownLabel className={activeId === link.id ? 'font-bold' : undefined}>{link.label}</DropdownLabel>
-            {activeId === link.id && <span className="col-start-5 text-primary text-xs">✓</span>}
+            <DropdownLabel className={activeId === link.id ? 'font-bold' : undefined}>
+              {link.type === 'wod' && <PlayIcon className="inline size-3 mr-1 opacity-50" />}
+              {link.label}
+            </DropdownLabel>
+            {link.onRun && (
+              <button
+                className="col-start-5 flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                title="Start workout"
+                onClick={(e) => { e.stopPropagation(); link.onRun!() }}
+              >
+                <PlayIcon className="size-3" />
+              </button>
+            )}
+            {!link.onRun && activeId === link.id && <span className="col-start-5 text-primary text-xs">✓</span>}
           </DropdownItem>
         ))}
       </DropdownMenu>

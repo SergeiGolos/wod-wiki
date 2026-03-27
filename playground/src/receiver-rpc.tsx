@@ -29,6 +29,7 @@ import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
+import { audioService } from '@/services/AudioService';
 import '@/index.css';
 
 // ============================================================================
@@ -63,14 +64,15 @@ const ReceiverApp: React.FC = () => {
         setTimeout(() => setDpadFlash(false), 200);
     }, []);
 
-    // ── Spatial Navigation ──────────────────────────────────────────────────
-    // The hook handles ArrowUp/Down/Left/Right (focus movement) and
-    // Enter/Select (activation). We map element IDs to runtime events.
+    // D-Pad navigation activation
     const { getFocusProps } = useSpatialNavigation({
         enabled: !!proxyRuntime,
         initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'btn-next',
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
             flash();
+            // Local audible feedback for remote button press
+            audioService.playSound('click', 0.5);
+
             // Preview screen items → start the workout
             if (elementId.startsWith('preview-block-')) {
                 sendEvent('next');
@@ -95,6 +97,18 @@ const ReceiverApp: React.FC = () => {
             }
         }, [sendEvent, flash]),
     });
+
+    // Global click listener for on-screen interactions on receiver
+    useEffect(() => {
+        const handleGlobalClick = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.closest('button')) {
+                audioService.playSound('click', 0.5);
+            }
+        };
+        window.addEventListener('click', handleGlobalClick, true);
+        return () => window.removeEventListener('click', handleGlobalClick, true);
+    }, []);
 
     // Local clock for smooth timer interpolation
     // Uses the proxy runtime's clock sync offset to match sender's elapsed time
@@ -169,6 +183,16 @@ const ReceiverApp: React.FC = () => {
             runtime.subscribeToWorkbench((state) => {
                 setWorkbenchState(state);
             });
+
+            // Enable audio on receiver by default
+            audioService.setEnabled(true);
+        });
+
+        transport.onMessage((msg) => {
+            if (msg.type === 'rpc-audio') {
+                console.log(`[ReceiverApp] Playing remote sound: ${msg.name}`);
+                audioService.playSound(msg.name, msg.volume);
+            }
         });
 
         transport.onDisconnected(() => {

@@ -15,9 +15,9 @@ export class AudioService {
         if (typeof window !== 'undefined') {
             try {
                 const stored = localStorage.getItem('wod-wiki-audio-enabled');
-                this.enabled = stored === 'true';
+                this.enabled = stored !== null ? stored === 'true' : true;
             } catch {
-                this.enabled = false;
+                this.enabled = true;
             }
         }
     }
@@ -65,7 +65,7 @@ export class AudioService {
      * Play a sound based on its name.
      *
      * @param name - Sound name to play. Supported values: 'beep', 'tick', 'buzzer',
-     *               'chime', 'complete', 'start'. Falls back to a default beep for
+     *               'chime', 'complete', 'start', 'click'. Falls back to a default beep for
      *               unknown names.
      * @param volume - Volume level (0.0 to 1.0, default: 1.0)
      * @returns Promise that resolves when the sound starts playing
@@ -73,38 +73,47 @@ export class AudioService {
     async playSound(name: string, volume: number = 1.0) {
         if (!this.enabled) return;
 
-        // Validate volume parameter
-        if (volume < 0 || volume > 1.0) {
-            volume = Math.max(0, Math.min(1.0, volume));
-        }
-
         // Initialize context if needed (must happen after user interaction usually)
         if (!this.context) {
+            console.log('[AudioService] Initializing AudioContext on-demand');
             this.initContext();
         }
 
-        if (!this.context || !this.masterGain) return;
+        if (!this.context || !this.masterGain) {
+            console.warn('[AudioService] AudioContext or masterGain not available');
+            return;
+        }
 
-        // Ensure context is running
+        // Ensure context is running (required by browser security policies)
         if (this.context.state === 'suspended') {
-            await this.context.resume();
+            console.log('[AudioService] Resuming suspended AudioContext');
+            await this.context.resume().catch(err => {
+                console.error('[AudioService] Failed to resume AudioContext:', err);
+            });
+        }
+
+        if (this.context.state !== 'running') {
+            console.warn(`[AudioService] Cannot play sound '${name}': AudioContext is ${this.context.state}`);
+            return;
         }
 
         const now = this.context.currentTime;
+        console.log(`[AudioService] Playing sound '${name}' at volume ${volume}`);
 
         switch (name) {
             case 'beep':
-            case 'tick': {
-                // Short high pitch beep
+            case 'tick':
+            case 'click': {
+                // Short high pitch click
                 const oscillator = this.context.createOscillator();
                 const gainNode = this.context.createGain();
                 oscillator.connect(gainNode);
                 gainNode.connect(this.masterGain);
                 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, now); // A5
+                oscillator.frequency.setValueAtTime(name === 'click' ? 1400 : 880, now); 
                 gainNode.gain.setValueAtTime(volume, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1); 
                 oscillator.start(now);
                 oscillator.stop(now + 0.1);
                 break;

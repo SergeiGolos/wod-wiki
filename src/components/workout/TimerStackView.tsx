@@ -3,6 +3,7 @@ import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
+import { useAudio } from '@/components/audio/AudioContext';
 
 export interface TimerStackViewProps {
     elapsedMs: number;
@@ -60,6 +61,32 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     skipFlash = false,
     skipFlashKey = 0,
 }) => {
+    let audio: any = null;
+    try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        audio = useAudio();
+    } catch { /* ignore if provider missing */ }
+
+    const handleStart = useCallback(() => {
+        audio?.playClick();
+        onStart();
+    }, [audio, onStart]);
+
+    const handlePause = useCallback(() => {
+        audio?.playClick();
+        onPause();
+    }, [audio, onPause]);
+
+    const handleStop = useCallback(() => {
+        audio?.playClick();
+        onStop();
+    }, [audio, onStop]);
+
+    const handleNext = useCallback(() => {
+        audio?.playClick();
+        onNext();
+    }, [audio, onNext]);
+
     // --- Swipe Gesture Logic ---
     const touchStart = useRef<number | null>(null);
     const touchEnd = useRef<number | null>(null);
@@ -92,16 +119,16 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         if (!isTyping) {
             if (isLeftSwipe) {
                 console.log('Swipe Left -> Next');
-                onNext();
+                handleNext();
             } else if (isRightSwipe) {
                 console.log('Swipe Right -> Stop');
-                onStop();
+                handleStop();
             }
         }
         
         touchStart.current = null;
         touchEnd.current = null;
-    }, [onNext, onStop]);
+    }, [enableGestures, handleNext, handleStop]);
 
     // Determine which timer is "Focused" for the big ring
     // Default to the primaryTimer (usually the leaf) if no focus override
@@ -214,7 +241,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
                             {/* Inner Circle / Content */}
                             <button
-                                onClick={isRunning ? onPause : onStart}
+                                onClick={isRunning ? handlePause : handleStart}
                                 {...(getFocusProps ? getFocusProps('timer-main') : {})}
                                 className={`tv-focusable relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
                             >
@@ -232,7 +259,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     {/* Controls Row (Below Timer) */}
                     <div className={`flex items-center ${compact ? 'gap-3 mt-4' : 'gap-3 sm:gap-6 mt-4 sm:mt-8'} flex-wrap justify-center px-2`}>
                         <button
-                            onClick={onStop}
+                            onClick={handleStop}
                             {...(getFocusProps ? getFocusProps('btn-stop') : {})}
                             className="tv-focusable group flex flex-col items-center gap-1 sm:gap-2 text-slate-400 hover:text-red-500 transition-colors p-2"
                             title="Stop Session"
@@ -244,7 +271,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         </button>
 
                         <button
-                            onClick={onNext}
+                            onClick={handleNext}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
                             className={`tv-focusable flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
                             title="Next Block"
