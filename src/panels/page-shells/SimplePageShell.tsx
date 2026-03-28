@@ -81,7 +81,7 @@ export function SimplePageShell({
 
   return (
     <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
-      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen">
+      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen lg:rounded-[2.5rem]">
         {/* Sticky header */}
         <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md pt-4 lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">
@@ -114,7 +114,7 @@ export function SimplePageShell({
 
       {/* Index Sidebar Column — Outside the content card, visible on Desktop XL */}
       {index.length > 0 && (
-        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 p-10 h-fit">
+        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto p-10">
           <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
             On this page
           </div>

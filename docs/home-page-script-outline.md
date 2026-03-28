@@ -26,7 +26,7 @@ Guide a visitor from "I've never heard of this" → "I understand what it does" 
   └─ Collections / Library
 [EXPLORE]        → Browse workout collections (inline search)
 [DEEP DIVE CTA]  → Zero to Hero syntax tour
-[JOURNAL CTA]    → Start your first entry
+ 
 ```
 
 ---

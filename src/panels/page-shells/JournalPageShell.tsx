@@ -14,6 +14,7 @@ import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PageNavDropdown, type PageNavLink } from '@/components/playground/PageNavDropdown';
 import { useQueryState } from 'nuqs';
+import { PlayIcon } from '@heroicons/react/20/solid';
 
 export interface JournalPageShellProps {
   /** Editor panel content — typically a PlanPanel with stored note */
@@ -122,7 +123,7 @@ export function JournalPageShell({
         Note Column — Constrained to 3xl max-width on large screens.
         Everything inside (Header + Editor) has the background and shadow.
       */}
-      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen">
+      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen lg:rounded-[2.5rem]">
         {/* Sticky header */}
         <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md pt-4 lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">
@@ -156,24 +157,36 @@ export function JournalPageShell({
 
       {/* Index Sidebar Column — Outside the Note card, visible on Desktop XL */}
       {index.length > 0 && (
-        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 p-10 h-fit">
+        <aside className="hidden 3xl:block w-80 shrink-0 sticky top-0 self-start max-h-screen overflow-y-auto p-10">
           <div className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-6">
             On this page
           </div>
           <nav className="flex flex-col gap-1 border-l border-border/40 ml-1">
             {index.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className={cn(
-                  'text-left px-4 py-2 text-sm transition-all border-l -ml-px',
-                  activeId === link.id
-                    ? 'font-bold text-foreground border-primary'
-                    : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
+              <div key={link.id} className="flex items-center group -ml-px">
+                <button
+                  onClick={() => { if (link.type !== 'wod') scrollToSection(link.id) }}
+                  className={cn(
+                    'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
+                    link.type === 'wod'
+                      ? 'text-muted-foreground/70 border-transparent pl-6 text-xs cursor-default'
+                      : activeId === link.id
+                        ? 'font-bold text-foreground border-primary'
+                        : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
+                  )}
+                >
+                  {link.label}
+                </button>
+                {link.onRun && (
+                  <button
+                    onClick={link.onRun}
+                    title="Start workout"
+                    className="opacity-0 group-hover:opacity-100 mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all"
+                  >
+                    <PlayIcon className="size-3.5" />
+                  </button>
                 )}
-              >
-                {link.label}
-              </button>
+              </div>
             ))}
           </nav>
         </aside>
