@@ -7,7 +7,6 @@
 
 import React, { useEffect, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { PageNavDropdown, type PageNavLink } from '@/components/playground/PageNavDropdown';
 import { useQueryState } from 'nuqs';
 
 export interface SimplePageShellProps {
@@ -92,15 +91,6 @@ export function SimplePageShell({
               </h1>
             </div>
             <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {index.length > 0 && (
-                <div className="3xl:hidden">
-                  <PageNavDropdown 
-                    links={index} 
-                    scrollToSection={scrollToSection} 
-                    activeSectionId={activeId ?? undefined}
-                  />
-                </div>
-              )}
               {actions}
             </div>
           </div>

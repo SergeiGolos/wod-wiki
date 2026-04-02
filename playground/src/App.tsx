@@ -94,24 +94,24 @@ const HOME_LINKS = [
 ]
 
 const ZERO_TO_HERO_LINKS = [
-  { id: 'introduction', label: 'Introduction' },
-  { id: 'statement', label: 'First Statement' },
-  { id: 'timer', label: 'Timers' },
-  { id: 'metrics', label: 'Metrics' },
-  { id: 'groups', label: 'Groups' },
-  { id: 'protocols', label: 'Protocols' },
-  { id: 'notebook', label: 'Notebook' },
+  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
+  { id: 'statement', label: 'First Statement', type: 'heading' as const },
+  { id: 'timer', label: 'Timers', type: 'heading' as const },
+  { id: 'metrics', label: 'Metrics', type: 'heading' as const },
+  { id: 'groups', label: 'Groups', type: 'heading' as const },
+  { id: 'protocols', label: 'Protocols', type: 'heading' as const },
+  { id: 'notebook', label: 'Notebook', type: 'heading' as const },
 ]
 
 const SYNTAX_LINKS = [
-  { id: 'introduction', label: 'Introduction' },
-  { id: 'anatomy', label: 'Statement Anatomy' },
-  { id: 'timers', label: 'Timers & Direction' },
-  { id: 'metrics', label: 'Measuring Effort' },
-  { id: 'groups', label: 'Groups & Repeaters' },
-  { id: 'protocols', label: 'Protocols' },
-  { id: 'supplemental', label: 'Supplemental' },
-  { id: 'document', label: 'Document' },
+  { id: 'introduction', label: 'Introduction', type: 'heading' as const },
+  { id: 'anatomy', label: 'Statement Anatomy', type: 'heading' as const },
+  { id: 'timers', label: 'Timers & Direction', type: 'heading' as const },
+  { id: 'metrics', label: 'Measuring Effort', type: 'heading' as const },
+  { id: 'groups', label: 'Groups & Repeaters', type: 'heading' as const },
+  { id: 'protocols', label: 'Protocols', type: 'heading' as const },
+  { id: 'supplemental', label: 'Supplemental', type: 'heading' as const },
+  { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
 // ── New Journal Entry Split Button ─────────────────────────────────
@@ -958,7 +958,7 @@ function AppContent() {
   const currentNavLinks = useMemo(() => {
     // 1. Canvas pages (including Home)
     if (canvasPage) {
-      return canvasPage.sections.map(s => ({ id: s.id, label: s.heading }))
+      return canvasPage.sections.map(s => ({ id: s.id, label: s.heading, type: 'heading' as const }))
     }
 
     // 2. Docs pages
@@ -982,7 +982,8 @@ function AppContent() {
       const sorted = Array.from(dates).sort().reverse()
       return sorted.slice(0, 10).map(d => ({
         id: d,
-        label: new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        label: new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+        type: 'heading' as const
       }))
     }
 
@@ -1137,7 +1138,9 @@ function AppContent() {
           <NavbarSpacer />
           <NavbarSection>
             {currentNavLinks.length > 0 && (
-              <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
+              <div className="hidden">
+                <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
+              </div>
             )}
             <NewEntryButton />
             <NavbarItem href="/search" aria-label="Search">
@@ -1185,6 +1188,17 @@ function AppContent() {
             </SidebarSection>
           </SidebarHeader>
           <SidebarBody>
+            {currentNavLinks.length > 0 && (
+              <SidebarSection className="3xl:hidden">
+                <div className="px-2 pt-3 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">On this page</div>
+                {currentNavLinks.map(link => (
+                  <SidebarItem key={link.id} onClick={() => scrollToSection(link.id)}>
+                    <DocumentTextIcon data-slot="icon" />
+                    <SidebarLabel>{link.label}</SidebarLabel>
+                  </SidebarItem>
+                ))}
+              </SidebarSection>
+            )}
             <SidebarSection>
               <div className="px-2 pt-3 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">Docs</div>
               <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
@@ -1197,7 +1211,7 @@ function AppContent() {
               {syntaxPages.map(page => (
                 <SidebarItem key={page.route} onClick={() => navigate(page.route)} current={location.pathname === page.route}>
                   <CodeBracketIcon data-slot="icon" />
-                  <SidebarLabel>{page.label}</SidebarLabel>
+                  <SidebarLabel>{page.page.sections[0]?.heading || 'Untitled'}</SidebarLabel>
                 </SidebarItem>
               ))}
             </SidebarAccordion>
