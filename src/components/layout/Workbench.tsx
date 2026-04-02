@@ -55,6 +55,7 @@ import { workbenchEventBus } from '../../services/WorkbenchEventBus';
 import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
+import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
@@ -333,15 +334,9 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   const { startTutorial } = useTutorialStore();
 
-  // Local UI state
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  // Responsive screen mode
+  const screenMode = useScreenMode();
+  const isMobile = screenMode === 'mobile';
 
   // Sync theme from props
   useEffect(() => {

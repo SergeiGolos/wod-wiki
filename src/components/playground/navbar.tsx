@@ -8,7 +8,7 @@ import { TouchTarget } from './button'
 import { Link } from './link'
 
 export function Navbar({ className, ...props }: React.ComponentPropsWithoutRef<'nav'>) {
-  return <nav {...props} className={clsx(className, 'flex flex-1 items-center gap-4 py-2.5')} />
+  return <nav {...props} className={clsx(className, 'flex flex-1 items-center gap-2 sm:gap-4 py-2.5 min-w-0')} />
 }
 
 export function NavbarDivider({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
@@ -20,7 +20,7 @@ export function NavbarSection({ className, ...props }: React.ComponentPropsWitho
 
   return (
     <LayoutGroup id={id}>
-      <div {...props} className={clsx(className, 'flex items-center gap-3')} />
+      <div {...props} className={clsx(className, 'flex items-center gap-1 sm:gap-3 shrink-0')} />
     </LayoutGroup>
   )
 }

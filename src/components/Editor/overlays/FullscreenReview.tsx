@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ReviewGrid } from "@/components/review-grid/ReviewGrid";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { FocusedDialog } from "./FocusedDialog";
-import { CastButton } from "@/components/cast/CastButton";
+import { CastButtonRpc } from "@/components/cast/CastButtonRpc";
 import { AudioToggle } from "@/components/audio/AudioToggle";
 
 export interface FullscreenReviewProps {
@@ -51,7 +51,7 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
   };
 
   return (
-    <FocusedDialog title={title} onClose={onClose} variant="minimal" actions={<><CastButton /><AudioToggle /></>}>
+    <FocusedDialog title={title} onClose={onClose} variant="minimal" actions={<><CastButtonRpc /><AudioToggle /></>}>
       <ReviewGrid
         runtime={null}
         segments={segments}

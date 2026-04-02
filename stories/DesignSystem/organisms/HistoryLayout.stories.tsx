@@ -40,8 +40,9 @@ export const Default: Story = {
 
 export const Mobile: Story = {
   name: 'Mobile variant',
+  parameters: { viewport: { defaultViewport: 'mobile1' } },
   render: () => (
-    <HistoryLayout isMobile>
+    <HistoryLayout>
       <PlaceholderContent label="Mobile History" />
     </HistoryLayout>
   ),

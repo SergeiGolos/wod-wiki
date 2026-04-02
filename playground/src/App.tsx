@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import * as Headless from '@headlessui/react'
-import { Avatar } from '@/components/playground/avatar'
 import { Dumbbell } from 'lucide-react'
 
 declare const __APP_VERSION__: string | undefined;
@@ -32,18 +31,11 @@ import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WodBlock } from '@/components/Editor/types'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
-  ArrowRightStartOnRectangleIcon,
-  ChevronDownIcon,
-  Cog8ToothIcon,
-  LightBulbIcon,
   PlusIcon,
-  ShieldCheckIcon,
-  UserIcon,
   AcademicCapIcon,
 } from '@heroicons/react/16/solid'
 import {
   HomeIcon,
-  InboxIcon,
   MagnifyingGlassIcon,
   CodeBracketIcon,
   ClockIcon,
@@ -1137,7 +1129,7 @@ function AppContent() {
     <SidebarLayout
       navbar={
         <Navbar>
-          <div className="flex items-center gap-3 lg:hidden truncate">
+          <div className="flex items-center gap-2 min-w-0 truncate">
             <span className="text-sm font-semibold text-zinc-950 dark:text-white truncate">
               {currentWorkout.name}
             </span>
@@ -1145,55 +1137,17 @@ function AppContent() {
           <NavbarSpacer />
           <NavbarSection>
             {currentNavLinks.length > 0 && (
-              <div className="lg:hidden">
-                <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
-              </div>
+              <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
             )}
             <NewEntryButton />
             <NavbarItem href="/search" aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
             </NavbarItem>
-            <div className="lg:hidden">
+            <div className="flex items-center">
               <CastButtonRpc />
               <AudioToggle />
             </div>
-            <NavbarItem href="/inbox" className="max-lg:hidden" aria-label="Inbox">
-              <InboxIcon data-slot="icon" />
-            </NavbarItem>
-            <div className="lg:hidden">
-              <ActionsMenu currentWorkout={currentWorkout} />
-            </div>
-            <div className="max-lg:hidden">
-              <Dropdown>
-                <DropdownButton as={NavbarItem}>
-                  <Avatar initials="S" square className="bg-zinc-500 text-white" />
-                </DropdownButton>
-                <DropdownMenu className="min-w-64" anchor="bottom end">
-                  <DropdownItem href="/my-profile">
-                    <UserIcon data-slot="icon" />
-                    <DropdownLabel>My profile</DropdownLabel>
-                  </DropdownItem>
-                  <DropdownItem href="/settings">
-                    <Cog8ToothIcon data-slot="icon" />
-                    <DropdownLabel>Settings</DropdownLabel>
-                  </DropdownItem>
-                  <DropdownDivider />
-                  <DropdownItem href="/privacy-policy">
-                    <ShieldCheckIcon data-slot="icon" />
-                    <DropdownLabel>Privacy policy</DropdownLabel>
-                  </DropdownItem>
-                  <DropdownItem href="/share-feedback">
-                    <LightBulbIcon data-slot="icon" />
-                    <DropdownLabel>Share feedback</DropdownLabel>
-                  </DropdownItem>
-                  <DropdownDivider />
-                  <DropdownItem href="/logout">
-                    <ArrowRightStartOnRectangleIcon data-slot="icon" />
-                    <DropdownLabel>Sign out</DropdownLabel>
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            </div>
+            <ActionsMenu currentWorkout={currentWorkout} />
           </NavbarSection>
         </Navbar>
       }

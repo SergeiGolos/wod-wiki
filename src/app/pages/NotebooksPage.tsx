@@ -45,7 +45,6 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
     const historySelection = useHistorySelection(null, initialCalendarDate);
     const navigate = useNavigate();
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
-    const [isMobile, setIsMobile] = useState(false);
     const { setStrategy } = useCommandPalette();
     const { activeNotebookId, setActiveNotebook, notebooks, createNotebook } = useNotebooks();
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
@@ -80,13 +79,6 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
     useEffect(() => {
         setStrategy(commandStrategy);
     }, [commandStrategy, setStrategy]);
-
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
 
     // Sync Notebook with URL
     useEffect(() => {
@@ -391,7 +383,6 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
 
     return (
         <HistoryLayout
-            isMobile={isMobile}
             onOpenDetails={() => setIsDetailsOpen(!isDetailsOpen)}
             isDetailsOpen={isDetailsOpen}
             headerExtras={

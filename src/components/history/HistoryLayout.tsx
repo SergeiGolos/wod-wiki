@@ -9,7 +9,8 @@ import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { NewPostButton } from '@/components/history/NewPostButton';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { DebugButton } from '@/components/layout/DebugModeContext';
-import { CastButton } from '@/components/cast/CastButton';
+import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,7 +22,6 @@ import {
 
 interface HistoryLayoutProps {
     children: React.ReactNode;
-    isMobile?: boolean; // Can pass down or detect
     onOpenDetails?: () => void;
     isDetailsOpen?: boolean;
     headerExtras?: React.ReactNode; // For "New Note" buttons etc
@@ -29,11 +29,13 @@ interface HistoryLayoutProps {
 
 export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
     children,
-    isMobile = false,
     onOpenDetails,
     isDetailsOpen,
     headerExtras
 }) => {
+    const screenMode = useScreenMode();
+    const isMobile = screenMode === 'mobile';
+    const isTablet = screenMode === 'tablet';
     const { setIsOpen } = useCommandPalette();
     const { startTutorial } = useTutorialStore();
     const { activeNotebookId, activeNotebook, notebooks, setActiveNotebook } = useNotebooks();
@@ -48,7 +50,7 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
     const notebookLabel = activeNotebook ? activeNotebook.name : 'All Workouts';
 
     return (
-        <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
+        <div className="h-screen w-full flex flex-col overflow-hidden bg-background">
             {/* Header */}
             <div id="history-header" className="h-14 bg-background border-b border-border flex items-center px-4 justify-between shrink-0 z-10">
                 <div className="font-bold flex items-center gap-4">
@@ -83,7 +85,7 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
                                         )}
                                     >
                                         <Book className="w-4 h-4" />
-                                        <span className="hidden md:inline">Notebooks</span>
+                                        <span className="hidden lg:inline">Notebooks</span>
                                     </NavLink>
 
                                     {/* Only show dropdown trigger if Notebooks is somewhat relevant or always? 
@@ -120,7 +122,7 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
                             )}
                         >
                             <Library className="w-4 h-4" />
-                            <span className="hidden md:inline">Collections</span>
+                            <span className="hidden lg:inline">Collections</span>
                         </NavLink>
 
                         {/* Feed */}
@@ -132,12 +134,12 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
                             )}
                         >
                             <LayoutGrid className="w-4 h-4" />
-                            <span className="hidden md:inline">Feed</span>
+                            <span className="hidden lg:inline">Feed</span>
                         </NavLink>
                     </div>
 
                     {/* Active Notebook Label (Context) */}
-                    {!isMobile && activeNotebookId && (
+                    {!isMobile && !isTablet && activeNotebookId && (
                         <span className="text-xs font-normal bg-muted px-2 py-0.5 rounded text-muted-foreground uppercase ml-2">
                             {notebookLabel}
                         </span>
@@ -151,7 +153,7 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
 
                                         <DebugButton />
                     
-                                        <CastButton />
+                                        <CastButtonRpc />
                     
                                         <Button variant="ghost" size="icon"
                      onClick={() => startTutorial('history')} className="text-muted-foreground hover:text-foreground">
