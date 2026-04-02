@@ -27,6 +27,11 @@ import { cn } from '@/lib/utils';
 import { ClockSyncService } from '@/services/cast/rpc/ClockSync';
 import { ProjectionSyncProvider } from './ProjectionSyncContext';
 import { useLocation } from 'react-router-dom';
+import { formatTimeMMSS } from '@/lib/formatTime';
+import type { Segment } from '@/core/models/AnalyticsModels';
+import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
+import type { WodBlock } from '@/components/Editor/types';
+import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 
 const CHROMECAST_SUBSCRIPTION_ID = 'chromecast';
 
@@ -35,14 +40,91 @@ export const CastButtonRpc: React.FC = () => {
     const [isCasting, setIsCasting] = useState(() => ChromecastSdk.isSessionActive());
     const [isConnecting, setIsConnecting] = useState(false);
     const [isDisconnecting, setIsDisconnecting] = useState(false);
+    const [eventProvider, setEventProvider] = useState<ChromecastEventProvider | null>(null);
     const subscriptionManager = useSubscriptionManager();
+    const castTransportFromStore = useWorkbenchSyncStore(s => s.castTransport);
     const setCastTransport = useWorkbenchSyncStore(s => s.setCastTransport);
 
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
-    const eventProviderRef = useRef<ChromecastEventProvider | null>(null);
     const buttonRef = useRef<HTMLButtonElement | null>(null);
     const clockSyncRef = useRef<ClockSyncService | null>(null);
     const chromecastSubRef = useRef<ChromecastRuntimeSubscription | null>(null);
+    const lastWorkbenchFingerprintRef = useRef<string>('');
+
+    // --- Workbench Mode Syncing (Playground Bridge) ---
+    const viewMode = useWorkbenchSyncStore(s => s.viewMode);
+    const selectedBlock = useWorkbenchSyncStore(s => s.selectedBlock);
+    const documentItems = useWorkbenchSyncStore(s => s.documentItems);
+    const analyticsSegments = useWorkbenchSyncStore(s => s.analyticsSegments);
+    const runtime = useWorkbenchSyncStore(s => s.runtime);
+    const execution = useWorkbenchSyncStore(s => s.execution);
+
+    useEffect(() => {
+        const transport = transportRef.current;
+        if (!isCasting || !transport?.connected) return;
+
+        let message: RpcWorkbenchUpdate;
+
+        // In the playground, we don't always have a global runtime, 
+        // so we check if one is active in the store first.
+        if (runtime && (execution.status === 'running' || execution.status === 'paused' || execution.status === 'completed')) {
+            // Let the runtime/timer components handle active/review modes.
+            // We just ensure we don't override them with preview here.
+            return;
+        }
+
+        // Default to preview mode for the current note
+        message = buildPreviewMessage(selectedBlock, documentItems);
+
+        // Skip send if nothing has changed
+        const fingerprint = JSON.stringify(message);
+        if (fingerprint === lastWorkbenchFingerprintRef.current) return;
+        lastWorkbenchFingerprintRef.current = fingerprint;
+
+        try {
+            transport.send(message);
+        } catch (err) {
+            console.warn('[CastButtonRpc] Failed to send workbench update:', err);
+        }
+    }, [isCasting, transportRef.current?.connected, viewMode, selectedBlock, documentItems, runtime, execution.status]);
+
+    // Re-adopt or re-establish transport on mount/remount
+    useEffect(() => {
+        const tryConnect = async () => {
+            if (!isCasting || transportRef.current) return;
+
+            // Case A: Transport exists in store (navigation within SPA)
+            if (castTransportFromStore) {
+                console.log('[CastButtonRpc] Re-adopting existing transport from store');
+                transportRef.current = castTransportFromStore as WebRtcRpcTransport;
+                setEventProvider(new ChromecastEventProvider(transportRef.current));
+                return;
+            }
+
+            // Case B: Transport is missing (page refresh) but session is active
+            if (sdkState === 'session-active') {
+                console.log('[CastButtonRpc] Re-establishing transport from active session (page refresh)');
+                try {
+                    const session = ChromecastSdk.getSession();
+                    if (!session) throw new Error('No Cast session found');
+
+                    const signaling = new SenderCastSignaling(session);
+                    const transport = new WebRtcRpcTransport('offerer', signaling);
+                    transportRef.current = transport;
+
+                    await transport.connect();
+                    setEventProvider(new ChromecastEventProvider(transport));
+                    setCastTransport(transport);
+                    console.log('[CastButtonRpc] Transport re-established after refresh');
+                } catch (err) {
+                    console.error('[CastButtonRpc] Failed to re-establish transport:', err);
+                    setIsCasting(false);
+                }
+            }
+        };
+
+        tryConnect();
+    }, [isCasting, sdkState, castTransportFromStore, setCastTransport]);
 
     // Track state in refs for the native event listener closure
     const isCastingRef = useRef(false);
@@ -65,6 +147,11 @@ export const CastButtonRpc: React.FC = () => {
 
         const unsub = ChromecastSdk.on('state-changed', (newState) => {
             setSdkState(newState as CastSdkState);
+            if (newState === 'session-active') {
+                setIsCasting(true);
+            } else if (newState === 'ready' || newState === 'unavailable') {
+                setIsCasting(false);
+            }
         });
 
         return unsub;
@@ -96,9 +183,10 @@ export const CastButtonRpc: React.FC = () => {
             try { transport.send({ type: 'rpc-dispose' }); } catch { /* ignore */ }
         }
 
-        const eventProvider = eventProviderRef.current;
-        eventProviderRef.current = null;
-        eventProvider?.dispose();
+        setEventProvider(prev => {
+            prev?.dispose();
+            return null;
+        });
 
         // Clean up clock sync service
         const clockSync = clockSyncRef.current;
@@ -208,7 +296,7 @@ export const CastButtonRpc: React.FC = () => {
                 }
 
                 const eventProvider = new ChromecastEventProvider(transport);
-                eventProviderRef.current = eventProvider;
+                setEventProvider(eventProvider);
                 setCastTransport(transport);
                 setIsCasting(true);
 
@@ -254,7 +342,6 @@ export const CastButtonRpc: React.FC = () => {
 
     // Remote event routing (Receiver -> Local Runtime)
     useEffect(() => {
-        const eventProvider = eventProviderRef.current;
         if (!eventProvider || !isCasting) return;
 
         const unsub = eventProvider.onEvent((event) => {
@@ -268,7 +355,7 @@ export const CastButtonRpc: React.FC = () => {
             }
         });
         return unsub;
-    }, [isCasting]);
+    }, [isCasting, eventProvider]);
 
     // Auto-cleanup on disconnect
     useEffect(() => {
@@ -330,3 +417,66 @@ export const CastButtonRpc: React.FC = () => {
         </ProjectionSyncProvider>
     );
 };
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function buildReviewMessage(
+    analyticsSegments: Segment[],
+): RpcWorkbenchUpdate {
+    // Derive total duration from segments instead of old time-series data
+    const totalSeconds = analyticsSegments.length > 0
+        ? Math.max(...analyticsSegments.map(s => s.endTime)) - Math.min(...analyticsSegments.map(s => s.startTime))
+        : 0;
+    const totalMs = Math.round(totalSeconds * 1000);
+
+    const rows: Array<{ label: string; value: string }> = [];
+    if (totalMs > 0) {
+        rows.push({ label: 'Total Time', value: formatTimeMMSS(totalMs) });
+    }
+    rows.push({ label: 'Segments', value: String(analyticsSegments.length) });
+
+    const maxDepth = Math.max(...analyticsSegments.map(s => s.depth));
+    const leafSegs = analyticsSegments.filter(s => s.depth === maxDepth).slice(0, 4);
+    leafSegs.forEach(seg => {
+        rows.push({
+            label: seg.name || 'Segment',
+            value: formatTimeMMSS(Math.round(seg.elapsed * 1000)),
+        });
+    });
+
+    return {
+        type: 'rpc-workbench-update',
+        mode: 'review',
+        reviewData: {
+            totalDurationMs: totalMs,
+            completedSegments: analyticsSegments.length,
+            rows,
+        },
+    };
+}
+
+function buildPreviewMessage(
+    selectedBlock: WodBlock | null,
+    documentItems: DocumentItem[],
+): RpcWorkbenchUpdate {
+    const wodItems = documentItems.filter(i => i.type === 'wod');
+
+    if (wodItems.length === 0 && !selectedBlock) {
+        return { type: 'rpc-workbench-update', mode: 'idle' };
+    }
+
+    const titleSource = selectedBlock?.content ?? wodItems[0]?.content ?? '';
+    const title = titleSource.split('\n')[0].trim().substring(0, 60) || 'Workout';
+
+    const blocks = wodItems.slice(0, 8).map(item => ({
+        id: item.id,
+        title: (item.wodBlock?.content ?? item.content).split('\n')[0].trim().substring(0, 50) || 'Workout',
+        statementCount: item.wodBlock?.statements?.length ?? 0,
+    }));
+
+    return {
+        type: 'rpc-workbench-update',
+        mode: 'preview',
+        previewData: { title, blocks },
+    };
+}

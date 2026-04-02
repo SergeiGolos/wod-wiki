@@ -345,8 +345,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       // before the correct mode (preview or review) is re-sent by the bridge.
     };
     // Only re-run when transport connection changes or runtime is created
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [castTransport?.connected, ready]);
+  }, [castTransport?.connected, runtime, execution, handleStop, ready]);
 
   if (!ready || !runtime) {
     return (

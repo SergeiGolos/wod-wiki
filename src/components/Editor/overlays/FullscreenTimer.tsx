@@ -6,7 +6,7 @@ import { ReviewGrid } from "@/components/review-grid/ReviewGrid";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { FocusedDialog } from "./FocusedDialog";
-import { CastButton } from "@/components/cast/CastButton";
+import { CastButtonRpc } from "@/components/cast/CastButtonRpc";
 import { AudioToggle } from "@/components/audio/AudioToggle";
 
 export interface FullscreenTimerProps {
@@ -81,7 +81,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
 
   return completedSegments !== null ? (
     /* ── Results view: shown after natural workout completion ── */
-    <FocusedDialog title="Workout Complete" onClose={handleClose} actions={<><CastButton /><AudioToggle /></>}>
+    <FocusedDialog title="Workout Complete" onClose={handleClose} actions={<><CastButtonRpc /><AudioToggle /></>}>
       <ReviewGrid
         runtime={null}
         segments={completedSegments}
@@ -92,7 +92,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
     </FocusedDialog>
   ) : (
     /* ── Track view: active timer ── */
-    <FocusedDialog onClose={handleClose} floatingClose actions={<><CastButton /><AudioToggle /></>}>
+    <FocusedDialog onClose={handleClose} floatingClose actions={<><CastButtonRpc /><AudioToggle /></>}>
       <RuntimeTimerPanel
         block={block}
         view={view}
