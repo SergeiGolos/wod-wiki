@@ -8,7 +8,16 @@ import {
   Timer,
   BarChart2,
 } from 'lucide-react'
-import { scrollToSection } from './ParallaxSection'
+
+const STICKY_NAV_HEIGHT = 104
+
+function scrollToSection(id: string, behavior: ScrollBehavior = 'smooth') {
+  const el = document.getElementById(id)
+  if (!el) return
+  const motionOk = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const top = el.getBoundingClientRect().top + window.scrollY - STICKY_NAV_HEIGHT
+  window.scrollTo({ top, behavior: motionOk ? behavior : 'auto' })
+}
 
 export function HomeHero() {
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -32,7 +41,7 @@ export function HomeHero() {
       bg: 'bg-blue-500/10',
     },
     {
-      id: 'editor',
+      id: 'tracker',
       icon: <Timer className="size-6" />,
       label: 'Execute with Intensity',
       tagline: 'The Timer',
@@ -42,7 +51,7 @@ export function HomeHero() {
       bg: 'bg-orange-500/10',
     },
     {
-      id: 'editor',
+      id: 'review',
       icon: <BarChart2 className="size-6" />,
       label: 'Evolve with Insight',
       tagline: 'Analytics & Data',
