@@ -46,10 +46,12 @@ export interface ParallaxStep {
 // Loaded from markdown/canvas/home/sample-script.md — edit that file to tweak
 export const SAMPLE_SCRIPT = getHomeExample('sample-script') ||
 `# Morning Strength
+
+\`\`\`
 3 rounds
   10 Kettlebell Swings 24kg
   :30 Rest
-`
+\`\`\``
 
 // Step index boundaries — used by Act1EditorSection to pick the sticky panel
 export const TRACK_STEP_START = 3    // sticky "Session Started"

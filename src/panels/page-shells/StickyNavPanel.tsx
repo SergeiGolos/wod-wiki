@@ -61,8 +61,8 @@ export function StickyNavPanel({
   return (
     <nav
       className={cn(
-        'sticky z-20 flex items-center gap-1 px-4 py-2 bg-background/95 backdrop-blur-sm border-b border-border/50 overflow-x-auto',
-        variant === 'top-fixed' ? 'top-0' : 'top-[104px]',
+        'lg:sticky z-20 flex items-center gap-1 px-4 py-2 bg-background/95 backdrop-blur-sm border-b border-border/50 overflow-x-auto',
+        variant === 'top-fixed' ? 'lg:top-0' : 'lg:top-[104px]',
         className,
       )}
     >

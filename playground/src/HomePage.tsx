@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import type { WodBlock } from '@/components/Editor/types'
 import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime'
@@ -10,6 +11,9 @@ import {
   PenLine,
   Timer,
   BarChart2,
+  Play,
+  Tv,
+  LayoutGrid as RectangleStackIcon,
 } from 'lucide-react'
 import { scrollToSection } from './components/ParallaxSection'
 import type { FrozenEditorPanelHandle } from './components/FrozenEditorPanel'
@@ -173,15 +177,15 @@ export function HomePageContent({
                 </button>
                 <div
                   ref={scrollerRef}
-                  className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-6 pb-8 -mx-6 px-6 sm:mx-0 sm:px-0 sm:pb-0 scroll-smooth"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
                 >
                   {[
                     {
                       id: 'editor',
                       icon: <PenLine className="size-6" />,
-                      label: 'Write Like a Coach',
-                      tagline: 'Plan sessions in plain text',
-                      copy: 'Exactly the way coaches whiteboard workouts — reps, rounds, distances, rest. No forms, no dropdowns.',
+                      label: 'Plan with Precision',
+                      tagline: 'Markdown',
+                      copy: 'Forget clunky dropdown menus and restrictive forms. **WOD Wiki** uses **Markdown**, giving you the speed of a digital notebook with the structure of a database. Whether you\'re scripting a complex EMOM for a class or a personal heavy-lift day, you can draft, format, and share workouts as fast as you can type.',
                       color: 'text-blue-600 dark:text-blue-400',
                       ring: 'hover:border-blue-400/50',
                       bg: 'bg-blue-500/10',
@@ -189,9 +193,9 @@ export function HomePageContent({
                     {
                       id: 'tracker',
                       icon: <Timer className="size-6" />,
-                      label: 'Smart Timer Runs the Show',
-                      tagline: 'Hit play and follow along',
-                      copy: "The timer knows when each round ends, when to rest, and what's coming next.",
+                      label: 'Execute with Intensity',
+                      tagline: 'The Timer',
+                      copy: 'A plan is only as good as its execution. Once your workout is scripted, WOD Wiki\'s integrated timer takes over. It\'s built to handle the chaos of a studio or the focus of a garage gym. Because the timer is natively connected to your Markdown plan, there\'s no friction—just hit "Start" and let the app keep the pace while you (or your clients) focus on the movement.',
                       color: 'text-orange-600 dark:text-orange-400',
                       ring: 'hover:border-orange-400/50',
                       bg: 'bg-orange-500/10',
@@ -199,9 +203,9 @@ export function HomePageContent({
                     {
                       id: 'review',
                       icon: <BarChart2 className="size-6" />,
-                      label: 'Analytics That Make Sense',
-                      tagline: 'See your work calculated',
-                      copy: 'Total volume, time under load, intensity. Pre-workout estimates, post-workout totals.',
+                      label: 'Evolve with Insight',
+                      tagline: 'Analytics & Data',
+                      copy: 'The workout doesn\'t end when the timer stops. WOD Wiki captures the performance data and transforms it into actionable analytics. For coaches, this means tracking client progress over months; for enthusiasts, it means seeing the "Wiki" of your fitness journey grow. You\'re not just guessing if you\'re getting stronger—you have the data to prove it.',
                       color: 'text-purple-600 dark:text-purple-400',
                       ring: 'hover:border-purple-400/50',
                       bg: 'bg-purple-500/10',
@@ -211,7 +215,6 @@ export function HomePageContent({
                       key={card.id}
                       onClick={() => scrollToSection('editor')}
                       className={`
-                        snap-center shrink-0 w-[85vw] sm:w-auto sm:flex-1 sm:min-w-[300px]
                         group flex flex-col items-start rounded-xl border border-border p-6 text-left transition-all ${
                         card.ring
                       } hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5

@@ -1169,17 +1169,13 @@ function AppContent() {
                 <HomeIcon data-slot="icon" />
                 <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
               </SidebarItem>
-              <SidebarItem onClick={() => navigate('/collections')} current={location.pathname.startsWith('/collections')}>
-                <FolderIcon data-slot="icon" />
-                <SidebarLabel>Collections</SidebarLabel>
-              </SidebarItem>
               <SidebarItem href="/journal" current={location.pathname === '/journal'}>
                 <RectangleStackIcon data-slot="icon" />
                 <SidebarLabel>Journal</SidebarLabel>
               </SidebarItem>
-              <SidebarItem href="/calendar" current={location.pathname === '/calendar'}>
-                <ClockIcon data-slot="icon" />
-                <SidebarLabel>Calendar</SidebarLabel>
+              <SidebarItem onClick={() => navigate('/collections')} current={location.pathname.startsWith('/collections')}>
+                <FolderIcon data-slot="icon" />
+                <SidebarLabel>Collections</SidebarLabel>
               </SidebarItem>
               <SidebarItem href="/search" current={location.pathname === '/search'}>
                 <MagnifyingGlassIcon data-slot="icon" />
@@ -1189,15 +1185,14 @@ function AppContent() {
           </SidebarHeader>
           <SidebarBody>
             {currentNavLinks.length > 0 && (
-              <SidebarSection className="3xl:hidden">
-                <div className="px-2 pt-3 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">On this page</div>
+              <SidebarAccordion title="On this page" count={currentNavLinks.length} className="3xl:hidden">
                 {currentNavLinks.map(link => (
                   <SidebarItem key={link.id} onClick={() => scrollToSection(link.id)}>
                     <DocumentTextIcon data-slot="icon" />
                     <SidebarLabel>{link.label}</SidebarLabel>
                   </SidebarItem>
                 ))}
-              </SidebarSection>
+              </SidebarAccordion>
             )}
             <SidebarSection>
               <div className="px-2 pt-3 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">Docs</div>
@@ -1214,58 +1209,6 @@ function AppContent() {
                   <SidebarLabel>{page.page.sections[0]?.heading || 'Untitled'}</SidebarLabel>
                 </SidebarItem>
               ))}
-            </SidebarAccordion>
-
-            <SidebarAccordion title="Results" count={recentResults.length}>
-              {recentResults.length === 0 ? (
-                <div className="px-2 py-3 text-xs text-zinc-400 dark:text-zinc-500">
-                  No workout results yet. Complete a workout to see results here.
-                </div>
-              ) : (
-                recentResults.map(result => {
-                  const noteLabel = result.noteId.includes('/')
-                    ? result.noteId.split('/').pop()!
-                    : result.noteId
-                  const date = new Date(result.completedAt)
-                  const duration = result.data?.duration
-                    ? `${Math.floor(result.data.duration / 60000)}m ${Math.floor((result.data.duration % 60000) / 1000)}s`
-                    : null
-                  return (
-                    <div key={result.id} className="group flex flex-col gap-0.5 px-2 py-1.5 rounded-lg hover:bg-zinc-950/5 dark:hover:bg-white/5">
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          onClick={() => {
-                            const parts = result.noteId.split('/')
-                            if (parts.length >= 2) {
-                              navigate(`/note/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`)
-                            } else {
-                              // Bare ID (no slash) — treat as playground page
-                              navigate(`/note/playground/${encodeURIComponent(result.noteId)}`)
-                            }
-                          }}
-                          className="flex-1 min-w-0 text-left text-sm font-medium text-zinc-950 dark:text-white truncate hover:underline"
-                        >
-                          {noteLabel}
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigate(`/review/${result.id}`)
-                          }}
-                          title="View result details"
-                          className="shrink-0 p-0.5 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <TableCellsIcon className="size-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-zinc-400 dark:text-zinc-500">
-                        <span>{date.toLocaleDateString()}</span>
-                        {duration && <span>· {duration}</span>}
-                        {result.data?.completed && <span className="text-emerald-500">✓</span>}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
             </SidebarAccordion>
           </SidebarBody>
         </Sidebar>

@@ -7,14 +7,11 @@ import {
   PenLine,
   Timer,
   BarChart2,
-  Play,
 } from 'lucide-react'
 import { scrollToSection } from './ParallaxSection'
-import { useNavigate } from 'react-router-dom'
 
 export function HomeHero() {
   const scrollerRef = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
 
   const scrollScroller = (direction: 'left' | 'right') => {
     if (scrollerRef.current) {
@@ -27,29 +24,29 @@ export function HomeHero() {
     {
       id: 'editor',
       icon: <PenLine className="size-6" />,
-      label: 'Write Like a Coach',
-      tagline: 'Plan sessions in plain text',
-      copy: 'Exactly the way coaches whiteboard workouts — reps, rounds, distances, rest. No forms, no dropdowns.',
+      label: 'Plan with Precision',
+      tagline: 'Markdown',
+      copy: "Forget clunky dropdown menus and restrictive forms. **WOD Wiki** uses **Markdown**, giving you the speed of a digital notebook with the structure of a database. You can draft, format, and share workouts as fast as you can type.",
       color: 'text-blue-600 dark:text-blue-400',
       ring: 'hover:border-blue-400/50',
       bg: 'bg-blue-500/10',
     },
     {
-      id: 'editor', // Scrolls to the live demo
+      id: 'editor',
       icon: <Timer className="size-6" />,
-      label: 'Smart Timer Runs the Show',
-      tagline: 'Hit play and follow along',
-      copy: "The timer knows when each round ends, when to rest, and what's coming next.",
+      label: 'Execute with Intensity',
+      tagline: 'The Timer',
+      copy: 'A plan is only as good as its execution. Your scripted workout comes to life with **WOD Wiki**\'s integrated timer.  There\'s no friction—just hit "Start" and let the app keep the pace while you focus on the workout.',
       color: 'text-orange-600 dark:text-orange-400',
       ring: 'hover:border-orange-400/50',
       bg: 'bg-orange-500/10',
     },
     {
-      id: 'editor', // Scrolls to the live demo
+      id: 'editor',
       icon: <BarChart2 className="size-6" />,
-      label: 'Analytics That Make Sense',
-      tagline: 'See your work calculated',
-      copy: 'Total volume, time under load, intensity. Pre-workout estimates, post-workout totals.',
+      label: 'Evolve with Insight',
+      tagline: 'Analytics & Data',
+      copy: '**WOD Wiki** doesn\'t stop when the timer ends, every lap tracked generates insights. Analyze your performance, identify trends, and make data-driven adjustments and visualize your progress over time.',
       color: 'text-purple-600 dark:text-purple-400',
       ring: 'hover:border-purple-400/50',
       bg: 'bg-purple-500/10',
@@ -67,34 +64,10 @@ export function HomeHero() {
       />
       <div className="relative mx-auto max-w-6xl">
         <div className="flex flex-col items-center text-center gap-8">
-          <div className="flex size-24 items-center justify-center rounded-[2rem] bg-primary text-primary-foreground shadow-2xl shadow-primary/30 rotate-3 animate-in zoom-in duration-500">
-            <Zap className="size-12 fill-current" />
-          </div>
           <div className="space-y-6 max-w-4xl">
             <h1 className="text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl text-foreground uppercase drop-shadow-sm leading-tight">
-              Your workout — written once, run forever.
+              WOD Wiki is a workout studio for fitness enthusiasts.
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              WOD Wiki is a workout studio for coaches, trainers, and home gym enthusiasts. 
-              Write your session in a simple notation, hit play, and let the timer do the rest. 
-              Every rep, every round, tracked automatically.
-            </p>
-            
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-              <button
-                onClick={() => scrollToSection('editor')}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-sm font-black uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
-              >
-                <Play className="size-4 fill-current" />
-                Try it Now
-              </button>
-              <button
-                onClick={() => navigate('/journal')}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-background px-8 text-sm font-black uppercase tracking-widest text-foreground hover:bg-muted transition-all"
-              >
-                Open Journal →
-              </button>
-            </div>
 
             {/* Value Pillars / Card Scroller */}
             <div className="relative mt-12 max-w-5xl mx-auto w-full group/scroller">
@@ -114,14 +87,13 @@ export function HomeHero() {
               </button>
               <div
                 ref={scrollerRef}
-                className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-6 pb-8 -mx-6 px-6 sm:mx-0 sm:px-0 sm:pb-0 scroll-smooth"
+                className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
               >
                 {HERO_CARDS.map((card) => (
                   <button
                     key={card.label}
                     onClick={() => scrollToSection(card.id)}
                     className={`
-                      snap-center shrink-0 w-[85vw] sm:w-auto sm:flex-1 sm:min-w-[300px]
                       group flex flex-col items-start rounded-xl border border-border p-6 text-left transition-all ${
                       card.ring
                     } hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5
