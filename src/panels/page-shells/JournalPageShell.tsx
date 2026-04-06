@@ -12,7 +12,6 @@
 
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { PageNavDropdown, type PageNavLink } from '@/components/playground/PageNavDropdown';
 import { useQueryState } from 'nuqs';
 import { PlayIcon } from '@heroicons/react/20/solid';
 
@@ -124,8 +123,8 @@ export function JournalPageShell({
         Everything inside (Header + Editor) has the background and shadow.
       */}
       <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen lg:rounded-[2.5rem]">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md pt-4 lg:pt-8">
+        {/* Sticky header — only sticky on desktop where main navbar is hidden */}
+        <div className="lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md pt-4 lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">
             <div className="flex items-center gap-4 truncate">
               <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
@@ -134,15 +133,6 @@ export function JournalPageShell({
               </h1>
             </div>
             <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {index.length > 0 && (
-                <div className="3xl:hidden">
-                  <PageNavDropdown 
-                    links={index} 
-                    scrollToSection={scrollToSection} 
-                    activeSectionId={activeId ?? undefined}
-                  />
-                </div>
-              )}
               {actions}
             </div>
           </div>

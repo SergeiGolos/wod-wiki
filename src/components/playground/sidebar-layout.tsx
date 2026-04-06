@@ -61,7 +61,7 @@ export function SidebarLayout({
   return (
     <div className="relative isolate flex min-h-svh w-full bg-zinc-50 dark:bg-zinc-950 max-lg:flex-col lg:flex-row">
       {/* Sidebar — always visible on lg, overlay on mobile */}
-      <nav className="hidden lg:flex lg:w-64 lg:shrink-0">
+      <nav className="hidden lg:flex lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-screen lg:overflow-y-auto">
         {sidebar}
       </nav>
       <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>

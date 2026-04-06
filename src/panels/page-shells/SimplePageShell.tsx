@@ -7,7 +7,6 @@
 
 import React, { useEffect, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { PageNavDropdown, type PageNavLink } from '@/components/playground/PageNavDropdown';
 import { useQueryState } from 'nuqs';
 
 export interface SimplePageShellProps {
@@ -82,8 +81,8 @@ export function SimplePageShell({
   return (
     <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
       <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen lg:rounded-[2.5rem]">
-        {/* Sticky header */}
-        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md pt-4 lg:pt-8">
+        {/* Sticky header — hidden on mobile (SidebarLayout navbar covers it), sticky on desktop */}
+        <div className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">
             <div className="flex items-center gap-4 truncate">
               <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
@@ -92,15 +91,6 @@ export function SimplePageShell({
               </h1>
             </div>
             <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              {index.length > 0 && (
-                <div className="3xl:hidden">
-                  <PageNavDropdown 
-                    links={index} 
-                    scrollToSection={scrollToSection} 
-                    activeSectionId={activeId ?? undefined}
-                  />
-                </div>
-              )}
               {actions}
             </div>
           </div>
