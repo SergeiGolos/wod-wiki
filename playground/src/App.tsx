@@ -424,6 +424,7 @@ function ActionsMenu({
   onDownload?: () => void
 }) {
   const { theme, setTheme } = useTheme()
+  const { l3Items, scrollToSection } = useNav()
 
   const handleResetData = async () => {
     localStorage.clear()
@@ -451,6 +452,19 @@ function ActionsMenu({
         <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
       </DropdownButton>
       <DropdownMenu className="min-w-56" anchor="bottom end">
+        {l3Items.length > 0 && (
+          <>
+            <DropdownSection className="3xl:hidden">
+              <DropdownHeading>On this page</DropdownHeading>
+              {l3Items.map(item => (
+                <DropdownItem key={item.id} onClick={() => scrollToSection(item.id)}>
+                  <DropdownLabel>{item.label}</DropdownLabel>
+                </DropdownItem>
+              ))}
+            </DropdownSection>
+            <DropdownDivider className="3xl:hidden" />
+          </>
+        )}
         <DropdownItem onClick={handleDownload}>
           <ArrowDownTrayIcon data-slot="icon" />
           <DropdownLabel>Download Markdown</DropdownLabel>
@@ -936,7 +950,9 @@ function AppContent() {
   const currentNavLinks = useMemo((): PageNavLink[] => {
     // 1. Canvas pages (including Home)
     if (canvasPage) {
-      return canvasPage.sections.map(s => ({ id: s.id, label: s.heading, type: 'heading' as const }))
+      return canvasPage.sections
+        .filter(s => s.level > 1)
+        .map(s => ({ id: s.id, label: s.heading, type: 'heading' as const }))
     }
 
     // 2. Docs pages

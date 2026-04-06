@@ -40,7 +40,9 @@ function isRouteActive(to: string) {
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
-const syntaxChildren: NavItem[] = canvasRoutes.map(r => ({
+const syntaxChildren: NavItem[] = canvasRoutes
+  .filter(r => !r.route.startsWith('/collections'))
+  .map(r => ({
   id: `syntax-${r.route}`,
   label: r.page.sections[0]?.heading ?? 'Untitled',
   level: 2 as const,
