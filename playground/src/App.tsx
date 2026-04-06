@@ -1,9 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import * as Headless from '@headlessui/react'
-import { Dumbbell } from 'lucide-react'
 
-declare const __APP_VERSION__: string | undefined;
-const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
 import {
   Dropdown,
   DropdownButton,
@@ -15,15 +12,11 @@ import {
   DropdownHeading,
 } from '@/components/playground/dropdown'
 import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
-import {
-  Sidebar,
-  SidebarBody,
-  SidebarHeader,
-  SidebarItem,
-  SidebarLabel,
-  SidebarSection,
-} from '@/components/playground/sidebar'
-import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
+import { NavProvider } from './nav/NavContext'
+import { useNav } from './nav/NavContext'
+import { NavSidebar } from './nav/NavSidebar'
+import { appNavTree } from './nav/appNavTree'
+import type { NavItemL3 } from './nav/navTypes'
 import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
@@ -32,21 +25,13 @@ import type { WodBlock } from '@/components/Editor/types'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import {
   PlusIcon,
-  AcademicCapIcon,
 } from '@heroicons/react/16/solid'
 import {
-  HomeIcon,
   MagnifyingGlassIcon,
-  CodeBracketIcon,
-  ClockIcon,
-  RectangleStackIcon,
-  DocumentTextIcon,
-  FolderIcon,
   EllipsisVerticalIcon,
   ArrowDownTrayIcon,
   BugAntIcon,
   ArrowPathIcon,
-  TableCellsIcon,
   SunIcon,
   MoonIcon,
   ComputerDesktopIcon,
@@ -63,7 +48,7 @@ import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
-import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
+import { findCanvasPage } from './canvas/canvasRoutes'
 import { CanvasPage } from './canvas/CanvasPage'
 import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { CollectionsPage } from './views/CollectionsPage'
@@ -72,7 +57,7 @@ import { AudioToggle } from '@/components/audio/AudioToggle'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
 import { SimplePageShell, JournalPageShell } from '@/panels/page-shells'
-import { PageNavDropdown, type PageNavLink } from '@/components/playground/PageNavDropdown'
+import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { decodeZip } from './services/decodeZip'
@@ -86,12 +71,7 @@ import {
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
-const HOME_LINKS = [
-  { id: 'editor', label: 'Live Demo' },
-  { id: 'features', label: 'Features' },
-  { id: 'explore', label: 'Library' },
-  { id: 'deep-dive', label: 'Getting Started' },
-]
+
 
 const ZERO_TO_HERO_LINKS = [
   { id: 'introduction', label: 'Introduction', type: 'heading' as const },
@@ -253,8 +233,6 @@ export interface WorkoutItem {
   category: string
   content: string
 }
-
-const syntaxPages = canvasRoutes
 
 /**
  * Wrapper that loads workout content via IndexedDB (or falls back to MD).
@@ -955,7 +933,7 @@ function AppContent() {
   }, [location.pathname, refreshResults])
 
   // Nav links for the current page (used in the sticky header dropdown)
-  const currentNavLinks = useMemo(() => {
+  const currentNavLinks = useMemo((): PageNavLink[] => {
     // 1. Canvas pages (including Home)
     if (canvasPage) {
       return canvasPage.sections.map(s => ({ id: s.id, label: s.heading, type: 'heading' as const }))
@@ -1009,22 +987,6 @@ function AppContent() {
     }
   }, [isCommandPaletteOpen, setStrategy])
 
-  const handleResetData = async () => {
-    localStorage.clear()
-    await playgroundDB.clearAll()
-    window.location.reload()
-  }
-
-  const handleDownload = () => {
-    const blob = new Blob([currentWorkout.content], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${currentWorkout.name}.md`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   // Keyboard shortcut for command palette
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -1061,6 +1023,9 @@ function AppContent() {
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
   )
+
+  // ── NavContext integration ────────────────────────────────────────────────
+  const { setL3Items, registerScrollFn } = useNav()
 
   const editorViewRef = useRef<EditorView | null>(null)
   const handleViewCreated = useCallback((view: EditorView) => {
@@ -1109,6 +1074,25 @@ function AppContent() {
     }
   }, [])
 
+  // Register the scroll function with NavContext so NavSidebar L3 clicks scroll correctly
+  useEffect(() => {
+    registerScrollFn(scrollToSection)
+  }, [scrollToSection, registerScrollFn])
+
+  // Sync currentNavLinks → NavContext L3 items (feeds sidebar accordion + right panel)
+  useEffect(() => {
+    const l3: NavItemL3[] = currentNavLinks.map(link => ({
+      id: link.id,
+      label: link.label,
+      level: 3 as const,
+      action: { type: 'scroll' as const, sectionId: link.id },
+      secondaryAction: link.onRun
+        ? { type: 'call' as const, handler: link.onRun }
+        : undefined,
+    }))
+    setL3Items(l3)
+  }, [currentNavLinks, setL3Items])
+
   useEffect(() => {
     if (theme !== 'system') return
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -1124,8 +1108,6 @@ function AppContent() {
     return theme === 'dark' ? 'vs-dark' : 'vs'
   }, [theme, isSystemDark])
 
-  const { setTheme } = useTheme()
-
   return (
     <SidebarLayout
       navbar={
@@ -1137,11 +1119,6 @@ function AppContent() {
           </div>
           <NavbarSpacer />
           <NavbarSection>
-            {currentNavLinks.length > 0 && (
-              <div className="hidden">
-                <PageNavDropdown links={currentNavLinks} scrollToSection={scrollToSection} />
-              </div>
-            )}
             <NewEntryButton />
             <NavbarItem href="/search" aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
@@ -1154,65 +1131,7 @@ function AppContent() {
           </NavbarSection>
         </Navbar>
       }
-      sidebar={
-        <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center px-2 py-4">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 rotate-3">
-                <Dumbbell size={18} />
-              </div>
-              <span className="ml-3 text-lg font-black tracking-tighter text-foreground uppercase">Wod Wiki</span>
-              <span className="ml-1.5 text-[9px] font-bold text-muted-foreground self-end mb-1 opacity-50 uppercase tracking-widest">v{appVersion}</span>
-            </div>
-            <SidebarSection>
-              <SidebarItem onClick={() => navigate('/')} current={location.pathname === '/' || location.pathname === ''}>
-                <HomeIcon data-slot="icon" />
-                <SidebarLabel className="font-semibold tracking-tight">Home</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/journal" current={location.pathname === '/journal'}>
-                <RectangleStackIcon data-slot="icon" />
-                <SidebarLabel>Journal</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem onClick={() => navigate('/collections')} current={location.pathname.startsWith('/collections')}>
-                <FolderIcon data-slot="icon" />
-                <SidebarLabel>Collections</SidebarLabel>
-              </SidebarItem>
-              <SidebarItem href="/search" current={location.pathname === '/search'}>
-                <MagnifyingGlassIcon data-slot="icon" />
-                <SidebarLabel>Search</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
-          </SidebarHeader>
-          <SidebarBody>
-            {currentNavLinks.length > 0 && (
-              <SidebarAccordion title="On this page" count={currentNavLinks.length} className="3xl:hidden">
-                {currentNavLinks.map(link => (
-                  <SidebarItem key={link.id} onClick={() => scrollToSection(link.id)}>
-                    <DocumentTextIcon data-slot="icon" />
-                    <SidebarLabel>{link.label}</SidebarLabel>
-                  </SidebarItem>
-                ))}
-              </SidebarAccordion>
-            )}
-            <SidebarSection>
-              <div className="px-2 pt-3 pb-1 text-[10px] font-bold tracking-wider text-zinc-400 uppercase dark:text-zinc-500">Docs</div>
-              <SidebarItem onClick={() => navigate('/getting-started')} current={location.pathname === '/getting-started'}>
-                <AcademicCapIcon data-slot="icon" />
-                <SidebarLabel>Zero to Hero</SidebarLabel>
-              </SidebarItem>
-            </SidebarSection>
-
-            <SidebarAccordion title="Syntax" count={syntaxPages.length}>
-              {syntaxPages.map(page => (
-                <SidebarItem key={page.route} onClick={() => navigate(page.route)} current={location.pathname === page.route}>
-                  <CodeBracketIcon data-slot="icon" />
-                  <SidebarLabel>{page.page.sections[0]?.heading || 'Untitled'}</SidebarLabel>
-                </SidebarItem>
-              ))}
-            </SidebarAccordion>
-          </SidebarBody>
-        </Sidebar>
-      }
+      sidebar={<NavSidebar />}
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
@@ -1320,6 +1239,7 @@ export function App() {
           <NuqsAdapter>
             <ScrollToTop />
             <CommandProvider>
+              <NavProvider tree={appNavTree}>
               <Routes>
                 <Route path="/" element={<AppContent />} />
                 <Route path="/getting-started" element={<AppContent />} />
@@ -1339,6 +1259,7 @@ export function App() {
                 <Route path="/review/:runtimeId" element={<ReviewPage />} />
                 <Route path="*" element={<AppContent />} />
               </Routes>
+              </NavProvider>
             </CommandProvider>
           </NuqsAdapter>
         </BrowserRouter>
