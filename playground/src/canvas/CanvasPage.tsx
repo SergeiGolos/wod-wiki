@@ -315,21 +315,29 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
         swapSource(resolveSource(step.value, wodFilesRef.current))
       } else if (step.action === 'navigate') {
         navigate(step.value)
-      } else if (step.action === 'set-state' && step.value === 'track') {
-        const block = wodBlocksRef.current[0] ?? null
-        if (!block) break
-        if (openMode === 'view') {
-          launchViewRuntime(block)
-        } else if (openMode === 'dialog') {
-          setFullscreenBlock(block)
-        } else if (openMode === 'route') {
-          const runtimeId = uuidv4()
-          pendingRuntimes.set(runtimeId, { block, noteId: '' })
-          navigate(`/tracker/${runtimeId}`)
+      } else if (step.action === 'set-state') {
+        if (step.value === 'note') {
+          // Return to editor — close any running view-mode runtime
+          closeViewRuntime()
+        } else if (step.value === 'review') {
+          // Jump directly to review panel (no new runtime needed)
+          setPanelMode('review')
+        } else if (step.value === 'track') {
+          const block = wodBlocksRef.current[0] ?? null
+          if (!block) break
+          if (openMode === 'view') {
+            launchViewRuntime(block)
+          } else if (openMode === 'dialog') {
+            setFullscreenBlock(block)
+          } else if (openMode === 'route') {
+            const runtimeId = uuidv4()
+            pendingRuntimes.set(runtimeId, { block, noteId: '' })
+            navigate(`/tracker/${runtimeId}`)
+          }
         }
       }
     }
-  }, [navigate, swapSource, launchViewRuntime])
+  }, [navigate, swapSource, launchViewRuntime, closeViewRuntime])
 
   // RunButtonState passed down to both SectionButtons and ViewPanelButtons
   const runState: RunButtonState = {
@@ -417,7 +425,9 @@ export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: Ca
           const section = contentSections.find(s => s.id === bestId)
           if (section) {
             for (const cmd of section.commands) {
-              executePipelineRef.current(cmd.pipeline, cmd.open)
+              // Scroll-triggered commands default to 'view' (inline panel),
+              // not 'dialog' (fullscreen), so set-state:track stays in the panel.
+              executePipelineRef.current(cmd.pipeline, cmd.open ?? 'view')
             }
           }
         }
