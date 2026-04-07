@@ -140,7 +140,7 @@ export function JournalPageShell({
         </div>
 
         {/* Main Editor Content */}
-        <main className="flex-1 py-10 px-6 lg:px-10">
+        <main className="flex-1">
           {editor}
         </main>
       </div>

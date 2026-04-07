@@ -97,7 +97,7 @@ export function SimplePageShell({
           <hr role="presentation" className="mt-6 md:mt-8 w-full border-t border-border opacity-50" />
         </div>
 
-        <div className="flex-1 py-10 px-6 lg:px-10">
+        <div className="flex-1">
           {children}
         </div>
       </div>
