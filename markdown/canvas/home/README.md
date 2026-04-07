@@ -10,7 +10,7 @@ WOD Wiki is a workout studio for coaches, trainers, and home gym enthusiasts. Wr
 
 ```button
 label:  Try it Now
-target: hero-demo
+target: home-demo
 pipeline:
   - set-state: track
 ```
@@ -34,17 +34,26 @@ See your work calculated — total volume, time under load, intensity. Pre-worko
 
 ## Live Demo {sticky}
 
-### Act 1 — Write the Plan
-Start with what you're going to do. WOD Wiki reads like a whiteboard — rounds, reps, load, or time. That's it.
+Scroll through to see how WOD Wiki turns a plain script into a fully tracked workout.
 
 ```view
-name:    write-demo
+name:    home-demo
 state:   note
 source:  markdown/canvas/home/sample-script.md
 runtime: in-memory
 launch:  host
 align:   right
 width:   45%
+```
+
+### Act 1 — Write the Plan
+Start with what you’re going to do. WOD Wiki reads like a whiteboard — rounds, reps, load, or time. That’s it.
+
+```command
+target: home-demo
+pipeline:
+  - set-source: markdown/canvas/home/sample-script.md
+  - set-state: note
 ```
 
 **Parsing**
@@ -56,14 +65,11 @@ Dialects let WOD Wiki understand shorthand — CrossFit notation, swim yard tota
 ### Act 2 — Track the Workout
 Hit run. The smart timer counts down each block, advances automatically, and keeps you in the flow state.
 
-```view
-name:    track-demo
-state:   track
-source:  markdown/canvas/home/sample-script.md
-runtime: in-memory
-launch:  host
-align:   right
-width:   45%
+```command
+target: home-demo
+pipeline:
+  - set-source: markdown/canvas/home/sample-script.md
+  - set-state: track
 ```
 
 **Live Metrics**
@@ -72,18 +78,16 @@ As you work, values are collected per block. Total reps accumulate. An overlay s
 ### Act 3 — Review the Results
 When the last round finishes, your results appear immediately. Volume, intensity, durations — all ready without any manual entry.
 
-```view
-name:    review-demo
-state:   review
-source:  markdown/canvas/home/sample-script.md
-runtime: in-memory
-launch:  host
-align:   right
-width:   45%
+```command
+target: home-demo
+pipeline:
+  - set-source: markdown/canvas/home/sample-script.md
+  - set-state: review
 ```
 
 **Share or Save**
-Results live in your browser's local IndexedDB — your data, your device, no account required. Export anywhere, anytime.
+Results live in your browser’s local IndexedDB — your data, your device, no account required. Export anywhere, anytime.
+
 
 ## Features {full-bleed dark}
 

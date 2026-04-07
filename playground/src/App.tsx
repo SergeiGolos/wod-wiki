@@ -1041,7 +1041,7 @@ function AppContent() {
   )
 
   // ── NavContext integration ────────────────────────────────────────────────
-  const { setL3Items, registerScrollFn } = useNav()
+  const { setL3Items, registerScrollFn, dispatch: navDispatch } = useNav()
 
   const editorViewRef = useRef<EditorView | null>(null)
   const handleViewCreated = useCallback((view: EditorView) => {
@@ -1050,10 +1050,16 @@ function AppContent() {
 
   const scrollToSection = useCallback((id: string) => {
     // 1. Try standard DOM element (Canvas/List pages)
+    //    Use scrollIntoView so the browser finds the correct scroll container
+    //    (works inside nested flex layouts like HomeView > CanvasPage).
     const el = document.getElementById(id)
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 80
-      window.scrollTo({ top: y, behavior: 'smooth' })
+      // Apply a temporary scroll-margin so the sticky header is not covered.
+      const prev = el.style.scrollMarginTop
+      el.style.scrollMarginTop = '96px'
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      // Restore after animation frame so the style doesn't persist.
+      requestAnimationFrame(() => { el.style.scrollMarginTop = prev })
       return
     }
 
@@ -1094,6 +1100,30 @@ function AppContent() {
   useEffect(() => {
     registerScrollFn(scrollToSection)
   }, [scrollToSection, registerScrollFn])
+
+  // Track scroll position to keep NavContext activeL3Id in sync
+  useEffect(() => {
+    if (currentNavLinks.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestId: string | null = null
+        let bestRatio = -1
+        entries.forEach(e => {
+          if (e.isIntersecting && e.intersectionRatio > bestRatio) {
+            bestRatio = e.intersectionRatio
+            bestId = e.target.id
+          }
+        })
+        if (bestId) navDispatch({ type: 'SET_ACTIVE_L3', id: bestId })
+      },
+      { rootMargin: '-10% 0px -50% 0px', threshold: [0, 0.25, 0.5, 1] }
+    )
+    currentNavLinks.forEach(link => {
+      const el = document.getElementById(link.id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [currentNavLinks, navDispatch])
 
   // Sync currentNavLinks → NavContext L3 items (feeds sidebar accordion + right panel)
   useEffect(() => {
