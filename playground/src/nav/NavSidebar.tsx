@@ -232,9 +232,6 @@ export function NavSidebar() {
       <SidebarBody>
         {/* L2 — context-specific panel or doc children */}
         {renderL2()}
-
-        {/* L3 — current page index (hidden on ultra-wide, shown in right panel) */}
-        <L3Accordion items={l3Items} />
       </SidebarBody>
     </Sidebar>
   )

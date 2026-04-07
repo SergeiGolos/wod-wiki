@@ -280,6 +280,18 @@ function WorkoutEditorPage({
     })
   }, [content, wodBlocks, handleStartWorkout])
 
+  const { setL3Items: setEditorL3 } = useNav()
+  useEffect(() => {
+    setEditorL3(index.map(link => ({
+      id: link.id,
+      label: link.label,
+      level: 3 as const,
+      action: { type: 'scroll' as const, sectionId: link.id },
+      secondaryAction: link.onRun ? { type: 'call' as const, handler: link.onRun } : undefined,
+    })))
+    return () => setEditorL3([])
+  }, [index, setEditorL3])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -454,7 +466,7 @@ function ActionsMenu({
       <DropdownMenu className="min-w-56" anchor="bottom end">
         {l3Items.length > 0 && (
           <>
-            <DropdownSection className="3xl:hidden">
+            <DropdownSection>
               <DropdownHeading>On this page</DropdownHeading>
               {l3Items.map(item => (
                 <DropdownItem key={item.id} onClick={() => scrollToSection(item.id)}>
@@ -462,7 +474,7 @@ function ActionsMenu({
                 </DropdownItem>
               ))}
             </DropdownSection>
-            <DropdownDivider className="3xl:hidden" />
+            <DropdownDivider />
           </>
         )}
         <DropdownItem onClick={handleDownload}>
@@ -569,6 +581,18 @@ function PlaygroundNotePage({ theme, onViewCreated }: { theme: string, onViewCre
       return { ...link, onRun: () => handleStartWorkout(block) }
     })
   }, [content, wodBlocks_pnp, handleStartWorkout])
+
+  const { setL3Items: setPnpL3 } = useNav()
+  useEffect(() => {
+    setPnpL3(index.map(link => ({
+      id: link.id,
+      label: link.label,
+      level: 3 as const,
+      action: { type: 'scroll' as const, sectionId: link.id },
+      secondaryAction: link.onRun ? { type: 'call' as const, handler: link.onRun } : undefined,
+    })))
+    return () => setPnpL3([])
+  }, [index, setPnpL3])
 
   if (loading) {
     return (
@@ -797,6 +821,18 @@ function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: 
       return { ...link, onRun: () => handleStartWorkout(block) }
     })
   }, [content, wodBlocks_jp, handleStartWorkout])
+
+  const { setL3Items: setJpL3 } = useNav()
+  useEffect(() => {
+    setJpL3(index.map(link => ({
+      id: link.id,
+      label: link.label,
+      level: 3 as const,
+      action: { type: 'scroll' as const, sectionId: link.id },
+      secondaryAction: link.onRun ? { type: 'call' as const, handler: link.onRun } : undefined,
+    })))
+    return () => setJpL3([])
+  }, [index, setJpL3])
 
   if (loading) {
     return (
