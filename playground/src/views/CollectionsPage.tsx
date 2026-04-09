@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderIcon, SearchIcon, ChevronRightIcon } from 'lucide-react';
+import { useQueryState } from 'nuqs';
+import { FolderIcon, ChevronRightIcon } from 'lucide-react';
 import { getWodCollections, type WodCollection } from '@/repositories/wod-collections';
 
 /** Predefined category grouping — collections-only, hidden from user controls */
@@ -50,33 +51,8 @@ function CollectionLink({ collection }: { collection: WodCollection }) {
   );
 }
 
-/** Query organism — hidden predefined filter that constrains the list to collections only.
- *  Renders a minimal text input for filtering; category/type controls are intentionally absent. */
-function CollectionsQueryOrganism({
-  text,
-  onTextChange,
-}: {
-  text: string;
-  onTextChange: (v: string) => void;
-}) {
-  return (
-    <div className="shrink-0 border-b border-border px-6 py-3 flex items-center gap-3">
-      <SearchIcon className="size-4 text-muted-foreground shrink-0" />
-      <input
-        type="text"
-        placeholder="Filter collections…"
-        value={text}
-        onChange={e => onTextChange(e.target.value)}
-        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-        autoComplete="off"
-        spellCheck={false}
-      />
-    </div>
-  );
-}
-
 export function CollectionsPage() {
-  const [text, setText] = useState('');
+  const [text] = useQueryState('q', { defaultValue: '' });
   const allCollections = useMemo(() => getWodCollections(), []);
 
   const filtered = useMemo(() => {
@@ -106,7 +82,6 @@ export function CollectionsPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-card">
-      <CollectionsQueryOrganism text={text} onTextChange={setText} />
       <div className="flex-1 overflow-y-auto">
         {grouped.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">

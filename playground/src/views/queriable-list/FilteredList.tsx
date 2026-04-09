@@ -79,7 +79,7 @@ export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, sel
           >
             <div
               className={cn(
-                "sticky z-10 px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2",
+                "sticky z-[5] px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2",
                 isSelectedGroup && "bg-primary/10 border-primary/20"
               )}
               style={{ top: stickyOffset }}

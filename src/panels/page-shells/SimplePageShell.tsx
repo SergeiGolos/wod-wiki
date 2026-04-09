@@ -28,6 +28,13 @@ export interface SimplePageShellProps {
   /** Right-side actions (e.g. New Entry, Cast, etc.) */
   actions?: ReactNode;
 
+  /**
+   * Optional content rendered below the title row, inside the sticky header zone.
+   * Useful for page-level controls like a week calendar strip.
+   * On desktop it's part of the sticky header. On mobile it renders as its own sticky bar.
+   */
+  subheader?: ReactNode;
+
   /** Additional CSS classes */
   className?: string;
 }
@@ -39,6 +46,7 @@ export function SimplePageShell({
   activeSectionId,
   onScrollToSection,
   actions,
+  subheader,
   className,
 }: SimplePageShellProps) {
   const [activeId, setActiveId] = useQueryState('s', {
@@ -94,8 +102,17 @@ export function SimplePageShell({
               {actions}
             </div>
           </div>
-          <hr role="presentation" className="mt-6 md:mt-8 w-full border-t border-border opacity-50" />
+          {subheader && <div className="mt-4">{subheader}</div>}
+          <hr role="presentation" className="mt-4 md:mt-6 w-full border-t border-border opacity-50" />
         </div>
+
+        {/* Subheader — mobile only: sticky bar below the SidebarLayout mobile navbar.
+            `overflow-clip` was scoped to lg+ in sidebar-layout.tsx so sticky works on mobile. */}
+        {subheader && (
+          <div className="block lg:hidden sticky top-[60px] sm:top-14 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 py-2">
+            {subheader}
+          </div>
+        )}
 
         <div className="flex-1">
           {children}

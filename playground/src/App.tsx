@@ -51,6 +51,8 @@ import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
 import { CanvasPage } from './canvas/CanvasPage'
 import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
+import { WeekCalendarStrip } from './views/queriable-list/WeekCalendarStrip'
+import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { AudioToggle } from '@/components/audio/AudioToggle'
@@ -1234,21 +1236,21 @@ function AppContent() {
               />
             </SimplePageShell>
           ) : location.pathname === '/journal' ? (
-            <SimplePageShell title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Journal" subheader={<WeekCalendarStrip />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/search' ? (
-            <SimplePageShell title="Search" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Search" subheader={<TextFilterStrip placeholder="Search workouts, results, or notes…" autoFocus />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <SearchPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
             </SimplePageShell>
           ) : location.pathname === '/collections' ? (
-            <SimplePageShell title="Collections" actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <SimplePageShell title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
             </SimplePageShell>
           ) : canvasPage ? (

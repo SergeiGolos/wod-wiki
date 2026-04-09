@@ -42,6 +42,8 @@ bun run test:all               # Run all tests
 bun run storybook              # Start dev server
 bun run build-storybook        # Build (NEVER cancel — may take up to 60 min)
 bun x tsc --noEmit             # Type check
+bun run test:e2e               # Playwright e2e acceptance tests
+bun x playwright test --headed # E2E with visible browser (for debugging)
 ```
 
 ### Code Generation Patterns
@@ -75,8 +77,32 @@ When generating code that touches these subsystems, understand their patterns:
 - Do not fix pre-existing TypeScript errors (369 baseline) unrelated to your changes
 - Do not cancel `build-storybook` — it may appear stuck but is working
 
+### Playwright E2E Acceptance Tests
+
+Playwright e2e tests are **acceptance gates** — UI/layout/interaction changes cannot be pushed without passing e2e coverage. Work with the developer to build these tests collaboratively.
+
+**Workflow when making UI changes:**
+1. Implement the feature or fix.
+2. **Write or update an e2e test** in `e2e/` (suffix: `*.e2e.ts`) that validates the change from the user's perspective.
+3. Reuse page objects from `e2e/pages/` and assertion helpers from `e2e/utils/`.
+4. For layout changes, test both mobile (375×812) and desktop viewports.
+5. Run `bun run test:e2e` and confirm the new test passes.
+6. Use `page.screenshot()` to capture visual state for debugging.
+
+**When to write e2e tests:**
+- New UI components or pages
+- Layout changes (sticky positioning, responsive behavior, scroll behavior)
+- User interaction flows (navigation, form submission, state transitions)
+- Bug fixes for visually observable issues
+
+**When e2e is NOT needed:**
+- Pure refactors with no behavior change
+- Internal logic changes fully covered by unit tests
+- Type-only changes
+
 ### Validation Checklist
-After generating or modifying code, the user should:
+After generating or modifying code:
 1. `bun run test` — no new test failures
 2. `bun x tsc --noEmit` — no new type errors from your changes
-3. `bun run storybook` — Storybook loads and affected stories render
+3. `bun run test:e2e` — all e2e acceptance tests pass (for UI/layout changes)
+4. `bun run storybook` — Storybook loads and affected stories render

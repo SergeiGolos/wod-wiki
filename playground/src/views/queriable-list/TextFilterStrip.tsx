@@ -1,0 +1,58 @@
+import React from 'react';
+import { useQueryState } from 'nuqs';
+import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
+import { cn } from '@/lib/utils';
+
+interface TextFilterStripProps {
+  /** URL query param name to read/write (default: 'q') */
+  paramName?: string;
+  /** Input placeholder text */
+  placeholder?: string;
+  /** Whether to auto-focus the input on mount */
+  autoFocus?: boolean;
+  /** Additional CSS classes */
+  className?: string;
+}
+
+/**
+ * TextFilterStrip
+ *
+ * A self-contained URL-aware text search/filter bar.
+ * Reads and writes a URL param (default `q`) so it can be placed
+ * in the page shell sticky header without prop-drilling callbacks.
+ *
+ * Usable on any page that needs a text filter: Search, Collections, etc.
+ */
+export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
+  paramName = 'q',
+  placeholder = 'Search…',
+  autoFocus = false,
+  className,
+}) => {
+  const [value, setValue] = useQueryState(paramName, { defaultValue: '' });
+
+  return (
+    <div className={cn('flex items-center gap-3 px-6 lg:px-10 pb-3', className)}>
+      <MagnifyingGlassIcon className="size-5 text-muted-foreground shrink-0" />
+      <input
+        type="text"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        placeholder={placeholder}
+        autoFocus={autoFocus}
+        autoComplete="off"
+        spellCheck={false}
+        className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm sm:text-base font-medium"
+      />
+      {value && (
+        <button
+          onClick={() => setValue('')}
+          aria-label="Clear"
+          className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  );
+};
