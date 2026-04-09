@@ -106,9 +106,10 @@ export function SimplePageShell({
           <hr role="presentation" className="mt-4 md:mt-6 w-full border-t border-border opacity-50" />
         </div>
 
-        {/* Subheader — mobile only: sticky bar below the SidebarLayout mobile navbar (h-14 = 56px) */}
+        {/* Subheader — mobile only: sticky bar below the SidebarLayout mobile navbar.
+            `overflow-clip` was scoped to lg+ in sidebar-layout.tsx so sticky works on mobile. */}
         {subheader && (
-          <div className="block lg:hidden sticky top-14 z-20 bg-background/80 backdrop-blur-md border-b border-border/50 py-2">
+          <div className="block lg:hidden sticky top-[60px] sm:top-14 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 py-2">
             {subheader}
           </div>
         )}

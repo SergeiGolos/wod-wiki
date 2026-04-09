@@ -44,7 +44,8 @@ bun test tests/harness --preload ./tests/unit-setup.ts
 
 # Other test types
 bun run test:storybook                # Storybook tests (requires Playwright)
-bun run test:e2e                      # Playwright e2e tests
+bun run test:e2e                      # Playwright e2e acceptance tests
+bun x playwright test --headed        # E2E with visible browser
 bun run test:perf                     # Performance benchmarks
 bun run test:coverage                 # With coverage report
 ```
@@ -211,20 +212,29 @@ stories/                # Storybook stories
 
 After making changes, always validate:
 
-1. **Storybook Development Flow**:
-   - Run `bun run storybook`
-   - Verify Storybook loads on http://localhost:6006
-   - Navigate to Clock > Default > Default story
-   - Test component interactions in Controls panel
-
-2. **Build Validation**:
-   - Run `bun run build-storybook` and wait for completion (~30 seconds)
-   - Verify build completes without errors and creates `storybook-static/` directory
-
-3. **Unit Test Regression**:
+1. **Unit Test Regression**:
    - Run `bun run test`
    - Ensure no NEW test failures are introduced
    - Accept existing 4 module failures and 1 integration test failure as baseline
+
+2. **Type Check**:
+   - Run `bun x tsc --noEmit`
+   - No new type errors from your changes (369 baseline errors exist)
+
+3. **E2E Acceptance Tests** (required for UI/layout/interaction changes):
+   - Ensure Storybook is running: `bun run storybook`
+   - Run `bun run test:e2e` — all e2e tests must pass
+   - If you changed UI behavior, write or update an e2e test to cover the change
+   - Test both mobile and desktop viewports when layout is affected
+   - See `AGENTS.md` → Playwright E2E Acceptance Tests for patterns and directory structure
+
+4. **Storybook Smoke Test**:
+   - Verify Storybook loads on http://localhost:6006
+   - Navigate to affected stories and confirm they render correctly
+
+5. **Build Validation** (before merge):
+   - Run `bun run build-storybook` and wait for completion (~30 seconds)
+   - Verify build completes without errors and creates `storybook-static/` directory
 
 ## Known Issues and Constraints
 
@@ -246,7 +256,12 @@ After making changes, always validate:
 - Example: timer test in `src/stories/TimerTest.stories.tsx`
 - Requires Storybook running and Playwright browsers installed
 
-## File Organization
+### Playwright E2E Acceptance Tests
+- E2e tests are **acceptance gates** — UI/layout/interaction changes cannot be pushed without passing e2e coverage
+- Tests live in `e2e/` with `*.e2e.ts` suffix; see `AGENTS.md` for full directory layout and patterns
+- Reuse page objects from `e2e/pages/` and assertion helpers from `e2e/utils/`
+- For layout changes, test both mobile (375×812) and desktop viewports
+- Run with `bun run test:e2e`; use `--headed` for visual debugging
 
 ### Public API Exports
 - Main library exports are handled through individual component exports

@@ -51,10 +51,18 @@ bun test tests/harness --preload ./tests/unit-setup.ts
 bun test tests/jit-compilation --preload ./tests/setup.ts
 ```
 
+### Playwright E2E / Acceptance Tests (e2e/)
+```bash
+bun run test:e2e                      # Run all Playwright e2e tests
+bun x playwright test e2e/runtime-execution  # Run a specific category
+bun x playwright test --headed        # Run with visible browser
+bun x playwright test --ui            # Interactive Playwright UI
+bun x playwright show-report          # View HTML report after run
+```
+
 ### Other Test Commands
 ```bash
 bun run test:storybook                # Storybook tests (requires Playwright)
-bun run test:e2e                      # Playwright e2e tests
 bun run test:perf                     # Performance benchmarks
 bun x tsc --noEmit                    # Type check only
 ```
@@ -240,20 +248,28 @@ stories/                # Storybook stories
 
 After making changes, always validate:
 
-1. **Storybook Development Flow**:
-   - Run `bun run storybook`
-   - Verify Storybook loads on http://localhost:6006
-   - Navigate to Clock > Default > Default story
-   - Test component interactions in Controls panel
-
-2. **Build Validation**:
-   - Run `bun run build-storybook` and wait for completion (~30 seconds)
-   - Verify build completes without errors and creates `storybook-static/` directory
-
-3. **Unit Test Regression**:
+1. **Unit Test Regression**:
    - Run `bun run test`
    - Ensure no NEW test failures are introduced
    - Accept existing 4 module failures and 1 integration test failure as baseline
+
+2. **Type Check**:
+   - Run `bun x tsc --noEmit`
+   - No new type errors from your changes (369 baseline errors exist)
+
+3. **E2E Acceptance Tests** (required for UI/layout/interaction changes):
+   - Ensure Storybook is running: `bun run storybook`
+   - Run `bun run test:e2e` — all e2e tests must pass
+   - If you changed UI behavior, write or update an e2e test to cover the change
+   - Test both mobile and desktop viewports when layout is affected
+
+4. **Storybook Smoke Test**:
+   - Verify Storybook loads on http://localhost:6006
+   - Navigate to affected stories and confirm they render correctly
+
+5. **Build Validation** (before merge):
+   - Run `bun run build-storybook` and wait for completion (~30 seconds)
+   - Verify build completes without errors and creates `storybook-static/` directory
 
 ## Testing Guidelines
 
@@ -267,6 +283,45 @@ After making changes, always validate:
 - Interaction tests defined in story `play` functions
 - Example: timer test in `src/stories/TimerTest.stories.tsx`
 - Requires Storybook running and Playwright browsers installed
+
+### Playwright E2E Acceptance Tests
+
+Playwright e2e tests are **acceptance tests** — they validate features from the user's perspective in a real browser. Changes that affect UI behavior, layout, or user interactions **must** include or update e2e tests before merging.
+
+**Config**: `playwright.config.ts` — tests run against Storybook at `http://localhost:6006`
+
+**Directory structure**:
+```
+e2e/
+├── *.e2e.ts                  # Top-level test files
+├── fixtures/                 # Test data (workout scripts, expected states)
+│   └── workout-data.ts
+├── pages/                    # Page Object Models
+│   ├── JitCompilerDemoPage.ts
+│   └── WorkbenchPage.ts
+├── utils/                    # Shared helpers
+│   ├── assertion-helpers.ts  # RuntimeAssertions, WorkoutAssertions
+│   └── runtime-helpers.ts    # extractRuntimeState(), wait helpers
+├── runtime-execution/        # Runtime execution test suites
+├── metric-inheritance/       # Metric inheritance tests
+└── screenshots/              # Failure screenshots (gitignored)
+```
+
+**Writing e2e tests — patterns to follow**:
+1. **Page Object Model**: Create/reuse page objects in `e2e/pages/` for reusable navigation and interaction methods.
+2. **Assertion helpers**: Use `RuntimeAssertions` and `WorkoutAssertions` from `e2e/utils/` instead of inline assertions.
+3. **Console monitoring**: Capture `page.on('console')` and `page.on('pageerror')` to detect runtime errors.
+4. **Screenshots**: Take screenshots at key checkpoints for debugging — stored in `e2e/screenshots/`.
+5. **Multi-viewport**: Test mobile (375×812) and desktop viewports when layout behavior matters.
+6. **Storybook URLs**: Navigate to `http://localhost:6006/iframe.html?id=<story-id>&viewMode=story` for isolated component testing.
+
+**Agent workflow for e2e tests**:
+1. **Collaborate with the developer** to define acceptance criteria before writing tests.
+2. Write the test file in `e2e/` matching the `*.e2e.ts` naming convention.
+3. Reuse existing page objects and helpers — create new ones only when needed.
+4. Run the test with `bun run test:e2e` (or a specific file) and iterate until green.
+5. Use `--headed` mode or Playwright `page.screenshot()` to debug visual issues.
+6. The developer reviews and confirms the tests capture the intended behavior.
 
 ## File Organization
 

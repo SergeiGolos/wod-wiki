@@ -80,7 +80,7 @@ export function SidebarLayout({
 
       {/* Content */}
       <main className="flex flex-1 flex-col lg:min-w-0 lg:pt-2 lg:pr-2 lg:pb-2">
-        <div className="grow w-full overflow-clip">
+        <div className="grow w-full lg:overflow-clip">
           {children}
         </div>
       </main>
