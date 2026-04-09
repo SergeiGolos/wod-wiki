@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/syntax`, `/syntax/:topic` |
-| **Template** | [Canvas Page](../templates/canvas.md) |
+| **Template** | [Canvas Page](_template.md) |
 | **Source Files** | `markdown/canvas/syntax/README.md` (index), `markdown/canvas/syntax/{topic}.md` (sub-pages) |
 
 ## Page Outline
@@ -64,3 +64,13 @@ Buttons navigate to the detailed sub-page for each topic.
 
 ## Sub-pages (`/syntax/:topic`)
 Detailed sub-pages (e.g., `/syntax/basics`) are also rendered using the Canvas template, typically loading a specific markdown file from `markdown/canvas/syntax/`. These pages follow the same scroll-driven pattern with interactive examples in the sticky view panel.
+
+## Layout Notes
+
+Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). No structural overrides on this route.
+
+| Detail | Value |
+|--------|-------|
+| **Navigation IDs** | The `PageNavDropdown` in `App.tsx` hardcodes IDs (`introduction`, `anatomy`, `timers`, `metrics`, `groups`, `protocols`, `supplemental`, `document`). These must stay aligned with slugified headings in `syntax/README.md` — a current discrepancy exists (e.g. `anatomy` vs `the-basics`). |
+| **`launch: dialog`** | The "New Workout Note →" button uses `launch: dialog` — opens `FullscreenTimer` at `z-50` per [layout.md §8](../../layout.md#8-overlay--dialog-layer). |
+| **Sub-page shell** | Each `/syntax/:topic` sub-page is an independent `CanvasPage` instance with its own IntersectionObserver; it shares the same `SidebarLayout` wrapper as the index page. |

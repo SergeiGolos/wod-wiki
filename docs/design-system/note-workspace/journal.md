@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/journal/:id` |
-| **Template** | [Note Workspace](../templates/note-workspace.md) |
+| **Template** | [Note Workspace](_template.md) |
 | **Component** | `JournalPageShell` |
 
 ## Description

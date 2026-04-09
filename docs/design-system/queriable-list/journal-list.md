@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/journal` |
-| **Template** | [Queriable List](../templates/queriable-list.md) |
+| **Template** | [Queriable List](_template.md) |
 | **Query Organism** | **Week Planner** |
 
 ## Description

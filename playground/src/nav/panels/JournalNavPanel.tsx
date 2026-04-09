@@ -3,39 +3,33 @@
  *
  * Features:
  *   - Mini month-view calendar (CalendarDatePicker)
- *   - Tag chip filter (ready for future tag data)
+ *   - Tag chip filter
  *
- * Dispatches:
- *   SET_JOURNAL_DATE  — updates navState.journalFilter.selectedDate
- *   SET_JOURNAL_TAGS  — updates navState.journalFilter.selectedTags
+ * All state is backed by nuqs URL parameters (`d`, `month`, `tags`)
+ * so the URL is the single source of truth across every journal control.
  */
 
 import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker'
 import { cn } from '@/lib/utils'
+import { useJournalQueryState } from '../../hooks/useJournalQueryState'
 import type { NavPanelProps } from '../navTypes'
 
 const PLACEHOLDER_TAGS = ['strength', 'cardio', 'mobility', 'kettlebell', 'swim']
 
-export function JournalNavPanel({ navState, dispatch }: NavPanelProps) {
-  const { selectedDate, selectedTags } = navState.journalFilter
+export function JournalNavPanel(_props: NavPanelProps) {
+  const { selectedDate, setSelectedDate, dateParam, selectedTags, toggleTag } =
+    useJournalQueryState()
 
-  const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null
+  const selectedDateObj = dateParam ? selectedDate : null
 
   const handleDateSelect = (date: Date) => {
     const iso = date.toISOString().slice(0, 10)
     // Toggle off if same date is already selected
-    if (iso === selectedDate) {
-      dispatch({ type: 'SET_JOURNAL_DATE', date: null })
+    if (iso === dateParam) {
+      setSelectedDate(null)
     } else {
-      dispatch({ type: 'SET_JOURNAL_DATE', date: iso })
+      setSelectedDate(date)
     }
-  }
-
-  const toggleTag = (tag: string) => {
-    const next = selectedTags.includes(tag)
-      ? selectedTags.filter(t => t !== tag)
-      : [...selectedTags, tag]
-    dispatch({ type: 'SET_JOURNAL_TAGS', tags: next })
   }
 
   return (
@@ -48,14 +42,14 @@ export function JournalNavPanel({ navState, dispatch }: NavPanelProps) {
       />
 
       {/* Active date badge */}
-      {selectedDate && (
+      {dateParam && (
         <div className="flex items-center gap-2 px-2">
           <span className="text-xs text-muted-foreground">Filtered to</span>
           <button
-            onClick={() => dispatch({ type: 'SET_JOURNAL_DATE', date: null })}
+            onClick={() => setSelectedDate(null)}
             className="text-xs font-semibold text-primary hover:underline"
           >
-            {selectedDate} ×
+            {dateParam} ×
           </button>
         </div>
       )}

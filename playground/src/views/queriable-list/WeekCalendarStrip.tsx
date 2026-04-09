@@ -1,27 +1,21 @@
 import React, { useMemo } from 'react';
-import { useQueryState } from 'nuqs';
 import { cn } from '@/lib/utils';
+import { useJournalQueryState } from '../../hooks/useJournalQueryState';
 
 /**
  * WeekCalendarStrip
  *
  * Self-contained 7-day horizontal week strip for the Journal page.
- * Reads and writes the `d` URL parameter (YYYY-MM-DD) so it can be
- * placed anywhere in the layout — including the page shell sticky header —
- * without needing prop-drilled callbacks.
+ * Reads and writes the `d` URL parameter (YYYY-MM-DD) via the shared
+ * useJournalQueryState hook so it stays in sync with CalendarWidget,
+ * tags, and scroll-driven updates.
  *
  * Window: 5 days before the reference date, reference date, +1 day.
  */
 export const WeekCalendarStrip: React.FC<{ className?: string }> = ({ className }) => {
-  const [dateParam, setDateParam] = useQueryState('d', { defaultValue: '' });
+  const { selectedDate, setDateParam, selectedTags } = useJournalQueryState();
 
-  const referenceDate = useMemo(() => {
-    if (dateParam) {
-      const d = new Date(dateParam);
-      if (!isNaN(d.getTime())) return d;
-    }
-    return new Date();
-  }, [dateParam]);
+  const referenceDate = selectedDate;
 
   const days = useMemo(() => {
     const result: Date[] = [];
@@ -69,6 +63,23 @@ export const WeekCalendarStrip: React.FC<{ className?: string }> = ({ className 
           );
         })}
       </div>
+
+      {/* Active tags indicator */}
+      {selectedTags.length > 0 && (
+        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/30">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 shrink-0">
+            Tags
+          </span>
+          {selectedTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

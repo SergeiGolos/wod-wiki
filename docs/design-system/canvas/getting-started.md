@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route** | `/getting-started` |
-| **Template** | [Canvas Page](../templates/canvas.md) |
+| **Template** | [Canvas Page](_template.md) |
 | **Source File** | `markdown/canvas/getting-started/README.md` |
 
 ## Page Outline
@@ -62,3 +62,12 @@ Rendered as interactive buttons within or below the prose.
 | **See the Results View** | `z2h` | `set-state: review` |
 | **Explore the Full Syntax →** | `z2h` | `navigate: /syntax` |
 | **Open a New Note →** | `z2h` | `set-source: query:new`, `set-state: note`, `launch: dialog` |
+
+## Layout Notes
+
+Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). No structural overrides on this route.
+
+| Detail | Value |
+|--------|-------|
+| **Navigation IDs** | The `PageNavDropdown` in `App.tsx` hardcodes IDs (`introduction`, `statement`, `timer`, `metrics`, `groups`, `protocols`, `notebook`). These must stay aligned with the slugified headings in `getting-started/README.md` — a current discrepancy exists (e.g. `statement` vs `step-1-your-first-movement`). |
+| **`launch: dialog`** | The "Open a New Note →" button uses `launch: dialog` — this opens `FullscreenTimer` at `z-50` per [layout.md §8](../../layout.md#8-overlay--dialog-layer). |

@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route** | `/` |
-| **Template** | [Canvas Page](../templates/canvas.md) |
+| **Template** | [Canvas Page](_template.md) |
 | **Source File** | `markdown/canvas/home/README.md` |
 | **Component** | `HomeView` (wraps `HomeHero` + `CanvasPage`) |
 
@@ -43,3 +43,13 @@ Sections are derived from `markdown/canvas/home/README.md`.
 - **Specific.** "10 Kettlebell Swings 24kg" not "your exercise."
 - **No jargon** until the syntax docs section.
 - **Short sentences.** Write like a whiteboard, not a manual.
+
+## Layout Notes
+
+Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). The following overrides apply to this route specifically:
+
+| Override | Detail |
+|----------|--------|
+| **Wrapper component** | `HomeView` (`playground/src/views/HomeView.tsx`) wraps `HomeHero` **above** `CanvasPage`. `HomeHero` is a React component — not a Canvas section — and renders before any Canvas content begins. |
+| **Hero section** | The `WOD Wiki` heading in `home/README.md` is the Canvas hero (`sections[0]`). It is **not** rendered in the scrollable content flow — `HomeHero` visually substitutes it. |
+| **Navigation IDs** | The `PageNavDropdown` in `App.tsx` hardcodes anchor IDs (`editor`, `features`, `explore`, `deep-dive`). These must match the slugified headings in `home/README.md`. |

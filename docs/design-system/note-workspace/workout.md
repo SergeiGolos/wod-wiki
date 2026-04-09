@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Patterns** | `/workout/:category/:name`, `/note/:category/:name` |
-| **Template** | [Note Workspace](../templates/note-workspace.md) |
+| **Template** | [Note Workspace](_template.md) |
 | **Component** | `WorkoutEditorPage` |
 
 ## Description
@@ -22,5 +22,5 @@ The main workspace for authoring and editing WodScript files stored in the repos
 ## Workflow
 
 1.  **Load**: The `WorkoutEditorPage` resolves the file path based on the route parameters.
-2.  **Edit**: Users can modify the WodScript; changes are persisted via the [Playground DB service](../templates/note-workspace.md#configurations-by-route).
+2.  **Edit**: Users can modify the WodScript; changes are persisted via the [Playground DB service](_template.md#configurations-by-route).
 3.  **Run**: Clicking the "Start Workout" overlay in the editor (or a button pipeline) triggers the workout lifecycle.

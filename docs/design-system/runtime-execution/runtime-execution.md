@@ -3,7 +3,7 @@
 |                    |                                                       |
 | ------------------ | ----------------------------------------------------- |
 | **Route Patterns** | `/tracker/:runtimeId`, `/review/:runtimeId`           |
-| **Template**       | [Tracker / Review](../templates/runtime-execution.md) |
+| **Template**       | [Tracker / Review](_template.md) |
 | **Components**     | `TrackerPage`, `ReviewPage`                           |
 
 ## Description

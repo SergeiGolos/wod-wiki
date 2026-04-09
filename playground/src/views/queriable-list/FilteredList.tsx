@@ -8,6 +8,8 @@ interface FilteredListProps {
   onSelect: (item: FilteredListItem) => void;
   selectedDate?: Date;
   stickyOffset?: number;
+  /** Called when the topmost visible date group changes during scroll */
+  onVisibleDateChange?: (dateKey: string) => void;
 }
 
 const ItemIcon = ({ type }: { type: FilteredListItem['type'] }) => {
@@ -18,9 +20,36 @@ const ItemIcon = ({ type }: { type: FilteredListItem['type'] }) => {
   }
 };
 
-export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, selectedDate, stickyOffset = 0 }) => {
+export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, selectedDate, stickyOffset = 0, onVisibleDateChange }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Track which date-group header is topmost visible and report it upstream
+  useEffect(() => {
+    if (!onVisibleDateChange) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => {
+            // Pick the one closest to the top of the viewport
+            return a.boundingClientRect.top - b.boundingClientRect.top;
+          });
+        if (visible.length > 0 && visible[0].target.id) {
+          onVisibleDateChange(visible[0].target.id);
+        }
+      },
+      { rootMargin: '-10% 0px -60% 0px', threshold: [0, 0.5, 1.0] },
+    );
+
+    // Observe all date-group containers
+    Object.values(itemRefs.current).forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [onVisibleDateChange, items]); // re-attach when items change
 
   const groupedItems = useMemo(() => {
     const groups: { dateKey: string; dateStr: string; date: number | null; items: FilteredListItem[] }[] = [];
@@ -74,7 +103,7 @@ export const FilteredList: React.FC<FilteredListProps> = ({ items, onSelect, sel
           <div 
             key={group.dateKey} 
             id={group.dateKey}
-            ref={el => itemRefs.current[group.dateKey] = el}
+            ref={el => { itemRefs.current[group.dateKey] = el; }}
             className="flex flex-col"
           >
             <div

@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/notebooks` |
-| **Template** | [Queriable List](../templates/queriable-list.md) |
+| **Template** | [Queriable List](_template.md) |
 | **Component** | `NotebooksPage` |
 
 ## Description
@@ -31,4 +31,4 @@ The Notebooks route extensively uses deep-linked state via URL parameters:
 1.  **Filter**: User selects a month or notebook from the sidebar.
 2.  **Select**: One or more entries are selected in the center list.
 3.  **Analyze/Preview**: The right panel updates to show a session summary or aggregate stats.
-4.  **Action**: User can "Edit" a note (opening the [Note Workspace](./workout.md)) or view a full "Review" of a single session.
+4.  **Action**: User can "Edit" a note (opening the [Note Workspace](../note-workspace/workout.md)) or view a full "Review" of a single session.
