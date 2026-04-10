@@ -18,10 +18,22 @@ A dedicated page for global discovery across the entire WodScript ecosystem. Thi
 | **Query Organism** | `FuzzySearchQueryOrganism` (Large sticky input). |
 | **Filtered List** | Comprehensive results including Notes, Workout Blocks, and historical Results. |
 
-## Query Parameters (`nuqs`)
+## State Management
 
-- `q`: (string) The active fuzzy search query.
-- `cat`: (string) Optional category filter (e.g., "Kettlebell", "CrossFit").
+`/search` is wrapped in `CanvasPage` (title-bar mode) with a `TextFilterStrip` as the sticky subheader.
+
+### URL State
+
+| Param | Mechanism | `history` | Purpose |
+|-------|-----------|-----------|---------|
+| `?s=` | `nuqs` via `CanvasPage` | `push` | Active TOC section ID. |
+| `?q=` | `nuqs` via `TextFilterStrip` | default | The active search query string; updated on every keystroke in the search input. |
+
+### Local State (outside URL)
+
+None. Results are derived directly from `?q=` plus the in-memory workout item list passed from `App.tsx`.
+
+> **Note:** The `?cat=` param documented in earlier drafts is used by `PlaygroundPage` (the `/playground` route), not `/search`. The Search page has no category filter.
 
 ## UI Transitions
 

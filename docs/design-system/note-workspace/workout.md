@@ -19,6 +19,19 @@ The main workspace for authoring and editing WodScript files stored in the repos
 | **Workbench Context** | Full-screen `NoteEditor` taking the entire viewport below the sticky header. |
 | **Execution** | Launches `FullscreenTimer` and `FullscreenReview` via dialog overlays. |
 
+## State Management
+
+### URL State
+
+None. Route identity is carried in path params `:category/:name`; no `nuqs` params.
+
+### Local State (outside URL)
+
+| State | Type | Purpose |
+|-------|------|---------|
+| `wodBlocks` | `WodBlock[]` | Compiled blocks from the `NoteEditor`. |
+| `error` | `string \| null` | Load error if the file is not found in the `wods/` library. |
+
 ## Workflow
 
 1.  **Load**: The `WorkoutEditorPage` resolves the file path based on the route parameters.

@@ -69,6 +69,29 @@ Canvas is a **content system** that sits inside the standard WOD Wiki layout pri
 | **`launch: dialog`** | Opens `FullscreenTimer` at `fixed inset-0 z-50` with `bg-background/95 backdrop-blur-sm` — shares the overlay layer with timer and review dialogs | [§8 Overlay / Dialog Layer](../../layout.md#8-overlay--dialog-layer) |
 | **Scrolling zone** | The main canvas scroll is natural document scroll (`window.scrollY`); the sticky view panel scrolls internally with `overflow-auto flex-1 min-h-0` | [§7 Scrolling Behaviour](../../layout.md#7-scrolling-behaviour) |
 
+## State Management
+
+`MarkdownCanvasPage` manages two tiers of state.
+
+### URL State (`nuqs`)
+
+| Param | Type | `history` | Purpose |
+|-------|------|-----------|---------|
+| `?h=` | `string` | `replace` + `shallow` | Slug of the most-visible content section. Written continuously by the IntersectionObserver; read once on mount to restore scroll position. |
+
+### Local State (outside URL)
+
+| State | Type | Purpose |
+|-------|------|---------|
+| `panelMode` | `'editor' \| 'running' \| 'review'` | Which panel is shown in the sticky view column. Resets to `'editor'` on navigation or page refresh — not persisted to the URL. |
+| `viewTimerBlock` | `WodBlock \| null` | Block currently running inline in the view panel (triggered by `set-state: track` without `launch: dialog`). |
+| `fullscreenBlock` | `WodBlock \| null` | Block open in the fullscreen dialog overlay (triggered by `launch: dialog`). |
+| `reviewSegments` | `Segment[]` | Post-workout analytics segments; populated when a block completes in view mode. |
+| `editorSource` | `string` | Current markdown/WodScript content in the `NoteEditor`. Updated by `set-source:` pipeline commands. |
+| `editorOpacity` | `number` | Fade-transition value (0 → 1) during source swaps; provides smooth content crossfades. |
+
+> **Note:** `panelMode` is deliberately ephemeral — a running workout is not bookmarkable via URL. If `launch: route` is used instead, the URL does change (new route).
+
 ## Collection README Pattern
 
 Collection pages (`markdown/collections/{slug}/README.md`) use Canvas as a structured tutorial/walkthrough format:

@@ -44,7 +44,11 @@ Sections are derived from `markdown/canvas/home/README.md`.
 - **No jargon** until the syntax docs section.
 - **Short sentences.** Write like a whiteboard, not a manual.
 
-## Layout Notes
+## State Management
+
+Inherits the standard Canvas state model — see [Canvas Page](_template.md#state-management). No page-specific overrides.
+
+`HomeView` adds no additional state; `HomeHero` is a purely presentational component with no URL or local state of its own.
 
 Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). The following overrides apply to this route specifically:
 

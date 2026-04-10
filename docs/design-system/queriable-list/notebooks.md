@@ -18,13 +18,29 @@ The personal "History" or "Journal" view for the user. It provides a powerful in
 | **Query Organism** | **Month Calendar** (Default) or **Fuzzy Search**. |
 | **Filtered List** | Shows a consolidated list of **Notes** and **Results** (workouts with logs). |
 
-## Query Parameters (`nuqs`)
+## State Management
 
-The Notebooks route extensively uses deep-linked state via URL parameters:
-- `month`: (YYYY-MM) Sets the active calendar month.
-- `dates`: (comma-separated ISO) Sets a custom list of selected dates.
-- `range`: (start,end ISO) Sets a continuous date range filter.
-- `notebook`: (slug) Filters the list to a specific user-defined notebook.
+> **Important:** Notebooks uses react-router `useSearchParams` directly — **not `nuqs`**. Params are read/written via `setSearchParams`; they do not share nuqs option defaults (`history`, `shallow`, etc.).
+
+### URL State (react-router `useSearchParams`)
+
+| Param | Type | Purpose |
+|-------|------|---------|
+| `?notebook=` | slug | Filters the list to a specific user-defined notebook. |
+| `?dates=` | comma-separated ISO | A custom set of selected dates (active when `filterMode === 'list'`). |
+| `?range=` | `start,end ISO` | A continuous date range filter (active when `filterMode === 'range'`). |
+
+### Local State (outside URL)
+
+| State | Type | Purpose |
+|-------|------|---------|
+| `filterMode` | `'month' \| 'list' \| 'range'` | Which date filter mode is active. Determines which URL param is written and which filter logic runs. |
+| `customDates` | `Set<string>` | Selected date ISO strings for `list` mode; initialised from `?dates=` on mount. |
+| `dateRange` | `{ start: string; end: string } \| null` | Selected date range for `range` mode; initialised from `?range=` on mount. |
+| `historyEntries` | `HistoryEntry[]` | All user history loaded from IndexedDB; filtered client-side. |
+| `showCreateNotebook` | `boolean` | Controls the create-notebook dialog visibility. |
+| `isDetailsOpen` | `boolean` | Controls the details panel visibility. |
+| `lastClickedDate` | `Date \| null` | Tracks the last clicked date for multi-select toggling in `list` mode. |
 
 ## Workflow
 

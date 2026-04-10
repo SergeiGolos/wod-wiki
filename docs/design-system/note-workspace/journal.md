@@ -19,6 +19,24 @@ The workspace for reviewing and editing stored journal entries and results.
 | **Workbench Context** | Wrapped in `JournalPageShell` for explicit state management of timer and review dialogs. |
 | **Execution** | Uses the `JournalPageShell` to mount and manage overlays rather than standard `App.tsx` fall-throughs. |
 
+## State Management
+
+### URL State (`nuqs` via `JournalPageShell`)
+
+| Param | Type | `history` | Purpose |
+|-------|------|-----------|---------|
+| `?s=` | `string` | `push` | Active content section ID used by the TOC sidebar to highlight the current section. Each section change adds a browser history entry (back button navigates between sections). |
+
+### Local State (outside URL)
+
+| State | Type | Purpose |
+|-------|------|---------|
+| `isTimerOpen` | `boolean` | Controls `FullscreenTimer` dialog visibility. |
+| `isReviewOpen` | `boolean` | Controls `FullscreenReview` dialog visibility. |
+| `timerBlock` | `WodBlock \| null` | The `WodBlock` currently executing in the timer; `null` when no session is running. |
+| `reviewSegments` | `Segment[]` | Analytics segments from the completed session; populated on timer close for the review dialog. |
+| `wodBlocks_jp` | `WodBlock[]` | Compiled blocks from the `NoteEditor`; updated live as the user edits the script. |
+
 ## Workflow
 
 1.  **Browse**: Users typically reach this route through the "Results" sidebar accordion.

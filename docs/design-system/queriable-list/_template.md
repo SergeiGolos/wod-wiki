@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Name** | Queriable List |
-| **Code** | `src/components/workbench/queriable-list/QueriableList.tsx` (Target), `src/app/pages/NotebooksPage.tsx`, `src/app/pages/CollectionsPage.tsx` |
+| **Code** | `src/components/workbench/queriable-list/QueriableList.tsx` (Target), `src/app/pages/NotebooksPage.tsx`, `playground/src/views/CollectionsPage.tsx` |
 | **Routes** | `/notebooks`, `/collections` |
 
 ## Description
@@ -48,6 +48,34 @@ The list renders three distinct types of data, each with its own specialized lay
 | **Note** | Title, excerpt, tags, last updated. | Standard card with text preview. |
 | **Workout Block** | Movement count, estimated duration, protocol (AMRAP/EMOM). | Pill-heavy layout with protocol icons. |
 | **Result** | Performance metrics (reps/load), completion status, date/time. | Metric-focused row with sparklines/graphs. |
+
+## State Management
+
+Queriable List pages use **URL query params as the primary filter state** so filters survive page refresh and can be shared as links. Most params use `history: 'replace'` — filter changes do not create browser history entries.
+
+### URL State patterns (nuqs, `history: 'replace'` by convention)
+
+Query params vary per implementation — see individual page docs for exact param names.
+
+| Pattern | Param | Type | Used by |
+|---------|-------|------|---------|
+| Text filter | `?q=` | `string` | Search, Collections index |
+| Active month | `?month=` | `YYYY-MM` | Calendar, Journal |
+| Selected date | `?d=` | `YYYY-MM-DD` | Journal weekly view |
+| Tag filters | `?tags=` | comma-separated | Journal |
+| Notebook filter | `?notebook=` | slug | Notebooks (`useSearchParams`) |
+| Date range | `?range=` | `start,end ISO` | Notebooks (`useSearchParams`) |
+| Date list | `?dates=` | comma-separated ISO | Notebooks (`useSearchParams`) |
+
+> **Note:** Notebooks uses react-router `useSearchParams` directly (not `nuqs`) — its filter params do not share the nuqs option defaults.
+
+### Local State (outside URL)
+
+| State | Type | Purpose |
+|-------|------|---------|
+| `query` | `QueryObject` | Derived query object passed from the Query Organism to the Filtered List. Not in the URL — computed from URL params. |
+| `queryHeight` | `number` | Height of the sticky query organism used for scroll layout calculations. |
+| CalendarQuery `start` / `end` | `Date` | Local picker range before the user commits; not written to the URL until confirmed. |
 
 ## Layout Structure
 

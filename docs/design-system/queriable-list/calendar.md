@@ -18,12 +18,24 @@ A high-level overview of training history and planned sessions organized by mont
 | **Query Organism** | `CalendarQueryOrganism` (Month View). |
 | **Default Query** | Current month based on system clock. |
 
-## Query Parameters (`nuqs`)
+## State Management
 
-- `month`: (YYYY-MM) The month currently being displayed in the calendar.
-- `start`: (YYYY-MM-DD) Optional start boundary for the query.
-- `end`: (YYYY-MM-DD) Optional end boundary for the query.
-- `type`: (`note` | `block` | `result`) Filters the list to specific data types.
+`/calendar` is wrapped in `CanvasPage` (title-bar mode), which contributes `?s=` for TOC section tracking.
+
+### URL State
+
+| Param | Mechanism | `history` | Purpose |
+|-------|-----------|-----------|---------|
+| `?s=` | `nuqs` via `CanvasPage` | `push` | Active TOC section ID. |
+| `?month=` | `nuqs` via `useQueryState('month')` | default | The month displayed in the calendar view (`YYYY-MM`). |
+| `?d=` | `nuqs` via `useJournalQueryState` | `replace` | Selected date (`YYYY-MM-DD`); also drives the Journal nav panel. |
+| `?tags=` | `nuqs` via `useJournalQueryState` | `replace` | Active tag filters (comma-separated). |
+
+### Local State (outside URL)
+
+| State | Type | Purpose |
+|-------|------|---------|
+| CalendarQuery `start` / `end` | `Date` | Local date range while the user is picking; written to URL only on confirm. |
 
 ## Workflow
 

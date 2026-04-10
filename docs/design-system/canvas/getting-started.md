@@ -63,6 +63,10 @@ Rendered as interactive buttons within or below the prose.
 | **Explore the Full Syntax →** | `z2h` | `navigate: /syntax` |
 | **Open a New Note →** | `z2h` | `set-source: query:new`, `set-state: note`, `launch: dialog` |
 
+## State Management
+
+Inherits the standard Canvas state model — see [Canvas Page](_template.md#state-management). No page-specific overrides.
+
 ## Layout Notes
 
 Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). No structural overrides on this route.

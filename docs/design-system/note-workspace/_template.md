@@ -16,6 +16,34 @@ The workspace typically consists of:
 3.  **Editor Surface**: The `NoteEditor` (CodeMirror 6) with syntax highlighting, linting, and interactive overlays.
 4.  **Runtime Overlays**: Dialog-based `FullscreenTimer` and `FullscreenReview` panels triggered from within the editor.
 
+## State Management
+
+Note Workspace routes use **no URL query state (`nuqs`)**. Route identity is carried entirely in the path.
+
+### URL Shape (react-router path params, not nuqs)
+
+| Route | Path Params | Source of truth |
+|-------|-------------|----------------|
+| `/workout/:category/:name` | `category`, `name` | `wods/` file path |
+| `/note/playground/:id` | `id` | IndexedDB key |
+| `/playground/:id` | `id` | IndexedDB key |
+| `/journal/:id` | `id` | IndexedDB key |
+
+### Local State (outside URL)
+
+All execution and overlay state is managed locally and resets on navigation:
+
+| State | Type | Present on routes | Purpose |
+|-------|------|-------------------|---------|
+| `wodBlocks` | `WodBlock[]` | All routes | Compiled blocks from the `NoteEditor`; updated live as the user edits. |
+| `isTimerOpen` | `boolean` | `/journal/:id` | Controls `FullscreenTimer` dialog visibility. |
+| `isReviewOpen` | `boolean` | `/journal/:id` | Controls `FullscreenReview` dialog visibility. |
+| `timerBlock` | `WodBlock \| null` | `/journal/:id` | The active block currently executing; `null` when idle. |
+| `reviewSegments` | `Segment[]` | `/journal/:id` | Analytics data from the completed session; populated on timer close. |
+| `error` | `string \| null` | All routes | Load or execution error message. |
+
+> **Exception — `JournalPageShell`**: `/journal/:id` uses `JournalPageShell` as its layout shell, which adds `?s=` (`nuqs`, `history: 'push'`) for section scroll tracking. See [journal.md](journal.md#state-management).
+
 ## Configurations by Route
 
 The following table outlines how the Note Workspace is configured based on the active route:

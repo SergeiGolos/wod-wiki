@@ -65,6 +65,12 @@ Buttons navigate to the detailed sub-page for each topic.
 ## Sub-pages (`/syntax/:topic`)
 Detailed sub-pages (e.g., `/syntax/basics`) are also rendered using the Canvas template, typically loading a specific markdown file from `markdown/canvas/syntax/`. These pages follow the same scroll-driven pattern with interactive examples in the sticky view panel.
 
+## State Management
+
+Inherits the standard Canvas state model — see [Canvas Page](_template.md#state-management). No page-specific overrides.
+
+Sub-pages (`/syntax/:topic`) each create an independent `MarkdownCanvasPage` instance with their own `?h=` tracking and independent `panelMode` state — there is no shared URL state between the index and sub-pages.
+
 ## Layout Notes
 
 Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). No structural overrides on this route.
