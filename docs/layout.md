@@ -97,21 +97,21 @@ Every sticky element in the application belongs to one of these layers. **Higher
 | Layer | z-index | `top` (desktop) | `top` (mobile) | Owner |
 |---|---|---|---|---|
 | **Modal overlays** | `z-50` | — | — | `fixed inset-0` — timer/review dialogs, Canvas `launch: dialog` |
-| **Page-shell title header** | `z-30` | `top-0` | hidden (`hidden lg:…`) | `SimplePageShell`, `JournalPageShell` |
+| **Page-shell title header** | `z-30` | `top-0` | hidden (`hidden lg:…`) | `CanvasPage` (title-bar mode), `JournalPageShell` |
 | **SidebarLayout mobile navbar** | `z-20` | hidden (`lg:hidden`) | `top-0` (~60 px tall) | `SidebarLayout` |
-| **StickyNavPanel** | `z-20` | `top-0` or `top-[104px]` | not rendered | `DocsPageShell`, consumer-mounted |
-| **Canvas mobile compact panel** | `z-20` | hidden (`lg:hidden`) | `sticky` | `CanvasPage` |
-| **Mobile subheader** | `z-10` | not rendered | `top-[60px]` / `top-14` | `SimplePageShell` (`subheader` prop) |
+| **StickyNavPanel** | `z-20` | `top-0` or `top-[104px]` | not rendered | `CanvasPage` (sections mode), consumer-mounted |
+| **Canvas mobile compact panel** | `z-20` | hidden (`lg:hidden`) | `sticky` | `MarkdownCanvasPage` |
+| **Mobile subheader** | `z-10` | not rendered | `top-[60px]` / `top-14` | `CanvasPage` (`subheader` prop) |
 
 > **Rule**: page-shell title headers (`z-30`) sit above nav panels (`z-20`) so that when a `StickyNavPanel` scrolls up against the title bar, the title bar wins.
 
 ### 4.3 Per-Shell Sticky Subsections
 
-`SimplePageShell`, `DocsPageShell`, and `CanvasPage` share the same skeleton — they differ only in which nav chrome sits in the sticky top zone. See [§9 Page-Shell Catalogue](#9-page-shell-catalogue) for the full comparison.
+`CanvasPage` (title-bar mode), `CanvasPage` (sections mode), and `MarkdownCanvasPage` share the same skeleton — they differ only in which nav chrome sits in the sticky top zone. See [§9 Page-Shell Catalogue](#9-page-shell-catalogue) for the full comparison.
 
 The diagram below shows each shell's sticky stack at desktop (`lg+`).
 
-**`SimplePageShell`** — title-bar + optional subheader:
+**`CanvasPage` (title-bar mode)** — title-bar + optional subheader (was `SimplePageShell`):
 ```
 ┌─────────────────────────────────────────────┐
 │  [accent] [Title]           [actions]  z-30 │  ← sticky top-0
@@ -134,7 +134,7 @@ Mobile: title header is `hidden`; subheader is `sticky top-[60px] z-10` (below t
 ```
 Mobile: title header renders but is **not** sticky (no `sticky` class below `lg:`).
 
-**`DocsPageShell`** — hero + StickyNavPanel (no title bar):
+**`CanvasPage` (sections mode)** — hero + StickyNavPanel (was `DocsPageShell`):
 ```
 ┌─────────────────────────────────────────────┐
 │  HeroBanner (optional, scrolls away)        │
@@ -145,7 +145,7 @@ Mobile: title header renders but is **not** sticky (no `sticky` class below `lg:
 │  Section[]  (scrollable)                    │
 └─────────────────────────────────────────────┘
 ```
-`DocsPageShell` has no title-bar; `StickyNavPanel` is the only sticky layer.
+`CanvasPage` (sections mode) has no title-bar; `StickyNavPanel` is the only sticky layer.
 
 **`CalendarPageShell`** — calendar sidebar + non-sticky tab bar:
 ```
@@ -172,9 +172,9 @@ Desktop (lg+):                     Mobile:
 ```
 The view panel (`w-[60%] self-start sticky lg:flex`) has no explicit `z-` class — it is within normal flow and will not overlap other sticky layers.
 
-### 4.4 Subheader (optional — `SimplePageShell` only)
+### 4.4 Subheader (optional — `CanvasPage` title-bar mode only)
 
-The `subheader` prop on `SimplePageShell` injects an extra sticky bar below the title row:
+The `subheader` prop on `CanvasPage` injects an extra sticky bar below the title row:
 - **Desktop**: rendered *inside* the sticky title header zone (same `z-30` block).
 - **Mobile**: rendered as a separate `sticky top-[60px] sm:top-14 z-10` bar — offset from `top-0` by the SidebarLayout mobile navbar height (~60 px).
 
@@ -186,7 +186,7 @@ When programmatically scrolling to a section anchor, the offset must account for
 |---|---|---|
 | `StickyNavPanel` — `top-fixed` variant | **64 px** | StickyNavPanel only |
 | `StickyNavPanel` — `hero-follow` variant | **120 px** | hero height (104 px) + StickyNavPanel |
-| `SimplePageShell` / `JournalPageShell` inline scroll | **100 px** | page-shell title header + breathing room |
+| `CanvasPage` (title-bar mode) / `JournalPageShell` inline scroll | **100 px** | page-shell title header + breathing room |
 
 ---
 
@@ -210,18 +210,18 @@ At `3xl+` breakpoints a **TOC/index sidebar** (w-80) appears to the right of the
 
 ## 6. Active Section Tracking (IntersectionObserver)
 
-All web page shells and the `DocsPageShell` use an `IntersectionObserver` to highlight the currently visible section without relying on scroll events.
+All web page shells use an `IntersectionObserver` to highlight the currently visible section without relying on scroll events.
 
 **Standard configuration:**
 
 | Shell | rootMargin | thresholds |
 |-------|------------|------------|
-| `SimplePageShell` | `-10% 0px -40% 0px` | `[0, 0.3, 1.0]` |
+| `CanvasPage` (title-bar mode) | `-10% 0px -40% 0px` | `[0, 0.3, 1.0]` |
 | `JournalPageShell` | `-10% 0px -40% 0px` | `[0, 0.3, 1.0]` |
-| `DocsPageShell` | `-20% 0px -50% 0px` | `[0, 0.25, 0.5, 0.75]` |
+| `CanvasPage` (sections mode) | `-20% 0px -50% 0px` | `[0, 0.25, 0.5, 0.75]` |
 | `ParallaxSection` (mobile) | `-65px 0px -20% 0px` | `[0, 0.1, 0.25, 0.5, 0.75]` |
 | `ParallaxSection` (desktop) | `-30% 0px -30% 0px` | `[0, 0.1, 0.25, 0.5, 0.75]` |
-| `CanvasPage` | `-30% 0px -30% 0px` | `[0, 0.1, 0.25, 0.5, 0.75]` |
+| `MarkdownCanvasPage` | `-30% 0px -30% 0px` | `[0, 0.1, 0.25, 0.5, 0.75]` |
 
 Active section state is synced to the URL query param `?s=<id>` via `nuqs` (`useQueryState`).
 
@@ -263,7 +263,9 @@ Chromecast uses the same `fixed inset-0` pattern for its mode transitions (previ
 
 ### 9.1 The Shared Pattern
 
-`SimplePageShell`, `DocsPageShell`, and `CanvasPage` are all implementations of the **same structural skeleton**:
+`SimplePageShell` and `DocsPageShell` have been unified into a single **`CanvasPage`** component (`src/panels/page-shells/CanvasPage.tsx`) and the old files deleted.
+
+`CanvasPage`, and `MarkdownCanvasPage` implement the **same structural skeleton**:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -276,7 +278,7 @@ Chromecast uses the same `fixed inset-0` pattern for its mode transitions (previ
 
 The difference between them is **content API, nav chrome, and runtime integration** — not layout structure.
 
-| Axis | `SimplePageShell` | `DocsPageShell` | `CanvasPage` |
+| Axis | `CanvasPage` (title-bar mode) | `CanvasPage` (sections mode) | `MarkdownCanvasPage` |
 |---|---|---|---|
 | **Content API** | `children: ReactNode` (arbitrary) | `sections: DocsSection[]` (typed array) | `page: ParsedCanvasPage` (markdown DSL) |
 | **Nav chrome** | Title bar + accent bar (z-30) | `StickyNavPanel` pill buttons (z-20) | Sticky split-panel or none |
@@ -284,10 +286,13 @@ The difference between them is **content API, nav chrome, and runtime integratio
 | **Interactive content** | Passive display | Isolated per-section runtime demos | Pipeline execution: `set-source`, `set-state`, `launch` |
 | **URL sync** | `?s=<id>` via `nuqs` | Local state only | `?h=<heading>` via `nuqs` |
 | **TOC sidebar** | Yes (3xl+) | No | No |
+| **Trigger** | `title` prop present | `sections` prop present, no `title` | `page: ParsedCanvasPage` prop |
 
-> `SimplePageShell` and `DocsPageShell` differ only in nav chrome — `DocsPageShell` is `SimplePageShell` with a `StickyNavPanel` instead of a title bar, and typed `sections[]` instead of arbitrary children. They are candidates for consolidation.
+> `CanvasPage` auto-selects its mode from props: `title` → title-bar mode; `sections` (no `title`) → sections/StickyNavPanel mode.
 
-> `CanvasPage` is the only shell that owns active runtime state. It is a display shell **and** an interactive execution layer.
+> `SimplePageShell` and `DocsPageShell` have been removed. Use `CanvasPage` directly.
+
+> `MarkdownCanvasPage` is the only shell that owns active runtime state. It is a display shell **and** an interactive execution layer.
 
 ### 9.2 The Outliers
 

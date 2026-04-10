@@ -208,7 +208,7 @@ function ViewPanelButtons({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export interface CanvasPageProps {
+export interface MarkdownCanvasPageProps {
   page: ParsedCanvasPage
   /** The workoutFiles glob map from App.tsx (keyed `../../markdown/**‌/*.md`). */
   wodFiles: Record<string, string>
@@ -217,7 +217,7 @@ export interface CanvasPageProps {
   onSelect?: (item: WorkoutItem) => void
 }
 
-export function CanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: CanvasPageProps) {
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 

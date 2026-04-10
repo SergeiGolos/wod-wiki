@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Name** | Canvas Page |
-| **Code** | `playground/src/canvas/CanvasPage.tsx` + `parseCanvasMarkdown.ts` |
+| **Code** | `playground/src/canvas/MarkdownCanvasPage.tsx` + `parseCanvasMarkdown.ts` |
 | **Source files** | `markdown/canvas/**/*.md` and `markdown/collections/**/README.md` |
 
 ## Description

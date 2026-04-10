@@ -49,7 +49,7 @@ import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
-import { CanvasPage } from './canvas/CanvasPage'
+import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { WeekCalendarStrip } from './views/queriable-list/WeekCalendarStrip'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
@@ -58,7 +58,7 @@ import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { AudioToggle } from '@/components/audio/AudioToggle'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
-import { SimplePageShell, JournalPageShell } from '@/panels/page-shells'
+import { CanvasPage, JournalPageShell } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
@@ -1220,49 +1220,49 @@ function AppContent() {
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <SimplePageShell title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/calendar' ? (
-            <SimplePageShell title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CalendarPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <SimplePageShell title="Journal" subheader={<WeekCalendarStrip />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Journal" subheader={<WeekCalendarStrip />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/search' ? (
-            <SimplePageShell title="Search" subheader={<TextFilterStrip placeholder="Search workouts, results, or notes…" autoFocus />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Search" subheader={<TextFilterStrip placeholder="Search workouts, results, or notes…" autoFocus />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <SearchPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <SimplePageShell title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
-            </SimplePageShell>
+            </CanvasPage>
           ) : canvasPage ? (
-            <SimplePageShell title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
-              <CanvasPage
+            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+              <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : (
             <>
               {isPlaygroundRoute && effectivePlaygroundId ? (

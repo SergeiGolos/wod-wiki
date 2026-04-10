@@ -5,7 +5,7 @@
 | **Route** | `/` |
 | **Template** | [Canvas Page](_template.md) |
 | **Source File** | `markdown/canvas/home/README.md` |
-| **Component** | `HomeView` (wraps `HomeHero` + `CanvasPage`) |
+| **Component** | `HomeView` (wraps `HomeHero` + `MarkdownCanvasPage`) |
 
 ## Page Outline
 
@@ -13,9 +13,9 @@ The Home route uses a wrapper component `HomeView` to prepend a specialized Hero
 
 | Component | Location | Responsibility |
 |-----------|----------|----------------|
-| `HomeView` | `playground/src/views/HomeView.tsx` | Main view wrapper; renders `HomeHero` and `CanvasPage`. |
+| `HomeView` | `playground/src/views/HomeView.tsx` | Main view wrapper; renders `HomeHero` and `MarkdownCanvasPage`. |
 | `HomeHero` | `playground/src/components/HomeHero.tsx` | Visual splash with value pillars; provides quick-scroll links to content sections. |
-| `CanvasPage`| `playground/src/canvas/CanvasPage.tsx` | Renders the scroll-driven interactive markdown content. |
+| `MarkdownCanvasPage`| `playground/src/canvas/MarkdownCanvasPage.tsx` | Renders the scroll-driven interactive markdown content. |
 
 ### Header Navigation (TSX Hardcoded)
 The global `PageNavDropdown` (defined in `App.tsx`) shows the following links when on the Home route:
@@ -50,6 +50,6 @@ Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#la
 
 | Override | Detail |
 |----------|--------|
-| **Wrapper component** | `HomeView` (`playground/src/views/HomeView.tsx`) wraps `HomeHero` **above** `CanvasPage`. `HomeHero` is a React component — not a Canvas section — and renders before any Canvas content begins. |
+| **Wrapper component** | `HomeView` (`playground/src/views/HomeView.tsx`) wraps `HomeHero` **above** `MarkdownCanvasPage`. `HomeHero` is a React component — not a Canvas section — and renders before any Canvas content begins. |
 | **Hero section** | The `WOD Wiki` heading in `home/README.md` is the Canvas hero (`sections[0]`). It is **not** rendered in the scrollable content flow — `HomeHero` visually substitutes it. |
 | **Navigation IDs** | The `PageNavDropdown` in `App.tsx` hardcodes anchor IDs (`editor`, `features`, `explore`, `deep-dive`). These must match the slugified headings in `home/README.md`. |

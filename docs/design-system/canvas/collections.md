@@ -21,7 +21,7 @@ Unlike other Canvas pages, collections do not require a `route:` key in their fr
 *Example: `markdown/collections/dan-john/README.md` is served at `/collections/dan-john`.*
 
 ### Collection Workouts List (TSX Automatic)
-At the bottom of every collection page, `CanvasPage.tsx` automatically renders a **"Collection Workouts"** section. This section lists all individual markdown files found within the collection's directory (excluding the `README.md`).
+At the bottom of every collection page, `MarkdownCanvasPage.tsx` automatically renders a **"Collection Workouts"** section. This section lists all individual markdown files found within the collection's directory (excluding the `README.md`).
 - **Logic**: `isCollection && workoutItems.filter(item => item.category === slug)`
 - **Interaction**: Clicking a workout item triggers the `onSelect` callback, typically navigating the user to the [Workout Editor](../note-workspace/workout.md).
 
@@ -68,6 +68,6 @@ Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#la
 | Detail | Value |
 |--------|-------|
 | **Full-width default** | Most collection READMEs contain no `view` block, so they render in **Full-width** Canvas mode — 100% width, `max-w-4xl` centred prose. No sticky split-panel, no IntersectionObserver `command` pipelines fire. |
-| **Collection browser (index)** | The `/collections` index does **not** use `CanvasPage` — it uses the [Queriable List](../queriable-list/_template.md) template outside the Canvas layout system. |
+| **Collection browser (index)** | The `/collections` index does **not** use `MarkdownCanvasPage` — it uses the [Queriable List](../queriable-list/_template.md) template outside the Canvas layout system. |
 | **Auto-routing** | Collection slugs are derived from folder names at build time; no `route:` key in frontmatter. The `SidebarLayout` outer shell is still applied by `App.tsx`. |
-| **"Collection Workouts" section** | Automatically injected at the bottom of every collection page by `CanvasPage.tsx`. Clicking a workout item triggers `onSelect`, navigating to the [Workout Editor](../note-workspace/workout.md) — this navigation happens at the `App.tsx` router level, not via a Canvas pipeline action. |
+| **"Collection Workouts" section** | Automatically injected at the bottom of every collection page by `MarkdownCanvasPage.tsx`. Clicking a workout item triggers `onSelect`, navigating to the [Workout Editor](../note-workspace/workout.md) — this navigation happens at the `App.tsx` router level, not via a Canvas pipeline action. |

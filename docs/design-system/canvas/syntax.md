@@ -73,4 +73,4 @@ Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#la
 |--------|-------|
 | **Navigation IDs** | The `PageNavDropdown` in `App.tsx` hardcodes IDs (`introduction`, `anatomy`, `timers`, `metrics`, `groups`, `protocols`, `supplemental`, `document`). These must stay aligned with slugified headings in `syntax/README.md` — a current discrepancy exists (e.g. `anatomy` vs `the-basics`). |
 | **`launch: dialog`** | The "New Workout Note →" button uses `launch: dialog` — opens `FullscreenTimer` at `z-50` per [layout.md §8](../../layout.md#8-overlay--dialog-layer). |
-| **Sub-page shell** | Each `/syntax/:topic` sub-page is an independent `CanvasPage` instance with its own IntersectionObserver; it shares the same `SidebarLayout` wrapper as the index page. |
+| **Sub-page shell** | Each `/syntax/:topic` sub-page is an independent `MarkdownCanvasPage` instance with its own IntersectionObserver; it shares the same `SidebarLayout` wrapper as the index page. |
