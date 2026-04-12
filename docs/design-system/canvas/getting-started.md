@@ -1,9 +1,9 @@
 # Route: `/getting-started`
 
-| | |
-|--|--|
-| **Route** | `/getting-started` |
-| **Template** | [Canvas Page](_template.md) |
+|                 |                                             |
+| --------------- | ------------------------------------------- |
+| **Route**       | `/getting-started`                          |
+| **Template**    | [Canvas Page](_template.md)                 |
 | **Source File** | `markdown/canvas/getting-started/README.md` |
 
 ## Page Outline

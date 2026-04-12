@@ -16,11 +16,11 @@ Collections are partitioned into methodology groups (Kettlebell, CrossFit, Swimm
 
 ## Configuration (Queriable List Template)
 
-| Property | Configuration |
-|----------|---------------|
-| **Data Source** | `getWodCollections()` — static list derived from `markdown/collections/` folder structure at build time. Read-only. |
-| **Query Organism** | `TextFilterStrip` — single-line text input mounted as the `CanvasPage` subheader. Filters collection name and slug client-side; no server round-trip. |
-| **Filtered List** | Custom `CollectionsPage` grouped list. Items rendered as `CollectionLink` rows (folder icon + name + workout count). Grouped into predefined methodology categories. |
+| Property           | Configuration                                                                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Data Source**    | `getWodCollections()` — static list derived from `markdown/collections/` folder structure at build time. Read-only.                                                  |
+| **Query Organism** | `TextFilterStrip` — single-line text input mounted as the `CanvasPage` subheader. Filters collection name and slug client-side; no server round-trip.                |
+| **Filtered List**  | Custom `CollectionsPage` grouped list. Items rendered as `CollectionLink` rows (folder icon + name + workout count). Grouped into predefined methodology categories. |
 
 ## Query Organism — Text Filter
 
@@ -44,12 +44,12 @@ Unlike other Queriable List pages, the Filtered List here is not a generic virtu
 
 ### Data Type: Collection Entry
 
-| Attribute | Display |
-|-----------|---------|
-| **Name** | Uppercase, bold, truncated. |
-| **Workout count** | Subtitle (`N workouts`). |
-| **Icon** | Folder icon (amber-tinted). |
-| **Interaction** | Full-row button → `navigate('/collections/:slug')`. |
+| Attribute | Display                                            |
+| ----------------- | -------------------------------------------------- |
+| **Name** | Uppercase, bold, truncated.                        |
+| **Workout count** | Subtitle (`N workouts`).                           |
+| **Icon** | Folder icon (amber-tinted).                        |
+| **Interaction** | Full-row button → `navigate('/collection/:slug')`. |
 
 ### Grouping Logic
 
@@ -92,10 +92,10 @@ Group headers render as uppercase section dividers (`bg-muted/30`). Empty groups
 
 ### URL State
 
-| Param | Mechanism | `history` | Purpose |
-|-------|-----------|-----------|---------|
-| `?q=` | `nuqs` via `TextFilterStrip` | default | Text filter applied client-side to all collection names and IDs. Survives page refresh. |
-| `?s=` | `nuqs` via `CanvasPage` | `push` | Active TOC section ID (title-bar mode). Not meaningfully used here — no `index` prop is passed to `CanvasPage`. |
+| Param | Mechanism                    | `history` | Purpose                                                                                                         |
+| ----- | ---------------------------- | --------- | --------------------------------------------------------------------------------------------------------------- |
+| `?q=` | `nuqs` via `TextFilterStrip` | default   | Text filter applied client-side to all collection names and IDs. Survives page refresh.                         |
+| `?s=` | `nuqs` via `CanvasPage`      | `push`    | Active TOC section ID (title-bar mode). Not meaningfully used here — no `index` prop is passed to `CanvasPage`. |
 
 ### Local State (outside URL)
 
@@ -111,7 +111,7 @@ All three are derived (`useMemo`) — no independent `useState`.
 
 1. **Browse**: User arrives at `/collections`; all groups are shown with full collection counts.
 2. **Filter**: User types into the `TextFilterStrip`; the `?q=` param updates and the grouped list narrows in real-time.
-3. **Select**: Clicking a `CollectionLink` row navigates to `/collections/:slug`, loading the collection's Canvas page.
+3. **Select**: Clicking a `CollectionLink` row navigates to `/collection/:slug`, loading the collection's Canvas page.
 
 ## Related
 

@@ -4,48 +4,50 @@
 |--|--|
 | **Route Pattern** | `/journal` |
 | **Template** | [Queriable List](_template.md) |
-| **Query Organism** | **Week Planner** |
+| **Query Organism** | None (journal nav panel drives date/tag state via URL) |
+| **Component** | `JournalWeeklyPage` (`playground/src/views/ListViews.tsx`) |
+| **Shell** | `CanvasPage` (title-bar mode, no subheader) |
 
 ## Description
 
-A focused, tactical view of a single training week. It provides a "horizon" view of recent performance and upcoming sessions. This is distinct from the `/journal/:id` route, which is a detail workspace.
+A focused, tactical view of recent training activity and upcoming sessions, sorted by date descending. The page has no inline query organism — date and tag filtering is driven by the journal nav panel's calendar widget and tag chips. This is distinct from the `/journal/:id` route, which is a per-entry workspace.
 
 ## Configuration (Queriable List Template)
 
 | Property | Configuration |
 |----------|---------------|
-| **Data Source** | Merged source (Playground + Journal). |
-| **Query Organism** | `WeekPlannerQueryOrganism` (7-day horizontal strip). |
-| **Default Query** | Current week, with today as the 6th day in the sequence. |
+| **Data Source** | Merged source (Playground + Journal from IndexedDB). |
+| **Query Organism** | None inline. Date/tag state comes from the journal nav panel via `useJournalQueryState`. |
+| **Filtered List** | `FilteredList` rendered directly by `JournalWeeklyPage` (no `QueriableListView` wrapper). |
+
+> **Implementation note:** `JournalWeeklyPage` renders `FilteredList` directly without the `QueriableListView` wrapper. The journal nav panel (calendar + tag chips) communicates with the list through the shared `useJournalQueryState` hook and URL params.
 
 ## State Management
 
-`/journal` (weekly view) is wrapped in `CanvasPage` (title-bar mode) with a `WeekCalendarStrip` as the sticky subheader. State is shared across the strip, the list, and the journal nav panel via the `useJournalQueryState` hook.
+State is shared across `JournalWeeklyPage` and the journal nav panel via the `useJournalQueryState` hook.
 
 ### URL State
 
 | Param | Mechanism | `history` | Purpose |
 |-------|-----------|-----------|---------|
 | `?s=` | `nuqs` via `CanvasPage` | `push` | Active TOC section ID. |
-| `?d=` | `nuqs` via `useJournalQueryState` | `replace` | Reference date for the 7-day window (`YYYY-MM-DD`). Clicking a day in `WeekCalendarStrip` updates this param; the list filters to that week. |
-| `?month=` | `nuqs` via `useJournalQueryState` | `replace` | Visible month in the calendar widget (`YYYY-MM`). |
-| `?tags=` | `nuqs` via `useJournalQueryState` | `replace` | Active tag filters (comma-separated). Shared with Calendar and Journal nav panel. |
+| `?d=` | `nuqs` via `useJournalQueryState` | `replace` | Selected date (`YYYY-MM-DD`). Set by the journal nav calendar; drives scroll-to-date in `FilteredList`. Updated by scroll sync as user scrolls. |
+| `?month=` | `nuqs` via `useJournalQueryState` | `replace` | Visible month in the journal nav calendar widget (`YYYY-MM`). |
+| `?tags=` | `nuqs` via `useJournalQueryState` | `replace` | Active tag filters (comma-separated). Set by journal nav panel tag chips. |
 
 ### Local State (outside URL)
 
 | State | Type | Purpose |
 |-------|------|---------|
-| `query` | `QueryObject` | Derived query computed from the URL params; not stored in the URL directly. |
+| `results` | `any[]` | Recent results loaded from IndexedDB on mount. |
+| `isScrollUpdating` | `ref<boolean>` | Guard preventing scroll-driven date updates from conflicting with nav panel clicks. |
 
-## Week Planner Logic
+## Scroll Sync
 
-The planner displays a fixed 7-day window relative to the date `d`:
-- **Window**: `[d - 4 days]` to `[d + 1 day]`.
-- **Highlighting**: Weekends are visually distinguished (e.g., subtle background tint or border).
-- **List Scope**: The Filtered List is strictly limited to entries within these 7 days.
+As the user scrolls `FilteredList`, an `IntersectionObserver` fires `onVisibleDateChange`, which updates `?d=` via `setDateParam`. This keeps the journal nav panel calendar in sync with the user's scroll position.
 
 ## Workflow
 
-1.  **Focus**: The user sees exactly one week of activity at a glance.
-2.  **Navigate**: Clicking a day in the planner updates the `d` parameter to shift the window.
-3.  **Track**: Provides a quick way to launch into "Today's" workout or review "Yesterday's" results.
+1. **Focus**: The user sees all activity sorted by date descending, with tag filtering from the nav panel.
+2. **Navigate**: Clicking a date in the journal nav calendar sets `?d=` and the list scrolls to that date group.
+3. **Track**: Tap any list item to open the workout editor or review a completed session.

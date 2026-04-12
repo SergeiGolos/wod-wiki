@@ -1,12 +1,12 @@
-# Route: `/collections/:slug`
+# Route: `/collection/:slug`
 
-| | |
-|--|--|
-| **Route Pattern** | `/collections/:slug` (e.g., `/collections/dan-john`) |
-| **Template** | [Canvas Page](_template.md) |
-| **Shell** | `CanvasPage` (title-bar mode) via `App.tsx` |
-| **Component** | `MarkdownCanvasPage` (`playground/src/canvas/MarkdownCanvasPage.tsx`) |
-| **Source File** | `markdown/collections/{slug}/README.md` |
+|                   |                                                                       |
+| ----------------- | --------------------------------------------------------------------- |
+| **Route Pattern** | `/collection/:slug` (e.g., `/collections/dan-john`)                   |
+| **Template**      | [Canvas Page](_template.md)                                           |
+| **Shell**         | `CanvasPage` (title-bar mode) via `App.tsx`                           |
+| **Component**     | `MarkdownCanvasPage` (`playground/src/canvas/MarkdownCanvasPage.tsx`) |
+| **Source File**   | `markdown/collections/{slug}/README.md`                               |
 
 ## Description
 

@@ -1,10 +1,10 @@
 # Template: Canvas Page
 
-| | |
-|--|--|
-| **Name** | Canvas Page |
-| **Code** | `playground/src/canvas/MarkdownCanvasPage.tsx` + `parseCanvasMarkdown.ts` |
-| **Source files** | `markdown/canvas/**/*.md` and `markdown/collections/**/README.md` |
+|                  |                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| **Name**         | Canvas Page                                                                                      |
+| **Code**         | `playground/src/canvas/MarkdownCanvasPage.tsx` + `parseCanvasMarkdown.ts`                        |
+| **Source files** | `markdown/canvas/**/*.md` and `markdown/collections/**/README.md`  (defined on the loading page) |
 
 ## Description
 
@@ -12,28 +12,28 @@ Scroll-driven editorial layout. Sections are parsed from markdown headings. Each
 
 ## Layout Modes
 
-| Mode | When | Column split |
-|------|------|-------------|
-| Two-column | Section contains a `view` block | 40% prose + 60% sticky editor (`NoteEditor` or `RuntimeTimerPanel`) |
-| Full-width | Section has no `view` block | 100% width, `max-w-4xl` content container with rich `CanvasProse` markdown |
+| Mode       | When                            | Column split                                                               | NOTE                                                                                                                                                                          |
+| ---------- | ------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Two-column | Section contains a `view` block | 40% prose + 60% sticky editor (`NoteEditor` or `RuntimeTimerPanel`)        | ==This should account for the reorder on mobile for the position<br>sticky view, when in mobile on the canvas section we should not see the %40 with for the prose seciton.== |
+| Full-width | Section has no `view` block     | 100% width, `max-w-4xl` content container with rich `CanvasProse` markdown |                                                                                                                                                                               |
 
 ## Heading Attributes
 
-| Attribute | Effect |
-|-----------|--------|
-| `{sticky}` | Fires the section's `command` pipeline when it enters the viewport |
-| `{dark}` | Dark tint background for this section |
-| `{full-bleed}` | Section stretches edge-to-edge; content centred at `max-w-md` |
+| Attribute      | Effect                                                             |
+| -------------- | ------------------------------------------------------------------ |
+| `{sticky}`     | Fires the section's `command` pipeline when it enters the viewport |
+| `{dark}`       | Dark tint background for this section                              |
+| `{full-bleed}` | Section stretches edge-to-edge; content centred at `max-w-md`      |
 
 ## DSL Blocks
 
 Stripped from prose, never rendered as code.
 
-| Block            | Purpose                                                                        |
-| ---------------- | ------------------------------------------------------------------------------ |
-| `` ```view ``    | Declares the sticky editor panel — source file, alignment, inline buttons      |
-| `` ```command `` | Pipeline that fires automatically when the section scrolls into view           |
-| `` ```button ``  | Clickable button that fires a pipeline on click — rendered below section prose |
+| Block            | Purpose                                                                        |                                                                                                                                                                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `` ```view ``    | Declares the sticky editor panel — source file, alignment, inline buttons      |                                                                                                                                                                                                                                                                                |
+| `` ```command `` | Pipeline that fires automatically when the section scrolls into view           | ==this needs some work, right now we call this commend instead we need tow version, on scroll in, on scroll out.  (making sure the scroll out of the existing seciton alwasy fires before the scroll in of the next when scrolling down and the previous when scrolling up.)== |
+| `` ```button ``  | Clickable button that fires a pipeline on click — rendered below section prose |                                                                                                                                                                                                                                                                                |
 
 ## Pipeline Actions
 

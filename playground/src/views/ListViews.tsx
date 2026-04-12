@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
-import { QueriableListView } from './queriable-list/QueriableListView';
-import { CalendarQuery } from './queriable-list/CalendarQuery';
 import { FilteredList } from './queriable-list/FilteredList';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
@@ -11,41 +9,6 @@ import type { FilteredListItem } from './queriable-list/types';
 interface BaseProps {
   workoutItems: { id: string; name: string; category: string; content?: string }[];
   onSelect: (item: any) => void;
-}
-
-export function CalendarPage({ workoutItems, onSelect }: BaseProps) {
-  const [month] = useQueryState('month');
-  const [results, setResults] = useState<any[]>([]);
-
-  useEffect(() => {
-    indexedDBService.getRecentResults(100).then(setResults);
-  }, []);
-
-  const initialQuery = useMemo(() => {
-    if (!month) return undefined;
-    const [y, m] = month.split('-').map(Number);
-    return { startDate: new Date(y, m - 1, 1) };
-  }, [month]);
-
-  const navigate = useNavigate();
-  const handleSelect = (item: FilteredListItem) => {
-    if (item.type === 'result') {
-      navigate(`/review/${item.id}`);
-    } else {
-      onSelect(item.payload);
-    }
-  };
-
-  return (
-    <QueriableListView
-      QueryOrganism={CalendarQuery}
-      items={workoutItems}
-      results={results}
-      onSelect={handleSelect}
-      initialQuery={initialQuery}
-      disableDateFiltering={true}
-    />
-  );
 }
 
 export function JournalWeeklyPage({ workoutItems, onSelect }: BaseProps) {

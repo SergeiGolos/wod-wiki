@@ -50,8 +50,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useS
 import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
-import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
-import { WeekCalendarStrip } from './views/queriable-list/WeekCalendarStrip'
+import { JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
@@ -177,11 +176,6 @@ function NewEntryButton() {
             </DropdownItem>
             <DropdownItem onClick={() => pick(offsetISO(1))}>
               <DropdownLabel>Tomorrow</DropdownLabel>
-            </DropdownItem>
-            <DropdownDivider />
-            <DropdownItem onClick={() => navigate('/calendar')}>
-              <CalendarDaysIcon data-slot="icon" />
-              <DropdownLabel>Calendar…</DropdownLabel>
             </DropdownItem>
           </DropdownMenu>
         </Dropdown>
@@ -954,7 +948,6 @@ function AppContent() {
     // Named routes without params
     const named: Record<string, string> = {
       '/': 'Home',
-      '/calendar': 'Calendar',
       '/journal': 'Journal',
       '/search': 'Search',
       '/getting-started': 'Zero to Hero',
@@ -997,8 +990,8 @@ function AppContent() {
     if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
     if (location.pathname === '/syntax') return SYNTAX_LINKS
     
-    // 3. List based pages (Calendar, Search, etc.)
-    if (location.pathname === '/calendar' || location.pathname === '/journal' || location.pathname === '/search') {
+    // 3. List based pages (Journal, Search)
+    if (location.pathname === '/journal' || location.pathname === '/search') {
       const dates = new Set<string>()
       recentResults.forEach(r => {
         const d = new Date(r.completedAt).toISOString().split('T')[0]
@@ -1228,15 +1221,8 @@ function AppContent() {
                 onSelect={handleSelectWorkout}
               />
             </CanvasPage>
-          ) : location.pathname === '/calendar' ? (
-            <CanvasPage title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
-              <CalendarPage 
-                workoutItems={workoutItems}
-                onSelect={handleSelectWorkout}
-              />
-            </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" subheader={<WeekCalendarStrip />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
@@ -1328,7 +1314,6 @@ export function App() {
                 <Route path="/" element={<AppContent />} />
                 <Route path="/getting-started" element={<AppContent />} />
                 <Route path="/syntax" element={<AppContent />} />
-                <Route path="/calendar" element={<AppContent />} />
                 <Route path="/journal" element={<AppContent />} />
                 <Route path="/search" element={<AppContent />} />
                 <Route path="/collections" element={<AppContent />} />

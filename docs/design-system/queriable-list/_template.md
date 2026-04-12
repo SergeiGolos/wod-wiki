@@ -3,8 +3,8 @@
 | | |
 |--|--|
 | **Name** | Queriable List |
-| **Code** | `src/components/workbench/queriable-list/QueriableList.tsx` (Target), `src/app/pages/NotebooksPage.tsx`, `playground/src/views/CollectionsPage.tsx` |
-| **Routes** | `/notebooks`, `/collections` |
+| **Code** | `playground/src/views/queriable-list/QueriableListView.tsx`, `playground/src/views/queriable-list/FilteredList.tsx` |
+| **Routes** | `/journal`, `/search`, `/collections` |
 
 ## Description
 
@@ -15,11 +15,10 @@ A dynamic, high-performance template designed for exploring large datasets throu
 ### 1. Query Organism (Interface)
 A sticky, top-aligned organism responsible for generating a structured `QueryObject`. Multiple specialized components can implement this interface.
 
-| Implementation | Purpose | UI Pattern |
-|----------------|---------|------------|
-| **Fuzzy Search** | Global text-based discovery. | Real-time input with suggestion dropdown. |
-| **Month Calendar** | Date-based journal browsing. | 7-column grid with activity indicators. |
-| **Week Planner** | Short-term training planning. | 7-day horizontal strip with daily workout summaries. |
+| Implementation | Purpose | UI Pattern | Component |
+|----------------|---------|------------|-----------|
+| **Text Filter** | URL-aware text search bar, usable as a `CanvasPage` subheader. | Single-line input with clear button. | `TextFilterStrip` |
+| **Fuzzy Search** | Inline query organism for collection sub-lists. | Real-time input inside the list container. | `FuzzySearchQuery` |
 
 **Requirements**:
 - **Sticky Position**: Must remain fixed at the top of the viewport during scrolling.
@@ -60,29 +59,23 @@ Query params vary per implementation — see individual page docs for exact para
 | Pattern | Param | Type | Used by |
 |---------|-------|------|---------|
 | Text filter | `?q=` | `string` | Search, Collections index |
-| Active month | `?month=` | `YYYY-MM` | Calendar, Journal |
 | Selected date | `?d=` | `YYYY-MM-DD` | Journal weekly view |
+| Active month | `?month=` | `YYYY-MM` | Journal nav calendar |
 | Tag filters | `?tags=` | comma-separated | Journal |
-| Notebook filter | `?notebook=` | slug | Notebooks (`useSearchParams`) |
-| Date range | `?range=` | `start,end ISO` | Notebooks (`useSearchParams`) |
-| Date list | `?dates=` | comma-separated ISO | Notebooks (`useSearchParams`) |
-
-> **Note:** Notebooks uses react-router `useSearchParams` directly (not `nuqs`) — its filter params do not share the nuqs option defaults.
 
 ### Local State (outside URL)
 
 | State | Type | Purpose |
 |-------|------|---------|
 | `query` | `QueryObject` | Derived query object passed from the Query Organism to the Filtered List. Not in the URL — computed from URL params. |
-| `queryHeight` | `number` | Height of the sticky query organism used for scroll layout calculations. |
-| CalendarQuery `start` / `end` | `Date` | Local picker range before the user commits; not written to the URL until confirmed. |
+| `queryHeight` | `number` | Height of the sticky query organism used for scroll layout calculations (used by `QueriableListView`). |
 
 ## Layout Structure
 
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ [Query Organism (Sticky Top)]                            │
-│ (Fuzzy Input / Calendar / Week Planner)                  │
+│ (TextFilterStrip / FuzzySearchQuery / WeekCalendarStrip) │
 ├──────────────────────────────────────────────────────────┤
 │                                                          │
 │  [Filtered List Organism]                                │
