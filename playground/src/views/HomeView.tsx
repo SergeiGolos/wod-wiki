@@ -1,5 +1,5 @@
 import { HomeHero } from '../components/HomeHero'
-import { CanvasPage } from '../canvas/CanvasPage'
+import { MarkdownCanvasPage } from '../canvas/MarkdownCanvasPage'
 import { findCanvasPage } from '../canvas/canvasRoutes'
 import type { WorkoutItem } from '../App'
 
@@ -17,7 +17,7 @@ export function HomeView({ wodFiles, theme, workoutItems, onSelect }: HomeViewPr
     <div className="flex flex-col min-h-screen bg-background">
       <HomeHero />
       {page ? (
-        <CanvasPage
+        <MarkdownCanvasPage
           page={page}
           wodFiles={wodFiles}
           theme={theme}

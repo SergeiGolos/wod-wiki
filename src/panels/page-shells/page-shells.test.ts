@@ -11,7 +11,7 @@ import { StickyNavPanel } from '@/panels/page-shells/StickyNavPanel';
 import { HeroBanner } from '@/panels/page-shells/HeroBanner';
 import { ScrollSection } from '@/panels/page-shells/ScrollSection';
 import { ScopedRuntimeProvider } from '@/panels/page-shells/ScopedRuntimeProvider';
-import { DocsPageShell } from '@/panels/page-shells/DocsPageShell';
+import { CanvasPage } from '@/panels/page-shells';
 import { JournalPageShell } from '@/panels/page-shells/JournalPageShell';
 import { CalendarPageShell } from '@/panels/page-shells/CalendarPageShell';
 
@@ -43,9 +43,9 @@ describe('page-shells: layout primitives', () => {
 });
 
 describe('page-shells: page shell components', () => {
-  it('should export DocsPageShell', () => {
-    expect(DocsPageShell).toBeDefined();
-    expect(typeof DocsPageShell).toBe('function');
+  it('should export CanvasPage (unified shell)', () => {
+    expect(CanvasPage).toBeDefined();
+    expect(typeof CanvasPage).toBe('function');
   });
 
   it('should export JournalPageShell', () => {

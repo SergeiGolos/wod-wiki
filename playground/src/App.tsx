@@ -49,16 +49,15 @@ import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
-import { CanvasPage } from './canvas/CanvasPage'
-import { CalendarPage, JournalWeeklyPage, SearchPage } from './views/ListViews'
-import { WeekCalendarStrip } from './views/queriable-list/WeekCalendarStrip'
+import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
+import { JournalWeeklyPage, SearchPage } from './views/ListViews'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { AudioToggle } from '@/components/audio/AudioToggle'
 import { Button } from '@/components/ui/button'
 import { usePlaygroundContent } from './hooks/usePlaygroundContent'
-import { SimplePageShell, JournalPageShell } from '@/panels/page-shells'
+import { CanvasPage, JournalPageShell } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
@@ -177,11 +176,6 @@ function NewEntryButton() {
             </DropdownItem>
             <DropdownItem onClick={() => pick(offsetISO(1))}>
               <DropdownLabel>Tomorrow</DropdownLabel>
-            </DropdownItem>
-            <DropdownDivider />
-            <DropdownItem onClick={() => navigate('/calendar')}>
-              <CalendarDaysIcon data-slot="icon" />
-              <DropdownLabel>Calendar…</DropdownLabel>
             </DropdownItem>
           </DropdownMenu>
         </Dropdown>
@@ -954,7 +948,6 @@ function AppContent() {
     // Named routes without params
     const named: Record<string, string> = {
       '/': 'Home',
-      '/calendar': 'Calendar',
       '/journal': 'Journal',
       '/search': 'Search',
       '/getting-started': 'Zero to Hero',
@@ -997,8 +990,8 @@ function AppContent() {
     if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
     if (location.pathname === '/syntax') return SYNTAX_LINKS
     
-    // 3. List based pages (Calendar, Search, etc.)
-    if (location.pathname === '/calendar' || location.pathname === '/journal' || location.pathname === '/search') {
+    // 3. List based pages (Journal, Search)
+    if (location.pathname === '/journal' || location.pathname === '/search') {
       const dates = new Set<string>()
       recentResults.forEach(r => {
         const d = new Date(r.completedAt).toISOString().split('T')[0]
@@ -1220,49 +1213,42 @@ function AppContent() {
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <SimplePageShell title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
-          ) : location.pathname === '/calendar' ? (
-            <SimplePageShell title="Calendar" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
-              <CalendarPage 
-                workoutItems={workoutItems}
-                onSelect={handleSelectWorkout}
-              />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <SimplePageShell title="Journal" subheader={<WeekCalendarStrip />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/search' ? (
-            <SimplePageShell title="Search" subheader={<TextFilterStrip placeholder="Search workouts, results, or notes…" autoFocus />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Search" subheader={<TextFilterStrip placeholder="Search workouts, results, or notes…" autoFocus />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <SearchPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <SimplePageShell title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
-            </SimplePageShell>
+            </CanvasPage>
           ) : canvasPage ? (
-            <SimplePageShell title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
-              <CanvasPage
+            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+              <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
               />
-            </SimplePageShell>
+            </CanvasPage>
           ) : (
             <>
               {isPlaygroundRoute && effectivePlaygroundId ? (
@@ -1328,7 +1314,6 @@ export function App() {
                 <Route path="/" element={<AppContent />} />
                 <Route path="/getting-started" element={<AppContent />} />
                 <Route path="/syntax" element={<AppContent />} />
-                <Route path="/calendar" element={<AppContent />} />
                 <Route path="/journal" element={<AppContent />} />
                 <Route path="/search" element={<AppContent />} />
                 <Route path="/collections" element={<AppContent />} />

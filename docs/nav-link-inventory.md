@@ -189,26 +189,26 @@ Every distinct link in the system and where it appears:
 
 All routes registered in `App.tsx`:
 
-| Route pattern | Page component | Page shell used |
-|---------------|---------------|----------------|
-| `/` | `HomeView` | `SimplePageShell` |
-| `/getting-started` | Static doc page | `SimplePageShell` |
-| `/syntax` | Static doc page | `SimplePageShell` |
-| `/calendar` | `CalendarPage` | `SimplePageShell` |
-| `/journal` | `JournalWeeklyPage` | `SimplePageShell` |
-| `/search` | `SearchPage` | `SimplePageShell` |
-| `/collections` | `CollectionsPage` | `SimplePageShell` |
-| `/collections/:slug` | Collection detail | `SimplePageShell` |
-| `/workout/:category/:name` | `WorkoutEditorPage` | `JournalPageShell` |
-| `/note/:category/:name` | `WorkoutEditorPage` | `JournalPageShell` |
-| `/playground` | `PlaygroundRedirect` → `/playground/:id` | — |
-| `/playground/:id` | `PlaygroundNotePage` | `JournalPageShell` |
-| `/journal/:id` | `JournalPage` | `JournalPageShell` |
-| `/load` | `LoadZipPage` | None (full-screen) |
-| `/tracker/:runtimeId` | `TrackerPage` → `FullscreenTimer` | None (full-screen) |
-| `/review/:runtimeId` | `ReviewPage` → `FullscreenReview` | None (full-screen) |
-| `*` (fallback) | `AppContent` | (matches current route subtree) |
-| Dynamic canvas routes | `CanvasPage` | `SimplePageShell` |
+| Route pattern              | Page component                           | Page shell used                 |
+| -------------------------- | ---------------------------------------- | ------------------------------- |
+| `/`                        | `HomeView`                               | `SimplePageShell`               |
+| `/getting-started`         | Static doc page                          | `SimplePageShell`               |
+| `/syntax`                  | Static doc page                          | `SimplePageShell`               |
+| `/calendar`                | `CalendarPage`                           | `SimplePageShell`               |
+| `/journal`                 | `JournalWeeklyPage`                      | `SimplePageShell`               |
+| `/search`                  | `SearchPage`                             | `SimplePageShell`               |
+| `/collections`             | `CollectionsPage`                        | `SimplePageShell`               |
+| `/collection/:slug`        | Collection detail                        | `SimplePageShell`               |
+| `/workout/:category/:name` | `WorkoutEditorPage`                      | `JournalPageShell`              |
+| `/note/:category/:name`    | `WorkoutEditorPage`                      | `JournalPageShell`              |
+| `/playground`              | `PlaygroundRedirect` → `/playground/:id` | —                               |
+| `/playground/:id`          | `PlaygroundNotePage`                     | `JournalPageShell`              |
+| `/journal/:id`             | `JournalPage`                            | `JournalPageShell`              |
+| `/load`                    | `LoadZipPage`                            | None (full-screen)              |
+| `/tracker/:runtimeId`      | `TrackerPage` → `FullscreenTimer`        | None (full-screen)              |
+| `/review/:runtimeId`       | `ReviewPage` → `FullscreenReview`        | None (full-screen)              |
+| `*` (fallback)             | `AppContent`                             | (matches current route subtree) |
+| Dynamic canvas routes      | `CanvasPage`                             | `SimplePageShell`               |
 
 ---
 

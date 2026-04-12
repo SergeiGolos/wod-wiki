@@ -15,7 +15,6 @@ export { ScrollSection, type ScrollSectionProps } from './ScrollSection';
 export { ScopedRuntimeProvider, type ScopedRuntimeProviderProps } from './ScopedRuntimeProvider';
 
 // Page Shells
-export { DocsPageShell, type DocsPageShellProps } from './DocsPageShell';
+export { CanvasPage, type CanvasPageProps } from './CanvasPage';
 export { JournalPageShell, type JournalPageShellProps } from './JournalPageShell';
 export { CalendarPageShell, type CalendarPageShellProps } from './CalendarPageShell';
-export { SimplePageShell, type SimplePageShellProps } from './SimplePageShell';
