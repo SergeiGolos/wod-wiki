@@ -95,6 +95,9 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     // Append guard — prevents burst-loading when bottom sentinel stays visible
     const isAppendingRef = useRef(false);
 
+    // Suppress sentinel firing until the initial mount scroll has completed
+    const mountScrollDoneRef = useRef(false);
+
     // Off-window scroll: key to scroll to once the window is rebuilt around it
     const pendingScrollKeyRef = useRef<string | null>(null);
 
@@ -109,18 +112,19 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       const anchor = initialDate ?? new Date();
       return {
         start: addDays(anchor, -14),
-        end: addDays(anchor, 7),
+        end: addDays(anchor, 14),
       };
     });
 
-    // Descending list of all dates in the window (newest → oldest)
+    // Ascending list of all dates in the window (oldest → newest).
+    // Today sits in the middle; scroll up = past, scroll down = future.
     const dates = useMemo(() => {
       const result: Date[] = [];
-      let d = new Date(dateWindow.end);
-      const stop = dateWindow.start;
-      while (d >= stop) {
+      let d = new Date(dateWindow.start);
+      const stop = dateWindow.end;
+      while (d <= stop) {
         result.push(new Date(d));
-        d = addDays(d, -1);
+        d = addDays(d, 1);
       }
       return result;
     }, [dateWindow]);
@@ -175,15 +179,31 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
           suppressReportUntilScrollEnd();
           scrollToElement(el);
         } else {
-          // Date is outside the current window — rebuild window around this date
+          // Date is outside the current window — rebuild symmetric window around it
           pendingScrollKeyRef.current = key;
           setDateWindow({
             start: addDays(date, -14),
-            end: addDays(date, 7),
+            end: addDays(date, 14),
           });
         }
       },
     }), [suppressReportUntilScrollEnd, scrollToElement]);
+
+    // On mount: instantly scroll to today (or initialDate) so it appears at the top.
+    // Sentinels are suppressed until this completes to avoid mount-time burst loading.
+    useEffect(() => {
+      const key = localDateKey(initialDate ?? new Date());
+      const el = dateGroupRefs.current.get(key);
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - stickyOffset - 8;
+        window.scrollTo({ top, behavior: 'instant' });
+      }
+      requestAnimationFrame(() => {
+        mountScrollDoneRef.current = true;
+      });
+      // Intentionally run only on mount; deps are stable
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // After window rebuild: complete a pending off-window scroll once dates are rendered
     useEffect(() => {
@@ -196,7 +216,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       requestAnimationFrame(() => scrollToElement(el));
     }, [dates, suppressReportUntilScrollEnd, scrollToElement]);
 
-    // ── Top sentinel: load future dates (prepend) ─────────────────────────────
+    // ── Top sentinel: load past dates (prepend older at top) ─────────────────
 
     useEffect(() => {
       const sentinel = topSentinelRef.current;
@@ -204,14 +224,14 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting || isPrependingRef.current) return;
+          if (!entry.isIntersecting || isPrependingRef.current || !mountScrollDoneRef.current) return;
           isPrependingRef.current = true;
-          // Anchor on the first visible date group so we can compensate after DOM grows
+          // Anchor on the current visible date group to compensate after DOM grows above
           const anchorKey = lastReportedRef.current;
           const anchorEl = anchorKey ? dateGroupRefs.current.get(anchorKey) : [...dateGroupRefs.current.values()][0];
           prependAnchorElRef.current = anchorEl ?? null;
           prependAnchorTopRef.current = anchorEl ? anchorEl.getBoundingClientRect().top : 0;
-          setDateWindow(w => ({ ...w, end: addDays(w.end, 7) }));
+          setDateWindow(w => ({ ...w, start: addDays(w.start, -7) }));
         },
         // root:null = window viewport; 600px top margin fires ~4 date groups before hitting top
         { rootMargin: '600px 0px 0px 0px', threshold: 0 },
@@ -220,7 +240,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       return () => observer.disconnect();
     }, []);
 
-    // After prepend: compensate scroll using the anchor element's position delta
+    // After prepend: compensate scroll so the viewport stays on the same date
     useLayoutEffect(() => {
       const el = prependAnchorElRef.current;
       if (!el) return;
@@ -231,9 +251,9 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       requestAnimationFrame(() => {
         isPrependingRef.current = false;
       });
-    }, [dateWindow.end]);
+    }, [dateWindow.start]);
 
-    // ── Bottom sentinel: load past dates (append) ─────────────────────────────
+    // ── Bottom sentinel: load future dates (append newer at bottom) ───────────
 
     useEffect(() => {
       const sentinel = bottomSentinelRef.current;
@@ -241,9 +261,9 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting || isAppendingRef.current) return;
+          if (!entry.isIntersecting || isAppendingRef.current || !mountScrollDoneRef.current) return;
           isAppendingRef.current = true;
-          setDateWindow(w => ({ ...w, start: addDays(w.start, -7) }));
+          setDateWindow(w => ({ ...w, end: addDays(w.end, 7) }));
         },
         // root:null = window viewport; 600px bottom margin fires ~4 date groups before hitting bottom
         { rootMargin: '0px 0px 600px 0px', threshold: 0 },
@@ -257,7 +277,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       requestAnimationFrame(() => {
         isAppendingRef.current = false;
       });
-    }, [dateWindow.start]);
+    }, [dateWindow.end]);
 
     // ── Visible date IO — top-proximity: pick the date group closest to sticky header ──
 
@@ -377,7 +397,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                 </div>
               )}
 
-              {/* Ghost "Add note" row — always visible, invites creating an entry */}
+              {/* Ghost "Add note" row — only on today and future dates */}
+              {key >= todayKey && (
               <button
                 onClick={() => onCreateEntry(date)}
                 className="flex items-center gap-3 mx-4 my-2 px-4 py-2.5 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-left group w-[calc(100%-2rem)]"
@@ -389,6 +410,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                   Add note for {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </span>
               </button>
+              )}
             </div>
           );
         })}
