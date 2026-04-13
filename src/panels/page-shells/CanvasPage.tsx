@@ -85,25 +85,60 @@ export function CanvasPage({
   const useStickyNavMode = hasSections && !title;
 
   // ── Title-bar mode: URL-synced active section ──────────────────────────
+  // shallow:true avoids full router re-renders on scroll-driven updates.
+  // Observer-driven writes use 'replace' (no history entry per scroll step);
+  // explicit TOC clicks use 'push' (preserves browser Back navigation).
   const [activeId, setActiveId] = useQueryState('s', {
     defaultValue: activeSectionId ?? index[0]?.id ?? '',
-    shallow: false,
-    history: 'push',
+    shallow: true,
+    history: 'replace',
   });
+
+  // Ref set during programmatic smooth-scroll; suppresses observer-driven
+  // active-section updates until the target section actually becomes visible.
+  // Cleared by a timeout (smooth scroll typically finishes within 800 ms).
+  const programmaticScrollTargetRef = useRef<string | null>(null);
+  const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending programmatic-scroll timeout on unmount to avoid stray timers.
+  useEffect(() => {
+    return () => {
+      if (programmaticScrollTimeoutRef.current !== null)
+        clearTimeout(programmaticScrollTimeoutRef.current);
+    };
+  }, []);
 
   // ── Sections mode: local active section tracking ───────────────────────
   const [activeSection, setActiveSection] = useState(sections?.[0]?.id ?? '');
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // IntersectionObserver — title-bar mode (tracks index links by element id)
+  // IntersectionObserver — title-bar mode (tracks index links by element id).
+  // Uses a persistent ratioMap so the winner is the most-visible of ALL currently
+  // intersecting sections, not just the batch in the current callback — prevents
+  // oscillation when multiple threshold crossings fire in quick succession.
+  // Observer-driven writes are suppressed during programmatic smooth-scroll until
+  // the target section becomes most-visible (prevents nav flicker mid-animation).
   useEffect(() => {
     if (useStickyNavMode || index.length === 0) return;
+    const ratioMap = new Map<string, number>();
+    const lastActiveRef = { current: '' };
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible.length > 0) setActiveId(visible[0].target.id);
+        entries.forEach((e) => {
+          if (e.isIntersecting) ratioMap.set(e.target.id, e.intersectionRatio);
+          else ratioMap.delete(e.target.id);
+        });
+        let bestId = '';
+        let bestRatio = -1;
+        ratioMap.forEach((ratio, id) => {
+          if (ratio > bestRatio) { bestRatio = ratio; bestId = id; }
+        });
+        if (!bestId || bestId === lastActiveRef.current) return;
+        // During programmatic scroll, only allow the target section to win.
+        const target = programmaticScrollTargetRef.current;
+        if (target && bestId !== target) return;
+        lastActiveRef.current = bestId;
+        setActiveId(bestId);
       },
       { rootMargin: '-10% 0px -40% 0px', threshold: [0, 0.3, 1.0] },
     );
@@ -114,17 +149,27 @@ export function CanvasPage({
     return () => observer.disconnect();
   }, [index, setActiveId, useStickyNavMode]);
 
-  // IntersectionObserver — sections mode (tracks section divs via refs)
+  // IntersectionObserver — sections mode (tracks section divs via refs).
+  // Same ratioMap pattern to prevent oscillation.
   useEffect(() => {
     if (!useStickyNavMode) return;
+    const ratioMap = new Map<string, number>();
+    const lastActiveRef = { current: '' };
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible.length > 0) {
-          const id = visible[0].target.getAttribute('data-section-id');
-          if (id) setActiveSection(id);
+        entries.forEach((e) => {
+          const id = e.target.getAttribute('data-section-id') ?? '';
+          if (e.isIntersecting) ratioMap.set(id, e.intersectionRatio);
+          else ratioMap.delete(id);
+        });
+        let bestId = '';
+        let bestRatio = -1;
+        ratioMap.forEach((ratio, id) => {
+          if (ratio > bestRatio) { bestRatio = ratio; bestId = id; }
+        });
+        if (bestId && bestId !== lastActiveRef.current) {
+          lastActiveRef.current = bestId;
+          setActiveSection(bestId);
         }
       },
       { rootMargin: '-20% 0px -50% 0px', threshold: [0, 0.25, 0.5, 0.75] },
@@ -135,7 +180,16 @@ export function CanvasPage({
 
   const scrollToSection = (id: string) => {
     onScrollToSection?.(id);
-    setActiveId(id);
+    // Push history for explicit user clicks (preserves browser Back navigation).
+    setActiveId(id, { history: 'push' });
+    // Suppress observer-driven updates until smooth scroll completes so the nav
+    // highlight doesn't flicker through intermediate sections during animation.
+    if (programmaticScrollTimeoutRef.current !== null)
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    programmaticScrollTargetRef.current = id;
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      programmaticScrollTargetRef.current = null;
+    }, 900);
     const el = document.getElementById(id);
     if (el) {
       const y = el.getBoundingClientRect().top + window.scrollY - 100;

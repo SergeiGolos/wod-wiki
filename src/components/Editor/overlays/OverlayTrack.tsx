@@ -84,6 +84,10 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
   cursorLine,
 }) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  // innerRef: the scroll-synced div. We update its transform directly on scroll
+  // (bypassing React's render cycle) for smooth visual sync, and also update
+  // scrollTop state (RAF-throttled) for stickyTopOffset calculations.
+  const innerRef = useRef<HTMLDivElement>(null);
   const [rects, setRects] = useState<SectionRect[]>([]);
   const [scrollTop, setScrollTop] = useState(0);
   const [contentInsets, setContentInsets] = useState<{ left: number; right: number }>({ left: 0, right: 0 });
@@ -107,56 +111,106 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
     return () => observer.disconnect();
   }, [view]);
 
-  // MutationObserver → docVersion bump on every CM6 dispatch
-  useEffect(() => {
-    if (!view) return;
-    const observer = new MutationObserver(() => setDocVersion((v) => v + 1));
-    observer.observe(view.contentDOM, { childList: true, subtree: true, characterData: true });
-    return () => observer.disconnect();
-  }, [view]);
-
-  // Section geometry subscription
+  // Section geometry subscription — also carries docVersion (incremented only
+  // on CM6 `update.docChanged`, not on scroll-driven DOM virtualization).
+  // This replaces the old MutationObserver so docVersion no longer fires
+  // spuriously when CM6 virtualizes lines during scroll.
   useEffect(() => {
     if (!view) return;
     const plugin = view.plugin(sectionGeometry);
     if (!plugin) return;
-    return plugin.addListener(setRects);
+    return plugin.addListener((newRects, newDocVersion) => {
+      setRects(newRects);
+      setDocVersion(newDocVersion);
+    });
   }, [view]);
 
-  // Scroll sync
+  // Scroll sync — two-track approach to prevent feedback loops:
+  // 1. Direct DOM mutation on the inner div for immediate visual alignment
+  //    (bypasses React render cycle entirely, no jitter).
+  // 2. RAF-throttled state update for stickyTopOffset calculations
+  //    (can lag one frame without visible effect on strip positioning).
   useEffect(() => {
     if (!view) return;
     const scroller = view.scrollDOM;
-    const handleScroll = () => setScrollTop(scroller.scrollTop);
-    setScrollTop(scroller.scrollTop);
+    let rafId: number | null = null;
+
+    const handleScroll = () => {
+      const st = scroller.scrollTop;
+      // Immediate: keep the overlay aligned without waiting for React
+      if (innerRef.current) {
+        innerRef.current.style.transform = `translateY(${-st}px)`;
+      }
+      // Throttled: update React state for stickyTopOffset (once per frame)
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setScrollTop(scroller.scrollTop);
+      });
+    };
+
+    // Initialise both
+    const initialSt = scroller.scrollTop;
+    if (innerRef.current) {
+      innerRef.current.style.transform = `translateY(${-initialSt}px)`;
+    }
+    setScrollTop(initialSt);
+
     scroller.addEventListener("scroll", handleScroll, { passive: true });
-    return () => scroller.removeEventListener("scroll", handleScroll);
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      scroller.removeEventListener("scroll", handleScroll);
+    };
   }, [view]);
 
   // Hover-line tracking at DOCUMENT level so events fire even when the
   // mouse is over the overlay panel (which is a sibling of the CM scroller,
   // not a child, so scroller-level listeners miss those events).
+  // Guard: only call setHoverLine when the line number actually changes to
+  // prevent re-rendering the overlay on every mousemove pixel.
   useEffect(() => {
     if (!view) return;
     const scroller = view.scrollDOM;
+    const hoverLineRef = { current: undefined as number | undefined };
     const handleMouseMove = (e: MouseEvent) => {
       const bounds = scroller.getBoundingClientRect();
       if (
         e.clientY < bounds.top || e.clientY > bounds.bottom ||
         e.clientX < bounds.left || e.clientX > bounds.right
       ) {
-        setHoverLine(undefined);
+        if (hoverLineRef.current !== undefined) {
+          hoverLineRef.current = undefined;
+          setHoverLine(undefined);
+        }
         return;
       }
       try {
         const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
-        if (pos == null) { setHoverLine(undefined); return; }
-        setHoverLine(view.state.doc.lineAt(pos).number);
+        if (pos == null) {
+          if (hoverLineRef.current !== undefined) {
+            hoverLineRef.current = undefined;
+            setHoverLine(undefined);
+          }
+          return;
+        }
+        const line = view.state.doc.lineAt(pos).number;
+        if (line !== hoverLineRef.current) {
+          hoverLineRef.current = line;
+          setHoverLine(line);
+        }
       } catch {
+        if (hoverLineRef.current !== undefined) {
+          hoverLineRef.current = undefined;
+          setHoverLine(undefined);
+        }
+      }
+    };
+    const handleMouseLeave = () => {
+      if (hoverLineRef.current !== undefined) {
+        hoverLineRef.current = undefined;
         setHoverLine(undefined);
       }
     };
-    const handleMouseLeave = () => setHoverLine(undefined);
     document.addEventListener("mousemove", handleMouseMove, { passive: true });
     scroller.addEventListener("mouseleave", handleMouseLeave);
     return () => {
@@ -188,9 +242,9 @@ export const OverlayTrack: React.FC<OverlayTrackProps> = ({
       }}
     >
       <div
+        ref={innerRef}
         style={{
           position: "relative",
-          transform: `translateY(${-scrollTop}px)`,
           willChange: "transform",
         }}
       >

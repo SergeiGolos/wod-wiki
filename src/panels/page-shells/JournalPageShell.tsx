@@ -79,10 +79,12 @@ export function JournalPageShell({
   onCloseReview,
   className,
 }: JournalPageShellProps) {
+  // Use shallow:true + replace so scroll-driven IO updates don't trigger
+  // full router re-renders (same fix as CanvasPage.tsx).
   const [activeId, setActiveId] = useQueryState('s', {
     defaultValue: activeSectionId ?? index[0]?.id ?? '',
-    shallow: false,
-    history: 'push',
+    shallow: true,
+    history: 'replace',
   });
 
   // Internal scroll tracking if not controlled
@@ -108,7 +110,7 @@ export function JournalPageShell({
 
   const scrollToSection = (id: string) => {
     onScrollToSection?.(id);
-    setActiveId(id);
+    setActiveId(id, { history: 'push' });
     const el = document.getElementById(id);
     if (el) {
       const y = el.getBoundingClientRect().top + window.scrollY - 100;

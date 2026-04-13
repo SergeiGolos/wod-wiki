@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { FilteredList } from './queriable-list/FilteredList';
+import { JournalDateScroll, localDateKey, type JournalDateScrollHandle } from './queriable-list/JournalDateScroll';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
 import type { FilteredListItem } from './queriable-list/types';
@@ -11,11 +12,18 @@ interface BaseProps {
   onSelect: (item: any) => void;
 }
 
-export function JournalWeeklyPage({ workoutItems, onSelect }: BaseProps) {
+interface JournalWeeklyPageProps extends BaseProps {
+  onCreateEntry: (date: Date) => void;
+}
+
+export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: JournalWeeklyPageProps) {
   const { selectedDate, setDateParam, selectedTags } = useJournalQueryState();
   const [results, setResults] = useState<any[]>([]);
-  // Guard to prevent scroll-driven date updates from fighting user clicks
-  const isScrollUpdating = useRef(false);
+  const scrollRef = useRef<JournalDateScrollHandle>(null);
+
+  // Seed with the initial date so the first-render effect doesn't trigger a
+  // redundant scroll — JournalDateScroll already centers the date on mount.
+  const lastIODateRef = useRef<string>(selectedDate ? localDateKey(selectedDate) : '');
 
   useEffect(() => {
     indexedDBService.getRecentResults(100).then(setResults);
@@ -30,20 +38,26 @@ export function JournalWeeklyPage({ workoutItems, onSelect }: BaseProps) {
     }
   };
 
-  /** Called by FilteredList IntersectionObserver as the user scrolls */
+  /** Called by JournalDateScroll IO as the user scrolls — updates URL only, never triggers re-scroll. */
   const handleVisibleDateChange = useCallback(
     (dateKey: string) => {
       if (dateKey && dateKey !== 'no-date') {
-        isScrollUpdating.current = true;
+        lastIODateRef.current = dateKey;
         setDateParam(dateKey);
-        // Release the guard after a tick so React can reconcile
-        requestAnimationFrame(() => {
-          isScrollUpdating.current = false;
-        });
       }
     },
     [setDateParam],
   );
+
+  // Scroll to selectedDate only when it changes from user intent (calendar click),
+  // not when it changes because the IO observer updated the URL while the user was scrolling.
+  useEffect(() => {
+    if (!selectedDate) return;
+    const key = localDateKey(selectedDate);
+    // If the IO just reported this date, it's already visible — don't scroll back to it.
+    if (key === lastIODateRef.current) return;
+    scrollRef.current?.scrollToDate(selectedDate);
+  }, [selectedDate]);
 
   const allItems = useMemo(() => {
     const combined: FilteredListItem[] = [];
@@ -85,14 +99,15 @@ export function JournalWeeklyPage({ workoutItems, onSelect }: BaseProps) {
   }, [workoutItems, results, selectedTags]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto bg-card">
-      <FilteredList
-        items={allItems}
-        onSelect={handleSelect}
-        selectedDate={selectedDate}
-        onVisibleDateChange={handleVisibleDateChange}
-      />
-    </div>
+    <JournalDateScroll
+      ref={scrollRef}
+      items={allItems}
+      onSelect={handleSelect}
+      onCreateEntry={onCreateEntry}
+      initialDate={selectedDate}
+      onVisibleDateChange={handleVisibleDateChange}
+      className="flex-1 min-h-0"
+    />
   );
 }
 

@@ -6,7 +6,7 @@
  * Optionally shows dots/highlights for dates that have entries.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +49,17 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
   const [viewDate, setViewDate] = useState(() => selectedDate || new Date());
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
+
+  // Navigate the calendar to match selectedDate's month when it changes (e.g. scroll-driven)
+  useEffect(() => {
+    if (!selectedDate) return;
+    setViewDate(prev => {
+      if (prev.getFullYear() !== selectedDate.getFullYear() || prev.getMonth() !== selectedDate.getMonth()) {
+        return new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      }
+      return prev;
+    });
+  }, [selectedDate]);
 
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
 
