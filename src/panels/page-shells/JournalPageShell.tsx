@@ -110,7 +110,7 @@ export function JournalPageShell({
 
   const scrollToSection = (id: string) => {
     onScrollToSection?.(id);
-    setActiveId(id);
+    setActiveId(id, { history: 'push' });
     const el = document.getElementById(id);
     if (el) {
       const y = el.getBoundingClientRect().top + window.scrollY - 100;

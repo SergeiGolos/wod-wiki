@@ -100,6 +100,14 @@ export function CanvasPage({
   const programmaticScrollTargetRef = useRef<string | null>(null);
   const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clear any pending programmatic-scroll timeout on unmount to avoid stray timers.
+  useEffect(() => {
+    return () => {
+      if (programmaticScrollTimeoutRef.current !== null)
+        clearTimeout(programmaticScrollTimeoutRef.current);
+    };
+  }, []);
+
   // ── Sections mode: local active section tracking ───────────────────────
   const [activeSection, setActiveSection] = useState(sections?.[0]?.id ?? '');
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map());

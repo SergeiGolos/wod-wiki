@@ -246,7 +246,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
         const rect = el.getBoundingClientRect();
         // Center the date group in the viewport
         const top = rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2;
-        window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+        window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
       }
       requestAnimationFrame(() => {
         mountScrollDoneRef.current = true;
@@ -267,7 +267,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       suppressReportUntilScrollEnd();
       requestAnimationFrame(() => {
         const top = el.getBoundingClientRect().top + window.scrollY - stickyOffset - 8;
-        window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+        window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
       });
     }, [dates, suppressReportUntilScrollEnd, stickyOffset]);
 
@@ -304,7 +304,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       const el = prependAnchorElRef.current;
       if (!el) return;
       const delta = el.getBoundingClientRect().top - prependAnchorTopRef.current;
-      if (delta !== 0) window.scrollBy({ top: delta, behavior: 'instant' });
+      if (delta !== 0) window.scrollBy({ top: delta, behavior: 'auto' });
       prependAnchorElRef.current = null;
       prependAnchorTopRef.current = 0;
       requestAnimationFrame(() => {
