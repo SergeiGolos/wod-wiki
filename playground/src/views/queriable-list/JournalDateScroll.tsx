@@ -189,14 +189,16 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       },
     }), [suppressReportUntilScrollEnd, scrollToElement]);
 
-    // On mount: instantly scroll to today (or initialDate) so it appears at the top.
+    // On mount: instantly center today (or initialDate) in the viewport.
     // Sentinels are suppressed until this completes to avoid mount-time burst loading.
     useEffect(() => {
       const key = localDateKey(initialDate ?? new Date());
       const el = dateGroupRefs.current.get(key);
       if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY - stickyOffset - 8;
-        window.scrollTo({ top, behavior: 'instant' });
+        const rect = el.getBoundingClientRect();
+        // Center the date group in the viewport
+        const top = rect.top + window.scrollY - window.innerHeight / 2 + rect.height / 2;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
       }
       requestAnimationFrame(() => {
         mountScrollDoneRef.current = true;
