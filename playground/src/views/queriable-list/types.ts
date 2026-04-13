@@ -1,5 +1,4 @@
 import React from 'react';
-import type { CommandPaletteResult } from '../../components/command-palette/types';
 
 export interface QueryObject {
   text?: string;
