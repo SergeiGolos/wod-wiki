@@ -84,6 +84,10 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     const topSentinelRef = useRef<HTMLDivElement>(null);
     const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
+    // Stored observer refs so we can reconnect them after programmatic scrolls
+    const topObserverRef = useRef<IntersectionObserver | null>(null);
+    const bottomObserverRef = useRef<IntersectionObserver | null>(null);
+
     // Map from date key → DOM element; populated via stable callback refs during render.
     const dateGroupRefs = useRef<Map<string, HTMLElement>>(new Map());
 
@@ -142,26 +146,70 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       return map;
     }, [items]);
 
-    // ── Suppress visible-date reports during programmatic scroll ─────────────
+    // ── Suppress visible-date reports + sentinels during programmatic scroll ──
+
+    /**
+     * Re-observe both sentinels to force IO to re-evaluate their current
+     * intersection state. Called after suppression ends so that sentinels
+     * that were blocked during a programmatic scroll fire immediately if
+     * they are still within the preload margin.
+     */
+    const recheckSentinels = useCallback(() => {
+      const reconnect = (
+        observerRef: React.MutableRefObject<IntersectionObserver | null>,
+        sentinelRef: React.RefObject<HTMLDivElement | null>,
+      ) => {
+        if (observerRef.current && sentinelRef.current) {
+          observerRef.current.unobserve(sentinelRef.current);
+          observerRef.current.observe(sentinelRef.current);
+        }
+      };
+      reconnect(topObserverRef, topSentinelRef);
+      reconnect(bottomObserverRef, bottomSentinelRef);
+    }, []);
 
     const suppressReportUntilScrollEnd = useCallback(() => {
       suppressReportRef.current = true;
       if (suppressTimerRef.current) clearTimeout(suppressTimerRef.current);
-      suppressTimerRef.current = setTimeout(() => {
+
+      const clearSuppression = () => {
         suppressReportRef.current = false;
-      }, 1000);
-      window.addEventListener(
-        'scrollend',
-        () => {
-          suppressReportRef.current = false;
-          if (suppressTimerRef.current) {
-            clearTimeout(suppressTimerRef.current);
-            suppressTimerRef.current = null;
+        if (suppressTimerRef.current) {
+          clearTimeout(suppressTimerRef.current);
+          suppressTimerRef.current = null;
+        }
+        recheckSentinels();
+      };
+
+      // Primary: release on the native scrollend event (Chrome 114+, FF 109+, Safari 16.4+)
+      window.addEventListener('scrollend', clearSuppression, { once: true });
+
+      // Fallback: poll scrollY every 100 ms; release once it has been
+      // stable for two consecutive polls. This handles:
+      //   - browsers without scrollend
+      //   - instant scrolls (scrollend fires synchronously, poll is a no-op)
+      //   - long smooth scrolls that would exceed a fixed 1s timeout
+      let lastY = window.scrollY;
+      let stableCount = 0;
+      const poll = () => {
+        if (!suppressReportRef.current) return; // already cleared by scrollend
+        const y = window.scrollY;
+        if (y === lastY) {
+          stableCount++;
+          if (stableCount >= 2) {
+            window.removeEventListener('scrollend', clearSuppression);
+            clearSuppression();
+            return;
           }
-        },
-        { once: true },
-      );
-    }, []);
+        } else {
+          lastY = y;
+          stableCount = 0;
+        }
+        suppressTimerRef.current = setTimeout(poll, 100);
+      };
+      // Start polling after 150 ms to let the scroll begin before measuring
+      suppressTimerRef.current = setTimeout(poll, 150);
+    }, [recheckSentinels]);
 
     // ── Imperative handle ─────────────────────────────────────────────────────
 
@@ -207,7 +255,9 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // After window rebuild: complete a pending off-window scroll once dates are rendered
+    // After window rebuild: instantly jump to the pending off-window target.
+    // Smooth scroll is wrong here — the DOM was fully rebuilt so there is no
+    // continuous path to animate along. Instant keeps the UX clean.
     useEffect(() => {
       const key = pendingScrollKeyRef.current;
       if (!key) return;
@@ -215,8 +265,11 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       if (!el) return;
       pendingScrollKeyRef.current = null;
       suppressReportUntilScrollEnd();
-      requestAnimationFrame(() => scrollToElement(el));
-    }, [dates, suppressReportUntilScrollEnd, scrollToElement]);
+      requestAnimationFrame(() => {
+        const top = el.getBoundingClientRect().top + window.scrollY - stickyOffset - 8;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+      });
+    }, [dates, suppressReportUntilScrollEnd, stickyOffset]);
 
     // ── Top sentinel: load past dates (prepend older at top) ─────────────────
 
@@ -226,7 +279,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting || isPrependingRef.current || !mountScrollDoneRef.current) return;
+          if (!entry.isIntersecting || isPrependingRef.current || !mountScrollDoneRef.current || suppressReportRef.current) return;
           isPrependingRef.current = true;
           // Anchor on the current visible date group to compensate after DOM grows above
           const anchorKey = lastReportedRef.current;
@@ -239,7 +292,11 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
         { rootMargin: '600px 0px 0px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
-      return () => observer.disconnect();
+      topObserverRef.current = observer;
+      return () => {
+        observer.disconnect();
+        topObserverRef.current = null;
+      };
     }, []);
 
     // After prepend: compensate scroll so the viewport stays on the same date
@@ -263,7 +320,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting || isAppendingRef.current || !mountScrollDoneRef.current) return;
+          if (!entry.isIntersecting || isAppendingRef.current || !mountScrollDoneRef.current || suppressReportRef.current) return;
           isAppendingRef.current = true;
           setDateWindow(w => ({ ...w, end: addDays(w.end, 7) }));
         },
@@ -271,7 +328,11 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
         { rootMargin: '0px 0px 600px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
-      return () => observer.disconnect();
+      bottomObserverRef.current = observer;
+      return () => {
+        observer.disconnect();
+        bottomObserverRef.current = null;
+      };
     }, []);
 
     // After append: release the guard once DOM has settled

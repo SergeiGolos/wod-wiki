@@ -21,9 +21,9 @@ export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: Jou
   const [results, setResults] = useState<any[]>([]);
   const scrollRef = useRef<JournalDateScrollHandle>(null);
 
-  // Track the last date reported by the IO observer so we can distinguish
-  // IO-driven selectedDate changes (no scroll) from user-intent navigation (scroll).
-  const lastIODateRef = useRef<string>('');
+  // Seed with the initial date so the first-render effect doesn't trigger a
+  // redundant scroll — JournalDateScroll already centers the date on mount.
+  const lastIODateRef = useRef<string>(selectedDate ? localDateKey(selectedDate) : '');
 
   useEffect(() => {
     indexedDBService.getRecentResults(100).then(setResults);
