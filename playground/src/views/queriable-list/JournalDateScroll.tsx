@@ -105,8 +105,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     const [dateWindow, setDateWindow] = useState<{ start: Date; end: Date }>(() => {
       const anchor = initialDate ?? new Date();
       return {
-        start: addDays(anchor, -7),
-        end: addDays(anchor, 3),
+        start: addDays(anchor, -14),
+        end: addDays(anchor, 7),
       };
     });
 
@@ -143,7 +143,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       suppressTimerRef.current = setTimeout(() => {
         suppressReportRef.current = false;
       }, 1000);
-      containerRef.current?.addEventListener(
+      window.addEventListener(
         'scrollend',
         () => {
           suppressReportRef.current = false;
@@ -192,18 +192,19 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     // ── Top sentinel: load future dates (prepend) ─────────────────────────────
 
     useEffect(() => {
-      const container = containerRef.current;
       const sentinel = topSentinelRef.current;
-      if (!container || !sentinel) return;
+      if (!sentinel) return;
 
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting || isPrependingRef.current) return;
           isPrependingRef.current = true;
-          scrollHeightBeforeRef.current = container.scrollHeight;
+          // Capture page height before DOM changes so we can compensate scroll position
+          scrollHeightBeforeRef.current = document.documentElement.scrollHeight;
           setDateWindow(w => ({ ...w, end: addDays(w.end, 7) }));
         },
-        { root: container, threshold: 0 },
+        // root:null = window viewport; 600px top margin fires before sentinel scrolls into view
+        { rootMargin: '600px 0px 0px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
       return () => observer.disconnect();
@@ -211,10 +212,9 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     // After prepend: restore scroll position to prevent viewport jump
     useLayoutEffect(() => {
-      const container = containerRef.current;
-      if (!container || scrollHeightBeforeRef.current === 0) return;
-      const delta = container.scrollHeight - scrollHeightBeforeRef.current;
-      if (delta > 0) container.scrollTop += delta;
+      if (scrollHeightBeforeRef.current === 0) return;
+      const delta = document.documentElement.scrollHeight - scrollHeightBeforeRef.current;
+      if (delta > 0) window.scrollBy({ top: delta, behavior: 'instant' });
       scrollHeightBeforeRef.current = 0;
       // Release the guard after the browser has painted
       requestAnimationFrame(() => {
@@ -225,16 +225,16 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     // ── Bottom sentinel: load past dates (append) ─────────────────────────────
 
     useEffect(() => {
-      const container = containerRef.current;
       const sentinel = bottomSentinelRef.current;
-      if (!container || !sentinel) return;
+      if (!sentinel) return;
 
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting) return;
           setDateWindow(w => ({ ...w, start: addDays(w.start, -7) }));
         },
-        { root: container, threshold: 0 },
+        // root:null = window viewport; 600px bottom margin fires before sentinel scrolls into view
+        { rootMargin: '0px 0px 600px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
       return () => observer.disconnect();
@@ -243,8 +243,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     // ── Visible date IO — ratioMap pattern to avoid oscillation ──────────────
 
     useEffect(() => {
-      if (!onVisibleDateChange || !containerRef.current) return;
-      const container = containerRef.current;
+      if (!onVisibleDateChange) return;
       const ratioMap = new Map<string, number>();
 
       const observer = new IntersectionObserver(
@@ -270,7 +269,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
             onVisibleDateChange(bestId);
           }
         },
-        { root: container, rootMargin: '0px 0px -50% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0] },
+        // root:null = window viewport; focus on top ~40% of viewport to pick the "current" date
+        { rootMargin: '-10% 0px -50% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0] },
       );
 
       dateGroupRefs.current.forEach(el => el && observer.observe(el));
