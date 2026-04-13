@@ -348,6 +348,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       if (!onVisibleDateChange) return;
       // Map: id → viewport-relative top at last observation (only intersecting elements kept)
       const topMap = new Map<string, number>();
+      // Debounce timer — prevents rapid scroll-driven IO bursts from hammering URL/state updates
+      let reportTimer: ReturnType<typeof setTimeout> | null = null;
 
       const observer = new IntersectionObserver(
         entries => {
@@ -375,8 +377,17 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
           });
 
           if (bestId && bestId !== lastReportedRef.current) {
-            lastReportedRef.current = bestId;
-            onVisibleDateChange(bestId);
+            // Debounce: wait for scroll to settle before updating URL/state.
+            // This prevents rapid IO fires during scrolling from causing re-render churn
+            // that could interfere with scroll position.
+            if (reportTimer) clearTimeout(reportTimer);
+            const capturedId = bestId;
+            reportTimer = setTimeout(() => {
+              if (capturedId !== lastReportedRef.current) {
+                lastReportedRef.current = capturedId;
+                onVisibleDateChange(capturedId);
+              }
+            }, 150);
           }
         },
         // Pixel inset excludes the sticky chrome; bottom half excluded to focus on "current" date
@@ -384,7 +395,10 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       );
 
       dateGroupRefs.current.forEach(el => el && observer.observe(el));
-      return () => observer.disconnect();
+      return () => {
+        observer.disconnect();
+        if (reportTimer) clearTimeout(reportTimer);
+      };
     }, [dates, onVisibleDateChange, stickyOffset]);
 
     // ── Stable callback ref factory ───────────────────────────────────────────
@@ -402,8 +416,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     const todayKey = localDateKey(new Date());
 
     return (
-      <div className={cn('bg-card', className)}>
-        <div ref={topSentinelRef} className="h-px" />
+      <div className={cn('bg-card', className)} data-testid="journal-date-scroll">
+        <div ref={topSentinelRef} className="h-px" data-testid="top-sentinel" />
 
         {dates.map(date => {
           const key = localDateKey(date);
@@ -463,6 +477,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
               {/* Ghost "Add note" row — only on today and future dates */}
               {key >= todayKey && (
               <button
+                data-testid={`add-note-${key}`}
                 onClick={() => onCreateEntry(date)}
                 className="flex items-center gap-3 mx-4 my-2 px-4 py-2.5 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-left group w-[calc(100%-2rem)]"
               >
@@ -478,7 +493,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
           );
         })}
 
-        <div ref={bottomSentinelRef} className="h-px" />
+        <div ref={bottomSentinelRef} className="h-px" data-testid="bottom-sentinel" />
       </div>
     );
   },
