@@ -32,24 +32,30 @@ export interface SectionRect {
 }
 
 /** Callback type for geometry change listeners */
-export type GeometryListener = (rects: SectionRect[]) => void;
+export type GeometryListener = (rects: SectionRect[], docVersion: number) => void;
 
 // ── Plugin ───────────────────────────────────────────────────────────
 
 class SectionGeometryPlugin {
   rects: SectionRect[] = [];
+  /** Increments only on `update.docChanged` — safe to use as a memo dep. */
+  docVersion: number = 0;
   private listeners: Set<GeometryListener> = new Set();
+  private pendingNotify: number | null = null;
 
   constructor(private view: EditorView) {
     this.measure();
   }
 
   update(update: ViewUpdate) {
-    if (
-      update.docChanged ||
-      update.viewportChanged ||
-      update.geometryChanged
-    ) {
+    // viewportChanged fires on scroll but rects are document-space coordinates
+    // (lineBlockAt returns positions relative to scroll content, not viewport).
+    // Scroll cannot change rect values — skip remeasure to avoid a render storm
+    // on every scroll tick. geometryChanged covers resize/line-height changes.
+    if (update.docChanged) {
+      this.docVersion++;
+    }
+    if (update.docChanged || update.geometryChanged) {
       this.measure();
     }
   }
@@ -58,7 +64,7 @@ class SectionGeometryPlugin {
   addListener(fn: GeometryListener): () => void {
     this.listeners.add(fn);
     // Deliver current state immediately
-    fn(this.rects);
+    fn(this.rects, this.docVersion);
     return () => this.listeners.delete(fn);
   }
 
@@ -101,12 +107,20 @@ class SectionGeometryPlugin {
   }
 
   private notify() {
-    for (const fn of this.listeners) {
-      fn(this.rects);
-    }
+    // Debounce via RAF: multiple CM6 updates within one frame (e.g. scroll +
+    // viewport change) coalesce into a single listener call, preventing a
+    // render storm that would feed back into scroll events.
+    if (this.pendingNotify !== null) return;
+    this.pendingNotify = requestAnimationFrame(() => {
+      this.pendingNotify = null;
+      for (const fn of this.listeners) {
+        fn(this.rects, this.docVersion);
+      }
+    });
   }
 
   destroy() {
+    if (this.pendingNotify !== null) cancelAnimationFrame(this.pendingNotify);
     this.listeners.clear();
   }
 }

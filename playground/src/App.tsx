@@ -1025,6 +1025,18 @@ function AppContent() {
     }
   }, [navigate])
 
+  /**
+   * Navigate to a journal entry for the given date.
+   * If a page already exists for that date, opens it. If not, the JournalPageShell
+   * creates a new entry. No conflict dialog needed from the scroll view.
+   */
+  const handleCreateJournalEntry = useCallback((date: Date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    navigate(`/journal/${y}-${m}-${d}`)
+  }, [navigate])
+
   // Reset strategy when palette closes
   useEffect(() => {
     if (!isCommandPaletteOpen) {
@@ -1226,6 +1238,7 @@ function AppContent() {
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
+                onCreateEntry={handleCreateJournalEntry}
               />
             </CanvasPage>
           ) : location.pathname === '/search' ? (

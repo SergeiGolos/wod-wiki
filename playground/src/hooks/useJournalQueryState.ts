@@ -28,7 +28,7 @@ export function useJournalQueryState() {
   // ── Date parameter ────────────────────────────────────────────────────
   const [dateParam, setDateParam] = useQueryState('d', {
     defaultValue: '',
-    shallow: false,
+    shallow: true,
     history: 'replace',
   });
 
@@ -45,7 +45,10 @@ export function useJournalQueryState() {
       if (!date) {
         setDateParam('');
       } else {
-        setDateParam(date.toISOString().split('T')[0]);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        setDateParam(`${y}-${m}-${d}`);
       }
     },
     [setDateParam],
@@ -54,7 +57,7 @@ export function useJournalQueryState() {
   // ── Month parameter ───────────────────────────────────────────────────
   const [monthParam, setMonthParam] = useQueryState('month', {
     defaultValue: '',
-    shallow: false,
+    shallow: true,
     history: 'replace',
   });
 
@@ -77,7 +80,7 @@ export function useJournalQueryState() {
   // ── Tags parameter ────────────────────────────────────────────────────
   const [tagsParam, setTagsParam] = useQueryState('tags', {
     defaultValue: '',
-    shallow: false,
+    shallow: true,
     history: 'replace',
   });
 

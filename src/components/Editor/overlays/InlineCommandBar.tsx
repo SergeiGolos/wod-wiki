@@ -145,6 +145,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
   commands,
 }) => {
   const [rects, setRects] = useState<SectionRect[]>([]);
+  const [scrollTop, setScrollTop] = useState(0);
 
   // Subscribe to geometry changes from the CM6 plugin
   useEffect(() => {
@@ -154,10 +155,32 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
     if (!plugin) return;
 
     // addListener delivers current rects immediately and returns an unsubscribe fn
+    // Second arg (docVersion) is unused here — only rects are needed.
     const unsubscribe = plugin.addListener((newRects: SectionRect[]) =>
       setRects([...newRects]),
     );
     return unsubscribe;
+  }, [view]);
+
+  // Track cm-scroller scroll to compensate rect.top (document-space) for scroll offset.
+  // RAF-throttled to prevent a setState on every scroll pixel.
+  useEffect(() => {
+    if (!view) return;
+    const scroller = view.scrollDOM;
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setScrollTop(scroller.scrollTop);
+      });
+    };
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    setScrollTop(scroller.scrollTop);
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      scroller.removeEventListener('scroll', onScroll);
+    };
   }, [view]);
 
   if (!view || commands.length === 0) return null;
@@ -184,7 +207,9 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
             key={rect.sectionId}
             className="absolute right-1 z-10 flex items-center gap-1 pointer-events-auto"
             style={{
-              top: rect.top + 2,
+              // rect.top is document-space; subtract scrollTop to get the correct
+              // position relative to .cm-note-editor as the editor scrolls.
+              top: rect.top - scrollTop + 2,
             }}
           >
             {commands.map((cmd) => (
