@@ -81,16 +81,19 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     },
     ref,
   ) => {
-    const containerRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
     const bottomSentinelRef = useRef<HTMLDivElement>(null);
 
     // Map from date key → DOM element; populated via stable callback refs during render.
     const dateGroupRefs = useRef<Map<string, HTMLElement>>(new Map());
 
-    // Prepend scroll anchoring
+    // Prepend scroll anchoring — anchor-element-based to avoid scrollHeight over-compensation
     const isPrependingRef = useRef(false);
-    const scrollHeightBeforeRef = useRef(0);
+    const prependAnchorElRef = useRef<HTMLElement | null>(null);
+    const prependAnchorTopRef = useRef(0);
+
+    // Append guard — prevents burst-loading when bottom sentinel stays visible
+    const isAppendingRef = useRef(false);
 
     // Off-window scroll: key to scroll to once the window is rebuilt around it
     const pendingScrollKeyRef = useRef<string | null>(null);
@@ -158,23 +161,29 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     // ── Imperative handle ─────────────────────────────────────────────────────
 
+    /** Scroll to a date group, accounting for the sticky header. */
+    const scrollToElement = useCallback((el: HTMLElement) => {
+      const top = el.getBoundingClientRect().top + window.scrollY - stickyOffset - 8;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }, [stickyOffset]);
+
     useImperativeHandle(ref, () => ({
       scrollToDate(date: Date) {
         const key = localDateKey(date);
         const el = dateGroupRefs.current.get(key);
         if (el) {
           suppressReportUntilScrollEnd();
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          scrollToElement(el);
         } else {
           // Date is outside the current window — rebuild window around this date
           pendingScrollKeyRef.current = key;
           setDateWindow({
-            start: addDays(date, -7),
-            end: addDays(date, 3),
+            start: addDays(date, -14),
+            end: addDays(date, 7),
           });
         }
       },
-    }), [suppressReportUntilScrollEnd]);
+    }), [suppressReportUntilScrollEnd, scrollToElement]);
 
     // After window rebuild: complete a pending off-window scroll once dates are rendered
     useEffect(() => {
@@ -184,10 +193,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       if (!el) return;
       pendingScrollKeyRef.current = null;
       suppressReportUntilScrollEnd();
-      requestAnimationFrame(() => {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }, [dates, suppressReportUntilScrollEnd]);
+      requestAnimationFrame(() => scrollToElement(el));
+    }, [dates, suppressReportUntilScrollEnd, scrollToElement]);
 
     // ── Top sentinel: load future dates (prepend) ─────────────────────────────
 
@@ -199,24 +206,28 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
         ([entry]) => {
           if (!entry.isIntersecting || isPrependingRef.current) return;
           isPrependingRef.current = true;
-          // Capture page height before DOM changes so we can compensate scroll position
-          scrollHeightBeforeRef.current = document.documentElement.scrollHeight;
+          // Anchor on the first visible date group so we can compensate after DOM grows
+          const anchorKey = lastReportedRef.current;
+          const anchorEl = anchorKey ? dateGroupRefs.current.get(anchorKey) : [...dateGroupRefs.current.values()][0];
+          prependAnchorElRef.current = anchorEl ?? null;
+          prependAnchorTopRef.current = anchorEl ? anchorEl.getBoundingClientRect().top : 0;
           setDateWindow(w => ({ ...w, end: addDays(w.end, 7) }));
         },
-        // root:null = window viewport; 600px top margin fires before sentinel scrolls into view
+        // root:null = window viewport; 600px top margin fires ~4 date groups before hitting top
         { rootMargin: '600px 0px 0px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
       return () => observer.disconnect();
     }, []);
 
-    // After prepend: restore scroll position to prevent viewport jump
+    // After prepend: compensate scroll using the anchor element's position delta
     useLayoutEffect(() => {
-      if (scrollHeightBeforeRef.current === 0) return;
-      const delta = document.documentElement.scrollHeight - scrollHeightBeforeRef.current;
-      if (delta > 0) window.scrollBy({ top: delta, behavior: 'instant' });
-      scrollHeightBeforeRef.current = 0;
-      // Release the guard after the browser has painted
+      const el = prependAnchorElRef.current;
+      if (!el) return;
+      const delta = el.getBoundingClientRect().top - prependAnchorTopRef.current;
+      if (delta !== 0) window.scrollBy({ top: delta, behavior: 'instant' });
+      prependAnchorElRef.current = null;
+      prependAnchorTopRef.current = 0;
       requestAnimationFrame(() => {
         isPrependingRef.current = false;
       });
@@ -230,36 +241,52 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting) return;
+          if (!entry.isIntersecting || isAppendingRef.current) return;
+          isAppendingRef.current = true;
           setDateWindow(w => ({ ...w, start: addDays(w.start, -7) }));
         },
-        // root:null = window viewport; 600px bottom margin fires before sentinel scrolls into view
+        // root:null = window viewport; 600px bottom margin fires ~4 date groups before hitting bottom
         { rootMargin: '0px 0px 600px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
       return () => observer.disconnect();
     }, []);
 
-    // ── Visible date IO — ratioMap pattern to avoid oscillation ──────────────
+    // After append: release the guard once DOM has settled
+    useEffect(() => {
+      requestAnimationFrame(() => {
+        isAppendingRef.current = false;
+      });
+    }, [dateWindow.start]);
+
+    // ── Visible date IO — top-proximity: pick the date group closest to sticky header ──
 
     useEffect(() => {
       if (!onVisibleDateChange) return;
-      const ratioMap = new Map<string, number>();
+      // Map: id → viewport-relative top at last observation (only intersecting elements kept)
+      const topMap = new Map<string, number>();
 
       const observer = new IntersectionObserver(
         entries => {
           entries.forEach(entry => {
-            if (entry.target.id) ratioMap.set(entry.target.id, entry.intersectionRatio);
+            if (!entry.target.id) return;
+            if (entry.isIntersecting) {
+              topMap.set(entry.target.id, entry.boundingClientRect.top);
+            } else {
+              topMap.delete(entry.target.id);
+            }
           });
 
           if (suppressReportRef.current) return;
 
-          // Winner = date group with the highest visible ratio
+          // Winner = intersecting group whose top is closest to the sticky header bottom
+          const threshold = stickyOffset + 8;
           let bestId = '';
-          let bestRatio = -1;
-          ratioMap.forEach((ratio, id) => {
-            if (ratio > bestRatio) {
-              bestRatio = ratio;
+          let bestDist = Infinity;
+          topMap.forEach((top, id) => {
+            const dist = Math.abs(top - threshold);
+            if (dist < bestDist) {
+              bestDist = dist;
               bestId = id;
             }
           });
@@ -269,13 +296,13 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
             onVisibleDateChange(bestId);
           }
         },
-        // root:null = window viewport; focus on top ~40% of viewport to pick the "current" date
-        { rootMargin: '-10% 0px -50% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0] },
+        // Pixel inset excludes the sticky chrome; bottom half excluded to focus on "current" date
+        { rootMargin: `-${stickyOffset + 8}px 0px -50% 0px`, threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0] },
       );
 
       dateGroupRefs.current.forEach(el => el && observer.observe(el));
       return () => observer.disconnect();
-    }, [dates, onVisibleDateChange]);
+    }, [dates, onVisibleDateChange, stickyOffset]);
 
     // ── Stable callback ref factory ───────────────────────────────────────────
 
@@ -292,7 +319,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     const todayKey = localDateKey(new Date());
 
     return (
-      <div ref={containerRef} className={cn('overflow-y-auto bg-card', className)}>
+      <div className={cn('bg-card', className)}>
         <div ref={topSentinelRef} className="h-px" />
 
         {dates.map(date => {
@@ -301,7 +328,13 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
           const isToday = key === todayKey;
 
           return (
-            <div key={key} id={key} ref={setDateGroupRef(key) as React.RefCallback<HTMLDivElement>} className="flex flex-col">
+            <div
+              key={key}
+              id={key}
+              ref={setDateGroupRef(key) as React.RefCallback<HTMLDivElement>}
+              className="flex flex-col"
+              style={{ scrollMarginTop: stickyOffset + 8 }}
+            >
               {/* Sticky date header */}
               <div
                 className="sticky z-[5] px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2"
