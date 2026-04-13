@@ -20,6 +20,7 @@
     "test:ui": "bun run test:storybook && bun run test:e2e",
     "test:perf": "bun test tests/performance",
     "test:e2e": "bun x playwright test",
+    "test:e2e:journal": "bun x playwright test --config playwright.journal.config.ts",
     "test-library": "bun test src --preload ./tests/unit-setup.ts",
     "test-story": "bunx vitest run --config vitest.storybook.config.js",
     "build-library": "vite build",
