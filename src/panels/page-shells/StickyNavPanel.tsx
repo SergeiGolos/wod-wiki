@@ -5,21 +5,20 @@
  * via scroll position. Supports two visual variants:
  * - 'hero-follow': floats below a hero banner
  * - 'top-fixed': pinned to the top of the viewport
+ *
+ * Each button is an INavActivation — the click is dispatched through
+ * executeNavAction so all surfaces share the same action model.
  */
 
 import { cn } from '@/lib/utils';
+import { executeNavAction } from '@/nav/navTypes';
+import type { INavActivation, NavActionDeps } from '@/nav/navTypes';
 
-export interface StickyNavSection {
-  /** Unique section identifier (matches anchor id) */
-  id: string;
-
-  /** Display label */
-  label: string;
-}
+export type { INavActivation as StickyNavSection };
 
 export interface StickyNavPanelProps {
-  /** Available sections */
-  sections: StickyNavSection[];
+  /** Activatable section items — id, label, and action to dispatch on click. */
+  activations: INavActivation[];
 
   /** Currently active section id */
   activeSection: string;
@@ -27,8 +26,11 @@ export interface StickyNavPanelProps {
   /** Visual variant */
   variant: 'hero-follow' | 'top-fixed';
 
-  /** Click handler for section navigation */
-  onSectionClick?: (id: string) => void;
+  /**
+   * Dependencies injected by the host page.
+   * `scrollToSection` should handle any viewport offset required by the variant.
+   */
+  deps: NavActionDeps;
 
   /** Additional CSS classes */
   className?: string;
@@ -42,22 +44,12 @@ export interface StickyNavPanelProps {
  * below a hero banner (hero-follow).
  */
 export function StickyNavPanel({
-  sections,
+  activations,
   activeSection,
   variant,
-  onSectionClick,
+  deps,
   className,
 }: StickyNavPanelProps) {
-  const handleClick = (id: string) => {
-    onSectionClick?.(id);
-    const el = document.getElementById(id);
-    if (el) {
-      const offset = variant === 'top-fixed' ? 64 : 120;
-      const y = el.getBoundingClientRect().top + window.scrollY - offset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  };
-
   return (
     <nav
       className={cn(
@@ -66,18 +58,18 @@ export function StickyNavPanel({
         className,
       )}
     >
-      {sections.map((section) => (
+      {activations.map((activation) => (
         <button
-          key={section.id}
-          onClick={() => handleClick(section.id)}
+          key={activation.id}
+          onClick={() => executeNavAction(activation.action, deps)}
           className={cn(
             'px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.12em] whitespace-nowrap transition-all ring-1',
-            activeSection === section.id
+            activeSection === activation.id
               ? 'bg-primary text-primary-foreground ring-primary/30 shadow-md'
               : 'bg-muted/50 text-muted-foreground ring-transparent hover:bg-muted hover:ring-border',
           )}
         >
-          {section.label}
+          {activation.label}
         </button>
       ))}
     </nav>

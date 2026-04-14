@@ -1,0 +1,2 @@
+export const PAGE_SHELL_CONTENT_SURFACE_CLASS =
+  'bg-background ring-1 ring-zinc-950/5 shadow-sm lg:shadow-[-18px_0_36px_-28px_rgba(15,23,42,0.16),18px_0_36px_-28px_rgba(15,23,42,0.16)] dark:shadow-none dark:ring-white/10';

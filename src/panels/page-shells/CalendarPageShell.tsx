@@ -13,6 +13,7 @@ import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import type { CalendarTab } from './types';
+import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 
 export interface CalendarPageShellProps {
   /** Calendar / date-selection widget */
@@ -80,7 +81,13 @@ export function CalendarPageShell({
       </div>
 
       {/* Detail area */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div
+        className={cn(
+          'flex-1 flex flex-col min-h-0',
+          !isMobile && 'lg:rounded-[2rem]',
+          !isMobile && PAGE_SHELL_CONTENT_SURFACE_CLASS,
+        )}
+      >
         {/* Tab bar */}
         <div className="flex items-center gap-1 px-4 py-2 border-b border-border/50 bg-muted/20 overflow-x-auto">
           {tabs.map((tab) => (

@@ -14,6 +14,7 @@ import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import { PlayIcon } from '@heroicons/react/20/solid';
+import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 
 export interface JournalPageShellProps {
   /** Editor panel content — typically a PlanPanel with stored note */
@@ -124,7 +125,10 @@ export function JournalPageShell({
         Note Column — Constrained to 3xl max-width on large screens.
         Everything inside (Header + Editor) has the background and shadow.
       */}
-      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen lg:rounded-[2.5rem]">
+      <div className={cn(
+        'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
+        PAGE_SHELL_CONTENT_SURFACE_CLASS,
+      )}>
         {/* Sticky header — only sticky on desktop where main navbar is hidden */}
         <div className="lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md pt-4 lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">

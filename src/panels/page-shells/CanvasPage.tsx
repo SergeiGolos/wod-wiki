@@ -35,8 +35,10 @@ import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import type { PageNavLink } from '@/components/playground/PageNavDropdown';
 import type { DocsSection } from './types';
+import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { StickyNavPanel } from './StickyNavPanel';
 import { ScopedRuntimeProvider } from './ScopedRuntimeProvider';
+import type { NavActionDeps } from '@/nav/navTypes';
 
 export interface CanvasPageProps {
   // ── Title-bar mode ──────────────────────────────────────────────────────
@@ -199,15 +201,32 @@ export function CanvasPage({
 
   // ── Sections mode render ───────────────────────────────────────────────
   if (useStickyNavMode) {
-    const navSections = sections!.map((s) => ({ id: s.id, label: s.label }));
+    const stickyActivations = sections!.map((s) => ({
+      id: s.id,
+      label: s.label,
+      action: { type: 'scroll' as const, sectionId: s.id },
+    }))
+
+    const stickyDeps: NavActionDeps = {
+      navigate: () => { /* sections mode doesn't navigate */ },
+      setQueryParam: () => { /* sections mode doesn't update query */ },
+      scrollToSection: (id: string) => {
+        const el = document.getElementById(id)
+        if (el) {
+          const y = el.getBoundingClientRect().top + window.scrollY - 64
+          window.scrollTo({ top: y, behavior: 'smooth' })
+        }
+      },
+    }
 
     return (
       <div className={cn('flex flex-col min-h-screen bg-background', className)}>
         {hero}
         <StickyNavPanel
-          sections={navSections}
+          activations={stickyActivations}
           activeSection={activeSection}
           variant="top-fixed"
+          deps={stickyDeps}
         />
         <div className="flex-1">
           {sections!.map((section) => {
@@ -241,7 +260,10 @@ export function CanvasPage({
   // ── Title-bar mode render ──────────────────────────────────────────────
   return (
     <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
-      <div className="flex flex-col flex-1 min-w-0 3xl:max-w-7xl bg-background shadow-xl dark:shadow-none ring-1 ring-zinc-950/5 dark:ring-white/10 min-h-screen lg:rounded-[2.5rem]">
+      <div className={cn(
+        'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
+        PAGE_SHELL_CONTENT_SURFACE_CLASS,
+      )}>
         {/* Sticky header — hidden on mobile (SidebarLayout navbar covers it), sticky on desktop */}
         <div className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8">
           <div className="flex items-center justify-between px-6 lg:px-10">

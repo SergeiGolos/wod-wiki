@@ -10,6 +10,8 @@ export * from './types';
 // Layout Primitives
 export { ParallaxSection, type ParallaxSectionProps, type ParallaxStepDescriptor } from './ParallaxSection';
 export { StickyNavPanel, type StickyNavPanelProps, type StickyNavSection } from './StickyNavPanel';
+export type { INavActivation, NavActionDeps, INavAction } from '@/nav/navTypes';
+export { executeNavAction } from '@/nav/navTypes';
 export { HeroBanner, type HeroBannerProps } from './HeroBanner';
 export { ScrollSection, type ScrollSectionProps } from './ScrollSection';
 export { ScopedRuntimeProvider, type ScopedRuntimeProviderProps } from './ScopedRuntimeProvider';

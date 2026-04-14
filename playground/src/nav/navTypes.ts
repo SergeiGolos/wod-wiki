@@ -1,8 +1,9 @@
 /**
- * navTypes.ts — Shared navigation type contract
+ * navTypes.ts — Playground navigation type contract
  *
- * All three navigation zones (mobile bar, sidebar, page header, right index)
- * consume the same NavItem tree and share one NavState object.
+ * Re-exports all core types from @/nav/navTypes (the library layer) and
+ * adds playground-specific types: NavItem, NavItemL3, NavState, NavDispatch,
+ * and filter state interfaces.
  *
  * INavActivation is the base interface for every activatable UI element:
  *   NavItem, NavItemL3, canvas ButtonBlock/CommandBlock, toolbar buttons,
@@ -15,137 +16,32 @@
 import type React from 'react'
 import type { Location } from 'react-router-dom'
 
-// ─── INavAction — discriminated union of all action types ────────────────────
-
-/** Navigate to a new route. */
-export interface RouteChangeAction {
-  type: 'route'
-  to: string
-  /** Add a browser history entry. Default: true. */
-  pushHistory?: boolean
-}
-
-/** Update URL query params without a route change (replaceState by default). */
-export interface RouteQueryAction {
-  type: 'query'
-  params: Record<string, string | null>
-  /** Add a browser history entry. Default: false (replaceState). */
-  pushHistory?: boolean
-}
-
-/** Scroll the page to a named anchor and mark it active in the sidebar. */
-export interface ScrollAction {
-  type: 'scroll'
-  sectionId: string
-}
-
-/**
- * Swap the sticky view panel's editor source content.
- * Canvas pages only — silently ignored on other surfaces.
- */
-export interface ViewSourceAction {
-  type: 'view-source'
-  source: string
-}
-
-/**
- * Transition the view panel state machine.
- *   'note'   → show NoteEditor (reset)
- *   'track'  → launch the first WOD block
- *   'review' → show post-workout review
- * Canvas pages only — silently ignored on other surfaces.
- */
-export interface ViewStateAction {
-  type: 'view-state'
-  state: 'note' | 'track' | 'review'
-  /** Where to launch the runtime when state='track'. Default: 'dialog'. */
-  open?: 'view' | 'dialog' | 'route'
-}
-
-/** Execute a sequence of actions in order. Replaces PipelineStep[]. */
-export interface PipelineAction {
-  type: 'pipeline'
-  steps: INavAction[]
-}
-
-/** Invoke an arbitrary handler. */
-export interface CallAction {
-  type: 'call'
-  handler: () => void
-  label?: string
-}
-
-/** No-op — for accordion group headers. */
-export interface NoneAction {
-  type: 'none'
-}
-
-export type INavAction =
-  | RouteChangeAction
-  | RouteQueryAction
-  | ScrollAction
-  | ViewSourceAction
-  | ViewStateAction
-  | PipelineAction
-  | CallAction
-  | NoneAction
+// Re-export all shared base types from the library layer
+export type {
+  INavAction,
+  INavActivation,
+  NavActionDeps,
+  RouteChangeAction,
+  RouteQueryAction,
+  ScrollAction,
+  ViewSourceAction,
+  ViewStateAction,
+  PipelineAction,
+  CallAction,
+  NoneAction,
+} from '@/nav/navTypes'
+export { executeNavAction } from '@/nav/navTypes'
 
 /** Legacy alias kept for existing NavItem/NavItemL3 usage. */
-export type NavAction = INavAction
+export type { INavAction as NavAction } from '@/nav/navTypes'
 
-// ─── INavActivation — base interface for every activatable UI element ─────────
-
-export interface INavActivation {
-  id: string
-  label: string
-  icon?: React.ComponentType<{ className?: string; 'data-slot'?: string }>
-  action: INavAction
-}
-
-// ─── NavActionDeps — injected by each rendering surface ──────────────────────
-
-export interface NavActionDeps {
-  navigate:          (to: string, opts?: { replace?: boolean }) => void
-  setQueryParam:     (params: Record<string, string | null>, replace?: boolean) => void
-  /** Scroll to a named anchor on the current page. */
-  scrollToSection?:  (id: string) => void
-  /** Fade-swap the sticky editor panel source. Canvas pages only. */
-  swapSource?:       (source: string) => void
-  /** Transition the view panel state machine. Canvas pages only. */
-  setPanelState?:    (state: 'note' | 'track' | 'review', open?: 'view' | 'dialog' | 'route') => void
-}
-
-/**
- * executeNavAction — single dispatch function for all rendering surfaces.
- * View-container actions are silently skipped when their deps are absent.
- */
-export function executeNavAction(action: INavAction, deps: NavActionDeps): void {
-  switch (action.type) {
-    case 'route':
-      deps.navigate(action.to, { replace: !(action.pushHistory ?? true) })
-      break
-    case 'query':
-      deps.setQueryParam(action.params, !(action.pushHistory ?? false))
-      break
-    case 'scroll':
-      deps.scrollToSection?.(action.sectionId)
-      break
-    case 'view-source':
-      deps.swapSource?.(action.source)
-      break
-    case 'view-state':
-      deps.setPanelState?.(action.state, action.open)
-      break
-    case 'pipeline':
-      action.steps.forEach(step => executeNavAction(step, deps))
-      break
-    case 'call':
-      action.handler()
-      break
-    case 'none':
-      break
-  }
-}
+// Bring into local scope for use in NavItem/NavItemL3 definitions
+import type {
+  INavActivation,
+  ScrollAction,
+  RouteQueryAction,
+  NoneAction,
+} from '@/nav/navTypes'
 
 // ─── Zone ────────────────────────────────────────────────────────────────────
 
