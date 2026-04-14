@@ -21,7 +21,7 @@ export const FuzzySearchQuery: React.FC<QueryOrganismProps> = ({ onQueryChange, 
         placeholder="Search workouts, results, or notes..."
         value={text}
         onChange={(e) => setText(e.target.value)}
-        autoFocus
+        autoFocus={typeof window !== 'undefined' && !window.matchMedia('(pointer: coarse)').matches}
       />
     </div>
   );
