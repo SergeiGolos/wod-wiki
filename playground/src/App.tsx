@@ -283,7 +283,7 @@ function WorkoutEditorPage({
       label: link.label,
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun ? { type: 'call' as const, handler: link.onRun } : undefined,
+      secondaryAction: link.onRun ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } } : undefined,
     })))
     return () => setEditorL3([])
   }, [index, setEditorL3])
@@ -585,7 +585,7 @@ function PlaygroundNotePage({ theme, onViewCreated }: { theme: string, onViewCre
       label: link.label,
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun ? { type: 'call' as const, handler: link.onRun } : undefined,
+      secondaryAction: link.onRun ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } } : undefined,
     })))
     return () => setPnpL3([])
   }, [index, setPnpL3])
@@ -825,7 +825,7 @@ function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: 
       label: link.label,
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun ? { type: 'call' as const, handler: link.onRun } : undefined,
+      secondaryAction: link.onRun ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } } : undefined,
     })))
     return () => setJpL3([])
   }, [index, setJpL3])
@@ -1176,7 +1176,7 @@ function AppContent() {
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
       secondaryAction: link.onRun
-        ? { type: 'call' as const, handler: link.onRun }
+        ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } }
         : undefined,
     }))
     setL3Items(l3)

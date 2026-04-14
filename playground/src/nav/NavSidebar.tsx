@@ -26,7 +26,8 @@ import {
 import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
 
 import { useNav } from './NavContext'
-import type { NavItem, NavItemL3 } from './navTypes'
+import { executeNavAction } from './navTypes'
+import type { NavItem, NavItemL3, NavActionDeps } from './navTypes'
 
 // App version injected by Vite define
 declare const __APP_VERSION__: string | undefined
@@ -34,16 +35,24 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function useNavAction() {
+function useNavDeps(): NavActionDeps {
   const navigate = useNavigate()
   const { scrollToSection } = useNav()
 
-  return (item: NavItem | NavItemL3) => {
-    const { action } = item
-    if (action.type === 'route')  navigate(action.to)
-    if (action.type === 'scroll') scrollToSection(action.sectionId)
-    if (action.type === 'call')   action.handler()
+  return {
+    navigate: (to, opts) => navigate(to, { replace: opts?.replace }),
+    setQueryParam: (_params, _replace) => {
+      // Sidebar clicks on L3 section items use scrollToSection instead.
+      // URL query params are updated by the page's IntersectionObserver.
+    },
+    scrollToSection,
   }
+}
+
+function useNavAction() {
+  const deps = useNavDeps()
+
+  return (item: NavItem | NavItemL3) => executeNavAction(item.action, deps)
 }
 
 function isItemActive(item: NavItem, navState: ReturnType<typeof useNav>['navState'], location: ReturnType<typeof useLocation>): boolean {
@@ -54,6 +63,7 @@ function isItemActive(item: NavItem, navState: ReturnType<typeof useNav>['navSta
       : location.pathname === item.action.to
   }
   if (item.action.type === 'scroll') return navState.activeL3Id === item.action.sectionId
+  if (item.action.type === 'query') return navState.activeL3Id === item.id
   return false
 }
 
@@ -115,6 +125,7 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
 
 function L3Accordion({ items }: { items: NavItemL3[] }) {
   const { navState, scrollToSection } = useNav()
+  const deps = useNavDeps()
 
   if (items.length === 0) return null
 
@@ -142,7 +153,7 @@ function L3Accordion({ items }: { items: NavItemL3[] }) {
 
             {item.secondaryAction && (
               <button
-                onClick={item.secondaryAction.handler}
+                onClick={() => executeNavAction(item.secondaryAction!.action, deps)}
                 title={item.secondaryAction.label ?? 'Run'}
                 className="opacity-0 group-hover:opacity-100 mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all"
               >
@@ -232,6 +243,8 @@ export function NavSidebar() {
       <SidebarBody>
         {/* L2 — context-specific panel or doc children */}
         {renderL2()}
+        {/* L3 — "On this page" index (hidden at 3xl+ where right panel takes over) */}
+        <L3Accordion items={l3Items} />
       </SidebarBody>
     </Sidebar>
   )

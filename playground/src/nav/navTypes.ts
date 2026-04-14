@@ -3,18 +3,149 @@
  *
  * All three navigation zones (mobile bar, sidebar, page header, right index)
  * consume the same NavItem tree and share one NavState object.
+ *
+ * INavActivation is the base interface for every activatable UI element:
+ *   NavItem, NavItemL3, canvas ButtonBlock/CommandBlock, toolbar buttons,
+ *   playground links, keyboard bindings.
+ *
+ * All surfaces dispatch through executeNavAction(action, deps) so no
+ * individual component carries routing or panel-state logic.
  */
 
 import type React from 'react'
 import type { Location } from 'react-router-dom'
 
-// ─── Action ──────────────────────────────────────────────────────────────────
+// ─── INavAction — discriminated union of all action types ────────────────────
 
-export type NavAction =
-  | { type: 'route';  to: string }
-  | { type: 'scroll'; sectionId: string }
-  | { type: 'call';   handler: () => void }
-  | { type: 'none' }
+/** Navigate to a new route. */
+export interface RouteChangeAction {
+  type: 'route'
+  to: string
+  /** Add a browser history entry. Default: true. */
+  pushHistory?: boolean
+}
+
+/** Update URL query params without a route change (replaceState by default). */
+export interface RouteQueryAction {
+  type: 'query'
+  params: Record<string, string | null>
+  /** Add a browser history entry. Default: false (replaceState). */
+  pushHistory?: boolean
+}
+
+/** Scroll the page to a named anchor and mark it active in the sidebar. */
+export interface ScrollAction {
+  type: 'scroll'
+  sectionId: string
+}
+
+/**
+ * Swap the sticky view panel's editor source content.
+ * Canvas pages only — silently ignored on other surfaces.
+ */
+export interface ViewSourceAction {
+  type: 'view-source'
+  source: string
+}
+
+/**
+ * Transition the view panel state machine.
+ *   'note'   → show NoteEditor (reset)
+ *   'track'  → launch the first WOD block
+ *   'review' → show post-workout review
+ * Canvas pages only — silently ignored on other surfaces.
+ */
+export interface ViewStateAction {
+  type: 'view-state'
+  state: 'note' | 'track' | 'review'
+  /** Where to launch the runtime when state='track'. Default: 'dialog'. */
+  open?: 'view' | 'dialog' | 'route'
+}
+
+/** Execute a sequence of actions in order. Replaces PipelineStep[]. */
+export interface PipelineAction {
+  type: 'pipeline'
+  steps: INavAction[]
+}
+
+/** Invoke an arbitrary handler. */
+export interface CallAction {
+  type: 'call'
+  handler: () => void
+  label?: string
+}
+
+/** No-op — for accordion group headers. */
+export interface NoneAction {
+  type: 'none'
+}
+
+export type INavAction =
+  | RouteChangeAction
+  | RouteQueryAction
+  | ScrollAction
+  | ViewSourceAction
+  | ViewStateAction
+  | PipelineAction
+  | CallAction
+  | NoneAction
+
+/** Legacy alias kept for existing NavItem/NavItemL3 usage. */
+export type NavAction = INavAction
+
+// ─── INavActivation — base interface for every activatable UI element ─────────
+
+export interface INavActivation {
+  id: string
+  label: string
+  icon?: React.ComponentType<{ className?: string; 'data-slot'?: string }>
+  action: INavAction
+}
+
+// ─── NavActionDeps — injected by each rendering surface ──────────────────────
+
+export interface NavActionDeps {
+  navigate:          (to: string, opts?: { replace?: boolean }) => void
+  setQueryParam:     (params: Record<string, string | null>, replace?: boolean) => void
+  /** Scroll to a named anchor on the current page. */
+  scrollToSection?:  (id: string) => void
+  /** Fade-swap the sticky editor panel source. Canvas pages only. */
+  swapSource?:       (source: string) => void
+  /** Transition the view panel state machine. Canvas pages only. */
+  setPanelState?:    (state: 'note' | 'track' | 'review', open?: 'view' | 'dialog' | 'route') => void
+}
+
+/**
+ * executeNavAction — single dispatch function for all rendering surfaces.
+ * View-container actions are silently skipped when their deps are absent.
+ */
+export function executeNavAction(action: INavAction, deps: NavActionDeps): void {
+  switch (action.type) {
+    case 'route':
+      deps.navigate(action.to, { replace: !(action.pushHistory ?? true) })
+      break
+    case 'query':
+      deps.setQueryParam(action.params, !(action.pushHistory ?? false))
+      break
+    case 'scroll':
+      deps.scrollToSection?.(action.sectionId)
+      break
+    case 'view-source':
+      deps.swapSource?.(action.source)
+      break
+    case 'view-state':
+      deps.setPanelState?.(action.state, action.open)
+      break
+    case 'pipeline':
+      action.steps.forEach(step => executeNavAction(step, deps))
+      break
+    case 'call':
+      action.handler()
+      break
+    case 'none':
+      break
+  }
+}
 
 // ─── Zone ────────────────────────────────────────────────────────────────────
 
@@ -91,28 +222,12 @@ export interface NavItemRenderProps {
 
 // ─── NavItem — universal link/node interface ──────────────────────────────────
 
-export interface NavItem {
-  /** Unique stable identifier */
-  id: string
-
-  /** Display label */
-  label: string
-
+export interface NavItem extends INavActivation {
   /** Hierarchy level (1 = top, 2 = context panel, 3 = page index) */
   level: 1 | 2 | 3
 
-  /** What happens when the item is activated */
-  action: NavAction
-
-  // ── Presentation ─────────────────────────────────────────────────────────
-
-  /** Icon component (receives className for sizing) */
-  icon?: React.ComponentType<{ className?: string; 'data-slot'?: string }>
-
   /** Count badge for accordions */
   badge?: string | number
-
-  // ── Active state ─────────────────────────────────────────────────────────
 
   /**
    * Override active/selected detection.
@@ -120,12 +235,8 @@ export interface NavItem {
    */
   isActive?: (location: Location, navState: NavState) => boolean
 
-  // ── Tree structure ────────────────────────────────────────────────────────
-
   /** Child items — used to build nested lists or accordion groups */
   children?: NavItem[]
-
-  // ── Custom rendering ──────────────────────────────────────────────────────
 
   /**
    * Replace child list with a custom React component (calendar picker,
@@ -147,7 +258,7 @@ export interface NavItem {
 
 export interface NavItemL3 extends NavItem {
   level: 3
-  action: { type: 'scroll'; sectionId: string } | { type: 'none' }
+  action: ScrollAction | RouteQueryAction | NoneAction
   /** Secondary inline action — rendered as a small Play button */
-  secondaryAction?: { type: 'call'; handler: () => void; label?: string }
+  secondaryAction?: INavActivation
 }
