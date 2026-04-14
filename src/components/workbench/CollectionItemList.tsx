@@ -4,8 +4,9 @@
  */
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { FileText } from 'lucide-react';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
+import { ListView, collectionItemToListItem } from '@/components/list';
+import type { IListItem } from '@/components/list';
 
 export interface CollectionItemListProps {
     items: WodCollectionItem[];
@@ -20,31 +21,22 @@ export const CollectionItemList: React.FC<CollectionItemListProps> = ({
     onSelectItem,
     className,
 }) => {
+    const listItems = items.map(collectionItemToListItem).map(item => ({
+        ...item,
+        isActive: item.id === activeItemId,
+    }));
+
     return (
-        <div className={cn("flex flex-col h-full", className)}>
-            <div className="flex-1 overflow-y-auto">
-                {items.length === 0 && (
+        <div className={cn('flex flex-col h-full', className)}>
+            <ListView
+                items={listItems}
+                onSelect={(item: IListItem<WodCollectionItem>) => onSelectItem(item.payload)}
+                emptyState={
                     <div className="text-sm text-muted-foreground text-center py-8">
                         No sessions in this collection
                     </div>
-                )}
-                {items.map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => onSelectItem(item)}
-                        className={cn(
-                            "w-full text-left px-4 py-3 border-b border-border transition-colors",
-                            "hover:bg-muted/50 flex items-center gap-3",
-                            activeItemId === item.id
-                                ? "bg-accent/50 border-l-2 border-l-primary"
-                                : ""
-                        )}
-                    >
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm font-medium truncate">{item.name}</span>
-                    </button>
-                ))}
-            </div>
+                }
+            />
         </div>
     );
 };

@@ -259,7 +259,7 @@ export function CanvasPage({
 
   // ── Title-bar mode render ──────────────────────────────────────────────
   return (
-    <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
+    <div className={cn('relative flex w-full min-h-screen justify-center items-start', className)}>
       <div className={cn(
         'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
