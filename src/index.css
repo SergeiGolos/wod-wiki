@@ -4,52 +4,54 @@
 
 @layer base {
   :root {
-    --background: 229 100% 98%;
-    --foreground: 220 23% 23%;
-    --card: 0 0% 100%;
-    --card-foreground: 220 23% 23%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 23% 23%;
-    --primary: 235 90% 74%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 229 100% 97%;
-    --secondary-foreground: 235 90% 74%;
-    --muted: 229 100% 97%;
-    --muted-foreground: 221 16% 52%;
-    --accent: 235 90% 74%;
-    --accent-foreground: 220 23% 23%;
-    --destructive: 0 91% 71%;
+    /* Pastel design system — light mode */
+    --background: 0 0% 100%;           /* #ffffff pure white canvas */
+    --foreground: 0 0% 18%;            /* #2e2e2e soft near-black text */
+    --card: 0 0% 99%;                  /* near-white cards */
+    --card-foreground: 0 0% 18%;
+    --popover: 0 0% 99%;
+    --popover-foreground: 0 0% 18%;
+    --primary: 158 38% 64%;            /* pastel mint green */
+    --primary-foreground: 0 0% 18%;    /* dark text on pastel green */
+    --secondary: 152 30% 88%;          /* very light pastel mint */
+    --secondary-foreground: 157 35% 38%; /* muted green for text */
+    --muted: 155 15% 95%;              /* faint mint-tinted surface */
+    --muted-foreground: 0 0% 45%;      /* #737373 */
+    --accent: 220 30% 88%;             /* pastel lavender accent */
+    --accent-foreground: 220 20% 30%;
+    --destructive: 0 38% 68%;          /* soft dusty rose */
     --destructive-foreground: 0 0% 100%;
-    --success: 174 59% 56%;
-    --success-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 235 90% 74%;
-    --radius: 0.5rem;
+    --success: 158 38% 64%;            /* pastel mint as success */
+    --success-foreground: 0 0% 18%;
+    --border: 155 15% 88%;             /* soft mint-tinted border */
+    --input: 155 15% 88%;
+    --ring: 158 38% 64%;               /* pastel mint focus ring */
+    --radius: 1rem;                    /* 16px — standard card radius */
   }
 
   .dark {
-    --background: 234 28% 15%;
-    --foreground: 210 38% 95%;
-    --card: 235 28% 20%;
-    --card-foreground: 210 38% 95%;
-    --popover: 235 28% 20%;
-    --popover-foreground: 210 38% 95%;
-    --primary: 231 93% 82%;
-    --primary-foreground: 234 28% 15%;
-    --secondary: 234 26% 29%;
-    --secondary-foreground: 231 93% 82%;
-    --muted: 234 26% 29%;
-    --muted-foreground: 214 20% 69%;
-    --accent: 231 93% 82%;
-    --accent-foreground: 210 38% 95%;
-    --destructive: 0 91% 82%;
-    --destructive-foreground: 234 28% 15%;
-    --success: 172 66% 70%;
-    --success-foreground: 234 28% 15%;
-    --border: 234 26% 29%;
-    --input: 234 26% 29%;
-    --ring: 231 93% 82%;
+    /* Pastel design system — dark mode */
+    --background: 220 15% 12%;         /* deep blue-grey */
+    --foreground: 220 15% 88%;         /* soft off-white */
+    --card: 220 15% 16%;               /* slightly lighter surface */
+    --card-foreground: 220 15% 88%;
+    --popover: 220 15% 16%;
+    --popover-foreground: 220 15% 88%;
+    --primary: 158 35% 58%;            /* pastel mint — slightly brighter on dark */
+    --primary-foreground: 220 15% 12%;
+    --secondary: 220 15% 20%;          /* dark surface variant */
+    --secondary-foreground: 220 15% 65%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 220 20% 22%;
+    --accent-foreground: 220 15% 88%;
+    --destructive: 0 35% 60%;          /* soft dusty rose on dark */
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 35% 58%;
+    --success-foreground: 220 15% 12%;
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 158 35% 58%;
   }
 }
 

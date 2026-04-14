@@ -51,7 +51,7 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
       onClick={onClose}
       className={
         closeButtonClassName ??
-        `p-2 rounded-full ${isMinimal ? 'bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-950' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'} transition-colors shadow-sm`
+        `p-2 rounded-pill ${isMinimal ? 'bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground' : 'bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground'} transition-colors shadow-[rgba(0,0,0,0.06)_0px_1px_2px]`
       }
       title="Close"
     >

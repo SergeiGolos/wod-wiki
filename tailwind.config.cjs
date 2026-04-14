@@ -50,11 +50,31 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Pastel brand tokens */
+        brand: {
+          DEFAULT: "#7ecfad",       /* pastel mint green */
+          light: "#e8f7f1",         /* very light mint surface */
+          deep: "#4a9e7a",          /* deeper mint for text on light surfaces */
+        },
       },
       borderRadius: {
-        lg: "var(--radius)",
+        pill: "9999px",             /* full-pill — signature Mintlify shape */
+        "2xl": "1.5rem",            /* 24px — featured cards */
+        xl: "1.25rem",              /* 20px */
+        lg: "var(--radius)",        /* 16px — standard cards */
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "4px",                  /* inline code, small tags */
+      },
+      fontFamily: {
+        sans: ["Inter", "Inter Fallback", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["Geist Mono", "Geist Mono Fallback", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      letterSpacing: {
+        "display": "-0.08em",   /* hero headlines — tight compression */
+        "heading": "-0.05em",   /* section headings */
+        "subhead": "-0.015em",  /* sub-headings */
+        "label": "0.065em",     /* uppercase labels */
+        "mono": "0.06em",       /* mono technical tags */
       },
       keyframes: {
         "accordion-down": {
