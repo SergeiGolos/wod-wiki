@@ -208,11 +208,11 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
                 const isTop = index === 0;
                 const isHighlighted = highlightedBlockKey === block.key;
                 const statusColor = {
-                  complete: 'bg-green-500',
-                  active: 'bg-blue-500',
-                  running: 'bg-blue-500 animate-pulse',
-                  pending: 'bg-gray-400',
-                  error: 'bg-red-500'
+                  complete: 'bg-success',
+                  active: 'bg-metric-time',
+                  running: 'bg-metric-time animate-pulse',
+                  pending: 'bg-muted-foreground/40',
+                  error: 'bg-destructive'
                 }[block.status || 'pending'];
 
                 // Get memory entries for this block
@@ -331,7 +331,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
         <div className={`h-full flex flex-col bg-background ${className}`}>
           {/* Header */}
           <div className="p-3 border-b border-border flex items-center gap-2 bg-muted/30 shrink-0">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
             <h3 className="font-semibold text-sm">Runtime Debugger</h3>
           </div>
 
@@ -386,7 +386,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
         {/* Header */}
         <div className="p-3 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
             <h3 className="font-semibold text-sm">Runtime Debugger</h3>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close debugger" title="Close debugger">
@@ -455,7 +455,7 @@ export const DebugButton: React.FC<DebugButtonProps> = ({
     >
       <Bug className="h-[1.2rem] w-[1.2rem]" />
       {isDebugMode && (
-        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-success animate-pulse" />
       )}
       <span className="sr-only">Toggle debugger</span>
     </Button>

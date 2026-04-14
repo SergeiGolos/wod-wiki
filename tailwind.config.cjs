@@ -50,11 +50,46 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Metric tokens — keyed to CSS variables */
+        metric: {
+          time:       "hsl(var(--metric-time))",
+          rep:        "hsl(var(--metric-rep))",
+          effort:     "hsl(var(--metric-effort))",
+          rounds:     "hsl(var(--metric-rounds))",
+          distance:   "hsl(var(--metric-distance))",
+          resistance: "hsl(var(--metric-resistance))",
+          action:     "hsl(var(--metric-action))",
+        },
+        /* Semantic state tokens */
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        /* Brand tokens aligned to Mineral/Arctic primary (slate blue) */
+        brand: {
+          DEFAULT: "#5980a8",       /* Mineral slate blue */
+          light: "#d6e4f0",         /* tinted surface */
+          deep: "#3d5c7a",          /* dark variant for text */
+        },
       },
       borderRadius: {
-        lg: "var(--radius)",
+        pill: "9999px",             /* full-pill — signature Mintlify shape */
+        "2xl": "1.5rem",            /* 24px — featured cards */
+        xl: "1.25rem",              /* 20px */
+        lg: "var(--radius)",        /* 16px — standard cards */
         md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "4px",                  /* inline code, small tags */
+      },
+      fontFamily: {
+        sans: ["Inter", "Inter Fallback", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["Geist Mono", "Geist Mono Fallback", "ui-monospace", "SFMono-Regular", "monospace"],
+      },
+      letterSpacing: {
+        "display": "-0.08em",   /* hero headlines — tight compression */
+        "heading": "-0.05em",   /* section headings */
+        "subhead": "-0.015em",  /* sub-headings */
+        "label": "0.065em",     /* uppercase labels */
+        "mono": "0.06em",       /* mono technical tags */
       },
       keyframes: {
         "accordion-down": {

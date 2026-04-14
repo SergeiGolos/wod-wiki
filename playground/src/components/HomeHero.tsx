@@ -1,13 +1,6 @@
 import { useRef } from 'react'
-import {
-  Zap,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  PenLine,
-  Timer,
-  BarChart2,
-} from 'lucide-react'
+import { ChevronDown, PenLine, Timer, BarChart2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const STICKY_NAV_HEIGHT = 104
 
@@ -19,124 +12,119 @@ function scrollToSection(id: string, behavior: ScrollBehavior = 'smooth') {
   window.scrollTo({ top, behavior: motionOk ? behavior : 'auto' })
 }
 
+const HERO_CARDS = [
+  {
+    id: 'editor',
+    icon: <PenLine className="size-5" />,
+    label: 'Plan',
+    title: 'Write workouts in Markdown',
+    copy: 'Draft, format, and share workouts as fast as you can type — no forms, no friction.',
+  },
+  {
+    id: 'tracker',
+    icon: <Timer className="size-5" />,
+    label: 'Execute',
+    title: 'Integrated timer keeps pace',
+    copy: 'Your scripted workout comes to life. Hit Start and let the app keep the pace while you focus on the work.',
+  },
+  {
+    id: 'review',
+    icon: <BarChart2 className="size-5" />,
+    label: 'Evolve',
+    title: 'Data-driven performance insights',
+    copy: 'Every lap tracked becomes insight. Analyse trends, visualise progress, and make informed adjustments.',
+  },
+]
+
 export function HomeHero() {
   const scrollerRef = useRef<HTMLDivElement>(null)
-
-  const scrollScroller = (direction: 'left' | 'right') => {
-    if (scrollerRef.current) {
-      const scrollAmount = scrollerRef.current.clientWidth * 0.8
-      scrollerRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' })
-    }
-  }
-
-  const HERO_CARDS = [
-    {
-      id: 'editor',
-      icon: <PenLine className="size-6" />,
-      label: 'Plan with Precision',
-      tagline: 'Markdown',
-      copy: "Forget clunky dropdown menus and restrictive forms. **WOD Wiki** uses **Markdown**, giving you the speed of a digital notebook with the structure of a database. You can draft, format, and share workouts as fast as you can type.",
-      color: 'text-blue-600 dark:text-blue-400',
-      ring: 'hover:border-blue-400/50',
-      bg: 'bg-blue-500/10',
-    },
-    {
-      id: 'tracker',
-      icon: <Timer className="size-6" />,
-      label: 'Execute with Intensity',
-      tagline: 'The Timer',
-      copy: 'A plan is only as good as its execution. Your scripted workout comes to life with **WOD Wiki**\'s integrated timer.  There\'s no friction—just hit "Start" and let the app keep the pace while you focus on the workout.',
-      color: 'text-orange-600 dark:text-orange-400',
-      ring: 'hover:border-orange-400/50',
-      bg: 'bg-orange-500/10',
-    },
-    {
-      id: 'review',
-      icon: <BarChart2 className="size-6" />,
-      label: 'Evolve with Insight',
-      tagline: 'Analytics & Data',
-      copy: '**WOD Wiki** doesn\'t stop when the timer ends, every lap tracked generates insights. Analyze your performance, identify trends, and make data-driven adjustments and visualize your progress over time.',
-      color: 'text-purple-600 dark:text-purple-400',
-      ring: 'hover:border-purple-400/50',
-      bg: 'bg-purple-500/10',
-    },
-  ]
+  const navigate = useNavigate()
 
   return (
-    <section className="relative px-6 pt-24 pb-16 lg:pt-36 lg:pb-24 overflow-hidden border-b border-border/50">
+    <section className="relative overflow-hidden">
+      {/* Atmospheric gradient wash — green cloud behind hero */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-20 dark:opacity-30"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--primary) / 0.15) 0%, transparent 80%)',
+            'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(24,226,153,0.18) 0%, rgba(24,226,153,0.06) 40%, transparent 70%)',
         }}
       />
-      <div className="relative mx-auto max-w-6xl">
-        <div className="flex flex-col items-center text-center gap-8">
-          <div className="space-y-6 max-w-4xl">
-            <h1 className="text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl text-foreground uppercase drop-shadow-sm leading-tight">
-              WOD Wiki is a workout studio for fitness enthusiasts.
-            </h1>
 
-            {/* Value Pillars / Card Scroller */}
-            <div className="relative mt-12 max-w-5xl mx-auto w-full group/scroller">
-              <button
-                onClick={() => scrollScroller('left')}
-                className="absolute -left-12 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-muted transition-all opacity-0 group-hover/scroller:opacity-100 hidden lg:flex text-muted-foreground hover:text-foreground"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft className="size-6" />
-              </button>
-              <button
-                onClick={() => scrollScroller('right')}
-                className="absolute -right-12 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-muted transition-all opacity-0 group-hover/scroller:opacity-100 hidden lg:flex text-muted-foreground hover:text-foreground"
-                aria-label="Scroll right"
-              >
-                <ChevronRight className="size-6" />
-              </button>
-              <div
-                ref={scrollerRef}
-                className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full"
-              >
-                {HERO_CARDS.map((card) => (
-                  <button
-                    key={card.label}
-                    onClick={() => scrollToSection(card.id)}
-                    className={`
-                      group flex flex-col items-start rounded-xl border border-border p-6 text-left transition-all ${
-                      card.ring
-                    } hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5
-                    `}
-                  >
-                    <div className={`flex size-12 items-center justify-center rounded-xl ${card.bg} ${card.color} mb-4 transition-colors`}>
-                      {card.icon}
-                    </div>
-                    <div>
-                      <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${card.color} mb-1`}>
-                        {card.label}
-                      </div>
-                      <div className="text-base font-black uppercase tracking-tight text-foreground mb-3 leading-tight">
-                        {card.tagline}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                      {card.copy}
-                    </p>
-                    <div className="w-full pt-4 border-t border-border/50 mt-auto">
-                      <div className={`inline-flex items-center gap-1 text-[10px] font-bold ${card.color}`}>
-                        See it in action
-                        <ChevronDown className="size-3 rotate-[-90deg]" />
-                      </div>
-                    </div>
-                  </button>
-                ))}
+      <div className="relative mx-auto max-w-5xl px-6 pt-24 pb-20 lg:pt-32 lg:pb-28 flex flex-col items-center text-center">
+
+        {/* Label pill */}
+        <div className="mb-8 inline-flex items-center gap-2 rounded-pill border border-black/5 bg-brand-light px-3 py-1 dark:border-white/8 dark:bg-brand/10">
+          <span
+            className="font-mono text-[10px] font-semibold uppercase tracking-mono text-brand-deep dark:text-brand"
+          >
+            Workout Studio
+          </span>
+        </div>
+
+        {/* Hero headline */}
+        <h1
+          className="max-w-3xl text-[2.5rem] font-semibold leading-[1.1] tracking-heading text-foreground sm:text-[3.5rem] lg:text-[4rem] lg:tracking-display"
+        >
+          The workout studio built for fitness enthusiasts.
+        </h1>
+
+        {/* Subtitle */}
+        <p className="mt-6 max-w-xl text-lg font-normal leading-[1.5] text-muted-foreground">
+          Plan with Markdown, execute with a precision timer, and evolve with performance insights — all in one place.
+        </p>
+
+        {/* CTA row */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={() => navigate('/journal')}
+            className="inline-flex items-center gap-2 rounded-pill bg-foreground px-6 py-2.5 text-[0.94rem] font-medium text-background shadow-[rgba(0,0,0,0.06)_0px_1px_2px] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            Start Planning
+          </button>
+          <button
+            onClick={() => navigate('/collections')}
+            className="inline-flex items-center gap-2 rounded-pill border border-black/8 bg-background px-6 py-2.5 text-[0.94rem] font-medium text-foreground transition-opacity hover:opacity-90 dark:border-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            Examples
+          </button>
+        </div>
+
+        <p className="mt-4 text-sm font-medium text-muted-foreground">
+          keep scrolling for Quick Start guide.
+        </p>
+
+        {/* Feature cards */}
+        <div
+          ref={scrollerRef}
+          className="mt-16 grid w-full grid-cols-1 gap-4 sm:grid-cols-3"
+        >
+          {HERO_CARDS.map((card) => (
+            <button
+              key={card.id}
+              onClick={() => scrollToSection(card.id)}
+              className="group flex flex-col items-start rounded-2xl border border-black/5 bg-background p-6 text-left shadow-[rgba(0,0,0,0.03)_0px_2px_4px] transition-all hover:border-black/8 hover:shadow-[rgba(0,0,0,0.06)_0px_4px_12px] dark:border-white/5 dark:hover:border-white/8"
+            >
+              <div className="mb-4 flex size-10 items-center justify-center rounded-xl border border-black/5 bg-muted text-foreground dark:border-white/5">
+                {card.icon}
               </div>
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-2 mt-4 text-muted-foreground/40">
-            <span className="text-[9px] font-black uppercase tracking-[0.35em]">Scroll to explore</span>
-            <ChevronDown className="size-4 animate-bounce" />
-          </div>
+              <span className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-mono text-brand-deep dark:text-brand">
+                {card.label}
+              </span>
+              <h3 className="mb-2 text-[1.05rem] font-semibold leading-[1.3] tracking-subhead text-foreground">
+                {card.title}
+              </h3>
+              <p className="text-sm leading-[1.6] text-muted-foreground">
+                {card.copy}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        {/* Scroll cue */}
+        <div className="mt-12 flex flex-col items-center gap-1.5 text-muted-foreground/40">
+          <span className="font-mono text-[9px] font-medium uppercase tracking-label">Scroll to explore</span>
+          <ChevronDown className="size-4 animate-bounce" />
         </div>
       </div>
     </section>

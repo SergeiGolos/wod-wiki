@@ -135,17 +135,17 @@ export const gutterUnified = [
       display: "block",
     },
     ".cm-unified-marker-runtime": {
-      background: "#22c55e",
+      background: "hsl(var(--success))",
       animation: "cm-gutter-pulse 1.2s ease-in-out infinite",
     },
     ".cm-unified-marker-error": {
-      background: "#ef4444",
+      background: "hsl(var(--destructive))",
     },
     ".cm-unified-marker-warning": {
-      background: "#f59e0b",
+      background: "hsl(var(--warning))",
     },
     ".cm-unified-marker-info": {
-      background: "#3b82f6",
+      background: "hsl(var(--metric-time))",
     },
     "@keyframes cm-gutter-pulse": {
       "0%, 100%": { opacity: 1 },

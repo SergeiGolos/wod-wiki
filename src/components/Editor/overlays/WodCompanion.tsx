@@ -93,13 +93,13 @@ interface MetricChip {
 }
 
 const METRIC_CONFIG: Partial<Record<string, { label: string; icon: string; color: string }>> = {
-  [MetricType.Duration]:  { label: "Timer",    icon: "⏱",  color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  [MetricType.Rep]:       { label: "Reps",     icon: "✕",  color: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
-  [MetricType.Effort]:    { label: "Exercise", icon: "🏋",  color: "bg-green-500/10 text-green-600 dark:text-green-400" },
-  [MetricType.Rounds]:    { label: "Rounds",   icon: "↻",  color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" },
-  [MetricType.Distance]:  { label: "Distance", icon: "📏", color: "bg-teal-500/10 text-teal-600 dark:text-teal-400" },
-  [MetricType.Resistance]:{ label: "Weight",   icon: "⚖",  color: "bg-red-500/10 text-red-600 dark:text-red-400" },
-  [MetricType.Action]:    { label: "Action",   icon: "⚡",  color: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
+  [MetricType.Duration]:  { label: "Timer",    icon: "⏱",  color: "bg-metric-time/10 text-metric-time" },
+  [MetricType.Rep]:       { label: "Reps",     icon: "✕",  color: "bg-metric-rep/10 text-metric-rep" },
+  [MetricType.Effort]:    { label: "Exercise", icon: "🏋",  color: "bg-metric-effort/10 text-metric-effort" },
+  [MetricType.Rounds]:    { label: "Rounds",   icon: "↻",  color: "bg-metric-rounds/10 text-metric-rounds" },
+  [MetricType.Distance]:  { label: "Distance", icon: "📏", color: "bg-metric-distance/10 text-metric-distance" },
+  [MetricType.Resistance]:{ label: "Weight",   icon: "⚖",  color: "bg-metric-resistance/10 text-metric-resistance" },
+  [MetricType.Action]:    { label: "Action",   icon: "⚡",  color: "bg-metric-action/10 text-metric-action" },
 };
 
 function metricChips(statement: ICodeStatement): MetricChip[] {
@@ -559,7 +559,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         >
           {/* Header */}
           <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border/50 shrink-0">
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 uppercase tracking-wider font-semibold">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-metric-time/10 text-metric-time uppercase tracking-wider font-semibold">
               {section.dialect ?? "wod"}
             </span>
             <div className="flex items-center min-w-0 gap-2">

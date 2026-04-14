@@ -19,11 +19,11 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
 }) => {
   const getStatusColor = (status: StatusFooterProps['status']) => {
     switch (status) {
-      case 'executing': return 'text-green-400 bg-green-900/20';
-      case 'paused': return 'text-yellow-400 bg-yellow-900/20';
-      case 'completed': return 'text-blue-400 bg-blue-900/20';
-      case 'error': return 'text-red-400 bg-red-900/20';
-      default: return 'text-gray-400 bg-gray-900/20';
+      case 'executing': return 'text-success bg-success/10';
+      case 'paused': return 'text-warning bg-warning/10';
+      case 'completed': return 'text-metric-time bg-metric-time/10';
+      case 'error': return 'text-destructive bg-destructive/10';
+      default: return 'text-muted-foreground bg-muted';
     }
   };
 
@@ -94,10 +94,10 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
         <div className="flex items-center space-x-2">
           <div
             className={`w-2 h-2 rounded-full ${
-              status === 'executing' ? 'bg-green-400 animate-pulse' :
-              status === 'paused' ? 'bg-yellow-400' :
-              status === 'completed' ? 'bg-blue-400' :
-              status === 'error' ? 'bg-red-400' :
+              status === 'executing' ? 'bg-success animate-pulse' :
+              status === 'paused' ? 'bg-warning' :
+              status === 'completed' ? 'bg-metric-time' :
+              status === 'error' ? 'bg-destructive' :
               'bg-muted'
             }`}
           />

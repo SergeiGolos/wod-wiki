@@ -101,7 +101,7 @@ export function wodDecorations(options: WodDecorationsOptions = {}): Extension {
         const to = view.state.doc.line(block.endLine + 1).to;
         
         builder.add(from, to, Decoration.line({
-          attributes: { class: isActive ? "cm-wod-block-active bg-blue-500/10 dark:bg-blue-400/10 border-l-2 border-blue-500" : "cm-wod-block bg-yellow-500/5 dark:bg-yellow-400/5 border-l-2 border-yellow-500/30" }
+          attributes: { class: isActive ? "cm-wod-block-active bg-metric-time/10 border-l-2 border-metric-time/70" : "cm-wod-block bg-metric-action/5 border-l-2 border-metric-action/25" }
         }));
 
         // Inlay hints for non-active blocks

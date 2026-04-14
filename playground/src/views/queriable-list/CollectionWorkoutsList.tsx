@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { QueriableListView } from './QueriableListView';
 import { FuzzySearchQuery } from './FuzzySearchQuery';
 import { FilteredListItem } from './types';
-import { WorkoutItem } from '../../App';
+import type { WorkoutItem } from '../../App';
 
 interface CollectionWorkoutsListProps {
   category: string;
@@ -15,9 +15,9 @@ export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({
   workoutItems, 
   onSelect 
 }) => {
-  // Filter items to just this collection
+  // Filter items to just this collection, excluding README files
   const collectionItems = useMemo(() => 
-    workoutItems.filter(item => item.category === category),
+    workoutItems.filter(item => item.category === category && item.name.toLowerCase() !== 'readme'),
     [workoutItems, category]
   );
 

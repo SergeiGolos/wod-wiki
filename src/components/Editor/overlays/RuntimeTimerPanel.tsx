@@ -129,7 +129,7 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
             {outputCount} result{outputCount !== 1 ? "s" : ""} logged
           </span>
           {completedAt && (
-            <span className="ml-auto text-green-600 dark:text-green-400">
+            <span className="ml-auto font-medium text-primary">
               ✓ {completedAt.toLocaleTimeString()}
             </span>
           )}

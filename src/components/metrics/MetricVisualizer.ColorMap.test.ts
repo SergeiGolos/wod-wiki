@@ -26,16 +26,17 @@ describe('Visual Fragment Colors Test Suite', () => {
 
   describe('getMetricColorClasses function', () => {
     it('should return correct color classes for all 10 metric types', () => {
-      expect(getMetricColorClasses('time')).toContain('blue');
-      expect(getMetricColorClasses('rep')).toContain('green');
-      expect(getMetricColorClasses('effort')).toContain('yellow');
-      expect(getMetricColorClasses('distance')).toContain('teal');
-      expect(getMetricColorClasses('rounds')).toContain('purple');
-      expect(getMetricColorClasses('action')).toContain('pink');
-      expect(getMetricColorClasses('increment')).toContain('indigo');
-      expect(getMetricColorClasses('lap')).toContain('orange');
-      expect(getMetricColorClasses('text')).toContain('gray');
-      expect(getMetricColorClasses('resistance')).toContain('red');
+      // New CSS-variable-backed classes use metric-* tokens, not Tailwind color scale names
+      expect(getMetricColorClasses('time')).toContain('metric-time');
+      expect(getMetricColorClasses('rep')).toContain('metric-rep');
+      expect(getMetricColorClasses('effort')).toContain('metric-effort');
+      expect(getMetricColorClasses('distance')).toContain('metric-distance');
+      expect(getMetricColorClasses('rounds')).toContain('metric-rounds');
+      expect(getMetricColorClasses('action')).toContain('metric-action');
+      expect(getMetricColorClasses('increment')).toContain('metric-rounds');
+      expect(getMetricColorClasses('lap')).toContain('metric-rep');
+      expect(getMetricColorClasses('text')).toContain('muted');
+      expect(getMetricColorClasses('resistance')).toContain('metric-resistance');
     });
 
     it('should return fallback color for unknown metric types', () => {

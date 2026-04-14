@@ -225,12 +225,12 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             {/* SVG Background Ring */}
                             <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
                                 <circle
-
-                                    className="stroke-slate-100 dark:stroke-slate-800"
+                                    className="stroke-border"
                                     cx="110" cy="110" fill="none" r="100" strokeWidth="8"
                                 ></circle>
                                 <circle
-                                    className={`stroke-blue-500 transition-all duration-300 ease-in-out ${isPulsing ? 'animate-pulse-border' : ''}`}
+                                    className={`transition-all duration-300 ease-in-out ${isPulsing ? 'animate-pulse-border' : ''}`}
+                                    stroke="#18E299"
                                     cx="110" cy="110" fill="none" r="100" strokeLinecap="round" strokeWidth="8"
                                     style={{
                                         strokeDasharray: strokeDasharray,
@@ -243,12 +243,12 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             <button
                                 onClick={isRunning ? handlePause : handleStart}
                                 {...(getFocusProps ? getFocusProps('timer-main') : {})}
-                                className={`tv-focusable relative z-10 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all focus:outline-none group border border-slate-100 dark:border-slate-800 ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
+                                className={`tv-focusable relative z-10 bg-background rounded-full flex flex-col items-center justify-center shadow-[rgba(0,0,0,0.06)_0px_4px_12px] hover:shadow-[rgba(0,0,0,0.10)_0px_6px_16px] hover:scale-[1.02] transition-all focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group border border-border ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
                             >
-                                <span className={`font-mono font-bold tracking-tighter text-slate-900 dark:text-white tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-6xl'}`}>
+                                <span className={`font-mono font-semibold tracking-tighter text-foreground tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-6xl'}`}>
                                     {formatTime(displayTimeMs)}
                                 </span>
-                                <div className="mt-2 text-blue-500 group-hover:text-blue-600 transition-colors">
+                                <div className="mt-2 text-primary group-hover:opacity-80 transition-opacity">
                                     {isRunning ? <Pause className={`title-pause ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-12 lg:h-12'}`} /> : <Play className={`ml-2 title-play ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-12 lg:h-12'}`} />}
                                 </div>
                             </button>
@@ -261,19 +261,19 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         <button
                             onClick={handleStop}
                             {...(getFocusProps ? getFocusProps('btn-stop') : {})}
-                            className="tv-focusable group flex flex-col items-center gap-1 sm:gap-2 text-slate-400 hover:text-red-500 transition-colors p-2"
+                            className="tv-focusable group flex flex-col items-center gap-1 sm:gap-2 text-muted-foreground hover:text-destructive transition-colors p-2"
                             title="Stop Session"
                         >
-                            <div className={`flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-red-50 dark:group-hover:bg-red-900/20 transition-colors ${compact ? 'w-12 h-12' : 'w-12 h-12 sm:w-14 sm:h-14'}`}>
+                            <div className={`flex items-center justify-center rounded-pill bg-muted group-hover:bg-destructive/10 dark:group-hover:bg-destructive/20 transition-colors ${compact ? 'w-12 h-12' : 'w-12 h-12 sm:w-14 sm:h-14'}`}>
                                 <StopCircle className="w-6 h-6" />
                             </div>
-                            <span className="text-xs font-medium uppercase tracking-wider">Stop</span>
+                            <span className="font-mono text-[10px] font-medium uppercase tracking-mono">Stop</span>
                         </button>
 
                         <button
                             onClick={handleNext}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                            className={`tv-focusable flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
+                            className={`tv-focusable flex items-center justify-center rounded-pill bg-foreground text-background shadow-[rgba(0,0,0,0.06)_0px_1px_2px] hover:opacity-90 hover:-translate-y-0.5 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
                             title="Next Block"
                         >
                             <SkipForward className={compact ? 'w-6 h-6' : 'w-6 h-6 sm:w-8 sm:h-8'} />
