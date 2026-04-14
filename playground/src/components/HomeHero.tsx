@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { ChevronDown, PenLine, Timer, BarChart2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const STICKY_NAV_HEIGHT = 104
 
@@ -37,6 +38,7 @@ const HERO_CARDS = [
 
 export function HomeHero() {
   const scrollerRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
 
   return (
     <section className="relative overflow-hidden">
@@ -75,18 +77,22 @@ export function HomeHero() {
         {/* CTA row */}
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
           <button
-            onClick={() => scrollToSection('editor')}
+            onClick={() => navigate('/journal')}
             className="inline-flex items-center gap-2 rounded-pill bg-foreground px-6 py-2.5 text-[0.94rem] font-medium text-background shadow-[rgba(0,0,0,0.06)_0px_1px_2px] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
           >
-            Start Building
+            Start Planning
           </button>
           <button
-            onClick={() => scrollToSection('review')}
+            onClick={() => navigate('/collections')}
             className="inline-flex items-center gap-2 rounded-pill border border-black/8 bg-background px-6 py-2.5 text-[0.94rem] font-medium text-foreground transition-opacity hover:opacity-90 dark:border-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
           >
-            See how it works
+            Examples
           </button>
         </div>
+
+        <p className="mt-4 text-sm font-medium text-muted-foreground">
+          keep scrolling for Quick Start guide.
+        </p>
 
         {/* Feature cards */}
         <div

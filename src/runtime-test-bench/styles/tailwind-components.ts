@@ -128,15 +128,15 @@ export const buttonSecondary = [
 export const buttonSuccess = [
   'px-4',
   'py-2',
-  'bg-green-600',
-  'text-white',
+  'bg-success',
+  'text-success-foreground',
   'font-medium',
   'text-sm',
   'rounded-md',
-  'hover:bg-green-700',
+  'hover:opacity-90',
   'focus:outline-none',
   'focus:ring-2',
-  'focus:ring-green-500',
+  'focus:ring-success',
   'focus:ring-offset-2',
   'focus:ring-offset-background',
   'disabled:opacity-50',
@@ -270,7 +270,7 @@ export const textSecondary = 'text-muted-foreground';
 /**
  * Success text styling
  */
-export const textSuccess = 'text-green-600';
+export const textSuccess = 'text-success';
 
 /**
  * Error text styling
@@ -280,7 +280,7 @@ export const textError = 'text-destructive';
 /**
  * Info text styling
  */
-export const textInfo = 'text-blue-600';
+export const textInfo = 'text-metric-time';
 
 /**
  * Code text styling
@@ -347,12 +347,12 @@ export const statusIdle = `${statusBase} bg-muted text-muted-foreground`;
 /**
  * Executing status
  */
-export const statusExecuting = `${statusBase} bg-blue-600 text-white`;
+export const statusExecuting = `${statusBase} bg-success text-success-foreground`;
 
 /**
  * Completed status
  */
-export const statusCompleted = `${statusBase} bg-green-600 text-white`;
+export const statusCompleted = `${statusBase} bg-metric-time/20 text-metric-time`;
 
 /**
  * Error status
@@ -362,7 +362,7 @@ export const statusError = `${statusBase} bg-destructive text-destructive-foregr
 /**
  * Paused status
  */
-export const statusPaused = `${statusBase} bg-yellow-600 text-white`;
+export const statusPaused = `${statusBase} bg-warning/20 text-warning`;
 
 // ============================================================================
 // UTILITY CLASSES

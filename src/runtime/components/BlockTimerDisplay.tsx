@@ -74,7 +74,7 @@ export const BlockTimerDisplay: React.FC<BlockTimerDisplayProps> = ({
             {/* Status Indicator */}
             <div className={cn(
                 'text-xs uppercase tracking-wider mt-2',
-                timer.isRunning ? 'text-green-500' : 'text-muted-foreground'
+                timer.isRunning ? 'text-success' : 'text-muted-foreground'
             )}>
                 {timer.isComplete ? 'Complete' : timer.isRunning ? 'Running' : 'Paused'}
             </div>

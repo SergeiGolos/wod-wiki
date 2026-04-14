@@ -50,11 +50,26 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        /* Pastel brand tokens */
+        /* Metric tokens — keyed to CSS variables */
+        metric: {
+          time:       "hsl(var(--metric-time))",
+          rep:        "hsl(var(--metric-rep))",
+          effort:     "hsl(var(--metric-effort))",
+          rounds:     "hsl(var(--metric-rounds))",
+          distance:   "hsl(var(--metric-distance))",
+          resistance: "hsl(var(--metric-resistance))",
+          action:     "hsl(var(--metric-action))",
+        },
+        /* Semantic state tokens */
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        /* Brand tokens aligned to Mineral/Arctic primary (slate blue) */
         brand: {
-          DEFAULT: "#7ecfad",       /* pastel mint green */
-          light: "#e8f7f1",         /* very light mint surface */
-          deep: "#4a9e7a",          /* deeper mint for text on light surfaces */
+          DEFAULT: "#5980a8",       /* Mineral slate blue */
+          light: "#d6e4f0",         /* tinted surface */
+          deep: "#3d5c7a",          /* dark variant for text */
         },
       },
       borderRadius: {

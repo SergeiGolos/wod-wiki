@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WOD Wiki — Metric Color Theme Explorer</title>
+<style>
+  /* ── Reset & base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--fg);
+    transition: background 0.3s, color 0.3s;
+    min-height: 100vh;
+  }
+
+  /* ── CSS Variable Slots (filled by JS per theme) ── */
+  :root {
+    --bg:         #f8f8f8;
+    --bg2:        #ffffff;
+    --bg3:        #f0f0f0;
+    --fg:         #222222;
+    --fg2:        #555555;
+    --border:     #dddddd;
+    --editor-bg:  #ffffff;
+    --editor-gutter: #f5f5f5;
+    --editor-gutter-text: #999;
+    --editor-line-active: rgba(0,0,0,0.04);
+    --editor-selection: rgba(100,160,255,0.25);
+    --pill-bg-alpha: 0.12;
+    --pill-border-alpha: 0.35;
+
+    /* Metric hues — each theme fills these */
+    --c-time:       #5c9fe0;
+    --c-rep:        #e08050;
+    --c-effort:     #60b87c;
+    --c-rounds:     #a070d0;
+    --c-distance:   #40b8c0;
+    --c-resistance: #d06070;
+    --c-action:     #c09040;
+
+    /* State colors */
+    --s-running:    #4caf78;
+    --s-complete:   #5c9fe0;
+    --s-paused:     #c09040;
+    --s-idle:       #999999;
+    --s-error:      #d06060;
+  }
+
+  /* ── Layout ── */
+  .page-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .page-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .theme-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .theme-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg3);
+    color: var(--fg);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .theme-btn:hover { opacity: 0.85; }
+  .theme-btn.active {
+    border-color: var(--c-time);
+    background: var(--bg2);
+    font-weight: 700;
+  }
+
+  .theme-btn .dot-row {
+    display: flex;
+    gap: 3px;
+  }
+
+  .theme-btn .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    display: grid;
+    gap: 32px;
+  }
+
+  /* ── Section card ── */
+  .section-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-body {
+    padding: 20px;
+  }
+
+  /* ── Color Theory sidebar ── */
+  .theory-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 12px;
+    color: var(--fg2);
+    line-height: 1.7;
+  }
+
+  .theory-box h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+    color: var(--fg);
+  }
+
+  /* ── Swatches ── */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+  }
+
+  .swatch {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .swatch-color {
+    height: 56px;
+    transition: background-color 0.3s;
+  }
+
+  .swatch-label {
+    padding: 8px 10px;
+    background: var(--bg3);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .swatch-hex {
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--fg2);
+    margin-top: 2px;
+  }
+
+  .swatch-trio {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    height: 56px;
+  }
+
+  .swatch-trio > div {
+    height: 100%;
+    transition: background-color 0.3s;
+  }
+
+  /* ── Pill chips ── */
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+
+  .pill .icon { font-size: 13px; }
+
+  /* ── Code editor mock ── */
+  .editor-mock {
+    background: var(--editor-bg);
+    border-radius: 8px;
+    font-family: "Menlo", "Monaco", "Consolas", monospace;
+    font-size: 13px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .editor-titlebar {
+    background: var(--editor-gutter);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    font-size: 11px;
+    color: var(--fg2);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .editor-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .editor-lines {
+    display: flex;
+  }
+
+  .gutter {
+    background: var(--editor-gutter);
+    border-right: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: right;
+    color: var(--editor-gutter-text);
+    font-size: 12px;
+    min-width: 36px;
+    user-select: none;
+    line-height: 2;
+  }
+
+  .code-content {
+    padding: 8px 16px;
+    flex: 1;
+    line-height: 2;
+  }
+
+  .code-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 0 2px;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+
+  .code-line.active-line { background: var(--editor-line-active); }
+
+  .code-line.wod-active {
+    background: var(--wod-active-bg, rgba(100,160,255,0.08));
+    border-left: 3px solid var(--wod-active-border, #5c9fe0);
+    margin-left: -3px;
+    padding-left: 5px;
+  }
+
+  .token {
+    transition: color 0.3s, border-color 0.3s;
+  }
+
+  .token-time       { color: var(--c-time);       border-bottom: 2px solid var(--c-time); }
+  .token-rep        { color: var(--c-rep);         border-bottom: 2px solid var(--c-rep); }
+  .token-effort     { color: var(--c-effort);      border-bottom: 2px solid var(--c-effort); }
+  .token-rounds     { color: var(--c-rounds);      border-bottom: 2px solid var(--c-rounds); }
+  .token-distance   { color: var(--c-distance);    border-bottom: 2px solid var(--c-distance); }
+  .token-resistance { color: var(--c-resistance);  border-bottom: 2px solid var(--c-resistance); }
+  .token-action     { color: var(--c-action);      border-bottom: 2px solid var(--c-action); }
+  .token-plain      { color: var(--fg2); }
+  .token-dim        { color: var(--fg2); opacity: 0.5; }
+
+  .metric-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+  }
+
+  /* ── Runtime panel ── */
+  .runtime-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .runtime-grid { grid-template-columns: 1fr; }
+  }
+
+  .runtime-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .runtime-block h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--fg2);
+    margin-bottom: 10px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+
+  .status-dot.pulse {
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .status-badge {
+    margin-left: auto;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Timer display ── */
+  .timer-display {
+    background: var(--editor-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .timer-face {
+    font-family: "Menlo", monospace;
+    font-size: 42px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--c-time);
+    margin-bottom: 8px;
+    transition: color 0.3s;
+  }
+
+  .timer-progress-track {
+    background: var(--bg3);
+    border-radius: 9999px;
+    height: 6px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+
+  .timer-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: background-color 0.3s, width 0.3s;
+  }
+
+  .timer-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--fg2);
+  }
+
+  .timer-btn-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .timer-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: white;
+    transition: background 0.3s, opacity 0.15s;
+  }
+
+  .timer-btn:hover { opacity: 0.85; }
+  .btn-start      { background: var(--s-running); }
+  .btn-pause      { background: var(--s-paused); }
+  .btn-stop       { background: var(--s-error); }
+  .btn-resume     { background: var(--c-time); }
+  .btn-reset      { background: var(--fg2); }
+
+  /* ── Progress bar live demo ── */
+  .progress-demo {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+
+  /* ── Theme theory panel ── */
+  .theme-theory {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 700px) {
+    .theme-theory { grid-template-columns: 1fr; }
+  }
+
+  .wheel-svg { width: 100%; max-width: 160px; display: block; margin: 0 auto; }
+
+  .theory-list { list-style: none; }
+  .theory-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .theory-list li:last-child { border-bottom: none; }
+
+  .theory-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: background 0.3s;
+  }
+
+  .theory-metric { font-weight: 600; min-width: 80px; }
+  .theory-notes  { color: var(--fg2); }
+
+  /* ── Comparison table ── */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .compare-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fg2);
+  }
+
+  .compare-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .compare-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .compare-table tr.current-theme { background: var(--bg3); }
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     HEADER + THEME SWITCHER
+════════════════════════════════════════════════════════ -->
+<header class="page-header">
+  <h1>🏋️ WOD Wiki · Metric Color Theme Explorer</h1>
+  <div class="theme-picker" id="themePicker">
+    <!-- buttons injected by JS -->
+  </div>
+</header>
+
+<div class="content">
+
+  <!-- ── Color Theory Context ─────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">📐 Design Principles — Syntax Color Theory</div>
+    <div class="section-body">
+      <div class="theory-box">
+        <h4>How well-designed syntax themes assign color</h4>
+        <p>
+          The best syntax color maps (Solarized, Nord, Dracula, Base16) share three rules:
+          <strong>(1) Hue spacing</strong> — accent colors are spaced ~50° apart on the hue wheel so they are
+          perceptually distinct even at a glance.
+          <strong>(2) Equal luminance weight</strong> — no single metric "screams" louder than another;
+          lightness is calibrated in L*a*b* perceptual space so all tokens have similar visual weight.
+          <strong>(3) Semantic mapping</strong> — warm hues (red, orange, amber) signal urgency or
+          physical load; cool hues (blue, teal, purple) signal measurement and cycles.
+          WOD Wiki's 7 metrics map naturally to the full hue wheel at roughly 50° intervals.
+        </p>
+      </div>
+      <div style="margin-top:14px; display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; font-size:12px;">
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">⏱ Duration / Time</div>
+          <div style="color:var(--fg2)">Blue family · ~210°<br>Measurement, clock</div>
+        </div>
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">🔁 Reps</div>
+          <div style="color:var(--fg2)">Orange family · ~25°<br>Count, repetition</div>
+        </div>
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">🏃 Effort</div>
+          <div style="color:var(--fg2)">Green family · ~140°<br>Exertion, movement</div>
+        </div>
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">🔄 Rounds</div>
+          <div style="color:var(--fg2)">Purple family · ~270°<br>Cycles, loops</div>
+        </div>
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">📏 Distance</div>
+          <div style="color:var(--fg2)">Cyan/Teal · ~185°<br>Space, geography</div>
+        </div>
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">🏋 Resistance</div>
+          <div style="color:var(--fg2)">Red family · ~0°<br>Force, load, intensity</div>
+        </div>
+        <div style="padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border)">
+          <div style="font-weight:700; margin-bottom:4px">⚡ Action</div>
+          <div style="color:var(--fg2)">Amber family · ~42°<br>Command, directive</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Swatches ─────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">🎨 Color Swatches — <span id="swatch-theme-name">Current Theme</span></div>
+    <div class="section-body">
+      <div class="swatch-grid" id="swatchGrid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Code Editor ───────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">✍️ Code Editor — Token Highlighting</div>
+    <div class="section-body">
+      <div class="editor-mock">
+        <div class="editor-titlebar">
+          <div class="editor-dot" style="background:#ff5f57"></div>
+          <div class="editor-dot" style="background:#febc2e"></div>
+          <div class="editor-dot" style="background:#28c840"></div>
+          <span style="margin-left:8px">workout.wod</span>
+        </div>
+        <div class="editor-lines">
+          <div class="gutter">
+            <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div>
+            <div>6</div><div>7</div><div>8</div><div>9</div><div>10</div>
+          </div>
+          <div class="code-content">
+            <div class="code-line"><span class="token token-rounds">3</span><span class="token token-plain">rounds</span></div>
+            <div class="code-line wod-active" id="wod-active-line">
+              <span class="token token-time">21:00</span>
+              <span class="token token-effort">Run</span>
+              <span class="token token-resistance">@bodyweight</span>
+            </div>
+            <div class="code-line"><span class="token token-rep">21</span><span class="token token-effort">Thrusters</span><span class="token token-resistance">95lb</span></div>
+            <div class="code-line"><span class="token token-rep">15</span><span class="token token-effort">Pull-ups</span></div>
+            <div class="code-line"><span class="token token-rep">9</span><span class="token token-effort">Handstand Push-ups</span></div>
+            <div class="code-line"><span class="token token-plain token-dim">---</span></div>
+            <div class="code-line"><span class="token token-time">5:00</span><span class="token token-plain">rest</span></div>
+            <div class="code-line"><span class="token token-distance">400m</span><span class="token token-effort">Row</span></div>
+            <div class="code-line"><span class="token token-action">*rest</span><span class="token token-time">2:00</span></div>
+            <div class="code-line"><span class="token token-rounds">5</span><span class="token token-rep">10</span><span class="token token-effort">Box Jumps</span><span class="token token-resistance">24"</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="pill-row" style="margin-bottom:8px">
+          <span style="font-size:11px; color:var(--fg2); margin-right:4px">METRIC LABELS:</span>
+          <span class="token token-time metric-label">Timer</span>
+          <span class="token token-rep metric-label">Reps</span>
+          <span class="token token-effort metric-label">Exercise</span>
+          <span class="token token-rounds metric-label">Rounds</span>
+          <span class="token token-distance metric-label">Distance</span>
+          <span class="token token-resistance metric-label">Weight</span>
+          <span class="token token-action metric-label">Action</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Fragment Pills ─────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">🏷️ Fragment Pills — Results Display</div>
+    <div class="section-body">
+      <div class="pill-row" id="pillRow">
+        <!-- filled by JS -->
+      </div>
+      <div style="margin-top: 16px; padding-top:14px; border-top:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--fg2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">Sample workout result row</div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--bg3); padding:12px 14px; border-radius:8px; border:1px solid var(--border)">
+          <span style="font-weight:600; font-size:13px">Fran</span>
+          <div class="pill" id="pill-result-rounds" style="font-size:11px">🔄 3 rounds</div>
+          <div class="pill" id="pill-result-time"   style="font-size:11px">⏱ 21:00</div>
+          <div class="pill" id="pill-result-rep"    style="font-size:11px">🔁 21 reps</div>
+          <div class="pill" id="pill-result-effort" style="font-size:11px">🏃 Thrusters</div>
+          <div class="pill" id="pill-result-resist" style="font-size:11px">🏋 95lb</div>
+          <span style="margin-left:auto; font-size:11px; color:var(--fg2)">✓ complete</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Runtime Status ─────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">⚙️ Runtime State — Execution Status</div>
+    <div class="section-body">
+      <div class="runtime-grid">
+        <div class="runtime-block">
+          <h4>Block status dots</h4>
+          <div class="status-row"><div class="status-dot pulse" id="dot-running"></div><span>Currently executing</span><span class="status-badge" id="badge-executing">executing</span></div>
+          <div class="status-row"><div class="status-dot" id="dot-complete"></div><span>Block complete</span><span class="status-badge" id="badge-complete">complete</span></div>
+          <div class="status-row"><div class="status-dot" id="dot-paused"></div><span>Paused</span><span class="status-badge" id="badge-paused">paused</span></div>
+          <div class="status-row"><div class="status-dot" id="dot-idle"></div><span>Idle / pending</span><span class="status-badge" id="badge-idle">idle</span></div>
+          <div class="status-row"><div class="status-dot" id="dot-error"></div><span>Error</span><span class="status-badge" id="badge-error">error</span></div>
+        </div>
+        <div class="runtime-block">
+          <h4>Editor gutter states</h4>
+          <div style="font-family:monospace; font-size:13px; line-height:2">
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--s-running);animation:pulse 1.4s ease-in-out infinite"></div>
+              <span style="color:var(--fg2);font-size:12px">Line 2</span>
+              <span style="color:var(--c-time)">21:00</span>
+              <span style="color:var(--c-effort)">Run</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--s-complete)"></div>
+              <span style="color:var(--fg2);font-size:12px">Line 3</span>
+              <span style="color:var(--c-rep)">21</span>
+              <span style="color:var(--c-effort)">Thrusters</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--s-idle)"></div>
+              <span style="color:var(--fg2);font-size:12px">Line 4</span>
+              <span style="color:var(--c-rep);opacity:0.5">15</span>
+              <span style="color:var(--c-effort);opacity:0.5">Pull-ups</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--s-error)"></div>
+              <span style="color:var(--fg2);font-size:12px">Line 9</span>
+              <span style="color:var(--s-error)">syntax error</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Timer ──────────────────────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">⏱ Timer Display — Progress Zones</div>
+    <div class="section-body">
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px">
+
+        <!-- Normal zone -->
+        <div class="timer-display">
+          <div style="font-size:11px;color:var(--fg2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Safe Zone 0–70%</div>
+          <div class="timer-face" id="timer-normal">14:32</div>
+          <div class="timer-progress-track">
+            <div class="timer-progress-fill" id="prog-normal" style="width:52%;background:var(--s-running)"></div>
+          </div>
+          <div class="timer-labels"><span>0:00</span><span>21:00</span></div>
+        </div>
+
+        <!-- Warning zone -->
+        <div class="timer-display">
+          <div style="font-size:11px;color:var(--fg2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Warning Zone 70–90%</div>
+          <div class="timer-face" id="timer-warn" style="color:var(--s-paused)">19:02</div>
+          <div class="timer-progress-track">
+            <div class="timer-progress-fill" id="prog-warn" style="width:78%;background:var(--s-paused)"></div>
+          </div>
+          <div class="timer-labels"><span>0:00</span><span>21:00</span></div>
+        </div>
+
+        <!-- Critical zone -->
+        <div class="timer-display">
+          <div style="font-size:11px;color:var(--fg2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Critical Zone 90–100%</div>
+          <div class="timer-face" id="timer-crit" style="color:var(--s-error)">20:38</div>
+          <div class="timer-progress-track">
+            <div class="timer-progress-fill" id="prog-crit" style="width:95%;background:var(--s-error)"></div>
+          </div>
+          <div class="timer-labels"><span>0:00</span><span>21:00</span></div>
+        </div>
+
+      </div>
+      <div class="timer-btn-row" style="margin-top:20px">
+        <button class="timer-btn btn-start">▶ Start</button>
+        <button class="timer-btn btn-pause">⏸ Pause</button>
+        <button class="timer-btn btn-resume">▶ Resume</button>
+        <button class="timer-btn btn-stop">⏹ Stop</button>
+        <button class="timer-btn btn-reset">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Theme Comparison Table ─────────────────────────── -->
+  <div class="section-card">
+    <div class="section-header">📊 All Themes — Side-by-Side Comparison</div>
+    <div class="section-body" style="overflow-x:auto">
+      <table class="compare-table" id="compareTable">
+        <!-- filled by JS -->
+      </table>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- ════════════════════════════════════════════════════════
+     THEME DATA + APPLICATION JS
+════════════════════════════════════════════════════════ -->
+<script>
+// ── Theme definitions ──────────────────────────────────────────────────────
+// Each theme carries: name, description, bg palette, 7 metric colors,
+// 5 state colors, and design notes.
+//
+// Design rules applied:
+//  • Hues spaced ~50° apart on wheel for perceptual separation
+//  • Lightness calibrated so no single metric dominates
+//  • Warm hues (red, orange, amber) = physical load / urgency
+//  • Cool hues (blue, teal, purple) = measurement / cycles
+//  • Dark themes lower L by ~15, raise S by ~5 for contrast
+
+const THEMES = [
+  {
+    id: "current",
+    name: "Current",
+    emoji: "📍",
+    description: "The existing vivid hardcoded hex values — high saturation, no pastel softening, inconsistent mapping.",
+    dark: false,
+    bg:    "#f8f8f8",
+    bg2:   "#ffffff",
+    bg3:   "#f0f0f0",
+    fg:    "#1a1a1a",
+    fg2:   "#666666",
+    border:"#e0e0e0",
+    editorBg: "#ffffff",
+    editorGutter: "#f5f7ff",
+    editorGutterText: "#717d96",
+    // Metrics
+    time:       "#3b82f6",
+    rep:        "#f97316",
+    effort:     "#22c55e",
+    rounds:     "#a855f7",
+    distance:   "#06b6d4",
+    resistance: "#ef4444",
+    action:     "#eab308",
+    // States
+    sRunning:   "#22c55e",
+    sComplete:  "#3b82f6",
+    sPaused:    "#f59e0b",
+    sIdle:      "#9ca3af",
+    sError:     "#ef4444",
+    notes: [
+      { metric:"Duration",   hue:"210°", note:"Blue-500 — vivid, unmodified" },
+      { metric:"Rep",        hue:"25°",  note:"Orange-500 — vivid, unmodified" },
+      { metric:"Effort",     hue:"142°", note:"Green-500 — vivid, unmodified" },
+      { metric:"Rounds",     hue:"270°", note:"Purple-500 — vivid, unmodified" },
+      { metric:"Distance",   hue:"185°", note:"Cyan-500 — vivid, unmodified" },
+      { metric:"Resistance", hue:"0°",   note:"Red-500 — vivid, unmodified" },
+      { metric:"Action",     hue:"42°",  note:"Yellow-500 — vivid, unmodified" },
+    ]
+  },
+  {
+    id: "soft-meadow",
+    name: "Soft Meadow",
+    emoji: "🌿",
+    description: "Pastel harmony. All metric colors are desaturated and lightened to match the new pastel design system. Gentle on long sessions.",
+    dark: false,
+    bg:    "#f7f8f6",
+    bg2:   "#ffffff",
+    bg3:   "#eef2ec",
+    fg:    "#2a2e28",
+    fg2:   "#5e6b5a",
+    border:"#d4ddd1",
+    editorBg: "#ffffff",
+    editorGutter: "#f2f5f0",
+    editorGutterText: "#8a9e85",
+    time:       "#6b9fd4",   // 210° s:48 l:62
+    rep:        "#d4895c",   // 22° s:55 l:60
+    effort:     "#5eb88a",   // 150° s:42 l:54
+    rounds:     "#9e7cc8",   // 268° s:42 l:63
+    distance:   "#4eb5b8",   // 182° s:44 l:52
+    resistance: "#c47878",   // 0°  s:42 l:61
+    action:     "#c0973d",   // 38° s:54 l:49
+    sRunning:   "#5eb88a",
+    sComplete:  "#6b9fd4",
+    sPaused:    "#c0973d",
+    sIdle:      "#9eb09a",
+    sError:     "#c47878",
+    notes: [
+      { metric:"Duration",   hue:"210°", note:"Soft sky blue — calming, time-like" },
+      { metric:"Rep",        hue:"22°",  note:"Warm peach — count, effort" },
+      { metric:"Effort",     hue:"150°", note:"Sage green — movement, nature" },
+      { metric:"Rounds",     hue:"268°", note:"Soft lavender — cycles, rhythm" },
+      { metric:"Distance",   hue:"182°", note:"Muted teal — space, geography" },
+      { metric:"Resistance", hue:"0°",   note:"Dusty rose — load, resistance" },
+      { metric:"Action",     hue:"38°",  note:"Warm ochre — directive, command" },
+    ]
+  },
+  {
+    id: "arctic-frost",
+    name: "Arctic Frost",
+    emoji: "❄️",
+    description: "Nord-inspired. Blue-dominant cool palette. All hues lean slightly cooler and more desaturated. Great on both light and dark dark backgrounds.",
+    dark: true,
+    bg:    "#2e3440",
+    bg2:   "#3b4252",
+    bg3:   "#262c38",
+    fg:    "#d8dee9",
+    fg2:   "#9099ab",
+    border:"#3f4859",
+    editorBg: "#3b4252",
+    editorGutter: "#2e3440",
+    editorGutterText: "#6e7b90",
+    time:       "#81a1c1",   // 210° s:35 l:64 — Nord frost
+    rep:        "#d08770",   // 14°  s:46 l:63 — Nord aurora orange
+    effort:     "#a3be8c",   // 95°  s:30 l:65 — Nord aurora green
+    rounds:     "#b48ead",   // 305° s:24 l:63 — Nord aurora purple
+    distance:   "#8fbcbb",   // 178° s:27 l:65 — Nord frost teal
+    resistance: "#bf616a",   // 354° s:34 l:58 — Nord aurora red
+    action:     "#ebcb8b",   // 40°  s:67 l:74 — Nord aurora yellow
+    sRunning:   "#a3be8c",
+    sComplete:  "#81a1c1",
+    sPaused:    "#ebcb8b",
+    sIdle:      "#6e7b90",
+    sError:     "#bf616a",
+    notes: [
+      { metric:"Duration",   hue:"210°", note:"Nord Frost — calm, measured blue" },
+      { metric:"Rep",        hue:"14°",  note:"Nord Aurora orange — warm count" },
+      { metric:"Effort",     hue:"95°",  note:"Nord Aurora green — easy on eyes" },
+      { metric:"Rounds",     hue:"305°", note:"Nord Aurora purple — cool cycle" },
+      { metric:"Distance",   hue:"178°", note:"Nord Frost teal — spatial feel" },
+      { metric:"Resistance", hue:"354°", note:"Nord Aurora red — muted load" },
+      { metric:"Action",     hue:"40°",  note:"Nord Aurora yellow — warm signal" },
+    ]
+  },
+  {
+    id: "ember",
+    name: "Ember",
+    emoji: "🔥",
+    description: "Energy and fire. Rich, warm, vivid colors on a dark charcoal background. Monokai-influenced. Best for high-intensity workout sessions.",
+    dark: true,
+    bg:    "#1e1e1e",
+    bg2:   "#272727",
+    bg3:   "#1a1a1a",
+    fg:    "#f0f0f0",
+    fg2:   "#909090",
+    border:"#383838",
+    editorBg: "#272727",
+    editorGutter: "#1e1e1e",
+    editorGutterText: "#6a6a6a",
+    time:       "#66d9e8",   // 186° s:75 l:65 — electric aqua
+    rep:        "#ff8c42",   // 26°  s:100 l:63 — vivid orange
+    effort:     "#a9dc76",   // 96°  s:60 l:67 — lime green
+    rounds:     "#c792ea",   // 280° s:70 l:74 — vivid violet
+    distance:   "#39d0d8",   // 183° s:66 l:53 — neon teal
+    resistance: "#ff6188",   // 345° s:100 l:69 — hot pink-red
+    action:     "#ffd866",   // 48°  s:100 l:70 — vivid gold
+    sRunning:   "#a9dc76",
+    sComplete:  "#66d9e8",
+    sPaused:    "#ffd866",
+    sIdle:      "#6a6a6a",
+    sError:     "#ff6188",
+    notes: [
+      { metric:"Duration",   hue:"186°", note:"Electric aqua — vivid time pulse" },
+      { metric:"Rep",        hue:"26°",  note:"Neon orange — intensity, count" },
+      { metric:"Effort",     hue:"96°",  note:"Lime green — live motion" },
+      { metric:"Rounds",     hue:"280°", note:"Vivid violet — cycle energy" },
+      { metric:"Distance",   hue:"183°", note:"Neon teal — spatial charge" },
+      { metric:"Resistance", hue:"345°", note:"Hot red-pink — max load" },
+      { metric:"Action",     hue:"48°",  note:"Gold — commanding directive" },
+    ]
+  },
+  {
+    id: "mineral",
+    name: "Mineral",
+    emoji: "🪨",
+    description: "Earth tones. Inspired by geological survey palettes. Muted, low-eye-strain, highly accessible. Ideal for coaches reviewing multiple workouts.",
+    dark: false,
+    bg:    "#f5f3ef",
+    bg2:   "#faf8f4",
+    bg3:   "#ede9e2",
+    fg:    "#2c2820",
+    fg2:   "#6a5f52",
+    border:"#cdc5b8",
+    editorBg: "#faf8f4",
+    editorGutter: "#ede9e2",
+    editorGutterText: "#9a8e80",
+    time:       "#5980a8",   // 212° s:32 l:50 — slate blue
+    rep:        "#a87040",   // 30°  s:46 l:45 — raw sienna
+    effort:     "#508860",   // 140° s:28 l:42 — mossy green
+    rounds:     "#7c62a0",   // 270° s:26 l:50 — slate violet
+    distance:   "#408888",   // 180° s:36 l:40 — deep teal
+    resistance: "#a05858",   // 0°   s:34 l:48 — terracotta
+    action:     "#948030",   // 46°  s:52 l:37 — ochre
+    sRunning:   "#508860",
+    sComplete:  "#5980a8",
+    sPaused:    "#948030",
+    sIdle:      "#9a8e80",
+    sError:     "#a05858",
+    notes: [
+      { metric:"Duration",   hue:"212°", note:"Slate blue — calm, geological" },
+      { metric:"Rep",        hue:"30°",  note:"Raw sienna — earthy count" },
+      { metric:"Effort",     hue:"140°", note:"Mossy green — organic movement" },
+      { metric:"Rounds",     hue:"270°", note:"Slate violet — mineral cycle" },
+      { metric:"Distance",   hue:"180°", note:"Deep teal — map-like spatial" },
+      { metric:"Resistance", hue:"0°",   note:"Terracotta — grounded load" },
+      { metric:"Action",     hue:"46°",  note:"Ochre — earthy directive" },
+    ]
+  }
+];
+
+// ── Currently active theme ─────────────────────────────────────────────────
+let currentTheme = THEMES[0];
+
+// ── Apply theme to page ────────────────────────────────────────────────────
+function applyTheme(theme) {
+  currentTheme = theme;
+  const root = document.documentElement;
+  const set = (k, v) => root.style.setProperty(k, v);
+
+  set('--bg',    theme.bg);
+  set('--bg2',   theme.bg2);
+  set('--bg3',   theme.bg3);
+  set('--fg',    theme.fg);
+  set('--fg2',   theme.fg2);
+  set('--border',theme.border);
+  set('--editor-bg',          theme.editorBg);
+  set('--editor-gutter',      theme.editorGutter);
+  set('--editor-gutter-text', theme.editorGutterText);
+  set('--editor-line-active', theme.dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)');
+  set('--editor-selection',   theme.dark ? 'rgba(100,160,255,0.25)' : 'rgba(80,140,220,0.2)');
+
+  set('--c-time',       theme.time);
+  set('--c-rep',        theme.rep);
+  set('--c-effort',     theme.effort);
+  set('--c-rounds',     theme.rounds);
+  set('--c-distance',   theme.distance);
+  set('--c-resistance', theme.resistance);
+  set('--c-action',     theme.action);
+
+  set('--s-running',  theme.sRunning);
+  set('--s-complete', theme.sComplete);
+  set('--s-paused',   theme.sPaused);
+  set('--s-idle',     theme.sIdle);
+  set('--s-error',    theme.sError);
+
+  // WOD active line border
+  set('--wod-active-bg',     hexAlpha(theme.time, theme.dark ? 0.12 : 0.08));
+  set('--wod-active-border', theme.time);
+
+  // Re-render dynamic sections
+  renderSwatches(theme);
+  renderPills(theme);
+  renderStatusBadges(theme);
+  renderCompareTable();
+  updateThemeButtons();
+
+  document.getElementById('swatch-theme-name').textContent = `${theme.emoji} ${theme.name}`;
+}
+
+// ── Hex alpha helper ───────────────────────────────────────────────────────
+function hexAlpha(hex, alpha) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ── Swatch rendering ──────────────────────────────────────────────────────
+function renderSwatches(theme) {
+  const metrics = [
+    { label:"Duration / Time", key:"time",       icon:"⏱" },
+    { label:"Rep",             key:"rep",         icon:"🔁" },
+    { label:"Effort",          key:"effort",      icon:"🏃" },
+    { label:"Rounds",          key:"rounds",      icon:"🔄" },
+    { label:"Distance",        key:"distance",    icon:"📏" },
+    { label:"Resistance",      key:"resistance",  icon:"🏋" },
+    { label:"Action",          key:"action",      icon:"⚡" },
+    { label:"Running",         key:"sRunning",    icon:"▶" },
+    { label:"Complete",        key:"sComplete",   icon:"✓" },
+    { label:"Paused",          key:"sPaused",     icon:"⏸" },
+    { label:"Idle",            key:"sIdle",       icon:"○" },
+    { label:"Error",           key:"sError",      icon:"✕" },
+  ];
+  const grid = document.getElementById('swatchGrid');
+  grid.innerHTML = metrics.map(m => {
+    const col = theme[m.key];
+    const light  = lighten(col, 0.88);
+    const medium = lighten(col, 0.5);
+    return `
+      <div class="swatch">
+        <div class="swatch-trio">
+          <div style="background:${light}"></div>
+          <div style="background:${col}"></div>
+          <div style="background:${darken(col)}"></div>
+        </div>
+        <div class="swatch-label">
+          ${m.icon} ${m.label}
+          <div class="swatch-hex">${col}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Simple lighten/darken (doesn't need full HSL) ────────────────────────
+function lighten(hex, factor) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  const lr = Math.round(r + (255-r) * factor);
+  const lg = Math.round(g + (255-g) * factor);
+  const lb = Math.round(b + (255-b) * factor);
+  return `#${lr.toString(16).padStart(2,'0')}${lg.toString(16).padStart(2,'0')}${lb.toString(16).padStart(2,'0')}`;
+}
+
+function darken(hex, factor=0.25) {
+  const r = Math.round(parseInt(hex.slice(1,3),16) * (1-factor));
+  const g = Math.round(parseInt(hex.slice(3,5),16) * (1-factor));
+  const b = Math.round(parseInt(hex.slice(5,7),16) * (1-factor));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+// ── Pill rendering ────────────────────────────────────────────────────────
+function pillStyle(hex, dark) {
+  const bg = hexAlpha(hex, dark ? 0.2 : 0.12);
+  const border = hexAlpha(hex, dark ? 0.4 : 0.35);
+  return `background:${bg}; border-color:${border}; color:${hex}`;
+}
+
+function renderPills(theme) {
+  const d = theme.dark;
+  const pills = [
+    { label:"⏱ 21:00",          key:"time",       title:"Duration" },
+    { label:"🔁 21 reps",        key:"rep",         title:"Rep" },
+    { label:"🏃 Thrusters",      key:"effort",      title:"Effort" },
+    { label:"🔄 3 rounds",       key:"rounds",      title:"Rounds" },
+    { label:"📏 400m",            key:"distance",   title:"Distance" },
+    { label:"🏋 95lb",           key:"resistance",  title:"Resistance" },
+    { label:"⚡ rest",           key:"action",      title:"Action" },
+  ];
+  document.getElementById('pillRow').innerHTML = pills.map(p => {
+    return `<span class="pill" style="${pillStyle(theme[p.key], d)}" title="${p.title}">${p.label}</span>`;
+  }).join('');
+
+  // result row pills
+  const rp = (id, key, lbl) => {
+    const el = document.getElementById(id);
+    if (el) { el.style.cssText = pillStyle(theme[key], d); }
+  };
+  rp('pill-result-rounds','rounds','');
+  rp('pill-result-time','time','');
+  rp('pill-result-rep','rep','');
+  rp('pill-result-effort','effort','');
+  rp('pill-result-resist','resistance','');
+}
+
+// ── Status badges ─────────────────────────────────────────────────────────
+function renderStatusBadges(theme) {
+  const states = [
+    { dot:'dot-running',  badge:'badge-executing', color: theme.sRunning,  label:'executing', pulse:true },
+    { dot:'dot-complete', badge:'badge-complete',  color: theme.sComplete, label:'complete',  pulse:false },
+    { dot:'dot-paused',   badge:'badge-paused',    color: theme.sPaused,   label:'paused',    pulse:false },
+    { dot:'dot-idle',     badge:'badge-idle',      color: theme.sIdle,     label:'idle',      pulse:false },
+    { dot:'dot-error',    badge:'badge-error',     color: theme.sError,    label:'error',     pulse:false },
+  ];
+  states.forEach(s => {
+    const dot = document.getElementById(s.dot);
+    const badge = document.getElementById(s.badge);
+    if (dot) dot.style.background = s.color;
+    if (badge) {
+      badge.style.background = hexAlpha(s.color, theme.dark ? 0.2 : 0.12);
+      badge.style.color = s.color;
+      badge.style.border = `1px solid ${hexAlpha(s.color, 0.35)}`;
+    }
+  });
+}
+
+// ── Theme picker buttons ──────────────────────────────────────────────────
+function buildThemeButtons() {
+  const picker = document.getElementById('themePicker');
+  picker.innerHTML = THEMES.map(t => {
+    const dots = [t.time, t.rep, t.effort, t.rounds, t.distance, t.resistance, t.action]
+      .map(c => `<div class="dot" style="background:${c}"></div>`).join('');
+    return `
+      <button class="theme-btn" data-id="${t.id}" onclick="applyTheme(THEMES.find(x=>x.id==='${t.id}'))">
+        <div class="dot-row">${dots}</div>
+        ${t.emoji} ${t.name}
+      </button>
+    `;
+  }).join('');
+}
+
+function updateThemeButtons() {
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.id === currentTheme.id);
+  });
+}
+
+// ── Comparison table ──────────────────────────────────────────────────────
+function renderCompareTable() {
+  const metrics = [
+    { label:"⏱ Duration",    key:"time"       },
+    { label:"🔁 Rep",         key:"rep"        },
+    { label:"🏃 Effort",      key:"effort"     },
+    { label:"🔄 Rounds",      key:"rounds"     },
+    { label:"📏 Distance",    key:"distance"   },
+    { label:"🏋 Resistance",  key:"resistance" },
+    { label:"⚡ Action",      key:"action"     },
+    { label:"▶ Running",      key:"sRunning"   },
+    { label:"✓ Complete",     key:"sComplete"  },
+    { label:"⏸ Paused",       key:"sPaused"    },
+    { label:"✕ Error",        key:"sError"     },
+  ];
+  const table = document.getElementById('compareTable');
+  let html = '<thead><tr><th>Metric / State</th>';
+  THEMES.forEach(t => { html += `<th>${t.emoji} ${t.name}</th>`; });
+  html += '</tr></thead><tbody>';
+  metrics.forEach(m => {
+    html += `<tr>`;
+    html += `<td><strong>${m.label}</strong></td>`;
+    THEMES.forEach(t => {
+      const col = t[m.key];
+      html += `<td>
+        <span class="compare-swatch" style="background:${col}"></span>
+        <span style="font-family:monospace;font-size:11px">${col}</span>
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+buildThemeButtons();
+applyTheme(THEMES[0]);
+</script>
+</body>
+</html>

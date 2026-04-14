@@ -4,54 +4,110 @@
 
 @layer base {
   :root {
-    /* Pastel design system — light mode */
-    --background: 0 0% 100%;           /* #ffffff pure white canvas */
-    --foreground: 0 0% 18%;            /* #2e2e2e soft near-black text */
-    --card: 0 0% 99%;                  /* near-white cards */
-    --card-foreground: 0 0% 18%;
-    --popover: 0 0% 99%;
-    --popover-foreground: 0 0% 18%;
-    --primary: 158 38% 64%;            /* pastel mint green */
-    --primary-foreground: 0 0% 18%;    /* dark text on pastel green */
-    --secondary: 152 30% 88%;          /* very light pastel mint */
-    --secondary-foreground: 157 35% 38%; /* muted green for text */
-    --muted: 155 15% 95%;              /* faint mint-tinted surface */
-    --muted-foreground: 0 0% 45%;      /* #737373 */
-    --accent: 220 30% 88%;             /* pastel lavender accent */
-    --accent-foreground: 220 20% 30%;
-    --destructive: 0 38% 68%;          /* soft dusty rose */
+    /* ── Mineral — earth tones, light mode ───────────────────────────
+     * Inspired by geological survey palettes: slate, ochre, sienna,
+     * terracotta, mossy green. Muted saturation, warm-neutral base.
+     * ─────────────────────────────────────────────────────────────── */
+
+    /* Base surfaces */
+    --background: 40 20% 96%;          /* #f5f3ef warm parchment */
+    --foreground: 30 16% 15%;          /* #2c2820 warm near-black */
+    --card: 40 38% 98%;                /* #faf8f4 warm white */
+    --card-foreground: 30 16% 15%;
+    --popover: 40 38% 98%;
+    --popover-foreground: 30 16% 15%;
+
+    /* Primary — slate blue (time/duration hue) */
+    --primary: 212 32% 50%;            /* #5980a8 */
+    --primary-foreground: 40 38% 98%;
+
+    /* Secondary — soft blue tint */
+    --secondary: 212 22% 88%;
+    --secondary-foreground: 212 32% 32%;
+
+    /* Muted / neutral surfaces */
+    --muted: 38 18% 90%;               /* #ede9e2 */
+    --muted-foreground: 30 13% 45%;    /* #6a5f52 */
+
+    /* Accent — ochre (action hue) */
+    --accent: 46 42% 85%;
+    --accent-foreground: 46 52% 28%;
+
+    /* Semantic states */
+    --destructive: 0 34% 48%;          /* #a05858 terracotta */
     --destructive-foreground: 0 0% 100%;
-    --success: 158 38% 64%;            /* pastel mint as success */
-    --success-foreground: 0 0% 18%;
-    --border: 155 15% 88%;             /* soft mint-tinted border */
-    --input: 155 15% 88%;
-    --ring: 158 38% 64%;               /* pastel mint focus ring */
-    --radius: 1rem;                    /* 16px — standard card radius */
+    --success: 140 28% 42%;            /* #508860 moss green */
+    --success-foreground: 0 0% 100%;
+    --warning: 46 52% 37%;             /* #948030 ochre */
+    --warning-foreground: 0 0% 100%;
+
+    /* Chrome */
+    --border: 36 14% 76%;              /* #cdc5b8 */
+    --input: 36 14% 82%;
+    --ring: 212 32% 50%;
+    --radius: 1rem;
+
+    /* ── Metric tokens — 7 semantic colors ────────────────────────── */
+    --metric-time:       212 32% 50%;  /* #5980a8 slate blue */
+    --metric-rep:        30 46% 45%;   /* #a87040 raw sienna */
+    --metric-effort:     140 28% 42%;  /* #508860 moss green */
+    --metric-rounds:     270 26% 50%;  /* #7c62a0 slate violet */
+    --metric-distance:   180 36% 40%;  /* #408888 deep teal */
+    --metric-resistance: 0 34% 48%;    /* #a05858 terracotta */
+    --metric-action:     46 52% 37%;   /* #948030 ochre */
   }
 
   .dark {
-    /* Pastel design system — dark mode */
-    --background: 220 15% 12%;         /* deep blue-grey */
-    --foreground: 220 15% 88%;         /* soft off-white */
-    --card: 220 15% 16%;               /* slightly lighter surface */
-    --card-foreground: 220 15% 88%;
-    --popover: 220 15% 16%;
-    --popover-foreground: 220 15% 88%;
-    --primary: 158 35% 58%;            /* pastel mint — slightly brighter on dark */
-    --primary-foreground: 220 15% 12%;
-    --secondary: 220 15% 20%;          /* dark surface variant */
-    --secondary-foreground: 220 15% 65%;
-    --muted: 220 15% 20%;
-    --muted-foreground: 220 10% 60%;
-    --accent: 220 20% 22%;
-    --accent-foreground: 220 15% 88%;
-    --destructive: 0 35% 60%;          /* soft dusty rose on dark */
+    /* ── Arctic Frost — Nord-inspired, dark mode ─────────────────────
+     * Polar Night bases (blue-grey darks) + Snow Storm (off-whites)
+     * + Aurora accent palette: teal, green, purple, red, amber.
+     * ─────────────────────────────────────────────────────────────── */
+
+    /* Base surfaces — Polar Night */
+    --background: 222 16% 21%;         /* #2e3440 polar night 1 */
+    --foreground: 218 22% 76%;         /* #d8dee9 snow storm 1 */
+    --card: 222 17% 28%;               /* #3b4252 polar night 3 */
+    --card-foreground: 218 22% 76%;
+    --popover: 222 17% 28%;
+    --popover-foreground: 218 22% 76%;
+
+    /* Primary — Nord frost blue */
+    --primary: 210 35% 64%;            /* #81a1c1 */
+    --primary-foreground: 222 16% 18%;
+
+    /* Secondary — darker surface */
+    --secondary: 222 15% 22%;
+    --secondary-foreground: 218 22% 65%;
+
+    /* Muted */
+    --muted: 222 18% 18%;              /* #262c38 polar night 0 */
+    --muted-foreground: 219 14% 62%;   /* #9099ab */
+
+    /* Accent — Nord aurora yellow */
+    --accent: 40 55% 28%;
+    --accent-foreground: 40 67% 80%;
+
+    /* Semantic states */
+    --destructive: 354 34% 58%;        /* #bf616a aurora red */
     --destructive-foreground: 0 0% 100%;
-    --success: 158 35% 58%;
-    --success-foreground: 220 15% 12%;
-    --border: 220 15% 22%;
-    --input: 220 15% 22%;
-    --ring: 158 35% 58%;
+    --success: 95 30% 65%;             /* #a3be8c aurora green */
+    --success-foreground: 222 16% 18%;
+    --warning: 40 67% 74%;             /* #ebcb8b aurora yellow */
+    --warning-foreground: 222 16% 18%;
+
+    /* Chrome */
+    --border: 218 17% 30%;             /* #3f4859 */
+    --input: 218 17% 30%;
+    --ring: 210 35% 64%;
+
+    /* ── Metric tokens — Arctic Frost aurora palette ─────────────── */
+    --metric-time:       210 35% 64%;  /* #81a1c1 frost blue */
+    --metric-rep:        14 46% 63%;   /* #d08770 aurora orange */
+    --metric-effort:     95 30% 65%;   /* #a3be8c aurora green */
+    --metric-rounds:     305 24% 63%;  /* #b48ead aurora purple */
+    --metric-distance:   178 27% 65%;  /* #8fbcbb frost teal */
+    --metric-resistance: 354 34% 58%;  /* #bf616a aurora red */
+    --metric-action:     40 67% 74%;   /* #ebcb8b aurora yellow */
   }
 }
 
@@ -149,24 +205,24 @@ th {
 .rich-md-heading-1 {
   font-size: 1.5em !important;
   font-weight: bold !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .rich-md-heading-2 {
   font-size: 1.3em !important;
   font-weight: bold !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .rich-md-heading-3 {
   font-size: 1.1em !important;
   font-weight: bold !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .rich-md-blockquote {
   background-color: rgba(128, 128, 128, 0.1);
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid hsl(var(--primary));
 }
 
 /* Clickable Heading for Folding */
@@ -211,38 +267,38 @@ th {
 .inline-card-heading-1 {
   font-size: 1.5em !important;
   font-weight: bold !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .inline-card-heading-2 {
   font-size: 1.3em !important;
   font-weight: bold !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .inline-card-heading-3 {
   font-size: 1.15em !important;
   font-weight: 600 !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .inline-card-heading-4 {
   font-size: 1.05em !important;
   font-weight: 600 !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 .inline-card-heading-5,
 .inline-card-heading-6 {
   font-size: 1em !important;
   font-weight: 500 !important;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
 }
 
 /* Blockquote line style */
 .inline-card-blockquote {
   background-color: rgba(128, 128, 128, 0.1);
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid hsl(var(--primary));
 }
 
 /* View zone containers */
@@ -281,7 +337,7 @@ th {
 
 .frontmatter-card-source,
 .wod-card-source {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid hsl(var(--border));
   overflow: auto;
 }
 
@@ -296,7 +352,7 @@ th {
 }
 
 .blockquote-preview {
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid hsl(var(--primary));
   padding-left: 12px;
 }
 
