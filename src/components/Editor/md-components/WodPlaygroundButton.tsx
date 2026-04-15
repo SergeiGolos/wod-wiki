@@ -63,7 +63,7 @@ export async function buildPlaygroundUrl(wodContent: string): Promise<string> {
   const markdown = `\`\`\`wod\n${wodContent.trimEnd()}\n\`\`\`\n`;
   const encoded = await gzipBase64(markdown);
   const base = window.location.origin;
-  return `${base}/#/load?zip=${encoded}`;
+  return `${base}/load?zip=${encoded}`;
 }
 
 // ---------------------------------------------------------------------------

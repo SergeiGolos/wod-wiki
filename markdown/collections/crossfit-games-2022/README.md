@@ -1,3 +1,10 @@
+---
+template: canvas
+collection: true
+category:
+  - crossfit
+  - competition
+---
 # CrossFit Games 2022
 
 Collection of workouts from the 2022 CrossFit Games.

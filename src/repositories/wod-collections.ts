@@ -35,6 +35,41 @@ export interface WodCollection {
     items: WodCollectionItem[];
     /** The content of README.md if it exists */
     readme?: string;
+    /** Category slugs parsed from the README front matter `category` field */
+    categories: string[];
+}
+
+/**
+ * Parse YAML-style front matter, handling both scalar values and YAML arrays.
+ *   category:
+ *     - kettlebell
+ *     - strength
+ */
+function parseFrontmatterCategories(raw: string): string[] {
+    const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!match) return [];
+
+    const lines = match[1].split('\n');
+    let inCategory = false;
+    const categories: string[] = [];
+
+    for (const line of lines) {
+        if (/^category\s*:/.test(line)) {
+            inCategory = true;
+            continue;
+        }
+        if (inCategory) {
+            const item = line.match(/^\s+-\s+(.+)$/);
+            if (item) {
+                categories.push(item[1].trim().toLowerCase());
+            } else if (/^\S/.test(line)) {
+                // New top-level key — end of category block
+                break;
+            }
+        }
+    }
+
+    return categories;
 }
 
 /**
@@ -74,11 +109,11 @@ let _collections: WodCollection[] | null = null;
 export function getWodCollections(): WodCollection[] {
     if (_collections) return _collections;
 
-    const dirMap = new Map<string, { name: string; items: WodCollectionItem[]; readme?: string }>();
+    const dirMap = new Map<string, { name: string; items: WodCollectionItem[]; readme?: string; categories: string[] }>();
 
     const ensureCollection = (id: string, name: string) => {
         if (!dirMap.has(id)) {
-            dirMap.set(id, { name, items: [] });
+            dirMap.set(id, { name, items: [], categories: [] });
         }
     };
 
@@ -91,7 +126,9 @@ export function getWodCollections(): WodCollection[] {
             ensureCollection(dirName, toDisplayName(dirName));
             
             if (fileName.toLowerCase() === 'readme.md') {
-                dirMap.get(dirName)!.readme = content as string;
+                const readmeContent = content as string;
+                dirMap.get(dirName)!.readme = readmeContent;
+                dirMap.get(dirName)!.categories = parseFrontmatterCategories(readmeContent);
             } else {
                 const fileId = fileName.replace(/\.md$/, '');
                 dirMap.get(dirName)!.items.push({
@@ -109,12 +146,13 @@ export function getWodCollections(): WodCollection[] {
 
     _collections = Array.from(dirMap.entries())
         .filter(([, { items, readme }]) => items.length > 0 || readme)
-        .map(([id, { name, items, readme }]) => ({
+        .map(([id, { name, items, readme, categories }]) => ({
             id,
             name,
             count: items.length,
             items: items.sort((a, b) => a.name.localeCompare(b.name)),
             readme,
+            categories,
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
 

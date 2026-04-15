@@ -9,7 +9,11 @@
  */
 
 export async function decodeZip(z: string): Promise<string> {
-  const binary = atob(z.replace(/-/g, '+').replace(/_/g, '/'));
+  let padded = z.replace(/-/g, '+').replace(/_/g, '/');
+  while (padded.length % 4 !== 0) {
+    padded += '=';
+  }
+  const binary = atob(padded);
   const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
   try {
     const ds = new DecompressionStream('gzip');

@@ -21,5 +21,7 @@ export interface FilteredListItem {
   title: string;
   subtitle?: string;
   date?: number;
+  /** Source group for grouping in journal views ('playground', etc.) */
+  group?: string;
   payload: any;
 }

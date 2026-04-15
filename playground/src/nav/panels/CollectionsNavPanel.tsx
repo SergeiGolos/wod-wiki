@@ -1,23 +1,28 @@
 /**
  * CollectionsNavPanel — L2 context panel for the Collections L1 item.
  *
- * Renders category chip toggles (Kettlebell, Crossfit, Swimming, Other).
+ * Renders category chip toggles derived from collection front matter.
+ * Only visible on the /collections list page — hidden on /collections/:slug.
  * Reads and writes the `categories` URL param via useCollectionsQueryState
  * so CollectionsPage stays in sync without prop-drilling.
  */
 
+import { useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import type { NavPanelProps } from '../navTypes'
 import { useCollectionsQueryState } from '../../hooks/useCollectionsQueryState'
-
-const GROUPS = ['Kettlebell', 'Crossfit', 'Swimming', 'Other']
+import { getCategoryGroups } from '../../config/collectionGroups'
 
 export function CollectionsNavPanel(_props: NavPanelProps) {
+  const location = useLocation()
   const { selectedCategories, toggleCategory, clearCategories } = useCollectionsQueryState()
 
-  const toggle = (group: string) => toggleCategory(group.toLowerCase())
+  // Only show on the collections list page, not on individual collection pages
+  const isListPage = location.pathname === '/collections'
+  if (!isListPage) return null
 
-  const clearAll = () => clearCategories()
+  // Derive category list from front matter data — alphabetically sorted
+  const categories = Object.keys(getCategoryGroups())
 
   return (
     <div className="flex flex-col gap-2 px-2 py-3">
@@ -27,7 +32,7 @@ export function CollectionsNavPanel(_props: NavPanelProps) {
         </div>
         {selectedCategories.length > 0 && (
           <button
-            onClick={clearAll}
+            onClick={clearCategories}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
             Clear
@@ -36,13 +41,13 @@ export function CollectionsNavPanel(_props: NavPanelProps) {
       </div>
 
       <div className="flex flex-col gap-1">
-        {GROUPS.map(group => {
-          const slug = group.toLowerCase()
-          const active = selectedCategories.includes(slug)
+        {categories.map(cat => {
+          const active = selectedCategories.includes(cat)
+          const label = cat.charAt(0).toUpperCase() + cat.slice(1)
           return (
             <button
-              key={group}
-              onClick={() => toggle(group)}
+              key={cat}
+              onClick={() => toggleCategory(cat)}
               className={cn(
                 'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
                 active
@@ -56,7 +61,7 @@ export function CollectionsNavPanel(_props: NavPanelProps) {
                   active ? 'bg-primary' : 'bg-border'
                 )}
               />
-              {group}
+              {label}
             </button>
           )
         })}

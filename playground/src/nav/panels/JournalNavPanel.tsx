@@ -76,8 +76,8 @@ export function JournalNavPanel(_props: NavPanelProps) {
         </div>
       )}
 
-      {/* Tag chips */}
-      {PLACEHOLDER_TAGS.length > 0 && (
+      {/* Tag chips — only shown on the journal list page */}
+      {!isEntryPage && PLACEHOLDER_TAGS.length > 0 && (
         <div className="flex flex-col gap-1 px-2">
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">
             Tags

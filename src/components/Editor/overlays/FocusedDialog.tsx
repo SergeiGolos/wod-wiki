@@ -21,7 +21,7 @@ export interface FocusedDialogProps {
   closeButtonClassName?: string;
   /** When true, render a floating close button instead of a header bar. */
   floatingClose?: boolean;
-  /** Visual variant of the dialog. 'default' uses theme background, 'minimal' uses white/excel style. */
+  /** Visual variant of the dialog. 'minimal' reduces chrome but still follows the active theme. */
   variant?: 'default' | 'minimal';
   /** Optional actions (e.g. Cast button) to show to the left of the close button. */
   actions?: React.ReactNode;
@@ -62,15 +62,15 @@ export const FocusedDialog: React.FC<FocusedDialogProps> = ({
   // Portal to document.body so we escape any CSS containing blocks
   // (CodeMirror sets `contain: size style` on .cm-editor which traps fixed positioning).
   return (ReactDOM as any).createPortal(
-    <div className={`fixed inset-0 z-[100] flex flex-col ${isMinimal ? 'bg-white text-zinc-950' : 'bg-background'} animate-in fade-in duration-200`}>
+    <div className={`fixed inset-0 z-[100] flex flex-col bg-background text-foreground animate-in fade-in duration-200`}>
       {floatingClose || (isMinimal && !title) ? (
         <div className="absolute top-4 right-4 z-[110] flex items-center gap-2">
           {actions}
           {closeBtn}
         </div>
       ) : title ? (
-        <div className={`flex items-center justify-between px-6 py-4 border-b border-border ${isMinimal ? 'bg-zinc-50/50' : 'bg-muted/30'} shrink-0`}>
-          <h2 className={`text-lg ${isMinimal ? 'font-black tracking-tight uppercase text-[11px] text-zinc-400' : 'font-semibold'}`}>{title}</h2>
+        <div className={`flex items-center justify-between px-6 py-4 border-b border-border ${isMinimal ? 'bg-muted/10' : 'bg-muted/30'} shrink-0`}>
+          <h2 className={`text-lg ${isMinimal ? 'font-black tracking-tight uppercase text-[11px] text-muted-foreground' : 'font-semibold'}`}>{title}</h2>
           <div className="flex items-center gap-2">
             {actions}
             {closeBtn}

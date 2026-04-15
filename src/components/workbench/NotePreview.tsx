@@ -109,6 +109,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
     onClone,
     onEdit,
     title,
+    autoScroll,
     provider,
 }) => {
     const { isCompact: mobile } = usePanelSize();
@@ -171,6 +172,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                             showLineNumbers={!mobile}
                             readonly={true}
                             className="h-full"
+                            scrollToSectionId={autoScroll ? activeBlockId : undefined}
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full">

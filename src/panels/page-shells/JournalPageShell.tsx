@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
-import { PlayIcon } from '@heroicons/react/20/solid';
+import { PlayIcon, CheckIcon } from '@heroicons/react/20/solid';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 
 export interface JournalPageShellProps {
@@ -161,23 +161,43 @@ export function JournalPageShell({
             {index.map((link) => (
               <div key={link.id} className="flex items-center group -ml-px">
                 <button
-                  onClick={() => { if (link.type !== 'wod') scrollToSection(link.id) }}
+                  onClick={() => scrollToSection(link.id)}
                   className={cn(
                     'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
                     link.type === 'wod'
-                      ? 'text-muted-foreground/70 border-transparent pl-6 text-xs cursor-default'
+                      ? activeId === link.id
+                        ? 'font-bold text-foreground border-primary pl-6 text-xs'
+                        : 'text-muted-foreground/70 border-transparent hover:text-foreground hover:border-border pl-6 text-xs'
                       : activeId === link.id
                         ? 'font-bold text-foreground border-primary'
                         : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
                   )}
                 >
+                  {link.timestamp && <span className="font-bold text-[10px] tabular-nums mr-2 opacity-60">{link.timestamp}</span>}
                   {link.label}
+                  {link.type === 'wod' && (
+                    <span className="ml-2 inline-flex items-center gap-1">
+                      {link.resultCount && link.resultCount > 1 ? (
+                        <span className="flex items-center justify-center size-4 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                          {link.resultCount}
+                        </span>
+                      ) : link.hasResult ? (
+                        <CheckIcon className="size-3 text-primary" />
+                      ) : null}
+                    </span>
+                  )}
                 </button>
                 {link.onRun && (
                   <button
-                    onClick={link.onRun}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      link.onRun?.();
+                    }}
                     title="Start workout"
-                    className="opacity-0 group-hover:opacity-100 mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all"
+                    className={cn(
+                      "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
+                      link.type === 'wod' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}
                   >
                     <PlayIcon className="size-3.5" />
                   </button>
