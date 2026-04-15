@@ -702,6 +702,71 @@ When implementing a feature or fixing a bug:
 5. bun run build-storybook   # Build validation — NEVER cancel
 ```
 
+## CI/CD Order of Operations
+
+```
+1. bun run test              # Unit (src/**/*.test.ts) — ~3s
+2. bun run storybook &       # Start Storybook server (background)
+3. bun run test:storybook    # Story smoke + interaction — ~30s
+4. bun run test:e2e          # Acceptance e2e — ~2min
+5. bun run build-storybook   # Build validation — NEVER cancel
+```
+
+### PR Reporting via GitHub Actions
+
+The workflow `.github/workflows/_test-report.yml` runs on every PR and posts a summary comment automatically. It handles three test tiers in parallel jobs:
+
+| Job | What it runs | Artifacts uploaded |
+|-----|--------------|--------------------|
+| `unit` | `bun run test:coverage` | `coverage-report/` (lcov + HTML) |
+| `story` | `bun run test:storybook` | Checks tab annotations via dorny/test-reporter |
+| `e2e` | `bun run test:e2e` against built Storybook static | `playwright-report/`, `e2e-screenshots/` |
+
+The `pr-comment` job runs after all three and upserts a single bot comment on the PR:
+
+```
+✅ All tests passed / ⚠️ Some tests need attention
+
+| Tier           | Status | Details                    |
+|----------------|--------|----------------------------|
+| Unit tests     | ✅     | Coverage report (artifact) |
+| Story tests    | ✅     | Checks tab                 |
+| E2E tests      | ✅     | Playwright report · Screenshots |
+```
+
+The comment is updated (not re-posted) on each push to the PR branch.
+
+#### Reporter configuration
+
+Playwright is configured to emit JUnit XML on CI (`CI=true`) so `dorny/test-reporter` can parse failures:
+
+```typescript
+// playwright.config.ts
+reporter: process.env.CI
+  ? [['html'], ['junit', { outputFile: 'test-results/e2e-junit.xml' }], ['github']]
+  : 'html',
+```
+
+The `['github']` reporter also annotates failed test lines directly in the GitHub file diff view.
+
+#### Downloading the Playwright report locally
+
+```bash
+# After downloading playwright-report artifact from Actions:
+bun x playwright show-report path/to/playwright-report
+```
+
+#### Required repository permissions
+
+The workflow uses `GITHUB_TOKEN` (automatically available). No secrets needed unless using Codecov (`CODECOV_TOKEN`). The workflow declares:
+
+```yaml
+permissions:
+  contents: read
+  pull-requests: write   # allows creating/updating PR comment
+  checks: write          # allows dorny/test-reporter to annotate
+```
+
 ### Flakiness Prevention Rules
 
 1. **Never use `waitForTimeout` as a primary wait** — use `waitForFunction`, `waitForSelector`, or `waitFor` on a locator

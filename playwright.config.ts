@@ -24,7 +24,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
 
   /* Reporter to use */
-  reporter: 'html',
+  reporter: process.env.CI
+    ? [['html'], ['junit', { outputFile: 'test-results/e2e-junit.xml' }], ['github']]
+    : 'html',
 
   /* Shared settings for all the projects below */
   use: {
