@@ -31,6 +31,12 @@ jobs:
     with:
       version: ${{ needs.calc-variables.outputs.package-version }}
 
+  test-report:
+    needs: [calc-variables]
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/_test-report.yml
+    secrets: inherit
+
   deploy:
     if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
     needs: [build]

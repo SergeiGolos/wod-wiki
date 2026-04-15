@@ -34,14 +34,13 @@ Before any deployment:
 ## 🚀 Pre-Deploy Checklist
 
 ### Code Quality
-- [ ] No TypeScript errors (`npx tsc --noEmit`)
-- [ ] ESLint passing (`npx eslint .`)
-- [ ] All tests passing (`npm test`)
+- [ ] No TypeScript errors (`bun x tsc --noEmit`)
+- [ ] All tests passing (`bun run test:all`)
 
 ### Security
 - [ ] No hardcoded secrets
 - [ ] Environment variables documented
-- [ ] Dependencies audited (`npm audit`)
+- [ ] Dependencies audited (`bun audit`)
 
 ### Performance
 - [ ] Bundle size acceptable

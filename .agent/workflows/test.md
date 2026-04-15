@@ -43,7 +43,7 @@ When asked to test a file or feature:
    - Integration tests (if needed)
 
 3. **Write tests**
-   - Use project's test framework (Jest, Vitest, etc.)
+   - Use **bun test** for unit/integration tests; **never** use `npm test`, `npx`, or `jest` directly
    - Follow existing test patterns
    - Mock external dependencies
 
@@ -71,7 +71,7 @@ When asked to test a file or feature:
 
 ---
 
-Run with: `npm test`
+Run with: `bun run test`
 ```
 
 ### For Test Execution

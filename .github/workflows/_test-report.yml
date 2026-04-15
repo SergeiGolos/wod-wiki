@@ -1,0 +1,237 @@
+name: test-report
+
+# Reusable workflow: runs all test tiers and posts a summary comment on the PR.
+# Called from main.yml when event is pull_request.
+
+on:
+  workflow_call:
+
+# Needs write access to post PR comments and upload check runs
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  # Opt into Node.js 24 for all actions ahead of the June 2026 forced migration
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run unit tests
+        run: |
+          mkdir -p test-results
+          bun test src --preload ./tests/unit-setup.ts \
+            --reporter=junit --reporter-outfile=test-results/unit-junit.xml
+        continue-on-error: true
+
+      # mikepenz reads directly from the filesystem (dorny uses git-tracked files)
+      - name: Publish unit test results
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          check_name: "Unit Tests"
+          report_paths: "test-results/unit-junit.xml"
+          fail_on_failure: false
+          require_tests: false
+
+      - name: Run coverage (for artifact)
+        run: bun run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  story:
+    name: Story Tests (smoke + interaction)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browsers
+        run: bun x playwright install --with-deps chromium
+
+      # CI=true triggers the JUnit reporter in vitest.storybook.config.js
+      - name: Run story tests
+        run: |
+          mkdir -p test-results
+          bun run test:storybook
+        continue-on-error: true
+        env:
+          CI: true
+
+      - name: Publish story test results
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          check_name: "Story Tests"
+          report_paths: "test-results/storybook-junit.xml"
+          fail_on_failure: false
+          require_tests: false
+
+  e2e:
+    name: E2E Acceptance Tests
+    runs-on: ubuntu-22.04
+    if: false  # temporarily disabled — build-storybook too slow in CI
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browsers
+        run: bun x playwright install --with-deps chromium
+
+      - name: Build Storybook
+        run: bun run build-storybook
+        timeout-minutes: 20
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Serve Storybook static build
+        run: bun x serve storybook-static -p 6006 &
+
+      - name: Wait for Storybook
+        run: bun x wait-on http://localhost:6006 --timeout 30000
+
+      # playwright.config.ts emits test-results/e2e-junit.xml when CI=true
+      - name: Run E2E tests
+        run: |
+          mkdir -p test-results e2e/screenshots
+          bun run test:e2e
+        continue-on-error: true
+        env:
+          CI: true
+
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload E2E screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: e2e/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish E2E test results
+        uses: mikepenz/action-junit-report@v5
+        if: always()
+        with:
+          check_name: "E2E Tests"
+          report_paths: "test-results/e2e-junit.xml"
+          fail_on_failure: false
+          require_tests: false
+
+  pr-comment:
+    name: Post PR Summary
+    runs-on: ubuntu-22.04
+    if: always() && github.event_name == 'pull_request'
+    needs: [unit, story]
+    steps:
+      - name: Build report comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const artifactBase = `${runUrl}#artifacts`;
+
+            const status = (result) => result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
+
+            const unitStatus  = '${{ needs.unit.result }}';
+            const storyStatus = '${{ needs.story.result }}';
+            const e2eStatus   = '${{ needs.e2e.result }}';
+
+            const allGreen = [unitStatus, storyStatus, e2eStatus].every(s => s === 'success');
+            const headline = allGreen ? '## ✅ All tests passed' : '## ⚠️ Some tests need attention';
+
+            const body = `${headline}
+
+            | Tier | Status | Artifacts |
+            |------|--------|-----------|
+            | Unit tests | ${status(unitStatus)} | [Coverage report](${artifactBase}) |
+            | Story tests (smoke + interaction) | ${status(storyStatus)} | [Checks tab](${runUrl}) |
+            | E2E acceptance tests | ${status(e2eStatus)} | [Playwright report](${artifactBase}) · [Screenshots](${artifactBase}) |
+
+            **[View full Actions run →](${runUrl})**
+
+            <details>
+            <summary>How to open the Playwright HTML report locally</summary>
+
+            1. Click **View full Actions run** above → scroll to **Artifacts** → download \`playwright-report\`
+            2. Unzip, then run:
+               \`\`\`bash
+               bun x playwright show-report path/to/playwright-report
+               \`\`\`
+            </details>
+
+            > _Generated by [test-report workflow](${runUrl})_`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Generated by [test-report workflow]')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

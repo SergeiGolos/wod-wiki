@@ -43,5 +43,8 @@ export default defineConfig({
       headless: true,
     },
     setupFiles: ['.storybook/vitest.setup.ts'],
+    reporters: process.env.CI
+      ? [['default'], ['junit', { outputFile: 'test-results/storybook-junit.xml' }]]
+      : ['default'],
   },
 });

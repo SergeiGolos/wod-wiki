@@ -42,9 +42,11 @@ Expert in test automation, TDD, and comprehensive testing strategies.
 
 | Language | Unit | Integration | E2E |
 |----------|------|-------------|-----|
-| TypeScript | Vitest, Jest | Supertest | Playwright |
+| TypeScript | **bun run test** (Vitest under the hood) | **bun run test:components** | **bun run test:e2e** (Playwright) |
 | Python | Pytest | Pytest | Playwright |
-| React | Testing Library | MSW | Playwright |
+| React | **bun run test:storybook** (addon-vitest) | MSW | Playwright |
+
+> **This project uses bun exclusively.** Never invoke `vitest`, `jest`, `npx`, or `npm test` directly. See `docs/testing/storybook-playwright-integration.skill.md` for the full command reference.
 
 ---
 
