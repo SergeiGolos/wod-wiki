@@ -15,6 +15,8 @@ import type { HistoryEntry } from '@/types/history';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 import { CloneDateDropdown } from '@/components/workbench/CloneDateDropdown';
 import type { IContentProvider } from '@/types/content-provider';
+import { ListView, historyEntryToListItem } from '@/components/list';
+import type { IListItem, ListItemContext } from '@/components/list';
 
 export interface HistoryPostListProps {
   /** Workout entries to display */
@@ -70,124 +72,123 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
   onClone,
   provider,
 }) => {
-  if (entries.length === 0) {
+  const listItems = entries.map(entry => ({
+    ...historyEntryToListItem(entry),
+    isActive: entry.id === activeEntryId,
+  }));
+
+  const renderItem = (item: IListItem<HistoryEntry>, _ctx: ListItemContext) => {
+    const entry = item.payload;
+    const isSelected = selectedIds.has(entry.id);
+    const isActive = entry.id === activeEntryId;
+
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground text-sm p-4">
-        No session entries found
-      </div>
-    );
-  }
-
-  return (
-    <div className="divide-y divide-border">
-      {entries.map(entry => {
-        const isSelected = selectedIds.has(entry.id);
-        const isActive = entry.id === activeEntryId;
-
-        return (
-          <div
-            key={entry.id}
-            role="button"
-            tabIndex={0}
-            onClick={(e) => onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey })}
-            onDoubleClick={(e) => {
-              e.preventDefault(); // Prevent text selection
-              if (onEdit) onEdit(entry.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
-              }
-            }}
-            className={cn(
-              'w-full text-left px-3 py-2 transition-colors cursor-pointer outline-none focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset select-none',
-              'hover:bg-muted/50',
-              isSelected && 'bg-primary/10',
-              isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
+      <div
+        key={entry.id}
+        role="button"
+        tabIndex={0}
+        onClick={(e) => onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey })}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          if (onEdit) onEdit(entry.id);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle(entry.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
+          }
+        }}
+        className={cn(
+          'w-full text-left px-3 py-2 transition-colors cursor-pointer outline-none focus-visible:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset select-none border-b border-border',
+          'hover:bg-muted/50',
+          isSelected && 'bg-primary/10',
+          isActive && !isSelected && 'bg-accent/50 border-l-2 border-primary',
+        )}
+      >
+        <div className="flex items-center gap-3 w-full">
+          <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+            {entry.type === 'template' ? (
+              <CloneDateDropdown
+                onClone={(targetDate) => onClone?.(entry.id, targetDate)}
+                provider={provider}
+                variant="list-icon"
+                title="Clone to date..."
+              />
+            ) : (
+              onEdit && (
+                <button
+                  onClick={() => onEdit(entry.id, entry.type)}
+                  className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
+                  title="Edit Note"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              )
             )}
-          >
-            <div className="flex items-center gap-3 w-full">
-              {/* Action Button: Clone (Template) or Edit (Note) on the left */}
-              <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-                {entry.type === 'template' ? (
-                  <CloneDateDropdown
-                    onClone={(targetDate) => onClone?.(entry.id, targetDate)}
-                    provider={provider}
-                    variant="list-icon"
-                    title="Clone to date..."
-                  />
-                ) : (
-                  onEdit && (
-                    <button
-                      onClick={() => onEdit(entry.id, entry.type)}
-                      className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted text-muted-foreground/50 hover:text-foreground transition-colors"
-                      title="Edit Note"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  )
-                )}
-              </div>
+          </div>
 
-              {/* Content area that fills available space */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className={cn(
-                    'font-medium truncate text-sm',
-                    isSelected ? 'text-foreground' : 'text-foreground/80',
-                  )}>
-                    {entry.title}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>{formatDate(entry.targetDate, enriched)}</span>
-                  {entry.results && (
-                    <>
-                      <span>·</span>
-                      <span>{formatDuration(entry.results.duration)}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Side: Tags + Notebook Button + Checkbox */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                {/* Tags (moved to right side, shown in enriched mode) */}
-                {enriched && entry.tags.length > 0 && (
-                  <div className="hidden sm:flex gap-1 flex-wrap justify-end max-w-[150px]">
-                    {entry.tags
-                      .filter(tag => !tag.startsWith('notebook:'))
-                      .map(tag => (
-                        <span
-                          key={tag}
-                          className="text-[9px] px-1 py-0.5 rounded-full bg-muted/60 text-muted-foreground/80 border border-border/50"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                  </div>
-                )}
-
-                {/* Add to Notebook button */}
-                {onNotebookToggle && (
-                  <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
-                    <AddToNotebookButton
-                      entryTags={entry.tags}
-                      onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
-                      variant="icon"
-                      className="h-8 w-8 text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all"
-                    />
-                  </div>
-                )}
-
-
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-2">
+              <span className={cn(
+                'font-medium truncate text-sm',
+                isSelected ? 'text-foreground' : 'text-foreground/80',
+              )}>
+                {entry.title}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <span>{formatDate(entry.targetDate, enriched)}</span>
+              {entry.results && (
+                <>
+                  <span>·</span>
+                  <span>{formatDuration(entry.results.duration)}</span>
+                </>
+              )}
             </div>
           </div>
-        );
-      })}
-    </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {enriched && entry.tags.length > 0 && (
+              <div className="hidden sm:flex gap-1 flex-wrap justify-end max-w-[150px]">
+                {entry.tags
+                  .filter(tag => !tag.startsWith('notebook:'))
+                  .map(tag => (
+                    <span
+                      key={tag}
+                      className="text-[9px] px-1 py-0.5 rounded-full bg-muted/60 text-muted-foreground/80 border border-border/50"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+              </div>
+            )}
+            {onNotebookToggle && (
+              <div className="flex-shrink-0" onClick={e => e.stopPropagation()}>
+                <AddToNotebookButton
+                  entryTags={entry.tags}
+                  onToggle={(notebookId, isAdding) => onNotebookToggle(entry.id, notebookId, isAdding)}
+                  variant="icon"
+                  className="h-8 w-8 text-muted-foreground/30 hover:text-foreground hover:bg-muted transition-all"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <ListView
+      items={listItems}
+      multi
+      onSelect={(item) => onToggle(item.id, { ctrlKey: false, shiftKey: false })}
+      renderItem={renderItem}
+      emptyState={
+        <div className="flex items-center justify-center h-full text-muted-foreground text-sm p-4">
+          No session entries found
+        </div>
+      }
+    />
   );
 };

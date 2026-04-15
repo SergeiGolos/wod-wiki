@@ -1,19 +1,18 @@
 /**
  * NavSidebar — renders the left sidebar from NavContext.
  *
- * Replaces the inline sidebar JSX previously hardcoded in App.tsx.
- *
  * Rendering layers (top → bottom):
  *   1. App logo + version
  *   2. L1 items  (Home, Journal, Collections, Search)
  *   3. L2 panel  (children list OR custom component for the active L1)
- *   4. L3 "On this page" accordion (hidden at 3xl+ — right panel takes over)
+ *
+ * "On this page" (L3) section links are intentionally excluded here — they
+ * appear only in the "…" ActionsMenu so they don't duplicate the right TOC.
  */
 
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { Dumbbell } from 'lucide-react'
-import { DocumentTextIcon, PlayIcon } from '@heroicons/react/20/solid'
 
 import {
   Sidebar,
@@ -26,7 +25,8 @@ import {
 import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
 
 import { useNav } from './NavContext'
-import type { NavItem, NavItemL3 } from './navTypes'
+import { executeNavAction } from './navTypes'
+import type { NavItem, NavActionDeps } from './navTypes'
 
 // App version injected by Vite define
 declare const __APP_VERSION__: string | undefined
@@ -34,16 +34,24 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function useNavAction() {
+function useNavDeps(): NavActionDeps {
   const navigate = useNavigate()
   const { scrollToSection } = useNav()
 
-  return (item: NavItem | NavItemL3) => {
-    const { action } = item
-    if (action.type === 'route')  navigate(action.to)
-    if (action.type === 'scroll') scrollToSection(action.sectionId)
-    if (action.type === 'call')   action.handler()
+  return {
+    navigate: (to, opts) => navigate(to, { replace: opts?.replace }),
+    setQueryParam: (_params, _replace) => {
+      // Sidebar clicks on L3 section items use scrollToSection instead.
+      // URL query params are updated by the page's IntersectionObserver.
+    },
+    scrollToSection,
   }
+}
+
+function useNavAction() {
+  const deps = useNavDeps()
+
+  return (item: NavItem) => executeNavAction(item.action, deps)
 }
 
 function isItemActive(item: NavItem, navState: ReturnType<typeof useNav>['navState'], location: ReturnType<typeof useLocation>): boolean {
@@ -54,6 +62,7 @@ function isItemActive(item: NavItem, navState: ReturnType<typeof useNav>['navSta
       : location.pathname === item.action.to
   }
   if (item.action.type === 'scroll') return navState.activeL3Id === item.action.sectionId
+  if (item.action.type === 'query') return navState.activeL3Id === item.id
   return false
 }
 
@@ -111,55 +120,10 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
   )
 }
 
-// ─── L3 accordion ─────────────────────────────────────────────────────────────
-
-function L3Accordion({ items }: { items: NavItemL3[] }) {
-  const { navState, scrollToSection } = useNav()
-
-  if (items.length === 0) return null
-
-  return (
-    <SidebarAccordion
-      title="On this page"
-      count={items.length}
-      defaultOpen
-      className="3xl:hidden"
-    >
-      {items.map(item => {
-        const isActive = navState.activeL3Id === item.id
-        const sectionId = item.action.type === 'scroll' ? item.action.sectionId : item.id
-
-        return (
-          <div key={item.id} className="flex items-center group">
-            <SidebarItem
-              onClick={() => scrollToSection(sectionId)}
-              current={isActive}
-              className="flex-1"
-            >
-              <DocumentTextIcon data-slot="icon" />
-              <SidebarLabel>{item.label}</SidebarLabel>
-            </SidebarItem>
-
-            {item.secondaryAction && (
-              <button
-                onClick={item.secondaryAction.handler}
-                title={item.secondaryAction.label ?? 'Run'}
-                className="opacity-0 group-hover:opacity-100 mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all"
-              >
-                <PlayIcon className="size-3.5" />
-              </button>
-            )}
-          </div>
-        )
-      })}
-    </SidebarAccordion>
-  )
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function NavSidebar() {
-  const { tree, navState, dispatch, l3Items } = useNav()
+  const { tree, navState, dispatch } = useNav()
   const location = useLocation()
   const handleAction = useNavAction()
 

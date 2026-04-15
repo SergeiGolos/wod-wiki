@@ -9,6 +9,7 @@ interface QueriableListViewProps {
   items: { id: string; name: string; category: string; content?: string }[];
   results: any[]; // Recent results from IndexedDB
   onSelect: (item: FilteredListItem) => void;
+  onClone?: (item: FilteredListItem, date: Date) => void;
   className?: string;
   hideBackground?: boolean;
   disableDateFiltering?: boolean;
@@ -20,6 +21,7 @@ export function QueriableListView({
   items, 
   results: historicalResults,
   onSelect,
+  onClone,
   className,
   hideBackground,
   disableDateFiltering
@@ -107,6 +109,7 @@ export function QueriableListView({
       <FilteredList 
         items={filteredItems} 
         onSelect={onSelect} 
+        onClone={onClone}
         selectedDate={query.startDate}
         stickyOffset={queryHeight}
       />

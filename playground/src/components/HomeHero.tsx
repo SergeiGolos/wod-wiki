@@ -73,27 +73,7 @@ export function HomeHero() {
         <p className="mt-6 max-w-xl text-lg font-normal leading-[1.5] text-muted-foreground">
           Plan with Markdown, execute with a precision timer, and evolve with performance insights — all in one place.
         </p>
-
-        {/* CTA row */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => navigate('/journal')}
-            className="inline-flex items-center gap-2 rounded-pill bg-foreground px-6 py-2.5 text-[0.94rem] font-medium text-background shadow-[rgba(0,0,0,0.06)_0px_1px_2px] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            Start Planning
-          </button>
-          <button
-            onClick={() => navigate('/collections')}
-            className="inline-flex items-center gap-2 rounded-pill border border-black/8 bg-background px-6 py-2.5 text-[0.94rem] font-medium text-foreground transition-opacity hover:opacity-90 dark:border-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            Examples
-          </button>
-        </div>
-
-        <p className="mt-4 text-sm font-medium text-muted-foreground">
-          keep scrolling for Quick Start guide.
-        </p>
-
+  
         {/* Feature cards */}
         <div
           ref={scrollerRef}
@@ -119,6 +99,22 @@ export function HomeHero() {
               </p>
             </button>
           ))}
+        </div>
+
+        {/* CTA row */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={() => navigate('/journal')}
+            className="inline-flex items-center gap-2 rounded-pill bg-foreground px-6 py-2.5 text-[0.94rem] font-medium text-background shadow-[rgba(0,0,0,0.06)_0px_1px_2px] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            Start Planning
+          </button>
+          <button
+            onClick={() => navigate('/collections')}
+            className="inline-flex items-center gap-2 rounded-pill border border-black/8 bg-background px-6 py-2.5 text-[0.94rem] font-medium text-foreground transition-opacity hover:opacity-90 dark:border-white/8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            See Examples
+          </button>
         </div>
 
         {/* Scroll cue */}

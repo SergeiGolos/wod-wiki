@@ -1,20 +1,47 @@
 /**
- * navTypes.ts — Shared navigation type contract
+ * navTypes.ts — Playground navigation type contract
  *
- * All three navigation zones (mobile bar, sidebar, page header, right index)
- * consume the same NavItem tree and share one NavState object.
+ * Re-exports all core types from @/nav/navTypes (the library layer) and
+ * adds playground-specific types: NavItem, NavItemL3, NavState, NavDispatch,
+ * and filter state interfaces.
+ *
+ * INavActivation is the base interface for every activatable UI element:
+ *   NavItem, NavItemL3, canvas ButtonBlock/CommandBlock, toolbar buttons,
+ *   playground links, keyboard bindings.
+ *
+ * All surfaces dispatch through executeNavAction(action, deps) so no
+ * individual component carries routing or panel-state logic.
  */
 
 import type React from 'react'
 import type { Location } from 'react-router-dom'
 
-// ─── Action ──────────────────────────────────────────────────────────────────
+// Re-export all shared base types from the library layer
+export type {
+  INavAction,
+  INavActivation,
+  NavActionDeps,
+  RouteChangeAction,
+  RouteQueryAction,
+  ScrollAction,
+  ViewSourceAction,
+  ViewStateAction,
+  PipelineAction,
+  CallAction,
+  NoneAction,
+} from '@/nav/navTypes'
+export { executeNavAction } from '@/nav/navTypes'
 
-export type NavAction =
-  | { type: 'route';  to: string }
-  | { type: 'scroll'; sectionId: string }
-  | { type: 'call';   handler: () => void }
-  | { type: 'none' }
+/** Legacy alias kept for existing NavItem/NavItemL3 usage. */
+export type { INavAction as NavAction } from '@/nav/navTypes'
+
+// Bring into local scope for use in NavItem/NavItemL3 definitions
+import type {
+  INavActivation,
+  ScrollAction,
+  RouteQueryAction,
+  NoneAction,
+} from '@/nav/navTypes'
 
 // ─── Zone ────────────────────────────────────────────────────────────────────
 
@@ -37,11 +64,6 @@ export interface SearchFilterState {
   scope: 'all' | 'collections' | 'notes' | 'results'
 }
 
-export interface CollectionsFilterState {
-  /** Active category slugs e.g. ['kettlebell'] */
-  categories: string[]
-}
-
 // ─── Global nav state ─────────────────────────────────────────────────────────
 
 export interface NavState {
@@ -54,7 +76,6 @@ export interface NavState {
   expandedIds: Set<string>
   journalFilter: JournalFilterState
   searchFilter: SearchFilterState
-  collectionsFilter: CollectionsFilterState
 }
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────────
@@ -69,7 +90,6 @@ export type NavStateAction =
   | { type: 'SET_JOURNAL_DATE';            date: string | null }
   | { type: 'SET_JOURNAL_TAGS';            tags: string[] }
   | { type: 'SET_SEARCH_SCOPE';            scope: SearchFilterState['scope'] }
-  | { type: 'SET_COLLECTIONS_CATEGORIES';  categories: string[] }
 
 export type NavDispatch = React.Dispatch<NavStateAction>
 
@@ -91,28 +111,12 @@ export interface NavItemRenderProps {
 
 // ─── NavItem — universal link/node interface ──────────────────────────────────
 
-export interface NavItem {
-  /** Unique stable identifier */
-  id: string
-
-  /** Display label */
-  label: string
-
+export interface NavItem extends INavActivation {
   /** Hierarchy level (1 = top, 2 = context panel, 3 = page index) */
   level: 1 | 2 | 3
 
-  /** What happens when the item is activated */
-  action: NavAction
-
-  // ── Presentation ─────────────────────────────────────────────────────────
-
-  /** Icon component (receives className for sizing) */
-  icon?: React.ComponentType<{ className?: string; 'data-slot'?: string }>
-
   /** Count badge for accordions */
   badge?: string | number
-
-  // ── Active state ─────────────────────────────────────────────────────────
 
   /**
    * Override active/selected detection.
@@ -120,12 +124,8 @@ export interface NavItem {
    */
   isActive?: (location: Location, navState: NavState) => boolean
 
-  // ── Tree structure ────────────────────────────────────────────────────────
-
   /** Child items — used to build nested lists or accordion groups */
   children?: NavItem[]
-
-  // ── Custom rendering ──────────────────────────────────────────────────────
 
   /**
    * Replace child list with a custom React component (calendar picker,
@@ -147,7 +147,7 @@ export interface NavItem {
 
 export interface NavItemL3 extends NavItem {
   level: 3
-  action: { type: 'scroll'; sectionId: string } | { type: 'none' }
+  action: ScrollAction | RouteQueryAction | NoneAction
   /** Secondary inline action — rendered as a small Play button */
-  secondaryAction?: { type: 'call'; handler: () => void; label?: string }
+  secondaryAction?: INavActivation
 }

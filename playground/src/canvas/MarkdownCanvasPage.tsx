@@ -12,7 +12,7 @@
  * so only one command pipeline fires at a time — no flicker.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { ArrowLeft } from 'lucide-react'
@@ -27,11 +27,14 @@ import { MacOSChrome } from '../components/MacOSChrome'
 import { SplitRunButton } from '../components/SplitRunButton'
 import { cn } from '@/lib/utils'
 import { CanvasProse } from './CanvasProse'
-import type { ParsedCanvasPage, CanvasSection, PipelineStep, OpenMode, ViewButton } from './parseCanvasMarkdown'
+import { executeNavAction } from '../nav/navTypes'
+import type { INavActivation, NavActionDeps, INavAction } from '../nav/navTypes'
+import type { ParsedCanvasPage, CanvasSection, PipelineStep, OpenMode } from './parseCanvasMarkdown'
 import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
 import { CollectionWorkoutsList } from '../views/queriable-list/CollectionWorkoutsList'
+import { getCategoryForCollection } from '../config/collectionGroups'
 
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
@@ -75,6 +78,38 @@ const hasAttr  = (s: CanvasSection, a: string) => s.attrs.includes(a)
 const isFullBleed = (s: CanvasSection) => hasAttr(s, 'full-bleed')
 const isDark      = (s: CanvasSection) => hasAttr(s, 'dark')
 
+// ── Pipeline → INavAction converter ──────────────────────────────────────────
+
+/** Convert a single stringly-typed PipelineStep to a typed INavAction. */
+function pipelineStepToNavAction(step: PipelineStep, open: OpenMode = 'dialog'): INavAction {
+  if (step.action === 'set-source') return { type: 'view-source', source: step.value }
+  if (step.action === 'navigate')   return { type: 'route', to: step.value }
+  if (step.action === 'set-state') {
+    if (step.value === 'note')   return { type: 'view-state', state: 'note' }
+    if (step.value === 'review') return { type: 'view-state', state: 'review' }
+    if (step.value === 'track')  return { type: 'view-state', state: 'track', open }
+  }
+  return { type: 'none' }
+}
+
+/** Build an INavActivation from a canvas ButtonBlock or ViewButton. */
+function buttonToActivation(btn: { label: string; pipeline: PipelineStep[]; open?: OpenMode }, idx: number): INavActivation {
+  const steps = btn.pipeline.map(s => pipelineStepToNavAction(s, btn.open))
+  return {
+    id: `btn-${idx}`,
+    label: btn.label,
+    action: steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
+  }
+}
+
+/** True when an activation's action will launch the workout tracker. */
+function isRunActivation(activation: INavActivation): boolean {
+  const { action } = activation
+  if (action.type === 'view-state') return action.state === 'track'
+  if (action.type === 'pipeline')   return action.steps.some(s => s.type === 'view-state' && (s as { state?: string }).state === 'track')
+  return false
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 interface RunButtonState {
@@ -86,24 +121,21 @@ interface RunButtonState {
 }
 
 function SectionButtons({
-  section,
+  activations,
   fullBleed,
-  onPipeline,
   runState,
+  deps,
 }: {
-  section: CanvasSection
+  activations: INavActivation[]
   fullBleed: boolean
-  onPipeline: (p: PipelineStep[], open?: OpenMode) => void
   runState?: RunButtonState
+  deps: NavActionDeps
 }) {
-  if (section.buttons.length === 0) return null
+  if (activations.length === 0) return null
 
-  // Check if any button is a run-type pipeline (set-state:track)
-  const firstBtn = section.buttons[0]
-  const isRunButton = firstBtn.pipeline.some(s => s.action === 'set-state' && s.value === 'track')
-
-  if (isRunButton && runState) {
-    const rest = section.buttons.slice(1)
+  const first = activations[0]
+  if (isRunActivation(first) && runState) {
+    const rest = activations.slice(1)
     return (
       <div className={cn('flex flex-wrap items-center gap-4 mt-8', fullBleed && 'justify-center')}>
         <SplitRunButton
@@ -111,16 +143,16 @@ function SectionButtons({
           onFullscreen={runState.onFullscreen}
           isReconnect={runState.isReconnect}
           onReconnect={runState.onReconnect}
-          label={firstBtn.label}
+          label={first.label}
           center={fullBleed}
         />
-        {rest.map((btn, i) => (
+        {rest.map((activation, i) => (
           <button
-            key={i}
-            onClick={() => onPipeline(btn.pipeline, btn.open)}
+            key={activation.id || i}
+            onClick={() => executeNavAction(activation.action, deps)}
             className="flex items-center gap-2 px-6 py-2 text-xs font-black uppercase tracking-widest rounded-full bg-background border border-border text-foreground hover:bg-muted transition-all active:scale-95"
           >
-            {btn.label}
+            {activation.label}
           </button>
         ))}
       </div>
@@ -129,10 +161,10 @@ function SectionButtons({
 
   return (
     <div className={cn('flex flex-wrap gap-4 mt-8', fullBleed && 'justify-center')}>
-      {section.buttons.map((btn, i) => (
+      {activations.map((activation, i) => (
         <button
-          key={i}
-          onClick={() => onPipeline(btn.pipeline, btn.open)}
+          key={activation.id || i}
+          onClick={() => executeNavAction(activation.action, deps)}
           className={cn(
             'flex items-center gap-2 px-8 py-4 text-xs font-black uppercase tracking-widest rounded-full transition-all active:scale-95',
             i === 0
@@ -140,7 +172,7 @@ function SectionButtons({
               : 'bg-background border border-border text-foreground hover:bg-muted',
           )}
         >
-          {btn.label}
+          {activation.label}
         </button>
       ))}
     </div>
@@ -149,21 +181,19 @@ function SectionButtons({
 
 /** Buttons rendered directly on the sticky view panel (from the view block). */
 function ViewPanelButtons({
-  buttons,
-  onPipeline,
+  activations,
   runState,
+  deps,
 }: {
-  buttons: ViewButton[]
-  onPipeline: (p: PipelineStep[], open?: OpenMode) => void
+  activations: INavActivation[]
   runState?: RunButtonState
+  deps: NavActionDeps
 }) {
-  if (buttons.length === 0) return null
+  if (activations.length === 0) return null
 
-  const firstBtn = buttons[0]
-  const isRunButton = firstBtn.pipeline.some(s => s.action === 'set-state' && s.value === 'track')
-
-  if (isRunButton && runState) {
-    const rest = buttons.slice(1)
+  const first = activations[0]
+  if (isRunActivation(first) && runState) {
+    const rest = activations.slice(1)
     return (
       <div className="flex flex-wrap items-center gap-3 justify-end pt-3 px-1">
         <SplitRunButton
@@ -171,15 +201,15 @@ function ViewPanelButtons({
           onFullscreen={runState.onFullscreen}
           isReconnect={runState.isReconnect}
           onReconnect={runState.onReconnect}
-          label={firstBtn.label}
+          label={first.label}
         />
-        {rest.map((btn, i) => (
+        {rest.map((activation, i) => (
           <button
-            key={i}
-            onClick={() => onPipeline(btn.pipeline, btn.open)}
+            key={activation.id || i}
+            onClick={() => executeNavAction(activation.action, deps)}
             className="px-5 py-2 text-[11px] font-black uppercase tracking-widest rounded-full bg-muted border border-border text-foreground hover:bg-muted/80 transition-all active:scale-95"
           >
-            {btn.label}
+            {activation.label}
           </button>
         ))}
       </div>
@@ -188,10 +218,10 @@ function ViewPanelButtons({
 
   return (
     <div className="flex flex-wrap gap-3 justify-end pt-3 px-1">
-      {buttons.map((btn, i) => (
+      {activations.map((activation, i) => (
         <button
-          key={i}
-          onClick={() => onPipeline(btn.pipeline, btn.open)}
+          key={activation.id || i}
+          onClick={() => executeNavAction(activation.action, deps)}
           className={cn(
             'px-5 py-2 text-[11px] font-black uppercase tracking-widest rounded-full transition-all active:scale-95',
             i === 0
@@ -199,7 +229,7 @@ function ViewPanelButtons({
               : 'bg-muted border border-border text-foreground hover:bg-muted/80',
           )}
         >
-          {btn.label}
+          {activation.label}
         </button>
       ))}
     </div>
@@ -215,14 +245,18 @@ export interface MarkdownCanvasPageProps {
   theme: string
   workoutItems?: WorkoutItem[]
   onSelect?: (item: WorkoutItem) => void
+  onClone?: (item: WorkoutItem, date: Date) => void
 }
 
-export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: MarkdownCanvasPageProps) {
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, onClone }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 
   const isCollection = route.startsWith('/collections/')
   const collectionSlug = isCollection ? route.split('/').pop() : null
+
+  // Check if any section has the {{workouts}} tag
+  const hasWorkoutsTag = sections.some(s => s.prose.includes('{{workouts}}'))
 
   // Hero = first section; content = the rest (observed by IntersectionObserver)
   const contentSections = sections.slice(1)
@@ -309,59 +343,53 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // Whether any active runtime is currently tracked for view-mode reconnect
   const hasActiveViewRuntime = viewTimerBlock !== null
 
-  const executePipeline = useCallback((pipeline: PipelineStep[], openMode: OpenMode = 'dialog') => {
-    for (const step of pipeline) {
-      if (step.action === 'set-source') {
-        swapSource(resolveSource(step.value, wodFilesRef.current))
-      } else if (step.action === 'navigate') {
-        navigate(step.value)
-      } else if (step.action === 'set-state') {
-        if (step.value === 'note') {
-          // Return to editor — close any running view-mode runtime
-          closeViewRuntime()
-        } else if (step.value === 'review') {
-          // Jump directly to review panel (no new runtime needed)
-          setPanelMode('review')
-        } else if (step.value === 'track') {
-          const block = wodBlocksRef.current[0] ?? null
-          if (!block) break
-          if (openMode === 'view') {
-            launchViewRuntime(block)
-          } else if (openMode === 'dialog') {
-            setFullscreenBlock(block)
-          } else if (openMode === 'route') {
-            const runtimeId = uuidv4()
-            pendingRuntimes.set(runtimeId, { block, noteId: '' })
-            navigate(`/tracker/${runtimeId}`)
-          }
-        }
-      }
-    }
-  }, [navigate, swapSource, launchViewRuntime, closeViewRuntime])
-
-  // RunButtonState passed down to both SectionButtons and ViewPanelButtons
-  const runState: RunButtonState = {
-    isReconnect: hasActiveViewRuntime && panelMode !== 'running',
-    onReconnect: () => setPanelMode('running'),
-    onRun: () => {
-      const block = wodBlocksRef.current[0] ?? null
-      if (!block) return
-      launchViewRuntime(block)
-    },
-    onFullscreen: () => {
-      const block = wodBlocksRef.current[0] ?? null
-      if (!block) return
-      const runtimeId = uuidv4()
-      pendingRuntimes.set(runtimeId, { block, noteId: '' })
-      navigate(`/tracker/${runtimeId}`)
-    },
-  }
-
   // ── Query-param tracking: ?h=section-slug ───────────────────────────────
   const [headingParam, setHeadingParam] = useQueryState('h', {
     history: 'replace',
     shallow: true,
   })
+
+  // ── NavActionDeps — single dispatch object for all INavAction surfaces ──────
+  const deps = useMemo<NavActionDeps>(() => ({
+    navigate: (to, opts) => navigate(to, { replace: opts?.replace }),
+    setQueryParam: (params, replace) => {
+      // Only h= is managed here; other params passed through as needed
+      const h = params['h']
+      if (h !== undefined) setHeadingParam(h, { history: replace ? 'replace' : 'push' })
+    },
+    swapSource: (source: string) => swapSource(resolveSource(source, wodFilesRef.current)),
+    setPanelState: (state, open) => {
+      if (state === 'note') {
+        closeViewRuntime()
+      } else if (state === 'review') {
+        setPanelMode('review')
+      } else if (state === 'track') {
+        const block = wodBlocksRef.current[0] ?? null
+        if (!block) return
+        if (open === 'view')   launchViewRuntime(block)
+        else if (open === 'route') {
+          const runtimeId = uuidv4()
+          pendingRuntimes.set(runtimeId, { block, noteId: '' })
+          navigate(`/tracker/${runtimeId}`)
+        } else {
+          setFullscreenBlock(block)
+        }
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [navigate, swapSource, launchViewRuntime, closeViewRuntime])
+
+  // Stable ref so observer callbacks never close over stale deps
+  const depsRef = useRef(deps)
+  depsRef.current = deps
+
+  // RunButtonState — shortcuts for SplitRunButton's specific call signatures
+  const runState: RunButtonState = {
+    isReconnect: hasActiveViewRuntime && panelMode !== 'running',
+    onReconnect: () => setPanelMode('running'),
+    onRun:       () => deps.setPanelState?.('track', 'view'),
+    onFullscreen:() => deps.setPanelState?.('track', 'route'),
+  }
 
   // ── IntersectionObserver — ratio-map so only the most-visible section wins ──
   // This prevents the flicker of multiple sections firing simultaneously on load.
@@ -370,10 +398,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const lastActiveSectionId = useRef<string | null>(null)
   const ratioMap            = useRef(new Map<string, number>())
   const scrollDirRef        = useRef<1 | -1>(1)
-  const executePipelineRef  = useRef(executePipeline)
-  executePipelineRef.current = executePipeline
-  const setHeadingParamRef  = useRef(setHeadingParam)
-  setHeadingParamRef.current = setHeadingParam
 
   const setStepRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) stepRefs.current.set(id, el)
@@ -420,14 +444,17 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
         if (bestId && bestId !== lastActiveSectionId.current) {
           lastActiveSectionId.current = bestId
-          // Update ?h= query param without pushing a new history entry
-          setHeadingParamRef.current(bestId)
+          // Update ?h= via RouteQueryAction (replaceState — no history flood)
+          executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
           const section = contentSections.find(s => s.id === bestId)
           if (section) {
             for (const cmd of section.commands) {
-              // Scroll-triggered commands default to 'view' (inline panel),
-              // not 'dialog' (fullscreen), so set-state:track stays in the panel.
-              executePipelineRef.current(cmd.pipeline, cmd.open ?? 'view')
+              // Scroll-triggered commands default to 'view' (inline panel).
+              const steps = cmd.pipeline.map(s => pipelineStepToNavAction(s, cmd.open ?? 'view'))
+              executeNavAction(
+                steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
+                depsRef.current,
+              )
             }
           }
         }
@@ -538,9 +565,9 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       </div>
       {showPanelButtons && (
         <ViewPanelButtons
-          buttons={viewDef.buttons}
-          onPipeline={executePipeline}
+          activations={viewDef.buttons.map((b, i) => buttonToActivation(b, i))}
           runState={runState}
+          deps={deps}
         />
       )}
     </div>
@@ -559,9 +586,9 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         </div>
         {showPanelButtons && (
           <ViewPanelButtons
-            buttons={viewDef.buttons}
-            onPipeline={executePipeline}
+            activations={viewDef.buttons.map((b, i) => buttonToActivation(b, i))}
             runState={runState}
+            deps={deps}
           />
         )}
       </div>
@@ -590,6 +617,23 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           {/* ── Scrolling text column ─────────────────────────────────── */}
           <div className={cn('w-full', viewDef && 'lg:w-[40%]')}>
             {mobilePanel}
+
+            {/* Category chip — collection detail pages only */}
+            {isCollection && collectionSlug && (() => {
+              const category = getCategoryForCollection(collectionSlug)
+              if (!category) return null
+              const slug = category.toLowerCase()
+              return (
+                <div className="px-6 lg:px-12 pt-6 pb-0">
+                  <button
+                    onClick={() => navigate(`/collections?categories=${slug}`)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    {category}
+                  </button>
+                </div>
+              )
+            })()}
 
             {contentSections.map((section, idx) => {
               const fullBleed = isFullBleed(section)
@@ -634,27 +678,50 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                     </h2>
 
                     {section.prose && (
-                      viewDef
-                        ? <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
-                            {section.prose}
-                          </p>
-                        : <CanvasProse prose={section.prose} className="mb-6" />
+                      (() => {
+                        if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
+                          const parts = section.prose.split('{{workouts}}')
+                          return (
+                            <>
+                              {parts[0] && <CanvasProse prose={parts[0]} className="mb-6" />}
+                              <div className="h-[600px] flex flex-col mb-6">
+                                <CollectionWorkoutsList
+                                  category={collectionSlug}
+                                  workoutItems={workoutItems}
+                                  onSelect={onSelect ?? (() => {})}
+                                  onClone={onClone}
+                                />
+                              </div>
+                              {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
+                            </>
+                          )
+                        }
+                        
+                        return viewDef
+                          ? <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
+                              {section.prose}
+                            </p>
+                          : <CanvasProse prose={section.prose} className="mb-6" />
+                      })()
                     )}
 
                     <SectionButtons
-                      section={section}
+                      activations={section.buttons.map((b, i) => buttonToActivation(b, i))}
                       fullBleed={fullBleed}
-                      onPipeline={executePipeline}
                       runState={viewDef ? runState : undefined}
+                      deps={deps}
                     />
                   </div>
                 </div>
               )
             })}
 
-            {/* Collection workouts list if applicable */}
-            {isCollection && collectionSlug && workoutItems && (
-              <div className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50">
+            {/* Collection workouts list fallback if tag not found in any section */}
+            {isCollection && !hasWorkoutsTag && collectionSlug && workoutItems && (
+              <div 
+                id="collection-workouts"
+                className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50"
+              >
                 <div className="max-w-sm mb-12">
                   <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
                     Explore
@@ -672,6 +739,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                     category={collectionSlug}
                     workoutItems={workoutItems}
                     onSelect={onSelect ?? (() => {})}
+                    onClone={onClone}
                   />
                 </div>
               </div>

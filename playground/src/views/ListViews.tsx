@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryState } from 'nuqs';
-import { FilteredList } from './queriable-list/FilteredList';
-import { JournalDateScroll, localDateKey, type JournalDateScrollHandle } from './queriable-list/JournalDateScroll';
+import { JournalDateScroll, localDateKey, type JournalDateScrollHandle, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { indexedDBService } from '@/services/db/IndexedDBService';
+import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
 import type { FilteredListItem } from './queriable-list/types';
 
 interface BaseProps {
-  workoutItems: { id: string; name: string; category: string; content?: string }[];
+  workoutItems?: { id: string; name: string; category: string; content?: string }[];
   onSelect: (item: any) => void;
 }
 
@@ -16,9 +15,10 @@ interface JournalWeeklyPageProps extends BaseProps {
   onCreateEntry: (date: Date) => void;
 }
 
-export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: JournalWeeklyPageProps) {
+export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPageProps) {
   const { selectedDate, setDateParam, selectedTags } = useJournalQueryState();
   const [results, setResults] = useState<any[]>([]);
+  const [journalEntries, setJournalEntries] = useState<Map<string, JournalEntrySummary>>(new Map());
   const scrollRef = useRef<JournalDateScrollHandle>(null);
 
   // Seed with the initial date so the first-render effect doesn't trigger a
@@ -29,6 +29,31 @@ export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: Jou
     indexedDBService.getRecentResults(100).then(setResults);
   }, []);
 
+  // Load journal entries (notes written for specific dates)
+  useEffect(() => {
+    // Fetch both casings to handle legacy data saved with category: 'Journal'
+    Promise.all([
+      playgroundDB.getPagesByCategory('journal'),
+      playgroundDB.getPagesByCategory('Journal'),
+    ]).then(([lower, upper]) => {
+      const pages = [...lower, ...upper];
+      const map = new Map<string, JournalEntrySummary>();
+      pages.forEach(page => {
+        // id is 'journal/yyyy-mm-dd' → extract the date key
+        const dateKey = page.id.replace(/^journal\//, '');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+          // Extract first # heading from content, or use the date key as title
+          const headingMatch = page.content.match(/^#\s+(.+)$/m);
+          map.set(dateKey, {
+            title: headingMatch ? headingMatch[1].trim() : dateKey,
+            updatedAt: page.updatedAt,
+          });
+        }
+      });
+      setJournalEntries(map);
+    });
+  }, []);
+
   const navigate = useNavigate();
   const handleSelect = (item: FilteredListItem) => {
     if (item.type === 'result') {
@@ -37,6 +62,10 @@ export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: Jou
       onSelect(item.payload);
     }
   };
+
+  const handleOpenEntry = useCallback((dateKey: string) => {
+    navigate(`/journal/${dateKey}`);
+  }, [navigate]);
 
   /** Called by JournalDateScroll IO as the user scrolls — updates URL only, never triggers re-scroll. */
   const handleVisibleDateChange = useCallback(
@@ -60,43 +89,35 @@ export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: Jou
   }, [selectedDate]);
 
   const allItems = useMemo(() => {
-    const combined: FilteredListItem[] = [];
-    workoutItems.forEach(item => {
-      combined.push({
-        id: item.id,
-        type: 'note',
-        title: item.name,
-        subtitle: item.category,
-        date: (item as any).targetDate || (item as any).updatedAt,
-        payload: item,
-      });
-    });
-    results.forEach(r => {
-      combined.push({
+    // Only show workout results — journal notes are handled via the journalEntries map
+    const combined: FilteredListItem[] = results.map(r => {
+      // noteId is like 'collections/geoff-neupert/fran' or 'journal/2024-01-01'
+      // Use the last path segment as the workout name, but clean up date-only entries
+      const parts = r.noteId.split('/');
+      const lastSegment = parts[parts.length - 1] || r.noteId;
+      const isDateSegment = /^\d{4}-\d{2}-\d{2}$/.test(lastSegment);
+      const title = isDateSegment
+        ? (parts[parts.length - 2] || lastSegment)
+        : lastSegment;
+      return {
         id: r.id,
-        type: 'result',
-        title: r.noteId.split('/').pop() || r.noteId,
-        subtitle: r.data?.completed ? 'Completed session' : 'Partial session',
+        type: 'result' as const,
+        title,
+        subtitle: r.data?.completed ? 'Completed' : 'Partial',
         date: r.completedAt,
         payload: r,
-      });
+      };
     });
 
-    let items = combined;
+    if (selectedTags.length === 0) return combined.sort((a, b) => (b.date || 0) - (a.date || 0));
 
-    // Filter by selected tags when present
-    if (selectedTags.length > 0) {
-      items = items.filter((item) => {
-        const category = (item.subtitle || '').toLowerCase();
+    return combined
+      .filter(item => {
         const title = item.title.toLowerCase();
-        return selectedTags.some(
-          (tag) => category.includes(tag.toLowerCase()) || title.includes(tag.toLowerCase()),
-        );
-      });
-    }
-
-    return items.sort((a, b) => (b.date || 0) - (a.date || 0));
-  }, [workoutItems, results, selectedTags]);
+        return selectedTags.some(tag => title.includes(tag.toLowerCase()));
+      })
+      .sort((a, b) => (b.date || 0) - (a.date || 0));
+  }, [results, selectedTags]);
 
   return (
     <JournalDateScroll
@@ -106,66 +127,9 @@ export function JournalWeeklyPage({ workoutItems, onSelect, onCreateEntry }: Jou
       onCreateEntry={onCreateEntry}
       initialDate={selectedDate}
       onVisibleDateChange={handleVisibleDateChange}
+      journalEntries={journalEntries}
+      onOpenEntry={handleOpenEntry}
       className="flex-1 min-h-0"
     />
-  );
-}
-
-export function SearchPage({ workoutItems, onSelect }: BaseProps) {
-  const [query] = useQueryState('q', { defaultValue: '' });
-  const [results, setResults] = useState<any[]>([]);
-
-  useEffect(() => {
-    indexedDBService.getRecentResults(100).then(setResults);
-  }, []);
-
-  const navigate = useNavigate();
-  const handleSelect = (item: FilteredListItem) => {
-    if (item.type === 'result') {
-      navigate(`/review/${item.id}`);
-    } else {
-      onSelect(item.payload);
-    }
-  };
-
-  const filteredItems = useMemo(() => {
-    const combined: FilteredListItem[] = [];
-    workoutItems.forEach(item => {
-      combined.push({
-        id: item.id,
-        type: 'note',
-        title: item.name,
-        subtitle: item.category,
-        date: (item as any).targetDate || (item as any).updatedAt,
-        payload: item,
-      });
-    });
-    results.forEach(r => {
-      combined.push({
-        id: r.id,
-        type: 'result',
-        title: r.noteId.split('/').pop() || r.noteId,
-        subtitle: r.data?.completed ? 'Completed session' : 'Partial session',
-        date: r.completedAt,
-        payload: r,
-      });
-    });
-
-    const q = query.trim().toLowerCase();
-    const visible = q
-      ? combined.filter(
-          item =>
-            item.title.toLowerCase().includes(q) ||
-            item.subtitle?.toLowerCase().includes(q),
-        )
-      : combined;
-
-    return visible.sort((a, b) => (b.date || 0) - (a.date || 0));
-  }, [workoutItems, results, query]);
-
-  return (
-    <div className="flex-1 min-h-0 overflow-y-auto bg-card">
-      <FilteredList items={filteredItems} onSelect={handleSelect} />
-    </div>
   );
 }

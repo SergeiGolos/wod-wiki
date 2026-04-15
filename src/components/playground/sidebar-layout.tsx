@@ -59,31 +59,33 @@ export function SidebarLayout({
   }, [location])
 
   return (
-    <div className="relative isolate flex min-h-svh w-full bg-zinc-50 dark:bg-zinc-950 max-lg:flex-col lg:flex-row">
-      {/* Sidebar — always visible on lg, overlay on mobile */}
-      <nav className="hidden lg:flex lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-screen lg:overflow-y-auto">
-        {sidebar}
-      </nav>
-      <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
-        {sidebar}
-      </MobileSidebar>
+    <div className="relative isolate flex min-h-svh w-full bg-zinc-50 dark:bg-zinc-950 max-lg:flex-col lg:flex-row lg:justify-center">
+      <div className="flex flex-1 w-full max-lg:flex-col lg:flex-row lg:max-w-[100rem]">
+        {/* Sidebar — always visible on lg, overlay on mobile */}
+        <nav className="hidden lg:flex lg:w-64 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-screen lg:overflow-y-auto lg:bg-zinc-50/72 lg:backdrop-blur-sm dark:lg:bg-zinc-950/72">
+          {sidebar}
+        </nav>
+        <MobileSidebar open={showSidebar} close={() => setShowSidebar(false)}>
+          {sidebar}
+        </MobileSidebar>
 
-      {/* Mobile header with hamburger + navbar */}
-      <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-white dark:bg-zinc-900 lg:hidden overflow-hidden">
-        <div className="py-2.5 shrink-0">
-          <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
-            <OpenMenuIcon />
-          </NavbarItem>
-        </div>
-        <div className="min-w-0 flex-1 overflow-hidden">{navbar}</div>
-      </header>
+        {/* Mobile header with hamburger + navbar */}
+        <header className="sticky top-0 z-20 flex items-center px-2 sm:px-4 bg-white dark:bg-zinc-900 lg:hidden overflow-hidden">
+          <div className="py-2.5 shrink-0">
+            <NavbarItem onClick={() => setShowSidebar(true)} aria-label="Open navigation">
+              <OpenMenuIcon />
+            </NavbarItem>
+          </div>
+          <div className="min-w-0 flex-1 overflow-hidden">{navbar}</div>
+        </header>
 
-      {/* Content */}
-      <main className="flex flex-1 flex-col lg:min-w-0 lg:pt-2 lg:pr-2 lg:pb-2">
-        <div className="grow w-full lg:overflow-clip">
-          {children}
-        </div>
-      </main>
+        {/* Content */}
+        <main className="flex flex-1 flex-col lg:min-w-0 lg:pt-2 lg:pr-2 lg:pb-2">
+          <div className="grow w-full lg:overflow-visible">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

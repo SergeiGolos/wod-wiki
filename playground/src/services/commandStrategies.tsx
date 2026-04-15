@@ -8,7 +8,8 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
  */
 export const createGlobalSearchStrategy = (
   items: { id: string; name: string; category: string; content?: string }[],
-  onNavigate: (item: any) => void
+  onNavigate: (item: any) => void,
+  navigate?: (path: string) => void
 ): CommandStrategy => ({
   id: 'global-search',
   placeholder: 'Search workouts, results, or collections...',
@@ -64,8 +65,9 @@ export const createGlobalSearchStrategy = (
     if (result.type === 'workout') {
       onNavigate(result.payload);
     } else if (result.type === 'result') {
-      // Navigate to review page
-      window.location.hash = `#/review/${result.id}`;
+      if (navigate) {
+        navigate(`/review/${result.id}`);
+      }
     }
   }
 });

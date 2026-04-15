@@ -5,10 +5,12 @@
  *   - Mini month-view calendar (CalendarDatePicker)
  *   - Tag chip filter
  *
- * All state is backed by nuqs URL parameters (`d`, `month`, `tags`)
- * so the URL is the single source of truth across every journal control.
+ * Context-aware date click behaviour:
+ *   - On /journal        → updates the ?d= filter query param (scroll to date)
+ *   - On /journal/:date  → navigates to the clicked date's entry page
  */
 
+import { useMatch, useNavigate } from 'react-router-dom'
 import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker'
 import { cn } from '@/lib/utils'
 import { useJournalQueryState } from '../../hooks/useJournalQueryState'
@@ -20,15 +22,35 @@ export function JournalNavPanel(_props: NavPanelProps) {
   const { selectedDate, setSelectedDate, dateParam, selectedTags, toggleTag } =
     useJournalQueryState()
 
-  const selectedDateObj = dateParam ? selectedDate : null
+  // Detect if we're viewing a specific journal entry (/journal/:date)
+  const entryMatch = useMatch('/journal/:date')
+  const navigate = useNavigate()
+
+  const isEntryPage = Boolean(entryMatch)
+
+  // On the entry page, highlight the date from the URL; otherwise use the filter param
+  const selectedDateObj = isEntryPage
+    ? (() => {
+        const d = new Date((entryMatch!.params.date ?? '') + 'T00:00:00')
+        return isNaN(d.getTime()) ? null : d
+      })()
+    : dateParam
+      ? selectedDate
+      : null
 
   const handleDateSelect = (date: Date) => {
-    const iso = date.toISOString().slice(0, 10)
-    // Toggle off if same date is already selected
-    if (iso === dateParam) {
-      setSelectedDate(null)
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+    if (isEntryPage) {
+      // On the note page: navigate to the selected date's entry
+      navigate(`/journal/${iso}`)
     } else {
-      setSelectedDate(date)
+      // On the list page: toggle the ?d= filter
+      if (iso === dateParam) {
+        setSelectedDate(null)
+      } else {
+        setSelectedDate(date)
+      }
     }
   }
 
@@ -41,8 +63,8 @@ export function JournalNavPanel(_props: NavPanelProps) {
         className="scale-95 origin-top-left"
       />
 
-      {/* Active date badge */}
-      {dateParam && (
+      {/* Active date badge — only meaningful on the list page */}
+      {!isEntryPage && dateParam && (
         <div className="flex items-center gap-2 px-2">
           <span className="text-xs text-muted-foreground">Filtered to</span>
           <button

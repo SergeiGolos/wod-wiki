@@ -2,27 +2,22 @@
  * CollectionsNavPanel — L2 context panel for the Collections L1 item.
  *
  * Renders category chip toggles (Kettlebell, Crossfit, Swimming, Other).
- * Dispatches SET_COLLECTIONS_CATEGORIES to update navState.
- * The CollectionsPage reads navState.collectionsFilter.categories to filter.
+ * Reads and writes the `categories` URL param via useCollectionsQueryState
+ * so CollectionsPage stays in sync without prop-drilling.
  */
 
 import { cn } from '@/lib/utils'
 import type { NavPanelProps } from '../navTypes'
+import { useCollectionsQueryState } from '../../hooks/useCollectionsQueryState'
 
 const GROUPS = ['Kettlebell', 'Crossfit', 'Swimming', 'Other']
 
-export function CollectionsNavPanel({ navState, dispatch }: NavPanelProps) {
-  const { categories } = navState.collectionsFilter
+export function CollectionsNavPanel(_props: NavPanelProps) {
+  const { selectedCategories, toggleCategory, clearCategories } = useCollectionsQueryState()
 
-  const toggle = (group: string) => {
-    const slug = group.toLowerCase()
-    const next = categories.includes(slug)
-      ? categories.filter(c => c !== slug)
-      : [...categories, slug]
-    dispatch({ type: 'SET_COLLECTIONS_CATEGORIES', categories: next })
-  }
+  const toggle = (group: string) => toggleCategory(group.toLowerCase())
 
-  const clearAll = () => dispatch({ type: 'SET_COLLECTIONS_CATEGORIES', categories: [] })
+  const clearAll = () => clearCategories()
 
   return (
     <div className="flex flex-col gap-2 px-2 py-3">
@@ -30,7 +25,7 @@ export function CollectionsNavPanel({ navState, dispatch }: NavPanelProps) {
         <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
           Category
         </div>
-        {categories.length > 0 && (
+        {selectedCategories.length > 0 && (
           <button
             onClick={clearAll}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
@@ -43,7 +38,7 @@ export function CollectionsNavPanel({ navState, dispatch }: NavPanelProps) {
       <div className="flex flex-col gap-1">
         {GROUPS.map(group => {
           const slug = group.toLowerCase()
-          const active = categories.includes(slug)
+          const active = selectedCategories.includes(slug)
           return (
             <button
               key={group}

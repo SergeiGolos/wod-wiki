@@ -1,31 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryState } from 'nuqs';
 import { FolderIcon, ChevronRightIcon } from 'lucide-react';
 import { getWodCollections, type WodCollection } from '@/repositories/wod-collections';
-
-/** Predefined category grouping — collections-only, hidden from user controls */
-const COLLECTION_GROUPS: Record<string, string[]> = {
-  Kettlebell: [
-    'kettlebell', 'dan-john', 'geoff-neupert', 'girevoy-sport',
-    'joe-daniels', 'keith-weber', 'mark-wildman', 'steve-cotter', 'strongfirst',
-  ],
-  Crossfit: [
-    'crossfit-games - 2020', 
-    'crossfit-games - 2021', 
-    'crossfit-games - 2022', 
-    'crossfit-games - 2023', 
-    'crossfit-games - 2024',
-    'crossfit-girls'
-  ],
-  Swimming: [
-    'swimming-pre-highschool', 'swimming-highschool', 'swimming-college',
-    'swimming-post-college', 'swimming-masters', 'swimming-olympic', 'swimming-triathlete',
-  ],
-  Other: ['unconventional'],
-};
-
-const ASSIGNED = new Set(Object.values(COLLECTION_GROUPS).flat());
+import { useCollectionsQueryState } from '../hooks/useCollectionsQueryState';
+import { COLLECTION_GROUPS, ASSIGNED } from '../config/collectionGroups';
 
 /** Special collection link component — navigates to the collection canvas route */
 function CollectionLink({ collection }: { collection: WodCollection }) {
@@ -52,33 +30,47 @@ function CollectionLink({ collection }: { collection: WodCollection }) {
 }
 
 export function CollectionsPage() {
-  const [text] = useQueryState('q', { defaultValue: '' });
+  const { text, selectedCategories } = useCollectionsQueryState();
   const allCollections = useMemo(() => getWodCollections(), []);
 
   const filtered = useMemo(() => {
-    if (!text.trim()) return allCollections;
-    const q = text.toLowerCase();
-    return allCollections.filter(c =>
-      c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q),
-    );
+    let result = allCollections;
+    if (text.trim()) {
+      const q = text.toLowerCase();
+      result = result.filter(c =>
+        c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q),
+      );
+    }
+    return result;
   }, [allCollections, text]);
 
   const grouped = useMemo(() => {
     const filteredMap = new Map(filtered.map(c => [c.id, c]));
     const result: { label: string; items: WodCollection[] }[] = [];
-    for (const [label, ids] of Object.entries(COLLECTION_GROUPS)) {
+
+    const activeGroups = selectedCategories.length > 0
+      ? Object.entries(COLLECTION_GROUPS).filter(([label]) =>
+          selectedCategories.includes(label.toLowerCase()),
+        )
+      : Object.entries(COLLECTION_GROUPS);
+
+    for (const [label, ids] of activeGroups) {
       const items = ids.map(id => filteredMap.get(id)).filter(Boolean) as WodCollection[];
       if (items.length > 0) result.push({ label, items });
     }
-    // Ungrouped collections not in any predefined category
-    const ungrouped = filtered.filter(c => !ASSIGNED.has(c.id));
-    if (ungrouped.length > 0) {
-      const existing = result.find(g => g.label === 'Other');
-      if (existing) existing.items.push(...ungrouped);
-      else result.push({ label: 'Other', items: ungrouped });
+
+    // Ungrouped collections — only show when no category filter is active
+    if (selectedCategories.length === 0) {
+      const ungrouped = filtered.filter(c => !ASSIGNED.has(c.id));
+      if (ungrouped.length > 0) {
+        const existing = result.find(g => g.label === 'Other');
+        if (existing) existing.items.push(...ungrouped);
+        else result.push({ label: 'Other', items: ungrouped });
+      }
     }
+
     return result;
-  }, [filtered]);
+  }, [filtered, selectedCategories]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-card">

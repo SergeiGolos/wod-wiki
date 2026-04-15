@@ -8,9 +8,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { PlusIcon, CalendarIcon, FileTextIcon, PlayIcon, CheckCircleIcon } from 'lucide-react';
+import { PlusIcon, CalendarIcon, FileTextIcon, CheckCircleIcon, ChevronRightIcon, ClockIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FilteredListItem } from './types';
+
+// ── Journal entry summary (note metadata for a given date) ─────────────────
+
+export interface JournalEntrySummary {
+  title: string;
+  updatedAt: number;
+}
 
 // ── Date utilities ─────────────────────────────────────────────────────────
 
@@ -45,6 +52,10 @@ interface JournalDateScrollProps {
   items: FilteredListItem[];
   onSelect: (item: FilteredListItem) => void;
   onCreateEntry: (date: Date) => void;
+  /** Metadata for dates that have an existing journal note. */
+  journalEntries?: Map<string, JournalEntrySummary>;
+  /** Called when the user clicks an existing note card. */
+  onOpenEntry?: (dateKey: string) => void;
   /**
    * Passive anchor: used only to set the initial window on first render.
    * Changing this prop does NOT trigger a scroll.
@@ -56,16 +67,6 @@ interface JournalDateScrollProps {
   className?: string;
 }
 
-// ── Item icon ──────────────────────────────────────────────────────────────
-
-const ItemIcon = ({ type }: { type: FilteredListItem['type'] }) => {
-  switch (type) {
-    case 'note':   return <FileTextIcon className="size-4 text-blue-500" />;
-    case 'block':  return <PlayIcon className="size-4 text-emerald-500" />;
-    case 'result': return <CheckCircleIcon className="size-4 text-purple-500" />;
-  }
-};
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDateScrollProps>(
@@ -74,6 +75,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       items,
       onSelect,
       onCreateEntry,
+      journalEntries,
+      onOpenEntry,
       initialDate,
       onVisibleDateChange,
       stickyOffset = 0,
@@ -411,7 +414,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       [],
     );
 
-    // ── Render ────────────────────────────────────────────────────────────────
+    // ── Render helpers ────────────────────────────────────────────────────────
 
     const todayKey = localDateKey(new Date());
 
@@ -422,7 +425,11 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
         {dates.map(date => {
           const key = localDateKey(date);
           const dayItems = itemsByDate.get(key) ?? [];
+          const dayResults = dayItems.filter(i => i.type === 'result');
+          const noteEntry = journalEntries?.get(key);
           const isToday = key === todayKey;
+          // Show "Add note" ghost when no entry exists: always for today/future, or when past results exist
+          const showAddNote = !noteEntry && (key >= todayKey || dayResults.length > 0);
 
           return (
             <div
@@ -444,51 +451,83 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                 </span>
               </div>
 
-              {/* Entries for this day */}
-              {dayItems.length > 0 && (
-                <div className="divide-y divide-border/50">
-                  {dayItems.map(item => (
-                    <button
-                      key={`${item.type}-${item.id}`}
-                      onClick={() => onSelect(item)}
-                      className="w-full flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors text-left group"
-                    >
-                      <div className="flex-shrink-0 size-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-background transition-colors">
-                        <ItemIcon type={item.type} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <h3 className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
+              <div className="flex flex-col gap-0 pb-1">
+                {/* Note card — links to the journal entry for this date */}
+                {noteEntry ? (
+                  <button
+                    onClick={() => onOpenEntry?.(key)}
+                    className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+                  >
+                    <div className="flex-shrink-0 size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                      <FileTextIcon className="size-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-bold text-foreground truncate">
+                        {noteEntry.title}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground font-medium">Note</p>
+                    </div>
+                    <ChevronRightIcon className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
+                  </button>
+                ) : showAddNote ? (
+                  /* Ghost "Add note" — no entry yet */
+                  <button
+                    data-testid={`add-note-${key}`}
+                    onClick={() => onCreateEntry(date)}
+                    className="flex items-center gap-3 mx-4 mt-2 mb-1 px-4 py-2.5 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-left group"
+                  >
+                    <div className="flex-shrink-0 size-7 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <PlusIcon className="size-3.5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+                    </div>
+                    <span className="text-xs text-muted-foreground/60 group-hover:text-primary transition-colors font-medium">
+                      Add note for {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </button>
+                ) : null}
+
+                {/* Results — each with its recorded time */}
+                {dayResults.length > 0 && (
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2 px-6 pt-2 pb-1">
+                      <div className="h-px flex-1 bg-border/40" />
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
+                        Workouts
+                      </span>
+                      <div className="h-px flex-1 bg-border/40" />
+                    </div>
+                    {dayResults.map(item => (
+                      <button
+                        key={`result-${item.id}`}
+                        onClick={() => onSelect(item)}
+                        className="flex items-center gap-4 px-6 py-3 hover:bg-muted/40 transition-colors text-left group"
+                      >
+                        {/* Time stamp — left column */}
+                        <div className="flex-shrink-0 w-14 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <ClockIcon className="size-2.5 text-muted-foreground/40" />
+                            <span className="text-[10px] font-black text-muted-foreground/60 tabular-nums">
+                              {item.date
+                                ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : '—'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 size-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-background transition-colors">
+                          <CheckCircleIcon className="size-3.5 text-emerald-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-foreground truncate">
                             {item.title}
                           </h3>
-                          {item.date && (
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                              {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                          {item.subtitle && (
+                            <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate font-medium">{item.subtitle}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Ghost "Add note" row — only on today and future dates */}
-              {key >= todayKey && (
-              <button
-                data-testid={`add-note-${key}`}
-                onClick={() => onCreateEntry(date)}
-                className="flex items-center gap-3 mx-4 my-2 px-4 py-2.5 rounded-lg border border-dashed border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all text-left group w-[calc(100%-2rem)]"
-              >
-                <div className="flex-shrink-0 size-7 rounded-md bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <PlusIcon className="size-3.5 text-muted-foreground/60 group-hover:text-primary transition-colors" />
-                </div>
-                <span className="text-xs text-muted-foreground/60 group-hover:text-primary transition-colors font-medium">
-                  Add note for {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                </span>
-              </button>
-              )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
