@@ -55,7 +55,7 @@ export default defineConfig({
   webServer: {
     command: 'bun run storybook',
     url: 'http://localhost:6006',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120 * 1000,
   },
 });

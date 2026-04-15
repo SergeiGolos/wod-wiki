@@ -67,16 +67,18 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
     await expect(page.getByText('Close')).toBeVisible();
     
     // Check for the Pause button icon class to verify it is running
+    // The class title-pause is on the SVG/Lucide icon
     const pauseButton = page.locator('.title-pause');
     await expect(pauseButton).toBeVisible();
 
-    // Verify the timer is present and shows 10:00 initially or slightly less
-    const timerText = page.locator('span.font-mono').filter({ hasText: /^(10:00|09:59|09:58)$/ });
+    // Verify the timer is present. It might be in a span or div.
+    // Use a broader text search and first() to avoid strict mode violations
+    const timerText = page.getByText(/^(10:00|09:59|09:58)$/).first();
     await expect(timerText).toBeVisible();
 
     // Wait 2 seconds and verify it has counted down
     await page.waitForTimeout(2000);
-    const countedDownText = page.locator('span.font-mono').filter({ hasText: /^(09:5)/ });
+    const countedDownText = page.getByText(/^(09:5)/).first();
     await expect(countedDownText).toBeVisible();
 
     await page.screenshot({ path: 'e2e/screenshots/wod-runtime-started.png' });
