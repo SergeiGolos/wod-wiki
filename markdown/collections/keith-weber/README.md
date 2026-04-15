@@ -15,7 +15,7 @@ Keith Weber is a physical therapist and one of the first Russian Kettlebell Chal
 
 Keith's approach combines his physical therapy background with high-intensity kettlebell training, creating workouts that are both challenging and technically sound. His programs emphasize perfect form at high intensity, pushing practitioners to their physical limits while maintaining safety. The Extreme Kettlebell Cardio series features follow-along workouts where Keith demonstrates each exercise and counts off repetitions, making it accessible for home practitioners.
 
----
+{{workouts}}
 
 ## References
 

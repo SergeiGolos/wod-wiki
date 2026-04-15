@@ -366,7 +366,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
             }
           });
 
-          if (suppressReportRef.current) return;
+          if (suppressReportRef.current || !mountScrollDoneRef.current) return;
 
           // Winner = intersecting group whose top is closest to the sticky header bottom
           const threshold = stickyOffset + 8;

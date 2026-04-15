@@ -15,7 +15,7 @@ Steve Cotter is one of the most influential figures in kettlebell education, kno
 
 Steve's approach bridges hardstyle and sport-style kettlebell lifting, teaching practitioners the benefits of both methodologies. His Encyclopedia series contains over 180 techniques across multiple DVDs, representing the most comprehensive visual library of kettlebell movements available. Steve's programs are designed for everyone from beginners learning their first swing to competitive athletes preparing for kettlebell sport competition.
 
----
+{{workouts}}
 
 ## References
 

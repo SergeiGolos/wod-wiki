@@ -15,7 +15,7 @@ Mark Wildman is a celebrity trainer based in Los Angeles who specializes in heav
 
 Mark's programming philosophy is built around the "Tetris of Training" concept - a systematic approach to organizing workouts that balances heavy and light days, different movement patterns, and progressive overload. His programs are designed for longevity, teaching practitioners to train sustainably rather than constantly pushing to failure. The emphasis on heavy club training alongside kettlebells provides unique benefits for shoulder health and rotational power.
 
----
+{{workouts}}
 
 ## References
 

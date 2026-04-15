@@ -15,7 +15,7 @@ StrongFirst is the premier kettlebell certification and training organization fo
 
 The StrongFirst philosophy is built around several key principles: intra-abdominal pressure for spinal stability, biomechanical breathing match (exhaling on effort), irradiation (radiating tension throughout the body), and the concept of "greasing the groove" - practicing skills frequently with fresh neural pathways rather than training to failure. Their programming is designed to be sustainable, leaving the practitioner with energy for their primary sport, profession, and daily responsibilities while still building impressive strength and conditioning.
 
----
+{{workouts}}
 
 ## References
 
