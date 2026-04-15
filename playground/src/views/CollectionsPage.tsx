@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FolderIcon, ChevronRightIcon } from 'lucide-react';
 import { getWodCollections, type WodCollection } from '@/repositories/wod-collections';
 import { useCollectionsQueryState } from '../hooks/useCollectionsQueryState';
-import { COLLECTION_GROUPS, ASSIGNED } from '../config/collectionGroups';
+import { getCategoryGroups, getAssignedIds } from '../config/collectionGroups';
 
 /** Special collection link component — navigates to the collection canvas route */
 function CollectionLink({ collection }: { collection: WodCollection }) {
@@ -45,23 +45,27 @@ export function CollectionsPage() {
   }, [allCollections, text]);
 
   const grouped = useMemo(() => {
+    const categoryGroups = getCategoryGroups()
+    const assignedIds = getAssignedIds()
     const filteredMap = new Map(filtered.map(c => [c.id, c]));
     const result: { label: string; items: WodCollection[] }[] = [];
 
-    const activeGroups = selectedCategories.length > 0
-      ? Object.entries(COLLECTION_GROUPS).filter(([label]) =>
-          selectedCategories.includes(label.toLowerCase()),
-        )
-      : Object.entries(COLLECTION_GROUPS);
+    const activeCategories = selectedCategories.length > 0
+      ? selectedCategories
+      : Object.keys(categoryGroups);
 
-    for (const [label, ids] of activeGroups) {
-      const items = ids.map(id => filteredMap.get(id)).filter(Boolean) as WodCollection[];
-      if (items.length > 0) result.push({ label, items });
+    for (const cat of activeCategories) {
+      const ids = categoryGroups[cat] ?? []
+      const items = ids.map(id => filteredMap.get(id)).filter(Boolean) as WodCollection[]
+      if (items.length > 0) {
+        const label = cat.charAt(0).toUpperCase() + cat.slice(1)
+        result.push({ label, items })
+      }
     }
 
     // Ungrouped collections — only show when no category filter is active
     if (selectedCategories.length === 0) {
-      const ungrouped = filtered.filter(c => !ASSIGNED.has(c.id));
+      const ungrouped = filtered.filter(c => !assignedIds.has(c.id));
       if (ungrouped.length > 0) {
         const existing = result.find(g => g.label === 'Other');
         if (existing) existing.items.push(...ungrouped);

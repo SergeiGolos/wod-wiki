@@ -1,5 +1,9 @@
 ---
 template: canvas
+collection: true
+category:
+  - crossfit
+  - competition
 ---
 # CrossFit Games 2024
 

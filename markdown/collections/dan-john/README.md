@@ -1,5 +1,9 @@
 ---
 template: canvas
+collection: true
+category:
+  - kettlebell
+  - strength
 ---
 # Dan John Kettlebell Workouts
 

@@ -114,6 +114,55 @@ function formatTime(ts: number): string {
     });
 }
 
+// ── Badge Widget (Top) ──────────────────────────────────────────────
+
+class WodResultsBadgeWidget extends WidgetType {
+  constructor(
+    readonly sectionId: string,
+    readonly count: number,
+    readonly expanded: boolean
+  ) {
+    super();
+  }
+
+  eq(other: WodResultsBadgeWidget): boolean {
+    return (
+      other.sectionId === this.sectionId &&
+      other.count === this.count &&
+      other.expanded === this.expanded
+    );
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `cm-wod-results-badge ${this.expanded ? "is-expanded" : ""}`;
+    btn.title = this.expanded ? "Hide results" : "Show results";
+
+    const icon = document.createElement("span");
+    icon.className = "cm-wod-results-badge-icon";
+    // Lucide "history" icon
+    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>`;
+
+    const text = document.createElement("span");
+    text.className = "cm-wod-results-badge-text";
+    text.textContent = String(this.count);
+
+    btn.appendChild(icon);
+    btn.appendChild(text);
+
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      view.dispatch({
+        effects: toggleWodResults.of({ sectionId: this.sectionId }),
+      });
+    };
+
+    return btn;
+  }
+}
+
 // ── Table Widget (Bottom) ───────────────────────────────────────────
 
 class WodResultsBarWidget extends WidgetType {
@@ -200,7 +249,16 @@ function _buildResultsDecorations(state: EditorState): DecorationSet {
     const doc = state.doc;
     const isExpanded = expandedSet.has(section.id);
 
-    // 1. Results Table (at the bottom of the content)
+    // 1. Header Badge (at the end of the opening ```wod line)
+    const headerLine = doc.line(section.startLine);
+    decos.push(
+      Decoration.widget({
+        widget: new WodResultsBadgeWidget(section.id, results.length, isExpanded),
+        side: 1,
+      }).range(headerLine.to),
+    );
+
+    // 2. Results Table (at the bottom of the content)
     if (section.endLine > doc.lines) continue;
     const anchorPos = section.contentTo ?? doc.line(section.endLine).from - 1;
     if (anchorPos < 0 || anchorPos > doc.length) continue;
@@ -237,13 +295,43 @@ export const wodResultsDecorations = StateField.define<DecorationSet>({
 // ── Theme ─────────────────────────────────────────────────────────────
 
 export const wodResultsTheme = EditorView.baseTheme({
+  ".cm-wod-results-badge": {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    marginLeft: "8px",
+    padding: "0 6px",
+    height: "18px",
+    borderRadius: "4px",
+    fontSize: "10px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    border: "1px solid hsl(var(--primary) / 0.2)",
+    background: "hsl(var(--primary) / 0.1)",
+    color: "hsl(var(--primary))",
+    verticalAlign: "middle",
+  },
+  ".cm-wod-results-badge:hover": {
+    background: "hsl(var(--primary) / 0.2)",
+  },
+  ".cm-wod-results-badge.is-expanded": {
+    background: "hsl(var(--primary))",
+    color: "hsl(var(--primary-foreground))",
+    borderColor: "hsl(var(--primary))",
+  },
+  ".cm-wod-results-badge-icon": {
+    display: "flex",
+    alignItems: "center",
+    opacity: "0.8",
+  },
   ".cm-wod-results-inlay": {
     padding: "0",
   },
   ".cm-wod-results-separator": {
     height: "1px",
     margin: "4px 8px 2px",
-    background: "rgba(128, 128, 128, 0.15)",
+    background: "hsl(var(--border) / 0.15)",
   },
 });
 

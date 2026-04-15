@@ -1,5 +1,10 @@
 ---
 template: canvas
+collection: true
+category:
+  - kettlebell
+  - sport
+  - competition
 ---
 # Girevoy Sport (Kettlebell Sport) Workouts
 

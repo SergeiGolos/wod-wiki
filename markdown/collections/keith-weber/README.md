@@ -1,5 +1,9 @@
 ---
 template: canvas
+collection: true
+category:
+  - kettlebell
+  - cardio
 ---
 # Keith Weber Kettlebell Workouts
 
