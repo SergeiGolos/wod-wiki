@@ -6,7 +6,7 @@ name: test-report
 on:
   workflow_call:
 
-# Needs write access to post PR comments and upload artifacts
+# Needs write access to post PR comments and upload check runs
 permissions:
   contents: read
   pull-requests: write
@@ -31,26 +31,24 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # bun test supports --reporter=junit natively
-      - name: Run unit tests (with JUnit output)
+      - name: Run unit tests
         run: |
           mkdir -p test-results
-          bun test src \
-            --preload ./tests/unit-setup.ts \
-            --reporter=junit \
-            --reporter-outfile=test-results/unit-junit.xml
+          bun test src --preload ./tests/unit-setup.ts \
+            --reporter=junit --reporter-outfile=test-results/unit-junit.xml
         continue-on-error: true
 
+      # mikepenz reads directly from the filesystem (dorny uses git-tracked files)
       - name: Publish unit test results
-        uses: dorny/test-reporter@v2
+        uses: mikepenz/action-junit-report@v5
         if: always()
         with:
-          name: "Unit Tests"
-          path: "test-results/unit-junit.xml"
-          reporter: java-junit
-          fail-on-error: false
+          check_name: "Unit Tests"
+          report_paths: "test-results/unit-junit.xml"
+          fail_on_failure: false
+          require_tests: false
 
-      - name: Run unit tests with coverage (for artifact)
+      - name: Run coverage (for artifact)
         run: bun run test:coverage
         continue-on-error: true
 
@@ -80,7 +78,7 @@ jobs:
       - name: Install Playwright browsers
         run: bun x playwright install --with-deps chromium
 
-      # vitest.storybook.config.js emits test-results/storybook-junit.xml when CI=true
+      # CI=true triggers the JUnit reporter in vitest.storybook.config.js
       - name: Run story tests
         run: |
           mkdir -p test-results
@@ -90,13 +88,13 @@ jobs:
           CI: true
 
       - name: Publish story test results
-        uses: dorny/test-reporter@v2
+        uses: mikepenz/action-junit-report@v5
         if: always()
         with:
-          name: "Story Tests"
-          path: "test-results/storybook-junit.xml"
-          reporter: java-junit
-          fail-on-error: false
+          check_name: "Story Tests"
+          report_paths: "test-results/storybook-junit.xml"
+          fail_on_failure: false
+          require_tests: false
 
   e2e:
     name: E2E Acceptance Tests
@@ -126,7 +124,7 @@ jobs:
       - name: Wait for Storybook
         run: bun x wait-on http://localhost:6006 --timeout 30000
 
-      # playwright.config.ts emits test-results/e2e-junit.xml and github annotations when CI=true
+      # playwright.config.ts emits test-results/e2e-junit.xml when CI=true
       - name: Run E2E tests
         run: |
           mkdir -p test-results e2e/screenshots
@@ -154,13 +152,13 @@ jobs:
           retention-days: 14
 
       - name: Publish E2E test results
-        uses: dorny/test-reporter@v2
+        uses: mikepenz/action-junit-report@v5
         if: always()
         with:
-          name: "E2E Tests"
-          path: "test-results/e2e-junit.xml"
-          reporter: java-junit
-          fail-on-error: false
+          check_name: "E2E Tests"
+          report_paths: "test-results/e2e-junit.xml"
+          fail_on_failure: false
+          require_tests: false
 
   pr-comment:
     name: Post PR Summary
