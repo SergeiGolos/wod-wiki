@@ -884,6 +884,7 @@ function JournalPage({
           theme={theme}
           showLineNumbers={false}
           onBlocksChange={setWodBlocks_jp}
+          extendedResults={results}
         />
       }
       timerOverlay={

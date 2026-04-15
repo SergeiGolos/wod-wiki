@@ -26,10 +26,10 @@ import type { WodCommand } from "./WodCommand";
 import { useWodBlockResults } from "../hooks/useWodBlockResults";
 import { useWodLineResults } from "../hooks/useWodLineResults";
 import type { LineExecutionSummary } from "../hooks/useWodLineResults";
-import { History, ExternalLink, Activity, ChevronDown, ChevronUp } from "lucide-react";
+import { History, ExternalLink, Activity } from "lucide-react";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
-import { toggleWodResults, wodResultsExpandedField } from "../extensions/wod-results-widget";
+import { wodResultsField } from "../extensions/wod-results-widget";
 
 // ── Singleton parser (created once per module) ───────────────────────
 const parser = new MdTimerRuntime();
@@ -363,45 +363,6 @@ const ResultLine: React.FC<{
   );
 };
 
-// ── ResultsBadge ──────────────────────────────────────────────────────
-
-const ResultsBadge: React.FC<{
-  count: number;
-  sectionId: string;
-  view: EditorView;
-}> = ({ count, sectionId, view }) => {
-  const expandedSet = view.state.field(wodResultsExpandedField);
-  const isExpanded = expandedSet.has(sectionId);
-
-  const toggle = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    view.dispatch({
-      effects: toggleWodResults.of({ sectionId }),
-    });
-  };
-
-  return (
-    <button
-      onClick={toggle}
-      className={cn(
-        "flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium transition-all shadow-sm border",
-        isExpanded
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-      )}
-    >
-      <History className="h-3 w-3" />
-      <span>{count}</span>
-      {isExpanded ? (
-        <ChevronUp className="h-2.5 w-2.5 opacity-70" />
-      ) : (
-        <ChevronDown className="h-2.5 w-2.5 opacity-70" />
-      )}
-    </button>
-  );
-};
-
 // ── Main component ───────────────────────────────────────────────────
 
 export interface WodCompanionProps {
@@ -537,7 +498,10 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
         <div className="flex items-center gap-1.5">
           {results.length > 0 && (
             <>
-              <ResultsBadge count={results.length} sectionId={sectionId} view={view} />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 shadow-sm">
+                <History className="h-3 w-3" />
+                <span>{results.length}</span>
+              </div>
               <div className="h-3 w-[1px] bg-border/40 mx-0.5" />
             </>
           )}
