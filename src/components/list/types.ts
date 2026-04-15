@@ -1,4 +1,5 @@
 import type React from 'react';
+import type { INavAction } from '@/nav/navTypes';
 
 /**
  * Shared view-model for any selectable list item.
@@ -31,33 +32,45 @@ export interface IListItem<TPayload = unknown> {
   isDisabled?: boolean;
   /** Strongly-typed original domain object — never cast to unknown */
   payload: TPayload;
+  /**
+   * Item-owned actions. Escape hatch for when actions are naturally
+   * part of the domain object (e.g. from adapters). Host-provided
+   * `actions(item)` is merged on top at render time.
+   *
+   * 0 actions = host `onSelect` is the only interaction.
+   * ≥1 actions = shown as buttons; `isPrimary` action fires on keyboard Enter.
+   */
+  actions?: IItemAction[];
 }
 
 /**
  * A single action that can be performed on a list item.
- * Actions are supplied by the host via an `actions` prop, not stored on items,
- * so they can depend on ambient state/permissions.
+ *
+ * Uses `INavAction` so actions compose with the app's navigation system —
+ * route changes, callbacks, pipelines — without raw `onClick` coupling.
+ * Actions are payload-independent; handlers capture context via closure.
  */
-export interface IItemAction<TPayload = unknown> {
+export interface IItemAction {
   id: string;
   label: string;
   icon?: React.ReactNode;
-  /** Render as the primary (filled) call-to-action */
+  /** Render as the primary call-to-action; also triggered by keyboard Enter. */
   isPrimary?: boolean;
-  onClick: (item: IListItem<TPayload>) => void;
-  /** Optional secondary split-action (e.g. copy-to-clipboard) */
-  splitIcon?: React.ReactNode;
-  onSplitClick?: (item: IListItem<TPayload>) => void | Promise<void>;
+  action: INavAction;
 }
 
 /**
  * Context passed to renderItem overrides so custom renderers can access
  * the host's state without prop-drilling.
  */
-export interface ListItemContext<TPayload = unknown> {
+export interface ListItemContext {
   isSelected: boolean;
   isActive: boolean;
   depth: number;
-  actions: IItemAction<TPayload>[];
+  /** Merged item-owned + host-provided actions */
+  actions: IItemAction[];
+  /** Fires when item is activated with no primary action (row click / keyboard Enter) */
   onSelect: () => void;
+  /** Execute a nav action using surface-injected deps (navigate, setQueryParam, etc.) */
+  executeAction: (action: INavAction) => void;
 }

@@ -2,7 +2,8 @@
  * useWodCollections — React hook for accessing WOD collections
  * derived from markdown/collections/ subdirectories.
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useQueryState } from 'nuqs';
 import { getWodCollections, getWodCollection } from '@/repositories/wod-collections';
 import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
 
@@ -23,7 +24,10 @@ export interface UseWodCollectionsReturn {
 
 export function useWodCollections(): UseWodCollectionsReturn {
     const collections = useMemo(() => getWodCollections(), []);
-    const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+    const [activeCollectionId, setActiveCollectionId] = useQueryState('col', {
+        defaultValue: null,
+        clearOnDefault: true,
+    });
 
     const activeCollection = useMemo(() => {
         if (!activeCollectionId) return null;

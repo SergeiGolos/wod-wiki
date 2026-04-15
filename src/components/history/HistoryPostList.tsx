@@ -77,7 +77,7 @@ export const HistoryPostList: React.FC<HistoryPostListProps> = ({
     isActive: entry.id === activeEntryId,
   }));
 
-  const renderItem = (item: IListItem<HistoryEntry>, _ctx: ListItemContext<HistoryEntry>) => {
+  const renderItem = (item: IListItem<HistoryEntry>, _ctx: ListItemContext) => {
     const entry = item.payload;
     const isSelected = selectedIds.has(entry.id);
     const isActive = entry.id === activeEntryId;

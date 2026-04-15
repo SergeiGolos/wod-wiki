@@ -33,6 +33,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
+import { PlayIcon } from '@heroicons/react/20/solid';
 import type { PageNavLink } from '@/components/playground/PageNavDropdown';
 import type { DocsSection } from './types';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
@@ -259,7 +260,7 @@ export function CanvasPage({
 
   // ── Title-bar mode render ──────────────────────────────────────────────
   return (
-    <div className={cn('relative flex w-full min-h-screen justify-center items-start', className)}>
+    <div className={cn('relative flex w-full min-h-screen justify-start items-start', className)}>
       <div className={cn(
         'flex flex-col flex-1 min-w-0 3xl:max-w-7xl min-h-screen lg:rounded-[2.5rem]',
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
@@ -301,18 +302,30 @@ export function CanvasPage({
           </div>
           <nav className="flex flex-col gap-1 border-l border-border/40 ml-1">
             {index.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => scrollToSection(link.id)}
-                className={cn(
-                  'text-left px-4 py-2 text-sm transition-all border-l -ml-px',
-                  activeId === link.id
-                    ? 'font-bold text-foreground border-primary'
-                    : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border',
+              <div key={link.id} className="flex items-center group -ml-px">
+                <button
+                  onClick={() => { if (link.type !== 'wod') scrollToSection(link.id) }}
+                  className={cn(
+                    'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
+                    link.type === 'wod'
+                      ? 'text-muted-foreground/70 border-transparent pl-6 text-xs cursor-default'
+                      : activeId === link.id
+                        ? 'font-bold text-foreground border-primary'
+                        : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
+                  )}
+                >
+                  {link.label}
+                </button>
+                {link.onRun && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); link.onRun?.(); }}
+                    title="View workout"
+                    className="opacity-0 group-hover:opacity-100 mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all"
+                  >
+                    <PlayIcon className="size-3.5" />
+                  </button>
                 )}
-              >
-                {link.label}
-              </button>
+              </div>
             ))}
           </nav>
         </aside>

@@ -40,7 +40,6 @@ export const initialNavState: NavState = {
   expandedIds: new Set(),
   journalFilter: { selectedDate: null, selectedTags: [] },
   searchFilter: { scope: 'all' },
-  collectionsFilter: { categories: [] },
 }
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
@@ -63,8 +62,6 @@ export function navReducer(state: NavState, action: NavStateAction): NavState {
       return { ...state, journalFilter: { ...state.journalFilter, selectedTags: action.tags } }
     case 'SET_SEARCH_SCOPE':
       return { ...state, searchFilter: { scope: action.scope } }
-    case 'SET_COLLECTIONS_CATEGORIES':
-      return { ...state, collectionsFilter: { categories: action.categories } }
     default:
       return state
   }

@@ -65,9 +65,9 @@ export const Grouped: ListStory = {
 
 export const WithActions: ListStory = {
   render: () => {
-    const actions = (_item: IListItem<{ wod: string }>): IItemAction<{ wod: string }>[] => [
-      { id: 'edit', label: 'Edit', icon: <Edit2 className="w-3 h-3" />, onClick: i => alert(`Edit ${i.label}`) },
-      { id: 'run', label: 'Run', icon: <Play className="w-3 h-3" />, isPrimary: true, onClick: i => alert(`Run ${i.label}`) },
+    const actions = (_item: IListItem<{ wod: string }>): IItemAction[] => [
+      { id: 'edit', label: 'Edit', icon: <Edit2 className="w-3 h-3" />, action: { type: 'call', handler: () => alert(`Edit`) } },
+      { id: 'run', label: 'Run', icon: <Play className="w-3 h-3" />, isPrimary: true, action: { type: 'call', handler: () => alert(`Run`) } },
     ];
     return (
       <div className="w-72 border border-zinc-200 rounded-lg overflow-hidden">

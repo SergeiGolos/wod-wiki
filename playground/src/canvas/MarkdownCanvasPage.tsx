@@ -34,6 +34,7 @@ import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
 import { CollectionWorkoutsList } from '../views/queriable-list/CollectionWorkoutsList'
+import { getCategoryForCollection } from '../config/collectionGroups'
 
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
@@ -244,14 +245,18 @@ export interface MarkdownCanvasPageProps {
   theme: string
   workoutItems?: WorkoutItem[]
   onSelect?: (item: WorkoutItem) => void
+  onClone?: (item: WorkoutItem, date: Date) => void
 }
 
-export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: MarkdownCanvasPageProps) {
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, onClone }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 
   const isCollection = route.startsWith('/collections/')
   const collectionSlug = isCollection ? route.split('/').pop() : null
+
+  // Check if any section has the {{workouts}} tag
+  const hasWorkoutsTag = sections.some(s => s.prose.includes('{{workouts}}'))
 
   // Hero = first section; content = the rest (observed by IntersectionObserver)
   const contentSections = sections.slice(1)
@@ -613,6 +618,23 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           <div className={cn('w-full', viewDef && 'lg:w-[40%]')}>
             {mobilePanel}
 
+            {/* Category chip — collection detail pages only */}
+            {isCollection && collectionSlug && (() => {
+              const category = getCategoryForCollection(collectionSlug)
+              if (!category) return null
+              const slug = category.toLowerCase()
+              return (
+                <div className="px-6 lg:px-12 pt-6 pb-0">
+                  <button
+                    onClick={() => navigate(`/collections?categories=${slug}`)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    {category}
+                  </button>
+                </div>
+              )
+            })()}
+
             {contentSections.map((section, idx) => {
               const fullBleed = isFullBleed(section)
               const dark      = isDark(section)
@@ -656,11 +678,31 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                     </h2>
 
                     {section.prose && (
-                      viewDef
-                        ? <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
-                            {section.prose}
-                          </p>
-                        : <CanvasProse prose={section.prose} className="mb-6" />
+                      (() => {
+                        if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
+                          const parts = section.prose.split('{{workouts}}')
+                          return (
+                            <>
+                              {parts[0] && <CanvasProse prose={parts[0]} className="mb-6" />}
+                              <div className="h-[600px] flex flex-col mb-6">
+                                <CollectionWorkoutsList
+                                  category={collectionSlug}
+                                  workoutItems={workoutItems}
+                                  onSelect={onSelect ?? (() => {})}
+                                  onClone={onClone}
+                                />
+                              </div>
+                              {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
+                            </>
+                          )
+                        }
+                        
+                        return viewDef
+                          ? <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
+                              {section.prose}
+                            </p>
+                          : <CanvasProse prose={section.prose} className="mb-6" />
+                      })()
                     )}
 
                     <SectionButtons
@@ -674,9 +716,12 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
               )
             })}
 
-            {/* Collection workouts list if applicable */}
-            {isCollection && collectionSlug && workoutItems && (
-              <div className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50">
+            {/* Collection workouts list fallback if tag not found in any section */}
+            {isCollection && !hasWorkoutsTag && collectionSlug && workoutItems && (
+              <div 
+                id="collection-workouts"
+                className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50"
+              >
                 <div className="max-w-sm mb-12">
                   <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
                     Explore
@@ -694,6 +739,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                     category={collectionSlug}
                     workoutItems={workoutItems}
                     onSelect={onSelect ?? (() => {})}
+                    onClone={onClone}
                   />
                 </div>
               </div>

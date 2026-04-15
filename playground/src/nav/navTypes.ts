@@ -64,11 +64,6 @@ export interface SearchFilterState {
   scope: 'all' | 'collections' | 'notes' | 'results'
 }
 
-export interface CollectionsFilterState {
-  /** Active category slugs e.g. ['kettlebell'] */
-  categories: string[]
-}
-
 // ─── Global nav state ─────────────────────────────────────────────────────────
 
 export interface NavState {
@@ -81,7 +76,6 @@ export interface NavState {
   expandedIds: Set<string>
   journalFilter: JournalFilterState
   searchFilter: SearchFilterState
-  collectionsFilter: CollectionsFilterState
 }
 
 // ─── Dispatch ─────────────────────────────────────────────────────────────────
@@ -96,7 +90,6 @@ export type NavStateAction =
   | { type: 'SET_JOURNAL_DATE';            date: string | null }
   | { type: 'SET_JOURNAL_TAGS';            tags: string[] }
   | { type: 'SET_SEARCH_SCOPE';            scope: SearchFilterState['scope'] }
-  | { type: 'SET_COLLECTIONS_CATEGORIES';  categories: string[] }
 
 export type NavDispatch = React.Dispatch<NavStateAction>
 

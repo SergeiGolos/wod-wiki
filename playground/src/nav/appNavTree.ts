@@ -26,7 +26,6 @@ import type { Location } from 'react-router-dom'
 
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
-import { SearchNavPanel }      from './panels/SearchNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -72,7 +71,14 @@ const homeChildren: NavItem[] = [
 
 // ─── App nav tree ─────────────────────────────────────────────────────────────
 
-export const appNavTree: NavItem[] = [
+/**
+ * Build the application navigation tree.
+ *
+ * @param openSearch - callback invoked when the Search item is activated
+ *   (sidebar click, keyboard shortcut). Replaces the old /search route.
+ */
+export function buildAppNavTree(openSearch: () => void): NavItem[] {
+  return [
   {
     id: 'home',
     label: 'Home',
@@ -113,8 +119,12 @@ export const appNavTree: NavItem[] = [
     label: 'Search',
     level: 1,
     icon: MagnifyingGlassIcon,
-    action: { type: 'route', to: '/search' },
-    isActive: isRouteActive('/search'),
-    panel: SearchNavPanel,
+    action: { type: 'call', handler: openSearch },
+    // Never marks a route as active — palette is modal, not a page
+    isActive: (_loc: Location) => false,
   },
 ]
+}
+
+/** Static default tree (no search handler) — kept for tests / storybook. */
+export const appNavTree: NavItem[] = buildAppNavTree(() => {})

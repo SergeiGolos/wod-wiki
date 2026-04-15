@@ -1,14 +1,17 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useListState } from './useListState';
 import { DefaultListItem } from './DefaultListItem';
+import { executeNavAction } from '@/nav/navTypes';
+import type { NavActionDeps } from '@/nav/navTypes';
 import type { IListItem, IItemAction, ListItemContext } from './types';
 
 export interface ListViewProps<TPayload> {
   items: IListItem<TPayload>[];
   onSelect?: (item: IListItem<TPayload>) => void;
-  /** Derive per-item actions from the host — keeps domain objects free of UI concerns */
-  actions?: (item: IListItem<TPayload>) => IItemAction<TPayload>[];
+  /** Derive per-item actions from the host — merged with item.actions at render time */
+  actions?: (item: IListItem<TPayload>) => IItemAction[];
   /** Render items grouped by item.group */
   grouped?: boolean;
   /** Show a search/filter input above the list */
@@ -16,7 +19,7 @@ export interface ListViewProps<TPayload> {
   /** Allow multi-select via ctrl/shift click */
   multi?: boolean;
   /** Override item renderer */
-  renderItem?: (item: IListItem<TPayload>, ctx: ListItemContext<TPayload>) => React.ReactNode;
+  renderItem?: (item: IListItem<TPayload>, ctx: ListItemContext) => React.ReactNode;
   /** Shown when visibleItems is empty */
   emptyState?: React.ReactNode;
   /** Slot rendered above the list (outside scroll area) */
@@ -40,7 +43,40 @@ export function ListView<TPayload>({
   className,
 }: ListViewProps<TPayload>) {
   const listRef = useRef<HTMLDivElement>(null);
-  const state = useListState({ items, multi, onSelect });
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const navDeps: NavActionDeps = useMemo(() => ({
+    navigate: (to, opts) => navigate(to, opts),
+    setQueryParam: (params, replace) => {
+      const sp = new URLSearchParams(searchParams);
+      Object.entries(params).forEach(([k, v]) => {
+        if (v === null) sp.delete(k); else sp.set(k, v);
+      });
+      setSearchParams(sp, { replace });
+    },
+  }), [navigate, searchParams, setSearchParams]);
+
+  const execAction = useCallback(
+    (action: Parameters<typeof executeNavAction>[0]) => executeNavAction(action, navDeps),
+    [navDeps],
+  );
+
+  /** Activation: execute primary action if present, otherwise fire host onSelect */
+  const handleActivate = useCallback(
+    (item: IListItem<TPayload>) => {
+      const allActions = [...(item.actions ?? []), ...(actions?.(item) ?? [])];
+      const primary = allActions.find(a => a.isPrimary);
+      if (primary) {
+        execAction(primary.action);
+      } else {
+        onSelect?.(item);
+      }
+    },
+    [actions, onSelect, execAction],
+  );
+
+  const state = useListState({ items, multi, onSelect: handleActivate });
 
   // Auto-scroll active item into view
   useEffect(() => {
@@ -50,13 +86,14 @@ export function ListView<TPayload>({
   }, [autoScroll, state.activeId]);
 
   function renderListItem(item: IListItem<TPayload>) {
-    const itemActions = actions?.(item) ?? [];
-    const ctx: ListItemContext<TPayload> = {
+    const itemActions: IItemAction[] = [...(item.actions ?? []), ...(actions?.(item) ?? [])];
+    const ctx: ListItemContext = {
       isSelected: state.selectedIds.has(item.id),
       isActive: state.activeId === item.id,
       depth: item.depth ?? 0,
       actions: itemActions,
       onSelect: () => state.selectItem(item),
+      executeAction: execAction,
     };
 
     return (

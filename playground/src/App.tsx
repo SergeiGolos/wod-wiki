@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import type { MutableRefObject } from 'react'
 import * as Headless from '@headlessui/react'
 
 import {
@@ -15,7 +16,7 @@ import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/pl
 import { NavProvider } from './nav/NavContext'
 import { useNav } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
-import { appNavTree } from './nav/appNavTree'
+import { buildAppNavTree } from './nav/appNavTree'
 import type { NavItemL3 } from './nav/navTypes'
 import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
@@ -50,7 +51,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useS
 import { HomeView } from './views/HomeView'
 import { findCanvasPage } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
-import { JournalWeeklyPage, SearchPage } from './views/ListViews'
+import { JournalWeeklyPage } from './views/ListViews'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
@@ -67,7 +68,8 @@ import type { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
 import { 
-  createStatementBuilderStrategy 
+  createStatementBuilderStrategy,
+  createGlobalSearchStrategy,
 } from './services/commandStrategies'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
@@ -95,111 +97,28 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
-// ── New Journal Entry Split Button ─────────────────────────────────
+import { WorkoutActionButton } from '@/components/workout/WorkoutActionButton'
+
+// ── New Journal Entry Button ───────────────────────────────────────
 
 function NewEntryButton() {
   const navigate = useNavigate()
-  const [conflictIso, setConflictIso] = useState<string | null>(null)
-
-  const todayISO = () => new Date().toISOString().slice(0, 10)
-
-  const offsetISO = (days: number) => {
-    const d = new Date()
-    d.setDate(d.getDate() + days)
-    return d.toISOString().slice(0, 10)
-  }
-
-  const [selectedIso, setSelectedIso] = useState(todayISO)
-
-  const formatLabel = (iso: string) => {
-    const today = todayISO()
-    const yesterday = offsetISO(-1)
-    const tomorrow = offsetISO(1)
-    if (iso === today) return 'Today'
-    if (iso === yesterday) return 'Yesterday'
-    if (iso === tomorrow) return 'Tomorrow'
-    // Short date: "Mar 25"
-    return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  }
-
-  const pick = async (iso: string) => {
-    setSelectedIso(iso)
-    const pageId = PlaygroundDBService.pageId('journal', iso)
-    const existing = await playgroundDB.getPage(pageId)
-    if (existing) {
-      setConflictIso(iso)
-      return
-    }
-    navigate(`/journal/${iso}`)
-  }
-
-  const handleOpenExisting = () => {
-    if (!conflictIso) return
-    const iso = conflictIso
-    setConflictIso(null)
-    navigate(`/journal/${iso}`)
-  }
-
-  const handleCreateNew = () => {
-    if (!conflictIso) return
-    const iso = conflictIso
-    const now = new Date()
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const uniqueId = `${iso}-${pad(now.getHours())}-${pad(now.getMinutes())}`
-    setConflictIso(null)
-    navigate(`/journal/${uniqueId}`)
+  
+  const pick = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    navigate(`/journal/${y}-${m}-${d}`)
   }
 
   return (
-    <>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => pick(selectedIso)}
-          aria-label={`New journal entry for ${selectedIso}`}
-          className="gap-1.5 text-xs font-semibold"
-        >
-          <PlusIcon className="size-4 shrink-0" />
-          <span className="hidden sm:inline">{formatLabel(selectedIso)}</span>
-        </Button>
-        <Dropdown>
-          <DropdownButton plain aria-label="New entry for a specific date">
-            <CalendarDaysIcon data-slot="icon" className="size-5 text-zinc-500" />
-          </DropdownButton>
-          <DropdownMenu className="min-w-40" anchor="bottom end">
-            <DropdownItem onClick={() => pick(offsetISO(0))}>
-              <DropdownLabel>Today</DropdownLabel>
-            </DropdownItem>
-            <DropdownItem onClick={() => pick(offsetISO(-1))}>
-              <DropdownLabel>Yesterday</DropdownLabel>
-            </DropdownItem>
-            <DropdownItem onClick={() => pick(offsetISO(1))}>
-              <DropdownLabel>Tomorrow</DropdownLabel>
-            </DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
-      </div>
-
-      <Headless.Dialog open={conflictIso !== null} onClose={() => setConflictIso(null)} className="relative z-50">
-        <Headless.DialogBackdrop className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
-        <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Headless.DialogPanel className="bg-card border border-border rounded-2xl shadow-2xl p-6 max-w-xs w-full">
-            <Headless.DialogTitle className="text-xs font-black uppercase tracking-widest text-foreground mb-2">
-              Entry already exists
-            </Headless.DialogTitle>
-            <p className="text-xs text-muted-foreground mb-5">
-              A journal entry for <span className="font-bold text-foreground">{conflictIso}</span> already exists. Open it or create a separate entry timestamped to now?
-            </p>
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleOpenExisting} className="w-full justify-center">Open existing</Button>
-              <Button variant="outline" onClick={handleCreateNew} className="w-full justify-center">Create new entry</Button>
-              <Button variant="ghost" onClick={() => setConflictIso(null)} className="w-full justify-center text-muted-foreground">Cancel</Button>
-            </div>
-          </Headless.DialogPanel>
-        </div>
-      </Headless.Dialog>
-    </>
+    <WorkoutActionButton
+      mode="create"
+      label="New"
+      onAction={pick}
+      variant="ghost"
+      className="h-8"
+    />
   )
 }
 
@@ -433,6 +352,15 @@ function ActionsMenu({
 }) {
   const { theme, setTheme } = useTheme()
   const { l3Items, scrollToSection } = useNav()
+  const [debugMode, setDebugMode] = useState(
+    () => localStorage.getItem('debugMode') === 'true'
+  )
+
+  const handleToggleDebug = () => {
+    const next = !debugMode
+    setDebugMode(next)
+    localStorage.setItem('debugMode', String(next))
+  }
 
   const handleResetData = async () => {
     localStorage.clear()
@@ -477,9 +405,10 @@ function ActionsMenu({
           <ArrowDownTrayIcon data-slot="icon" />
           <DropdownLabel>Download Markdown</DropdownLabel>
         </DropdownItem>
-        <DropdownItem href="#/debug">
+        <DropdownItem onClick={handleToggleDebug}>
           <BugAntIcon data-slot="icon" />
-          <DropdownLabel>Toggle Debug Mode</DropdownLabel>
+          <DropdownLabel>Debug Mode</DropdownLabel>
+          {debugMode && <span className="col-start-5 text-blue-500">✓</span>}
         </DropdownItem>
         <DropdownDivider />
 
@@ -890,7 +819,7 @@ function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: 
   )
 }
 
-function AppContent() {
+function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
   const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
   const location = useLocation()
@@ -949,7 +878,6 @@ function AppContent() {
     const named: Record<string, string> = {
       '/': 'Home',
       '/journal': 'Journal',
-      '/search': 'Search',
       '/getting-started': 'Zero to Hero',
       '/syntax': 'Syntax',
       '/collections': 'Collections',
@@ -977,21 +905,88 @@ function AppContent() {
     refreshResults()
   }, [location.pathname, refreshResults])
 
+  const handleSelectWorkout = useCallback((item: any) => {
+    const workout = item as { name: string; category?: string; content?: string }
+    if (workout.name === 'Home') {
+      navigate('/')
+    } else {
+      const category = workout.category || 'General'
+      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
+    }
+  }, [navigate])
+
+  const handleCloneWorkout = useCallback((item: WorkoutItem, date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const iso = `${y}-${m}-${d}`;
+    const entryId = `journal/${iso}`
+    
+    playgroundDB.savePage({
+      id: entryId,
+      name: item.name,
+      category: 'journal',
+      content: item.content,
+      updatedAt: Date.now()
+    }).then(() => {
+      navigate(`/journal/${iso}`)
+    })
+  }, [navigate])
+
   // Nav links for the current page (used in the sticky header dropdown)
   const currentNavLinks = useMemo((): PageNavLink[] => {
     // 1. Canvas pages (including Home)
     if (canvasPage) {
-      return canvasPage.sections
+      const isCollection = location.pathname.startsWith('/collections/')
+      const collectionSlug = isCollection ? location.pathname.split('/').pop() : null
+      
+      const links: PageNavLink[] = []
+      canvasPage.sections
         .filter(s => s.level > 1)
-        .map(s => ({ id: s.id, label: s.heading, type: 'heading' as const }))
+        .forEach(s => {
+          links.push({ id: s.id, label: s.heading, type: 'heading' as const })
+          
+          if (isCollection && collectionSlug && s.prose.includes('{{workouts}}')) {
+             const collectionItems = workoutItems.filter(item => 
+               item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
+             )
+             collectionItems.forEach(item => {
+               links.push({
+                 id: `workout-${item.id}`,
+                 label: item.name,
+                 type: 'wod' as const,
+                 onRun: () => handleSelectWorkout(item)
+               })
+             })
+          }
+        })
+        
+        // Fallback: if it's a collection but no section has the {{workouts}} tag,
+        // we might still want to list them if they are appended at the bottom.
+        const hasWorkoutsTag = canvasPage.sections.some(s => s.prose.includes('{{workouts}}'))
+        if (isCollection && collectionSlug && !hasWorkoutsTag) {
+          links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
+          const collectionItems = workoutItems.filter(item => 
+            item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
+          )
+          collectionItems.forEach(item => {
+            links.push({
+              id: `workout-${item.id}`,
+              label: item.name,
+              type: 'wod' as const,
+              onRun: () => handleSelectWorkout(item)
+            })
+          })
+        }
+      return links
     }
 
     // 2. Docs pages
     if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
     if (location.pathname === '/syntax') return SYNTAX_LINKS
     
-    // 3. List based pages (Journal, Search)
-    if (location.pathname === '/journal' || location.pathname === '/search') {
+    // 3. Journal list page
+    if (location.pathname === '/journal') {
       const dates = new Set<string>()
       recentResults.forEach(r => {
         const d = new Date(r.completedAt).toISOString().split('T')[0]
@@ -1013,17 +1008,7 @@ function AppContent() {
     }
 
     return []
-  }, [location.pathname, canvasPage, recentResults, workoutItems])
-
-  const handleSelectWorkout = useCallback((item: any) => {
-    const workout = item as { name: string; category?: string; content?: string }
-    if (workout.name === 'Home') {
-      navigate('/')
-    } else {
-      const category = workout.category || 'General'
-      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
-    }
-  }, [navigate])
+  }, [location.pathname, canvasPage, recentResults, workoutItems, handleSelectWorkout])
 
   /**
    * Navigate to a journal entry for the given date.
@@ -1036,6 +1021,19 @@ function AppContent() {
     const d = String(date.getDate()).padStart(2, '0')
     navigate(`/journal/${y}-${m}-${d}`)
   }, [navigate])
+
+  // Open the command palette with the global search strategy
+  const openSearchPalette = useCallback(() => {
+    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate)
+    setStrategy(strategy)
+    setIsCommandPaletteOpen(true)
+  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
+
+  // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
+  // fires the latest callback (workoutItems may change after initial mount).
+  useEffect(() => {
+    searchHandlerRef.current = openSearchPalette
+  }, [openSearchPalette, searchHandlerRef])
 
   // Reset strategy when palette closes
   useEffect(() => {
@@ -1053,7 +1051,7 @@ function AppContent() {
       if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
-        navigate('/search')
+        openSearchPalette()
       }
       // Ctrl/Cmd + .: Statement Builder (Interactive Segments)
       if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
@@ -1077,7 +1075,7 @@ function AppContent() {
     }
     window.addEventListener('keydown', down, true)
     return () => window.removeEventListener('keydown', down, true)
-  }, [navigate, setStrategy, setIsCommandPaletteOpen])
+  }, [openSearchPalette, setStrategy, setIsCommandPaletteOpen])
 
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -1209,7 +1207,7 @@ function AppContent() {
           <NavbarSpacer />
           <NavbarSection>
             <NewEntryButton />
-            <NavbarItem href="/search" aria-label="Search">
+            <NavbarItem onClick={openSearchPalette} aria-label="Search">
               <MagnifyingGlassIcon data-slot="icon" />
             </NavbarItem>
             <div className="flex items-center">
@@ -1241,13 +1239,6 @@ function AppContent() {
                 onCreateEntry={handleCreateJournalEntry}
               />
             </CanvasPage>
-          ) : location.pathname === '/search' ? (
-            <CanvasPage title="Search" subheader={<TextFilterStrip placeholder="Search workouts, results, or notes…" autoFocus />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
-              <SearchPage 
-                workoutItems={workoutItems}
-                onSelect={handleSelectWorkout}
-              />
-            </CanvasPage>
           ) : location.pathname === '/collections' ? (
             <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
@@ -1260,6 +1251,7 @@ function AppContent() {
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
+                onClone={handleCloneWorkout}
               />
             </CanvasPage>
           ) : (
@@ -1315,6 +1307,11 @@ import { NuqsAdapter } from 'nuqs/adapters/react-router'
 import { useQueryState } from 'nuqs'
 
 export function App() {
+  // Stable ref so AppContent can inject its openSearchPalette callback after mount.
+  // The nav tree is built once; the search item calls the ref's current value.
+  const searchHandlerRef = useRef<() => void>(() => {})
+  const navTree = useMemo(() => buildAppNavTree(() => searchHandlerRef.current()), [])
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
       <AudioProvider>
@@ -1322,24 +1319,23 @@ export function App() {
           <NuqsAdapter>
             <ScrollToTop />
             <CommandProvider>
-              <NavProvider tree={appNavTree}>
+              <NavProvider tree={navTree}>
               <Routes>
-                <Route path="/" element={<AppContent />} />
-                <Route path="/getting-started" element={<AppContent />} />
-                <Route path="/syntax" element={<AppContent />} />
-                <Route path="/journal" element={<AppContent />} />
-                <Route path="/search" element={<AppContent />} />
-                <Route path="/collections" element={<AppContent />} />
-                <Route path="/collections/:slug" element={<AppContent />} />
-                <Route path="/workout/:category/:name" element={<AppContent />} />
+                <Route path="/" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/load" element={<LoadZipPage />} />
                 <Route path="/playground" element={<PlaygroundRedirect />} />
-                <Route path="/playground/:id" element={<AppContent />} />
-                <Route path="/note/:category/:name" element={<AppContent />} />
-                <Route path="/journal/:id" element={<AppContent />} />
+                <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
                 <Route path="/review/:runtimeId" element={<ReviewPage />} />
-                <Route path="*" element={<AppContent />} />
+                <Route path="*" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
               </Routes>
               </NavProvider>
             </CommandProvider>

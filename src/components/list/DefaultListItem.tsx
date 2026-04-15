@@ -3,7 +3,7 @@ import type { IListItem, ListItemContext } from './types';
 
 interface DefaultListItemProps<TPayload> {
   item: IListItem<TPayload>;
-  ctx: ListItemContext<TPayload>;
+  ctx: ListItemContext;
 }
 
 function ShortcutBadge({ tokens }: { tokens: string[] }) {
@@ -79,7 +79,7 @@ export function DefaultListItem<TPayload>({ item, ctx }: DefaultListItemProps<TP
               className="rounded p-0.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-600"
               onClick={e => {
                 e.stopPropagation();
-                action.onClick(item);
+                ctx.executeAction(action.action);
               }}
             >
               {action.icon ?? action.label}
@@ -95,7 +95,7 @@ export function DefaultListItem<TPayload>({ item, ctx }: DefaultListItemProps<TP
           className="shrink-0 rounded px-2 py-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           onClick={e => {
             e.stopPropagation();
-            primaryAction.onClick(item);
+            ctx.executeAction(primaryAction.action);
           }}
         >
           {primaryAction.icon ?? primaryAction.label}

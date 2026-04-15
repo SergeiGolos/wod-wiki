@@ -1,8 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useListState } from './useListState';
 import { DefaultListItem } from './DefaultListItem';
+import { executeNavAction } from '@/nav/navTypes';
+import type { NavActionDeps } from '@/nav/navTypes';
 import type { IListItem, IItemAction, ListItemContext } from './types';
 
 export interface CommandListViewProps<TPayload> {
@@ -15,10 +18,10 @@ export interface CommandListViewProps<TPayload> {
   /** Optional custom header rendered below search input (e.g. statement builder) */
   header?: React.ReactNode;
   placeholder?: string;
-  /** Per-item actions */
-  actions?: (item: IListItem<TPayload>) => IItemAction<TPayload>[];
+  /** Per-item actions — merged with item.actions at render time */
+  actions?: (item: IListItem<TPayload>) => IItemAction[];
   /** Override item renderer */
-  renderItem?: (item: IListItem<TPayload>, ctx: ListItemContext<TPayload>) => React.ReactNode;
+  renderItem?: (item: IListItem<TPayload>, ctx: ListItemContext) => React.ReactNode;
   /** Shown when there are no results */
   emptyState?: React.ReactNode;
   className?: string;
@@ -39,7 +42,40 @@ export function CommandListView<TPayload>({
   className,
 }: CommandListViewProps<TPayload>) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const state = useListState({ items, onSelect });
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const navDeps: NavActionDeps = useMemo(() => ({
+    navigate: (to, opts) => navigate(to, opts),
+    setQueryParam: (params, replace) => {
+      const sp = new URLSearchParams(searchParams);
+      Object.entries(params).forEach(([k, v]) => {
+        if (v === null) sp.delete(k); else sp.set(k, v);
+      });
+      setSearchParams(sp, { replace });
+    },
+  }), [navigate, searchParams, setSearchParams]);
+
+  const execAction = useCallback(
+    (action: Parameters<typeof executeNavAction>[0]) => executeNavAction(action, navDeps),
+    [navDeps],
+  );
+
+  /** Activation: execute primary action if present, otherwise fire host onSelect */
+  const handleActivate = useCallback(
+    (item: IListItem<TPayload>) => {
+      const allActions = [...(item.actions ?? []), ...(actions?.(item) ?? [])];
+      const primary = allActions.find(a => a.isPrimary);
+      if (primary) {
+        execAction(primary.action);
+      } else {
+        onSelect(item);
+      }
+    },
+    [actions, onSelect, execAction],
+  );
+
+  const state = useListState({ items, onSelect: handleActivate });
 
   // Focus input when opened
   useEffect(() => {
@@ -107,13 +143,14 @@ export function CommandListView<TPayload>({
                   </div>
                 )}
                 {groupItems.map(item => {
-                  const itemActions = actions?.(item) ?? [];
-                  const ctx: ListItemContext<TPayload> = {
+                  const itemActions: IItemAction[] = [...(item.actions ?? []), ...(actions?.(item) ?? [])];
+                  const ctx: ListItemContext = {
                     isSelected: state.selectedIds.has(item.id),
                     isActive: state.activeId === item.id,
                     depth: item.depth ?? 0,
                     actions: itemActions,
                     onSelect: () => state.selectItem(item),
+                    executeAction: execAction,
                   };
                   return (
                     <div

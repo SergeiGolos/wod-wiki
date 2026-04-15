@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['**/journal-scroll.e2e.ts'],
+  testMatch: ['**/journal-scroll.e2e.ts', '**/journal-entry.e2e.ts'],
 
   timeout: 45 * 1000,
   fullyParallel: false, // scroll tests are sensitive to ordering; run serially

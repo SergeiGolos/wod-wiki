@@ -8,12 +8,14 @@ interface CollectionWorkoutsListProps {
   category: string;
   workoutItems: WorkoutItem[];
   onSelect: (item: WorkoutItem) => void;
+  onClone?: (item: WorkoutItem, date: Date) => void;
 }
 
 export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({ 
   category, 
   workoutItems, 
-  onSelect 
+  onSelect,
+  onClone
 }) => {
   // Filter items to just this collection, excluding README files
   const collectionItems = useMemo(() => 
@@ -25,6 +27,10 @@ export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({
     onSelect(item.payload as WorkoutItem);
   };
 
+  const handleClone = (item: FilteredListItem, date: Date) => {
+    onClone?.(item.payload as WorkoutItem, date);
+  };
+
   return (
     <div className="flex-1 min-h-0 flex flex-col rounded-3xl border border-border bg-card overflow-hidden shadow-2xl shadow-black/5 transition-all hover:border-primary/20">
       <QueriableListView
@@ -32,6 +38,7 @@ export const CollectionWorkoutsList: React.FC<CollectionWorkoutsListProps> = ({
         items={collectionItems}
         results={[]}
         onSelect={handleSelect}
+        onClone={onClone ? handleClone : undefined}
         initialQuery={{}}
         hideBackground
         className="flex-1"
