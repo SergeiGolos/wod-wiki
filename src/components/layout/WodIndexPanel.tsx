@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { DocumentItem } from '../Editor/utils/documentStructure';
-import { Timer, Hash } from 'lucide-react';
+import { Timer, Hash, Play } from 'lucide-react';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface WodIndexPanelProps {
@@ -18,6 +18,9 @@ export interface WodIndexPanelProps {
   
   /** Callback when a block is hovered */
   onBlockHover: (blockId: string | null) => void;
+
+  /** Callback to run a workout block */
+  onRun?: (item: DocumentItem) => void;
 }
 
 /**
@@ -45,6 +48,7 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
   highlightedBlockId,
   onBlockClick,
   onBlockHover,
+  onRun,
 }) => {
   const { isCompact: mobile } = usePanelSize();
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -76,7 +80,7 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
                 key={item.id}
                 ref={(el) => { itemRefs.current[item.id] = el; }}
                 className={`
-                  rounded-md transition-all duration-200
+                  group rounded-md transition-all duration-200
                   ${isActive ? 'ring-1 ring-primary' : ''}
                   ${isHighlighted && !isActive ? 'bg-muted/50' : ''}
                   ${isWod ? 'border border-border bg-card' : 'hover:bg-muted/30'}
@@ -112,16 +116,32 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
                         <span className={`${mobile ? 'text-base' : 'text-sm'} font-medium truncate`}>
                           {getBlockPreview(item.content)}
                         </span>
-                        {item.wodBlock?.state && (
-                          <span className={`
-                            text-[10px] px-1.5 py-0.5 rounded-full ml-2
-                            ${item.wodBlock.state === 'parsed' 
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                              : 'bg-muted text-muted-foreground'}
-                          `}>
-                            {item.wodBlock.state}
-                          </span>
-                        )}
+                        
+                        <div className="flex items-center gap-2">
+                          {item.wodBlock?.state && (
+                            <span className={`
+                              text-[10px] px-1.5 py-0.5 rounded-full
+                              ${item.wodBlock.state === 'parsed' 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                : 'bg-muted text-muted-foreground'}
+                            `}>
+                              {item.wodBlock.state}
+                            </span>
+                          )}
+
+                          {onRun && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRun(item);
+                              }}
+                              className="size-6 rounded flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                              title="Start workout"
+                            >
+                              <Play className="size-3.5 fill-current" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { DocumentItem } from '../Editor/utils/documentStructure';
-import { Dumbbell, Edit2 } from 'lucide-react';
+import { Dumbbell, Edit2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
@@ -61,7 +61,8 @@ const ItemsRenderer: React.FC<{
     activeBlockId?: string;
     onBlockClick?: (item: DocumentItem) => void;
     onBlockHover?: (blockId: string | null) => void;
-}> = ({ items, activeBlockId, onBlockClick, onBlockHover }) => (
+    onStartWorkout?: (blockId: string) => void;
+}> = ({ items, activeBlockId, onBlockClick, onBlockHover, onStartWorkout }) => (
     <div className="flex flex-col">
         {items.map((item) => {
             const isActive = item.id === activeBlockId;
@@ -69,7 +70,7 @@ const ItemsRenderer: React.FC<{
                 <div
                     key={item.id}
                     className={cn(
-                        "px-4 py-2 cursor-pointer transition-colors border-b border-border/50",
+                        "group px-4 py-2 cursor-pointer transition-colors border-b border-border/50",
                         "hover:bg-accent/50",
                         isActive && "bg-accent border-l-2 border-l-primary",
                         item.type === 'wod' && "font-mono text-sm",
@@ -80,18 +81,35 @@ const ItemsRenderer: React.FC<{
                     onMouseEnter={() => onBlockHover?.(item.id)}
                     onMouseLeave={() => onBlockHover?.(null)}
                 >
-                    {item.type === 'header' && (
-                        <span className="text-base">{item.content.replace(/^#+\s*/, '')}</span>
-                    )}
-                    {item.type === 'wod' && (
-                        <div className="flex items-center gap-2">
-                            <Dumbbell className="h-3.5 w-3.5 text-primary shrink-0" />
-                            <span className="truncate">{item.content.split('\n')[0]}</span>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {item.type === 'header' && (
+                                <span className="text-base truncate">{item.content.replace(/^#+\s*/, '')}</span>
+                            )}
+                            {item.type === 'wod' && (
+                                <>
+                                    <Dumbbell className="h-3.5 w-3.5 text-primary shrink-0" />
+                                    <span className="truncate">{item.content.split('\n')[0]}</span>
+                                </>
+                            )}
+                            {item.type === 'paragraph' && (
+                                <span className="line-clamp-2">{item.content}</span>
+                            )}
                         </div>
-                    )}
-                    {item.type === 'paragraph' && (
-                        <span className="line-clamp-2">{item.content}</span>
-                    )}
+
+                        {item.type === 'wod' && onStartWorkout && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onStartWorkout(item.id);
+                                }}
+                                className="ml-2 size-6 rounded flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                                title="Start workout"
+                            >
+                                <Play className="size-3.5 fill-current" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             );
         })}
@@ -124,6 +142,7 @@ export const NotePreview: React.FC<NotePreviewProps> = ({
                 activeBlockId={activeBlockId}
                 onBlockClick={onBlockClick}
                 onBlockHover={onBlockHover}
+                onStartWorkout={onStartWorkout}
             />
         );
     }

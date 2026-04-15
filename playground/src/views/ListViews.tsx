@@ -12,18 +12,22 @@ interface BaseProps {
 }
 
 interface JournalWeeklyPageProps extends BaseProps {
-  onCreateEntry: (date: Date) => void;
+  onCreateEntry?: (date: Date) => void;
 }
 
-export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPageProps) {
+export function JournalWeeklyPage({ onSelect }: JournalWeeklyPageProps) {
   const { selectedDate, setDateParam, selectedTags } = useJournalQueryState();
   const [results, setResults] = useState<any[]>([]);
   const [journalEntries, setJournalEntries] = useState<Map<string, JournalEntrySummary>>(new Map());
   const scrollRef = useRef<JournalDateScrollHandle>(null);
 
-  // Seed with the initial date so the first-render effect doesn't trigger a
-  // redundant scroll — JournalDateScroll already centers the date on mount.
-  const lastIODateRef = useRef<string>(selectedDate ? localDateKey(selectedDate) : '');
+  // Seed with today — the journal page always opens at today regardless of ?s= param.
+  // User-intent scrolls (calendar clicks) are handled by the effect below.
+  const lastIODateRef = useRef<string>(localDateKey(new Date()));
+
+  // Skip scroll on the initial render — don't chase the ?s= URL param on page load.
+  // User clicks on the calendar after mount will be caught by the effect below.
+  const hasMountedRef = useRef(false);
 
   useEffect(() => {
     indexedDBService.getRecentResults(100).then(setResults);
@@ -81,6 +85,10 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPage
   // Scroll to selectedDate only when it changes from user intent (calendar click),
   // not when it changes because the IO observer updated the URL while the user was scrolling.
   useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
     if (!selectedDate) return;
     const key = localDateKey(selectedDate);
     // If the IO just reported this date, it's already visible — don't scroll back to it.
@@ -132,8 +140,6 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPage
       ref={scrollRef}
       items={allItems}
       onSelect={handleSelect}
-      onCreateEntry={onCreateEntry}
-      initialDate={selectedDate}
       onVisibleDateChange={handleVisibleDateChange}
       journalEntries={journalEntries}
       onOpenEntry={handleOpenEntry}

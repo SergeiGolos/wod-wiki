@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { MutableRefObject } from 'react'
 import * as Headless from '@headlessui/react'
+import { cn } from '@/lib/utils'
 
 import {
   Dropdown,
@@ -37,6 +38,8 @@ import {
   MoonIcon,
   ComputerDesktopIcon,
   CalendarDaysIcon,
+  PlayIcon,
+  ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/20/solid'
 import type { WorkoutResult } from '@/types/storage'
 
@@ -224,7 +227,14 @@ function WorkoutEditorPage({
       label: link.label,
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } } : undefined,
+      secondaryAction: link.onRun
+        ? { 
+            id: link.id + '-run', 
+            label: 'Run', 
+            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
+            action: { type: 'call' as const, handler: link.onRun } 
+          }
+        : undefined,
     })))
     return () => setEditorL3([])
   }, [index, setEditorL3])
@@ -423,7 +433,25 @@ function ActionsMenu({
               <DropdownHeading>On this page</DropdownHeading>
               {l3Items.map(item => (
                 <DropdownItem key={item.id} onClick={() => scrollToSection(item.id)}>
-                  <DropdownLabel>{item.label}</DropdownLabel>
+                  <DropdownLabel className={cn(item.level === 3 && item.secondaryAction && "pr-8")}>
+                    {item.label}
+                  </DropdownLabel>
+                  {item.secondaryAction && (
+                    <button
+                      className="col-start-5 flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                      title={item.secondaryAction.label}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.secondaryAction?.action.type === 'call') {
+                          item.secondaryAction.action.handler();
+                        }
+                      }}
+                    >
+                      {item.secondaryAction.icon && (
+                        <item.secondaryAction.icon className="size-3.5" />
+                      )}
+                    </button>
+                  )}
                 </DropdownItem>
               ))}
             </DropdownSection>
@@ -542,7 +570,14 @@ function PlaygroundNotePage({
       label: link.label,
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } } : undefined,
+      secondaryAction: link.onRun
+        ? { 
+            id: link.id + '-run', 
+            label: 'Run', 
+            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
+            action: { type: 'call' as const, handler: link.onRun } 
+          }
+        : undefined,
     })))
     return () => setPnpL3([])
   }, [index, setPnpL3])
@@ -846,7 +881,14 @@ function JournalPage({
       label: link.label,
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } } : undefined,
+      secondaryAction: link.onRun
+        ? { 
+            id: link.id + '-run', 
+            label: 'Run', 
+            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
+            action: { type: 'call' as const, handler: link.onRun } 
+          }
+        : undefined,
     })))
     return () => setJpL3([])
   }, [index, setJpL3])
@@ -1042,6 +1084,24 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         .filter(s => s.level > 1)
         .forEach(s => {
           links.push({ id: s.id, label: s.heading, type: 'heading' as const })
+
+          // Extract standard WOD blocks from prose
+          const lines = s.prose.split('\n')
+          let wodCount = 0
+          lines.forEach((line, i) => {
+            if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
+              wodCount++
+              // Standard canvas WOD blocks don't have a direct 'onRun' handler in the index
+              // yet, because MarkdownCanvasPage manages its own runtime state.
+              // However, we can identify them so the UI can at least show the icon
+              // or we can add a handler if we have access to the blocks.
+              links.push({ 
+                id: `${s.id}-wod-${i + 1}`, 
+                label: `Workout ${wodCount}`, 
+                type: 'wod' as const 
+              })
+            }
+          })
           
           if (isCollection && collectionSlug && s.prose.includes('{{workouts}}')) {
              const collectionItems = workoutItems.filter(item => 
@@ -1052,7 +1112,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                  id: `workout-${item.id}`,
                  label: item.name,
                  type: 'wod' as const,
-                 onRun: () => handleSelectWorkout(item)
+                 onRun: () => handleSelectWorkout(item),
+                 runIcon: 'link' as const
                })
              })
           }
@@ -1071,7 +1132,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               id: `workout-${item.id}`,
               label: item.name,
               type: 'wod' as const,
-              onRun: () => handleSelectWorkout(item)
+              onRun: () => handleSelectWorkout(item),
+              runIcon: 'link' as const
             })
           })
         }
@@ -1283,7 +1345,12 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       level: 3 as const,
       action: { type: 'scroll' as const, sectionId: link.id },
       secondaryAction: link.onRun
-        ? { id: link.id + '-run', label: 'Run', action: { type: 'call' as const, handler: link.onRun } }
+        ? { 
+            id: link.id + '-run', 
+            label: 'Run', 
+            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
+            action: { type: 'call' as const, handler: link.onRun } 
+          }
         : undefined,
     }))
     setL3Items(l3)
