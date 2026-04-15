@@ -274,9 +274,8 @@ After making changes, always validate:
 ## Testing Guidelines
 
 ### Unit Tests
-- Use Vitest configuration files for different test types
-- `vitest.unit.config.js` for unit tests
-- `vitest.storybook.config.js` for Storybook component tests
+- Always invoke tests via `bun run <script>` — **never** call `vitest`, `jest`, `npx`, or `npm test` directly
+- Config files (`vitest.unit.config.js`, `vitest.storybook.config.js`) are internal implementation details invoked by the bun scripts
 - Place test files alongside source files with `.test.ts` or `.spec.ts` suffix
 
 ### Storybook Tests

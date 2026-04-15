@@ -45,7 +45,7 @@ export const lineIdsExtension = ViewPlugin.fromClass(
             if (!label) label = timestamp;
           }
           id = label.toLowerCase().replace(/[^\w]+/g, "-");
-        } else if (/^```(wod|log|plan)\s*$/.test(trimmed)) {
+        } else if (/^```(wod|log|plan)/.test(trimmed)) {
           wodCount++;
           id = `wod-line-${i}`;
         }

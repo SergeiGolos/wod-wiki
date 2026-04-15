@@ -100,9 +100,26 @@ Playwright e2e tests are **acceptance gates** — UI/layout/interaction changes 
 - Internal logic changes fully covered by unit tests
 - Type-only changes
 
+### Integration Testing Skill
+
+For writing stories with `play()` functions, Playwright page objects, state validation, visual regression, or choosing the right test archetype, load the project integration testing skill:
+
+**File**: `docs/testing/storybook-playwright-integration.skill.md`
+
+This skill covers:
+- **5 test archetypes** (UNIT → STORY-SMOKE → STORY-INTERACT → ACCEPTANCE → LIVE-APP)
+- Decision tree for choosing the right archetype
+- Storybook 10 + `@storybook/addon-vitest` `play()` function patterns
+- Playwright 1.57 state validation with `extractRuntimeState` + `RuntimeAssertions`
+- Page Object Model templates
+- `TestIdContract` usage
+- Visual regression with `toHaveScreenshot`
+- Flakiness prevention rules
+
 ### Validation Checklist
 After generating or modifying code:
 1. `bun run test` — no new test failures
 2. `bun x tsc --noEmit` — no new type errors from your changes
-3. `bun run test:e2e` — all e2e acceptance tests pass (for UI/layout changes)
-4. `bun run storybook` — Storybook loads and affected stories render
+3. `bun run test:storybook` — story smoke + interaction tests pass
+4. `bun run test:e2e` — all e2e acceptance tests pass (for UI/layout changes)
+5. `bun run storybook` — Storybook loads and affected stories render

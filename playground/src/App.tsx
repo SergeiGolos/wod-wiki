@@ -215,8 +215,14 @@ function WorkoutEditorPage({
       if (link.type !== 'wod') return link
       const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
       const block = wodBlocks.find(b => b.startLine + 1 === lineNum)
-      if (!block) return link
-      return { ...link, onRun: () => handleStartWorkout(block) }
+      // Fallback: if block not yet parsed, allow clicking but it might do nothing or use a fallback
+      return { 
+        ...link, 
+        onRun: () => {
+          const b = block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0];
+          if (b) handleStartWorkout(b);
+        }
+      }
     })
   }, [content, wodBlocks, handleStartWorkout])
 
@@ -258,7 +264,7 @@ function WorkoutEditorPage({
           <CastButtonRpc />
           <AudioToggle />
           <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: noteId, content }} />
+          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
         </div>
       }
       editor={
@@ -381,16 +387,36 @@ function ThemeSwitcher() {
   )
 }
 
+function mapIndexToL3(index: PageNavLink[]): NavItemL3[] {
+  return index.map(link => ({
+    id: link.id,
+    label: link.label,
+    level: 3 as const,
+    action: { type: 'scroll' as const, sectionId: link.id },
+    secondaryAction: link.onRun
+      ? { 
+          id: link.id + '-run', 
+          label: 'Run', 
+          icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
+          action: { type: 'call' as const, handler: link.onRun } 
+        }
+      : undefined,
+  }))
+}
+
 // ── Actions Menu (Download, Reset) ──────────────────────────
 
 function ActionsMenu({ 
   currentWorkout, 
-  onDownload 
+  onDownload,
+  items
 }: { 
   currentWorkout: { name: string, content: string },
-  onDownload?: () => void
+  onDownload?: () => void,
+  items?: NavItemL3[]
 }) {
-  const { l3Items, scrollToSection } = useNav()
+  const { l3Items: contextL3, scrollToSection } = useNav()
+  const l3Items = items || contextL3
   const [debugMode, setDebugMode] = useState(
     () => localStorage.getItem('debugMode') === 'true'
   )
@@ -501,7 +527,7 @@ function extractPageIndex(content: string): PageNavLink[] {
       links.push({ id, label, type: 'heading', timestamp })
       continue
     }
-    if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
+    if (/^```(wod|log|plan)/.test(line.trim())) {
       wodCount++
       links.push({ id: `wod-line-${i + 1}`, label: `Workout ${wodCount}`, type: 'wod' })
     }
@@ -558,8 +584,13 @@ function PlaygroundNotePage({
       if (link.type !== 'wod') return link
       const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
       const block = wodBlocks_pnp.find(b => b.startLine + 1 === lineNum)
-      if (!block) return link
-      return { ...link, onRun: () => handleStartWorkout(block) }
+      return { 
+        ...link, 
+        onRun: () => {
+          const b = block || wodBlocks_pnp.find(b => b.startLine + 1 === lineNum) || wodBlocks_pnp[0];
+          if (b) handleStartWorkout(b);
+        }
+      }
     })
   }, [content, wodBlocks_pnp, handleStartWorkout])
 
@@ -600,6 +631,8 @@ function PlaygroundNotePage({
           <NewEntryButton />
           <CastButtonRpc />
           <AudioToggle />
+          <ThemeSwitcher />
+          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
         </div>
       }
       editor={
@@ -869,7 +902,17 @@ function JournalPage({
       const hasResult = sectionResults.length > 0
       const resultCount = sectionResults.length
 
-      if (!block) return { ...link, hasResult, resultCount }
+      if (!block) {
+        return { 
+          ...link, 
+          hasResult, 
+          resultCount,
+          onRun: () => {
+            const b = wodBlocks_jp.find(b => b.startLine + 1 === lineNum) || wodBlocks_jp[0];
+            if (b) handleStartWorkout(b);
+          }
+        }
+      }
       return { ...link, onRun: () => handleStartWorkout(block), hasResult, resultCount }
     })
   }, [content, wodBlocks_jp, handleStartWorkout, results])
@@ -912,7 +955,7 @@ function JournalPage({
           <CastButtonRpc />
           <AudioToggle />
           <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: noteId, content }} />
+          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
         </div>
       }
       editor={
@@ -1391,7 +1434,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               <AudioToggle />
               <ThemeSwitcher />
             </div>
-            <ActionsMenu currentWorkout={currentWorkout} />
+            <ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} />
           </NavbarSection>
         </Navbar>
       }
@@ -1400,7 +1443,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
@@ -1409,7 +1452,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
@@ -1417,11 +1460,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
-            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
               <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}

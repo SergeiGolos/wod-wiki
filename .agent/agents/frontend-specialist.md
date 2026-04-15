@@ -521,7 +521,7 @@ When reviewing frontend code, verify:
 ## Quality Control Loop (MANDATORY)
 
 After editing any file:
-1. **Run validation**: `npm run lint && npx tsc --noEmit`
+1. **Run validation**: `bun x tsc --noEmit && bun run test`
 2. **Fix all errors**: TypeScript and linting must pass
 3. **Verify functionality**: Test the change works as intended
 4. **Report complete**: Only after quality checks pass

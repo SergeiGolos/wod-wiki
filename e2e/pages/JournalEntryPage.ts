@@ -5,15 +5,17 @@ const DB_NAME = 'wodwiki-playground';
 
 export class JournalEntryPage {
   readonly page: Page;
+  readonly baseUrl: string;
 
-  constructor(page: Page) {
+  constructor(page: Page, baseUrl: string = APP_URL) {
     this.page = page;
+    this.baseUrl = baseUrl;
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
   url(date: string) {
-    return `${APP_URL}/journal/${date}`;
+    return `${this.baseUrl}/journal/${date}`;
   }
 
   async goto(date: string) {
@@ -22,7 +24,7 @@ export class JournalEntryPage {
   }
 
   async gotoJournalList() {
-    await this.page.goto(`${APP_URL}/journal`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await this.page.goto(`${this.baseUrl}/journal`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
   }
 
   // ── Editor ────────────────────────────────────────────────────────────────

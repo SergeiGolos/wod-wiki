@@ -21,7 +21,7 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 - `bun run docs:check` - Validate documentation links (<1 second)
 
 ### Testing Commands
-- `bun run test` - Run all tests using Vitest (~2-3 seconds)
+- `bun run test` - Run all unit tests (~2-3 seconds)
 - `bun run test:storybook` - Run Storybook component tests (requires Playwright)
 - `bun run test:watch` - Run unit tests in watch mode
 - `bun run test:e2e` - Run Playwright e2e acceptance tests
@@ -29,7 +29,7 @@ WOD Wiki is a React component library for parsing, displaying, and executing wor
 
 ### Build & Type Checking
 - `bun run build-storybook` - Build static Storybook (~30 seconds)
-- `bun x vitest run src/path/to/test.test.ts` - Run single test file
+- `bun test src/path/to/test.test.ts --preload ./tests/unit-setup.ts` - Run single test file
 - `bun x tsc --noEmit` - Type check without emitting files
 
 ## Project Architecture
@@ -168,9 +168,8 @@ After making changes, always validate:
 ## Testing Guidelines
 
 ### Unit Tests
-- Use Vitest configuration files for different test types
-- `vitest.unit.config.js` for unit tests
-- `vitest.storybook.config.js` for Storybook component tests
+- Always invoke tests via `bun run <script>` — never call `vitest`, `jest`, `npx`, or `npm test` directly
+- Config files (`vitest.unit.config.js`, `vitest.storybook.config.js`) are internal — use the `bun run` scripts
 - Place test files alongside source files with `.test.ts` or `.spec.ts` suffix
 
 ### Storybook Tests

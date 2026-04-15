@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -74,6 +75,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     {
       items,
       onSelect,
+      onCreateEntry,
       journalEntries,
       onOpenEntry,
       onVisibleDateChange,
@@ -93,14 +95,21 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     const dateGroupRefs = useRef<Map<string, HTMLElement>>(new Map());
 
     // Append guards — prevent burst-loading when sentinels stay visible
-    const isPrependingRef = useRef(false);  // top sentinel: loading more-recent dates toward today
-    const isAppendingRef = useRef(false);   // bottom sentinel: loading older dates into the past
+    const isPrependingRef = useRef(false);  // top sentinel: loading more future dates (prepends at top)
+    const isAppendingRef = useRef(false);   // bottom sentinel: loading older history (appends at bottom)
 
     // Suppress sentinel firing until the initial mount scroll has completed
     const mountScrollDoneRef = useRef(false);
 
-    // Refs to allow observer callbacks to read current values without stale closures
+    // Refs to allow observer callbacks to read current values without stale closures.
+    // Both start and end are tracked so the IO callbacks (empty deps []) never use stale state.
     const dateWindowStartRef = useRef<Date>(new Date());
+    const dateWindowEndRef = useRef<Date>(new Date());
+
+    // Scroll-anchor for prepend compensation.
+    // Captured (key + viewport-relative top) just before inserting new dates at the top,
+    // then consumed by useLayoutEffect to restore the user's visual position.
+    const prependAnchorRef = useRef<{ key: string; top: number } | null>(null);
 
     // ── Auto-measure sticky chrome height ────────────────────────────────────
     // A non-sticky probe div sits at the very top of the content area.
@@ -138,16 +147,17 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     const [dateWindow, setDateWindow] = useState<{ start: Date; end: Date }>(() => {
       const today = new Date();
-      // Always open at today with 7 days of history preloaded.
-      // The initialDate prop is kept for API compatibility but no longer drives the window.
+      // Start window with today as the top (newest) item and 7 days of history below.
+      // Future dates are loaded lazily by the top sentinel when the user scrolls up.
       return {
         start: addDays(today, -7),
         end: today,
       };
     });
 
-    // Descending list: today first, oldest last.
-    // Today is at the top; scrolling down travels into the past.
+    // Descending list: future first, oldest last.
+    // Scroll UP → future/planned workouts. Scroll DOWN → history.
+    // Today is in the middle; mount scroll jumps to it.
     const dates = useMemo(() => {
       const result: Date[] = [];
       let d = new Date(dateWindow.end);
@@ -199,10 +209,35 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       oldestDataDateRef.current = oldestDataDate;
     }, [oldestDataDate]);
 
-    // Keep a ref to current dateWindow.start for the observer callback
-    useEffect(() => {
+    // Keep refs in sync with useLayoutEffect (not useEffect) so IO callbacks always
+    // read the latest values — useLayoutEffect fires before the browser can deliver
+    // new IO notifications that could read a stale value.
+    useLayoutEffect(() => {
       dateWindowStartRef.current = dateWindow.start;
     }, [dateWindow.start]);
+
+    useLayoutEffect(() => {
+      dateWindowEndRef.current = dateWindow.end;
+    }, [dateWindow.end]);
+
+    // ── Prepend scroll compensation ───────────────────────────────────────────
+    // When new dates are inserted at the top of the list (top sentinel fires),
+    // the existing DOM shifts down by the height of the new elements. We capture
+    // the position of the anchor element (the previous dates[0]) just BEFORE the
+    // state update, then restore the user's visual position in a useLayoutEffect
+    // that fires synchronously after DOM mutations but before the browser paints.
+    useLayoutEffect(() => {
+      const anchor = prependAnchorRef.current;
+      if (!anchor) return;
+      prependAnchorRef.current = null;
+      const el = dateGroupRefs.current.get(anchor.key);
+      if (!el) return;
+      const newTop = el.getBoundingClientRect().top;
+      const delta = newTop - anchor.top;
+      if (Math.abs(delta) > 1) {
+        window.scrollBy(0, delta);
+      }
+    }, [dates]);
 
     // ── Suppress visible-date reports + sentinels during programmatic scroll ──
 
@@ -279,37 +314,34 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     useImperativeHandle(ref, () => ({
       scrollToDate(date: Date) {
-        const today = new Date();
-        // Clamp to today — can never navigate past the present
-        const targetDate = date > today ? today : date;
-        const key = localDateKey(targetDate);
+        const key = localDateKey(date);
         const el = dateGroupRefs.current.get(key);
         if (el) {
           suppressReportUntilScrollEnd();
           scrollToElement(el);
         } else {
-          // Date is outside the current window — rebuild a bounded ±14-day window
-          // capped at today so we never introduce future dates.
+          // Date is outside the current window — rebuild a ±14-day window around target,
+          // capped at today+90 on the future side to prevent runaway loading.
+          const ceiling = addDays(new Date(), 90);
           pendingScrollKeyRef.current = key;
           setDateWindow({
-            start: addDays(targetDate, -14),
-            end: targetDate > addDays(today, -14) ? today : addDays(targetDate, 14),
+            start: addDays(date, -14),
+            end: addDays(date, 14) > ceiling ? ceiling : addDays(date, 14),
           });
         }
       },
     }), [suppressReportUntilScrollEnd, scrollToElement]);
 
-    // On mount: instantly scroll to today aligned to just below the sticky header.
+    // On mount: snap to the top. Today is always the first item in the descending list
+    // (initial window ends at today), so no complex offset math is needed — just reset
+    // scroll position to 0 in case the browser restored a previous position.
     // Sentinels are suppressed until this completes to avoid mount-time burst loading.
     useEffect(() => {
-      const key = localDateKey(new Date());
-      const el = dateGroupRefs.current.get(key);
-      if (el) {
-        const top = el.getBoundingClientRect().top + window.scrollY - activeStickyTop - 8;
-        window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
-      }
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
       requestAnimationFrame(() => {
         mountScrollDoneRef.current = true;
+        // Re-check sentinels that were pre-visible during mount suppression
+        recheckSentinels();
       });
       // Intentionally run only on mount; deps are stable
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -331,9 +363,10 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       });
     }, [dates, suppressReportUntilScrollEnd, activeStickyTop]);
 
-    // ── Top sentinel: load more-recent dates toward today ─────────────────────
-    // Fires when the user scrolls UP toward the top of the list.
-    // Extends the window end forward, capped at today — never adds future dates.
+    // ── Top sentinel: load more future dates (prepend at top) ────────────────
+    // Fires when the user scrolls UP past the loaded future dates.
+    // Extends window.end further into the future, capped at today+90 days.
+    // Inserts new rows at the top — useLayoutEffect compensates the viewport shift.
 
     useEffect(() => {
       const sentinel = topSentinelRef.current;
@@ -342,15 +375,30 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (!entry.isIntersecting || isPrependingRef.current || !mountScrollDoneRef.current || suppressReportRef.current) return;
-          const today = new Date();
+
+          // Ceiling: don't load more than 90 days into the future.
+          // Pre-check via ref before setting the guard to prevent deadlock if state update is a no-op.
+          const ceiling = addDays(new Date(), 90);
+          if (dateWindowEndRef.current >= ceiling) return;
+
+          // Capture scroll anchor: position of the current topmost (newest/future) date group.
+          // useLayoutEffect will restore visual position after new rows are inserted above it.
+          const anchorKey = localDateKey(dateWindowEndRef.current);
+          const anchorEl = dateGroupRefs.current.get(anchorKey);
+          if (anchorEl) {
+            prependAnchorRef.current = { key: anchorKey, top: anchorEl.getBoundingClientRect().top };
+          }
+
+          isPrependingRef.current = true;
           setDateWindow(w => {
-            // Stop extending if we've already reached today
-            if (localDateKey(w.end) >= localDateKey(today)) return w;
-            isPrependingRef.current = true;
-            return { ...w, end: addDays(today, 0) < addDays(w.end, 7) ? today : addDays(w.end, 7) };
+            const actualCeiling = addDays(new Date(), 90);
+            // Safety: if state already at ceiling (ref was slightly stale), no-op.
+            if (w.end >= actualCeiling) return w;
+            const next = addDays(w.end, 7);
+            return { ...w, end: next > actualCeiling ? actualCeiling : next };
           });
         },
-        // root:null = window viewport; 600px top margin fires ~4 date groups before hitting top
+        // 600px top margin preloads before user reaches the top of loaded future dates
         { rootMargin: '600px 0px 0px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
@@ -361,15 +409,18 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       };
     }, []);
 
-    // Release prepend guard after 400ms — consistent debounce with the bottom sentinel
+    // Release prepend guard after 400ms; re-check sentinel in case still in preload margin.
     useEffect(() => {
       const timer = setTimeout(() => {
         isPrependingRef.current = false;
+        recheckSentinels();
       }, 400);
       return () => clearTimeout(timer);
+    // recheckSentinels is stable (useCallback with [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateWindow.end]);
 
-    // ── Bottom sentinel: load past dates (append older at bottom) ────────────
+    // ── Bottom sentinel: load older history (append at bottom) ──────────────
     // Fires when the user scrolls DOWN toward the oldest loaded date.
     // No scroll compensation needed — DOM grows below the viewport naturally.
     // Stops loading once the window extends 14 days past the oldest known record.
@@ -390,12 +441,12 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
           isAppendingRef.current = true;
           setDateWindow(w => {
+            const actualFloor = oldestDataDateRef.current ? addDays(oldestDataDateRef.current, -14) : addDays(new Date(), -90);
             const next = addDays(w.start, -7);
-            // Clamp to floor so we never overshoot
-            return { ...w, start: next < floor ? floor : next };
+            return { ...w, start: next < actualFloor ? actualFloor : next };
           });
         },
-        // root:null = window viewport; 400px bottom margin fires before hitting bottom
+        // 400px bottom margin fires before hitting the bottom of loaded history
         { rootMargin: '0px 0px 400px 0px', threshold: 0 },
       );
       observer.observe(sentinel);
@@ -506,6 +557,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
           const dayResults = dayItems.filter(i => i.type === 'result');
           const noteEntry = journalEntries?.get(key);
           const isToday = key === todayKey;
+          const isFuture = date > new Date(todayKey + 'T23:59:59');
+          const isEmpty = !noteEntry && dayResults.length === 0;
 
           return (
             <div
@@ -587,6 +640,24 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                     </>
                   )
                 })()}
+
+                {/* Empty state — future dates show a "Plan workout" button; past dates show a quiet placeholder */}
+                {isEmpty && (
+                  isFuture ? (
+                    <button
+                      onClick={() => onCreateEntry?.(date)}
+                      className="flex items-center gap-3 px-6 py-3 text-left hover:bg-muted/30 transition-colors group"
+                    >
+                      <span className="text-[11px] text-muted-foreground/50 font-medium group-hover:text-primary transition-colors">
+                        + Plan a workout
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="px-6 py-2.5">
+                      <span className="text-[11px] text-muted-foreground/30 font-medium">No activity</span>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           );
@@ -594,7 +665,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
         <div ref={bottomSentinelRef} className="h-px" data-testid="bottom-sentinel" />
 
-        {/* End-of-records indicator — shown once the floor has been reached */}
+        {/* Beginning of records — shown at the very bottom once the oldest data floor is reached */}
         {oldestDataDate && dateWindow.start <= addDays(oldestDataDate, -14) && (
           <div className="flex items-center gap-3 px-6 py-6 select-none" aria-hidden>
             <div className="h-px flex-1 bg-border/30" />
