@@ -26,7 +26,7 @@ function serializeTags(tags: string[]): string {
 
 export function useJournalQueryState() {
   // ── Date parameter ────────────────────────────────────────────────────
-  const [dateParam, setDateParam] = useQueryState('d', {
+  const [dateParam, setDateParam] = useQueryState('s', {
     defaultValue: '',
     shallow: true,
     history: 'replace',

@@ -314,6 +314,7 @@ export function CanvasPage({
                         : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
                   )}
                 >
+                  {link.timestamp && <span className="font-bold text-[10px] tabular-nums mr-2 opacity-60">{link.timestamp}</span>}
                   {link.label}
                 </button>
                 {link.onRun && (

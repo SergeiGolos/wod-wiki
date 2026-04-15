@@ -88,23 +88,31 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPage
     scrollRef.current?.scrollToDate(selectedDate);
   }, [selectedDate]);
 
+  // UUID pattern — bare UUIDs are legacy playground noteIds saved before the prefix fix
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   const allItems = useMemo(() => {
     // Only show workout results — journal notes are handled via the journalEntries map
     const combined: FilteredListItem[] = results.map(r => {
+      const isPlayground = r.noteId.startsWith('playground/') || UUID_RE.test(r.noteId)
+
       // noteId is like 'collections/geoff-neupert/fran' or 'journal/2024-01-01'
       // Use the last path segment as the workout name, but clean up date-only entries
       const parts = r.noteId.split('/');
       const lastSegment = parts[parts.length - 1] || r.noteId;
       const isDateSegment = /^\d{4}-\d{2}-\d{2}$/.test(lastSegment);
-      const title = isDateSegment
-        ? (parts[parts.length - 2] || lastSegment)
-        : lastSegment;
+      const title = isPlayground
+        ? 'Playground'
+        : isDateSegment
+          ? (parts[parts.length - 2] || lastSegment)
+          : lastSegment;
       return {
         id: r.id,
         type: 'result' as const,
         title,
         subtitle: r.data?.completed ? 'Completed' : 'Partial',
         date: r.completedAt,
+        group: isPlayground ? 'playground' : undefined,
         payload: r,
       };
     });

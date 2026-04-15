@@ -8,9 +8,10 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { PlusIcon, CalendarIcon, FileTextIcon, CheckCircleIcon, ChevronRightIcon, ClockIcon } from 'lucide-react';
+import { PlusIcon, CalendarIcon, FileTextIcon, ChevronRightIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FilteredListItem } from './types';
+import { ResultListItem } from '@/components/results/ResultListItem';
 
 // ── Journal entry summary (note metadata for a given date) ─────────────────
 
@@ -485,48 +486,46 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                   </button>
                 ) : null}
 
-                {/* Results — each with its recorded time */}
-                {dayResults.length > 0 && (
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2 px-6 pt-2 pb-1">
-                      <div className="h-px flex-1 bg-border/40" />
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
-                        Workouts
-                      </span>
-                      <div className="h-px flex-1 bg-border/40" />
-                    </div>
-                    {dayResults.map(item => (
-                      <button
-                        key={`result-${item.id}`}
-                        onClick={() => onSelect(item)}
-                        className="flex items-center gap-4 px-6 py-3 hover:bg-muted/40 transition-colors text-left group"
-                      >
-                        {/* Time stamp — left column */}
-                        <div className="flex-shrink-0 w-14 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <ClockIcon className="size-2.5 text-muted-foreground/40" />
-                            <span className="text-[10px] font-black text-muted-foreground/60 tabular-nums">
-                              {item.date
-                                ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                : '—'}
-                            </span>
-                          </div>
+                {/* Results — split into Workouts and Playground groups */}
+                {(() => {
+                  const workoutResults = dayResults.filter(i => i.group !== 'playground')
+                  const playgroundResults = dayResults.filter(i => i.group === 'playground')
+
+                  const renderResultRow = (item: FilteredListItem) => (
+                    <ResultListItem
+                      key={`result-${item.id}`}
+                      timeLabel={
+                        item.date
+                          ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '—'
+                      }
+                      title={item.title}
+                      subtitle={item.subtitle}
+                      onClick={() => onSelect(item)}
+                    />
+                  )
+
+                  const renderGroup = (label: string, items: FilteredListItem[]) =>
+                    items.length > 0 && (
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 px-6 pt-2 pb-1">
+                          <div className="h-px flex-1 bg-border/40" />
+                          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
+                            {label}
+                          </span>
+                          <div className="h-px flex-1 bg-border/40" />
                         </div>
-                        <div className="flex-shrink-0 size-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-background transition-colors">
-                          <CheckCircleIcon className="size-3.5 text-emerald-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-semibold text-foreground truncate">
-                            {item.title}
-                          </h3>
-                          {item.subtitle && (
-                            <p className="text-[11px] text-muted-foreground truncate">{item.subtitle}</p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                        {items.map(renderResultRow)}
+                      </div>
+                    )
+
+                  return (
+                    <>
+                      {renderGroup('Workouts', workoutResults)}
+                      {renderGroup('Playground', playgroundResults)}
+                    </>
+                  )
+                })()}
               </div>
             </div>
           );

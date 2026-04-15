@@ -60,6 +60,7 @@ import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterUnified } from "./extensions/gutter-unified";
 import { cursorFocusExtension, getCursorFocusState } from "./extensions/cursor-focus-panel";
+import { lineIdsExtension } from "./extensions/line-ids";
 
 /** File drop handler extension */
 const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandlers({
@@ -202,6 +203,8 @@ export interface NoteEditorProps {
    * Keys are widget names (e.g. "hero"), values are React components.
    */
   widgetComponents?: WidgetRegistry;
+  /** ID of section to scroll into view (matches IDs from lineIdsExtension) */
+  scrollToSectionId?: string;
 }
 
 export const NoteEditor: React.FC<NoteEditorProps> = ({
@@ -228,6 +231,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   commands,
   enableInlineRuntime = true,
   widgetComponents,
+  scrollToSectionId,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -540,6 +544,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Unified gutter: lint diagnostics + runtime highlights in one column
       ...gutterUnified,
 
+      // Line IDs for external navigation (IntersectionObserver, scroll)
+      lineIdsExtension,
+
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
 
@@ -664,6 +671,47 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       });
     }
   }, [baseExtensions, mode, isDark, languages]);
+
+  // Handle external scroll requests
+  useEffect(() => {
+    if (scrollToSectionId && viewRef.current) {
+      const view = viewRef.current;
+      const content = view.state.doc.toString();
+      const lines = content.split("\n");
+      
+      let lineIdx = -1;
+
+      // Matches logic in line-ids.ts and extractPageIndex (App.tsx)
+      if (scrollToSectionId.startsWith("wod-line-")) {
+        const lineNum = parseInt(scrollToSectionId.replace("wod-line-", ""), 10);
+        lineIdx = lineNum - 1;
+      } else {
+        lineIdx = lines.findIndex((line) => {
+          const match = line.match(/^(#{1,6})\s+(.*)$/);
+          if (match) {
+            let label = match[2].trim();
+            const timeMatch = label.match(/(\d{1,2}:\d{2})/);
+            if (timeMatch) {
+              const timestamp = timeMatch[1];
+              label = label.replace(timestamp, "").replace(/\s+/g, " ").trim();
+              if (!label) label = timestamp;
+            }
+            const headerId = label.toLowerCase().replace(/[^\w]+/g, "-");
+            return headerId === scrollToSectionId;
+          }
+          return false;
+        });
+      }
+
+      if (lineIdx >= 0 && lineIdx < lines.length) {
+        const pos = view.state.doc.line(lineIdx + 1).from;
+        view.dispatch({
+          selection: { anchor: pos, head: pos },
+          effects: [EditorView.scrollIntoView(pos, { y: "start", yMargin: 20 })],
+        });
+      }
+    }
+  }, [scrollToSectionId]);
 
   // Slot renderer — routes to companion components by section type
   const renderSlot = (props: OverlaySlotProps) => {

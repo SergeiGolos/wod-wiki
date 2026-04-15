@@ -64,13 +64,14 @@ import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { decodeZip } from './services/decodeZip'
 import { v4 as uuidv4 } from 'uuid'
-import type { EditorView } from '@codemirror/view'
+import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
 import { 
   createStatementBuilderStrategy,
   createGlobalSearchStrategy,
 } from './services/commandStrategies'
+import { appendWorkoutToJournal } from './services/journalWorkout'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -162,12 +163,14 @@ function WorkoutEditorPage({
   mdContent,
   theme,
   onViewCreated,
+  onScrollToSection,
 }: {
   category: string
   name: string
   mdContent: string
   theme: string
   onViewCreated?: (view: EditorView) => void
+  onScrollToSection?: (id: string) => void
 }) {
   const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
   const noteId = PlaygroundDBService.pageId(category, name)
@@ -175,12 +178,31 @@ function WorkoutEditorPage({
   const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
 
   const handleStartWorkout = useCallback(
-    (block: WodBlock) => {
+    async (block: WodBlock) => {
       const runtimeId = uuidv4()
-      pendingRuntimes.set(runtimeId, { block, noteId })
-      navigate(`/tracker/${runtimeId}`)
+      // For syntax/inline categories keep the original popup behaviour.
+      if (usePopup) {
+        pendingRuntimes.set(runtimeId, { block, noteId })
+        navigate(`/tracker/${runtimeId}`)
+        return
+      }
+      // Append the wod block to today's journal note and navigate there.
+      try {
+        const journalNoteId = await appendWorkoutToJournal({
+          workoutName: name,
+          category,
+          wodContent: block.content,
+        })
+        pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId })
+        const dateKey = journalNoteId.replace('journal/', '')
+        navigate(`/journal/${dateKey}?autoStart=${runtimeId}`)
+      } catch {
+        // IndexedDB unavailable — fall back to the fullscreen tracker route
+        pendingRuntimes.set(runtimeId, { block, noteId })
+        navigate(`/tracker/${runtimeId}`)
+      }
     },
-    [noteId, navigate],
+    [usePopup, noteId, name, category, navigate],
   )
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
@@ -219,11 +241,13 @@ function WorkoutEditorPage({
     <JournalPageShell
       title={name}
       index={index}
+      onScrollToSection={onScrollToSection}
       actions={
         <div className="flex items-center gap-4">
           <NewEntryButton />
           <CastButtonRpc />
           <AudioToggle />
+          <ThemeSwitcher />
           <ActionsMenu currentWorkout={{ name: noteId, content }} />
         </div>
       }
@@ -250,47 +274,22 @@ function WorkoutEditorPage({
 
 function LoadZipPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const [error, setError] = useState<string | null>(null)
+  const [zip] = useQueryState('zip')
+  const [z] = useQueryState('z')
+  
+  // Robust check: was there a zip in the search string on mount?
+  const [hasZipOnMount] = useState(() => {
+    const s = window.location.search
+    return s.includes('zip=') || s.includes('z=')
+  })
 
   useEffect(() => {
-    const zip = searchParams.get('zip') || searchParams.get('z')
-    if (!zip) {
-      // No zip param — just create an empty playground page
+    // Only redirect if there's no zip in state AND no zip was present on mount.
+    // If a zip WAS present on mount, useZipProcessor (global) is handling it.
+    if (!zip && !z && !hasZipOnMount) {
       navigate('/playground', { replace: true })
-      return
     }
-
-    let cancelled = false
-    ;(async () => {
-      try {
-        const content = await decodeZip(zip)
-        if (cancelled) return
-        const id = uuidv4()
-        const now = Date.now()
-        const pageId = PlaygroundDBService.pageId('playground', id)
-        await playgroundDB.savePage({
-          id: pageId,
-          category: 'playground',
-          name: id,
-          content,
-          updatedAt: now,
-        })
-        navigate(`/playground/${id}`, { replace: true })
-      } catch {
-        if (!cancelled) setError('Failed to decode the shared link.')
-      }
-    })()
-    return () => { cancelled = true }
-  }, [searchParams, navigate])
-
-  if (error) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-red-400">
-        {error}
-      </div>
-    )
-  }
+  }, [zip, z, navigate, hasZipOnMount])
 
   return (
     <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -341,7 +340,38 @@ function PlaygroundRedirect() {
   )
 }
 
-// ── Actions Menu (Theme, Download, Reset) ──────────────────────────
+function ThemeSwitcher() {
+  const { theme, setTheme } = useTheme()
+
+  return (
+    <Dropdown>
+      <DropdownButton plain aria-label="Switch theme">
+        {theme === 'light' && <SunIcon data-slot="icon" className="size-5 text-zinc-500" />}
+        {theme === 'dark' && <MoonIcon data-slot="icon" className="size-5 text-zinc-500" />}
+        {theme === 'system' && <ComputerDesktopIcon data-slot="icon" className="size-5 text-zinc-500" />}
+      </DropdownButton>
+      <DropdownMenu className="min-w-32" anchor="bottom end">
+        <DropdownItem onClick={() => setTheme('light')}>
+          <SunIcon data-slot="icon" />
+          <DropdownLabel>Light</DropdownLabel>
+          {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
+        </DropdownItem>
+        <DropdownItem onClick={() => setTheme('dark')}>
+          <MoonIcon data-slot="icon" />
+          <DropdownLabel>Dark</DropdownLabel>
+          {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
+        </DropdownItem>
+        <DropdownItem onClick={() => setTheme('system')}>
+          <ComputerDesktopIcon data-slot="icon" />
+          <DropdownLabel>System</DropdownLabel>
+          {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
+        </DropdownItem>
+      </DropdownMenu>
+    </Dropdown>
+  )
+}
+
+// ── Actions Menu (Download, Reset) ──────────────────────────
 
 function ActionsMenu({ 
   currentWorkout, 
@@ -350,7 +380,6 @@ function ActionsMenu({
   currentWorkout: { name: string, content: string },
   onDownload?: () => void
 }) {
-  const { theme, setTheme } = useTheme()
   const { l3Items, scrollToSection } = useNav()
   const [debugMode, setDebugMode] = useState(
     () => localStorage.getItem('debugMode') === 'true'
@@ -411,27 +440,6 @@ function ActionsMenu({
           {debugMode && <span className="col-start-5 text-blue-500">✓</span>}
         </DropdownItem>
         <DropdownDivider />
-
-        <DropdownSection>
-          <DropdownHeading>Theme</DropdownHeading>
-          <DropdownItem onClick={() => setTheme('light')}>
-            <SunIcon data-slot="icon" />
-            <DropdownLabel>Light</DropdownLabel>
-            {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
-          </DropdownItem>
-          <DropdownItem onClick={() => setTheme('dark')}>
-            <MoonIcon data-slot="icon" />
-            <DropdownLabel>Dark</DropdownLabel>
-            {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
-          </DropdownItem>
-          <DropdownItem onClick={() => setTheme('system')}>
-            <ComputerDesktopIcon data-slot="icon" />
-            <DropdownLabel>System</DropdownLabel>
-            {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
-          </DropdownItem>
-        </DropdownSection>
-
-        <DropdownDivider />
         <DropdownItem onClick={handleResetData}>
           <ArrowPathIcon data-slot="icon" className="text-red-500" />
           <DropdownLabel className="text-red-500">Reset & Clear Cache</DropdownLabel>
@@ -449,9 +457,20 @@ function extractPageIndex(content: string): PageNavLink[] {
     const line = lines[i]
     const match = line.match(/^(#{1,6})\s+(.*)$/)
     if (match) {
-      const label = match[2].trim()
+      let label = match[2].trim()
+      let timestamp: string | undefined
+
+      // Look for timestamp in the label (e.g. "08:30 Breakfast" or "Training 10:15")
+      const timeMatch = label.match(/(\d{1,2}:\d{2})/)
+      if (timeMatch) {
+        timestamp = timeMatch[1]
+        // Optionally clean label by removing the timestamp part
+        label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
+        if (!label) label = timestamp // Fallback if header was only the timestamp
+      }
+
       const id = label.toLowerCase().replace(/[^\w]+/g, '-')
-      links.push({ id, label, type: 'heading' })
+      links.push({ id, label, type: 'heading', timestamp })
       continue
     }
     if (/^```(wod|log|plan)\s*$/.test(line.trim())) {
@@ -466,13 +485,22 @@ function extractPageIndex(content: string): PageNavLink[] {
 // #/playground/:id — load page by UUID from DB, render in editor
 // ---------------------------------------------------------------------------
 
-function PlaygroundNotePage({ theme, onViewCreated }: { theme: string, onViewCreated?: (view: EditorView) => void }) {
+function PlaygroundNotePage({
+  theme,
+  onViewCreated,
+  onScrollToSection,
+}: {
+  theme: string
+  onViewCreated?: (view: EditorView) => void
+  onScrollToSection?: (id: string) => void
+}) {
   const { id } = useParams<{ id: string }>()
-  const noteId = id!
+  // noteId is the full 'playground/uuid' so results can be grouped correctly in the journal
+  const noteId = PlaygroundDBService.pageId('playground', id!)
   const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({
     category: 'playground',
-    name: noteId,
+    name: id!,
     mdContent: PLAYGROUND_TEMPLATE.content,
   })
 
@@ -531,6 +559,7 @@ function PlaygroundNotePage({ theme, onViewCreated }: { theme: string, onViewCre
     <JournalPageShell
       title={noteId}
       index={index}
+      onScrollToSection={onScrollToSection}
       actions={
         <div className="flex items-center gap-4">
           <NewEntryButton />
@@ -658,6 +687,8 @@ function TrackerPage() {
     const parts = pending.noteId.split('/')
     if (parts.length >= 2 && parts[0] === 'playground') {
       navigate(`/playground/${encodeURIComponent(parts[1])}`, { replace: true })
+    } else if (parts.length >= 2 && parts[0] === 'journal') {
+      navigate(`/journal/${encodeURIComponent(parts[1])}`, { replace: true })
     } else if (parts.length >= 2) {
       navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`, { replace: true })
     } else {
@@ -687,18 +718,57 @@ function TrackerPage() {
 // #/journal/:id — stored-note page using JournalPageShell
 // ---------------------------------------------------------------------------
 
-function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: (view: EditorView) => void }) {
+function JournalPage({
+  theme,
+  onViewCreated,
+  onScrollToSection,
+}: {
+  theme: string
+  onViewCreated?: (view: EditorView) => void
+  onScrollToSection?: (id: string) => void
+}) {
   const { id } = useParams<{ id: string }>()
   const noteId = id!
+  const [searchParams, setSearchParams] = useSearchParams()
   const [isTimerOpen, setIsTimerOpen] = useState(false)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
   const [timerBlock, setTimerBlock] = useState<WodBlock | null>(null)
+  const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
+  const [results, setResults] = useState<WorkoutResult[]>([])
+
   const { content, loading, onChange } = usePlaygroundContent({
     category: 'journal',
     name: noteId,
     mdContent: PLAYGROUND_TEMPLATE.content,
   })
+
+  const refreshResults = useCallback(() => {
+    indexedDBService.getResultsForNote(noteId).then(setResults).catch(() => {})
+  }, [noteId])
+
+  useEffect(() => {
+    refreshResults()
+  }, [refreshResults])
+
+  // Consume ?autoStart=<runtimeId> placed by WorkoutEditorPage when it redirects
+  // here after appending a block to the journal note.
+  useEffect(() => {
+    const autoStartId = searchParams.get('autoStart')
+    if (!autoStartId) return
+    const pending = pendingRuntimes.get(autoStartId)
+    if (pending) {
+      pendingRuntimes.delete(autoStartId)
+      setTimerBlock(pending.block)
+      setActiveRuntimeId(autoStartId)
+      setIsTimerOpen(true)
+    }
+    // Remove the param from the URL so sharing / refresh doesn't re-trigger
+    setSearchParams(prev => {
+      prev.delete('autoStart')
+      return prev
+    }, { replace: true })
+  }, []) // intentionally runs once on mount
 
   // Place cursor at the $CURSOR token position on first mount (new entries only)
   const cursorPlaced = useRef(false)
@@ -713,21 +783,38 @@ function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: 
   const handleStartWorkout = useCallback(
     (block: WodBlock) => {
       setTimerBlock(block)
+      setActiveRuntimeId(uuidv4())
       setIsTimerOpen(true)
     },
     [],
   )
 
   const handleTimerComplete = useCallback(
-    (_blockId: string, results: any) => {
+    (blockId: string, workoutResults: any) => {
       setIsTimerOpen(false)
-      if (results?.data?.logs) {
-        const { segments } = getAnalyticsFromLogs(results.data.logs, results.data.startTime)
+      // Persist result when we have a runtimeId.
+      // Use noteId (the date key) directly — this is what NoteEditor uses for lookups.
+      if (activeRuntimeId) {
+        indexedDBService.saveResult({
+          id: activeRuntimeId,
+          noteId,
+          segmentId: blockId,
+          sectionId: blockId,
+          data: workoutResults,
+          completedAt: workoutResults?.endTime || Date.now(),
+        }).then(() => {
+          refreshResults()
+        }).catch(() => {})
+        setActiveRuntimeId(null)
+      }
+      // WorkoutResults has .logs and .startTime directly (not nested under .data)
+      if (workoutResults?.logs) {
+        const { segments } = getAnalyticsFromLogs(workoutResults.logs, workoutResults.startTime)
         setReviewSegments(segments)
         setIsReviewOpen(true)
       }
     },
-    [],
+    [activeRuntimeId, noteId, refreshResults],
   )
 
   const handleCloseReview = useCallback(() => {
@@ -742,10 +829,15 @@ function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: 
       if (link.type !== 'wod') return link
       const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
       const block = wodBlocks_jp.find(b => b.startLine + 1 === lineNum)
-      if (!block) return link
-      return { ...link, onRun: () => handleStartWorkout(block) }
+      
+      const sectionResults = results.filter(r => r.sectionId === link.id || r.segmentId === link.id)
+      const hasResult = sectionResults.length > 0
+      const resultCount = sectionResults.length
+
+      if (!block) return { ...link, hasResult, resultCount }
+      return { ...link, onRun: () => handleStartWorkout(block), hasResult, resultCount }
     })
-  }, [content, wodBlocks_jp, handleStartWorkout])
+  }, [content, wodBlocks_jp, handleStartWorkout, results])
 
   const { setL3Items: setJpL3 } = useNav()
   useEffect(() => {
@@ -771,11 +863,13 @@ function JournalPage({ theme, onViewCreated }: { theme: string, onViewCreated?: 
     <JournalPageShell
       title={noteId}
       index={index}
+      onScrollToSection={onScrollToSection}
       actions={
         <div className="flex items-center gap-4">
           <NewEntryButton />
           <CastButtonRpc />
           <AudioToggle />
+          <ThemeSwitcher />
           <ActionsMenu currentWorkout={{ name: noteId, content }} />
         </div>
       }
@@ -920,15 +1014,17 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     const iso = `${y}-${m}-${d}`;
-    const entryId = `journal/${iso}`
-    
-    playgroundDB.savePage({
-      id: entryId,
-      name: item.name,
-      category: 'journal',
-      content: item.content,
-      updatedAt: Date.now()
+
+    appendWorkoutToJournal({
+      workoutName: item.name,
+      category: item.category || 'General',
+      wodContent: item.content,
+      date,
+      wrapInWod: false, // Page clones already contain markdown and fences
     }).then(() => {
+      navigate(`/journal/${iso}`)
+    }).catch(() => {
+      // Fallback: navigate anyway even if append failed
       navigate(`/journal/${iso}`)
     })
   }, [navigate])
@@ -1105,27 +1201,39 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
 
     // 2. Try CodeMirror line (Editor pages)
-    // The ID format from extractHeaders is typically lowercase-slugified-header
     if (editorViewRef.current) {
       const view = editorViewRef.current
       const content = view.state.doc.toString()
       const lines = content.split('\n')
       
-      const lineIdx = lines.findIndex(line => {
-        const match = line.match(/^(#{1,6})\s+(.*)$/)
-        if (match) {
-          const label = match[2].trim()
-          const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
-          return headerId === id
-        }
-        return false
-      })
+      let lineIdx = -1
 
-      if (lineIdx !== -1) {
+      if (id.startsWith('wod-line-')) {
+        const lineNum = parseInt(id.replace('wod-line-', ''), 10)
+        lineIdx = lineNum - 1
+      } else {
+        lineIdx = lines.findIndex(line => {
+          const match = line.match(/^(#{1,6})\s+(.*)$/)
+          if (match) {
+            let label = match[2].trim()
+            const timeMatch = label.match(/(\d{1,2}:\d{2})/)
+            if (timeMatch) {
+              const timestamp = timeMatch[1]
+              label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
+              if (!label) label = timestamp
+            }
+            const headerId = label.toLowerCase().replace(/[^\w]+/g, '-')
+            return headerId === id
+          }
+          return false
+        })
+      }
+
+      if (lineIdx >= 0 && lineIdx < lines.length) {
         const pos = view.state.doc.line(lineIdx + 1).from
         view.dispatch({
           selection: { anchor: pos, head: pos },
-          scrollIntoView: true
+          effects: [EditorView.scrollIntoView(pos, { y: 'start', yMargin: 20 })]
         })
         // Also scroll the window to the editor's container if needed
         const editorEl = view.dom.parentElement
@@ -1213,6 +1321,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <div className="flex items-center">
               <CastButtonRpc />
               <AudioToggle />
+              <ThemeSwitcher />
             </div>
             <ActionsMenu currentWorkout={currentWorkout} />
           </NavbarSection>
@@ -1223,7 +1332,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
@@ -1232,7 +1341,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
@@ -1240,11 +1349,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
-            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
+            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} /></div>}>
               <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
@@ -1257,9 +1366,9 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           ) : (
             <>
               {isPlaygroundRoute && effectivePlaygroundId ? (
-                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} />
+                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} />
               ) : isJournalEntryRoute && journalEntryId ? (
-                <JournalPage key={journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} />
+                <JournalPage key={journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} />
               ) : (
                 <WorkoutEditorPage
                   key={`${currentWorkout.category}/${currentWorkout.name}`}
@@ -1268,6 +1377,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                   mdContent={currentWorkout.content}
                   theme={actualTheme}
                   onViewCreated={handleViewCreated}
+                  onScrollToSection={scrollToSection}
                 />
               )}
             </>
@@ -1305,6 +1415,12 @@ function ScrollToTop() {
 
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
 import { useQueryState } from 'nuqs'
+import { useZipProcessor } from './hooks/useZipProcessor'
+
+function GlobalState() {
+  useZipProcessor()
+  return null
+}
 
 export function App() {
   // Stable ref so AppContent can inject its openSearchPalette callback after mount.
@@ -1317,6 +1433,7 @@ export function App() {
       <AudioProvider>
         <BrowserRouter>
           <NuqsAdapter>
+            <GlobalState />
             <ScrollToTop />
             <CommandProvider>
               <NavProvider tree={navTree}>

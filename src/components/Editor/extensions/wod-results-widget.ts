@@ -24,6 +24,7 @@ import {
 import { StateEffect, StateField, EditorState, Range } from "@codemirror/state";
 import { sectionField } from "./section-state";
 import type { WorkoutResult } from "@/types/storage";
+import { buildResultListItemDOM } from "@/components/results/resultListItemDOM";
 
 // ── Custom DOM event ─────────────────────────────────────────────────
 
@@ -138,10 +139,10 @@ class WodResultsBarWidget extends WidgetType {
   toDOM(view: EditorView): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "cm-wod-results-inlay";
-    
+
     if (!this.expanded) {
-        wrapper.style.display = "none";
-        return wrapper;
+      wrapper.style.display = "none";
+      return wrapper;
     }
 
     // Separator line between WOD content and results
@@ -149,66 +150,33 @@ class WodResultsBarWidget extends WidgetType {
     sep.className = "cm-wod-results-separator";
     wrapper.appendChild(sep);
 
-    const container = document.createElement("div");
-    container.className = "cm-wod-results-container";
-
-    const grid = document.createElement("div");
-    grid.className = "cm-wod-results-grid";
-
-    // Header
-    const header = document.createElement("div");
-    header.className = "cm-wod-results-grid-header";
-    header.innerHTML = '<div class="cm-col-date">Date</div>' +
-                      '<div class="cm-col-time">Time</div>' +
-                      '<div class="cm-col-dur">Duration</div>' +
-                      '<div class="cm-col-stat">Status</div>' +
-                      '<div class="cm-col-link"></div>';
-    grid.appendChild(header);
-
-    // Rows
     for (const result of this.results) {
-        const row = document.createElement("div");
-        row.className = "cm-wod-results-grid-row";
-        
-        const duration = formatDuration(result.data?.duration ?? 0);
-        const date = formatDateShort(result.completedAt);
-        const time = formatTime(result.completedAt);
-        const isDone = result.data?.state === 'completed' || !!result.data?.duration;
+      const duration = formatDuration(result.data?.duration ?? 0);
+      const timeLabel = formatTime(result.completedAt);
+      const dateLabel = formatDateShort(result.completedAt);
 
-        row.innerHTML = `<div class="cm-col-date">${date}</div>` +
-                       `<div class="cm-col-time">${time}</div>` +
-                       `<div class="cm-col-dur">${duration}</div>` +
-                       `<div class="cm-col-stat">` +
-                           `<span class="cm-status-pill ${isDone ? 'status-done' : 'status-partial'}">` +
-                               `${isDone ? 'Finished' : 'Partial'}` +
-                           `</span>` +
-                       `</div>` +
-                       `<div class="cm-col-link">` +
-                           `<button class="cm-review-link" title="Open Review">↗</button>` +
-                       `</div>`;
+      const row = buildResultListItemDOM({
+        timeLabel,
+        title: duration !== "--:--" ? duration : "Result",
+        subtitle: dateLabel,
+        onClick: () => {
+          const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
+          view.dom.dispatchEvent(
+            new CustomEvent(WOD_RESULT_CLICK_EVENT, { detail, bubbles: true }),
+          );
+        },
+      });
 
-        row.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const detail: WodResultClickDetail = { sectionId: this.sectionId, result };
-            view.dom.dispatchEvent(
-                new CustomEvent(WOD_RESULT_CLICK_EVENT, { detail, bubbles: true }),
-            );
-        });
-
-        grid.appendChild(row);
+      wrapper.appendChild(row);
     }
 
-    container.appendChild(grid);
-    wrapper.appendChild(container);
     return wrapper;
   }
 
-  /** Estimated height of the expanded table. */
+  /** Estimated height of the expanded list. Each row is ~44px (py-3 = 12px×2 + content ~20px). */
   get estimatedHeight(): number {
     if (!this.expanded) return 0;
-    // Header (18px) + rows (22px each) + separator/padding (12px)
-    return 18 + (this.results.length * 22) + 12;
+    return 5 + (this.results.length * 44);
   }
 
   ignoreEvent(): boolean {
@@ -276,70 +244,6 @@ export const wodResultsTheme = EditorView.baseTheme({
     height: "1px",
     margin: "4px 8px 2px",
     background: "rgba(128, 128, 128, 0.15)",
-  },
-  ".cm-wod-results-container": {
-    padding: "0 8px 4px",
-  },
-  ".cm-wod-results-grid": {
-    display: "flex",
-    flexDirection: "column",
-    border: "1px solid rgba(128, 128, 128, 0.15)",
-    borderRadius: "4px",
-    overflow: "hidden",
-    background: "rgba(128, 128, 128, 0.03)",
-  },
-  ".cm-wod-results-grid-header": {
-    display: "flex",
-    alignItems: "center",
-    background: "rgba(128, 128, 128, 0.1)",
-    borderBottom: "1px solid rgba(128, 128, 128, 0.15)",
-    fontSize: "9px",
-    fontWeight: "bold",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    padding: "4px 8px",
-    color: "rgba(128, 128, 128, 0.6)",
-    lineHeight: "1",
-  },
-  ".cm-wod-results-grid-row": {
-    display: "flex",
-    alignItems: "center",
-    padding: "4px 8px",
-    fontSize: "11px",
-    borderBottom: "1px solid rgba(128, 128, 128, 0.05)",
-    cursor: "pointer",
-    transition: "background 0.2s",
-    lineHeight: "1.4",
-    "&:last-child": { borderBottom: "none" },
-    "&:hover": {
-      background: "rgba(59, 130, 246, 0.1)",
-    },
-  },
-  ".cm-col-date": { flex: "0 0 70px" },
-  ".cm-col-time": { flex: "0 0 70px", opacity: "0.6" },
-  ".cm-col-dur": { flex: "0 0 80px", fontWeight: "600" },
-  ".cm-col-stat": { flex: "1" },
-  ".cm-col-link": { flex: "0 0 30px", textAlign: "right", opacity: "0.4" },
-  ".cm-status-pill": {
-    fontSize: "9px",
-    padding: "0 6px",
-    borderRadius: "10px",
-    fontWeight: "600",
-  },
-  ".status-done": {
-    background: "rgba(34, 197, 94, 0.1)",
-    color: "rgb(21, 128, 61)",
-  },
-  ".status-partial": {
-    background: "rgba(234, 179, 8, 0.1)",
-    color: "rgb(161, 98, 7)",
-  },
-  ".cm-review-link": {
-    background: "none",
-    border: "none",
-    padding: "0",
-    cursor: "pointer",
-    color: "inherit",
   },
 });
 
