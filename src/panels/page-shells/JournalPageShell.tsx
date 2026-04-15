@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
-import { PlayIcon, CheckIcon } from '@heroicons/react/20/solid';
+import { PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 
 export interface JournalPageShellProps {
@@ -193,13 +193,17 @@ export function JournalPageShell({
                       e.stopPropagation();
                       link.onRun?.();
                     }}
-                    title="Start workout"
+                    title={link.runIcon === 'link' ? "View workout" : "Start workout"}
                     className={cn(
                       "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
                       link.type === 'wod' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}
                   >
-                    <PlayIcon className="size-3.5" />
+                    {link.runIcon === 'link' ? (
+                      <ArrowTopRightOnSquareIcon className="size-3.5" />
+                    ) : (
+                      <PlayIcon className="size-3.5" />
+                    )}
                   </button>
                 )}
               </div>

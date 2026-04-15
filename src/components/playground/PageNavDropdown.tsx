@@ -7,7 +7,7 @@ import {
   DropdownLabel,
   DropdownMenu,
 } from '@/components/playground/dropdown'
-import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon } from '@heroicons/react/20/solid'
+import { DocumentTextIcon, ChevronDownIcon, PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
 
 export interface PageNavLink {
   id: string
@@ -16,6 +16,8 @@ export interface PageNavLink {
   type?: 'heading' | 'wod'
   /** When set, a small Play button is rendered aligned to the right */
   onRun?: () => void
+  /** Which icon to show for the run button: 'play' (default) or 'link' */
+  runIcon?: 'play' | 'link'
   /** Optional timestamp for timeline view (e.g. '08:30') */
   timestamp?: string
   /** Optional number of workout completions */
@@ -99,6 +101,8 @@ export function PageNavDropdown({
                     </span>
                   ) : link.hasResult ? (
                     <CheckIcon className="size-3 text-primary" />
+                  ) : link.runIcon === 'link' ? (
+                    <ArrowTopRightOnSquareIcon className="inline size-3 opacity-30" />
                   ) : (
                     <PlayIcon className="inline size-3 opacity-30" />
                   )}
@@ -110,10 +114,14 @@ export function PageNavDropdown({
             {link.onRun && (
               <button
                 className="col-start-5 flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
-                title="Start workout"
+                title={link.runIcon === 'link' ? "View workout" : "Start workout"}
                 onClick={(e) => { e.stopPropagation(); link.onRun!() }}
               >
-                <PlayIcon className="size-3" />
+                {link.runIcon === 'link' ? (
+                  <ArrowTopRightOnSquareIcon className="size-3" />
+                ) : (
+                  <PlayIcon className="size-3" />
+                )}
               </button>
             )}
             {!link.onRun && activeId === link.id && <span className="col-start-5 text-primary text-xs">✓</span>}

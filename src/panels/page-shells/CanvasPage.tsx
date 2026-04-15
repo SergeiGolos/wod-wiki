@@ -33,7 +33,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
-import { PlayIcon } from '@heroicons/react/20/solid';
+import { PlayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
 import type { PageNavLink } from '@/components/playground/PageNavDropdown';
 import type { DocsSection } from './types';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
@@ -304,11 +304,11 @@ export function CanvasPage({
             {index.map((link) => (
               <div key={link.id} className="flex items-center group -ml-px">
                 <button
-                  onClick={() => { if (link.type !== 'wod') scrollToSection(link.id) }}
+                  onClick={() => scrollToSection(link.id)}
                   className={cn(
                     'flex-1 text-left px-4 py-2 text-sm transition-all border-l',
                     link.type === 'wod'
-                      ? 'text-muted-foreground/70 border-transparent pl-6 text-xs cursor-default'
+                      ? 'text-muted-foreground/70 border-transparent pl-6 text-xs'
                       : activeId === link.id
                         ? 'font-bold text-foreground border-primary'
                         : 'text-muted-foreground hover:text-foreground border-transparent hover:border-border'
@@ -320,10 +320,17 @@ export function CanvasPage({
                 {link.onRun && (
                   <button
                     onClick={(e) => { e.stopPropagation(); link.onRun?.(); }}
-                    title="View workout"
-                    className="opacity-0 group-hover:opacity-100 mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all"
+                    title={link.runIcon === 'link' ? "View workout" : "Start workout"}
+                    className={cn(
+                      "mr-2 flex items-center justify-center size-6 rounded text-primary hover:bg-primary/10 transition-all",
+                      link.type === 'wod' ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    )}
                   >
-                    <PlayIcon className="size-3.5" />
+                    {link.runIcon === 'link' ? (
+                      <ArrowTopRightOnSquareIcon className="size-3.5" />
+                    ) : (
+                      <PlayIcon className="size-3.5" />
+                    )}
                   </button>
                 )}
               </div>
