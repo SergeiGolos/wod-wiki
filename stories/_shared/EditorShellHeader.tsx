@@ -12,10 +12,10 @@
 
 import React from 'react';
 import { ArrowLeft, Download, RotateCcw } from 'lucide-react';
-import { Button } from '../src/components/ui/button';
-import { CastButtonRpc } from '../src/components/cast/CastButtonRpc';
-import { DebugButton } from '../src/components/layout/DebugModeContext';
-import { ThemeToggle } from '../src/components/theme/ThemeToggle';
+import { Button } from '@/components/ui/button';
+import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { DebugButton } from '@/components/layout/DebugModeContext';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 export interface EditorShellHeaderProps {
   /** Shows a ← arrow button that calls this when clicked */

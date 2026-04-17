@@ -31,7 +31,7 @@ const toolbarItems: IListItem<{ cmd: string }>[] = [
 // ─── ListView stories ────────────────────────────────────────────────────────
 
 const listMeta: Meta<typeof ListView> = {
-  title: 'DesignSystem/molecules/ListView',
+  title: 'catalog/molecules/ListView',
   component: ListView,
   parameters: { layout: 'padded' },
 };

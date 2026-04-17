@@ -11,7 +11,6 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 // UI primitives
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -38,10 +37,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
-import { CommitGraph } from '@/components/ui/CommitGraph';
 import { WodPlaygroundButton } from '@/components/Editor/md-components/WodPlaygroundButton';
 
-import { FIXTURE_ENTRY_DATES } from './fixtures';
+import { FIXTURE_ENTRY_DATES } from '../_shared/fixtures';
 
 // ── Section helper ───────────────────────────────────────────────────────────
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
@@ -159,19 +157,6 @@ const AtomsPage: React.FC = () => (
       </div>
     </Section>
 
-    {/* ── Badge ── */}
-    <Section title="Badge">
-      <div className="flex flex-wrap gap-2">
-        <Badge variant="default">Default</Badge>
-        <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="destructive">Destructive</Badge>
-        <Badge variant="outline">Outline</Badge>
-        <Badge variant="default">CrossFit</Badge>
-        <Badge variant="secondary">Benchmark</Badge>
-        <Badge variant="outline">Advanced</Badge>
-      </div>
-    </Section>
-
     {/* ── Card ── */}
     <Section title="Card">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -230,30 +215,6 @@ const AtomsPage: React.FC = () => (
       </div>
     </Section>
 
-    {/* ── CommitGraph ── */}
-    <Section title="CommitGraph">
-      <div className="space-y-4">
-        <div>
-          <p className="text-xs text-muted-foreground mb-1 font-mono">text="WOD WIKI" (default)</p>
-          <div className="h-10 w-48">
-            <CommitGraph text="WOD WIKI" rows={16} cols={60} gap={1} padding={0} fontScale={0.8} />
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground mb-1 font-mono">text="FRAN" — larger cells</p>
-          <div className="h-12 w-36">
-            <CommitGraph text="FRAN" rows={12} cols={40} gap={2} padding={2} fontScale={1.0} />
-          </div>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground mb-1 font-mono">randomness=false — clean pixels</p>
-          <div className="h-10 w-48">
-            <CommitGraph text="WOD.WIKI++" rows={16} cols={70} gap={1} padding={0} fontScale={0.8} randomness={false} />
-          </div>
-        </div>
-      </div>
-    </Section>
-
     {/* ── WodPlaygroundButton ── */}
     <Section title="WodPlaygroundButton">
       <div className="space-y-3">
@@ -277,7 +238,7 @@ const AtomsPage: React.FC = () => (
 // ── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta = {
-  title: 'DesignSystem/Atoms',
+  title: 'atoms/Atoms',
   parameters: {
     layout: 'padded',
     docs: {

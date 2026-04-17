@@ -12,7 +12,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
 
 const meta: Meta<typeof MetricTrackerCard> = {
-  title: 'DesignSystem/Molecules/MetricTrackerCard',
+  title: 'catalog/molecules/MetricTrackerCard',
   component: MetricTrackerCard,
   parameters: { layout: 'centered' },
   decorators: [

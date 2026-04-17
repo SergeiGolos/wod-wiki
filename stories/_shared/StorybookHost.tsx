@@ -1,10 +1,10 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ThemeProvider } from '../src/components/theme/ThemeProvider';
-import { AudioProvider } from '../src/components/audio/AudioContext';
-import { DebugModeProvider } from '../src/components/layout/DebugModeContext';
-import { CommandProvider } from '../src/components/command-palette/CommandContext';
-import { NotebookProvider } from '../src/components/notebook/NotebookContext';
+import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { AudioProvider } from '@/components/audio/AudioContext';
+import { DebugModeProvider } from '@/components/layout/DebugModeContext';
+import { CommandProvider } from '@/components/command-palette/CommandContext';
+import { NotebookProvider } from '@/components/notebook/NotebookContext';
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
 
 interface StorybookHostProps {

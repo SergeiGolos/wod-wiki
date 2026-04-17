@@ -196,7 +196,7 @@ const ReviewWebHarness: React.FC<ReviewWebHarnessProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof ReviewWebHarness> = {
-  title: 'Panels/Review/Web',
+  title: 'panels/Review/Web',
   component: ReviewWebHarness,
   parameters: {
     layout: 'padded',

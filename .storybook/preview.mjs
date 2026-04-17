@@ -1,5 +1,5 @@
 import React from 'react';
-import { StorybookHost } from '../stories/StorybookHost';
+import { StorybookHost } from '../stories/_shared/StorybookHost';
 import '../src/index.css';
 
 /** @type { import('@storybook/react-vite').Preview } */
@@ -33,10 +33,11 @@ const preview = {
     options: {
       storySort: {
         order: [
-          'Syntax',
-          ['Pages', ['ScriptedTutorial', 'Collections', 'Calendar', 'Planner', 'Note']],
-          'Panels',
-          'Components',
+          'atoms',
+          'catalog', ['molecules', 'organisms'],
+          'panels',
+          'integration',
+          'acceptance',
         ],
       },
     },

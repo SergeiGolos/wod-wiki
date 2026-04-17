@@ -171,7 +171,7 @@ const ReviewMobileHarness: React.FC<ReviewMobileHarnessProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof ReviewMobileHarness> = {
-  title: 'Panels/Review/Mobile',
+  title: 'panels/Review/Mobile',
   component: ReviewMobileHarness,
   decorators: [
     (Story) => (

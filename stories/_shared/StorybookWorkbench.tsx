@@ -1,22 +1,22 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { CommandProvider, useCommandPalette } from '../src/components/command-palette/CommandContext';
-import { WorkbenchProvider, useWorkbench } from '../src/components/layout/WorkbenchContext';
-import { RuntimeLifecycleProvider } from '../src/components/layout/RuntimeLifecycleProvider';
-import { WorkbenchSyncBridge } from '../src/components/layout/WorkbenchSyncBridge';
-import { DisplaySyncBridge } from '../src/components/layout/DisplaySyncBridge';
-import { WorkbenchCastBridge } from '../src/components/cast/WorkbenchCastBridge';
-import { useWorkbenchSync } from '../src/components/layout/useWorkbenchSync';
-import { useDebugMode } from '../src/components/layout/DebugModeContext';
-import { useTheme } from '../src/components/theme/ThemeProvider';
-import { RuntimeFactory } from '../src/runtime/compiler/RuntimeFactory';
-import { globalCompiler } from '../src/runtime-test-bench/services/testbench-services';
+import { CommandProvider, useCommandPalette } from '@/components/command-palette/CommandContext';
+import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
+import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
+import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
+import { DisplaySyncBridge } from '@/components/layout/DisplaySyncBridge';
+import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
+import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
+import { useDebugMode } from '@/components/layout/DebugModeContext';
+import { useTheme } from '@/components/theme/ThemeProvider';
+import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
+import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
 import { EditorShellHeader } from './EditorShellHeader';
 
-import { NoteEditor } from '../src/components/Editor/NoteEditor';
-import { WorkbenchProps } from '../src/components/layout/Workbench';
-import { useWorkbenchSyncStore } from '../src/components/layout/workbenchSyncStore';
-import { useInMemoryNavigation } from '../src/hooks/useInMemoryNavigation';
+import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { WorkbenchProps } from '@/components/layout/Workbench';
+import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
+import { useInMemoryNavigation } from '@/hooks/useInMemoryNavigation';
 
 const runtimeFactory = new RuntimeFactory(globalCompiler);
 

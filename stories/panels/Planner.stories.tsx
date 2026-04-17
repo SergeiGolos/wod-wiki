@@ -49,7 +49,7 @@ const PlannerPageShell: React.FC<{ initialContent?: string }> = ({
 };
 
 const meta: Meta = {
-  title: 'Pages/Planner',
+  title: 'panels/Planner',
   parameters: {
     layout: 'fullscreen',
     docs: {

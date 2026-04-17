@@ -9,10 +9,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { MetricPill } from '@/components/review-grid/MetricPill';
 import { MetricType, type IMetric } from '@/core/models/Metric';
-import { FIXTURE_METRICS } from '../fixtures';
+import { FIXTURE_METRICS } from '../../_shared/fixtures';
 
 const meta: Meta<typeof MetricPill> = {
-  title: 'DesignSystem/Molecules/MetricPill',
+  title: 'catalog/molecules/MetricPill',
   component: MetricPill,
   parameters: { layout: 'centered' },
   decorators: [

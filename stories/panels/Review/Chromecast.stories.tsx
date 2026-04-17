@@ -260,7 +260,7 @@ const ReviewChromecastHarness: React.FC<ReviewChromecastHarnessProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof ReviewChromecastHarness> = {
-  title: 'Panels/Review/Chromecast',
+  title: 'panels/Review/Chromecast',
   component: ReviewChromecastHarness,
   parameters: {
     layout: 'fullscreen',

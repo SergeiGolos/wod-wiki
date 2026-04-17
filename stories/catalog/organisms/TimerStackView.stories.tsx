@@ -90,7 +90,7 @@ const LiveTimer: React.FC<{
 // ── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof TimerStackView> = {
-  title: 'DesignSystem/Organisms/TimerStackView',
+  title: 'catalog/organisms/TimerStackView',
   component: TimerStackView,
   parameters: { layout: 'padded' },
   decorators: [

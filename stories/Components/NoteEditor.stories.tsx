@@ -8,7 +8,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { StorybookWorkbench } from '../../_shared/StorybookWorkbench';
+import { StorybookWorkbench } from '../_shared/StorybookWorkbench';
 
 const meta: Meta = {
   title: 'Panels/NoteEditor/Web',
