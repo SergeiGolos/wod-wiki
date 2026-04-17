@@ -13,7 +13,7 @@ import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { getWodCollections } from '@/repositories/wod-collections';
 import type { WodCollection, WodCollectionItem } from '@/repositories/wod-collections';
-import { EditorShellHeader } from '../_shared/EditorShellHeader';
+import { EditorShellHeader } from '../../_shared/EditorShellHeader';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
 interface JournalState {
@@ -102,7 +102,7 @@ const CollectionsPageShell: React.FC = () => {
 };
 
 const meta: Meta = {
-  title: 'panels/Collections',
+  title: 'catalog/pages/Collections',
   parameters: {
     layout: 'fullscreen',
     docs: {

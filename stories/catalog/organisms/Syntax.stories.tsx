@@ -1,9 +1,9 @@
 import React from 'react';
-import { StorybookWorkbench as Workbench } from '../_shared/StorybookWorkbench';
+import { StorybookWorkbench as Workbench } from '../../_shared/StorybookWorkbench';
 import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta = {
-  title: 'panels/Syntax',
+  title: 'catalog/organisms/Syntax',
   parameters: {
     layout: 'fullscreen',
   }

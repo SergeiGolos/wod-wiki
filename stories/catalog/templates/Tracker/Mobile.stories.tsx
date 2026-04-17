@@ -212,7 +212,7 @@ const ExecutionBound: React.FC<{
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof TrackerMobileHarness> = {
-  title: 'panels/Tracker/Mobile',
+  title: 'catalog/templates/Tracker/Mobile',
   component: TrackerMobileHarness,
   decorators: [
     (Story) => (

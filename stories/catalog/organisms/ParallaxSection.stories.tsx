@@ -9,7 +9,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { ParallaxSection } from '@/panels/page-shells/ParallaxSection';
 
 const meta: Meta<typeof ParallaxSection> = {
-  title: 'panels/ParallaxSection',
+  title: 'catalog/organisms/ParallaxSection',
   component: ParallaxSection,
   parameters: {
     layout: 'fullscreen',

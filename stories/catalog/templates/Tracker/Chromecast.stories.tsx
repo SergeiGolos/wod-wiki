@@ -494,7 +494,7 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof TrackerChromecastHarness> = {
-  title: 'panels/Tracker/Chromecast',
+  title: 'catalog/templates/Tracker/Chromecast',
   component: TrackerChromecastHarness,
   parameters: {
     layout: 'padded',

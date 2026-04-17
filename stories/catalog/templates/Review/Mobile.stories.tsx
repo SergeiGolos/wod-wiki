@@ -1,19 +1,13 @@
 /**
- * Review-Web Stories
+ * Review-Mobile Stories
  *
- * Showcases the web-based review panel (`ReviewGrid`) with segments derived
- * from a fully-executed real ScriptRuntime.
- *
- * The harness builds a real runtime, runs the workout to completion by
- * repeatedly calling NextAction (simulating "user advanced each step"),
- * then feeds `getAnalyticsFromRuntime()` directly into `ReviewGrid`.
- *
- * Nothing is mocked — the segments in the grid are the exact same objects
- * that the production workbench would show after clicking Stop.
+ * Showcases the review panel (`ReviewGrid`) in a mobile (portrait) viewport.
+ * Data is identical to ReviewWeb — a real ScriptRuntime is run to completion
+ * using a mock clock so no real timers are needed.
  *
  * States illustrated:
- *  1. EmptyReview    — no segments yet (blank-slate review state)
- *  2. FranComplete   — 21-15-9 Thrusters & Pull-ups, all 6 segments finished
+ *  1. EmptyReview    — no segments yet (blank-slate)
+ *  2. FranComplete   — 21-15-9 Thrusters & Pull-ups, all segments done
  *  3. AmrapComplete  — 20-min AMRAP, multiple rounds completed
  *  4. EmomComplete   — 10-min EMOM, 10 rounds completed
  *  5. RoundsComplete — 5×10 Thrusters, 5 rounds completed
@@ -73,14 +67,6 @@ function buildCompiler(): JitCompiler {
   return compiler;
 }
 
-/**
- * Build a runtime, run the workout to completion by advancing a mock clock and
- * repeatedly calling NextAction for each step, then return the final analytics.
- *
- * @param scriptText   Workout script to compile
- * @param stepMs       How many milliseconds each "segment" takes (mock elapsed time)
- * @param maxSteps     Safety cap on NextAction calls (prevents infinite loops)
- */
 function runToCompletion(
   scriptText: string,
   stepMs = 30_000,
@@ -93,20 +79,13 @@ function runToCompletion(
   const eventBus = new EventBus();
   const runtime = new ScriptRuntime(script, compiler, { stack, clock, eventBus });
 
-  // Start session — pushes SessionRootBlock + WaitingToStart
   runtime.do(new StartSessionAction({ label: 'Story Session' }));
 
   let steps = 0;
   while (runtime.stack.count > 0 && steps < maxSteps) {
-    // Advance time so elapsed metrics on the block are non-zero
     clock.advance(stepMs);
-
-    // Dispatch a tick so timer behaviors see the new time
     runtime.handle(new TickEvent());
-
-    // Advance to next block (user pressing "Next" or block auto-completing)
     runtime.do(new NextAction());
-
     steps++;
   }
 
@@ -115,28 +94,25 @@ function runToCompletion(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ReviewWebHarness — the shared story component
+// ReviewMobileHarness
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface ReviewWebHarnessProps {
+export interface ReviewMobileHarnessProps {
   /** Workout script text to compile and simulate */
   script: string;
-  /**
-   * Whether to actually run the workout to completion (true = real segments)
-   * or show an empty grid.
-   */
+  /** Run workout to completion; false shows the empty state */
   runToCompletion: boolean;
-  /** Milliseconds each simulated step takes (affects elapsed time in segments) */
+  /** Milliseconds each simulated step takes */
   stepMs?: number;
   /** Height of the story canvas */
   height?: string;
 }
 
-const ReviewWebHarness: React.FC<ReviewWebHarnessProps> = ({
+const ReviewMobileHarness: React.FC<ReviewMobileHarnessProps> = ({
   script,
   runToCompletion: shouldRun,
   stepMs = 30_000,
-  height = '600px',
+  height = '844px',
 }) => {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [groups, setGroups] = useState<AnalyticsGroup[]>([]);
@@ -149,7 +125,6 @@ const ReviewWebHarness: React.FC<ReviewWebHarnessProps> = ({
       return;
     }
 
-    // Run synchronously — mock clock means no real timers needed
     const result = runToCompletion(script, stepMs);
     setSegments(result.segments);
     setGroups(result.groups);
@@ -157,7 +132,7 @@ const ReviewWebHarness: React.FC<ReviewWebHarnessProps> = ({
     return () => {
       result.runtime.dispose();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSelect = (
@@ -195,17 +170,24 @@ const ReviewWebHarness: React.FC<ReviewWebHarnessProps> = ({
 // Meta
 // ─────────────────────────────────────────────────────────────────────────────
 
-const meta: Meta<typeof ReviewWebHarness> = {
-  title: 'panels/Review/Web',
-  component: ReviewWebHarness,
+const meta: Meta<typeof ReviewMobileHarness> = {
+  title: 'catalog/templates/Review/Mobile',
+  component: ReviewMobileHarness,
+  decorators: [
+    (Story) => (
+      <div style={{ width: '390px', margin: '0 auto' }}>
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: 'padded',
+    layout: 'fullscreen',
     docs: {
       description: {
         component:
-          'Web review panel (`ReviewGrid`) populated with real segments from a ' +
-          'fully-executed ScriptRuntime. The mock clock advances synchronously ' +
-          'so no real timers are needed — data matches what production generates.',
+          'Mobile review panel (`ReviewGrid`) populated with real segments from a ' +
+          'fully-executed ScriptRuntime. Rendered at portrait phone dimensions ' +
+          '(< 768 px). Same data as the Web variant.',
       },
     },
   },
@@ -236,23 +218,15 @@ type Story = StoryObj<typeof meta>;
 // Stories
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Empty state — review panel with no segments yet.
- * This is what the user sees when they navigate to Review before finishing a workout.
- */
 export const EmptyReview: Story = {
   name: 'Empty (No Data)',
   args: {
     script: '21 Thrusters\n21 Pull-ups',
     runToCompletion: false,
-    height: '500px',
+    height: '844px',
   },
 };
 
-/**
- * Fran — classic 21-15-9 benchmark.
- * 6 effort segments + session root and child rounds produce a rich grid.
- */
 export const FranComplete: Story = {
   name: 'Completed: Fran (21-15-9)',
   args: {
@@ -266,76 +240,36 @@ export const FranComplete: Story = {
     ].join('\n'),
     runToCompletion: true,
     stepMs: 30_000,
-    height: '650px',
+    height: '844px',
   },
 };
 
-/**
- * Grace — 30 clean & jerks for time.
- */
-export const GraceComplete: Story = {
-  name: 'Completed: Grace (30 C&J)',
-  args: {
-    script: '30 Clean & Jerk @135lb',
-    runToCompletion: true,
-    stepMs: 150_000, // 2.5 min
-    height: '500px',
-  },
-};
-
-/**
- * AMRAP 20 — Cindy style, multiple rounds completed.
- */
 export const AmrapComplete: Story = {
   name: 'Completed: AMRAP 20 (Cindy)',
   args: {
     script: '20:00 AMRAP\n5 Pull-ups\n10 Push-ups\n15 Air Squats',
     runToCompletion: true,
-    stepMs: 60_000, // 1 min per step (gets through multiple rounds)
-    height: '700px',
+    stepMs: 60_000,
+    height: '844px',
   },
 };
 
-/**
- * EMOM 10 — every-minute-on-the-minute.
- */
 export const EmomComplete: Story = {
   name: 'Completed: EMOM 10',
   args: {
     script: '10x 1:00\n10 Thrusters @95lb',
     runToCompletion: true,
     stepMs: 60_000,
-    height: '650px',
+    height: '844px',
   },
 };
 
-/**
- * 5×10 Rounds — simple round-based workout.
- */
 export const RoundsComplete: Story = {
   name: 'Completed: 5×10 Thrusters',
   args: {
     script: '5x\n10 Thrusters @95lb',
     runToCompletion: true,
     stepMs: 45_000,
-    height: '600px',
-  },
-};
-
-/**
- * Multi-movement complex — longer workout with multiple movement types.
- */
-export const DeadliftWorkoutComplete: Story = {
-  name: 'Completed: Deadlift Complex',
-  args: {
-    script: [
-      '15 Deadlift @225lb',
-      '12 Hang Power Clean @135lb',
-      '9 Front Squat @135lb',
-      '6 Push Jerk @135lb',
-    ].join('\n'),
-    runToCompletion: true,
-    stepMs: 90_000,
-    height: '650px',
+    height: '844px',
   },
 };

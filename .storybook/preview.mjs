@@ -33,8 +33,7 @@ const preview = {
     options: {
       storySort: {
         order: [
-          'atoms',
-          'catalog', ['molecules', 'organisms'],
+          'catalog', ['atoms','molecules', 'organisms', 'templates', 'pages'],
           'panels',
           'integration',
           'acceptance',
