@@ -1,23 +1,35 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ThemeProvider } from '@/components/theme/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider';
 import { AudioProvider } from '@/components/audio/AudioContext';
 import { DebugModeProvider } from '@/components/layout/DebugModeContext';
 import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { NotebookProvider } from '@/components/notebook/NotebookContext';
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing';
 
+/** Syncs the Storybook toolbar theme selection with the ThemeProvider context. */
+const ThemeSync: React.FC<{ theme?: 'light' | 'dark' | 'system' }> = ({ theme }) => {
+    const { setTheme } = useTheme();
+    useEffect(() => {
+        if (theme) setTheme(theme);
+    }, [theme, setTheme]);
+    return null;
+};
+
 interface StorybookHostProps {
     children: React.ReactNode;
     initialEntries?: string[]; // Routes to simulate
+    theme?: 'light' | 'dark' | 'system';
 }
 
 export const StorybookHost: React.FC<StorybookHostProps> = ({
     children,
-    initialEntries = ['/']
+    initialEntries = ['/'],
+    theme,
 }) => {
     return (
-        <ThemeProvider defaultTheme="light" storageKey="storybook-theme">
+        <ThemeProvider defaultTheme={theme || 'light'} storageKey="storybook-theme">
+            <ThemeSync theme={theme} />
             <AudioProvider>
                 <DebugModeProvider>
                     <MemoryRouter initialEntries={initialEntries}>
