@@ -12,6 +12,9 @@ export function editorTheme(isDark: boolean): Extension {
       boxSizing: "border-box",
       fontSize: "14px"
     },
+    "&.cm-focused": {
+      outline: "none",
+    },
     ".cm-scroller": {
       overflow: "visible",
       width: "100%",
@@ -24,7 +27,7 @@ export function editorTheme(isDark: boolean): Extension {
       padding: "0"
     },
     ".cm-gutters": {
-      backgroundColor: isDark ? "#252841" : "#F5F7FF",
+      backgroundColor: isDark ? "#252841" : "transparent",
       color: isDark ? "#A0AEC0" : "#717D96",
       border: "none",
       padding: "0",

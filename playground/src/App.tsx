@@ -102,6 +102,8 @@ const SYNTAX_LINKS = [
 ]
 
 import { SplitCalendarButton } from '@/components/ui/SplitCalendarButton'
+import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker'
+import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 
 // ── New Journal Entry Button ───────────────────────────────────────
 
@@ -169,6 +171,9 @@ export interface WorkoutItem {
 /** Syntax and documentation pages use in-page popup; collections use route navigation. */
 const INLINE_RUNTIME_CATEGORIES = new Set(['syntax'])
 
+/** Categories that are standard "library" collections (not journal/playground/canvas/syntax). */
+const NON_COLLECTION_CATEGORIES = new Set(['journal', 'playground', 'canvas', 'syntax'])
+
 function WorkoutEditorPage({
   category,
   name,
@@ -185,9 +190,12 @@ function WorkoutEditorPage({
   onScrollToSection?: (id: string) => void
 }) {
   const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
+  const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
   const noteId = PlaygroundDBService.pageId(category, name)
   const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
+
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
 
   const handleStartWorkout = useCallback(
     async (block: WodBlock) => {
@@ -216,6 +224,52 @@ function WorkoutEditorPage({
     },
     [usePopup, noteId, name, category, navigate],
   )
+
+  const handleScheduleBlock = useCallback(
+    async (block: WodBlock, date: Date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const iso = `${y}-${m}-${d}`
+      try {
+        await appendWorkoutToJournal({
+          workoutName: name,
+          category,
+          wodContent: block.content,
+          date,
+          wrapInWod: true,
+        })
+      } finally {
+        navigate(`/journal/${iso}`)
+      }
+    },
+    [name, category, navigate],
+  )
+
+  const collectionCommands = useMemo<WodCommand[]>(() => {
+    if (!isCollection) return []
+    return [
+      {
+        id: 'run',
+        label: 'Now',
+        icon: <PlayIcon className="h-3 w-3 fill-current" />,
+        primary: true,
+        onClick: handleStartWorkout,
+      },
+      {
+        id: 'today',
+        label: 'Today',
+        icon: <CalendarDaysIcon className="h-3 w-3" />,
+        onClick: (block) => handleScheduleBlock(block, new Date()),
+      },
+      {
+        id: 'plan',
+        label: 'Plan',
+        icon: <CalendarDaysIcon className="h-3 w-3" />,
+        onClick: (block) => setPendingScheduleBlock(block),
+      },
+    ]
+  }, [isCollection, handleStartWorkout, handleScheduleBlock])
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
   const index = useMemo((): PageNavLink[] => {
@@ -263,33 +317,60 @@ function WorkoutEditorPage({
   }
 
   return (
-    <JournalPageShell
-      title={name}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={
-        <div className="flex items-center gap-4">
-          <NewEntryButton />
-          <CastButtonRpc />
-          <AudioToggle />
-          <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
+    <>
+      <JournalPageShell
+        title={name}
+        index={index}
+        onScrollToSection={onScrollToSection}
+        actions={
+          <div className="flex items-center gap-4">
+            <NewEntryButton />
+            <CastButtonRpc />
+            <AudioToggle />
+            <ThemeSwitcher />
+            <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
+          </div>
+        }
+        editor={
+          <NoteEditor
+            value={content}
+            onChange={onChange}
+            noteId={noteId}
+            onStartWorkout={isCollection || usePopup ? undefined : handleStartWorkout}
+            enableInlineRuntime={usePopup}
+            commands={collectionCommands.length > 0 ? collectionCommands : undefined}
+            onViewCreated={onViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setWodBlocks}
+          />
+        }
+      />
+
+      {/* Date picker modal for "Plan" command on collection WOD blocks */}
+      {pendingScheduleBlock && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setPendingScheduleBlock(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold mb-4 text-foreground">
+              Schedule "{name}" for…
+            </p>
+            <CalendarDatePicker
+              selectedDate={null}
+              onDateSelect={(date) => {
+                if (date) handleScheduleBlock(pendingScheduleBlock, date)
+                setPendingScheduleBlock(null)
+              }}
+            />
+          </div>
         </div>
-      }
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          noteId={noteId}
-          onStartWorkout={usePopup ? undefined : handleStartWorkout}
-          enableInlineRuntime={usePopup}
-          onViewCreated={onViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks}
-        />
-      }
-    />
+      )}
+    </>
   )
 }
 
@@ -1104,26 +1185,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
   }, [navigate])
 
-  const handleCloneWorkout = useCallback((item: WorkoutItem, date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const iso = `${y}-${m}-${d}`;
-
-    appendWorkoutToJournal({
-      workoutName: item.name,
-      category: item.category || 'General',
-      wodContent: item.content,
-      date,
-      wrapInWod: false, // Page clones already contain markdown and fences
-    }).then(() => {
-      navigate(`/journal/${iso}`)
-    }).catch(() => {
-      // Fallback: navigate anyway even if append failed
-      navigate(`/journal/${iso}`)
-    })
-  }, [navigate])
-
   // Nav links for the current page (used in the sticky header dropdown)
   const currentNavLinks = useMemo((): PageNavLink[] => {
     // 1. Canvas pages (including Home)
@@ -1480,7 +1541,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
-                onSchedule={handleCloneWorkout}
               />
             </CanvasPage>
           ) : (
