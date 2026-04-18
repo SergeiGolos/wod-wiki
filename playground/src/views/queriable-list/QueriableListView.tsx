@@ -9,7 +9,7 @@ interface QueriableListViewProps {
   items: { id: string; name: string; category: string; content?: string }[];
   results: any[]; // Recent results from IndexedDB
   onSelect: (item: FilteredListItem) => void;
-  onClone?: (item: FilteredListItem, date: Date) => void;
+  renderItemActions?: (item: FilteredListItem) => React.ReactNode;
   className?: string;
   hideBackground?: boolean;
   disableDateFiltering?: boolean;
@@ -21,7 +21,7 @@ export function QueriableListView({
   items, 
   results: historicalResults,
   onSelect,
-  onClone,
+  renderItemActions,
   className,
   hideBackground,
   disableDateFiltering
@@ -109,7 +109,7 @@ export function QueriableListView({
       <FilteredList 
         items={filteredItems} 
         onSelect={onSelect} 
-        onClone={onClone}
+        renderItemActions={renderItemActions}
         selectedDate={query.startDate}
         stickyOffset={queryHeight}
       />

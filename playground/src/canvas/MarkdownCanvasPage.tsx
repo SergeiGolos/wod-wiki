@@ -294,10 +294,10 @@ export interface MarkdownCanvasPageProps {
   theme: string
   workoutItems?: WorkoutItem[]
   onSelect?: (item: WorkoutItem) => void
-  onClone?: (item: WorkoutItem, date: Date) => void
+  onSchedule?: (item: WorkoutItem, date: Date) => void
 }
 
-export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, onClone }: MarkdownCanvasPageProps) {
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, onSchedule }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 
@@ -738,7 +738,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                                   category={collectionSlug}
                                   workoutItems={workoutItems}
                                   onSelect={onSelect ?? (() => {})}
-                                  onClone={onClone}
+                                  onSchedule={onSchedule}
                                 />
                               </div>
                               {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
@@ -788,7 +788,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                     category={collectionSlug}
                     workoutItems={workoutItems}
                     onSelect={onSelect ?? (() => {})}
-                    onClone={onClone}
+                    onSchedule={onSchedule}
                   />
                 </div>
               </div>

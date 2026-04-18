@@ -1480,7 +1480,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
-                onClone={handleCloneWorkout}
+                onSchedule={handleCloneWorkout}
               />
             </CanvasPage>
           ) : (
