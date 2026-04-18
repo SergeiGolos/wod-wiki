@@ -49,9 +49,7 @@ const preview = {
     options: {
       storySort: {
         order: [
-          'catalog', ['atoms','molecules', 'organisms', 'templates', 'pages'],
-          'panels',
-          'integration',
+          'catalog', ['atoms', 'molecules', 'organisms', 'templates', 'pages'],
           'acceptance',
         ],
       },
