@@ -6,7 +6,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { ExternalLink, Copy, Play, Bookmark, Share2, Download } from 'lucide-react';
+import { ExternalLink, Copy, Play, Bookmark, Share2, Download, Maximize2 } from 'lucide-react';
 import { SplitButton } from '@/components/ui/SplitButton';
 import type { INavActivation } from '@/nav/navTypes';
 
@@ -131,6 +131,49 @@ export const PlaygroundVariant: Story = {
           action: { type: 'call', handler: () => alert('URL copied') },
         }}
       />
+    </div>
+  ),
+};
+
+export const RunButton: Story = {
+  name: 'Run button (primary variant)',
+  render: () => (
+    <div className="space-y-6">
+      <p className="text-xs text-muted-foreground font-mono">
+        variant="primary" — CTA pill for workout run buttons (replaces SplitRunButton)
+      </p>
+      <div className="flex flex-col gap-4 items-start">
+        <SplitButton
+          variant="primary"
+          primary={{
+            id: 'run',
+            label: 'Run',
+            icon: Play,
+            action: { type: 'call', handler: () => alert('Run inline') },
+          }}
+          secondary={{
+            id: 'fullscreen',
+            label: 'Run fullscreen',
+            icon: Maximize2,
+            action: { type: 'call', handler: () => alert('Run fullscreen') },
+          }}
+        />
+        <SplitButton
+          variant="primary"
+          primary={{
+            id: 'start',
+            label: 'Start workout',
+            icon: Play,
+            action: { type: 'call', handler: () => alert('Start') },
+          }}
+          secondary={{
+            id: 'expand',
+            label: 'Expand',
+            icon: Maximize2,
+            action: { type: 'call', handler: () => alert('Expand') },
+          }}
+        />
+      </div>
     </div>
   ),
 };

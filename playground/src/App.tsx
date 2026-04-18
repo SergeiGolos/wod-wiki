@@ -101,27 +101,36 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
-import { WorkoutActionButton } from '@/components/workout/WorkoutActionButton'
+import { SplitCalendarButton } from '@/components/ui/SplitCalendarButton'
 
 // ── New Journal Entry Button ───────────────────────────────────────
 
 function NewEntryButton() {
   const navigate = useNavigate()
-  
-  const pick = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+
+  const navigateToDate = (date: Date | null) => {
+    if (!date) return
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
     navigate(`/journal/${y}-${m}-${d}`)
   }
 
   return (
-    <WorkoutActionButton
-      mode="create"
-      label="New"
-      onAction={pick}
-      variant="ghost"
-      className="h-8"
+    <SplitCalendarButton
+      primary={{
+        id: 'new-entry',
+        label: 'New',
+        icon: PlusIcon,
+        action: { type: 'call', handler: () => navigateToDate(new Date()) },
+      }}
+      selectedDate={selectedDate}
+      onDateSelect={(date) => {
+        setSelectedDate(date)
+        navigateToDate(date)
+      }}
+      size="sm"
     />
   )
 }

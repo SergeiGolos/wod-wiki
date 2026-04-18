@@ -1,8 +1,8 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { FileTextIcon, PlayIcon, CheckCircleIcon, CalendarIcon } from 'lucide-react';
+import { FileTextIcon, PlayIcon, CheckCircleIcon, CalendarIcon, Copy } from 'lucide-react';
 import type { FilteredListItem } from './types';
-import { WorkoutActionButton } from '@/components/workout/WorkoutActionButton';
+import { SplitCalendarButton } from '@/components/ui/SplitCalendarButton';
 
 interface FilteredListProps {
   items: FilteredListItem[];
@@ -166,12 +166,16 @@ export const FilteredList: React.FC<FilteredListProps> = ({
 
                   {onClone && item.type === 'note' && (
                     <div className="flex-shrink-0 ml-4" onClick={(e) => e.stopPropagation()}>
-                      <WorkoutActionButton
-                        mode="create"
-                        label="Clone"
-                        onAction={(date) => onClone(item, date)}
-                        variant="ghost"
-                        className="h-8"
+                      <SplitCalendarButton
+                        primary={{
+                          id: `clone-${item.id}`,
+                          label: 'Clone',
+                          icon: Copy,
+                          action: { type: 'call', handler: () => onClone(item, new Date()) },
+                        }}
+                        selectedDate={null}
+                        onDateSelect={(date) => date && onClone(item, date)}
+                        size="sm"
                       />
                     </div>
                   )}
