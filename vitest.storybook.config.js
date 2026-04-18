@@ -42,6 +42,8 @@ export default defineConfig({
       provider: 'playwright',
       headless: true,
     },
+    fileParallelism: false,
+    sequence: { sequential: true },
     setupFiles: ['.storybook/vitest.setup.ts'],
     reporters: process.env.CI
       ? [['default'], ['junit', { outputFile: 'test-results/storybook-junit.xml' }]]

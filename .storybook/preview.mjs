@@ -1,15 +1,31 @@
 import React from 'react';
-import { StorybookHost } from '../stories/StorybookHost';
+import { StorybookHost } from '../stories/_shared/StorybookHost';
 import '../src/index.css';
 
 /** @type { import('@storybook/react-vite').Preview } */
 const preview = {
+  globalTypes: {
+    theme: {
+      description: 'Theme for components',
+      toolbar: {
+        title: 'Theme',
+        icon: 'paintbrush',
+        items: [
+          { value: 'light', icon: 'sun', title: 'Light' },
+          { value: 'dark', icon: 'moon', title: 'Dark' },
+          { value: 'system', icon: 'browser', title: 'System' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+  },
   decorators: [
     (Story, context) => {
       const initialEntries = context.parameters?.router?.initialEntries;
+      const theme = context.globals.theme || 'light';
       return React.createElement(
         StorybookHost,
-        initialEntries ? { initialEntries } : null,
+        { ...(initialEntries ? { initialEntries } : {}), theme },
         React.createElement(Story, null)
       );
     },
@@ -33,10 +49,8 @@ const preview = {
     options: {
       storySort: {
         order: [
-          'Syntax',
-          ['Pages', ['ScriptedTutorial', 'Collections', 'Calendar', 'Planner', 'Note']],
-          'Panels',
-          'Components',
+          'catalog', ['atoms', 'molecules', 'organisms', 'templates', 'pages'],
+          'acceptance',
         ],
       },
     },

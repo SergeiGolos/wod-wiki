@@ -6,7 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
-  testIgnore: ['**/journal-scroll.e2e.ts'],
+  // live-app tests target the running playground app, not Storybook.
+  // They are executed separately via playwright.journal.config.ts or
+  // playwright.repro.config.ts with the correct baseURL.
+  testIgnore: ['**/live-app/**'],
 
   /* Maximum time one test can run for */
   timeout: 30 * 1000,

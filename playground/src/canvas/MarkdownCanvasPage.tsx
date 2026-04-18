@@ -15,7 +15,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Eye, Maximize2, Play } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
@@ -24,7 +24,7 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResults } from '@/components/Editor/types'
 import { MacOSChrome } from '../components/MacOSChrome'
-import { SplitRunButton } from '../components/SplitRunButton'
+import { SplitButton } from '@/components/ui/SplitButton'
 import { cn } from '@/lib/utils'
 import { CanvasProse } from './CanvasProse'
 import { executeNavAction } from '../nav/navTypes'
@@ -136,16 +136,41 @@ function SectionButtons({
   const first = activations[0]
   if (isRunActivation(first) && runState) {
     const rest = activations.slice(1)
+    const RunPill = runState.isReconnect ? (
+      <button
+        onClick={runState.onReconnect}
+        className={cn(
+          'flex items-center gap-2 px-5 py-2 text-[11px] font-black uppercase tracking-widest',
+          'rounded-full border transition-all active:scale-95',
+          'border-amber-500/40 bg-amber-500/15 text-amber-600 hover:bg-amber-500/20',
+          'dark:text-amber-400',
+          fullBleed && 'mx-auto',
+        )}
+      >
+        <Eye className="size-3.5" />
+        View
+      </button>
+    ) : (
+      <SplitButton
+        variant="primary"
+        primary={{
+          id: first.id || 'run',
+          label: first.label,
+          icon: first.icon ?? Play,
+          action: { type: 'call', handler: runState.onRun },
+        }}
+        secondary={{
+          id: 'fullscreen',
+          label: 'Run fullscreen',
+          icon: Maximize2,
+          action: { type: 'call', handler: runState.onFullscreen },
+        }}
+        className={cn(fullBleed && 'mx-auto')}
+      />
+    )
     return (
       <div className={cn('flex flex-wrap items-center gap-4 mt-8', fullBleed && 'justify-center')}>
-        <SplitRunButton
-          onRun={runState.onRun}
-          onFullscreen={runState.onFullscreen}
-          isReconnect={runState.isReconnect}
-          onReconnect={runState.onReconnect}
-          label={first.label}
-          center={fullBleed}
-        />
+        {RunPill}
         {rest.map((activation, i) => (
           <button
             key={activation.id || i}
@@ -194,15 +219,39 @@ function ViewPanelButtons({
   const first = activations[0]
   if (isRunActivation(first) && runState) {
     const rest = activations.slice(1)
+    const RunPill = runState.isReconnect ? (
+      <button
+        onClick={runState.onReconnect}
+        className={cn(
+          'flex items-center gap-2 px-5 py-2 text-[11px] font-black uppercase tracking-widest',
+          'rounded-full border transition-all active:scale-95',
+          'border-amber-500/40 bg-amber-500/15 text-amber-600 hover:bg-amber-500/20',
+          'dark:text-amber-400',
+        )}
+      >
+        <Eye className="size-3.5" />
+        View
+      </button>
+    ) : (
+      <SplitButton
+        variant="primary"
+        primary={{
+          id: first.id || 'run',
+          label: first.label,
+          icon: first.icon ?? Play,
+          action: { type: 'call', handler: runState.onRun },
+        }}
+        secondary={{
+          id: 'fullscreen',
+          label: 'Run fullscreen',
+          icon: Maximize2,
+          action: { type: 'call', handler: runState.onFullscreen },
+        }}
+      />
+    )
     return (
       <div className="flex flex-wrap items-center gap-3 justify-end pt-3 px-1">
-        <SplitRunButton
-          onRun={runState.onRun}
-          onFullscreen={runState.onFullscreen}
-          isReconnect={runState.isReconnect}
-          onReconnect={runState.onReconnect}
-          label={first.label}
-        />
+        {RunPill}
         {rest.map((activation, i) => (
           <button
             key={activation.id || i}
@@ -245,10 +294,9 @@ export interface MarkdownCanvasPageProps {
   theme: string
   workoutItems?: WorkoutItem[]
   onSelect?: (item: WorkoutItem) => void
-  onClone?: (item: WorkoutItem, date: Date) => void
 }
 
-export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, onClone }: MarkdownCanvasPageProps) {
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 
@@ -383,7 +431,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const depsRef = useRef(deps)
   depsRef.current = deps
 
-  // RunButtonState — shortcuts for SplitRunButton's specific call signatures
+  // RunButtonState — state for the run/reconnect SplitButton
   const runState: RunButtonState = {
     isReconnect: hasActiveViewRuntime && panelMode !== 'running',
     onReconnect: () => setPanelMode('running'),
@@ -689,7 +737,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                                   category={collectionSlug}
                                   workoutItems={workoutItems}
                                   onSelect={onSelect ?? (() => {})}
-                                  onClone={onClone}
                                 />
                               </div>
                               {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
@@ -739,7 +786,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                     category={collectionSlug}
                     workoutItems={workoutItems}
                     onSelect={onSelect ?? (() => {})}
-                    onClone={onClone}
                   />
                 </div>
               </div>

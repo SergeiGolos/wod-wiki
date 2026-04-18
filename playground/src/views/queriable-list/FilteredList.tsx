@@ -2,12 +2,12 @@ import React, { useMemo, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { FileTextIcon, PlayIcon, CheckCircleIcon, CalendarIcon } from 'lucide-react';
 import type { FilteredListItem } from './types';
-import { WorkoutActionButton } from '@/components/workout/WorkoutActionButton';
 
 interface FilteredListProps {
   items: FilteredListItem[];
   onSelect: (item: FilteredListItem) => void;
-  onClone?: (item: FilteredListItem, date: Date) => void;
+  /** Optional per-item action renderer. Only called for items with type === 'note'. */
+  renderItemActions?: (item: FilteredListItem) => React.ReactNode;
   selectedDate?: Date;
   stickyOffset?: number;
   /** Called when the topmost visible date group changes during scroll */
@@ -25,7 +25,7 @@ const ItemIcon = ({ type }: { type: FilteredListItem['type'] }) => {
 export const FilteredList: React.FC<FilteredListProps> = ({ 
   items, 
   onSelect, 
-  onClone,
+  renderItemActions,
   selectedDate, 
   stickyOffset = 0, 
   onVisibleDateChange 
@@ -164,15 +164,9 @@ export const FilteredList: React.FC<FilteredListProps> = ({
                     </p>
                   </div>
 
-                  {onClone && item.type === 'note' && (
+                  {renderItemActions && item.type === 'note' && (
                     <div className="flex-shrink-0 ml-4" onClick={(e) => e.stopPropagation()}>
-                      <WorkoutActionButton
-                        mode="create"
-                        label="Clone"
-                        onAction={(date) => onClone(item, date)}
-                        variant="ghost"
-                        className="h-8"
-                      />
+                      {renderItemActions(item)}
                     </div>
                   )}
                 </button>
