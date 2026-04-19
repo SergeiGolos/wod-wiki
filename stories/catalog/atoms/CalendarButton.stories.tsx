@@ -87,6 +87,30 @@ export const Sizes: Story = {
   },
 };
 
+export const EdgeCollision: Story = {
+  name: 'Edge collision — align flips',
+  parameters: { layout: 'fullscreen' },
+  render: () => {
+    const [left, setLeft] = useState<Date | null>(new Date());
+    const [right, setRight] = useState<Date | null>(new Date());
+    return (
+      <div className="relative w-full h-40">
+        <p className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground font-mono">
+          left button → calendar opens right · right button → calendar opens left
+        </p>
+        {/* Button pinned to left edge */}
+        <div className="absolute left-2 bottom-4">
+          <CalendarButton selectedDate={left} onDateSelect={setLeft} />
+        </div>
+        {/* Button pinned to right edge */}
+        <div className="absolute right-2 bottom-4">
+          <CalendarButton selectedDate={right} onDateSelect={setRight} />
+        </div>
+      </div>
+    );
+  },
+};
+
 export const Disabled: Story = {
   name: 'Disabled',
   render: () => (

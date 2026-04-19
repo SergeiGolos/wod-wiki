@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CalendarCard } from '@/components/ui/CalendarCard';
+import { usePopoverAlign } from '@/hooks/usePopoverAlign';
 
 export interface CalendarButtonProps {
   /** Currently selected date */
@@ -35,6 +36,7 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({
   className,
 }) => {
   const [open, setOpen] = useState(false);
+  const { triggerRef, align, recompute } = usePopoverAlign('end');
 
   const padding = size === 'sm' ? 'px-2 py-1.5' : 'px-2.5 py-2';
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
@@ -43,10 +45,17 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({
     ? selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
     : null;
 
+  const handleOpenChange = (next: boolean) => {
+    if (disabled) return;
+    if (next) recompute();
+    setOpen(next);
+  };
+
   return (
-    <DropdownMenu open={open && !disabled} onOpenChange={disabled ? undefined : setOpen}>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
+          ref={el => { triggerRef.current = el; }}
           type="button"
           disabled={disabled}
           title={dateLabel ? `Selected: ${dateLabel}` : 'Select date'}
@@ -65,7 +74,7 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({
           {dateLabel && <span className="leading-none">{dateLabel}</span>}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="p-0 w-auto">
+      <DropdownMenuContent align={align} className="p-0 w-auto">
         <CalendarCard
           selectedDate={selectedDate}
           onDateSelect={(date) => {

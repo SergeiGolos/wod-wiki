@@ -55,7 +55,8 @@ const preview = {
             [
               'Button', 
               'CalendarCard', 
-              'CalendarButton'
+              'CalendarButton',
+              'CalendarSplitButton',
             ], 
             'molecules', 
             'organisms', 

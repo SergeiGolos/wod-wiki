@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CalendarCard } from '@/components/ui/CalendarCard';
 import type { INavActivation, INavAction } from '@/nav/navTypes';
+import { usePopoverAlign } from '@/hooks/usePopoverAlign';
 
 export interface CalendarSplitButtonProps {
   /** Primary left-hand action */
@@ -54,6 +55,7 @@ export const CalendarSplitButton: React.FC<CalendarSplitButtonProps> = ({
   onAction,
 }) => {
   const [open, setOpen] = useState(false);
+  const { triggerRef, align, recompute } = usePopoverAlign('end');
   const PrimaryIcon = primary.icon;
   const padding = size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2';
   const iconPadding = size === 'sm' ? 'px-2 py-1.5' : 'px-2.5 py-2';
@@ -62,6 +64,11 @@ export const CalendarSplitButton: React.FC<CalendarSplitButtonProps> = ({
   const dateLabel = selectedDate
     ? selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
     : 'Date';
+
+  const handleOpenChange = (next: boolean) => {
+    if (next) recompute();
+    setOpen(next);
+  };
 
   return (
     <div
@@ -91,9 +98,10 @@ export const CalendarSplitButton: React.FC<CalendarSplitButtonProps> = ({
       <div className="w-px bg-border/60 self-stretch" />
 
       {/* Calendar trigger */}
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
           <button
+            ref={el => { triggerRef.current = el; }}
             type="button"
             title={`Select date — ${dateLabel}`}
             className={cn(
@@ -109,7 +117,7 @@ export const CalendarSplitButton: React.FC<CalendarSplitButtonProps> = ({
             )}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="p-0 w-auto">
+        <DropdownMenuContent align={align} className="p-0 w-auto">
           <CalendarCard
             selectedDate={selectedDate}
             onDateSelect={(date) => {
