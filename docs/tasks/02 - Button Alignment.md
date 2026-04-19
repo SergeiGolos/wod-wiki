@@ -1,0 +1,1 @@
+SplitButton should be renamed to ButtonGroup both inthe stories and the plyground code.

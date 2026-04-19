@@ -49,7 +49,19 @@ const preview = {
     options: {
       storySort: {
         order: [
-          'catalog', ['atoms', 'molecules', 'organisms', 'templates', 'pages'],
+          'catalog', 
+          [
+            'atoms', 
+            [
+              'Button', 
+              'CalendarCard', 
+              'CalendarButton'
+            ], 
+            'molecules', 
+            'organisms', 
+            'templates', 
+            'pages'
+          ],
           'acceptance',
         ],
       },
