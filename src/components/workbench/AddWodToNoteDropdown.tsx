@@ -11,7 +11,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
+import { CalendarCard } from '@/components/ui/CalendarCard';
 import type { WodBlock } from '@/components/Editor/types';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
@@ -191,7 +191,7 @@ export const AddWodToNoteDropdown: React.FC<AddWodToNoteDropdownProps> = ({
                     <div className="flex">
                         {/* Left: Calendar Date Picker */}
                         <div className="w-[260px] flex-shrink-0 border-r border-border/50">
-                            <CalendarDatePicker
+                            <CalendarCard
                                 selectedDate={selectedDate}
                                 onDateSelect={handleDateSelect}
                                 entryDates={entryDates}

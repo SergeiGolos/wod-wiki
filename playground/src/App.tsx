@@ -101,8 +101,8 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
-import { SplitCalendarButton } from '@/components/ui/SplitCalendarButton'
-import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker'
+import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton'
+import { CalendarCard } from '@/components/ui/CalendarCard'
 import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 
 // ── New Journal Entry Button ───────────────────────────────────────
@@ -120,7 +120,7 @@ function NewEntryButton() {
   }
 
   return (
-    <SplitCalendarButton
+    <CalendarSplitButton
       primary={{
         id: 'new-entry',
         label: 'New',
@@ -360,7 +360,7 @@ function WorkoutEditorPage({
             <p className="text-sm font-semibold mb-4 text-foreground">
               Schedule "{name}" for…
             </p>
-            <CalendarDatePicker
+            <CalendarCard
               selectedDate={null}
               onDateSelect={(date) => {
                 if (date) handleScheduleBlock(pendingScheduleBlock, date)

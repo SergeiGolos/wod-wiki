@@ -2,7 +2,7 @@
  * JournalNavPanel — L2 context panel shown when Journal is the active L1 item.
  *
  * Features:
- *   - Mini month-view calendar (CalendarDatePicker)
+ *   - Mini month-view calendar (CalendarCard)
  *   - Tag chip filter
  *
  * Context-aware date click behaviour:
@@ -11,7 +11,7 @@
  */
 
 import { useMatch, useNavigate } from 'react-router-dom'
-import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker'
+import { CalendarCard } from '@/components/ui/CalendarCard'
 import { cn } from '@/lib/utils'
 import { useJournalQueryState } from '../../hooks/useJournalQueryState'
 import type { NavPanelProps } from '../navTypes'
@@ -57,7 +57,7 @@ export function JournalNavPanel(_props: NavPanelProps) {
   return (
     <div className="flex flex-col gap-3 px-1 py-2">
       {/* Mini calendar */}
-      <CalendarDatePicker
+      <CalendarCard
         selectedDate={selectedDateObj}
         onDateSelect={handleDateSelect}
         className="scale-95 origin-top-left"
