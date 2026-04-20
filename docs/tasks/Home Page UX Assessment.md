@@ -185,3 +185,16 @@ The proposed redesign restructures the page into four clear sections:
 ---
 
 *Assessment based on code review of the current implementation (`HomeHero.tsx`, `markdown/canvas/home/README.md`) and the proposed content plan (`docs/tasks/Home Page Sections.md`). No user testing data was available.*
+
+---
+
+## Update Log
+
+**2026-04-20** — `Home Page Sections.md` has been revised to incorporate the sticky viewport annotations and address the gaps identified in this assessment. Specifically:
+
+- **Sticky viewport retained.** Every scroll section now includes explicit `view`, `command`, and `button` block annotations using the canvas DSL. The viewport flow is documented in a state-transition table at the end of the document.
+- **Live interactive demo preserved.** The Cycle section and Example section both use `set-state: track` with `open: view` to launch the inline timer. The scroll itself drives the demo — no clicks required.
+- **Browse the Library section restored.** Section 5 brings back the embedded collection browser with a `browse` state view block.
+- **Features use the viewport.** Each feature card is paired with a specific viewport state (journal editor, review panel, cast button) so the panel continues demonstrating capabilities rather than going idle.
+- **Source file inventory added.** A table lists the six new markdown source files needed in `markdown/canvas/home/` to support the viewport flow.
+- **Viewport Flow Summary table added.** Documents the complete state machine from hero to closing CTA — heading attributes, viewport state, source file, and what the visitor sees at each step.
