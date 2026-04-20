@@ -1,5 +1,5 @@
 /**
- * SplitButton
+ * ButtonGroup
  *
  * Two-sided pill button driven by INavActivation.
  * Left side = primary action (label + optional icon).
@@ -14,7 +14,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { INavActivation, INavAction } from '@/nav/navTypes';
 
-export interface SplitButtonProps {
+export interface ButtonGroupProps {
   /** Primary left-hand action — shows label + icon */
   primary: INavActivation;
   /** Secondary right-hand action — shows icon only */
@@ -33,7 +33,7 @@ export interface SplitButtonProps {
 
 function fireAction(
   activation: INavActivation,
-  onAction?: SplitButtonProps['onAction'],
+  onAction?: ButtonGroupProps['onAction'],
 ): void {
   if (onAction) {
     onAction(activation.action, activation);
@@ -44,7 +44,7 @@ function fireAction(
   }
 }
 
-export const SplitButton: React.FC<SplitButtonProps> = ({
+export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   primary,
   secondary,
   size = 'default',

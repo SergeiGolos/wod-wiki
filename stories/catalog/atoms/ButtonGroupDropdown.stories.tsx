@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / SplitDropdownButton
+ * Catalog / Atoms / ButtonGroupDropdown
  *
  * Two-sided pill: primary action left, chevron opens a dropdown of
  * any number of additional INavActivation actions on the right.
@@ -17,12 +17,12 @@ import {
   RotateCcw,
   Download,
 } from 'lucide-react';
-import { SplitDropdownButton } from '@/components/ui/SplitDropdownButton';
+import { ButtonGroupDropdown } from '@/components/ui/ButtonGroupDropdown';
 import type { INavActivation } from '@/nav/navTypes';
 
-const meta: Meta<typeof SplitDropdownButton> = {
-  title: 'catalog/atoms/SplitDropdownButton',
-  component: SplitDropdownButton,
+const meta: Meta<typeof ButtonGroupDropdown> = {
+  title: 'catalog/atoms/ButtonGroupDropdown',
+  component: ButtonGroupDropdown,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -52,7 +52,7 @@ export const Default: Story = {
   render: () => (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground font-mono">primary + chevron dropdown</p>
-      <SplitDropdownButton
+      <ButtonGroupDropdown
         primary={{ id: 'start', label: 'Start workout', icon: Play, action: { type: 'call', handler: say('Start workout') } }}
         actions={workoutActions}
       />
@@ -68,7 +68,7 @@ export const Sizes: Story = {
       <div className="flex flex-col gap-3 items-start">
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground w-16">sm</span>
-          <SplitDropdownButton
+          <ButtonGroupDropdown
             size="sm"
             primary={{ id: 'start', label: 'Start', icon: Play, action: { type: 'call', handler: say('Start') } }}
             actions={workoutActions}
@@ -76,7 +76,7 @@ export const Sizes: Story = {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground w-16">default</span>
-          <SplitDropdownButton
+          <ButtonGroupDropdown
             primary={{ id: 'start', label: 'Start workout', icon: Play, action: { type: 'call', handler: say('Start') } }}
             actions={workoutActions}
           />
@@ -91,7 +91,7 @@ export const ShareVariant: Story = {
   render: () => (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground font-mono">different primary + share actions</p>
-      <SplitDropdownButton
+      <ButtonGroupDropdown
         primary={{ id: 'share', label: 'Share', icon: Share2, action: { type: 'call', handler: say('Share') } }}
         actions={[
           { id: 'copy-link',   label: 'Copy link',      icon: Copy,     action: { type: 'call', handler: say('Copy link') } },

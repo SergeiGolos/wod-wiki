@@ -1,5 +1,5 @@
 /**
- * SplitDropdownButton
+ * ButtonGroupDropdown
  *
  * Two-sided pill: left = primary action, right = chevron that opens a
  * DropdownMenu listing any number of additional INavActivation actions.
@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { INavActivation, INavAction } from '@/nav/navTypes';
 
-export interface SplitDropdownButtonProps {
+export interface ButtonGroupDropdownProps {
   /** Primary left-hand action */
   primary: INavActivation;
   /** Actions shown in the dropdown */
@@ -30,7 +30,7 @@ export interface SplitDropdownButtonProps {
 
 function fireAction(
   activation: INavActivation,
-  onAction?: SplitDropdownButtonProps['onAction'],
+  onAction?: ButtonGroupDropdownProps['onAction'],
 ): void {
   if (onAction) {
     onAction(activation.action, activation);
@@ -41,7 +41,7 @@ function fireAction(
   }
 }
 
-export const SplitDropdownButton: React.FC<SplitDropdownButtonProps> = ({
+export const ButtonGroupDropdown: React.FC<ButtonGroupDropdownProps> = ({
   primary,
   actions,
   size = 'default',

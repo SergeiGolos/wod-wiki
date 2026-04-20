@@ -24,7 +24,7 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResults } from '@/components/Editor/types'
 import { MacOSChrome } from '../components/MacOSChrome'
-import { SplitButton } from '@/components/ui/SplitButton'
+import { ButtonGroup } from '@/components/ui/ButtonGroup'
 import { cn } from '@/lib/utils'
 import { CanvasProse } from './CanvasProse'
 import { executeNavAction } from '../nav/navTypes'
@@ -151,7 +151,7 @@ function SectionButtons({
         View
       </button>
     ) : (
-      <SplitButton
+      <ButtonGroup
         variant="primary"
         primary={{
           id: first.id || 'run',
@@ -233,7 +233,7 @@ function ViewPanelButtons({
         View
       </button>
     ) : (
-      <SplitButton
+      <ButtonGroup
         variant="primary"
         primary={{
           id: first.id || 'run',
@@ -431,7 +431,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const depsRef = useRef(deps)
   depsRef.current = deps
 
-  // RunButtonState — state for the run/reconnect SplitButton
+  // RunButtonState — state for the run/reconnect ButtonGroup
   const runState: RunButtonState = {
     isReconnect: hasActiveViewRuntime && panelMode !== 'running',
     onReconnect: () => setPanelMode('running'),
