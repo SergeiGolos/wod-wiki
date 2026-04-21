@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright configuration for journal / playground e2e tests.
- * Targets the Vite playground dev server (HTTPS on Tailscale domain).
+ * Targets a local Vite dev server on the default port.
  * Run with:  bun run test:e2e:journal
  */
 export default defineConfig({
@@ -17,8 +17,7 @@ export default defineConfig({
   reporter: 'html',
 
   use: {
-    baseURL: 'https://pluto.forest-adhara.ts.net:5173',
-    ignoreHTTPSErrors: true,
+    baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -33,9 +32,8 @@ export default defineConfig({
 
   webServer: {
     command: 'bun run dev:app',
-    url: 'https://pluto.forest-adhara.ts.net:5173',
-    reuseExistingServer: true, // always reuse; playground is long-running
+    url: 'http://localhost:5173',
+    reuseExistingServer: true,
     timeout: 60 * 1000,
-    ignoreHTTPSErrors: true,
   },
 });
