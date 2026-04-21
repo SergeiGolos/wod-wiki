@@ -1,19 +1,9 @@
-import { defineConfig, Plugin } from 'vite';
+import { defineConfig, loadEnv, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import fs from 'fs';
 
 const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, '../package.json'), 'utf-8'));
-
-// Auto-detect Tailscale SSL certs for HTTPS (required for Chromecast)
-const projectRoot = resolve(__dirname, '..');
-const certFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.crt'));
-const keyFiles = fs.readdirSync(projectRoot).filter(f => f.endsWith('.ts.net.key'));
-const https = certFiles.length > 0 && keyFiles.length > 0
-    ? { cert: fs.readFileSync(resolve(projectRoot, certFiles[0])), key: fs.readFileSync(resolve(projectRoot, keyFiles[0])) }
-    : undefined;
-
-const hmrHost = certFiles.length > 0 ? certFiles[0].replace('.crt', '') : undefined;
 
 // Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
 // transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
@@ -44,35 +34,53 @@ const receiverRedirectPlugin: Plugin = {
     },
 };
 
-export default defineConfig({
-    root: __dirname,
-    base: '/',
-    define: {
-        __APP_VERSION__: JSON.stringify(pkg.version),
-    },
-    plugins: [react(), receiverRedirectPlugin],
-    resolve: {
-        alias: {
-            '@': resolve(__dirname, '../src'),
+export default defineConfig(({ mode }) => {
+    // Load env from repo root; '' prefix loads all variables (not just VITE_*)
+    const env = loadEnv(mode, resolve(__dirname, '..'), '');
+
+    // HTTPS is opt-in via .env.local. Set HTTPS_CERT, HTTPS_KEY, and HTTPS_HOST
+    // to enable TLS (e.g. for Tailscale/Pluto DNS). By default the server runs
+    // over plain HTTP so anyone cloning the repo can start it without extra setup.
+    const https =
+        env.HTTPS_CERT && env.HTTPS_KEY
+            ? {
+                  cert: fs.readFileSync(env.HTTPS_CERT),
+                  key: fs.readFileSync(env.HTTPS_KEY),
+              }
+            : undefined;
+
+    const hmrHost = env.HTTPS_HOST || undefined;
+
+    return {
+        root: __dirname,
+        base: '/',
+        define: {
+            __APP_VERSION__: JSON.stringify(pkg.version),
         },
-    },
-    server: {
-        host: '0.0.0.0',
-        ...(https ? { https } : {}),
-        hmr: hmrHost ? { host: hmrHost } : true,
-    },
-    build: {
-        outDir: 'dist',
-        emptyOutDir: true,
-        sourcemap: true,
-        rollupOptions: {
-            input: {
-                main: resolve(__dirname, 'index.html'),
-                'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
+        plugins: [react(), receiverRedirectPlugin],
+        resolve: {
+            alias: {
+                '@': resolve(__dirname, '../src'),
             },
         },
-    },
-    css: {
-        devSourcemap: true,
-    },
+        server: {
+            host: '0.0.0.0',
+            ...(https ? { https } : {}),
+            hmr: hmrHost ? { host: hmrHost } : true,
+        },
+        build: {
+            outDir: 'dist',
+            emptyOutDir: true,
+            sourcemap: true,
+            rollupOptions: {
+                input: {
+                    main: resolve(__dirname, 'index.html'),
+                    'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
+                },
+            },
+        },
+        css: {
+            devSourcemap: true,
+        },
+    };
 });
