@@ -1,22 +1,25 @@
 /**
- * CalendarDatePicker — Compact inline month-view calendar for dropdown contexts
+ * CalendarCard — Compact inline month-view calendar for dropdown contexts
  *
  * Designed to be embedded inside dropdown menus.
  * Shows a month grid, highlights today, supports single date selection.
  * Optionally shows dots/highlights for dates that have entries.
+ * Supports a disabled (read-only) mode.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export interface CalendarDatePickerProps {
+export interface CalendarCardProps {
   /** Currently selected date (if any) */
   selectedDate?: Date | null;
   /** Callback when a date is picked */
   onDateSelect: (date: Date) => void;
   /** Dates that have entries (highlighted with dot) */
   entryDates?: Set<string>; // ISO date strings "YYYY-MM-DD"
+  /** When true, renders as read-only — no interaction, visually dimmed */
+  disabled?: boolean;
   /** Optional className */
   className?: string;
 }
@@ -40,10 +43,11 @@ function toDateKey(date: Date): string {
   return formatDateKey(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
+export const CalendarCard: React.FC<CalendarCardProps> = ({
   selectedDate,
   onDateSelect,
   entryDates = new Set(),
+  disabled = false,
   className,
 }) => {
   const [viewDate, setViewDate] = useState(() => selectedDate || new Date());
@@ -92,12 +96,17 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
   const todayKey = toDateKey(new Date());
 
   return (
-    <div className={cn('select-none px-2 py-2', className)} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={cn('select-none px-2 py-2', disabled && 'opacity-60 cursor-not-allowed', className)}
+      onClick={(e) => e.stopPropagation()}
+      aria-disabled={disabled || undefined}
+    >
       {/* Month Navigation */}
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={prevMonth}
-          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+          disabled={disabled}
+          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors disabled:pointer-events-none"
           aria-label="Previous month"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -105,7 +114,8 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
         <span className="text-sm font-medium text-foreground">{monthLabel}</span>
         <button
           onClick={nextMonth}
-          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+          disabled={disabled}
+          className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors disabled:pointer-events-none"
           aria-label="Next month"
         >
           <ChevronRight className="h-4 w-4" />
@@ -136,6 +146,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
           return (
             <button
               key={dateKey}
+              disabled={disabled}
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -143,6 +154,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
               }}
               className={cn(
                 'w-8 h-8 flex items-center justify-center rounded text-xs transition-colors relative',
+                'disabled:pointer-events-none',
                 // Selected state
                 isSelected
                   ? 'bg-primary text-primary-foreground font-bold'

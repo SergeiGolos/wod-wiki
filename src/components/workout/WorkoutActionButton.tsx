@@ -9,7 +9,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
+import { CalendarCard } from '@/components/ui/CalendarCard';
 import { cn } from '@/lib/utils';
 import type { IContentProvider } from '@/types/content-provider';
 
@@ -142,7 +142,7 @@ export const WorkoutActionButton: React.FC<WorkoutActionButtonProps> = ({
                                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                             </div>
                         ) : (
-                            <CalendarDatePicker
+                            <CalendarCard
                                 onDateSelect={handleDateSelect}
                                 entryDates={entryDates}
                                 className="p-0"

@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / SplitCalendarButton
+ * Catalog / Atoms / CalendarSplitButton
  *
  * Two-sided pill: primary action left, calendar date picker popover right.
  */
@@ -7,13 +7,13 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { CalendarDays, Play, Search } from 'lucide-react';
-import { SplitCalendarButton } from '@/components/ui/SplitCalendarButton';
+import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton';
 import { FIXTURE_ENTRY_DATES } from '../../_shared/fixtures';
 import type { INavActivation } from '@/nav/navTypes';
 
-const meta: Meta<typeof SplitCalendarButton> = {
-  title: 'catalog/atoms/SplitCalendarButton',
-  component: SplitCalendarButton,
+const meta: Meta<typeof CalendarSplitButton> = {
+  title: 'catalog/atoms/CalendarSplitButton',
+  component: CalendarSplitButton,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -37,7 +37,7 @@ const ControlledDemo = ({
 }) => {
   const [selected, setSelected] = useState<Date | null>(new Date());
   return (
-    <SplitCalendarButton
+    <CalendarSplitButton
       primary={primary}
       selectedDate={selected}
       onDateSelect={setSelected}
@@ -86,11 +86,11 @@ export const Sizes: Story = {
         <div className="flex flex-col gap-3 items-start">
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground w-16">sm</span>
-            <SplitCalendarButton size="sm" primary={primary} selectedDate={sm} onDateSelect={setSm} />
+            <CalendarSplitButton size="sm" primary={primary} selectedDate={sm} onDateSelect={setSm} />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground w-16">default</span>
-            <SplitCalendarButton primary={primary} selectedDate={def} onDateSelect={setDef} />
+            <CalendarSplitButton primary={primary} selectedDate={def} onDateSelect={setDef} />
           </div>
         </div>
       </div>
@@ -105,7 +105,7 @@ export const NoDateSelected: Story = {
     return (
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground font-mono">no date — icon only on right half</p>
-        <SplitCalendarButton
+        <CalendarSplitButton
           primary={{ id: 'play', label: 'Start workout', icon: Play, action: { type: 'call', handler: say('Start') } }}
           selectedDate={date}
           onDateSelect={setDate}

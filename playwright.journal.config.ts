@@ -1,8 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as loadDotenv } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.local overrides (gitignored, machine-local) so HTTPS_HOST is
+// available here when the playground dev server is running with TLS.
+loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
+
+const httpsHost = process.env.HTTPS_HOST;
+const appBaseURL = httpsHost
+  ? `https://${httpsHost}:5173`
+  : 'http://localhost:5173';
 
 /**
  * Playwright configuration for journal / playground e2e tests.
- * Targets the Vite playground dev server (HTTPS on Tailscale domain).
+ * Targets a local Vite dev server on the default port.
  * Run with:  bun run test:e2e:journal
  */
 export default defineConfig({
@@ -17,11 +28,11 @@ export default defineConfig({
   reporter: 'html',
 
   use: {
-    baseURL: 'https://pluto.forest-adhara.ts.net:5173',
-    ignoreHTTPSErrors: true,
+    baseURL: appBaseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    ignoreHTTPSErrors: !!httpsHost, // trust self-signed / Tailscale certs locally
   },
 
   projects: [
@@ -33,9 +44,8 @@ export default defineConfig({
 
   webServer: {
     command: 'bun run dev:app',
-    url: 'https://pluto.forest-adhara.ts.net:5173',
-    reuseExistingServer: true, // always reuse; playground is long-running
+    url: appBaseURL,
+    reuseExistingServer: true,
     timeout: 60 * 1000,
-    ignoreHTTPSErrors: true,
   },
 });

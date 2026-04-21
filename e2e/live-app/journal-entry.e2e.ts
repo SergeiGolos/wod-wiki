@@ -16,7 +16,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { JournalEntryPage } from './pages/JournalEntryPage';
+import { JournalEntryPage } from '../pages/JournalEntryPage';
 
 // Stable test dates — far future so they never conflict with real entries
 const DATE_LOAD = '2099-06-01';
@@ -34,10 +34,7 @@ test.describe('Journal Entry — /journal/:date', () => {
     journal = new JournalEntryPage(page);
 
     // Navigate once to seed IndexedDB access before clearing
-    await page.goto('https://pluto.forest-adhara.ts.net:5173/', {
-      waitUntil: 'domcontentloaded',
-      timeout: 20_000,
-    });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20_000 });
   });
 
   test.afterEach(() => {

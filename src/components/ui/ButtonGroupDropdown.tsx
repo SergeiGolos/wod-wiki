@@ -1,31 +1,27 @@
 /**
- * SplitCalendarButton
+ * ButtonGroupDropdown
  *
- * Two-sided pill: left = primary action, right = calendar icon that
- * opens a CalendarDatePicker popover for date selection.
+ * Two-sided pill: left = primary action, right = chevron that opens a
+ * DropdownMenu listing any number of additional INavActivation actions.
  */
 
-import React, { useState } from 'react';
-import { CalendarDays } from 'lucide-react';
+import React from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
 import type { INavActivation, INavAction } from '@/nav/navTypes';
 
-export interface SplitCalendarButtonProps {
+export interface ButtonGroupDropdownProps {
   /** Primary left-hand action */
   primary: INavActivation;
-  /** Currently selected date */
-  selectedDate: Date | null;
-  /** Called when the user picks a date */
-  onDateSelect: (date: Date | null) => void;
-  /** Dates to highlight (bold) in the calendar */
-  /** ISO date strings ("YYYY-MM-DD") to bold in the calendar — matches CalendarDatePicker's Set<string> API */
-  entryDates?: Set<string>;
+  /** Actions shown in the dropdown */
+  actions: INavActivation[];
   size?: 'sm' | 'default';
   className?: string;
   /** Override action execution — supply when NavActionDeps are available. */
@@ -34,7 +30,7 @@ export interface SplitCalendarButtonProps {
 
 function fireAction(
   activation: INavActivation,
-  onAction?: SplitCalendarButtonProps['onAction'],
+  onAction?: ButtonGroupDropdownProps['onAction'],
 ): void {
   if (onAction) {
     onAction(activation.action, activation);
@@ -45,24 +41,17 @@ function fireAction(
   }
 }
 
-export const SplitCalendarButton: React.FC<SplitCalendarButtonProps> = ({
+export const ButtonGroupDropdown: React.FC<ButtonGroupDropdownProps> = ({
   primary,
-  selectedDate,
-  onDateSelect,
-  entryDates,
+  actions,
   size = 'default',
   className,
   onAction,
 }) => {
-  const [open, setOpen] = useState(false);
   const PrimaryIcon = primary.icon;
   const padding = size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2';
   const iconPadding = size === 'sm' ? 'px-2 py-1.5' : 'px-2.5 py-2';
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
-
-  const dateLabel = selectedDate
-    ? selectedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-    : 'Date';
 
   return (
     <div
@@ -91,34 +80,38 @@ export const SplitCalendarButton: React.FC<SplitCalendarButtonProps> = ({
       {/* Divider */}
       <div className="w-px bg-border/60 self-stretch" />
 
-      {/* Calendar trigger */}
-      <DropdownMenu open={open} onOpenChange={setOpen}>
+      {/* Dropdown trigger */}
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            title={`Select date — ${dateLabel}`}
+            title="More options"
             className={cn(
-              'flex items-center gap-1.5 transition-colors',
+              'flex items-center justify-center transition-colors',
               'hover:bg-accent hover:text-accent-foreground',
               iconPadding,
-              selectedDate && 'text-primary',
             )}
           >
-            <CalendarDays className="h-4 w-4 shrink-0" />
-            {selectedDate && (
-              <span className="leading-none">{dateLabel}</span>
-            )}
+            <ChevronDown className="h-4 w-4" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="p-0 w-auto">
-          <CalendarDatePicker
-            selectedDate={selectedDate}
-            onDateSelect={(date) => {
-              onDateSelect(date);
-              setOpen(false);
-            }}
-            entryDates={entryDates}
-          />
+        <DropdownMenuContent align="end" className="min-w-[160px]">
+          {actions.map((act, i) => {
+            if (act.action.type === 'none') {
+              return <DropdownMenuSeparator key={act.id ?? i} />;
+            }
+            const Icon = act.icon;
+            return (
+              <DropdownMenuItem
+                key={act.id}
+                onClick={() => fireAction(act, onAction)}
+                className="gap-2"
+              >
+                {Icon && <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                {act.label}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

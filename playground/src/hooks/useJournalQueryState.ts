@@ -6,7 +6,7 @@
  *   `month`— visible month in the calendar widget (YYYY-MM)
  *   `tags` — active tag filters (comma-separated)
  *
- * All controls (WeekCalendarStrip, CalendarDatePicker, tag chips, FilteredList)
+ * All controls (WeekCalendarStrip, CalendarCard, tag chips, FilteredList)
  * read and write through these hooks so the URL is always the source of truth.
  */
 

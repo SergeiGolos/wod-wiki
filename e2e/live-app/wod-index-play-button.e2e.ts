@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { JournalEntryPage } from './pages/JournalEntryPage';
+import { JournalEntryPage } from '../pages/JournalEntryPage';
 
-// Local dev URL for manual running or local E2E
-const LOCAL_APP_URL = 'https://localhost:5173';
 const DATE_TEST = '2099-12-31';
 
 test.describe('WOD Index Play Button — /journal/:date', () => {
@@ -12,14 +10,14 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
   test.beforeEach(async ({ page }) => {
     errors.length = 0;
     page.on('pageerror', (e) => errors.push(e.message));
-    
-    journal = new JournalEntryPage(page, LOCAL_APP_URL);
-    
+
+    journal = new JournalEntryPage(page);
+
     // Try to reach the local server, skip if not running
     try {
-      await page.goto(LOCAL_APP_URL, { waitUntil: 'domcontentloaded', timeout: 5000 });
+      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 5000 });
     } catch (e) {
-      test.skip(true, 'Local dev server (localhost:5174) not running');
+      test.skip(true, 'Local dev server (localhost:5173) not running');
       return;
     }
   });
@@ -27,8 +25,7 @@ test.describe('WOD Index Play Button — /journal/:date', () => {
   test('shows play button in Actions menu and starts runtime session', async ({ page }) => {
     // 1. Prepare clean state
     await journal.clearStoredEntry(DATE_TEST);
-    await page.goto(`${LOCAL_APP_URL}/journal/${DATE_TEST}`);
-    await journal.waitForEditor();
+    await journal.goto(DATE_TEST);
 
     // 2. Add a WOD block
     const wodContent = '# My Test\n\n```wod\nTimer: 10:00\n10 Burpees\n```';

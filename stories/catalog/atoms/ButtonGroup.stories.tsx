@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / SplitButton
+ * Catalog / Atoms / ButtonGroup
  *
  * Two-sided pill button — primary action (label + icon) left,
  * secondary action (icon only) right. Driven by INavActivation.
@@ -7,12 +7,12 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import { ExternalLink, Copy, Play, Bookmark, Share2, Download, Maximize2 } from 'lucide-react';
-import { SplitButton } from '@/components/ui/SplitButton';
+import { ButtonGroup } from '@/components/ui/ButtonGroup';
 import type { INavActivation } from '@/nav/navTypes';
 
-const meta: Meta<typeof SplitButton> = {
-  title: 'catalog/atoms/SplitButton',
-  component: SplitButton,
+const meta: Meta<typeof ButtonGroup> = {
+  title: 'catalog/atoms/ButtonGroup',
+  component: ButtonGroup,
   parameters: { layout: 'centered' },
   decorators: [
     (Story) => (
@@ -58,7 +58,7 @@ export const Default: Story = {
   render: () => (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground font-mono">primary + secondary</p>
-      <SplitButton primary={openAction} secondary={copyAction} />
+      <ButtonGroup primary={openAction} secondary={copyAction} />
     </div>
   ),
 };
@@ -71,11 +71,11 @@ export const Sizes: Story = {
       <div className="flex flex-col gap-3 items-start">
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground w-16">sm</span>
-          <SplitButton primary={playAction} secondary={bookmarkAction} size="sm" />
+          <ButtonGroup primary={playAction} secondary={bookmarkAction} size="sm" />
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground w-16">default</span>
-          <SplitButton primary={playAction} secondary={bookmarkAction} size="default" />
+          <ButtonGroup primary={playAction} secondary={bookmarkAction} size="default" />
         </div>
       </div>
     </div>
@@ -102,9 +102,9 @@ export const Variants: Story = {
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground font-mono">various action pairs</p>
       <div className="flex flex-col gap-3 items-start">
-        <SplitButton primary={openAction} secondary={copyAction} />
-        <SplitButton primary={playAction} secondary={bookmarkAction} />
-        <SplitButton primary={shareAction} secondary={downloadAction} />
+        <ButtonGroup primary={openAction} secondary={copyAction} />
+        <ButtonGroup primary={playAction} secondary={bookmarkAction} />
+        <ButtonGroup primary={shareAction} secondary={downloadAction} />
       </div>
     </div>
   ),
@@ -117,7 +117,7 @@ export const PlaygroundVariant: Story = {
       <p className="text-xs text-muted-foreground font-mono">
         replaces WodPlaygroundButton — actions wired at molecule level
       </p>
-      <SplitButton
+      <ButtonGroup
         primary={{
           id: 'playground',
           label: 'Playground',
@@ -143,7 +143,7 @@ export const RunButton: Story = {
         variant="primary" — CTA pill for workout run buttons (replaces SplitRunButton)
       </p>
       <div className="flex flex-col gap-4 items-start">
-        <SplitButton
+        <ButtonGroup
           variant="primary"
           primary={{
             id: 'run',
@@ -158,7 +158,7 @@ export const RunButton: Story = {
             action: { type: 'call', handler: () => alert('Run fullscreen') },
           }}
         />
-        <SplitButton
+        <ButtonGroup
           variant="primary"
           primary={{
             id: 'start',

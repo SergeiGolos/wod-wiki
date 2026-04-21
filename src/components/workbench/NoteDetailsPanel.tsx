@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import type { IContentProvider } from '@/types/content-provider';
 import { toShortId } from '@/lib/idUtils';
-import { CalendarDatePicker } from '@/components/ui/CalendarDatePicker';
+import { CalendarCard } from '@/components/ui/CalendarCard';
 import { isNotebookTag } from '@/types/notebook';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
@@ -274,7 +274,7 @@ export const NoteDetailsPanel: React.FC<NoteDetailsPanelProps> = ({
                                     ref={calendarRef}
                                     className="absolute right-0 top-full mt-1 z-30 rounded-md border bg-popover shadow-lg"
                                 >
-                                    <CalendarDatePicker
+                                    <CalendarCard
                                         selectedDate={new Date(entry.targetDate)}
                                         onDateSelect={handleDateSelect}
                                     />

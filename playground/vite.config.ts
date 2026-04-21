@@ -46,6 +46,7 @@ const receiverRedirectPlugin: Plugin = {
 
 export default defineConfig({
     root: __dirname,
+    envDir: projectRoot,
     base: '/',
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
@@ -56,7 +57,7 @@ export default defineConfig({
             '@': resolve(__dirname, '../src'),
         },
     },
-    server: {
+    server: { allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true, 
         host: '0.0.0.0',
         ...(https ? { https } : {}),
         hmr: hmrHost ? { host: hmrHost } : true,

@@ -1,21 +1,18 @@
 import { Page, Locator, expect } from '@playwright/test';
 
-const APP_URL = 'https://pluto.forest-adhara.ts.net:5173';
 const DB_NAME = 'wodwiki-playground';
 
 export class JournalEntryPage {
   readonly page: Page;
-  readonly baseUrl: string;
 
-  constructor(page: Page, baseUrl: string = APP_URL) {
+  constructor(page: Page) {
     this.page = page;
-    this.baseUrl = baseUrl;
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
   url(date: string) {
-    return `${this.baseUrl}/journal/${date}`;
+    return `/journal/${date}`;
   }
 
   async goto(date: string) {
@@ -24,7 +21,7 @@ export class JournalEntryPage {
   }
 
   async gotoJournalList() {
-    await this.page.goto(`${this.baseUrl}/journal`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+    await this.page.goto('/journal', { waitUntil: 'domcontentloaded', timeout: 20_000 });
   }
 
   // ── Editor ────────────────────────────────────────────────────────────────
