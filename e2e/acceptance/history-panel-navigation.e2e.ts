@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
  * views get `invisible z-0 pointer-events-none`.
  */
 
-const STORYBOOK_URL = 'http://localhost:6006/iframe.html?id=notebook--default&viewMode=story';
+const STORYBOOK_URL = '/iframe.html?id=notebook--default&viewMode=story';
 
 /**
  * Helper: ensure at least N history entries exist, creating them if needed.

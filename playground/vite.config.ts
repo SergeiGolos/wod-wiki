@@ -46,6 +46,7 @@ const receiverRedirectPlugin: Plugin = {
 
 export default defineConfig({
     root: __dirname,
+    envDir: projectRoot,
     base: '/',
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),

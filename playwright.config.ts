@@ -1,6 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as loadDotenv } from 'dotenv';
+import { resolve } from 'path';
 
-const storybookBaseURL = 'https://localhost:6006';
+loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
+
+const storybookProtocol = process.env.HTTPS_CERT ? 'https' : 'http';
+const storybookBaseURL = `${storybookProtocol}://localhost:6006`;
 
 /**
  * Playwright configuration for E2E testing of Storybook components
@@ -38,8 +43,8 @@ export default defineConfig({
     /* Base URL for Storybook */
     baseURL: storybookBaseURL,
 
-    /* Storybook runs locally with a self-signed certificate */
-    ignoreHTTPSErrors: true,
+    /* Storybook HTTPS cert is self-signed/Tailscale — only needed when HTTPS is active */
+    ignoreHTTPSErrors: !!process.env.HTTPS_CERT,
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
