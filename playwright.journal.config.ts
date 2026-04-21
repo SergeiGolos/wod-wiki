@@ -1,4 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as loadDotenv } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env.local overrides (gitignored, machine-local) so HTTPS_HOST is
+// available here when the playground dev server is running with TLS.
+loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
+
+const httpsHost = process.env.HTTPS_HOST;
+const appBaseURL = httpsHost
+  ? `https://${httpsHost}:5173`
+  : 'http://localhost:5173';
 
 /**
  * Playwright configuration for journal / playground e2e tests.
@@ -17,10 +28,11 @@ export default defineConfig({
   reporter: 'html',
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: appBaseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    ignoreHTTPSErrors: !!httpsHost, // trust self-signed / Tailscale certs locally
   },
 
   projects: [
@@ -32,7 +44,7 @@ export default defineConfig({
 
   webServer: {
     command: 'bun run dev:app',
-    url: 'http://localhost:5173',
+    url: appBaseURL,
     reuseExistingServer: true,
     timeout: 60 * 1000,
   },
