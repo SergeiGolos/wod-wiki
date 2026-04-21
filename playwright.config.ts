@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const storybookBaseURL = 'https://localhost:6006';
+
 /**
  * Playwright configuration for E2E testing of Storybook components
  */
@@ -34,7 +36,10 @@ export default defineConfig({
   /* Shared settings for all the projects below */
   use: {
     /* Base URL for Storybook */
-    baseURL: 'http://localhost:6006',
+    baseURL: storybookBaseURL,
+
+    /* Storybook runs locally with a self-signed certificate */
+    ignoreHTTPSErrors: true,
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
@@ -57,7 +62,8 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'bun run storybook',
-    url: 'http://localhost:6006',
+    url: storybookBaseURL,
+    ignoreHTTPSErrors: true,
     reuseExistingServer: true,
     timeout: 120 * 1000,
   },

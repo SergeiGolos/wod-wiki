@@ -1,7 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
 
-const PLAYGROUND_URL = 'https://pluto.forest-adhara.ts.net:5173';
-
 /** YYYY-MM-DD helper */
 function localDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -19,9 +17,7 @@ export class JournalPage {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   async goto(dateKey?: string) {
-    const url = dateKey
-      ? `${PLAYGROUND_URL}/journal?d=${dateKey}`
-      : `${PLAYGROUND_URL}/journal`;
+    const url = dateKey ? `/journal?d=${dateKey}` : '/journal';
     await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await this.waitForReady();
   }

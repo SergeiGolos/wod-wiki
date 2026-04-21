@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { JournalPage, localDateKey } from './pages/JournalPage';
+import { JournalPage, localDateKey } from '../pages/JournalPage';
 
 /**
  * Acceptance tests for JournalDateScroll scroll behaviour.
