@@ -64,7 +64,7 @@ const Section: React.FC<{ label: string; children: React.ReactNode }> = ({ label
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta = {
-  title: 'catalog/atoms/StatementDisplay',
+  title: 'catalog/molecules/StatementDisplay',
   parameters: { layout: 'padded' },
 };
 

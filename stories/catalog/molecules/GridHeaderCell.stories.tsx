@@ -171,7 +171,7 @@ const AddColumnButton: React.FC<AddColumnButtonProps> = ({ availableToAdd, onAdd
 const Placeholder: React.FC = () => null;
 
 const meta: Meta<typeof Placeholder> = {
-  title: 'catalog/atoms/GridHeaderCell',
+  title: 'catalog/molecules/GridHeaderCell',
   component: Placeholder,
   parameters: { layout: 'padded' },
 };

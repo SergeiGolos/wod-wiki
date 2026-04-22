@@ -21,7 +21,7 @@ import { ButtonGroupDropdown } from '@/components/ui/ButtonGroupDropdown';
 import type { INavActivation } from '@/nav/navTypes';
 
 const meta: Meta<typeof ButtonGroupDropdown> = {
-  title: 'catalog/atoms/ButtonGroupDropdown',
+  title: 'catalog/molecules/ButtonGroupDropdown',
   component: ButtonGroupDropdown,
   parameters: { layout: 'centered' },
   decorators: [

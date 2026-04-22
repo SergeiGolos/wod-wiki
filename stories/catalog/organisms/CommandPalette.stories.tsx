@@ -274,7 +274,7 @@ const DialogTriggerDemo: React.FC = () => {
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta = {
-  title: 'catalog/molecules/CommandPalette',
+  title: 'catalog/organisms/CommandPalette',
   parameters: { layout: 'centered' },
 };
 export default meta;

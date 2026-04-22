@@ -18,7 +18,7 @@ import { ResultListItem } from '@/components/results/ResultListItem';
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof ResultListItem> = {
-  title: 'catalog/atoms/ResultListItem',
+  title: 'catalog/molecules/ResultListItem',
   component: ResultListItem,
   parameters: { layout: 'padded' },
   argTypes: {

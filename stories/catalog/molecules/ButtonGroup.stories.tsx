@@ -11,7 +11,7 @@ import { ButtonGroup } from '@/components/ui/ButtonGroup';
 import type { INavActivation } from '@/nav/navTypes';
 
 const meta: Meta<typeof ButtonGroup> = {
-  title: 'catalog/atoms/ButtonGroup',
+  title: 'catalog/molecules/ButtonGroup',
   component: ButtonGroup,
   parameters: { layout: 'centered' },
   decorators: [

@@ -14,7 +14,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { CalendarCard } from '@/components/ui/CalendarCard';
 
 const meta: Meta<typeof CalendarCard> = {
-  title: 'catalog/atoms/CalendarCard',
+  title: 'catalog/molecules/CalendarCard',
   component: CalendarCard,
   parameters: { layout: 'centered' },
   decorators: [

@@ -23,7 +23,7 @@ import { FileInput } from 'lucide-react';
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof WorkoutActionButton> = {
-  title: 'catalog/atoms/WorkoutActionButton',
+  title: 'catalog/organisms/WorkoutActionButton',
   component: WorkoutActionButton,
   parameters: { layout: 'padded' },
   args: {

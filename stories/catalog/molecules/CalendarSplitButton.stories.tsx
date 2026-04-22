@@ -12,7 +12,7 @@ import { FIXTURE_ENTRY_DATES } from '../../_shared/fixtures';
 import type { INavActivation } from '@/nav/navTypes';
 
 const meta: Meta<typeof CalendarSplitButton> = {
-  title: 'catalog/atoms/CalendarSplitButton',
+  title: 'catalog/molecules/CalendarSplitButton',
   component: CalendarSplitButton,
   parameters: { layout: 'centered' },
   decorators: [
