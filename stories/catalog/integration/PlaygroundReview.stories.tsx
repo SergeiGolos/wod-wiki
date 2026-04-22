@@ -30,7 +30,7 @@ const AppReviewShell: React.FC = () => (
 );
 
 const meta: Meta = {
-  title: 'catalog/integration/Playground/Review',
+  title: 'integration/Playground/Review',
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/review/mock-runtime-id'] },

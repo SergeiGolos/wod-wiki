@@ -76,6 +76,7 @@ const preview = {
             'pages',
             ['Planner', 'Calendar', 'Collections', 'JournalPageShell', 'Syntax'],
           ],
+          'integration',
           'acceptance',
         ],
       },

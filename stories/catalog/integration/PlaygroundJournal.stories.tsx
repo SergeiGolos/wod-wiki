@@ -33,7 +33,7 @@ const AppJournalShell: React.FC = () => (
 );
 
 const meta: Meta = {
-  title: 'catalog/integration/Playground/Journal',
+  title: 'integration/Playground/Journal',
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/journal'] },

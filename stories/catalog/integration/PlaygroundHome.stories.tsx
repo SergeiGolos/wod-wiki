@@ -50,7 +50,7 @@ const AppHomeShell: React.FC<{ workoutItems?: WorkoutItem[] }> = ({
 );
 
 const meta: Meta = {
-  title: 'catalog/integration/Playground/Home',
+  title: 'integration/Playground/Home',
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/'] },

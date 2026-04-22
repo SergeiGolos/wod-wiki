@@ -36,7 +36,7 @@ const AppCollectionsShell: React.FC = () => (
 );
 
 const meta: Meta = {
-  title: 'catalog/integration/Playground/Collections',
+  title: 'integration/Playground/Collections',
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/collections'] },

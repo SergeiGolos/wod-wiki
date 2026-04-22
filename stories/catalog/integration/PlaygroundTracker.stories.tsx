@@ -30,7 +30,7 @@ const AppTrackerShell: React.FC = () => (
 );
 
 const meta: Meta = {
-  title: 'catalog/integration/Playground/Tracker',
+  title: 'integration/Playground/Tracker',
   parameters: {
     layout: 'fullscreen',
     router: { initialEntries: ['/tracker/test-runtime-id'] },
