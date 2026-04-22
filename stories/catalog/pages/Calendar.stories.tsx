@@ -27,6 +27,7 @@ const meta: Meta<typeof CalendarPageShell> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** Calendar grid mock for story states; highlightedDays are 1-based day numbers. */
 function MockCalendar({
   highlightedDays = [21],
   monthLabel = 'March 2026',

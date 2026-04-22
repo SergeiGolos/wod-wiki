@@ -109,7 +109,7 @@ interface HarnessProps {
   title?: string;
   /** Label for the launch button. */
   label?: string;
-  /** Overlay state simulation for route-level loading/errors. */
+  /** Story-only overlay state simulation for route-level loading/errors. */
   state?: 'ready' | 'loading' | 'error';
   /** Optional error message shown when state="error". */
   errorMessage?: string;

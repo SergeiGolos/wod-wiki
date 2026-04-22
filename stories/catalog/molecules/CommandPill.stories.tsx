@@ -38,7 +38,9 @@ interface CommandDef {
   splitSuccessIcon?: React.ReactNode;
   onClick: () => void;
   onSplitClick?: () => Promise<void>;
+  /** Disables interaction and dims the command pill. */
   disabled?: boolean;
+  /** Highlights the command as currently selected/active. */
   active?: boolean;
 }
 

@@ -27,7 +27,9 @@ interface CommandInputRowProps {
   placeholder?: string;
   onChange?: (v: string) => void;
   autoFocus?: boolean;
+  /** Disables the input field and applies disabled styling. */
   disabled?: boolean;
+  /** Applies error styling to input text and placeholder. */
   hasError?: boolean;
 }
 
