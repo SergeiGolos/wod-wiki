@@ -40,6 +40,8 @@ import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
+// ── Toast ────────────────────────────────────────────────────────────────────
+import { Toaster } from '@/components/ui/toaster'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
@@ -630,6 +632,7 @@ export function App() {
           <NuqsAdapter>
             <GlobalState />
             <ScrollToTop />
+            <Toaster />
             <CommandProvider>
               <NavProvider tree={navTree}>
               <Routes>

@@ -8,6 +8,8 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/ui/toast'
 import { EditorView } from '@codemirror/view'
 import { v4 as uuidv4 } from 'uuid'
 import { CalendarDaysIcon, PlayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
@@ -87,21 +89,39 @@ export function WorkoutEditorPage({
 
   const handleScheduleBlock = useCallback(
     async (block: WodBlock, date: Date) => {
-      const y = date.getFullYear()
-      const m = String(date.getMonth() + 1).padStart(2, '0')
-      const d = String(date.getDate()).padStart(2, '0')
-      const iso = `${y}-${m}-${d}`
+      const dateLabel = date.toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      })
+      let noteId: string
       try {
-        await appendWorkoutToJournal({
+        noteId = await appendWorkoutToJournal({
           workoutName: name,
           category,
           wodContent: block.content,
           date,
           wrapInWod: true,
         })
-      } finally {
-        navigate(`/journal/${iso}`)
+      } catch {
+        toast({
+          variant: 'destructive',
+          title: 'Could not save workout',
+          description: `Failed to add "${name}" to ${dateLabel}. Please try again.`,
+        })
+        return
       }
+      const journalRoute = `/${noteId}`
+      toast({
+        title: `Added to ${dateLabel}`,
+        description: `"${name}" was added to your journal.`,
+        action: (
+          <ToastAction altText="View journal entry" onClick={() => navigate(journalRoute)}>
+            View Note
+          </ToastAction>
+        ),
+        duration: 7000,
+      })
     },
     [name, category, navigate],
   )
