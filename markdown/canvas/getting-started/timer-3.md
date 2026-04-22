@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Count-up Override"
 subtitle: "^ forces count-up"
 section: timer

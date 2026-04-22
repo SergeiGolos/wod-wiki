@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Headers & Notes"
 subtitle: "Markdown outside the wod block"
 section: document

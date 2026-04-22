@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "FOR TIME"
 subtitle: "Stopwatch to completion"
 section: protocols

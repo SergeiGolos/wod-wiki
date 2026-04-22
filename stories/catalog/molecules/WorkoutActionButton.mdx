@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './WorkoutActionButton.stories';
+
+<Meta of={stories} />
+
+# WorkoutActionButton
+
+A split button for creating or cloning a workout entry on a chosen date: the main zone triggers the action for today; the calendar icon opens a date-picker dropdown with optional secondary actions.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `CalendarSplitButton` | Internal calendar popover |
+| `INavActivation` | Optional secondary dropdown actions |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onAction` | Primary zone clicked or date selected | `Date` |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface WorkoutActionButtonProps {
+  mode?: 'create' | 'clone';
+  label?: string;
+  title?: string;
+  variant?: 'default' | 'outline' | 'ghost';
+  secondaryActions?: INavActivation[];
+  onAction: (date: Date) => void;
+}
+```

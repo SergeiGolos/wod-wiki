@@ -1,84 +1,52 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { MutableRefObject } from 'react'
-import * as Headless from '@headlessui/react'
-import { cn } from '@/lib/utils'
-
-import {
-  Dropdown,
-  DropdownButton,
-  DropdownDivider,
-  DropdownItem,
-  DropdownLabel,
-  DropdownMenu,
-  DropdownSection,
-  DropdownHeading,
-} from '@/components/playground/dropdown'
+import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
 import { NavProvider } from './nav/NavContext'
 import { useNav } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
-import type { NavItemL3 } from './nav/navTypes'
-import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
-import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
-import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
-import type { Segment } from '@/core/models/AnalyticsModels'
-import type { WodBlock } from '@/components/Editor/types'
-import { SidebarLayout } from '@/components/playground/sidebar-layout'
-import {
-  PlusIcon,
-} from '@heroicons/react/16/solid'
-import {
-  MagnifyingGlassIcon,
-  EllipsisVerticalIcon,
-  ArrowDownTrayIcon,
-  BugAntIcon,
-  ArrowPathIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-  CalendarDaysIcon,
-  PlayIcon,
-  ArrowTopRightOnSquareIcon,
-} from '@heroicons/react/20/solid'
-import type { WorkoutResult } from '@/types/storage'
-
-import { NoteEditor } from '@/components/Editor/NoteEditor'
+import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
-import { findCanvasPage } from './canvas/canvasRoutes'
+import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { AudioToggle } from '@/components/audio/AudioToggle'
-import { Button } from '@/components/ui/button'
-import { usePlaygroundContent } from './hooks/usePlaygroundContent'
-import { CanvasPage, JournalPageShell } from '@/panels/page-shells'
+import { CanvasPage } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
-import { decodeZip } from './services/decodeZip'
-import { v4 as uuidv4 } from 'uuid'
+import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
-import { EditorSelection } from '@codemirror/state'
 import newPlaygroundTemplate from './templates/new-playground.md?raw'
 import { 
   createStatementBuilderStrategy,
   createGlobalSearchStrategy,
 } from './services/commandStrategies'
-import { appendWorkoutToJournal } from './services/journalWorkout'
+// ── Extracted page components ────────────────────────────────────────────────
+import { TrackerPage } from './pages/TrackerPage'
+import { ReviewPage } from './pages/ReviewPage'
+import { JournalPage } from './pages/JournalPage'
+import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
+import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
+import { LoadZipPage } from './pages/LoadZipPage'
+// ── Toast ────────────────────────────────────────────────────────────────────
+import { Toaster } from '@/components/ui/toaster'
+// ── Shared page utilities ────────────────────────────────────────────────────
+import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
+import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
-
-
 
 const ZERO_TO_HERO_LINKS = [
   { id: 'introduction', label: 'Introduction', type: 'heading' as const },
@@ -101,57 +69,6 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
-import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton'
-import { CalendarCard } from '@/components/ui/CalendarCard'
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
-
-// ── New Journal Entry Button ───────────────────────────────────────
-
-function NewEntryButton() {
-  const navigate = useNavigate()
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-
-  const navigateToDate = (date: Date | null) => {
-    if (!date) return
-    const y = date.getFullYear()
-    const m = String(date.getMonth() + 1).padStart(2, '0')
-    const d = String(date.getDate()).padStart(2, '0')
-    navigate(`/journal/${y}-${m}-${d}`)
-  }
-
-  return (
-    <CalendarSplitButton
-      primary={{
-        id: 'new-entry',
-        label: 'New',
-        icon: PlusIcon,
-        action: { type: 'call', handler: () => navigateToDate(new Date()) },
-      }}
-      selectedDate={selectedDate}
-      onDateSelect={(date) => {
-        setSelectedDate(date)
-        navigateToDate(date)
-      }}
-      size="sm"
-    />
-  )
-}
-
-// Shared in-memory store for pending runtimes (also used by CanvasPage).
-import { pendingRuntimes } from './runtimeStore'
-
-const CURSOR_TOKEN = '$CURSOR'
-
-/** Strip the $CURSOR token and return { content, cursorOffset }. */
-function applyTemplate(raw: string): { content: string; cursorOffset: number } {
-  const idx = raw.indexOf(CURSOR_TOKEN)
-  if (idx === -1) return { content: raw, cursorOffset: raw.length }
-  return {
-    content: raw.slice(0, idx) + raw.slice(idx + CURSOR_TOKEN.length),
-    cursorOffset: idx,
-  }
-}
-
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
 // Load all markdown files from the markdown directory
@@ -162,251 +79,10 @@ export interface WorkoutItem {
   name: string
   category: string
   content: string
+  /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
+  searchHidden?: boolean
 }
 
-/**
- * Wrapper that loads workout content via IndexedDB (or falls back to MD).
- * Keeps WodBlock IDs stable across page loads so results stay linked.
- */
-/** Syntax and documentation pages use in-page popup; collections use route navigation. */
-const INLINE_RUNTIME_CATEGORIES = new Set(['syntax'])
-
-/** Categories that are standard "library" collections (not journal/playground/canvas/syntax). */
-const NON_COLLECTION_CATEGORIES = new Set(['journal', 'playground', 'canvas', 'syntax'])
-
-function WorkoutEditorPage({
-  category,
-  name,
-  mdContent,
-  theme,
-  onViewCreated,
-  onScrollToSection,
-}: {
-  category: string
-  name: string
-  mdContent: string
-  theme: string
-  onViewCreated?: (view: EditorView) => void
-  onScrollToSection?: (id: string) => void
-}) {
-  const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
-  const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
-  const noteId = PlaygroundDBService.pageId(category, name)
-  const navigate = useNavigate()
-  const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
-
-  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
-
-  const handleStartWorkout = useCallback(
-    async (block: WodBlock) => {
-      const runtimeId = uuidv4()
-      // For syntax/inline categories keep the original popup behaviour.
-      if (usePopup) {
-        pendingRuntimes.set(runtimeId, { block, noteId })
-        navigate(`/tracker/${runtimeId}`)
-        return
-      }
-      // Append the wod block to today's journal note and navigate there.
-      try {
-        const journalNoteId = await appendWorkoutToJournal({
-          workoutName: name,
-          category,
-          wodContent: block.content,
-        })
-        pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId })
-        const dateKey = journalNoteId.replace('journal/', '')
-        navigate(`/journal/${dateKey}?autoStart=${runtimeId}`)
-      } catch {
-        // IndexedDB unavailable — fall back to the fullscreen tracker route
-        pendingRuntimes.set(runtimeId, { block, noteId })
-        navigate(`/tracker/${runtimeId}`)
-      }
-    },
-    [usePopup, noteId, name, category, navigate],
-  )
-
-  const handleScheduleBlock = useCallback(
-    async (block: WodBlock, date: Date) => {
-      const y = date.getFullYear()
-      const m = String(date.getMonth() + 1).padStart(2, '0')
-      const d = String(date.getDate()).padStart(2, '0')
-      const iso = `${y}-${m}-${d}`
-      try {
-        await appendWorkoutToJournal({
-          workoutName: name,
-          category,
-          wodContent: block.content,
-          date,
-          wrapInWod: true,
-        })
-      } finally {
-        navigate(`/journal/${iso}`)
-      }
-    },
-    [name, category, navigate],
-  )
-
-  const collectionCommands = useMemo<WodCommand[]>(() => {
-    if (!isCollection) return []
-    return [
-      {
-        id: 'run',
-        label: 'Now',
-        icon: <PlayIcon className="h-3 w-3 fill-current" />,
-        primary: true,
-        onClick: handleStartWorkout,
-      },
-      {
-        id: 'today',
-        label: 'Today',
-        icon: <CalendarDaysIcon className="h-3 w-3" />,
-        onClick: (block) => handleScheduleBlock(block, new Date()),
-      },
-      {
-        id: 'plan',
-        label: 'Plan',
-        icon: <CalendarDaysIcon className="h-3 w-3" />,
-        onClick: (block) => setPendingScheduleBlock(block),
-      },
-    ]
-  }, [isCollection, handleStartWorkout, handleScheduleBlock])
-
-  const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useMemo((): PageNavLink[] => {
-    const base = extractPageIndex(content)
-    return base.map(link => {
-      if (link.type !== 'wod') return link
-      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
-      const block = wodBlocks.find(b => b.startLine + 1 === lineNum)
-      // Fallback: if block not yet parsed, allow clicking but it might do nothing or use a fallback
-      return { 
-        ...link, 
-        onRun: () => {
-          const b = block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0];
-          if (b) handleStartWorkout(b);
-        }
-      }
-    })
-  }, [content, wodBlocks, handleStartWorkout])
-
-  const { setL3Items: setEditorL3 } = useNav()
-  useEffect(() => {
-    setEditorL3(index.map(link => ({
-      id: link.id,
-      label: link.label,
-      level: 3 as const,
-      action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun
-        ? { 
-            id: link.id + '-run', 
-            label: 'Run', 
-            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-            action: { type: 'call' as const, handler: link.onRun } 
-          }
-        : undefined,
-    })))
-    return () => setEditorL3([])
-  }, [index, setEditorL3])
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400">
-        Loading…
-      </div>
-    )
-  }
-
-  return (
-    <>
-      <JournalPageShell
-        title={name}
-        index={index}
-        onScrollToSection={onScrollToSection}
-        actions={
-          <div className="flex items-center gap-4">
-            <NewEntryButton />
-            <CastButtonRpc />
-            <AudioToggle />
-            <ThemeSwitcher />
-            <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
-          </div>
-        }
-        editor={
-          <NoteEditor
-            value={content}
-            onChange={onChange}
-            noteId={noteId}
-            onStartWorkout={isCollection || usePopup ? undefined : handleStartWorkout}
-            enableInlineRuntime={usePopup}
-            commands={collectionCommands.length > 0 ? collectionCommands : undefined}
-            onViewCreated={onViewCreated}
-            theme={theme}
-            showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
-          />
-        }
-      />
-
-      {/* Date picker modal for "Plan" command on collection WOD blocks */}
-      {pendingScheduleBlock && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setPendingScheduleBlock(null)}
-        >
-          <div
-            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <p className="text-sm font-semibold mb-4 text-foreground">
-              Schedule "{name}" for…
-            </p>
-            <CalendarCard
-              selectedDate={null}
-              onDateSelect={(date) => {
-                if (date) handleScheduleBlock(pendingScheduleBlock, date)
-                setPendingScheduleBlock(null)
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// #/load?zip=<base64> — decode zip, save as page, redirect to playground
-// ---------------------------------------------------------------------------
-
-function LoadZipPage() {
-  const navigate = useNavigate()
-  const [zip] = useQueryState('zip')
-  const [z] = useQueryState('z')
-  
-  // Robust check: was there a zip in the search string on mount?
-  const [hasZipOnMount] = useState(() => {
-    const s = window.location.search
-    return s.includes('zip=') || s.includes('z=')
-  })
-
-  useEffect(() => {
-    // Only redirect if there's no zip in state AND no zip was present on mount.
-    // If a zip WAS present on mount, useZipProcessor (global) is handling it.
-    if (!zip && !z && !hasZipOnMount) {
-      navigate('/playground', { replace: true })
-    }
-  }, [zip, z, navigate, hasZipOnMount])
-
-  return (
-    <div className="flex-1 flex items-center justify-center text-zinc-400">
-      Loading…
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// #/playground (no id) — create empty page and redirect
-// ---------------------------------------------------------------------------
 
 /** Generate a date-based name: YYYY-MM-DD HH-MM, with -SS.mmm if collision */
 async function generatePlaygroundName(): Promise<string> {
@@ -446,649 +122,6 @@ function PlaygroundRedirect() {
   )
 }
 
-function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
-
-  return (
-    <Dropdown>
-      <DropdownButton plain aria-label="Switch theme">
-        {theme === 'light' && <SunIcon data-slot="icon" className="size-5 text-zinc-500" />}
-        {theme === 'dark' && <MoonIcon data-slot="icon" className="size-5 text-zinc-500" />}
-        {theme === 'system' && <ComputerDesktopIcon data-slot="icon" className="size-5 text-zinc-500" />}
-      </DropdownButton>
-      <DropdownMenu className="min-w-32" anchor="bottom end">
-        <DropdownItem onClick={() => setTheme('light')}>
-          <SunIcon data-slot="icon" />
-          <DropdownLabel>Light</DropdownLabel>
-          {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-        <DropdownItem onClick={() => setTheme('dark')}>
-          <MoonIcon data-slot="icon" />
-          <DropdownLabel>Dark</DropdownLabel>
-          {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-        <DropdownItem onClick={() => setTheme('system')}>
-          <ComputerDesktopIcon data-slot="icon" />
-          <DropdownLabel>System</DropdownLabel>
-          {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
-  )
-}
-
-function mapIndexToL3(index: PageNavLink[]): NavItemL3[] {
-  return index.map(link => ({
-    id: link.id,
-    label: link.label,
-    level: 3 as const,
-    action: { type: 'scroll' as const, sectionId: link.id },
-    secondaryAction: link.onRun
-      ? { 
-          id: link.id + '-run', 
-          label: 'Run', 
-          icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-          action: { type: 'call' as const, handler: link.onRun } 
-        }
-      : undefined,
-  }))
-}
-
-// ── Actions Menu (Download, Reset) ──────────────────────────
-
-function ActionsMenu({ 
-  currentWorkout, 
-  onDownload,
-  items
-}: { 
-  currentWorkout: { name: string, content: string },
-  onDownload?: () => void,
-  items?: NavItemL3[]
-}) {
-  const { l3Items: contextL3, scrollToSection } = useNav()
-  const l3Items = items || contextL3
-  const [debugMode, setDebugMode] = useState(
-    () => localStorage.getItem('debugMode') === 'true'
-  )
-
-  const handleToggleDebug = () => {
-    const next = !debugMode
-    setDebugMode(next)
-    localStorage.setItem('debugMode', String(next))
-  }
-
-  const handleResetData = async () => {
-    localStorage.clear()
-    await playgroundDB.clearAll()
-    window.location.reload()
-  }
-
-  const handleDownload = () => {
-    if (onDownload) {
-      onDownload()
-      return
-    }
-    const blob = new Blob([currentWorkout.content], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${currentWorkout.name}.md`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  return (
-    <Dropdown>
-      <DropdownButton plain>
-        <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
-      </DropdownButton>
-      <DropdownMenu className="min-w-56" anchor="bottom end">
-        {l3Items.length > 0 && (
-          <>
-            <DropdownSection>
-              <DropdownHeading>On this page</DropdownHeading>
-              {l3Items.map(item => (
-                <DropdownItem key={item.id} onClick={() => scrollToSection(item.id)}>
-                  <DropdownLabel className={cn(item.level === 3 && item.secondaryAction && "pr-8")}>
-                    {item.label}
-                  </DropdownLabel>
-                  {item.secondaryAction && (
-                    <button
-                      className="col-start-5 flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
-                      title={item.secondaryAction.label}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.secondaryAction?.action.type === 'call') {
-                          item.secondaryAction.action.handler();
-                        }
-                      }}
-                    >
-                      {item.secondaryAction.icon && (
-                        <item.secondaryAction.icon className="size-3.5" />
-                      )}
-                    </button>
-                  )}
-                </DropdownItem>
-              ))}
-            </DropdownSection>
-            <DropdownDivider />
-          </>
-        )}
-        <DropdownItem onClick={handleDownload}>
-          <ArrowDownTrayIcon data-slot="icon" />
-          <DropdownLabel>Download Markdown</DropdownLabel>
-        </DropdownItem>
-        <DropdownItem onClick={handleToggleDebug}>
-          <BugAntIcon data-slot="icon" />
-          <DropdownLabel>Debug Mode</DropdownLabel>
-          {debugMode && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-        <DropdownDivider />
-        <DropdownItem onClick={handleResetData}>
-          <ArrowPathIcon data-slot="icon" className="text-red-500" />
-          <DropdownLabel className="text-red-500">Reset & Clear Cache</DropdownLabel>
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
-  )
-}
-
-function extractPageIndex(content: string): PageNavLink[] {
-  const lines = content.split('\n')
-  const links: PageNavLink[] = []
-  let wodCount = 0
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const match = line.match(/^(#{1,6})\s+(.*)$/)
-    if (match) {
-      let label = match[2].trim()
-      let timestamp: string | undefined
-
-      // Look for timestamp in the label (e.g. "08:30 Breakfast" or "Training 10:15")
-      const timeMatch = label.match(/(\d{1,2}:\d{2})/)
-      if (timeMatch) {
-        timestamp = timeMatch[1]
-        // Optionally clean label by removing the timestamp part
-        label = label.replace(timestamp, '').replace(/\s+/g, ' ').trim()
-        if (!label) label = timestamp // Fallback if header was only the timestamp
-      }
-
-      const id = label.toLowerCase().replace(/[^\w]+/g, '-')
-      links.push({ id, label, type: 'heading', timestamp })
-      continue
-    }
-    if (/^```(wod|log|plan)/.test(line.trim())) {
-      wodCount++
-      links.push({ id: `wod-line-${i + 1}`, label: `Workout ${wodCount}`, type: 'wod' })
-    }
-  }
-  return links
-}
-
-// ---------------------------------------------------------------------------
-// #/playground/:id — load page by UUID from DB, render in editor
-// ---------------------------------------------------------------------------
-
-function PlaygroundNotePage({
-  theme,
-  onViewCreated,
-  onScrollToSection,
-}: {
-  theme: string
-  onViewCreated?: (view: EditorView) => void
-  onScrollToSection?: (id: string) => void
-}) {
-  const { id } = useParams<{ id: string }>()
-  // noteId is the full 'playground/uuid' so results can be grouped correctly in the journal
-  const noteId = PlaygroundDBService.pageId('playground', id!)
-  const navigate = useNavigate()
-  const { content, loading, onChange } = usePlaygroundContent({
-    category: 'playground',
-    name: id!,
-    mdContent: PLAYGROUND_TEMPLATE.content,
-  })
-
-  // Place cursor at the $CURSOR token position on first mount
-  const cursorPlaced = useRef(false)
-  const handleInternalViewCreated = useCallback((view: EditorView) => {
-    onViewCreated?.(view)
-    if (cursorPlaced.current) return
-    cursorPlaced.current = true
-    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
-    view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [onViewCreated])
-
-  const handleStartWorkout = useCallback(
-    (block: WodBlock) => {
-      const runtimeId = uuidv4()
-      pendingRuntimes.set(runtimeId, { block, noteId })
-      navigate(`/tracker/${runtimeId}`)
-    },
-    [noteId, navigate],
-  )
-
-  const [wodBlocks_pnp, setWodBlocks_pnp] = useState<WodBlock[]>([])
-  const index = useMemo((): PageNavLink[] => {
-    const base = extractPageIndex(content)
-    return base.map(link => {
-      if (link.type !== 'wod') return link
-      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
-      const block = wodBlocks_pnp.find(b => b.startLine + 1 === lineNum)
-      return { 
-        ...link, 
-        onRun: () => {
-          const b = block || wodBlocks_pnp.find(b => b.startLine + 1 === lineNum) || wodBlocks_pnp[0];
-          if (b) handleStartWorkout(b);
-        }
-      }
-    })
-  }, [content, wodBlocks_pnp, handleStartWorkout])
-
-  const { setL3Items: setPnpL3 } = useNav()
-  useEffect(() => {
-    setPnpL3(index.map(link => ({
-      id: link.id,
-      label: link.label,
-      level: 3 as const,
-      action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun
-        ? { 
-            id: link.id + '-run', 
-            label: 'Run', 
-            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-            action: { type: 'call' as const, handler: link.onRun } 
-          }
-        : undefined,
-    })))
-    return () => setPnpL3([])
-  }, [index, setPnpL3])
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400">
-        Loading…
-      </div>
-    )
-  }
-
-  return (
-    <JournalPageShell
-      title={noteId}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={
-        <div className="flex items-center gap-4">
-          <NewEntryButton />
-          <CastButtonRpc />
-          <AudioToggle />
-          <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
-        </div>
-      }
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={handleInternalViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks_pnp}
-        />
-      }
-    />
-  )
-}
-
-// ---------------------------------------------------------------------------
-// #/review/:resultId — load result from IndexedDB and show FullscreenReview
-// ---------------------------------------------------------------------------
-
-function ReviewPage() {
-  const { runtimeId } = useParams<{ runtimeId: string }>()
-  const navigate = useNavigate()
-  const [segments, setSegments] = useState<Segment[] | null>(null)
-  const [title, setTitle] = useState('Workout Review')
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const resultId = runtimeId
-    if (!resultId) return
-    let cancelled = false
-    indexedDBService.getResultById(resultId).then(result => {
-      if (cancelled) return
-      if (!result) {
-        setError('Result not found.')
-        return
-      }
-      const noteLabel = result.noteId.includes('/')
-        ? result.noteId.split('/').pop()!
-        : result.noteId
-      setTitle(noteLabel)
-      if (result.data?.logs && result.data.logs.length > 0) {
-        const { segments: s } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)
-        setSegments(s)
-      } else {
-        setSegments([])
-      }
-    }).catch(() => {
-      if (!cancelled) setError('Failed to load result.')
-    })
-    return () => { cancelled = true }
-  }, [runtimeId])
-
-  if (error) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-red-400">
-        {error}
-      </div>
-    )
-  }
-
-  if (segments === null) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400">
-        Loading…
-      </div>
-    )
-  }
-
-  return (
-    <FullscreenReview
-      segments={segments}
-      onClose={() => navigate(-1)}
-      title={title}
-    />
-  )
-}
-
-// ---------------------------------------------------------------------------
-// #/tracker/:runtimeId — run a workout from a pending runtime
-// ---------------------------------------------------------------------------
-
-function TrackerPage() {
-  const { runtimeId } = useParams<{ runtimeId: string }>()
-  const navigate = useNavigate()
-  const pendingRef = useRef(runtimeId ? pendingRuntimes.get(runtimeId) : undefined)
-
-  // Consume from the pending store on mount so it doesn't leak
-  useEffect(() => {
-    if (runtimeId) pendingRuntimes.delete(runtimeId)
-  }, [runtimeId])
-
-  const pending = pendingRef.current
-
-  const handleComplete = useCallback(
-    (blockId: string, results: any) => {
-      if (!results || !runtimeId || !pending) return
-      indexedDBService.saveResult({
-        id: runtimeId,
-        noteId: pending.noteId,
-        segmentId: blockId,
-        sectionId: blockId,
-        data: results,
-        completedAt: results.endTime || Date.now(),
-      }).then(() => {
-        if (results.completed) {
-          navigate(`/review/${runtimeId}`, { replace: true })
-        }
-      }).catch(() => {})
-    },
-    [runtimeId, pending, navigate],
-  )
-
-  const handleClose = useCallback(() => {
-    if (!pending) { navigate('/'); return }
-    // Go back to the note
-    const parts = pending.noteId.split('/')
-    if (parts.length >= 2 && parts[0] === 'playground') {
-      navigate(`/playground/${encodeURIComponent(parts[1])}`, { replace: true })
-    } else if (parts.length >= 2 && parts[0] === 'journal') {
-      navigate(`/journal/${encodeURIComponent(parts[1])}`, { replace: true })
-    } else if (parts.length >= 2) {
-      navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`, { replace: true })
-    } else {
-      navigate('/', { replace: true })
-    }
-  }, [pending, navigate])
-
-  if (!pending) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-red-400">
-        Runtime not found. Please start the workout from the editor.
-      </div>
-    )
-  }
-
-  return (
-    <FullscreenTimer
-      block={pending.block}
-      onClose={handleClose}
-      onCompleteWorkout={handleComplete}
-      autoStart
-    />
-  )
-}
-
-// ---------------------------------------------------------------------------
-// #/journal/:id — stored-note page using JournalPageShell
-// ---------------------------------------------------------------------------
-
-function JournalPage({
-  theme,
-  onViewCreated,
-  onScrollToSection,
-}: {
-  theme: string
-  onViewCreated?: (view: EditorView) => void
-  onScrollToSection?: (id: string) => void
-}) {
-  const { id } = useParams<{ id: string }>()
-  const noteId = id!
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [isTimerOpen, setIsTimerOpen] = useState(false)
-  const [isReviewOpen, setIsReviewOpen] = useState(false)
-  const [timerBlock, setTimerBlock] = useState<WodBlock | null>(null)
-  const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
-  const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
-  const [results, setResults] = useState<WorkoutResult[]>([])
-
-  const { content, loading, onChange } = usePlaygroundContent({
-    category: 'journal',
-    name: noteId,
-    mdContent: PLAYGROUND_TEMPLATE.content,
-  })
-
-  const refreshResults = useCallback(() => {
-    indexedDBService.getResultsForNote(noteId).then(setResults).catch(() => {})
-  }, [noteId])
-
-  useEffect(() => {
-    refreshResults()
-  }, [refreshResults])
-
-  // Consume ?autoStart=<runtimeId> placed by WorkoutEditorPage when it redirects
-  // here after appending a block to the journal note.
-  useEffect(() => {
-    const autoStartId = searchParams.get('autoStart')
-    if (!autoStartId) return
-    const pending = pendingRuntimes.get(autoStartId)
-    if (pending) {
-      pendingRuntimes.delete(autoStartId)
-      setTimerBlock(pending.block)
-      setActiveRuntimeId(autoStartId)
-      setIsTimerOpen(true)
-    }
-    // Remove the param from the URL so sharing / refresh doesn't re-trigger
-    setSearchParams(prev => {
-      prev.delete('autoStart')
-      return prev
-    }, { replace: true })
-  }, []) // intentionally runs once on mount
-
-  // Place cursor at the $CURSOR token position on first mount (new entries only)
-  const cursorPlaced = useRef(false)
-  const handleInternalViewCreated = useCallback((view: EditorView) => {
-    onViewCreated?.(view)
-    if (cursorPlaced.current) return
-    cursorPlaced.current = true
-    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
-    view.dispatch({ selection: EditorSelection.cursor(offset) })
-  }, [onViewCreated])
-
-  const handleStartWorkout = useCallback(
-    (block: WodBlock) => {
-      setTimerBlock(block)
-      setActiveRuntimeId(uuidv4())
-      setIsTimerOpen(true)
-    },
-    [],
-  )
-
-  const handleTimerComplete = useCallback(
-    (blockId: string, workoutResults: any) => {
-      setIsTimerOpen(false)
-      // Persist result when we have a runtimeId.
-      // Use noteId (the date key) directly — this is what NoteEditor uses for lookups.
-      if (activeRuntimeId) {
-        indexedDBService.saveResult({
-          id: activeRuntimeId,
-          noteId,
-          segmentId: blockId,
-          sectionId: blockId,
-          data: workoutResults,
-          completedAt: workoutResults?.endTime || Date.now(),
-        }).then(() => {
-          refreshResults()
-        }).catch(() => {})
-        setActiveRuntimeId(null)
-      }
-      // WorkoutResults has .logs and .startTime directly (not nested under .data)
-      if (workoutResults?.logs) {
-        const { segments } = getAnalyticsFromLogs(workoutResults.logs, workoutResults.startTime)
-        setReviewSegments(segments)
-        setIsReviewOpen(true)
-      }
-    },
-    [activeRuntimeId, noteId, refreshResults],
-  )
-
-  const handleCloseReview = useCallback(() => {
-    setIsReviewOpen(false)
-    setReviewSegments([])
-  }, [])
-
-  const [wodBlocks_jp, setWodBlocks_jp] = useState<WodBlock[]>([])
-  const index = useMemo((): PageNavLink[] => {
-    const base = extractPageIndex(content)
-    return base.map(link => {
-      if (link.type !== 'wod') return link
-      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
-      const block = wodBlocks_jp.find(b => b.startLine + 1 === lineNum)
-      
-      const sectionResults = results.filter(r => r.sectionId === link.id || r.segmentId === link.id)
-      const hasResult = sectionResults.length > 0
-      const resultCount = sectionResults.length
-
-      if (!block) {
-        return { 
-          ...link, 
-          hasResult, 
-          resultCount,
-          onRun: () => {
-            const b = wodBlocks_jp.find(b => b.startLine + 1 === lineNum) || wodBlocks_jp[0];
-            if (b) handleStartWorkout(b);
-          }
-        }
-      }
-      return { ...link, onRun: () => handleStartWorkout(block), hasResult, resultCount }
-    })
-  }, [content, wodBlocks_jp, handleStartWorkout, results])
-
-  const { setL3Items: setJpL3 } = useNav()
-  useEffect(() => {
-    setJpL3(index.map(link => ({
-      id: link.id,
-      label: link.label,
-      level: 3 as const,
-      action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun
-        ? { 
-            id: link.id + '-run', 
-            label: 'Run', 
-            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-            action: { type: 'call' as const, handler: link.onRun } 
-          }
-        : undefined,
-    })))
-    return () => setJpL3([])
-  }, [index, setJpL3])
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400">
-        Loading…
-      </div>
-    )
-  }
-
-  return (
-    <JournalPageShell
-      title={noteId}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={
-        <div className="flex items-center gap-4">
-          <NewEntryButton />
-          <CastButtonRpc />
-          <AudioToggle />
-          <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
-        </div>
-      }
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={handleInternalViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks_jp}
-          extendedResults={results}
-        />
-      }
-      timerOverlay={
-        timerBlock ? (
-          <FullscreenTimer
-            block={timerBlock}
-            onClose={() => setIsTimerOpen(false)}
-            onCompleteWorkout={handleTimerComplete}
-            autoStart
-          />
-        ) : undefined
-      }
-      reviewOverlay={
-        reviewSegments.length > 0 ? (
-          <FullscreenReview
-            segments={reviewSegments}
-            onClose={handleCloseReview}
-            title="Workout Review"
-          />
-        ) : undefined
-      }
-      isTimerOpen={isTimerOpen}
-      isReviewOpen={isReviewOpen}
-      onCloseTimer={() => setIsTimerOpen(false)}
-      onCloseReview={handleCloseReview}
-    />
-  )
-}
-
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
   const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
@@ -1121,11 +154,23 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         category = parts[markdownIdx + 2]
       }
 
+      // Parse front matter to check for `search: hidden`
+      const raw = fileContent as string
+      let searchHidden = false
+      const fmMatch = raw.match(/^---[\r\n]([\s\S]*?)[\r\n]---/)
+      if (fmMatch) {
+        const searchLine = fmMatch[1].match(/^search:\s*(\S+)/m)
+        if (searchLine && searchLine[1].toLowerCase() === 'hidden') {
+          searchHidden = true
+        }
+      }
+
       return {
         id: path,
         name: fileName,
         category: category,
-        content: fileContent as string,
+        content: raw,
+        searchHidden,
       }
     })
   }, [workoutFiles])
@@ -1296,7 +341,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
   // Open the command palette with the global search strategy
   const openSearchPalette = useCallback(() => {
-    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate)
+    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate, canvasRoutes)
     setStrategy(strategy)
     setIsCommandPaletteOpen(true)
   }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
@@ -1452,21 +497,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
   // Sync currentNavLinks → NavContext L3 items (feeds sidebar accordion + right panel)
   useEffect(() => {
-    const l3: NavItemL3[] = currentNavLinks.map(link => ({
-      id: link.id,
-      label: link.label,
-      level: 3 as const,
-      action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun
-        ? { 
-            id: link.id + '-run', 
-            label: 'Run', 
-            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-            action: { type: 'call' as const, handler: link.onRun } 
-          }
-        : undefined,
-    }))
-    setL3Items(l3)
+    setL3Items(mapIndexToL3(currentNavLinks))
   }, [currentNavLinks, setL3Items])
 
   useEffect(() => {
@@ -1615,6 +646,7 @@ export function App() {
           <NuqsAdapter>
             <GlobalState />
             <ScrollToTop />
+            <Toaster />
             <CommandProvider>
               <NavProvider tree={navTree}>
               <Routes>

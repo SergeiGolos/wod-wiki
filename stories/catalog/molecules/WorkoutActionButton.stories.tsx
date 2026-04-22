@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / WorkoutActionButton
+ * Catalog / Molecules / WorkoutActionButton
  *
  * A split button for creating or cloning a workout entry on a chosen date.
  *
@@ -23,9 +23,9 @@ import { FileInput } from 'lucide-react';
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof WorkoutActionButton> = {
-  title: 'catalog/organisms/WorkoutActionButton',
+  title: 'catalog/molecules/WorkoutActionButton',
   component: WorkoutActionButton,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'workbench' },
   args: {
     onAction: (date: Date) => alert(`Action for ${date.toDateString()}`),
   },

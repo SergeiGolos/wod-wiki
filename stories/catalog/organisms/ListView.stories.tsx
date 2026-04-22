@@ -33,7 +33,7 @@ const toolbarItems: IListItem<{ cmd: string }>[] = [
 const listMeta: Meta<typeof ListView> = {
   title: 'catalog/organisms/ListView',
   component: ListView,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'workbench' },
 };
 export default listMeta;
 

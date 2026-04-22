@@ -1,4 +1,5 @@
 ---
+search: hidden
 template: canvas
 route: /getting-started
 ---

@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Countdown"
 subtitle: "Work for a fixed time"
 section: timer

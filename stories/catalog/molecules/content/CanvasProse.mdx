@@ -1,0 +1,31 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './CanvasProse.stories';
+
+<Meta of={stories} />
+
+# CanvasProse
+
+Renders styled markdown prose (paragraphs, headings, tables, code blocks, task lists, links) within a canvas page section using `react-markdown` with GFM support.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `react-markdown` | Markdown-to-JSX rendering |
+| `remark-gfm` | GitHub Flavoured Markdown (tables, task lists) |
+| `remark-frontmatter` | YAML front-matter stripping |
+| `playground/src/canvas/CanvasProse` | Component implementation |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CanvasProseProps {
+  prose: string;  // raw markdown string
+}
+```

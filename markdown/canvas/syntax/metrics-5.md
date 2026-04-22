@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Unknown Load"
 subtitle: "? prompts user at runtime"
 section: metrics

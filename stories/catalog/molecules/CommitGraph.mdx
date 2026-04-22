@@ -1,0 +1,29 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './CommitGraph.stories';
+
+<Meta of={stories} />
+
+# CommitGraph
+
+An animated commit-grid hero visual that renders text as pixel-art over a GitHub-style contribution heatmap; used as a decorative element on the home page.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `src/components/ui/CommitGraph` | Component implementation |
+| CSS animation | Grid cell fade-in sequence |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CommitGraphProps {
+  // No required props — self-contained animated display
+}
+```

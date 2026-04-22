@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Actions"
 subtitle: "[Square brackets] = non-movement steps"
 section: supplemental

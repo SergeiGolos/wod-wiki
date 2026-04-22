@@ -45,7 +45,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 const meta: Meta<typeof MetricVisualizer> = {
   title: 'catalog/molecules/metrics/MetricVisualizer',
   component: MetricVisualizer,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'chromecast' },
 };
 
 export default meta;

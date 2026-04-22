@@ -69,7 +69,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message = 'No results foun
 
 const meta: Meta = {
   title: 'catalog/molecules/commands/CommandItem',
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'workbench' },
 };
 export default meta;
 type Story = StoryObj;

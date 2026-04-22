@@ -65,7 +65,7 @@ const Section: React.FC<{ label: string; children: React.ReactNode }> = ({ label
 
 const meta: Meta = {
   title: 'catalog/molecules/workout/StatementDisplay',
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'workbench' },
 };
 
 export default meta;

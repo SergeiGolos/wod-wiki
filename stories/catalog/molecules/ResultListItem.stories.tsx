@@ -69,3 +69,38 @@ export const Clickable: Story = {
     onClick: () => alert('Result selected'),
   },
 };
+
+export const LoadingResult: Story = {
+  args: {
+    timeLabel: '—',
+    title: 'Loading workout result…',
+    subtitle: 'Fetching summary from runtime',
+  },
+};
+
+export const ErrorResult: Story = {
+  render: () => (
+    <div className="w-[480px] rounded-xl border border-destructive/40 overflow-hidden">
+      <ResultListItem
+        timeLabel="ERR"
+        title="Failed to load result"
+        subtitle="Session analytics could not be retrieved"
+      />
+    </div>
+  ),
+};
+
+export const LongTitleTruncation: Story = {
+  args: {
+    timeLabel: '7:45 PM',
+    title: 'Open Quarterfinal Workout 24.3 — Thrusters, Chest-to-Bar Pull-ups, and Wall Walks at Competition Pace',
+    subtitle: 'Long title should truncate cleanly in narrow containers',
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-[320px] rounded-xl border border-border overflow-hidden">
+        <Story />
+      </div>
+    ),
+  ],
+};

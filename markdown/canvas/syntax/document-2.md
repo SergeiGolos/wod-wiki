@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Warmup Checklist"
 subtitle: "- [ ] tasks before the session"
 section: document

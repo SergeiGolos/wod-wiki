@@ -1,0 +1,46 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './CommandPill.stories';
+
+<Meta of={stories} />
+
+# CommandPill
+
+A compact action pill used in the editor's inline command bar; comes in simple (single click zone) and split (primary + copy secondary) layouts with a success-flash animation on the split zone.
+
+> **Note:** This story uses a surrogate component. The production `CommandPill` inside `InlineCommandBar.tsx` accepts `block: IRuntimeBlock` and is tightly coupled to the full command bar context.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `IRuntimeBlock` | Production dependency (not in story surrogate) |
+| Lucide icons | Action icons per variant |
+| `cn` utility | Conditional class merging |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| Primary click handler | Main zone clicked | none |
+| Secondary click handler | Split zone clicked | none; shows success flash for 1.5 s |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CommandPillProps {
+  label: string;
+  icon: React.ComponentType;
+  variant?: 'primary' | 'secondary';
+  split?: boolean;
+  onClick?: () => void;
+  onSplitClick?: () => void;
+}
+```
+
+### Internal State
+
+| State | Type | Initial | Purpose |
+|-------|------|---------|---------|
+| `success` | `boolean` | `false` | Shows emerald flash after split-zone action; resets after 1.5 s |

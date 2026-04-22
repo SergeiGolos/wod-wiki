@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './Collections.stories';
+
+<Meta of={stories} />
+
+# Collections
+
+The full-page shell for the Collections workbench; lets users browse workout templates by category and open individual entries in a side-by-side detail editor.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `CollectionsPage` | Page container (`playground/src/views/CollectionsPage`) |
+| `CollectionBrowsePanel` | Left-panel browse list |
+| `NoteEditor` | Right-panel editor for the selected workout |
+| `CommandProvider` | Command palette context |
+| `PanelSizeProvider` | Resizable panel sizing |
+| `getWodCollections()` | Loads built-in workout collections |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onSelectItem` | Workout entry clicked in browse panel | `WodCollectionItem` |
+
+## Data Shapes
+
+### Props
+
+```typescript
+// CollectionsPage is route-driven; stories provide mock collections directly
+interface CollectionsPageProps {
+  collections?: WodCollection[];
+}
+```

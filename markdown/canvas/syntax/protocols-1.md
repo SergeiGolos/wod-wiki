@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "AMRAP"
 subtitle: "Countdown, unbounded rounds"
 section: protocols

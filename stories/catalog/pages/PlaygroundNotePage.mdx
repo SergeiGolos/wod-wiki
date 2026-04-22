@@ -1,0 +1,28 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './PlaygroundNotePage.stories';
+
+<Meta of={stories} />
+
+# PlaygroundNotePage
+
+The workout editor playground page that renders a personal note in the editor, loading content from IndexedDB by ID; shows the default template if IndexedDB is unavailable.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `IndexedDB` | Loads note content by id |
+| `NoteEditor` | Monaco-based workout editor |
+| `playground/src/pages/PlaygroundNotePage` | Page implementation |
+| `react-router` | Route param: `/playground/:id` |
+
+## Notifies
+
+None — the editor writes directly to IndexedDB.
+
+## Data Shapes
+
+```typescript
+// Route-driven; no direct props
+// Route: /playground/:id
+```

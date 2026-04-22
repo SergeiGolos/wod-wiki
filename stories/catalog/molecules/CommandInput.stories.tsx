@@ -4,10 +4,12 @@
  * The search-input row used at the top of every command-palette variant.
  * Consists of: leading Search icon · text input · trailing Esc badge.
  *
- * ⚠️  Catalog surrogate: `CommandInputRow` here is a standalone demo component.
- *     In production, `CommandPalette.tsx` uses `cmdk`'s `Command.Input` directly
- *     (from the `cmdk` library), which is tightly integrated with `Command.List`
- *     for accessible search. This story documents the visual design pattern only.
+ * ⚠️  Surrogate pattern (intentional): `CommandInputRow` here is a standalone
+ *     demo component. In production, `CommandPalette.tsx` uses `cmdk`'s
+ *     `Command.Input` directly, which is tightly integrated with `Command.List`
+ *     for accessible keyboard navigation and ARIA roles. Rendering `Command.Input`
+ *     in isolation without its `Command.List` sibling would break accessibility
+ *     semantics. The surrogate documents the visual pattern only.
  *
  * Stories:
  *  1. Empty        – no value, default placeholder
@@ -27,6 +29,10 @@ interface CommandInputRowProps {
   placeholder?: string;
   onChange?: (v: string) => void;
   autoFocus?: boolean;
+  /** Disables the input field and applies disabled styling. */
+  disabled?: boolean;
+  /** Applies error styling to input text and placeholder. */
+  hasError?: boolean;
 }
 
 const CommandInputRow: React.FC<CommandInputRowProps> = ({
@@ -34,6 +40,8 @@ const CommandInputRow: React.FC<CommandInputRowProps> = ({
   placeholder = 'Type a command or search…',
   onChange,
   autoFocus = false,
+  disabled = false,
+  hasError = false,
 }) => {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { if (autoFocus) ref.current?.focus(); }, [autoFocus]);
@@ -46,8 +54,11 @@ const CommandInputRow: React.FC<CommandInputRowProps> = ({
         type="text"
         value={value}
         placeholder={placeholder}
+        disabled={disabled}
         onChange={e => onChange?.(e.target.value)}
-        className="flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100"
+        className={`flex-1 bg-transparent py-3 text-sm outline-none placeholder:text-zinc-400 text-zinc-900 dark:text-zinc-100 ${
+          disabled ? 'opacity-50 cursor-not-allowed' : ''
+        } ${hasError ? 'text-destructive placeholder:text-destructive/70' : ''}`}
       />
       <kbd className="hidden rounded border border-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-400 sm:inline dark:border-zinc-600">
         esc
@@ -84,7 +95,7 @@ const LiveInput: React.FC<{ placeholder?: string; initialValue?: string }> = ({
 
 const meta: Meta = {
   title: 'catalog/molecules/commands/CommandInput',
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'workbench' },
 };
 export default meta;
 type Story = StoryObj;
@@ -130,6 +141,38 @@ export const States: Story = {
       <div className="rounded-xl border border-zinc-200 overflow-hidden shadow">
         <CommandInputRow placeholder="Modify Repetitions…" />
       </div>
+    </div>
+  ),
+};
+
+export const Focused: Story = {
+  name: 'Focused',
+  render: () => <LiveInput placeholder="Search workouts…" />,
+};
+
+export const ErrorState: Story = {
+  name: 'Error',
+  render: () => (
+    <div className="w-[480px] rounded-xl border border-destructive/40 overflow-hidden shadow-lg">
+      <CommandInputRow
+        value="fr@n"
+        placeholder="Type a command or search…"
+        hasError
+      />
+      <p className="px-3 py-2 text-xs text-destructive">Invalid command syntax</p>
+    </div>
+  ),
+};
+
+export const Disabled: Story = {
+  name: 'Disabled',
+  render: () => (
+    <div className="w-[480px] rounded-xl border border-zinc-200 overflow-hidden shadow">
+      <CommandInputRow
+        value="fran"
+        placeholder="Type a command or search…"
+        disabled
+      />
     </div>
   ),
 };

@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Simple Rounds"
 subtitle: "Repeat a block"
 section: groups

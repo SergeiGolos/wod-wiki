@@ -1,0 +1,39 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './FullscreenReview.stories';
+
+<Meta of={stories} />
+
+# FullscreenReview
+
+The post-workout review overlay rendered after a workout completes; wraps `ReviewGrid` in a `FocusedDialog` portal (minimal variant) and supports multi-select segments.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `FocusedDialog` | Full-viewport portal overlay |
+| `ReviewGrid` | Segment and metric review grid |
+| `ScriptRuntime` | Provides segment data via `getAnalyticsFromRuntime()` |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onClose` | Close button clicked | none |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface FullscreenReviewProps {
+  runtime?: ScriptRuntime;
+  onClose: () => void;
+}
+```
+
+### Internal State
+
+| State | Type | Initial | Purpose |
+|-------|------|---------|---------|
+| `selectedSegments` | `string[]` | `[]` | Multi-select segment ids for comparison |

@@ -1,0 +1,38 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './JournalDateScroll.stories';
+
+<Meta of={stories} />
+
+# JournalDateScroll
+
+An infinite date-scroll list for the Journal view; renders days with workout blocks grouped under sticky date headers and supports imperative `scrollToDate` via a ref handle.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `JournalEntrySummary` | Per-day entry summary data shape |
+| `FilteredListItem` | List item wrapper type |
+| `playground/src/views/queriable-list/JournalDateScroll` | Component implementation |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onSelectEntry` | Workout block clicked | `JournalEntrySummary` |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface JournalDateScrollProps {
+  items: FilteredListItem<JournalEntrySummary>[];
+  onSelectEntry?: (entry: JournalEntrySummary) => void;
+}
+
+// Imperative handle
+interface JournalDateScrollHandle {
+  scrollToDate: (date: Date) => void;
+}
+```

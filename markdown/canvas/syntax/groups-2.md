@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Rep Sequence"
 subtitle: "Dash-separated targets per round"
 section: groups

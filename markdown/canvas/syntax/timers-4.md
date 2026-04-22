@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Rest Marker"
 subtitle: "* marks an explicit rest period"
 section: timers

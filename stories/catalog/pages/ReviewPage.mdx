@@ -1,0 +1,28 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './ReviewPage.stories';
+
+<Meta of={stories} />
+
+# ReviewPage
+
+The post-workout review page accessible via the `/review/:runtimeId` route; loads a stored workout result from IndexedDB and displays it in `ReviewGrid`. In stories without IndexedDB, it shows loading and error states.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `IndexedDB` | Loads stored workout result by runtime id |
+| `ReviewGrid` | Segment and metric review display |
+| `playground/src/pages/ReviewPage` | Page implementation |
+| `react-router` | Route param: `/review/:runtimeId` |
+
+## Notifies
+
+None — display-only page.
+
+## Data Shapes
+
+```typescript
+// Route-driven; no direct props
+// Route: /review/:runtimeId
+```

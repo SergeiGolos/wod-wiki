@@ -19,7 +19,9 @@ export interface ButtonGroupProps {
   primary: INavActivation;
   /** Secondary right-hand action — shows icon only */
   secondary: INavActivation;
-  size?: 'sm' | 'default';
+  size?: 'xs' | 'sm' | 'default';
+  /** Optional className applied to primary/secondary label spans (e.g. 'hidden sm:inline') */
+  labelClassName?: string;
   /**
    * Visual variant.
    * - 'default': muted bordered pill (subtle actions, lists)
@@ -50,15 +52,16 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   size = 'default',
   variant = 'default',
   className,
+  labelClassName,
   onAction,
 }) => {
   const PrimaryIcon = primary.icon;
   const SecondaryIcon = secondary.icon;
   const isPrimary = variant === 'primary';
 
-  const padding = size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2';
-  const iconPadding = size === 'sm' ? 'px-2 py-1.5' : 'px-2.5 py-2';
-  const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
+  const padding = size === 'xs' ? 'px-2 py-0.5' : size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2';
+  const iconPadding = size === 'xs' ? 'px-1.5 py-0.5' : size === 'sm' ? 'px-2 py-1.5' : 'px-2.5 py-2';
+  const textSize = size === 'xs' ? 'text-[10px]' : size === 'sm' ? 'text-[11px]' : 'text-xs';
 
   return (
     <div
@@ -84,7 +87,7 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
         )}
       >
         {PrimaryIcon && <PrimaryIcon className={cn('shrink-0', isPrimary ? 'size-3 fill-current' : 'h-4 w-4')} />}
-        <span>{primary.label}</span>
+        <span className={labelClassName}>{primary.label}</span>
       </button>
 
       {/* Divider */}

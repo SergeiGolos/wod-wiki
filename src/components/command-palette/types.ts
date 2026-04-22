@@ -13,7 +13,7 @@ export interface CommandPaletteResult {
   name: string;
   category: string;
   content?: string;
-  type?: 'workout' | 'result' | 'action' | 'statement-part';
+  type?: 'workout' | 'result' | 'action' | 'statement-part' | 'route';
   subtitle?: string;
   payload?: any;
 }

@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "No Timer"
 subtitle: "Stopwatch mode — just track reps"
 section: timers

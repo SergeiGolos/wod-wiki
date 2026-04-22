@@ -1,0 +1,41 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './ReviewGrid.stories';
+
+<Meta of={stories} />
+
+# ReviewGrid
+
+The primary results-display layout used across the tracker, review, and home routes; composes `GridHeaderCell` and `MetricSourceRow` sub-components into a full, working grid with real segment data.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `GridHeaderCell` / `HeaderCell` | Sortable column headers |
+| `MetricSourceRow` | Segment data rows |
+| `getAnalyticsFromRuntime()` | Produces segment data from a completed `ScriptRuntime` |
+| `GridColumn` / `GridSortConfig` | Column and sort state types |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onSort` | Column header clicked | `GridSortConfig` |
+| `onAddColumn` | Add column selected | `MetricType` |
+| `onSegmentSelect` | Segment row clicked | segment id |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface ReviewGridProps {
+  segments: AnalyticsSegment[];
+  columns?: GridColumn[];
+  sort?: GridSortConfig;
+  selectedIds?: string[];
+  onSort?: (config: GridSortConfig) => void;
+  onAddColumn?: (type: MetricType) => void;
+  onSegmentSelect?: (id: string) => void;
+}
+```

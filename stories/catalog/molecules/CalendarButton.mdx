@@ -1,0 +1,41 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './CalendarButton.stories';
+
+<Meta of={stories} />
+
+# CalendarButton
+
+A single button with a calendar icon that opens a `CalendarCard` popover for date selection; supports selected date display, entry-dot indicators, disabled state, and size variants.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `CalendarCard` | Popover content |
+| `FIXTURE_ENTRY_DATES` | Entry dot indicators from shared fixtures |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onDateSelect` | User picks a date in the popover | `Date` |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CalendarButtonProps {
+  selectedDate?: Date;
+  entryDates?: Date[];
+  disabled?: boolean;
+  size?: 'sm' | 'default' | 'lg';
+  onDateSelect?: (date: Date) => void;
+}
+```
+
+### Internal State
+
+| State | Type | Initial | Purpose |
+|-------|------|---------|---------|
+| `open` | `boolean` | `false` | Controls popover visibility |
