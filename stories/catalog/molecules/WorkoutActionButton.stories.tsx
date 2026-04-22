@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / WorkoutActionButton
+ * Catalog / Molecules / WorkoutActionButton
  *
  * A split button for creating or cloning a workout entry on a chosen date.
  *
