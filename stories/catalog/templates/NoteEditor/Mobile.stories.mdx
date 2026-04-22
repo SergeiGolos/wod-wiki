@@ -1,0 +1,34 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './Mobile.stories';
+
+<Meta of={stories} />
+
+# NoteEditor — Mobile
+
+The mobile-viewport layout for the workout note editor; uses `StorybookWorkbench` constrained to 390 px width to simulate a portrait phone, with the same `EditorShellHeader` toolbar as the web variant.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `StorybookWorkbench` | Editor shell with `EditorShellHeader` toolbar |
+| `NoteEditor` | Monaco-based workout editor |
+| Viewport: 390 px | Portrait mobile simulation |
+
+## Notifies
+
+None at the template level — interactions are handled by the embedded editor.
+
+## Data Shapes
+
+### Props
+
+```typescript
+// StorybookWorkbench controls passed via story args
+interface StorybookWorkbenchProps {
+  showToolbar?: boolean;
+  readonly?: boolean;
+  theme?: string;
+  initialContent?: string;
+}
+```

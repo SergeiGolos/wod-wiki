@@ -1,0 +1,40 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './CastButtonRpc.stories';
+
+<Meta of={stories} />
+
+# CastButtonRpc
+
+The Chromecast cast-control button that reflects the current cast session state (disconnected, connecting, casting, disconnecting); in non-Chromecast environments it renders hidden.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ChromecastSdk` | Browser Cast API and session state |
+| `useSubscriptionManager` | Runtime subscription pipeline |
+| `useWorkbenchSyncStore` | Zustand store for workbench state |
+| `react-router useLocation` | Page context for cast syncing |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| Cast session start | Button clicked when disconnected | none (SDK-managed) |
+| Cast session stop | Button clicked when casting | none |
+
+## Data Shapes
+
+### Props
+
+None — state comes from `ChromecastSdk` and Zustand store.
+
+### Visual States
+
+| State | Description |
+|-------|-------------|
+| `disconnected` | Ready to cast — cast icon shown |
+| `connecting` | Spinner shown while connecting |
+| `casting` | Active cast — highlighted icon |
+| `disconnecting` | Spinner shown while disconnecting |
+| `sdk-unavailable` | Hidden (no Cast SDK loaded) |

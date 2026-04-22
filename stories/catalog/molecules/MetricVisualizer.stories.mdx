@@ -1,0 +1,33 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './MetricVisualizer.stories';
+
+<Meta of={stories} />
+
+# MetricVisualizer
+
+Renders an inline row of `MetricPill` badges grouped and color-coded by `MetricType`; this is the canonical way to display a set of metrics for any statement or runtime block across all panels.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `MetricPill` | Individual metric badge |
+| `IMetric` | Metric data shape |
+| `MetricType` | Grouping and color-coding |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface MetricVisualizerProps {
+  metrics: IMetric[];
+  size?: 'normal' | 'compact' | 'large';
+  typeOverrides?: Partial<Record<string, boolean>>;  // hide specific types
+  error?: string;  // shows error message instead of metrics
+}
+```

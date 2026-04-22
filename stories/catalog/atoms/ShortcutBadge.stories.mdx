@@ -1,0 +1,28 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './ShortcutBadge.stories';
+
+<Meta of={stories} />
+
+# ShortcutBadge
+
+Renders an array of keyboard shortcut tokens as styled `<kbd>` elements, automatically substituting modifier names with platform symbols (`meta → ⌘`, `shift → ⇧`, `alt → ⌥`).
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| Modifier symbol map | Built-in substitution table (no external dependency) |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface ShortcutBadgeProps {
+  tokens: string[];  // e.g. ['meta', 'k'] or ['g', 'n']
+}
+```

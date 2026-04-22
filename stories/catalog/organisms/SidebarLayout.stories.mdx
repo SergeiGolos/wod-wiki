@@ -1,0 +1,32 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './SidebarLayout.stories';
+
+<Meta of={stories} />
+
+# SidebarLayout
+
+The primary app shell: on desktop (lg+) it shows a persistent sidebar on the left with a main content area; on mobile it shows a sticky header with a hamburger button and a slide-out drawer sidebar.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `react-router-dom useLocation` | Active route for sidebar highlight; provided by global `StorybookHost` `MemoryRouter` |
+| `src/components/playground/sidebar-layout` | Component implementation |
+| `Navbar` / `Sidebar` atoms | Slot content |
+
+## Notifies
+
+None — layout shell; interactions are handled by slotted content.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface SidebarLayoutProps {
+  sidebar: React.ReactNode;
+  navbar?: React.ReactNode;
+  children: React.ReactNode;
+}
+```

@@ -1,0 +1,50 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './GridHeaderCell.stories';
+
+<Meta of={stories} />
+
+# GridHeaderCell
+
+Sortable column header atoms for the metric review grid: `HeaderCell` (icon + label + sort indicator + optional graph toggle), `FilterCell` (per-column text filter), and `AddColumnButton` (dropdown for adding metric columns).
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `GridHeader.tsx` | `HeaderCell`, `FilterCell`, `AddColumnButton` |
+| `GridColumn` / `GridSortConfig` | Column definition and sort state types |
+| `MetricType` | Available metric types for the add-column dropdown |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onSort` | Header cell clicked | `GridSortConfig` |
+| `onFilterChange` | Filter input changed | `{ columnId: string, value: string }` |
+| `onAddColumn` | Metric type selected in dropdown | `MetricType` |
+| `onToggleGraph` | Graph toggle button clicked | `columnId: string` |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface HeaderCellProps {
+  column: GridColumn;
+  sort?: GridSortConfig;
+  graphed?: boolean;
+  onSort?: (config: GridSortConfig) => void;
+  onToggleGraph?: (columnId: string) => void;
+}
+
+interface FilterCellProps {
+  column: GridColumn;
+  value?: string;
+  onChange?: (columnId: string, value: string) => void;
+}
+
+interface AddColumnButtonProps {
+  availableTypes: MetricType[];
+  onAdd: (type: MetricType) => void;
+}
+```

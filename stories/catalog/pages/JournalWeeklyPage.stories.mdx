@@ -1,0 +1,30 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './JournalWeeklyPage.stories';
+
+<Meta of={stories} />
+
+# JournalWeeklyPage
+
+The weekly journal overview page that shows a week-at-a-glance view with date navigation and a list of journal entries loaded from IndexedDB.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `IndexedDB` | Loads journal entries for the week |
+| `JournalDateScroll` | Scrollable date list |
+| `playground/src/pages/JournalWeeklyPage` | Page implementation |
+| `react-router` | Route param: `/journal` |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| Route push | Entry or date clicked | route path |
+
+## Data Shapes
+
+```typescript
+// Route-driven; no direct props
+// Route: /journal
+```

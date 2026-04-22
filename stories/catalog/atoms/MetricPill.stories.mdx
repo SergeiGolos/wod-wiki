@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './MetricPill.stories';
+
+<Meta of={stories} />
+
+# MetricPill
+
+A color-coded badge that represents a single workout metric; use it anywhere you need to display a typed metric value inline.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `IMetric` | `{ type, value, origin }` — the metric data shape |
+| `MetricType` color mapping | Drives the badge background and text color per type |
+| Duration formatter | Smart display for time-based metric types |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface MetricPillProps {
+  metric: IMetric;
+}
+
+interface IMetric {
+  type: string;       // e.g. 'time' | 'rep' | 'effort' | 'distance' | 'rounds' | ...
+  value: unknown;     // numeric, string, or complex object
+  origin: 'parser' | 'user';
+}
+```

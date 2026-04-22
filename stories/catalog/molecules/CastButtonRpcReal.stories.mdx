@@ -1,0 +1,27 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './CastButtonRpcReal.stories';
+
+<Meta of={stories} />
+
+# CastButtonRpc — Real Component
+
+Renders the production `CastButtonRpc` component directly; in Storybook the Google Cast SDK is not loaded so the button appears hidden, confirming the component mounts without crashing in non-Chromecast environments.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ChromecastSdk` | Cast API — absent in Storybook, so renders hidden |
+| `useWorkbenchSyncStore` | Zustand store for workbench state |
+
+## Notifies
+
+None visible in Storybook (Cast SDK not loaded).
+
+## Data Shapes
+
+### Props
+
+None — fully context-driven via `ChromecastSdk` and Zustand store.
+
+> **See also:** `CastButtonRpc.stories.tsx` for mock-based visual regression coverage of all cast states.

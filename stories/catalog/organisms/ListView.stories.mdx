@@ -1,0 +1,54 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './ListView.stories';
+
+<Meta of={stories} />
+
+# ListView
+
+A generic list component with three view variants: `ListView` (simple selectable item list), `CommandListView` (keyboard-navigable command list with grouped sections), and `ActionBarView` (compact toolbar with icon-only actions).
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `IListItem` / `IItemAction` | Item data and action types |
+| `src/components/list/ListView` | Simple list component |
+| `src/components/list/CommandListView` | Command-palette-style list |
+| `src/components/list/ActionBarView` | Toolbar action bar |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onSelect` | Item clicked or keyboard-activated | `IListItem` |
+| Action handler | Action icon clicked | action id |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface ListViewProps<T = unknown> {
+  items: IListItem<T>[];
+  onSelect?: (item: IListItem<T>) => void;
+  selectedId?: string;
+}
+
+interface IListItem<T = unknown> {
+  id: string;
+  label: string;
+  subtitle?: string;
+  group?: string;
+  icon?: React.ReactNode;
+  shortcut?: string[];
+  badge?: string;
+  payload: T;
+}
+
+interface IItemAction {
+  id: string;
+  label: string;
+  icon: React.ComponentType;
+  handler: (item: IListItem) => void;
+}
+```
