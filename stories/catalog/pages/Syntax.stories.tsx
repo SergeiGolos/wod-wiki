@@ -3,7 +3,7 @@ import { StorybookWorkbench as Workbench } from '../../_shared/StorybookWorkbenc
 import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta = {
-  title: 'catalog/organisms/Syntax',
+  title: 'catalog/pages/Syntax',
   parameters: {
     layout: 'fullscreen',
   }
