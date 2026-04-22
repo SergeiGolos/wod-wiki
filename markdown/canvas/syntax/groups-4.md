@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Nested Groups"
 subtitle: "Rounds inside rounds"
 section: groups

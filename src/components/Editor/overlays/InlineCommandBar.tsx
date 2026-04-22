@@ -9,13 +9,16 @@
  * rects to position a floating toolbar at the top-right of each WOD section.
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from "../extensions/section-state";
 import { sectionGeometry as sectionGeometryPlugin, type SectionRect } from "../extensions/section-geometry";
 import type { WodCommand } from "./WodCommand";
 import type { WodBlock } from "../types";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/ButtonGroup";
+import type { INavActivation } from "@/nav/navTypes";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -38,6 +41,27 @@ function buildWodBlock(view: EditorView, section: EditorSection): WodBlock {
   };
 }
 
+// ── Icon adapter ─────────────────────────────────────────────────────
+
+/**
+ * Wraps a ReactNode icon into a ComponentType compatible with INavActivation.
+ * If the node is a cloneable React element, the className from ButtonGroup is
+ * merged in so icon sizing/color remain controllable.
+ */
+function wrapNodeAsIcon(
+  node: React.ReactNode,
+): React.ComponentType<{ className?: string }> {
+  return function WrappedIcon({ className }: { className?: string }) {
+    if (React.isValidElement(node)) {
+      return React.cloneElement(
+        node as React.ReactElement<{ className?: string }>,
+        { className: cn((node.props as { className?: string }).className, className) },
+      );
+    }
+    return <span className={cn("flex items-center", className)}>{node}</span>;
+  };
+}
+
 // ── CommandPill ──────────────────────────────────────────────────────
 
 const CommandPill: React.FC<{
@@ -46,80 +70,85 @@ const CommandPill: React.FC<{
 }> = ({ cmd, block }) => {
   const [splitOk, setSplitOk] = useState(false);
 
-  const handleMain = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      cmd.onClick(block);
-    },
-    [cmd, block],
+  const handleSplitAction = useCallback(async () => {
+    if (!cmd.onSplitClick || splitOk) return;
+    await cmd.onSplitClick(block);
+    setSplitOk(true);
+    setTimeout(() => setSplitOk(false), 1500);
+  }, [cmd, block, splitOk]);
+
+  const PrimaryIcon = useMemo(() => wrapNodeAsIcon(cmd.icon), [cmd.icon]);
+  const SplitIcon = useMemo(
+    () =>
+      splitOk
+        ? wrapNodeAsIcon(cmd.splitSuccessIcon ?? cmd.splitIcon)
+        : wrapNodeAsIcon(cmd.splitIcon),
+    [splitOk, cmd.splitIcon, cmd.splitSuccessIcon],
   );
 
-  const handleSplit = useCallback(
-    async (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!cmd.onSplitClick || splitOk) return;
-      await cmd.onSplitClick(block);
-      setSplitOk(true);
-      setTimeout(() => setSplitOk(false), 1500);
-    },
-    [cmd, block, splitOk],
+  const primaryActivation = useMemo<INavActivation>(
+    () => ({
+      id: cmd.id,
+      label: cmd.label,
+      icon: PrimaryIcon,
+      action: { type: "call", handler: () => cmd.onClick(block) },
+    }),
+    [cmd, block, PrimaryIcon],
   );
 
-  const base = cn(
-    "flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-colors shadow-sm",
-    cmd.primary
-      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-      : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50",
+  const secondaryActivation = useMemo<INavActivation>(
+    () => ({
+      id: `${cmd.id}-split`,
+      label: "Copy link",
+      icon: SplitIcon,
+      action: { type: "call", handler: handleSplitAction },
+    }),
+    [cmd.id, SplitIcon, handleSplitAction],
   );
 
+  const stopEvent = useCallback((e: React.SyntheticEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  // Standalone button — no split action
   if (!cmd.onSplitClick) {
     return (
-      <button title={cmd.label} onClick={handleMain} className={cn(base, "rounded-sm")}>
-        <span className="flex items-center h-3 w-3">{cmd.icon}</span>
+      <Button
+        variant={cmd.primary ? "default" : "secondary"}
+        className={cn(
+          "h-auto px-2 py-0.5 text-[10px] font-medium rounded-sm shadow-sm gap-1",
+          !cmd.primary && "border border-border/50",
+        )}
+        title={cmd.label}
+        onClick={(e) => {
+          stopEvent(e);
+          cmd.onClick(block);
+        }}
+        onMouseDown={stopEvent}
+        onPointerDown={stopEvent}
+      >
+        <span className="flex items-center size-3">{cmd.icon}</span>
         <span className="hidden sm:inline">{cmd.label}</span>
-      </button>
+      </Button>
     );
   }
 
+  // Split button: primary action + secondary icon via ButtonGroup
   return (
     <div
-      className={cn(
-        "inline-flex items-stretch rounded-sm overflow-hidden border",
-        cmd.primary ? "border-primary/50" : "border-border/50",
-      )}
+      onClick={stopEvent}
+      onMouseDown={stopEvent}
+      onPointerDown={stopEvent}
     >
-      <button
-        title={cmd.label}
-        onClick={handleMain}
-        className={cn(
-          "flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-colors",
-          cmd.primary
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        )}
-      >
-        <span className="flex items-center h-3 w-3">{cmd.icon}</span>
-        <span className="hidden sm:inline">{cmd.label}</span>
-      </button>
-      <div className={cn("w-px self-stretch", cmd.primary ? "bg-primary-foreground/20" : "bg-border/60")} />
-      <button
-        title="Copy link"
-        onClick={handleSplit}
-        className={cn(
-          "flex items-center justify-center px-1.5 py-0.5 transition-all duration-300",
-          splitOk
-            ? "text-emerald-600 bg-emerald-500/15 dark:text-emerald-400 dark:bg-emerald-500/20"
-            : cmd.primary
-              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        )}
-      >
-        <span className="flex items-center h-3 w-3">
-          {splitOk ? (cmd.splitSuccessIcon ?? cmd.splitIcon) : cmd.splitIcon}
-        </span>
-      </button>
+      <ButtonGroup
+        primary={primaryActivation}
+        secondary={secondaryActivation}
+        size="xs"
+        variant={cmd.primary ? "primary" : "default"}
+        className="rounded-sm"
+        labelClassName="hidden sm:inline"
+      />
     </div>
   );
 };

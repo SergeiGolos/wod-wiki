@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Order is flexible"
 subtitle: "Quantity first or last"
 section: statement

@@ -15,7 +15,7 @@ import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomeView } from './views/HomeView'
-import { findCanvasPage } from './canvas/canvasRoutes'
+import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
@@ -79,6 +79,8 @@ export interface WorkoutItem {
   name: string
   category: string
   content: string
+  /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
+  searchHidden?: boolean
 }
 
 
@@ -152,11 +154,23 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         category = parts[markdownIdx + 2]
       }
 
+      // Parse front matter to check for `search: hidden`
+      const raw = fileContent as string
+      let searchHidden = false
+      const fmMatch = raw.match(/^---[\r\n]([\s\S]*?)[\r\n]---/)
+      if (fmMatch) {
+        const searchLine = fmMatch[1].match(/^search:\s*(\S+)/m)
+        if (searchLine && searchLine[1].toLowerCase() === 'hidden') {
+          searchHidden = true
+        }
+      }
+
       return {
         id: path,
         name: fileName,
         category: category,
-        content: fileContent as string,
+        content: raw,
+        searchHidden,
       }
     })
   }, [workoutFiles])
@@ -327,7 +341,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
 
   // Open the command palette with the global search strategy
   const openSearchPalette = useCallback(() => {
-    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate)
+    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate, canvasRoutes)
     setStrategy(strategy)
     setIsCommandPaletteOpen(true)
   }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])

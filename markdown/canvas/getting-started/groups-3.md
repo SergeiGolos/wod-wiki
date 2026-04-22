@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Work/Rest Intervals"
 subtitle: "Timed loops"
 section: groups

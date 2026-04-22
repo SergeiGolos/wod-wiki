@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Work / Rest Loop"
 subtitle: "Timed intervals inside rounds"
 section: groups

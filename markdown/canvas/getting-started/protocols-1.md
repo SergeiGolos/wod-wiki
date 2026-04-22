@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "AMRAP"
 subtitle: "As many rounds as possible"
 section: protocols

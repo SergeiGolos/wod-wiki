@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Reps"
 subtitle: "Count repetitions"
 section: metrics

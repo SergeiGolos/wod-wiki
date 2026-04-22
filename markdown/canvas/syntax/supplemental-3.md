@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Comments"
 subtitle: "// inline coach annotations"
 section: supplemental

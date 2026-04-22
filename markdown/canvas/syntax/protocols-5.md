@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Implicit EMOM"
 subtitle: "Rounds + timer auto-detects EMOM"
 section: protocols

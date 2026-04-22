@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Collectible Timer"
 subtitle: ":? records the actual time taken"
 section: timers

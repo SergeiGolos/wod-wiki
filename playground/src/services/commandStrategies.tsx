@@ -1,15 +1,18 @@
 import React from 'react';
 import type { CommandPaletteResult, CommandStrategy } from '../components/command-palette/types';
 import { indexedDBService } from '@/services/db/IndexedDBService';
+import type { CanvasRoute } from '../canvas/canvasRoutes';
 
 /**
  * Strategy 1: Global Search (Ctrl + K)
  * Searches across collections and results/notes in IndexedDB.
+ * Canvas template pages are surfaced as navigation route cards, not workout items.
  */
 export const createGlobalSearchStrategy = (
-  items: { id: string; name: string; category: string; content?: string }[],
+  items: { id: string; name: string; category: string; content?: string; searchHidden?: boolean }[],
   onNavigate: (item: any) => void,
-  navigate?: (path: string) => void
+  navigate?: (path: string) => void,
+  canvasRoutes?: CanvasRoute[]
 ): CommandStrategy => ({
   id: 'global-search',
   placeholder: 'Search workouts, results, or collections...',
@@ -18,10 +21,30 @@ export const createGlobalSearchStrategy = (
     const results: CommandPaletteResult[] = [];
     const lowQuery = query.toLowerCase();
 
-    // 1. Search Collections (Static items)
+    // 1. Canvas route pages — navigation cards (always searched, never workout items)
+    if (canvasRoutes && canvasRoutes.length > 0) {
+      const routeMatches = canvasRoutes.filter(r => {
+        const title = r.page.sections[0]?.heading ?? r.route;
+        return !lowQuery || title.toLowerCase().includes(lowQuery) || r.route.toLowerCase().includes(lowQuery);
+      });
+      routeMatches.slice(0, 5).forEach(r => {
+        const title = r.page.sections[0]?.heading ?? r.route;
+        results.push({
+          id: `route:${r.route}`,
+          name: title,
+          category: 'Pages',
+          subtitle: r.route,
+          type: 'route',
+          payload: { route: r.route },
+        });
+      });
+    }
+
+    // 2. Search Collections (Static items) — exclude search-hidden items
     const matchedItems = items.filter(item => 
-      item.name.toLowerCase().includes(lowQuery) || 
-      item.category.toLowerCase().includes(lowQuery)
+      !item.searchHidden &&
+      (item.name.toLowerCase().includes(lowQuery) || 
+      item.category.toLowerCase().includes(lowQuery))
     );
 
     matchedItems.slice(0, 10).forEach(item => {
@@ -34,7 +57,7 @@ export const createGlobalSearchStrategy = (
       });
     });
 
-    // 2. Search IndexedDB (Recent Results)
+    // 3. Search IndexedDB (Recent Results)
     try {
       const recentResults = await indexedDBService.getRecentResults(50);
       const matchedResults = recentResults.filter(r => {
@@ -62,7 +85,9 @@ export const createGlobalSearchStrategy = (
   },
 
   onSelect: (result) => {
-    if (result.type === 'workout') {
+    if (result.type === 'route') {
+      if (navigate) navigate(result.payload.route);
+    } else if (result.type === 'workout') {
       onNavigate(result.payload);
     } else if (result.type === 'result') {
       if (navigate) {

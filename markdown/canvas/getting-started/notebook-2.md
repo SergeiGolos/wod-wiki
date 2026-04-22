@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Warmup Checklist"
 subtitle: "Prep tasks before the wod"
 section: notebook

@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Equipment Table"
 subtitle: "Markdown tables for setup"
 section: document

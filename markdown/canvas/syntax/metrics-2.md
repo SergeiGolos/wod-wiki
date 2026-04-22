@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Weight"
 subtitle: "lb, kg, or bodyweight"
 section: metrics

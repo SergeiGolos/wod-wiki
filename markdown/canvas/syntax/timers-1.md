@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Countdown"
 subtitle: "Explicit duration → counts down"
 section: timers

@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: Just a Movement
 subtitle: The simplest statement
 section: statement

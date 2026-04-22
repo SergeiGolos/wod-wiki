@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Multiple Workouts"
 subtitle: "Many wod blocks per document"
 section: document

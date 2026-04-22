@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Headers & Notes"
 subtitle: "Structure your session"
 section: notebook

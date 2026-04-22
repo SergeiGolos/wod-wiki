@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "EMOM"
 subtitle: "Every minute on the minute"
 section: protocols

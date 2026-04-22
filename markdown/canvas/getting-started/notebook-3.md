@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Full Session Doc"
 subtitle: "A complete training day"
 section: notebook

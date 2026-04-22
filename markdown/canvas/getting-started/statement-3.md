@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Multiple Lines"
 subtitle: "Sequence of work"
 section: statement

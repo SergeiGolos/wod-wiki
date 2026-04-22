@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Combined"
 subtitle: "Multiple metrics on one line"
 section: metrics

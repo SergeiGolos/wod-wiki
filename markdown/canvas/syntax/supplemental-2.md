@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Rest Periods"
 subtitle: "* marks an explicit rest block"
 section: supplemental

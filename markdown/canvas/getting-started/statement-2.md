@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Reps + Movement"
 subtitle: "Add a quantity"
 section: statement

@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Simple Rounds"
 subtitle: "Parentheses repeat everything inside"
 section: groups

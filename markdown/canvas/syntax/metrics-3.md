@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Distance"
 subtitle: "m, km, ft, miles"
 section: metrics

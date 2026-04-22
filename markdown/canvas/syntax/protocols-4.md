@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Tabata"
 subtitle: "20s work / 10s rest preset"
 section: protocols

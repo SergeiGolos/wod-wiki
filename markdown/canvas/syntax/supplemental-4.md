@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Unknown Values"
 subtitle: "? captures user input at runtime"
 section: supplemental

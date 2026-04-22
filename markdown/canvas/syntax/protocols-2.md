@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "EMOM"
 subtitle: "Per-minute intervals, fixed count"
 section: protocols

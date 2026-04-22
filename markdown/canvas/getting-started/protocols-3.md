@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "FOR TIME"
 subtitle: "Complete the work, clock runs"
 section: protocols

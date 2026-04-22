@@ -1,4 +1,5 @@
 ---
+search: hidden
 title: "Short Burst"
 subtitle: "Seconds-only format"
 section: timer
