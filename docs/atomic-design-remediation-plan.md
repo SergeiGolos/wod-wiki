@@ -22,7 +22,7 @@ This plan addresses all open items organized by the atomic design principle of *
 
 ---
 
-## Phase 0 — Housekeeping (prerequisite)
+## Phase 0 — Housekeeping (prerequisite) ✅ COMPLETE
 
 Complete these before starting new story work.
 
@@ -64,9 +64,18 @@ The 30+ design system primitives in `playground/src/components/ui/` (alert, avat
 
 ---
 
-## Phase 1 — App Shell Stories (vertical slice: layout + navigation)
+## Phase 1 — App Shell Stories (vertical slice: layout + navigation) ✅ COMPLETE
 
 **Goal:** Storybook coverage for the components that wrap every page. These are organisms — complex UI sections composing molecules and atoms.
+
+**Files created:**
+- `stories/catalog/atoms/layout/Navbar.stories.tsx` — Navbar + Sidebar primitives
+- `stories/catalog/molecules/navigation/SidebarAccordion.stories.tsx`
+- `stories/catalog/molecules/navigation/PageNavDropdown.stories.tsx`
+- `stories/catalog/molecules/actions/AudioToggle.stories.tsx`
+- `stories/catalog/molecules/actions/CastButtonRpc.stories.tsx`
+- `stories/catalog/organisms/SidebarLayout.stories.tsx` — 5 variants
+- `stories/catalog/organisms/NavSidebar.stories.tsx` — 6 variants with NavProvider
 
 **Atomic design rationale:** SidebarLayout and NavSidebar are organisms (multiple molecules forming distinct UI sections). Navbar and Sidebar are atoms (styled containers with sub-components). SidebarAccordion, PageNavDropdown, AudioToggle, CastButtonRpc are molecules (2-5 atoms doing one specific thing).
 
@@ -149,13 +158,20 @@ The 30+ design system primitives in `playground/src/components/ui/` (alert, avat
 
 **Goal:** Coverage for the core content rendering pipeline — how markdown, editors, and overlay panels compose.
 
+**Files created:**
+- `stories/catalog/molecules/chrome/MacOSChrome.stories.tsx` — 5 variants
+- `stories/catalog/molecules/content/CanvasProse.stories.tsx` — 6 variants
+- `stories/catalog/molecules/overlays/FocusedDialog.stories.tsx` — 5 variants
+- `stories/catalog/organisms/RuntimeTimerPanel.stories.tsx` — 5 variants
+- `stories/catalog/organisms/MarkdownCanvasPage.stories.tsx` — 2 variants
+
 ### 2.1 Molecules — MacOSChrome + CanvasProse
 
-**Story:** `stories/catalog/molecules/MacOSChrome.stories.tsx`
+**Story:** `stories/catalog/molecules/chrome/MacOSChrome.stories.tsx`
 - Variants: with/without traffic lights, different title bar content
 - Demonstrate: styled window frame wrapping any content
 
-**Story:** `stories/catalog/molecules/CanvasProse.stories.tsx`
+**Story:** `stories/catalog/molecules/content/CanvasProse.stories.tsx`
 - Variants: short content, long content (scrollable), with frontmatter, with GFM tables, with embedded components (WodPlaygroundButton)
 - Demonstrate: markdown rendering, GFM support, component embedding
 
@@ -163,7 +179,7 @@ The 30+ design system primitives in `playground/src/components/ui/` (alert, avat
 
 ### 2.2 Molecule — FocusedDialog
 
-**Story:** `stories/catalog/molecules/FocusedDialog.stories.tsx`
+**Story:** `stories/catalog/molecules/overlays/FocusedDialog.stories.tsx`
 - Variants: open/closed, with different content (timer, review grid)
 - Demonstrate: fullscreen takeover, dismiss behavior, content rendering
 - Note: Used by both FullscreenTimer and FullscreenReview — this is the shared overlay mechanism
