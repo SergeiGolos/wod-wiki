@@ -1,0 +1,42 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './ButtonGroup.stories';
+
+<Meta of={stories} />
+
+# ButtonGroup
+
+A two-sided pill button: the left zone shows a label and icon for the primary action; the right zone is an icon-only button for a secondary action. Use it wherever you need a compact paired action pair.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `INavActivation` | Typed action descriptor (`id`, `label`, `icon`, `action`) |
+| `src/nav/navTypes` | `INavActivation` and action type definitions |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `primary.action.handler()` | Left zone clicked | none (defined on `INavActivation`) |
+| `secondary.action.handler()` | Right zone clicked | none |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface ButtonGroupProps {
+  primary: INavActivation;
+  secondary: INavActivation;
+  size?: 'sm' | 'default';
+  variant?: 'default' | 'primary';
+}
+
+interface INavActivation {
+  id: string;
+  label: string;
+  icon?: React.ComponentType;
+  action: NavAction;
+}
+```

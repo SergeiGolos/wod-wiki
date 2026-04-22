@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './FocusedDialog.stories';
+
+<Meta of={stories} />
+
+# FocusedDialog
+
+A full-viewport modal overlay rendered via `ReactDOM.createPortal` to escape CSS containing blocks; supports a titled header with optional action buttons, a floating-close variant, and a minimal (headerless) variant.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ReactDOM.createPortal` | Mounts to `document.body` to escape stacking contexts |
+| `src/components/Editor/overlays/FocusedDialog` | Component implementation |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onClose` | Close button clicked or Escape pressed | none |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface FocusedDialogProps {
+  title?: string;
+  variant?: 'default' | 'minimal';
+  floatingClose?: boolean;
+  actions?: React.ReactNode;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+```

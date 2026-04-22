@@ -1,0 +1,29 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './Progress.stories';
+
+<Meta of={stories} />
+
+# Progress
+
+A horizontal progress bar built on the Radix UI Progress primitive and styled with design tokens; use it to visualize completion for timers, rep counts, or rounds.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `@radix-ui/react-progress` | Underlying accessible primitive |
+| Design tokens | `bg-primary`, `bg-muted` colors for track and indicator |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface ProgressProps {
+  value?: number;  // 0–100, percentage complete
+}
+```

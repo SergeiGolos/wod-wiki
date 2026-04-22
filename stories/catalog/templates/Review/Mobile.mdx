@@ -1,0 +1,27 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './Mobile.stories';
+
+<Meta of={stories} />
+
+# Review — Mobile
+
+The mobile-viewport layout for the post-workout review screen; showcases `ReviewGrid` at 375×812 px portrait using the same real `ScriptRuntime` data as the web variant.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ReviewGrid` | Segment and metric review grid |
+| `ScriptRuntime` | Runs workout to completion in test harness |
+| `getAnalyticsFromRuntime()` | Extracts segment data |
+| Viewport: 375×812 px | Portrait mobile simulation |
+
+## Notifies
+
+None — display template.
+
+## Data Shapes
+
+### Props
+
+Inherits `ReviewGrid` props; viewport size is controlled by the story decorator.

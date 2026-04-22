@@ -1,0 +1,40 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './MarkdownCanvasPage.stories';
+
+<Meta of={stories} />
+
+# MarkdownCanvasPage
+
+A scroll-driven canvas page that renders a `ParsedCanvasPage` — a sequence of sections parsed from canvas-flavoured markdown; sections after the first are observable by `IntersectionObserver` for sticky-nav highlighting.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `parseCanvasMarkdown()` | Converts raw markdown string to `ParsedCanvasPage` |
+| `CanvasProse` | Renders prose content within each section |
+| `IntersectionObserver` | Detects active section for sticky nav |
+| `playground/src/canvas/MarkdownCanvasPage` | Component implementation |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface MarkdownCanvasPageProps {
+  page: ParsedCanvasPage;
+}
+
+interface ParsedCanvasPage {
+  sections: CanvasSection[];
+}
+
+interface CanvasSection {
+  id: string;
+  prose: string;
+}
+```

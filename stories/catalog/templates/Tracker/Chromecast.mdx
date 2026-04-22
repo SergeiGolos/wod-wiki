@@ -1,0 +1,24 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './Chromecast.stories';
+
+<Meta of={stories} />
+
+# Tracker — Chromecast
+
+The Chromecast-optimized layout for the workout tracker; renders `ReceiverStackPanel` and `ReceiverTimerPanel` exactly as the TV receiver would display them, driven by a real local `ScriptRuntime` without a WebRTC transport.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ReceiverStackPanel` | TV-optimized runtime stack display |
+| `ReceiverTimerPanel` | TV-optimized timer display |
+| `ScriptRuntime` | Real runtime (no WebRTC needed in Storybook) |
+
+## Notifies
+
+None — display template for the Chromecast receiver.
+
+## Data Shapes
+
+States covered: Idle, Preview, ReadyToStart, ActiveFran.

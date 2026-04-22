@@ -1,0 +1,51 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './CommandPalette.stories';
+
+<Meta of={stories} />
+
+# CommandPalette
+
+The assembled command palette with a search input and grouped result list; uses `CommandContext` and Radix Dialog for accessible keyboard navigation and ⌘K trigger.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `CommandContext` / `useCommandPalette()` | Provides commands, search state, and open/close control |
+| `CommandListView` | Result list rendering |
+| `cmdk` | Accessible command menu primitives |
+| Radix UI Dialog | Modal overlay for dialog trigger variant |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| Command `action` | User selects a result | Command-defined handler |
+| `onClose` (context) | Escape pressed or backdrop clicked | none |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CommandPaletteProps {
+  // Fully driven by CommandContext
+  // No external props required
+}
+
+interface Command {
+  id: string;
+  label: string;
+  group?: string;
+  icon?: React.ComponentType;
+  shortcut?: string[];
+  action: () => void;
+}
+```
+
+### Internal State
+
+| State | Type | Initial | Purpose |
+|-------|------|---------|---------|
+| `query` | `string` | `''` | Current search query (context) |
+| `open` | `boolean` | `false` | Dialog open state (context) |

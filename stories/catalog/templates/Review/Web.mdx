@@ -1,0 +1,26 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './Web.stories';
+
+<Meta of={stories} />
+
+# Review — Web
+
+The desktop-viewport layout for the post-workout review screen; uses a real `ScriptRuntime` run to completion (no mocks) and feeds the resulting segments directly into `ReviewGrid`.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ReviewGrid` | Segment and metric review grid |
+| `ScriptRuntime` | Run to completion by repeatedly calling `NextAction` |
+| `getAnalyticsFromRuntime()` | Extracts the exact same segments as production |
+
+## Notifies
+
+None — display template.
+
+## Data Shapes
+
+### Props
+
+Inherits `ReviewGrid` props. States covered: EmptyReview, FranComplete, AmrapComplete, EmomComplete, RoundsComplete.

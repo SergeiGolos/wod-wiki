@@ -1,0 +1,48 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import * as stories from './StatementDisplay.stories';
+
+<Meta of={stories} />
+
+# StatementDisplay
+
+Three closely-related display atoms: `StatementDisplay` (workout statement row with inline metrics), `BlockDisplay` (runtime block row with status dot and depth indentation), and `MetricList` (bare `MetricVisualizer` wrapper).
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `MetricVisualizer` | Inline metric pill row |
+| `IMetric` | Metric data shape |
+| `src/components/metrics/StatementDisplay` | All three sub-components |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onAction` (optional) | Trailing action button clicked | action id |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface StatementDisplayProps {
+  label: string;
+  metrics?: IMetric[];
+  active?: boolean;
+  compact?: boolean;
+  grouped?: boolean;       // no outer border when nested
+  actions?: React.ReactNode;
+}
+
+interface BlockDisplayProps {
+  label: string;
+  metrics?: IMetric[];
+  status?: 'pending' | 'active' | 'running' | 'complete';
+  depth?: number;          // 0 | 1 | 2
+}
+
+interface MetricListProps {
+  metrics: IMetric[];
+}
+```
