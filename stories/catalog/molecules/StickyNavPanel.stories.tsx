@@ -86,3 +86,29 @@ export const ManySections: Story = {
     <Controlled activations={SECTIONS_LONG} initialActive="s3" variant="hero-follow" />
   ),
 };
+
+// ── InsideCanvasPage — shows real scroll-observation context ─────────────────
+
+const LONG_CONTENT = Array.from({ length: 5 }, (_, i) => `
+<section id="s${i + 1}" style="min-height:300px; padding: 2rem; border-bottom: 1px solid #e5e7eb;">
+  <h2 style="font-size:1.25rem; font-weight:600; margin-bottom:0.5rem;">Section ${i + 1}: ${SECTIONS_SHORT[i % SECTIONS_SHORT.length].label}</h2>
+  ${Array.from({ length: 6 }, (_, j) => `<p style="margin-bottom:0.75rem; color:#6b7280;">Paragraph ${j + 1} of section ${i + 1}. Scroll down to observe active link changes in the sticky nav bar above.</p>`).join('\n  ')}
+</section>`).join('\n')
+
+export const InsideCanvasPage: Story = {
+  name: 'InsideCanvasPage — scroll context',
+  parameters: { layout: 'fullscreen' },
+  decorators: [
+    (Story) => (
+      <div className="relative w-full h-screen overflow-y-auto bg-background">
+        <div className="sticky top-0 z-20">
+          <Story />
+        </div>
+        <div dangerouslySetInnerHTML={{ __html: LONG_CONTENT }} />
+      </div>
+    ),
+  ],
+  render: () => (
+    <Controlled activations={SECTIONS_SHORT} initialActive="intro" variant="hero-follow" />
+  ),
+};

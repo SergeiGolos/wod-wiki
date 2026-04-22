@@ -6,6 +6,13 @@ const meta = {
   title: 'catalog/molecules/chrome/MacOSChrome',
   component: MacOSChrome,
   parameters: { layout: 'padded' },
+  decorators: [
+    (Story) => (
+      <div style={{ height: 480, overflow: 'hidden' }}>
+        <Story />
+      </div>
+    ),
+  ],
   tags: ['autodocs'],
 } satisfies Meta<typeof MacOSChrome>
 

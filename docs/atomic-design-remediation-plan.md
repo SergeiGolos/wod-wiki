@@ -154,7 +154,7 @@ The 30+ design system primitives in `playground/src/components/ui/` (alert, avat
 
 ---
 
-## Phase 2 — Content Rendering Stories (vertical slice: canvas + editor overlays)
+## Phase 2 — Content Rendering Stories (vertical slice: canvas + editor overlays) ✅ COMPLETE
 
 **Goal:** Coverage for the core content rendering pipeline — how markdown, editors, and overlay panels compose.
 
@@ -233,7 +233,16 @@ The 30+ design system primitives in `playground/src/components/ui/` (alert, avat
 
 ---
 
-## Phase 3 — Page-Level View Stories (vertical slice: journal + collections + home)
+## Phase 3 — Page-Level View Stories (vertical slice: journal + collections + home) ✅ COMPLETE
+
+**Files created/updated:**
+- `stories/catalog/templates/HomeHero.stories.tsx` — 3 variants (Default, Mobile, Tablet)
+- `stories/catalog/templates/JournalDateScroll.stories.tsx` — 5 variants (Empty, FewItems, ManyItems, WithJournalEntries, WithCreateEntry)
+- `stories/catalog/templates/CollectionWorkoutsList.stories.tsx` — 4 variants (GirlsCollection, HeroesCollection, EmptyCollection, MixedCategoryItems)
+- `stories/catalog/molecules/TextFilterStrip.stories.tsx` — 4 variants (Default, CustomPlaceholder, CustomParam, AutoFocused)
+- `stories/catalog/pages/Collections.stories.tsx` — added `PlaygroundCollections` story; renamed old to `WorkbenchCollections`
+- `stories/catalog/pages/Planner.stories.tsx` — added 3 NoteEditor stories; renamed legacy PlanPanel stories as deprecated
+- `stories/catalog/molecules/StickyNavPanel.stories.tsx` — added `InsideCanvasPage` scroll context story
 
 **Goal:** Coverage for the view-level components that compose organisms into page-like experiences. These bridge templates and pages.
 
