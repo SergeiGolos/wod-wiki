@@ -25,7 +25,7 @@ import { FileInput } from 'lucide-react';
 const meta: Meta<typeof WorkoutActionButton> = {
   title: 'catalog/molecules/WorkoutActionButton',
   component: WorkoutActionButton,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'workbench' },
   args: {
     onAction: (date: Date) => alert(`Action for ${date.toDateString()}`),
   },

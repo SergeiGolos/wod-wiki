@@ -223,3 +223,32 @@ Explicit rest periods.
 `
   }
 };
+
+export const InvalidSyntax: StoryObj<typeof Workbench> = {
+  ...WorkbenchTemplate,
+  args: {
+    ...WorkbenchTemplate.args,
+    initialContent: `# Invalid syntax examples
+
+\`\`\`wod
+20:00 AMRAP
+  5 Pullups
+  @@@ invalid token
+\`\`\`
+
+\`\`\`wod
+(21-15-9
+  Thrusters
+  Pullups
+\`\`\`
+`,
+  },
+};
+
+export const MobileViewport: StoryObj<typeof Workbench> = {
+  ...BasicStructure,
+  name: 'Basic structure — mobile viewport',
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
+  },
+};

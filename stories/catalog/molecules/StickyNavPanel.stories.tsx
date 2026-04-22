@@ -87,6 +87,33 @@ export const ManySections: Story = {
   ),
 };
 
+export const OverflowManyItems: Story = {
+  name: 'Overflow (many nav items)',
+  render: () => (
+    <Controlled
+      activations={[
+        ...SECTIONS_LONG,
+        { id: 's9', label: 'Mobility', action: { type: 'scroll', sectionId: 's9' } },
+        { id: 's10', label: 'Accessory B', action: { type: 'scroll', sectionId: 's10' } },
+        { id: 's11', label: 'Cool Down', action: { type: 'scroll', sectionId: 's11' } },
+        { id: 's12', label: 'Reflection', action: { type: 'scroll', sectionId: 's12' } },
+      ]}
+      initialActive="s8"
+      variant="top-fixed"
+    />
+  ),
+};
+
+export const MobileViewport: Story = {
+  name: 'Mobile viewport',
+  render: () => (
+    <Controlled activations={SECTIONS_SHORT} initialActive="workouts" variant="hero-follow" />
+  ),
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
+  },
+};
+
 // ── InsideCanvasPage — shows real scroll-observation context ─────────────────
 
 const LONG_CONTENT = Array.from({ length: 5 }, (_, i) => `
@@ -111,4 +138,9 @@ export const InsideCanvasPage: Story = {
   render: () => (
     <Controlled activations={SECTIONS_SHORT} initialActive="intro" variant="hero-follow" />
   ),
+};
+
+export const ScrollBehavior: Story = {
+  ...InsideCanvasPage,
+  name: 'Scroll behavior',
 };

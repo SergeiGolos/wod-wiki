@@ -23,7 +23,7 @@ import type { INavActivation } from '@/nav/navTypes';
 const meta: Meta<typeof ButtonGroupDropdown> = {
   title: 'catalog/molecules/actions/ButtonGroupDropdown',
   component: ButtonGroupDropdown,
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'workbench' },
   decorators: [
     (Story) => (
       <div className="p-8 space-y-6">

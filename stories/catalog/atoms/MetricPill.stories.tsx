@@ -35,7 +35,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 const meta: Meta<typeof MetricPill> = {
   title: 'catalog/atoms/display/MetricPill',
   component: MetricPill,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'chromecast' },
 };
 
 export default meta;

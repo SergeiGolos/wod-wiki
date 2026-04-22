@@ -133,3 +133,71 @@ export const PlaygroundCollections: StoryObj = {
   name: 'PlaygroundCollections',
   render: () => <PlaygroundCollectionsShell />,
 }
+
+const emptyCollections: WodCollection[] = [];
+
+const manyCollections: WodCollection[] = Array.from({ length: 12 }, (_, i) => ({
+  id: `story-collection-${i + 1}`,
+  name: `Collection ${i + 1}`,
+  items: Array.from({ length: 6 }, (_, itemIndex) => ({
+    id: `story-item-${i + 1}-${itemIndex + 1}`,
+    name: `Workout ${itemIndex + 1}`,
+    path: `/collections/story-collection-${i + 1}/workout-${itemIndex + 1}.md`,
+    content: `# Workout ${itemIndex + 1}\n\n\`\`\`wod\n5x\n  10 Air Squats\n\`\`\``,
+  })),
+  count: 6,
+  categories: ['benchmark'],
+}));
+
+export const EmptyState: StoryObj = {
+  name: 'Empty state',
+  render: () => (
+    <div className="w-full h-screen bg-background overflow-hidden">
+      <CollectionBrowsePanel
+        collections={emptyCollections}
+        onSelectItem={() => {}}
+        className="h-full"
+      />
+    </div>
+  ),
+};
+
+export const ManyCollections: StoryObj = {
+  name: 'Many collections',
+  render: () => (
+    <div className="w-full h-screen bg-background overflow-hidden">
+      <CollectionBrowsePanel
+        collections={manyCollections}
+        onSelectItem={() => {}}
+        className="h-full"
+      />
+    </div>
+  ),
+};
+
+export const FilterNoResults: StoryObj = {
+  name: 'Filter with no results',
+  render: () => (
+    <div className="w-full h-screen bg-background overflow-hidden">
+      <CollectionBrowsePanel
+        collections={[
+          {
+            id: 'benchmarks',
+            name: 'Benchmarks',
+            items: [
+              { id: 'fran', name: 'Fran', path: '/collections/benchmarks/fran.md', content: '# Fran' },
+              { id: 'murph', name: 'Murph', path: '/collections/benchmarks/murph.md', content: '# Murph' },
+            ],
+            count: 2,
+            categories: ['crossfit'],
+          },
+        ]}
+        onSelectItem={() => {}}
+        className="h-full"
+      />
+      <div className="absolute right-4 bottom-4 rounded-md border border-border bg-background/95 px-3 py-2 text-xs text-muted-foreground">
+        Tip: type "zzz" in search to see no-results filtering state.
+      </div>
+    </div>
+  ),
+};

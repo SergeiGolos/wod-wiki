@@ -38,6 +38,10 @@ interface CommandDef {
   splitSuccessIcon?: React.ReactNode;
   onClick: () => void;
   onSplitClick?: () => Promise<void>;
+  /** Disables interaction and dims the command pill. */
+  disabled?: boolean;
+  /** Highlights the command as currently selected/active. */
+  active?: boolean;
 }
 
 const CommandPill: React.FC<{ cmd: CommandDef }> = ({ cmd }) => {
@@ -63,6 +67,8 @@ const CommandPill: React.FC<{ cmd: CommandDef }> = ({ cmd }) => {
     cmd.primary
       ? 'bg-primary text-primary-foreground hover:bg-primary/90'
       : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50',
+    cmd.active && 'ring-2 ring-primary/60',
+    cmd.disabled && 'opacity-50 pointer-events-none',
   );
 
   if (!cmd.onSplitClick) {
@@ -75,7 +81,14 @@ const CommandPill: React.FC<{ cmd: CommandDef }> = ({ cmd }) => {
   }
 
   return (
-    <div className={cn('inline-flex items-stretch rounded-sm overflow-hidden border', cmd.primary ? 'border-primary/50' : 'border-border/50')}>
+    <div
+      className={cn(
+        'inline-flex items-stretch rounded-sm overflow-hidden border',
+        cmd.primary ? 'border-primary/50' : 'border-border/50',
+        cmd.active && 'ring-2 ring-primary/60',
+        cmd.disabled && 'opacity-50 pointer-events-none',
+      )}
+    >
       <button
         title={cmd.label}
         onClick={handleMain}
@@ -148,7 +161,7 @@ const Wrapper: React.FC = () => <CommandPill cmd={runCmd} />;
 const meta: Meta<typeof Wrapper> = {
   title: 'catalog/molecules/commands/CommandPill',
   component: Wrapper,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'workbench' },
 };
 
 export default meta;
@@ -194,6 +207,48 @@ export const AllVariants: Story = {
           <CommandPill cmd={runWithSplit} />
           <CommandPill cmd={playgroundCmd} />
         </div>
+      </div>
+    </div>
+  ),
+};
+
+export const DisabledState: Story = {
+  name: 'Disabled',
+  render: () => (
+    <div className="flex gap-2">
+      <CommandPill cmd={{ ...runCmd, disabled: true }} />
+      <CommandPill cmd={{ ...playgroundCmd, disabled: true }} />
+    </div>
+  ),
+};
+
+export const ActiveSelected: Story = {
+  name: 'Active / selected',
+  render: () => (
+    <div className="flex gap-2">
+      <CommandPill cmd={{ ...runCmd, active: true }} />
+      <CommandPill cmd={planCmd} />
+      <CommandPill cmd={{ ...playgroundCmd, active: true }} />
+    </div>
+  ),
+};
+
+export const OverflowManyCommands: Story = {
+  name: 'Overflow / many commands',
+  render: () => (
+    <div className="w-[320px] overflow-x-auto border border-border rounded-md p-2">
+      <div className="inline-flex gap-1.5 min-w-max">
+        {[
+          runCmd,
+          planCmd,
+          playgroundCmd,
+          runWithSplit,
+          { ...planCmd, label: 'Archive' },
+          { ...runCmd, label: 'Benchmark' },
+          { ...playgroundCmd, label: 'Collections' },
+        ].map((cmd, idx) => (
+          <CommandPill key={`${cmd.label}-${idx}`} cmd={cmd} />
+        ))}
       </div>
     </div>
   ),

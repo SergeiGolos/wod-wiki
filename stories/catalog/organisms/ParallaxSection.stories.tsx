@@ -13,6 +13,7 @@ const meta: Meta<typeof ParallaxSection> = {
   component: ParallaxSection,
   parameters: {
     layout: 'fullscreen',
+    subsystem: 'workbench',
     docs: {
       description: {
         component:
@@ -124,5 +125,43 @@ export const ReducedMotion: Story = {
           'Enable "Reduce Motion" in your OS settings to see the fallback layout.',
       },
     },
+  },
+};
+
+export const NoImageFallback: Story = {
+  render: () => (
+    <div className="bg-background min-h-screen">
+      <ParallaxSection
+        id="no-image"
+        steps={THREE_STEPS}
+        onStepChange={(step) => console.log('Active step:', step)}
+      />
+    </div>
+  ),
+};
+
+export const ShortContent: Story = {
+  render: () => (
+    <div className="bg-background min-h-screen">
+      <ParallaxSection
+        id="short-content"
+        minHeight="45vh"
+        steps={[
+          { content: <StepContent title="Quick Primer" body="Short intro for compact documentation pages." /> },
+          { content: <StepContent title="Single Callout" body="Highlights one key concept without long-form prose." /> },
+        ]}
+      />
+    </div>
+  ),
+};
+
+export const MobileParallaxDisabled: Story = {
+  render: () => (
+    <div className="bg-background min-h-screen">
+      <ParallaxSection id="mobile" steps={THREE_STEPS} />
+    </div>
+  ),
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
   },
 };

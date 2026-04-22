@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 const meta: Meta<typeof Progress> = {
   title: 'catalog/atoms/display/Progress',
   component: Progress,
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'chromecast' },
   decorators: [
     (Story) => (
       <div className="p-8 space-y-6 w-80">

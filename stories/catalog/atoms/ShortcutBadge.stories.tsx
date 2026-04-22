@@ -33,7 +33,7 @@ const Row: React.FC<{ label: string; tokens: string[] }> = ({ label, tokens }) =
 const meta: Meta<typeof ShortcutBadge> = {
   title: 'catalog/atoms/display/ShortcutBadge',
   component: ShortcutBadge,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'workbench' },
 };
 
 export default meta;

@@ -498,6 +498,7 @@ const meta: Meta<typeof TrackerChromecastHarness> = {
   component: TrackerChromecastHarness,
   parameters: {
     layout: 'padded',
+    subsystem: 'chromecast',
     docs: {
       description: {
         component:
