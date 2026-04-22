@@ -171,6 +171,20 @@ block.getBehavior(BehaviorType)      // Get behavior instance
 - Create Storybook stories for all public components
 - Export components from `src/index.ts` if part of public API
 
+### Atomic Design Classification
+When creating Storybook stories, classify components using this decision tree:
+- Single HTML element, style variants only? → `stories/catalog/atoms/`
+- 2-5 atoms doing one specific thing? → `stories/catalog/molecules/`
+- Multiple molecules forming a distinct UI section? → `stories/catalog/organisms/`
+- Layout skeleton with placeholder content? → `stories/catalog/templates/`
+- Real content at a specific URL? → `stories/catalog/pages/`
+
+Sizing heuristics:
+- Single Responsibility: describable in one sentence without "and"
+- 10-Prop Test: under 10 props
+- Rule of Three: used in 2-3+ contexts before abstracting
+- Whiteboard Test: explainable in under 30 seconds
+
 ### Testing
 - Unit tests: `src/**/*.test.ts` or `src/**/*.spec.ts`
 - Integration tests: `tests/**/*.test.ts`
