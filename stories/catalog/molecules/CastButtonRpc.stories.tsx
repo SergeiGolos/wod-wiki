@@ -9,14 +9,22 @@
  *   - useWorkbenchSyncStore (Zustand store for workbench state)
  *   - react-router useLocation (for page context syncing)
  *
- * These stories render a presentation-layer mock so the visual states
- * (disconnected, connecting, casting, disconnecting) can be documented
- * and snapshot-tested without requiring a real Chromecast environment.
+ * Two sets of stories are provided:
+ *
+ * 1. **Presentation mock** (CastButtonMock) — documents all visual states
+ *    without requiring a real Chromecast environment. Suitable for snapshot
+ *    testing and visual regression.
+ *
+ * 2. **Real component** (CastButtonRpc) — the production component wrapped in
+ *    a minimal mock context (null SubscriptionManager, empty workbench store).
+ *    In Storybook it will show the SDK-unavailable state since Chrome Cast SDK
+ *    is not loaded. Confirms the component renders without crashing.
  *
  * To test the real component with live cast, run the playground app and
  * use a Chromecast-capable browser.
  */
 
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { TvMinimal, Cast, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -142,4 +150,5 @@ export const InNavbar: Story = {
  *   3. A Chromecast receiver must be on the same network
  *
  * The mock above captures all visual states for documentation and regression testing.
+ * See also: CastButtonRpcReal.stories.tsx for the live production component story.
  */

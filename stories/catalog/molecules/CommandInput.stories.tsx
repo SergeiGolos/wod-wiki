@@ -4,10 +4,12 @@
  * The search-input row used at the top of every command-palette variant.
  * Consists of: leading Search icon · text input · trailing Esc badge.
  *
- * ⚠️  Catalog surrogate: `CommandInputRow` here is a standalone demo component.
- *     In production, `CommandPalette.tsx` uses `cmdk`'s `Command.Input` directly
- *     (from the `cmdk` library), which is tightly integrated with `Command.List`
- *     for accessible search. This story documents the visual design pattern only.
+ * ⚠️  Surrogate pattern (intentional): `CommandInputRow` here is a standalone
+ *     demo component. In production, `CommandPalette.tsx` uses `cmdk`'s
+ *     `Command.Input` directly, which is tightly integrated with `Command.List`
+ *     for accessible keyboard navigation and ARIA roles. Rendering `Command.Input`
+ *     in isolation without its `Command.List` sibling would break accessibility
+ *     semantics. The surrogate documents the visual pattern only.
  *
  * Stories:
  *  1. Empty        – no value, default placeholder
