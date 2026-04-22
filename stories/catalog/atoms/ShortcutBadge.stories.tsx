@@ -5,8 +5,8 @@
  * Modifier symbols are substituted automatically:
  *   meta → ⌘   shift → ⇧   alt → ⌥
  *
- * The component is inlined in DefaultListItem; this story catalogs it
- * in isolation so the visual style can be validated independently.
+ * Source: `src/components/list/ShortcutBadge.tsx`
+ * Used in: `DefaultListItem` (command-palette list entries)
  *
  * Stories:
  *  1. SingleKey       – one plain key token
@@ -17,23 +17,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-
-// ─── Atom (replicated from DefaultListItem) ───────────────────────────────────
-
-function ShortcutBadge({ tokens }: { tokens: string[] }) {
-  return (
-    <span className="flex items-center gap-0.5">
-      {tokens.map((token, i) => (
-        <kbd
-          key={i}
-          className="inline-flex items-center rounded border border-zinc-300 bg-zinc-100 px-1 py-0.5 text-[10px] font-mono text-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-        >
-          {token === 'meta' ? '⌘' : token === 'shift' ? '⇧' : token === 'alt' ? '⌥' : token}
-        </kbd>
-      ))}
-    </span>
-  );
-}
+import { ShortcutBadge } from '@/components/list/ShortcutBadge';
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
 
@@ -46,19 +30,14 @@ const Row: React.FC<{ label: string; tokens: string[] }> = ({ label, tokens }) =
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
-// ShortcutBadge is not a standalone exported component — expose a wrapper.
-const ShortcutBadgeWrapper: React.FC<{ tokens: string[] }> = ({ tokens }) => (
-  <ShortcutBadge tokens={tokens} />
-);
-
-const meta: Meta<typeof ShortcutBadgeWrapper> = {
-  title: 'catalog/atoms/ShortcutBadge',
-  component: ShortcutBadgeWrapper,
+const meta: Meta<typeof ShortcutBadge> = {
+  title: 'catalog/atoms/display/ShortcutBadge',
+  component: ShortcutBadge,
   parameters: { layout: 'padded' },
 };
 
 export default meta;
-type Story = StoryObj<typeof ShortcutBadgeWrapper>;
+type Story = StoryObj<typeof ShortcutBadge>;
 
 // ─── Stories ──────────────────────────────────────────────────────────────────
 

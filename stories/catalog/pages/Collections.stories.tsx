@@ -5,7 +5,8 @@
  * and open individual entries in a detail view.
  */
 
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, type FC } from 'react';
+import { CollectionsPage } from '../../../playground/src/views/CollectionsPage';
 import type { Meta, StoryObj } from '@storybook/react';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { CollectionBrowsePanel } from '@/components/collections/CollectionBrowsePanel';
@@ -116,5 +117,19 @@ const meta: Meta = {
 export default meta;
 
 export const Default: StoryObj = {
+  name: 'WorkbenchCollections',
   render: () => <CollectionsPageShell />,
 };
+
+// ── Playground view (real routing-aware CollectionsPage) ─────────────────────
+
+const PlaygroundCollectionsShell: FC = () => (
+  <div className="w-full h-screen bg-background overflow-hidden">
+    <CollectionsPage />
+  </div>
+)
+
+export const PlaygroundCollections: StoryObj = {
+  name: 'PlaygroundCollections',
+  render: () => <PlaygroundCollectionsShell />,
+}

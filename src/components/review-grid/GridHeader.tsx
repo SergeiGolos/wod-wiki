@@ -87,14 +87,14 @@ export const GridHeader: React.FC<GridHeaderProps> = ({
 
 // ─── Header Cell ───────────────────────────────────────────────
 
-interface HeaderCellProps {
+export interface HeaderCellProps {
   column: GridColumn;
   sortConfig?: GridSortConfig;
   onSort: (columnId: string, shiftKey: boolean) => void;
   onToggleGraph: (columnId: string) => void;
 }
 
-const HeaderCell: React.FC<HeaderCellProps> = ({
+export const HeaderCell: React.FC<HeaderCellProps> = ({
   column,
   sortConfig,
   onSort,
@@ -163,13 +163,13 @@ const SortIndicator: React.FC<{ direction: SortDirection }> = ({ direction }) =>
 
 // ─── Filter Cell ───────────────────────────────────────────────
 
-interface FilterCellProps {
+export interface FilterCellProps {
   column: GridColumn;
   value: string;
   onChange: (columnId: string, value: string) => void;
 }
 
-const FilterCell: React.FC<FilterCellProps> = ({ column, value, onChange }) => {
+export const FilterCell: React.FC<FilterCellProps> = ({ column, value, onChange }) => {
   if (!column.filterable) {
     return <th className="py-1 px-2" />;
   }
@@ -189,7 +189,7 @@ const FilterCell: React.FC<FilterCellProps> = ({ column, value, onChange }) => {
 
 // ─── Add Column Button ─────────────────────────────────────────
 
-interface AddColumnButtonProps {
+export interface AddColumnButtonProps {
   availableToAdd: MetricType[];
   onAddColumn: (type: MetricType) => void;
 }
@@ -215,7 +215,7 @@ const METRIC_LABELS: Partial<Record<string, { label: string }>> = {
   group:         { label: 'Group' },
 };
 
-const AddColumnButton: React.FC<AddColumnButtonProps> = ({ availableToAdd, onAddColumn }) => {
+export const AddColumnButton: React.FC<AddColumnButtonProps> = ({ availableToAdd, onAddColumn }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

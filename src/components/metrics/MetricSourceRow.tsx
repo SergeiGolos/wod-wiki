@@ -53,11 +53,24 @@ export interface FragmentSourceEntry {
     metricGroups?: readonly (readonly IMetric[])[];
 }
 
-export interface MetricSourceRowProps {
-    /** The metric source to render (optional if metric provided) */
+/**
+ * Data inputs — what to render.
+ * Pass either `source` (an IMetricSource) or flat `metrics` / `metricGroups`
+ * for pre-resolved metric arrays.
+ */
+export interface MetricSourceData {
+    /** The metric source to render (optional if metrics provided directly) */
     source?: IMetricSource;
     /** Direct metric array (takes precedence over source.getDisplayMetrics()) */
     metrics?: IMetric[];
+    /** Raw metrics groups for multi-line rendering within a single row */
+    metricGroups?: readonly (readonly IMetric[])[];
+}
+
+/**
+ * Display configuration — how to render the row.
+ */
+export interface MetricSourceDisplay {
     /** Current execution status @default 'pending' */
     status?: FragmentSourceStatus;
     /** Nesting depth for indentation (0 = root level) @default 0 */
@@ -66,6 +79,22 @@ export interface MetricSourceRowProps {
     size?: VisualizerSize;
     /** Optional filter configuration */
     filter?: VisualizerFilter;
+    /** Display label (fallback if metrics empty) */
+    label?: string;
+    /** Show duration column */
+    showDuration?: boolean;
+    /** Duration in ms (used when showDuration is true) */
+    duration?: number;
+    /** Render custom action nodes (e.g., timer pill, buttons) */
+    actions?: React.ReactNode;
+    /** Additional CSS classes */
+    className?: string;
+}
+
+/**
+ * State flags — visual highlight/selection signals.
+ */
+export interface MetricSourceState {
     /** Whether this item is currently selected */
     isSelected?: boolean;
     /** Whether this item is highlighted (e.g., hovered) */
@@ -74,25 +103,32 @@ export interface MetricSourceRowProps {
     isLeaf?: boolean;
     /** Whether this item should render as a section header */
     isHeader?: boolean;
-    /** Display label (fallback if metrics empty) */
-    label?: string;
-    /** Show duration column */
-    showDuration?: boolean;
-    /** Duration in ms (used when showDuration is true) */
-    duration?: number;
-    /** Render custom actions (e.g., timer pill, buttons) */
-    actions?: React.ReactNode;
-    /** Raw metrics groups for multi-line rendering within a single row */
-    metricGroups?: readonly (readonly IMetric[])[];
+}
+
+/**
+ * Event handlers — user interaction callbacks.
+ */
+export interface MetricSourceEvents {
     /** Click handler */
     onClick?: (source?: IMetricSource, modifiers?: { ctrlKey: boolean; shiftKey: boolean }) => void;
     /** Double click handler */
     onDoubleClick?: (source?: IMetricSource) => void;
     /** Hover handler */
     onHover?: (source?: IMetricSource | null) => void;
-    /** Additional CSS classes */
-    className?: string;
 }
+
+/**
+ * Combined props interface — flat union of all four semantic groups.
+ * All props remain flat for backward compatibility and for Storybook controls.
+ * The exported group types (`MetricSourceData`, `MetricSourceDisplay`,
+ * `MetricSourceState`, `MetricSourceEvents`) provide semantic grouping for
+ * documentation and future caller migration.
+ */
+export interface MetricSourceRowProps
+    extends MetricSourceData,
+        MetricSourceDisplay,
+        MetricSourceState,
+        MetricSourceEvents {}
 
 /**
  * Format duration for display

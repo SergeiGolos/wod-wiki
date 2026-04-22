@@ -3,13 +3,14 @@ import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
-import { Clock, CheckCircle2, ListTree, Timer, Eye, ArrowUpCircle, Lock, Table2 } from 'lucide-react';
+import { Clock, CheckCircle2, ListTree, Timer, Table2 } from 'lucide-react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { MetricSourceRow } from '../metrics/MetricSourceRow';
 import { IMetric } from '@/core/models/Metric';
-import { MetricVisibility, VISIBILITY_LABELS } from '@/runtime/memory/MetricVisibility';
+import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
+import { VisibilityBadge } from '../metrics/VisibilityBadge';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import { BlockDebugDialog } from './BlockDebugDialog';
@@ -56,43 +57,6 @@ export const HistorySummaryView: React.FC<{
                 <span className="font-mono font-medium">{formatDuration(totalDurationMs)}</span>
             </div>
         </div>
-    );
-};
-
-// ============================================================================
-// Visibility badge for debug mode
-// ============================================================================
-
-const VISIBILITY_ICON_MAP: Record<MetricVisibility, React.ElementType> = {
-    display: Eye,
-    promote: ArrowUpCircle,
-    private: Lock,
-    result: CheckCircle2,
-};
-
-const VISIBILITY_COLOR_MAP: Record<MetricVisibility, string> = {
-    display: 'text-green-500',
-    promote: 'text-blue-500',
-    private: 'text-amber-500',
-    result: 'text-purple-500',
-};
-
-const VisibilityBadge: React.FC<{ visibility: MetricVisibility }> = ({ visibility }) => {
-    const Icon = VISIBILITY_ICON_MAP[visibility];
-    return (
-        <span
-            className={cn(
-                'inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded',
-                VISIBILITY_COLOR_MAP[visibility],
-                visibility === 'display' && 'bg-green-500/10',
-                visibility === 'promote' && 'bg-blue-500/10',
-                visibility === 'private' && 'bg-amber-500/10',
-            )}
-            title={VISIBILITY_LABELS[visibility]}
-        >
-            <Icon className="h-3 w-3" />
-            {VISIBILITY_LABELS[visibility]}
-        </span>
     );
 };
 
