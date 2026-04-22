@@ -16,7 +16,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof MarkdownCanvasPage>
 
 export default meta

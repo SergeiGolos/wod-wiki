@@ -51,11 +51,10 @@ const preview = {
         order: [
           'catalog',
           [
+            'Primitives',
             'atoms',
             [
-              'primitives',
-              'display',   ['Badge', 'Card', 'Label', 'MetricPill', 'Progress', 'ShortcutBadge', 'VisibilityBadge'],
-              'interactive', ['Button', 'Dialog', 'DropdownMenu'],
+              'display',   ['MetricPill', 'Progress', 'ShortcutBadge', 'VisibilityBadge'],
               'layout',    ['Navbar'],
             ],
             'molecules',

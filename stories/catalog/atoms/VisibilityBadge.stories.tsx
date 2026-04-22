@@ -9,8 +9,7 @@
  *  promote  – blue Arrow     – metric is promoted to a parent block
  *  private  – amber Lock     – metric is private to the current block
  *
- * The component is inlined in VisualStateComponents; this story
- * catalogs it in isolation.
+ * Source: `src/components/metrics/VisibilityBadge.tsx`
  *
  * Stories:
  *  1. AllTiers   – all four tiers side-by-side
@@ -20,69 +19,15 @@
  *  5. Private    – single private tier
  */
 
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { Eye, ArrowUpCircle, Lock, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-// ─── Atom (replicated from VisualStateComponents) ────────────────────────────
-
-type MetricVisibility = 'display' | 'result' | 'promote' | 'private';
-
-const VISIBILITY_ICON_MAP: Record<MetricVisibility, React.ElementType> = {
-  display: Eye,
-  promote: ArrowUpCircle,
-  private: Lock,
-  result:  CheckCircle2,
-};
-
-const VISIBILITY_COLOR_MAP: Record<MetricVisibility, string> = {
-  display: 'text-green-500',
-  promote: 'text-blue-500',
-  private: 'text-amber-500',
-  result:  'text-purple-500',
-};
-
-const VISIBILITY_BG_MAP: Record<MetricVisibility, string> = {
-  display: 'bg-green-500/10',
-  promote: 'bg-blue-500/10',
-  private: 'bg-amber-500/10',
-  result:  'bg-purple-500/10',
-};
-
-const VISIBILITY_LABELS: Record<MetricVisibility, string> = {
-  display: 'Display',
-  result:  'Result',
-  promote: 'Promote',
-  private: 'Private',
-};
-
-function VisibilityBadge({ visibility }: { visibility: MetricVisibility }) {
-  const Icon = VISIBILITY_ICON_MAP[visibility];
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded',
-        VISIBILITY_COLOR_MAP[visibility],
-        VISIBILITY_BG_MAP[visibility],
-      )}
-      title={VISIBILITY_LABELS[visibility]}
-    >
-      <Icon className="h-3 w-3" />
-      {VISIBILITY_LABELS[visibility]}
-    </span>
-  );
-}
+import { VisibilityBadge } from '@/components/metrics/VisibilityBadge';
+import type { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
-const VisibilityBadgeWrapper: React.FC<{ visibility: MetricVisibility }> = ({ visibility }) => (
-  <VisibilityBadge visibility={visibility} />
-);
-
-const meta: Meta<typeof VisibilityBadgeWrapper> = {
+const meta: Meta<typeof VisibilityBadge> = {
   title: 'catalog/atoms/display/VisibilityBadge',
-  component: VisibilityBadgeWrapper,
+  component: VisibilityBadge,
   parameters: { layout: 'padded' },
   argTypes: {
     visibility: {
@@ -93,7 +38,7 @@ const meta: Meta<typeof VisibilityBadgeWrapper> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof VisibilityBadgeWrapper>;
+type Story = StoryObj<typeof VisibilityBadge>;
 
 // ─── Stories ──────────────────────────────────────────────────────────────────
 
@@ -113,3 +58,4 @@ export const Display: Story = { args: { visibility: 'display' } };
 export const Result:  Story = { args: { visibility: 'result' } };
 export const Promote: Story = { args: { visibility: 'promote' } };
 export const Private: Story = { args: { visibility: 'private' } };
+

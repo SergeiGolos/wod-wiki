@@ -5,7 +5,7 @@ const meta = {
   title: 'catalog/molecules/content/CanvasProse',
   component: CanvasProse,
   parameters: { layout: 'padded' },
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof CanvasProse>
 
 export default meta

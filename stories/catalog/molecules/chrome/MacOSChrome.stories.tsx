@@ -1,19 +1,32 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { useEffect } from 'react'
 import { MacOSChrome } from '../../../../playground/src/components/MacOSChrome'
 import { RefreshCw } from 'lucide-react'
 
 const meta = {
   title: 'catalog/molecules/chrome/MacOSChrome',
   component: MacOSChrome,
-  parameters: { layout: 'padded' },
+  parameters: {
+    layout: 'fullscreen',
+    docs: { story: { height: '540px' } },
+  },
   decorators: [
-    (Story) => (
-      <div style={{ height: 480, overflow: 'hidden' }}>
-        <Story />
-      </div>
-    ),
+    (Story) => {
+      useEffect(() => {
+        // StorybookHost uses width:100vw which can exceed the layout width when
+        // a scrollbar is present. Clip horizontal overflow at the iframe root so
+        // no scrollbar appears and the shadow-2xl on MacOSChrome stays contained.
+        document.documentElement.style.overflowX = 'clip'
+        return () => { document.documentElement.style.overflowX = '' }
+      }, [])
+      return (
+        <div style={{ padding: 16, height: 480, boxSizing: 'border-box', overflow: 'hidden' }}>
+          <Story />
+        </div>
+      )
+    },
   ],
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof MacOSChrome>
 
 export default meta

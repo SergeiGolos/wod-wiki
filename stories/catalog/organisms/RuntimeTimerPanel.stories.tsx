@@ -16,7 +16,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof RuntimeTimerPanel>
 
 export default meta

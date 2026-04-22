@@ -15,7 +15,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof HomeHero>
 
 export default meta

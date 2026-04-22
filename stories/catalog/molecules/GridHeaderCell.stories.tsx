@@ -1,16 +1,16 @@
 /**
- * Catalog / Atoms / GridHeaderCell
+ * Catalog / Molecules / GridHeaderCell
  *
  * The sortable column header atoms used in the metric review grid.
- * Three sub-atoms from GridHeader.tsx are showcased here:
+ * Three sub-components from GridHeader.tsx are showcased here:
  *
- *  HeaderCell     – sortable <th> with icon, label, sort indicator,
- *                   and optional graph-toggle button
- *  FilterCell     – per-column filter <input> inside a <th>
+ *  HeaderCell      – sortable <th> with icon, label, sort indicator,
+ *                    and optional graph-toggle button
+ *  FilterCell      – per-column filter <input> inside a <th>
  *  AddColumnButton – ＋ button dropdown for adding metric columns
  *
- * The component is inlined in GridHeader; this story catalogs it
- * in isolation.
+ * Source: `src/components/review-grid/GridHeader.tsx`
+ * Types:  `src/components/review-grid/types.ts`
  *
  * Stories:
  *  1. HeaderCellVariants  – unsorted / sorted asc / sorted desc / graphed
@@ -19,173 +19,30 @@
  *  4. FullHeaderRow       – all three atoms composed as a realistic header
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { getMetricIcon } from '@/views/runtime/metricColorMap';
 import { MetricType } from '@/core/models/Metric';
-
-// ─── Types (matching GridHeader internals) ────────────────────────────────────
-
-interface GridColumn {
-  id: string;
-  label: string;
-  icon?: React.ReactNode;
-  sortable?: boolean;
-  filterable?: boolean;
-  graphable?: boolean;
-  isGraphed?: boolean;
-}
-
-type SortDirection = 'asc' | 'desc';
-
-interface GridSortConfig {
-  columnId: string;
-  direction: SortDirection;
-}
-
-// ─── Atoms (replicated from GridHeader) ──────────────────────────────────────
-
-const SortIndicator: React.FC<{ direction: SortDirection }> = ({ direction }) => (
-  <span className="text-primary text-[10px] ml-0.5">
-    {direction === 'asc' ? '▲' : '▼'}
-  </span>
-);
-
-interface HeaderCellProps {
-  column: GridColumn;
-  sortConfig?: GridSortConfig;
-  onSort: (columnId: string, shiftKey: boolean) => void;
-  onToggleGraph: (columnId: string) => void;
-}
-
-const HeaderCell: React.FC<HeaderCellProps> = ({ column, sortConfig, onSort, onToggleGraph }) => {
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    if (column.sortable) onSort(column.id, e.shiftKey);
-  }, [column.id, column.sortable, onSort]);
-
-  const handleGraphClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleGraph(column.id);
-  }, [column.id, onToggleGraph]);
-
-  return (
-    <th
-      className={[
-        'py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap select-none',
-        column.sortable ? 'cursor-pointer hover:text-foreground transition-colors' : '',
-      ].join(' ')}
-      onClick={handleClick}
-    >
-      <div className="flex items-center gap-1">
-        {column.icon && <span className="text-sm">{column.icon}</span>}
-        <span>{column.label}</span>
-        {sortConfig && <SortIndicator direction={sortConfig.direction} />}
-        {column.graphable && (
-          <button
-            className={[
-              'ml-auto text-sm opacity-40 hover:opacity-100 transition-opacity',
-              column.isGraphed ? 'opacity-100 text-primary' : '',
-            ].join(' ')}
-            onClick={handleGraphClick}
-            title={column.isGraphed ? 'Remove from graph' : 'Add to graph'}
-          >
-            📊
-          </button>
-        )}
-      </div>
-    </th>
-  );
-};
-
-interface FilterCellProps {
-  column: GridColumn;
-  value: string;
-  onChange: (columnId: string, value: string) => void;
-}
-
-const FilterCell: React.FC<FilterCellProps> = ({ column, value, onChange }) => {
-  if (!column.filterable) {
-    return <th className="py-1 px-2" />;
-  }
-  return (
-    <th className="py-1 px-2">
-      <input
-        type="text"
-        className="w-full px-1.5 py-0.5 text-xs rounded border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
-        placeholder="Filter…"
-        value={value}
-        onChange={(e) => onChange(column.id, e.target.value)}
-      />
-    </th>
-  );
-};
-
-interface AddColumnButtonProps {
-  availableToAdd: MetricType[];
-  onAddColumn: (type: MetricType) => void;
-}
-
-const AddColumnButton: React.FC<AddColumnButtonProps> = ({ availableToAdd, onAddColumn }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  if (!availableToAdd.length) return null;
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-sm font-medium"
-        onClick={() => setOpen(v => !v)}
-        title="Add column"
-      >
-        ＋
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded shadow-md py-1 min-w-[140px]">
-          {availableToAdd.map(type => (
-            <button
-              key={type}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted transition-colors text-left"
-              onClick={() => { onAddColumn(type); setOpen(false); }}
-            >
-              <span>{getMetricIcon(type)}</span>
-              <span className="capitalize">{type}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+import type { GridColumn, GridSortConfig } from '@/components/review-grid/types';
+import { HeaderCell, FilterCell, AddColumnButton } from '@/components/review-grid/GridHeader';
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
-const Placeholder: React.FC = () => null;
-
-const meta: Meta<typeof Placeholder> = {
+const meta: Meta<typeof HeaderCell> = {
   title: 'catalog/molecules/workout/GridHeaderCell',
-  component: Placeholder,
+  component: HeaderCell,
   parameters: { layout: 'padded' },
 };
 
 export default meta;
-type Story = StoryObj<typeof Placeholder>;
+type Story = StoryObj<typeof HeaderCell>;
 
 // ─── Sample columns ───────────────────────────────────────────────────────────
 
 const COLUMNS: GridColumn[] = [
-  { id: 'action', label: 'Action', sortable: true, filterable: true },
-  { id: 'reps',   label: 'Reps',   sortable: true, filterable: true, graphable: true },
-  { id: 'time',   label: 'Time',   sortable: true, filterable: false, graphable: true, isGraphed: true },
-  { id: 'notes',  label: 'Notes',  sortable: false, filterable: true },
+  { id: 'action', label: 'Action', sortable: true,  filterable: true,  graphable: false, isGraphed: false, visible: true },
+  { id: 'reps',   label: 'Reps',   sortable: true,  filterable: true,  graphable: true,  isGraphed: false, visible: true },
+  { id: 'time',   label: 'Time',   sortable: true,  filterable: false, graphable: true,  isGraphed: true,  visible: true },
+  { id: 'notes',  label: 'Notes',  sortable: false, filterable: true,  graphable: false, isGraphed: false, visible: true },
 ];
 
 // ─── Stories ──────────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof CollectionWorkoutsList>
 
 export default meta

@@ -1,5 +1,5 @@
 /**
- * Catalog / Atoms / CommandPill
+ * Catalog / Molecules / CommandPill
  *
  * A compact action pill used in the editor's inline command bar.
  * Comes in two layouts:
@@ -10,8 +10,11 @@
  * The split zone shows a success flash (emerald) after the secondary
  * action completes and automatically resets after 1.5 s.
  *
- * The component is inlined in InlineCommandBar; this story catalogs
- * it in isolation.
+ * ⚠️  Catalog surrogate: This story's `CommandPill` is a simplified demo.
+ *     The production component in `InlineCommandBar.tsx` also accepts
+ *     `block: IRuntimeBlock` (the active runtime block), which provides
+ *     live state for conditional actions. The story omits that dependency
+ *     to allow isolated visual testing.
  *
  * Stories:
  *  1. Primary          – primary style, no split zone

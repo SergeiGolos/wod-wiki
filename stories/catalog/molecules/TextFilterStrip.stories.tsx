@@ -14,7 +14,7 @@ const meta = {
       },
     },
   },
-  tags: ['autodocs'],
+
 } satisfies Meta<typeof TextFilterStrip>
 
 export default meta

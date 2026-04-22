@@ -21,7 +21,7 @@ const meta: Meta<typeof FocusedDialog> = {
     onClose: () => {},
     children: <></>,
   },
-  tags: ['autodocs'],
+
 }
 
 export default meta

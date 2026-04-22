@@ -25,9 +25,9 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/20/solid';
 
-import { NavSidebar } from 'playground/src/nav/NavSidebar';
-import { NavProvider } from 'playground/src/nav/NavContext';
-import type { NavItem } from 'playground/src/nav/navTypes';
+import { NavSidebar } from '../../../playground/src/nav/NavSidebar';
+import { NavProvider } from '../../../playground/src/nav/NavContext';
+import type { NavItem } from '../../../playground/src/nav/navTypes';
 
 // ─── Demo nav tree ────────────────────────────────────────────────────────────
 
