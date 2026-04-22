@@ -11,7 +11,7 @@ import { CalendarButton } from '@/components/ui/CalendarButton';
 import { FIXTURE_ENTRY_DATES } from '../../_shared/fixtures';
 
 const meta: Meta<typeof CalendarButton> = {
-  title: 'catalog/molecules/CalendarButton',
+  title: 'catalog/molecules/calendar/CalendarButton',
   component: CalendarButton,
   parameters: { layout: 'centered' },
   decorators: [

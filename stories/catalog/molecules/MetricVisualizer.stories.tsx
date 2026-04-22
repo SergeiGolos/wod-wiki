@@ -43,7 +43,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof MetricVisualizer> = {
-  title: 'catalog/molecules/MetricVisualizer',
+  title: 'catalog/molecules/metrics/MetricVisualizer',
   component: MetricVisualizer,
   parameters: { layout: 'padded' },
 };

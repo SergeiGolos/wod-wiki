@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/card';
 
 const meta: Meta<typeof Card> = {
-  title: 'catalog/atoms/Card',
+  title: 'catalog/atoms/display/Card',
   component: Card,
   parameters: { layout: 'centered' },
   decorators: [

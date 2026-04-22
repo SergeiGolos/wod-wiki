@@ -15,7 +15,7 @@ import { SidebarAccordion } from '@/components/playground/SidebarAccordion';
 import { SidebarItem, SidebarLabel, SidebarSection } from '@/components/playground/sidebar';
 
 const meta: Meta<typeof SidebarAccordion> = {
-  title: 'catalog/molecules/SidebarAccordion',
+  title: 'catalog/molecules/navigation/SidebarAccordion',
   component: SidebarAccordion,
   parameters: { layout: 'padded' },
   decorators: [

@@ -38,7 +38,7 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof MetricSourceRow> = {
-  title: 'catalog/molecules/MetricSourceRow',
+  title: 'catalog/molecules/metrics/MetricSourceRow',
   component: MetricSourceRow,
   parameters: { layout: 'padded' },
 };

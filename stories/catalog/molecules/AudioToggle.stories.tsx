@@ -15,7 +15,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { AudioToggle } from '@/components/audio/AudioToggle';
 
 const meta: Meta<typeof AudioToggle> = {
-  title: 'catalog/molecules/AudioToggle',
+  title: 'catalog/molecules/actions/AudioToggle',
   component: AudioToggle,
   parameters: { layout: 'centered' },
   decorators: [

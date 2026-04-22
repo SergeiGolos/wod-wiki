@@ -33,7 +33,7 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof MetricPill> = {
-  title: 'catalog/atoms/MetricPill',
+  title: 'catalog/atoms/display/MetricPill',
   component: MetricPill,
   parameters: { layout: 'padded' },
 };

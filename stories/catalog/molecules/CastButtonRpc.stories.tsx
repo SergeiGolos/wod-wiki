@@ -72,7 +72,7 @@ function CastButtonMock({ state = 'disconnected', deviceName, onClick }: CastBut
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof CastButtonMock> = {
-  title: 'catalog/molecules/CastButtonRpc',
+  title: 'catalog/molecules/actions/CastButtonRpc',
   component: CastButtonMock,
   parameters: { layout: 'centered' },
   decorators: [

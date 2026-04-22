@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const meta: Meta = {
-  title: 'catalog/atoms/DropdownMenu',
+  title: 'catalog/atoms/interactive/DropdownMenu',
   parameters: { layout: 'centered' },
 };
 export default meta;

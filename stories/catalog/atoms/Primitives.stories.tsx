@@ -44,7 +44,7 @@ function PrimitivesIndex() {
 }
 
 const meta: Meta<typeof PrimitivesIndex> = {
-  title: 'catalog/atoms/Primitives',
+  title: 'catalog/atoms/primitives/Primitives',
   component: PrimitivesIndex,
   parameters: { layout: 'padded' },
   decorators: [

@@ -8,7 +8,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Badge } from '@/components/ui/badge';
 
 const meta: Meta<typeof Badge> = {
-  title: 'catalog/atoms/Badge',
+  title: 'catalog/atoms/display/Badge',
   component: Badge,
   parameters: { layout: 'centered' },
   decorators: [

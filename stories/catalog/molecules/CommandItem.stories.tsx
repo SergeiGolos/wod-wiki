@@ -68,7 +68,7 @@ const EmptyState: React.FC<{ message?: string }> = ({ message = 'No results foun
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta = {
-  title: 'catalog/molecules/CommandItem',
+  title: 'catalog/molecules/commands/CommandItem',
   parameters: { layout: 'centered' },
 };
 export default meta;

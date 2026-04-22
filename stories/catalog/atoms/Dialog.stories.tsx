@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 
 const meta: Meta = {
-  title: 'catalog/atoms/Dialog',
+  title: 'catalog/atoms/interactive/Dialog',
   parameters: { layout: 'centered' },
 };
 export default meta;

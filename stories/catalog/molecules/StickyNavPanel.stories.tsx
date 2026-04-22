@@ -52,7 +52,7 @@ const Controlled: React.FC<{
 };
 
 const meta: Meta<typeof StickyNavPanel> = {
-  title: 'catalog/molecules/StickyNavPanel',
+  title: 'catalog/molecules/navigation/StickyNavPanel',
   component: StickyNavPanel,
   parameters: { layout: 'padded' },
   decorators: [

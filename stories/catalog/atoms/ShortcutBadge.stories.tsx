@@ -52,7 +52,7 @@ const ShortcutBadgeWrapper: React.FC<{ tokens: string[] }> = ({ tokens }) => (
 );
 
 const meta: Meta<typeof ShortcutBadgeWrapper> = {
-  title: 'catalog/atoms/ShortcutBadge',
+  title: 'catalog/atoms/display/ShortcutBadge',
   component: ShortcutBadgeWrapper,
   parameters: { layout: 'padded' },
 };

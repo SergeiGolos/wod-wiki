@@ -46,7 +46,7 @@ import {
 function NavbarAtoms() { return <div />; }
 
 const meta: Meta<typeof NavbarAtoms> = {
-  title: 'catalog/atoms/Navbar',
+  title: 'catalog/atoms/layout/Navbar',
   component: NavbarAtoms,
   parameters: { layout: 'padded' },
 };

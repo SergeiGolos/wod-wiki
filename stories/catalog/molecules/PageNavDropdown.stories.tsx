@@ -18,7 +18,7 @@ import type { PageNavLink } from '@/components/playground/PageNavDropdown';
 const noop = () => {};
 
 const meta: Meta<typeof PageNavDropdown> = {
-  title: 'catalog/molecules/PageNavDropdown',
+  title: 'catalog/molecules/navigation/PageNavDropdown',
   component: PageNavDropdown,
   parameters: { layout: 'centered' },
   decorators: [

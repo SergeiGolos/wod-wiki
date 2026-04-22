@@ -143,7 +143,7 @@ const runWithSplit: CommandDef = {
 const Wrapper: React.FC = () => <CommandPill cmd={runCmd} />;
 
 const meta: Meta<typeof Wrapper> = {
-  title: 'catalog/molecules/CommandPill',
+  title: 'catalog/molecules/commands/CommandPill',
   component: Wrapper,
   parameters: { layout: 'padded' },
 };

@@ -81,7 +81,7 @@ const VisibilityBadgeWrapper: React.FC<{ visibility: MetricVisibility }> = ({ vi
 );
 
 const meta: Meta<typeof VisibilityBadgeWrapper> = {
-  title: 'catalog/atoms/VisibilityBadge',
+  title: 'catalog/atoms/display/VisibilityBadge',
   component: VisibilityBadgeWrapper,
   parameters: { layout: 'padded' },
   argTypes: {

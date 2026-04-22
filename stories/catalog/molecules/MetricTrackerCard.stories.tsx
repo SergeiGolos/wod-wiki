@@ -30,7 +30,7 @@ function buildIdleRuntime(): ScriptRuntime {
 }
 
 const meta: Meta<typeof MetricTrackerCard> = {
-  title: 'catalog/molecules/MetricTrackerCard',
+  title: 'catalog/molecules/metrics/MetricTrackerCard',
   component: MetricTrackerCard,
   parameters: { layout: 'centered' },
   decorators: [

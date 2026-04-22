@@ -78,7 +78,7 @@ const LiveInput: React.FC<{ placeholder?: string; initialValue?: string }> = ({
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta = {
-  title: 'catalog/molecules/CommandInput',
+  title: 'catalog/molecules/commands/CommandInput',
   parameters: { layout: 'centered' },
 };
 export default meta;
