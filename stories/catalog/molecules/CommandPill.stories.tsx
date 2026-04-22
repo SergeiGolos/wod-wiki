@@ -10,11 +10,12 @@
  * The split zone shows a success flash (emerald) after the secondary
  * action completes and automatically resets after 1.5 s.
  *
- * ⚠️  Catalog surrogate: This story's `CommandPill` is a simplified demo.
- *     The production component in `InlineCommandBar.tsx` also accepts
- *     `block: IRuntimeBlock` (the active runtime block), which provides
- *     live state for conditional actions. The story omits that dependency
- *     to allow isolated visual testing.
+ * ⚠️  Surrogate pattern (intentional): This story's `CommandPill` is a
+ *     simplified demo. The production component in `InlineCommandBar.tsx`
+ *     is not exported as a standalone module — it accepts `block: IRuntimeBlock`
+ *     (the active runtime block) and is tightly coupled to the full command
+ *     bar context. Extracting it as a shared component is tracked separately.
+ *     The story documents the visual design pattern for isolated testing.
  *
  * Stories:
  *  1. Primary          – primary style, no split zone

@@ -11,10 +11,10 @@ import { ArrowTopRightOnSquareIcon, PlayIcon } from '@heroicons/react/20/solid'
 
 // ── Runtime-category constants ───────────────────────────────────────────────
 
-/** Syntax and documentation pages use in-page popup; collections use route navigation. */
+/** Categories where workouts run in an inline popup overlay instead of navigating to a tracker page. */
 export const INLINE_RUNTIME_CATEGORIES = new Set(['syntax'])
 
-/** Categories that are standard "library" collections (not journal/playground/canvas/syntax). */
+/** Categories that are not library workout collections — these are user-generated or documentation pages. */
 export const NON_COLLECTION_CATEGORIES = new Set(['journal', 'playground', 'canvas', 'syntax'])
 
 // ── Playground template helpers ──────────────────────────────────────────────
