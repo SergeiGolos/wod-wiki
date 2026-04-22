@@ -115,6 +115,72 @@ align: right
 
 const parsedProseOnly = parseCanvasMarkdown(PROSE_ONLY_MD, '/story/prose')!
 const parsedWithEditor = parseCanvasMarkdown(WITH_EDITOR_MD, '/story/editor')!
+const LONG_SCROLL_MD = `---
+template: canvas
+route: /story/long-scroll
+---
+
+# Long Session Notes
+
+## Warm-up
+10:00 easy bike + dynamic mobility.
+
+## Strength Block
+\`\`\`wod
+5x
+  5 Back Squat @225lb
+\`\`\`
+
+## Conditioning
+\`\`\`wod
+20:00 AMRAP
+  5 Pull-ups
+  10 Push-ups
+  15 Air Squats
+\`\`\`
+
+## Cooldown
+Walk 800m and stretch hamstrings / quads.
+
+## Reflection
+Felt strong on rounds 1-3, pacing dropped on rounds 4-5.
+
+## Coach Notes
+Focus on faster transitions and controlled breathing between sets.
+
+## Next Session Plan
+Repeat at slightly lower load and increase total rounds target.
+`
+
+const CODE_BLOCKS_MD = `---
+template: canvas
+route: /story/code-blocks
+---
+
+# Embedded Code Blocks
+
+## Workout script
+\`\`\`wod
+10:00 AMRAP
+  10 Thrusters @75lb
+  10 Toes-to-bar
+\`\`\`
+
+## Notes snippet
+\`\`\`ts
+const rounds = 5;
+const targetPace = '1:45/round';
+\`\`\`
+
+## Scale options
+\`\`\`md
+- Thrusters: 65lb
+- TTB: Knee raises
+\`\`\`
+`
+
+const parsedLongScroll = parseCanvasMarkdown(LONG_SCROLL_MD, '/story/long-scroll')!
+const parsedWithCodeBlocks = parseCanvasMarkdown(CODE_BLOCKS_MD, '/story/code-blocks')!
 
 export const ProseOnly: Story = {
   args: {
@@ -129,5 +195,32 @@ export const WithEditor: Story = {
     page: parsedWithEditor,
     wodFiles: {},
     theme: 'dark',
+  },
+}
+
+export const LongContentWithScroll: Story = {
+  args: {
+    page: parsedLongScroll,
+    wodFiles: {},
+    theme: 'dark',
+  },
+}
+
+export const EmbeddedCodeBlocks: Story = {
+  args: {
+    page: parsedWithCodeBlocks,
+    wodFiles: {},
+    theme: 'dark',
+  },
+}
+
+export const MobileViewport: Story = {
+  args: {
+    page: parsedWithEditor,
+    wodFiles: {},
+    theme: 'dark',
+  },
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
   },
 }

@@ -77,7 +77,7 @@ const CardWrapper: React.FC<{ children: React.ReactNode; label?: string }> = ({
 const meta: Meta<typeof MetricTrackerCard> = {
   title: 'catalog/molecules/metrics/MetricTrackerCard',
   component: MetricTrackerCard,
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'chromecast' },
 };
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -144,6 +144,31 @@ export const Completed: Story = {
       <ScriptRuntimeProvider runtime={runtime}>
         <CardWrapper label="Completed">
           <MetricTrackerCard />
+        </CardWrapper>
+      </ScriptRuntimeProvider>
+    );
+  },
+};
+
+/** Error state — metric collection temporarily unavailable. */
+export const ErrorState: Story = {
+  name: 'Error — metric collection unavailable',
+  render: () => {
+    const runtime = React.useMemo(
+      () =>
+        buildRuntimeWithMetrics([
+          { key: 'Reps', value: 42, unit: 'reps' },
+          { key: 'Volume', value: 3990, unit: 'lb' },
+        ]),
+      [],
+    );
+    return (
+      <ScriptRuntimeProvider runtime={runtime}>
+        <CardWrapper label="Error state">
+          <MetricTrackerCard />
+          <p className="text-xs text-destructive text-center max-w-64">
+            Metric sync error: showing last known values.
+          </p>
         </CardWrapper>
       </ScriptRuntimeProvider>
     );
@@ -244,4 +269,3 @@ export const LiveUpdates: Story = {
     );
   },
 };
-

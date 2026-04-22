@@ -11,7 +11,7 @@ import { CommitGraph } from '@/components/ui/CommitGraph';
 const meta: Meta<typeof CommitGraph> = {
   title: 'catalog/molecules/workout/CommitGraph',
   component: CommitGraph,
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'workbench' },
   decorators: [
     (Story) => (
       <div className="p-8 bg-background rounded-lg border border-border w-full max-w-2xl">

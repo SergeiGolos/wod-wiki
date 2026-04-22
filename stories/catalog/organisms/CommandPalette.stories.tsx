@@ -275,7 +275,7 @@ const DialogTriggerDemo: React.FC = () => {
 
 const meta: Meta = {
   title: 'catalog/organisms/CommandPalette',
-  parameters: { layout: 'centered' },
+  parameters: { layout: 'centered', subsystem: 'workbench' },
 };
 export default meta;
 type Story = StoryObj;

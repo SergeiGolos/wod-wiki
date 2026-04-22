@@ -28,7 +28,7 @@ import type { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 const meta: Meta<typeof VisibilityBadge> = {
   title: 'catalog/atoms/display/VisibilityBadge',
   component: VisibilityBadge,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'chromecast' },
   argTypes: {
     visibility: {
       control: 'select',
@@ -59,3 +59,38 @@ export const Result:  Story = { args: { visibility: 'result' } };
 export const Promote: Story = { args: { visibility: 'promote' } };
 export const Private: Story = { args: { visibility: 'private' } };
 
+export const CustomTier: Story = {
+  render: () => (
+    <div className="flex items-center gap-3">
+      <VisibilityBadge visibility="promote" />
+      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded text-cyan-500 bg-cyan-500/10">
+        Elite
+      </span>
+    </div>
+  ),
+};
+
+export const HoverTooltip: Story = {
+  render: () => (
+    <div className="flex items-center gap-3">
+      <VisibilityBadge visibility="display" />
+      <p className="text-xs text-muted-foreground">Hover badge to see tooltip label.</p>
+    </div>
+  ),
+};
+
+export const CompactVariant: Story = {
+  render: () => (
+    <div className="flex items-center gap-2 text-[10px]">
+      <div className="scale-90 origin-left">
+        <VisibilityBadge visibility="display" />
+      </div>
+      <div className="scale-90 origin-left">
+        <VisibilityBadge visibility="result" />
+      </div>
+      <div className="scale-90 origin-left">
+        <VisibilityBadge visibility="private" />
+      </div>
+    </div>
+  ),
+};

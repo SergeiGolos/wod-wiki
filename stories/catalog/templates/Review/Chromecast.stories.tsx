@@ -264,6 +264,7 @@ const meta: Meta<typeof ReviewChromecastHarness> = {
   component: ReviewChromecastHarness,
   parameters: {
     layout: 'fullscreen',
+    subsystem: 'chromecast',
     docs: {
       description: {
         component:

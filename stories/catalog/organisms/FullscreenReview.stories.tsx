@@ -51,6 +51,7 @@ import type { Segment } from '@/core/models/AnalyticsModels';
 
 // UI
 import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview';
+import { FocusedDialog } from '@/components/Editor/overlays/FocusedDialog';
 
 // ─── Runtime helpers ──────────────────────────────────────────────────────────
 
@@ -108,6 +109,10 @@ interface HarnessProps {
   title?: string;
   /** Label for the launch button. */
   label?: string;
+  /** Overlay state simulation for route-level loading/errors. */
+  state?: 'ready' | 'loading' | 'error';
+  /** Optional error message shown when state="error". */
+  errorMessage?: string;
 }
 
 const FullscreenReviewHarness: React.FC<HarnessProps> = ({
@@ -115,6 +120,8 @@ const FullscreenReviewHarness: React.FC<HarnessProps> = ({
   stepMs = 30_000,
   title = 'Workout Review',
   label = 'Open Review',
+  state = 'ready',
+  errorMessage = 'Unable to load review data. Please retry.',
 }) => {
   const [open, setOpen] = useState(false);
   const [segments, setSegments] = useState<Segment[]>([]);
@@ -151,11 +158,30 @@ const FullscreenReviewHarness: React.FC<HarnessProps> = ({
       </button>
 
       {open && (
-        <FullscreenReview
-          segments={segments}
-          title={title}
-          onClose={() => setOpen(false)}
-        />
+        state === 'loading' ? (
+          <FocusedDialog title={title} onClose={() => setOpen(false)} variant="minimal">
+            <div className="h-[60vh] flex items-center justify-center">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                Loading workout review…
+              </div>
+            </div>
+          </FocusedDialog>
+        ) : state === 'error' ? (
+          <FocusedDialog title={title} onClose={() => setOpen(false)} variant="minimal">
+            <div className="h-[60vh] flex items-center justify-center p-8">
+              <div className="max-w-md rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                {errorMessage}
+              </div>
+            </div>
+          </FocusedDialog>
+        ) : (
+          <FullscreenReview
+            segments={segments}
+            title={title}
+            onClose={() => setOpen(false)}
+          />
+        )
       )}
     </div>
   );
@@ -258,5 +284,46 @@ export const RoundsComplete: Story = {
     stepMs: 45_000,
     title: '5 Rounds — Review',
     label: 'Open Rounds Review',
+  },
+};
+
+export const LoadingState: Story = {
+  name: 'Loading',
+  args: {
+    script: '20:00 AMRAP\n5 Pull-ups\n10 Push-ups\n15 Air Squats',
+    title: 'Workout Review',
+    label: 'Open Loading State',
+    state: 'loading',
+  },
+};
+
+export const ErrorState: Story = {
+  name: 'Error',
+  args: {
+    script: '',
+    title: 'Workout Review',
+    label: 'Open Error State',
+    state: 'error',
+    errorMessage: 'Failed to load session analytics for this workout.',
+  },
+};
+
+export const MobileFran: Story = {
+  name: 'Mobile viewport — Fran',
+  args: {
+    script: [
+      '21 Thrusters @95lb',
+      '21 Pull-ups',
+      '15 Thrusters @95lb',
+      '15 Pull-ups',
+      '9 Thrusters @95lb',
+      '9 Pull-ups',
+    ].join('\n'),
+    stepMs: 30_000,
+    title: 'Fran — Review',
+    label: 'Open Mobile Review',
+  },
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
   },
 };

@@ -92,7 +92,7 @@ const LiveTimer: React.FC<{
 const meta: Meta<typeof TimerStackView> = {
   title: 'catalog/organisms/TimerStackView',
   component: TimerStackView,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'chromecast' },
   decorators: [
     (Story) => (
       <div className="h-[600px] border border-border rounded-lg overflow-hidden bg-background">

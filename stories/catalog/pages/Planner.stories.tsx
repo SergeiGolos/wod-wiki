@@ -53,6 +53,7 @@ const meta: Meta = {
   title: 'catalog/pages/Planner',
   parameters: {
     layout: 'fullscreen',
+    subsystem: 'workbench',
     docs: {
       description: {
         component:

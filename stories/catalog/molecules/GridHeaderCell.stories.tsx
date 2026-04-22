@@ -162,3 +162,77 @@ export const FullHeaderRow: Story = {
     );
   },
 };
+
+/** All key metrics visible at once (graph + sort mix). */
+export const AllMetricsVisible: Story = {
+  render: () => (
+    <table className="border-collapse w-[720px]">
+      <thead>
+        <tr className="bg-muted/50 border-b border-border">
+          {[
+            { id: 'action', label: 'Action' },
+            { id: 'reps', label: 'Reps' },
+            { id: 'time', label: 'Time' },
+            { id: 'distance', label: 'Distance' },
+            { id: 'resistance', label: 'Load' },
+            { id: 'rounds', label: 'Rounds' },
+          ].map((col) => (
+            <HeaderCell
+              key={col.id}
+              column={{
+                ...COLUMNS[1],
+                ...col,
+                sortable: true,
+                filterable: true,
+                graphable: true,
+                isGraphed: col.id === 'time' || col.id === 'distance',
+                visible: true,
+              }}
+              sortConfig={col.id === 'reps' ? { columnId: 'reps', direction: 'asc' } : undefined}
+              onSort={() => {}}
+              onToggleGraph={() => {}}
+            />
+          ))}
+        </tr>
+      </thead>
+    </table>
+  ),
+};
+
+/** Error fallback when metric schema cannot be loaded. */
+export const ErrorState: Story = {
+  render: () => (
+    <div className="w-[560px] rounded-md border border-destructive/40 bg-destructive/5 p-3">
+      <p className="text-xs text-destructive mb-2">Unable to load metric header schema.</p>
+      <table className="border-collapse w-full opacity-70">
+        <thead>
+          <tr className="bg-muted/40 border-b border-border">
+            <HeaderCell column={COLUMNS[0]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+            <HeaderCell column={COLUMNS[1]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+            <HeaderCell column={COLUMNS[2]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+          </tr>
+        </thead>
+      </table>
+    </div>
+  ),
+};
+
+/** Narrow viewport truncation/overflow behavior. */
+export const NarrowViewport: Story = {
+  render: () => (
+    <div className="w-[240px] overflow-x-auto border border-border rounded">
+      <table className="border-collapse min-w-[420px]">
+        <thead>
+          <tr className="bg-muted/50 border-b border-border">
+            <HeaderCell column={{ ...COLUMNS[0], label: 'Action / Movement Name' }} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+            <HeaderCell column={{ ...COLUMNS[1], label: 'Repetitions Total' }} sortConfig={{ columnId: 'reps', direction: 'asc' }} onSort={() => {}} onToggleGraph={() => {}} />
+            <HeaderCell column={{ ...COLUMNS[2], label: 'Elapsed Time (mm:ss)' }} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+          </tr>
+        </thead>
+      </table>
+    </div>
+  ),
+  parameters: {
+    viewport: { defaultViewport: 'mobile1' },
+  },
+};

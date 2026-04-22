@@ -40,7 +40,7 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const meta: Meta<typeof MetricSourceRow> = {
   title: 'catalog/molecules/metrics/MetricSourceRow',
   component: MetricSourceRow,
-  parameters: { layout: 'padded' },
+  parameters: { layout: 'padded', subsystem: 'chromecast' },
 };
 
 export default meta;
