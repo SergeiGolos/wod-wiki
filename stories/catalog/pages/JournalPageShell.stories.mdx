@@ -1,0 +1,33 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './JournalPageShell.stories';
+
+<Meta of={stories} />
+
+# JournalPageShell
+
+The full-page note editor shell for writing and structuring workouts with live parsing; uses the same web editor shell as the Syntax reference stories with `EditorShellHeader` toolbar.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `StorybookWorkbench` | Full-screen editor shell with toolbar |
+| `NoteEditor` | Monaco-based workout editor with live parsing |
+| `EditorShellHeader` | Cast · Theme · Debug · Download · Reset toolbar |
+
+## Notifies
+
+None at the page level — the editor handles all interactions.
+
+## Data Shapes
+
+### Props
+
+```typescript
+// Driven by StorybookWorkbench; no external page props
+interface StorybookWorkbenchProps {
+  showToolbar?: boolean;
+  readonly?: boolean;
+  theme?: string;
+}
+```

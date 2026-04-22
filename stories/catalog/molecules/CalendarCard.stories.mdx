@@ -1,0 +1,40 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './CalendarCard.stories';
+
+<Meta of={stories} />
+
+# CalendarCard
+
+An inline date-picker card that highlights days with existing journal entries; covers today, past, and future date selection states as well as disabled mode.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `react-day-picker` or similar | Calendar rendering |
+| Design tokens | Border, background, and highlight colors |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onDateSelect` | User clicks a calendar day | `Date` |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CalendarCardProps {
+  selectedDate?: Date;
+  entryDates?: Date[];
+  disabled?: boolean;
+  onDateSelect?: (date: Date) => void;
+}
+```
+
+### Internal State
+
+| State | Type | Initial | Purpose |
+|-------|------|---------|---------|
+| `month` | `Date` | current month | The displayed calendar month |

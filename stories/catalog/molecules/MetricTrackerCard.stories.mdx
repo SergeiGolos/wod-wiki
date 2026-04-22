@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './MetricTrackerCard.stories';
+
+<Meta of={stories} />
+
+# MetricTrackerCard
+
+Floating metric bubbles that display session-total analytics computed by `useWorkoutTracker()`; renders nothing when there is no active workout runtime in context.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ScriptRuntimeProvider` / `ScriptRuntime` | Provides the active runtime context |
+| `useWorkoutTracker()` | Computes session totals from the runtime |
+| `WorkoutTracker` | Tracks reps, distance, load over the session |
+
+## Notifies
+
+None — display-only component.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface MetricTrackerCardProps {
+  className?: string;  // optional class override for compact variant
+}
+```
+
+### Internal State
+
+| State | Type | Initial | Purpose |
+|-------|------|---------|---------|
+| Tracker data | `WorkoutTrackerState` | `null` | Session totals from `useWorkoutTracker()`; component renders `null` when absent |

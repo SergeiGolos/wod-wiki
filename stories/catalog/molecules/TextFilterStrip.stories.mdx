@@ -1,0 +1,30 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './TextFilterStrip.stories';
+
+<Meta of={stories} />
+
+# TextFilterStrip
+
+A URL-aware text search and filter bar that reads and writes a URL query parameter (`q` by default) via `nuqs`, enabling it to live in a sticky header without prop-drilling callbacks.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `nuqs` | URL query-param state management |
+| `playground/src/views/queriable-list/TextFilterStrip` | Component implementation |
+
+## Notifies
+
+None — state is written directly to the URL query string.
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface TextFilterStripProps {
+  placeholder?: string;   // default: 'Search…'
+  queryKey?: string;      // URL param name, default: 'q'
+}
+```

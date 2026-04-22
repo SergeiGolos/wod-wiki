@@ -1,0 +1,43 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './TimerStackView.stories';
+
+<Meta of={stories} />
+
+# TimerStackView
+
+The primary timer display used during workout execution; a pure display component — all state is passed as props so no live runtime is required.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `ITimerDisplayEntry` | Timer display data (elapsed, remaining, direction) |
+| `IDisplayCardEntry` | Exercise card data (label, metrics) |
+| `src/components/workout/TimerStackView` | Component implementation |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onStart` | Start button clicked | none |
+| `onPause` | Pause button clicked | none |
+| `onStop` | Stop button clicked | none |
+| `onNext` | Next button clicked | none |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface TimerStackViewProps {
+  timers?: ITimerDisplayEntry[];
+  cards?: IDisplayCardEntry[];
+  isRunning?: boolean;
+  isPaused?: boolean;
+  compact?: boolean;
+  onStart?: () => void;
+  onPause?: () => void;
+  onStop?: () => void;
+  onNext?: () => void;
+}
+```

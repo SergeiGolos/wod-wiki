@@ -1,0 +1,35 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './NavSidebar.stories';
+
+<Meta of={stories} />
+
+# NavSidebar
+
+The primary navigation sidebar for the playground app; renders the app logo, L1 nav items (Home, Journal, Collections, Search), and a context-sensitive L2 panel (accordion or custom panel).
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `NavProvider` | Provides the nav tree and `navState`; added per-story via decorator |
+| `MemoryRouter` / `useLocation` | Provided by global `StorybookHost` decorator |
+| `SidebarAccordion` | L2 accordion sections |
+| `@heroicons/react` | Navigation icons |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| Route navigation | Nav item clicked | `href` string (via React Router) |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface NavSidebarProps {
+  // Driven by NavProvider context
+  // Optional: children for L2 custom panel override
+  children?: React.ReactNode;
+}
+```

@@ -1,0 +1,36 @@
+import { Meta } from '@storybook/addon-docs';
+import * as stories from './Calendar.stories';
+
+<Meta of={stories} />
+
+# Calendar
+
+The calendar page shell that displays a monthly grid or week (mobile) view of workout entries with date-based navigation.
+
+## Depends On
+
+| System / Token | Usage |
+|----------------|-------|
+| `CalendarPageShell` | Month and week calendar layouts |
+| `src/panels/page-shells/CalendarPageShell` | Component implementation |
+
+## Notifies
+
+| Callback / Event | Trigger | Payload |
+|-----------------|---------|---------|
+| `onDateSelect` | Day cell clicked | `Date` |
+| Action buttons | Edit / BarChart2 / Eye toolbar buttons | action id |
+
+## Data Shapes
+
+### Props
+
+```typescript
+interface CalendarPageShellProps {
+  selectedDate?: Date;
+  entryDates?: Date[];
+  view?: 'month' | 'week';
+  actions?: React.ReactNode;
+  onDateSelect?: (date: Date) => void;
+}
+```
