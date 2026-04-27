@@ -29,8 +29,14 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set());
 
   const handleClose = () => {
-    // Brief delay for any closing animations if we add them later
-    setTimeout(onClose, 100);
+    // Dismiss immediately so the runner closes on the same tick the user
+    // clicks the Close (X) button. A previous implementation deferred this
+    // by 100ms for hypothetical closing animations, but no animations are
+    // wired and the delay made the click feel unresponsive — particularly
+    // in the Ready-to-Start state where the timer hasn't started yet, so
+    // the user sees no other state change to acknowledge their input.
+    // See issue UX-01.
+    onClose();
   };
 
   // Called by RuntimeTimerPanel when the workout finishes (either naturally or
