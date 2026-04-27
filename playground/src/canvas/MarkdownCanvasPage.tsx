@@ -44,10 +44,12 @@ const MOBILE_STICKY_TOP = 65
 // ── Source resolution ─────────────────────────────────────────────────────────
 
 function resolveSource(dslPath: string, wodFiles: Record<string, string>): string {
+  const hasSource = (key: string) => Object.prototype.hasOwnProperty.call(wodFiles, key)
+
   // Explicit markdown/canvas/ path
   if (dslPath.startsWith('markdown/')) {
     const key = '../../' + dslPath
-    if (wodFiles[key]) return stripFrontmatter(wodFiles[key])
+    if (hasSource(key)) return stripFrontmatter(wodFiles[key])
   }
 
   // Legacy wods/ or collections/ prefixes
@@ -63,14 +65,14 @@ function resolveSource(dslPath: string, wodFiles: Record<string, string>): strin
   } else {
     // Check both canvas and collections as fallback
     const canvasKey = '../../markdown/canvas/' + dslPath
-    if (wodFiles[canvasKey]) return stripFrontmatter(wodFiles[canvasKey])
+    if (hasSource(canvasKey)) return stripFrontmatter(wodFiles[canvasKey])
     
     const collectionsKey = '../../markdown/collections/' + dslPath
-    if (wodFiles[collectionsKey]) return stripFrontmatter(wodFiles[collectionsKey])
+    if (hasSource(collectionsKey)) return stripFrontmatter(wodFiles[collectionsKey])
     
     key = '../../markdown/' + dslPath
   }
-  return wodFiles[key] ? stripFrontmatter(wodFiles[key]) : `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
+  return hasSource(key) ? stripFrontmatter(wodFiles[key]) : `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
 }
 
 // ── Section attribute helpers ─────────────────────────────────────────────────
