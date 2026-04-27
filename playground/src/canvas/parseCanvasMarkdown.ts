@@ -1,3 +1,5 @@
+import { parseFrontmatter } from '@/utils/frontmatter'
+
 /**
  * Canvas Markdown Parser
  *
@@ -72,20 +74,6 @@ function slugify(text: string): string {
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/^-+|-+$/g, '')
-}
-
-function parseFrontmatter(raw: string): { meta: Record<string, string>; body: string } {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/)
-  if (!match) return { meta: {}, body: raw }
-  const meta: Record<string, string> = {}
-  for (const line of match[1].split('\n')) {
-    const colonIdx = line.indexOf(':')
-    if (colonIdx === -1) continue
-    const key = line.slice(0, colonIdx).trim()
-    const val = line.slice(colonIdx + 1).trim()
-    if (key) meta[key] = val
-  }
-  return { meta, body: match[2] }
 }
 
 function parseHeadingLine(line: string): { level: number; text: string; attrs: string[] } | null {
