@@ -152,7 +152,7 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
         .map((metric, index) => {
         const type = metric.type || 'unknown';
         const colorClasses = getMetricColorClasses(type);
-        const tokenValue = metric.image || (typeof metric.value === 'object' ? JSON.stringify(metric.value) : String(metric.value));
+        const tokenValue = formatTokenValue(metric, type);
         const icon = getMetricIcon(type);
 
         return (
@@ -175,3 +175,29 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
 });
 
 MetricVisualizer.displayName = 'MetricVisualizer';
+
+/**
+ * Compute the badge token text for a metric.
+ *
+ * For round-group metrics (`type: 'rounds'`), the parser-built image is just
+ * the count (e.g. "3"), which renders as a bare number ("🔄 3") and is
+ * visually indistinguishable from a rep badge. Append the "Round"/"Rounds"
+ * label so the badge reads "🔄 3 Rounds" (issue UX-03).
+ */
+function formatTokenValue(metric: IMetric, type: string): string {
+  const base = metric.image || (typeof metric.value === 'object'
+    ? JSON.stringify(metric.value)
+    : String(metric.value));
+
+  if (type.toLowerCase() === 'rounds') {
+    // Only append the label when the base is a numeric count; preserve
+    // string labels (e.g. AMRAP-style identifiers) untouched.
+    const trimmed = base.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const numeric = Number(trimmed);
+      return `${base} ${numeric === 1 ? 'Round' : 'Rounds'}`;
+    }
+  }
+
+  return base;
+}

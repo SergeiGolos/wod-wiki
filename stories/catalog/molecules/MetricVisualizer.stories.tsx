@@ -109,3 +109,29 @@ export const ErrorState: Story = {
     error: { message: 'Failed to parse statement', line: 3, column: 7 },
   },
 };
+
+/**
+ * UX-03 regression: the badge for a `(N Rounds)` group must include the
+ * "Rounds" label so it is not confused with a rep count badge.
+ *
+ * Expected: `🔄 3 Rounds` (not `🔄 3`).
+ */
+export const RoundsBadge: Story = {
+  name: 'Rounds Badge (UX-03)',
+  render: () => (
+    <div className="flex flex-col gap-2 w-fit">
+      <Row label="(3 Rounds)">
+        <MetricVisualizer metrics={[m('rounds', 3)]} />
+      </Row>
+      <Row label="(1 Round)">
+        <MetricVisualizer metrics={[m('rounds', 1)]} />
+      </Row>
+      <Row label="(5 Rounds)">
+        <MetricVisualizer metrics={[m('rounds', 5)]} />
+      </Row>
+      <Row label="vs. 3 reps">
+        <MetricVisualizer metrics={[m('rep', 3)]} />
+      </Row>
+    </div>
+  ),
+};
