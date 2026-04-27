@@ -79,6 +79,12 @@ export interface TimerDisplayProps {
 const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
   const runtime = useScriptRuntime();
   const viewMode = useWorkbenchSyncStore(s => s.viewMode);
+  // Subscribe to runtime execution status so the Play/Pause toggle reflects
+  // the runtime state, not just whether a timer span is currently open.
+  // This prevents the "Run while running silently does nothing" UX bug ([UX-02]):
+  // even between segments where no timer span is open, the runtime is still
+  // active and the button must show Pause (not Play).
+  const executionStatus = useWorkbenchSyncStore(s => s.execution.status);
 
   // Flash message state for required-timer skip attempts
   // skipFlashKey increments on each skip, giving the flash element a unique key
@@ -361,8 +367,12 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
               break;
           }
         }}
-        // If any timer is running, the display should look alive
-        isRunning={isAnyTimerRunning}
+        // If any timer span is open OR the runtime is actively executing,
+        // the display should treat the workout as running. Including the
+        // execution status ensures the central control button shows Pause
+        // (and never the silently-failing Play) whenever the runtime is
+        // active, even between blocks where no timer span is open.
+        isRunning={isAnyTimerRunning || executionStatus === 'running'}
 
         primaryTimer={displayTimerEntry}
         subLabel={subLabel}
