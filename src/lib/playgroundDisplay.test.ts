@@ -24,4 +24,13 @@ describe('playgroundDisplay', () => {
   it('hides legacy UUID playground IDs behind a generic title', () => {
     expect(formatPlaygroundPageTitle('123e4567-e89b-12d3-a456-426614174000')).toBe('Playground');
   });
+
+  it('falls back to raw names when route decoding fails', () => {
+    expect(formatPlaygroundPageTitle('%E0%A4%A')).toBe('%E0%A4%A');
+  });
+
+  it('formats timestamp route IDs with collision suffixes as readable titles', () => {
+    expect(formatPlaygroundPageTitle('2026-04-27-14-30-22-481-1'))
+      .toBe('Playground – Apr 27, 2026 2:30 PM');
+  });
 });

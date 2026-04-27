@@ -42,7 +42,7 @@ export function PlaygroundNotePage({
 }: PlaygroundNotePageProps) {
   const { id } = useParams<{ id: string }>()
   const pageName = id ?? 'playground'
-  // noteId is the full 'playground/uuid' so results can be grouped correctly in the journal
+  // noteId is the full playground page identifier (for example, 'playground/<pageName>') so results can be grouped correctly in the journal
   const noteId = PlaygroundDBService.pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()

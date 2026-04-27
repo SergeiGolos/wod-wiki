@@ -7,6 +7,7 @@ const notes: Note[] = [];
 
 mock.module('../../db/IndexedDBService', () => ({
   indexedDBService: {
+    getNote: async (id: string) => notes.find(note => note.id === id),
     getAllNotes: async () => notes,
     saveNote: async (note: Note) => {
       savedNotes.push(note);
@@ -66,6 +67,34 @@ describe('IndexedDBContentProvider', () => {
     const entries = await provider.getEntries();
 
     expect(entries[0].type).toBe('playground');
+  });
+
+  it('adds a suffix when a playground timestamp ID already exists', async () => {
+    Date.now = () => Date.UTC(2026, 3, 27, 14, 30, 22, 481);
+    notes.push({
+      id: '2026-04-27-14-30-22-481',
+      title: 'Existing playground',
+      rawContent: '',
+      tags: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      targetDate: Date.now(),
+      segmentIds: [],
+      type: 'playground',
+    });
+    const { IndexedDBContentProvider } = await providerModule;
+    const provider = new IndexedDBContentProvider();
+
+    const entry = await provider.saveEntry({
+      title: '',
+      rawContent: '',
+      tags: [],
+      targetDate: Date.now(),
+      type: 'playground',
+    });
+
+    expect(entry.id).toBe('2026-04-27-14-30-22-481-1');
+    expect(savedNotes[0].id).toBe('2026-04-27-14-30-22-481-1');
   });
 
   it('keeps UUID IDs for non-playground entries', async () => {

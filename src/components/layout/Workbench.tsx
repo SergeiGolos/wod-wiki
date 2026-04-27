@@ -47,6 +47,7 @@ import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
 import { DisplaySyncBridge } from './DisplaySyncBridge';
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
+import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
@@ -289,12 +290,14 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   useEffect(() => {
     if (currentEntry?.title) {
       document.title = `Wod.Wiki - ${currentEntry.title}`;
+    } else if (currentEntry?.type === 'playground') {
+      document.title = `Wod.Wiki - ${formatPlaygroundTimestampLabel(currentEntry.createdAt)}`;
     } else if (routeId) {
-      document.title = 'Wod.Wiki - Playground';
+      document.title = 'Wod.Wiki - Untitled note';
     } else {
       document.title = 'Wod.Wiki';
     }
-  }, [currentEntry?.title, routeId]);
+  }, [currentEntry?.createdAt, currentEntry?.title, currentEntry?.type, routeId]);
 
   // Consume synced state from Zustand store (via WorkbenchSyncBridge)
   const {

@@ -15,6 +15,8 @@ import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '.
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType } from '../../components/Editor/types/section';
 
+const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
+
 /**
  * Map legacy SectionType values stored in older DBs to current types.
  * 'heading' → 'title', 'paragraph' | 'empty' → 'markdown', others pass through.
@@ -214,7 +216,18 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
         const now = Date.now();
-        const noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
+        let noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
+        if (entry.type === 'playground') {
+            const baseNoteId = noteId;
+            let attempt = 0;
+            while (await indexedDBService.getNote(noteId)) {
+                attempt += 1;
+                if (attempt > MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS) {
+                    throw new Error('Unable to allocate unique playground timestamp ID');
+                }
+                noteId = `${baseNoteId}-${attempt}`;
+            }
+        }
 
         // TRANSITION TO SEGMENTS
         const sections = parseDocumentSections(entry.rawContent);
