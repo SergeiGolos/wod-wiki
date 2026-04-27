@@ -77,6 +77,7 @@ describe('IndexedDBContentProvider', () => {
       title: 'Fran',
       rawContent: '',
       tags: [],
+      targetDate: Date.now(),
       type: 'note',
     });
 
