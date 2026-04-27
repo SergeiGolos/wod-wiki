@@ -151,9 +151,32 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
         })
         .map((metric, index) => {
         const type = metric.type || 'unknown';
-        const colorClasses = getMetricColorClasses(type);
         const tokenValue = formatTokenValue(metric, type);
-        const icon = getMetricIcon(type);
+
+        // Render parser-origin `text` metrics (from `// ...` comment syntax) as
+        // passive coach annotations: muted italic text without emoji badge,
+        // border, or interactive affordances. This visually distinguishes them
+        // from `[action items]` which remain rendered as interactive pills.
+        // Runtime-origin text metrics (labels, subtitles, round indicators
+        // emitted by LabelingBehavior) keep the standard pill rendering.
+        if (type === 'text' && metric.origin === 'parser') {
+          return (
+            <span
+              key={index}
+              className={cn(
+                'italic text-muted-foreground select-text',
+                currentStyle.text
+              )}
+              title={`COMMENT: ${tokenValue}`}
+              data-metric-type="comment"
+            >
+              {tokenValue}
+            </span>
+          );
+        }
+
+        const colorClasses = getMetricColorClasses(type, tokenValue);
+        const icon = getMetricIcon(type, tokenValue);
 
         return (
           <span
