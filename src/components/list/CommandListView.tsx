@@ -133,7 +133,18 @@ export function CommandListView<TPayload>({
         {/* Group headers */}
         {state.visibleItems.length === 0
           ? (emptyState ?? (
-              <div className="py-8 text-center text-sm text-zinc-400">No results</div>
+              query
+                ? (
+                    <div className="py-8 text-center text-sm text-zinc-400">
+                      No results found for{' '}
+                      <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                        &ldquo;{query}&rdquo;
+                      </span>
+                    </div>
+                  )
+                : (
+                    <div className="py-8 text-center text-sm text-zinc-400">No results</div>
+                  )
             ))
           : Array.from(state.groups.entries()).map(([group, groupItems]) => (
               <div key={group} className="mb-1">
