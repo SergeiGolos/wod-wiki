@@ -44,7 +44,7 @@ export interface HistoryEntry {
   schemaVersion: number;               // For future migration
 
   // Note Management
-  type?: 'note' | 'template';          // Default to 'note' if undefined
+  type?: 'note' | 'template' | 'playground'; // Default to 'note' if undefined
   templateId?: string;                 // ID of the template/note this was cloned from
   clonedIds?: string[];                // IDs of notes cloned FROM this entry (reverse links)
 }
