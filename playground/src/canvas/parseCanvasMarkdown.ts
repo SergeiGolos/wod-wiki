@@ -235,7 +235,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   const { meta, body } = parseFrontmatter(raw)
   if (meta['template'] !== 'canvas') return null
 
-  const route = meta['route'] ?? defaultRoute
+  const route = String(meta['route'] ?? defaultRoute)
   const sections: CanvasSection[] = []
 
   type Acc = { heading: string; level: number; attrs: string[]; lines: string[] }

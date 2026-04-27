@@ -1,5 +1,5 @@
 export interface ParsedFrontmatter {
-  meta: Record<string, string>
+  meta: Record<string, string | number>
   body: string
 }
 
@@ -11,13 +11,15 @@ export function parseFrontmatter(raw: string): ParsedFrontmatter {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/)
   if (!match) return { meta: {}, body: raw }
 
-  const meta: Record<string, string> = {}
+  const meta: Record<string, string | number> = {}
   for (const line of match[1].split(/\r?\n/)) {
     const colonIdx = line.indexOf(':')
     if (colonIdx === -1) continue
     const key = line.slice(0, colonIdx).trim()
     if (!key) continue
-    meta[key] = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '')
+    const rawVal = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '')
+    const num = Number(rawVal)
+    meta[key] = rawVal !== '' && !isNaN(num) ? num : rawVal
   }
 
   return { meta, body: match[2] }

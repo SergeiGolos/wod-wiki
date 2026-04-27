@@ -26,6 +26,7 @@ Pushups
       '---',
       'title: "Quoted Title"',
       "subtitle: 'Quoted subtitle'",
+      'order: 1',
       'empty:',
       '---',
       'Body',
@@ -36,6 +37,7 @@ Pushups
     expect(meta).toEqual({
       title: 'Quoted Title',
       subtitle: 'Quoted subtitle',
+      order: 1,
       empty: '',
     })
     expect(body).toBe('Body\r\n')
