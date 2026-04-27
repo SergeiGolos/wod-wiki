@@ -744,11 +744,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                           )
                         }
                         
-                        return viewDef
-                          ? <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
-                              {section.prose}
-                            </p>
-                          : <CanvasProse prose={section.prose} className="mb-6" />
+                        return <CanvasProse prose={section.prose} className="mb-6" />
                       })()
                     )}
 
