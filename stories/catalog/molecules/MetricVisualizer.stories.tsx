@@ -109,3 +109,45 @@ export const ErrorState: Story = {
     error: { message: 'Failed to parse statement', line: 3, column: 7 },
   },
 };
+
+/**
+ * Comments vs. action items.
+ *
+ * `// ...` comment lines are emitted as `text` metrics with `origin: 'parser'`
+ * and render as muted italic annotations (no badge, no emoji, not interactive).
+ *
+ * `[Set up barbell]` action items are emitted as `action` metrics and continue
+ * to render as interactive pill badges. This visual distinction reflects their
+ * different semantics: passive coach annotation vs. interactive task.
+ */
+export const CommentVsActionItem: Story = {
+  render: () => {
+    const comment: IMetric = {
+      type: 'text',
+      origin: 'parser',
+      value: { text: 'Warm up first' },
+      image: 'Warm up first',
+    } as IMetric;
+    const action: IMetric = {
+      type: 'action',
+      origin: 'parser',
+      value: 'Set up barbell',
+      image: 'Set up barbell',
+    } as IMetric;
+    return (
+      <div className="flex flex-col gap-0 w-full max-w-md">
+        <Row label="comment">
+          <MetricVisualizer metrics={[comment]} />
+        </Row>
+        <Row label="action item">
+          <MetricVisualizer metrics={[action]} />
+        </Row>
+        <Row label="mixed">
+          <MetricVisualizer
+            metrics={[comment, action, m('rep', 10), m('effort', 'Back Squats')]}
+          />
+        </Row>
+      </div>
+    );
+  },
+};
