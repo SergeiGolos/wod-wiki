@@ -25,7 +25,7 @@ import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './shared/PageToolbar
 import { extractPageIndex, mapIndexToL3 } from './shared/pageUtils'
 import newPlaygroundTemplate from '../templates/new-playground.md?raw'
 import { applyTemplate } from './shared/pageUtils'
-import { formatPlaygroundPageTitle } from '../utils/playgroundIds'
+import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 

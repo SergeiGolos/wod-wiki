@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { decodeZip } from '../services/decodeZip';
 import { playgroundDB, PlaygroundDBService } from '../services/playgroundDB';
-import { formatPlaygroundTimestampId } from '../utils/playgroundIds';
+import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
 
 export function useZipProcessor() {
   const navigate = useNavigate();

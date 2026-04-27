@@ -4,6 +4,7 @@ import {
   BookOpenIcon,
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline';
+import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
 import type { HistoryEntry } from '@/types/history';
 import type { IListItem } from '../types';
 
@@ -22,23 +23,9 @@ function formatDuration(ms: number): string {
   return secs > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${mins}:00`;
 }
 
-function formatPlaygroundLabel(timestamp: number): string {
-  const date = new Date(timestamp);
-  const dateStr = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  const timeStr = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-  return `Playground – ${dateStr} ${timeStr}`;
-}
-
 function getLabel(entry: HistoryEntry): string {
   if (entry.title) return entry.title;
-  if (entry.type === 'playground') return formatPlaygroundLabel(entry.createdAt);
+  if (entry.type === 'playground') return formatPlaygroundTimestampLabel(entry.createdAt);
   return 'Untitled workout';
 }
 

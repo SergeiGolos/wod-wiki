@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import { toShortId } from '../../lib/idUtils';
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
@@ -41,21 +42,6 @@ function toSegmentDataType(sectionType: SectionType): SegmentDataType {
         default:
             return 'markdown';
     }
-}
-
-export function formatTimestampId(timestamp: number): string {
-    const date = new Date(timestamp);
-    const pad = (value: number, length = 2) => String(value).padStart(length, '0');
-
-    return [
-        date.getUTCFullYear(),
-        pad(date.getUTCMonth() + 1),
-        pad(date.getUTCDate()),
-        pad(date.getUTCHours()),
-        pad(date.getUTCMinutes()),
-        pad(date.getUTCSeconds()),
-        pad(date.getUTCMilliseconds(), 3),
-    ].join('-');
 }
 
 export class IndexedDBContentProvider implements IContentProvider {
@@ -228,7 +214,7 @@ export class IndexedDBContentProvider implements IContentProvider {
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
         const now = Date.now();
-        const noteId = entry.type === 'playground' ? formatTimestampId(now) : uuidv4();
+        const noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
 
         // TRANSITION TO SEGMENTS
         const sections = parseDocumentSections(entry.rawContent);

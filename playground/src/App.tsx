@@ -45,7 +45,7 @@ import { Toaster } from '@/components/ui/toaster'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
-import { formatPlaygroundTimestampId } from './utils/playgroundIds'
+import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -90,6 +90,7 @@ async function generatePlaygroundName(): Promise<string> {
   let name = formatPlaygroundTimestampId(Date.now())
   let existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
   while (existing) {
+    await new Promise(resolve => setTimeout(resolve, 1))
     name = formatPlaygroundTimestampId(Date.now())
     existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
   }

@@ -7,29 +7,18 @@ export function formatPlaygroundTimestampId(timestamp: number): string {
   const pad = (value: number, length = 2) => String(value).padStart(length, '0');
 
   return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-    pad(date.getHours()),
-    pad(date.getMinutes()),
-    pad(date.getSeconds()),
-    pad(date.getMilliseconds(), 3),
+    date.getUTCFullYear(),
+    pad(date.getUTCMonth() + 1),
+    pad(date.getUTCDate()),
+    pad(date.getUTCHours()),
+    pad(date.getUTCMinutes()),
+    pad(date.getUTCSeconds()),
+    pad(date.getUTCMilliseconds(), 3),
   ].join('-');
 }
 
-function dateFromTimestampMatch(match: RegExpMatchArray): Date {
-  return new Date(
-    Number(match[1]),
-    Number(match[2]) - 1,
-    Number(match[3]),
-    Number(match[4]),
-    Number(match[5]),
-    Number(match[6] ?? 0),
-    Number(match[7] ?? 0),
-  );
-}
-
-function formatPlaygroundTimestampLabel(date: Date): string {
+export function formatPlaygroundTimestampLabel(timestamp: number): string {
+  const date = new Date(timestamp);
   const dateStr = date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -43,10 +32,22 @@ function formatPlaygroundTimestampLabel(date: Date): string {
   return `Playground – ${dateStr} ${timeStr}`;
 }
 
+function timestampFromMatch(match: RegExpMatchArray): number {
+  return Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    Number(match[4]),
+    Number(match[5]),
+    Number(match[6] ?? 0),
+    Number(match[7] ?? 0),
+  );
+}
+
 export function formatPlaygroundPageTitle(name: string): string {
   const decodedName = decodeURIComponent(name);
   const timestampMatch = decodedName.match(TIMESTAMP_ID_REGEX) ?? decodedName.match(LEGACY_TIMESTAMP_ID_REGEX);
-  if (timestampMatch) return formatPlaygroundTimestampLabel(dateFromTimestampMatch(timestampMatch));
+  if (timestampMatch) return formatPlaygroundTimestampLabel(timestampFromMatch(timestampMatch));
   if (UUID_REGEX.test(decodedName)) return 'Playground';
   return decodedName || 'Playground';
 }
