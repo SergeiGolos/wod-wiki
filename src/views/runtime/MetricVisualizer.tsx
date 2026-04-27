@@ -151,9 +151,9 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
         })
         .map((metric, index) => {
         const type = metric.type || 'unknown';
-        const colorClasses = getMetricColorClasses(type);
         const tokenValue = metric.image || (typeof metric.value === 'object' ? JSON.stringify(metric.value) : String(metric.value));
-        const icon = getMetricIcon(type);
+        const colorClasses = getMetricColorClasses(type, tokenValue);
+        const icon = getMetricIcon(type, tokenValue);
 
         return (
           <span

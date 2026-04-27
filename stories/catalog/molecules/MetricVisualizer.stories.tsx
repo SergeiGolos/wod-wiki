@@ -109,3 +109,26 @@ export const ErrorState: Story = {
     error: { message: 'Failed to parse statement', line: 3, column: 7 },
   },
 };
+
+/**
+ * UX-04: Rest blocks must be visually distinct from work sets.
+ *
+ * "Rest" is parsed as an `effort` metric whose value is the literal word
+ * "Rest". The visualizer detects this and renders the rest icon (⏸️) with
+ * muted styling rather than the running figure (🏃) used for work sets.
+ */
+export const RestVsWorkSet: Story = {
+  render: () => (
+    <div className="flex flex-col gap-0 w-fit">
+      <Row label="work set">
+        <MetricVisualizer metrics={[m('rep', 10), m('effort', 'Pushups')]} />
+      </Row>
+      <Row label="rest block">
+        <MetricVisualizer metrics={[m('time', 90_000), m('effort', 'Rest')]} />
+      </Row>
+      <Row label="work set">
+        <MetricVisualizer metrics={[m('rep', 20), m('effort', 'Squats')]} />
+      </Row>
+    </div>
+  ),
+};
