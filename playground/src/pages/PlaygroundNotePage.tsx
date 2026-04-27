@@ -41,13 +41,14 @@ export function PlaygroundNotePage({
   onScrollToSection,
 }: PlaygroundNotePageProps) {
   const { id } = useParams<{ id: string }>()
+  const pageName = id ?? 'playground'
   // noteId is the full 'playground/uuid' so results can be grouped correctly in the journal
-  const noteId = PlaygroundDBService.pageId('playground', id!)
-  const pageTitle = useMemo(() => formatPlaygroundPageTitle(id!), [id])
+  const noteId = PlaygroundDBService.pageId('playground', pageName)
+  const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({
     category: 'playground',
-    name: id!,
+    name: pageName,
     mdContent: PLAYGROUND_TEMPLATE.content,
   })
 
