@@ -53,4 +53,16 @@ Pushups
 
     expect(stripFrontmatter(raw)).toBe(raw)
   })
+
+  it('only removes matching wrapping quotes from metadata values', () => {
+    const { meta } = parseFrontmatter(`---
+title: "Matched"
+subtitle: "Mismatched'
+---
+Body
+`)
+
+    expect(meta.title).toBe('Matched')
+    expect(meta.subtitle).toBe(`"Mismatched'`)
+  })
 })

@@ -16,10 +16,11 @@ export function parseFrontmatter(raw: string): ParsedFrontmatter {
     const colonIdx = line.indexOf(':')
     if (colonIdx === -1) continue
     const key = line.slice(0, colonIdx).trim()
-    if (!key) continue
-    const rawVal = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '')
-    const num = Number(rawVal)
-    meta[key] = rawVal !== '' && !isNaN(num) ? num : rawVal
+    if (!/^[A-Za-z][\w-]*$/.test(key)) continue
+    const rawVal = line.slice(colonIdx + 1).trim()
+    const unquotedVal = rawVal.replace(/^(['"])(.*)\1$/, '$2')
+    const num = Number(unquotedVal)
+    meta[key] = unquotedVal !== '' && !isNaN(num) ? num : unquotedVal
   }
 
   return { meta, body: match[2] }

@@ -233,7 +233,7 @@ function extractBlocks(text: string): {
 
 export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): ParsedCanvasPage | null {
   const { meta, body } = parseFrontmatter(raw)
-  if (meta['template'] !== 'canvas') return null
+  if (String(meta['template'] ?? '') !== 'canvas') return null
 
   const route = String(meta['route'] ?? defaultRoute)
   const sections: CanvasSection[] = []
