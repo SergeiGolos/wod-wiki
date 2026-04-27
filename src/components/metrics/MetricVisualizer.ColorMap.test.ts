@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { getMetricColorClasses, metricColorMap } from '../../views/runtime/metricColorMap';
+import { getMetricColorClasses, getMetricIcon, metricColorMap } from '../../views/runtime/metricColorMap';
 
 describe('Visual Fragment Colors Test Suite', () => {
   describe('metricColorMap constant', () => {
@@ -60,6 +60,34 @@ describe('Visual Fragment Colors Test Suite', () => {
       expect(timerClasses).toContain('bg-');
       expect(timerClasses).toContain('border-');
       expect(timerClasses).toContain('text-');
+    });
+  });
+
+  // UX-04: Rest blocks must be visually distinct from work sets.
+  // Rest is parsed as an `effort` metric whose value is "Rest"; the
+  // helpers should detect this and return rest visuals instead of the
+  // running-figure (🏃) used for work sets.
+  describe('rest detection (UX-04)', () => {
+    it('should return the rest icon for effort metrics whose value is "Rest"', () => {
+      expect(getMetricIcon('effort', 'Rest')).toBe('⏸️');
+      expect(getMetricIcon('effort', 'rest')).toBe('⏸️');
+      expect(getMetricIcon('effort', '  REST  ')).toBe('⏸️');
+    });
+
+    it('should still return the effort icon for normal work-set effort metrics', () => {
+      expect(getMetricIcon('effort', 'Pushups')).toBe('🏃');
+      expect(getMetricIcon('effort')).toBe('🏃');
+    });
+
+    it('should return rest color classes for effort metrics whose value is "Rest"', () => {
+      const restClasses = getMetricColorClasses('effort', 'Rest');
+      expect(restClasses).toBe(metricColorMap.rest);
+      expect(restClasses).not.toContain('metric-effort');
+    });
+
+    it('should still return effort color classes for normal effort metrics', () => {
+      expect(getMetricColorClasses('effort', 'Pushups')).toContain('metric-effort');
+      expect(getMetricColorClasses('effort')).toContain('metric-effort');
     });
   });
 });
