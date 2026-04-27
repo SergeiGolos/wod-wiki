@@ -43,6 +43,21 @@ function toSegmentDataType(sectionType: SectionType): SegmentDataType {
     }
 }
 
+export function formatTimestampId(timestamp: number): string {
+    const date = new Date(timestamp);
+    const pad = (value: number, length = 2) => String(value).padStart(length, '0');
+
+    return [
+        date.getUTCFullYear(),
+        pad(date.getUTCMonth() + 1),
+        pad(date.getUTCDate()),
+        pad(date.getUTCHours()),
+        pad(date.getUTCMinutes()),
+        pad(date.getUTCSeconds()),
+        pad(date.getUTCMilliseconds(), 3),
+    ].join('-');
+}
+
 export class IndexedDBContentProvider implements IContentProvider {
     readonly mode: ContentProviderMode = 'history';
     readonly capabilities: ProviderCapabilities = {
@@ -75,6 +90,9 @@ export class IndexedDBContentProvider implements IContentProvider {
                 targetDate: note.targetDate || note.createdAt,
                 rawContent,
                 tags: note.tags,
+                type: note.type || 'note',
+                templateId: note.templateId,
+                clonedIds: note.clonedIds,
                 schemaVersion: 1,
             } as HistoryEntry;
         });
@@ -209,8 +227,8 @@ export class IndexedDBContentProvider implements IContentProvider {
     }
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
-        const noteId = uuidv4();
         const now = Date.now();
+        const noteId = entry.type === 'playground' ? formatTimestampId(now) : uuidv4();
 
         // TRANSITION TO SEGMENTS
         const sections = parseDocumentSections(entry.rawContent);

@@ -290,7 +290,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     if (currentEntry?.title) {
       document.title = `Wod.Wiki - ${currentEntry.title}`;
     } else if (routeId) {
-      document.title = `Wod.Wiki - ${routeId}`;
+      document.title = 'Wod.Wiki - Playground';
     } else {
       document.title = 'Wod.Wiki';
     }

@@ -34,7 +34,7 @@ export interface Note {
     segmentIds: string[]; // Ordered list of segment UUIDs
 
     // Note Management
-    type?: 'note' | 'template';
+    type?: 'note' | 'template' | 'playground';
     templateId?: string;
     clonedIds?: string[];              // IDs of notes cloned FROM this note
 }
