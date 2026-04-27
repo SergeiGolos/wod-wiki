@@ -35,6 +35,9 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
         }
       } catch (e) {
         console.error('Failed to fetch command palette results', e)
+        if (!cancelled) {
+          setStrategyResults([])
+        }
       } finally {
         if (!cancelled) setIsLoading(false)
       }
