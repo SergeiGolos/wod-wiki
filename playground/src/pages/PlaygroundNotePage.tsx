@@ -25,6 +25,7 @@ import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './shared/PageToolbar
 import { extractPageIndex, mapIndexToL3 } from './shared/pageUtils'
 import newPlaygroundTemplate from '../templates/new-playground.md?raw'
 import { applyTemplate } from './shared/pageUtils'
+import { formatPlaygroundPageTitle } from '../utils/playgroundIds'
 
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
@@ -42,6 +43,7 @@ export function PlaygroundNotePage({
   const { id } = useParams<{ id: string }>()
   // noteId is the full 'playground/uuid' so results can be grouped correctly in the journal
   const noteId = PlaygroundDBService.pageId('playground', id!)
+  const pageTitle = useMemo(() => formatPlaygroundPageTitle(id!), [id])
   const navigate = useNavigate()
   const { content, loading, onChange } = usePlaygroundContent({
     category: 'playground',
@@ -104,6 +106,10 @@ export function PlaygroundNotePage({
     return () => setL3Items([])
   }, [index, setL3Items])
 
+  useEffect(() => {
+    document.title = `Wod.Wiki - ${pageTitle}`
+  }, [pageTitle])
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -114,7 +120,7 @@ export function PlaygroundNotePage({
 
   return (
     <JournalPageShell
-      title={noteId}
+      title={pageTitle}
       index={index}
       onScrollToSection={onScrollToSection}
       actions={
@@ -123,7 +129,7 @@ export function PlaygroundNotePage({
           <CastButtonRpc />
           <AudioToggle />
           <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
+          <ActionsMenu currentWorkout={{ name: pageTitle, content }} items={mapIndexToL3(index)} />
         </div>
       }
       editor={
