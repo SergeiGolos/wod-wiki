@@ -21,11 +21,16 @@ function storyUrl(storyId: string): string {
   return `/iframe.html?id=${storyId}&viewMode=story`;
 }
 
+// Story IDs are derived from the story file's `meta.title`
+// ('acceptance/RuntimeCrossFit') by Storybook's CSF `sanitize`, which
+// lowercases and replaces separators but does NOT split camelCase tokens.
+// Therefore `RuntimeCrossFit` becomes `runtimecrossfit` (no hyphen between
+// `runtime` and `crossfit`).
 const STORIES = {
-  fran: 'acceptance-runtime-crossfit--fran',
-  annie: 'acceptance-runtime-crossfit--annie',
-  cindy: 'acceptance-runtime-crossfit--cindy',
-  barbara: 'acceptance-runtime-crossfit--barbara',
+  fran: 'acceptance-runtimecrossfit--fran',
+  annie: 'acceptance-runtimecrossfit--annie',
+  cindy: 'acceptance-runtimecrossfit--cindy',
+  barbara: 'acceptance-runtimecrossfit--barbara',
 };
 
 // ─ Shared setup ───────────────────────────────────────────────────────────────
