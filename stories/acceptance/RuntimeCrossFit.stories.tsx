@@ -9,10 +9,10 @@
  *   3. Assert round/rep/metric state from the UI
  *
  * Story IDs (used by e2e tests):
- *   acceptance-runtime-crossfit--fran
- *   acceptance-runtime-crossfit--annie
- *   acceptance-runtime-crossfit--cindy
- *   acceptance-runtime-crossfit--barbara
+ *   acceptance-runtimecrossfit--fran
+ *   acceptance-runtimecrossfit--annie
+ *   acceptance-runtimecrossfit--cindy
+ *   acceptance-runtimecrossfit--barbara
  *
  * All stories use the StorybookWorkbench so the full execution stack is live.
  * data-testid attributes are sourced from TestIdContract.
