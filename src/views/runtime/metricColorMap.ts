@@ -17,7 +17,8 @@ export type MetricType =
   | 'elapsed'
   | 'total'
   | 'system-time'
-  | 'metric';
+  | 'metric'
+  | 'rest';
 
 export type FragmentColorMap = {
   readonly [key in MetricType]: string;
@@ -46,16 +47,36 @@ export const metricColorMap: FragmentColorMap = {
   total:       'bg-muted border-border text-foreground',
   'system-time': 'bg-muted/60 border-border/60 text-muted-foreground',
   metric:      'bg-metric-effort/10 border-metric-effort/30 text-metric-effort',
+  // Rest blocks use a muted treatment to distinguish them from active work sets (UX-04)
+  rest:        'bg-muted/70 border-muted-foreground/30 text-muted-foreground',
 };
+
+/**
+ * Detects whether a metric represents a rest period.
+ *
+ * Rest blocks (e.g. `* :90 Rest`) are parsed as `effort` metrics whose value
+ * is the word "Rest". They should be rendered with the rest icon/colors so
+ * they are visually distinct from work sets. See issue UX-04.
+ */
+function isRestMetric(type: string, value?: string): boolean {
+  if (type.toLowerCase() !== 'effort' || !value) return false;
+  return value.trim().toLowerCase() === 'rest';
+}
 
 /**
  * Get color classes for a metrics type
  * @param type - Fragment type string (case-insensitive)
+ * @param value - Optional metric value; used to detect rest indicators on
+ *   `effort` metrics so they can be styled distinctly from work sets.
  * @returns Tailwind CSS color classes for the type
  */
-export function getMetricColorClasses(type: string): string {
+export function getMetricColorClasses(type: string, value?: string): string {
+  if (isRestMetric(type, value)) {
+    return metricColorMap.rest;
+  }
+
   const normalizedType = type.toLowerCase() as MetricType;
-  
+
   // Return mapped color or fallback for unknown types
   return metricColorMap[normalizedType] || 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
 }
@@ -85,8 +106,14 @@ const metricIconMap: Record<string, string> = {
 /**
  * Get icon/emoji for a metrics type
  * @param type - Fragment type string (case-insensitive)
+ * @param value - Optional metric value; used to detect rest indicators on
+ *   `effort` metrics so they can be shown with the rest icon (⏸️) instead
+ *   of the running figure used for work sets (UX-04).
  * @returns Emoji icon for the type, or null if no icon is defined
  */
-export function getMetricIcon(type: string): string | null {
+export function getMetricIcon(type: string, value?: string): string | null {
+  if (isRestMetric(type, value)) {
+    return metricIconMap.rest;
+  }
   return metricIconMap[type.toLowerCase()] || null;
 }

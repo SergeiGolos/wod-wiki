@@ -111,6 +111,56 @@ export const ErrorState: Story = {
 };
 
 /**
+/**
+ * UX-03 regression: the badge for a `(N Rounds)` group must include the
+ * "Rounds" label so it is not confused with a rep count badge.
+ *
+ * Expected: `🔄 3 Rounds` (not `🔄 3`).
+ */
+export const RoundsBadge: Story = {
+  name: 'Rounds Badge (UX-03)',
+  render: () => (
+    <div className="flex flex-col gap-2 w-fit">
+      <Row label="(3 Rounds)">
+        <MetricVisualizer metrics={[m('rounds', 3)]} />
+      </Row>
+      <Row label="(1 Round)">
+        <MetricVisualizer metrics={[m('rounds', 1)]} />
+      </Row>
+      <Row label="(5 Rounds)">
+        <MetricVisualizer metrics={[m('rounds', 5)]} />
+      </Row>
+      <Row label="vs. 3 reps">
+        <MetricVisualizer metrics={[m('rep', 3)]} />
+      </Row>
+    </div>
+  ),
+};
+
+/**
+ * UX-04: Rest blocks must be visually distinct from work sets.
+ *
+ * "Rest" is parsed as an `effort` metric whose value is the literal word
+ * "Rest". The visualizer detects this and renders the rest icon (⏸️) with
+ * muted styling rather than the running figure (🏃) used for work sets.
+ */
+export const RestVsWorkSet: Story = {
+  render: () => (
+    <div className="flex flex-col gap-0 w-fit">
+      <Row label="work set">
+        <MetricVisualizer metrics={[m('rep', 10), m('effort', 'Pushups')]} />
+      </Row>
+      <Row label="rest block">
+        <MetricVisualizer metrics={[m('time', 90_000), m('effort', 'Rest')]} />
+      </Row>
+      <Row label="work set">
+        <MetricVisualizer metrics={[m('rep', 20), m('effort', 'Squats')]} />
+      </Row>
+    </div>
+  ),
+};
+
+/**
  * Comments vs. action items.
  *
  * `// ...` comment lines are emitted as `text` metrics with `origin: 'parser'`
