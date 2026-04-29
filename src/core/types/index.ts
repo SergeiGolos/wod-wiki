@@ -1,6 +1,6 @@
 /**
  * WOD Wiki Types
- * 
+ *
  * Centralized type exports for the WOD Wiki library.
  * Import types from here for type-only imports.
  */
@@ -16,6 +16,7 @@ export type {
   Duration,
   CodeMetadata,
   IMetric,
+  ParseError,
 } from './core';
 
 export { MetricType } from './core';
@@ -64,7 +65,6 @@ export type {
   WodBlock,
   WorkoutResults,
   WodBlockState,
-  ParseError,
   WorkoutMetricFragment,
 } from '../../components/Editor/types';
 

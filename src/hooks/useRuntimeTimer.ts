@@ -27,6 +27,8 @@ export type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 export type { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 export type { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 export type { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
+export type { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
+export { isCastSubscription } from '@/runtime/contracts/ICastSubscription';
 export type { IEventHandler } from '@/runtime/contracts/events/IEventHandler';
 export type { IEvent } from '@/runtime/contracts/events/IEvent';
 

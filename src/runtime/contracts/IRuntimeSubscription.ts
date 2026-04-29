@@ -33,16 +33,6 @@ export interface IRuntimeSubscription {
     onTrackerUpdate(update: TrackerUpdate): void;
 
     /**
-     * Send analytics summary with projection results to Chromecast review.
-     * Called by browser when workout completes to show focused review.
-     */
-    sendAnalyticsSummary(
-        projections: Array<{ name: string; value: number; unit: string; metricType?: string }>,
-        totalDurationMs: number,
-        completedSegments: number,
-    ): void;
-
-    /**
      * Clean up resources held by this subscription (unsubscribe listeners, close channels, etc.).
      */
     dispose(): void;
