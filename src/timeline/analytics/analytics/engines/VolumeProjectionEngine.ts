@@ -1,4 +1,3 @@
-import { IProjectionEngine } from '../IProjectionEngine';
 import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { Exercise } from '../../../../exercise';
@@ -21,7 +20,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * // Result: Total Volume = 1000kg
  * ```
  */
-export class VolumeProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+export class VolumeProjectionEngine implements IAnalyticsStage {
   public readonly id = 'volume-projection';
   public readonly name = "VolumeProjectionEngine";
 

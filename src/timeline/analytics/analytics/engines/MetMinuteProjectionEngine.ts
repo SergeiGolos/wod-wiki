@@ -1,4 +1,3 @@
-import { IProjectionEngine } from '../IProjectionEngine';
 import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
@@ -14,7 +13,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  *
  * Formula: ∑(METs × timeMs / 60 000) across all timed segments.
  */
-export class MetMinuteProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+export class MetMinuteProjectionEngine implements IAnalyticsStage {
   public readonly id = 'met-minute-projection';
   public readonly name = 'MetMinuteProjectionEngine';
 

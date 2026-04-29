@@ -7,7 +7,7 @@
  */
 
 import type { IMetric } from '../../core/models/Metric';
-import type { IProjectionEngine } from '../../timeline/analytics/analytics/IProjectionEngine';
+import type { IAnalyticsStage } from '../../core/analytics/IAnalyticsStage';
 import type { ProjectionResult } from '../../timeline/analytics/analytics/ProjectionResult';
 
 // ─── Span levels ─────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ export interface ResolvedCell {
 export type EngineStatus = 'pending' | 'running' | 'complete' | 'error';
 
 export interface EngineSnapshot {
-  engine: IProjectionEngine;
+  engine: IAnalyticsStage;
   status: EngineStatus;
   results: ProjectionResult[];
   error?: string;

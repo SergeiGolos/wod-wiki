@@ -1,4 +1,3 @@
-import { IProjectionEngine } from '../IProjectionEngine';
 import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
@@ -16,7 +15,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * moderate default (5) is used so that duration-only workouts still produce
  * a sensible load score.
  */
-export class SessionLoadProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+export class SessionLoadProjectionEngine implements IAnalyticsStage {
   public readonly id = 'session-load-projection';
   public readonly name = 'SessionLoadProjectionEngine';
 

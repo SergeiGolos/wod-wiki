@@ -1,4 +1,3 @@
-import { IProjectionEngine } from '../IProjectionEngine';
 import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
@@ -12,7 +11,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Implements calculateFromWorkout so it fires on every call to
  * AnalysisService.runWorkoutProjections() with all metrics so far.
  */
-export class RepProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+export class RepProjectionEngine implements IAnalyticsStage {
   public readonly id = 'rep-projection';
   public readonly name = 'RepProjectionEngine';
 

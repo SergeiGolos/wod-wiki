@@ -1,4 +1,3 @@
-import { IProjectionEngine } from '../IProjectionEngine';
 import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
@@ -12,7 +11,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Distance values are expected as `{ amount: number; units?: string }` objects
  * (the standard parser representation). Falls back to raw numeric values too.
  */
-export class DistanceProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+export class DistanceProjectionEngine implements IAnalyticsStage {
   public readonly id = 'distance-projection';
   public readonly name = 'DistanceProjectionEngine';
 
