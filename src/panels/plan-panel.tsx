@@ -63,7 +63,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
     provider,
   });
 
-  // Keyboard shortcuts: Cmd+Shift+I → collection import, Cmd+Shift+H → history import
+  // Keyboard shortcuts: ⌘/Ctrl+Shift+I → collection import, ⌘/Ctrl+Shift+H → history import
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'I') {
@@ -87,7 +87,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
           type="button"
           onClick={openCollectionImport}
           className="flex items-center gap-1.5 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          title="Import from collection (Ctrl+Shift+I)"
+          title="Import from collection (⌘/Ctrl+Shift+I)"
         >
           <Download className="h-3 w-3" />
           <span>From Collection</span>
@@ -97,7 +97,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
             type="button"
             onClick={openHistoryImport}
             className="flex items-center gap-1.5 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Import from history (Ctrl+Shift+H)"
+            title="Import from history (⌘/Ctrl+Shift+H)"
           >
             <Download className="h-3 w-3" />
             <span>From History</span>

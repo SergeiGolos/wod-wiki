@@ -605,7 +605,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 size="icon"
                 onClick={openNavCollectionImport}
                 className="text-muted-foreground hover:text-foreground"
-                title="Import WOD from collection (Ctrl+Shift+I)"
+                title="Import WOD from collection (⌘/Ctrl+Shift+I)"
               >
                 <Plus className="h-4 w-4" />
               </Button>

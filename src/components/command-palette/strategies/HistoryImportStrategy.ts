@@ -11,6 +11,7 @@ type OnInsert = (blocks: WodBlockExtract[]) => void;
 class HistoryBlockSelectStrategy implements CommandStrategy {
   id = 'history-import-block';
   placeholder: string;
+  private cachedCommands: Command[] | null = null;
 
   // Stubs required by CommandStrategy interface — this strategy uses getCommands instead
   getResults = () => [];
@@ -25,10 +26,12 @@ class HistoryBlockSelectStrategy implements CommandStrategy {
   }
 
   getCommands(): Command[] {
+    if (this.cachedCommands) return this.cachedCommands;
+
     const blocks = extractWodBlocks(this.entry.rawContent ?? '');
 
     if (blocks.length === 0) {
-      return [{
+      this.cachedCommands = [{
         id: 'import-whole',
         label: `Import entire note`,
         group: this.entry.title,
@@ -42,9 +45,10 @@ class HistoryBlockSelectStrategy implements CommandStrategy {
           this.setStrategy(null);
         },
       }];
+      return this.cachedCommands;
     }
 
-    return blocks.map(block => ({
+    this.cachedCommands = blocks.map(block => ({
       id: block.id,
       label: block.label,
       group: this.entry.title,
@@ -54,6 +58,7 @@ class HistoryBlockSelectStrategy implements CommandStrategy {
         this.setStrategy(null);
       },
     }));
+    return this.cachedCommands;
   }
 }
 

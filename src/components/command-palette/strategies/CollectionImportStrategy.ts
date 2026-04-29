@@ -11,6 +11,7 @@ type OnInsert = (blocks: WodBlockExtract[]) => void;
 class WodBlockSelectStrategy implements CommandStrategy {
   id = 'collection-import-block';
   placeholder: string;
+  private cachedCommands: Command[] | null = null;
 
   // Stubs required by CommandStrategy interface — this strategy uses getCommands instead
   getResults = () => [];
@@ -26,11 +27,13 @@ class WodBlockSelectStrategy implements CommandStrategy {
   }
 
   getCommands(): Command[] {
+    if (this.cachedCommands) return this.cachedCommands;
+
     const blocks = extractWodBlocks(this.item.content);
 
     if (blocks.length === 0) {
       // Fallback: import the whole item as a plain wod block
-      return [{
+      this.cachedCommands = [{
         id: 'import-whole',
         label: `Import entire "${this.item.name}"`,
         group: 'Import',
@@ -44,9 +47,10 @@ class WodBlockSelectStrategy implements CommandStrategy {
           this.setStrategy(null);
         },
       }];
+      return this.cachedCommands;
     }
 
-    return blocks.map((block) => ({
+    this.cachedCommands = blocks.map((block) => ({
       id: block.id,
       label: block.label,
       group: `${this.collectionName} › ${this.item.name}`,
@@ -56,6 +60,7 @@ class WodBlockSelectStrategy implements CommandStrategy {
         this.setStrategy(null);
       },
     }));
+    return this.cachedCommands;
   }
 }
 

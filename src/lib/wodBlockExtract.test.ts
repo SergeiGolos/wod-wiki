@@ -51,4 +51,10 @@ describe('extractWodBlocks', () => {
   it('returns empty array for markdown with no wod fences', () => {
     expect(extractWodBlocks('# Just text\nNo blocks here.')).toHaveLength(0);
   });
+
+  it('uses "Block 1" fallback label when no heading precedes the block', () => {
+    const md = `\`\`\`wod\n10 push-ups\n\`\`\``;
+    const blocks = extractWodBlocks(md);
+    expect(blocks[0].label).toBe('Block 1');
+  });
 });

@@ -46,11 +46,12 @@ export function extractWodBlocks(markdown: string): WodBlockExtract[] {
       // Detect closing fence
       if (line.trim() === '```') {
         blocks.push({
-          id: `block-${blockIndex++}`,
-          label: lastHeading || `Block ${blockIndex}`,
+          id: `block-${blockIndex}`,
+          label: lastHeading || `Block ${blockIndex + 1}`,
           dialect: fenceDialect,
           content: fenceLines.join('\n').trim(),
         });
+        blockIndex++;
         inFence = false;
         fenceDialect = '';
         fenceLines = [];
