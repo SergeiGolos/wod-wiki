@@ -75,7 +75,7 @@ class WorkoutEventBus {
 
   clear(): void {
     // Replace the underlying bus so all listeners are dropped atomically.
-    (this as any).bus = new SimpleEventBus<WorkoutEvent>();
+    this.bus = new SimpleEventBus<WorkoutEvent>();
   }
 }
 
