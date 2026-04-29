@@ -10,7 +10,13 @@ export class SimpleEventBus<T> implements IServiceEventBus<T> {
   private listeners = new Set<(event: T) => void>();
 
   emit(event: T): void {
-    this.listeners.forEach(fn => fn(event));
+    this.listeners.forEach(fn => {
+      try {
+        fn(event);
+      } catch (err) {
+        console.error('[SimpleEventBus] Error in listener:', err);
+      }
+    });
   }
 
   subscribe(fn: (event: T) => void): () => void {

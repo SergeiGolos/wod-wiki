@@ -1,6 +1,8 @@
-import { IProjectionEngine } from '../IProjectionEngine';
+import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -13,8 +15,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * moderate default (5) is used so that duration-only workouts still produce
  * a sensible load score.
  */
-export class SessionLoadProjectionEngine implements IProjectionEngine {
+export class SessionLoadProjectionEngine implements IAnalyticsStage {
+  public readonly id = 'session-load-projection';
   public readonly name = 'SessionLoadProjectionEngine';
+
+  project(outputs: IOutputStatement[]): ProjectionResult[] {
+    return this.calculateFromWorkout(extractMetrics(outputs));
+  }
 
   private readonly effortToRpe: Record<string, number> = {
     easy: 3,

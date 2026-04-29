@@ -1,7 +1,8 @@
-import { IProjectionEngine } from '../IProjectionEngine';
-import { Exercise } from '../../../../exercise';
+import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -18,8 +19,36 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * // Result: Total Volume = 1000kg
  * ```
  */
-export class VolumeProjectionEngine implements IProjectionEngine {
+export class VolumeProjectionEngine implements IAnalyticsStage {
+  public readonly id = 'volume-projection';
   public readonly name = "VolumeProjectionEngine";
+
+  project(outputs: IOutputStatement[]): ProjectionResult[] {
+    const allMetrics = extractMetrics(outputs);
+    const workoutResults = this.calculateFromWorkout(allMetrics);
+    const exerciseResults = this._runPerExercise(allMetrics);
+    return [...workoutResults, ...exerciseResults];
+  }
+
+  private _runPerExercise(metrics: IMetric[]): ProjectionResult[] {
+    const grouped = new Map<string, IMetric[]>();
+    let currentExerciseId: string | null = null;
+
+    for (const metric of metrics) {
+      if (metric.type === MetricType.Effort && typeof metric.value === 'string') {
+        currentExerciseId = metric.value;
+        if (!grouped.has(currentExerciseId)) grouped.set(currentExerciseId, []);
+        continue;
+      }
+      if (currentExerciseId) grouped.get(currentExerciseId)!.push(metric);
+    }
+
+    const results: ProjectionResult[] = [];
+    for (const [exerciseId, frags] of grouped.entries()) {
+      results.push(...this.calculateFromFragments(frags, exerciseId));
+    }
+    return results;
+  }
 
   /**
    * Calculate volume from code metrics.
@@ -36,7 +65,7 @@ export class VolumeProjectionEngine implements IProjectionEngine {
    * @param definition Exercise definition
    * @returns Array with single volume projection result, or empty if no valid data
    */
-  calculateFromFragments(metrics: IMetric[], _exerciseId: string, definition: Exercise): ProjectionResult[] {
+  calculateFromFragments(metrics: IMetric[], exerciseName: string): ProjectionResult[] {
     if (metrics.length === 0) return [];
 
     let totalVolume = 0;
@@ -73,13 +102,13 @@ export class VolumeProjectionEngine implements IProjectionEngine {
     const now = new Date();
 
     return [{
-      name: "Total Volume",
+      name: `${exerciseName} Volume`,
       value: totalVolume,
       unit: "kg",
       metricType: MetricType.Volume,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       metadata: {
-        exerciseName: definition.name,
+        exerciseName: exerciseName,
         totalSets,
         source: 'metrics',
       }
