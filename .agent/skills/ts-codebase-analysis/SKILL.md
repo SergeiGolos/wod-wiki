@@ -16,17 +16,23 @@ This skill covers running `madge` to analyse TypeScript import graphs, identify 
 
 ## Quick-Start Commands
 
+This project exposes a convenience script (see `package.json`):
+
+```bash
+# Production-only circular dependency report (RECOMMENDED)
+bun run analyze:deps
+```
+
+For additional analysis options:
+
 ```bash
 # 1. Install madge (dev dependency, one-time)
 bun add -d madge
 
-# 2. Production-only circular dependency report (RECOMMENDED)
-bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --circular src/
-
-# 3. Full report including test files (may inflate layer-violation counts)
+# 2. Full report including test files (may inflate layer-violation counts — see pitfall below)
 bun x madge --extensions ts,tsx --ts-config tsconfig.json --circular src/
 
-# 4. Output as JSON for programmatic analysis
+# 3. Output as JSON for programmatic analysis
 bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --json src/ > deps.json
 
 # 5. Generate a visual dependency graph (requires graphviz)
@@ -100,13 +106,16 @@ A circular dependency means module A imports B which (directly or transitively) 
 
 A layer violation is a one-way directional dependency from a higher-level layer to a lower-level one that should not be coupled. Example: production `runtime/` code importing from `testing/`.
 
-Use madge's directed-graph output (JSON) to audit this:
+Use madge's directed-graph output (JSON) to audit this. The example below
+checks for `runtime → testing` violations — adapt the layer names to your
+project's structure:
 
 ```bash
 bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --json src/ \
   | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
+# Adapt 'runtime/' and 'testing/' to your layer names
 violations = {k: v for k, v in data.items()
               if k.startswith('runtime/') and any('testing/' in d for d in v)}
 print(json.dumps(violations, indent=2))
@@ -119,7 +128,7 @@ print(json.dumps(violations, indent=2))
 
 1. **Run production baseline** (exclude test files):
    ```bash
-   bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --circular src/
+   bun run analyze:deps
    ```
 2. **Compare to previous baseline** — note increases/decreases.
 3. **Identify cross-layer cycles** using the JSON output.
