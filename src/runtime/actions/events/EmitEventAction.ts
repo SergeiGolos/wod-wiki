@@ -1,4 +1,5 @@
-import { IRuntimeAction, IScriptRuntime } from "@/core";
+import { IRuntimeAction } from "@/runtime/contracts/IRuntimeAction";
+import { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import { IEvent } from "@/core-entry";
 
 /**
