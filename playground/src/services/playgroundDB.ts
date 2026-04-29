@@ -79,6 +79,15 @@ export class PlaygroundDBService {
     return (await this.dbPromise).put('pages', page);
   }
 
+  /**
+   * Atomically create a new page. Throws a `ConstraintError` DOMException if
+   * a record with the same `id` already exists (uses IndexedDB `add()` under
+   * the hood, which rejects on duplicate keys without overwriting).
+   */
+  async addPage(page: PlaygroundPage): Promise<string> {
+    return (await this.dbPromise).add('pages', page);
+  }
+
   async deletePage(id: string): Promise<void> {
     return (await this.dbPromise).delete('pages', id);
   }

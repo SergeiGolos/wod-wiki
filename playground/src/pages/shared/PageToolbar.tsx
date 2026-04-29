@@ -137,7 +137,8 @@ export function ActionsMenu({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${currentWorkout.name}.md`
+    const safeName = currentWorkout.name.replace(/[/\\:*?"<>|]/g, '-')
+    a.download = `${safeName}.md`
     a.click()
     URL.revokeObjectURL(url)
   }

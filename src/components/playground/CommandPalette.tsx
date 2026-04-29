@@ -43,7 +43,7 @@ export function CommandPalette({ isOpen, onClose, items, onSelect, initialCatego
       }
     }
     fetchResults()
-    return () => { cancelled = true; setIsLoading(false) }
+    return () => { cancelled = true }
   }, [query, activeStrategy])
 
   // Reset query when dialog closes
