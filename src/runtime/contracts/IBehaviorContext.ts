@@ -1,6 +1,6 @@
 import { IEvent } from './events/IEvent';
 import { IRuntimeAction } from './IRuntimeAction';
-import { IRuntimeBlock } from './IRuntimeBlock';
+import type { IBlockRef } from './primitives/IBlockRef';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
@@ -107,7 +107,7 @@ export interface IBehaviorContext {
     // ============================================================================
 
     /** The block this behavior is attached to */
-    readonly block: IRuntimeBlock;
+    readonly block: IBlockRef;
 
     /** Current runtime clock */
     readonly clock: IRuntimeClock;

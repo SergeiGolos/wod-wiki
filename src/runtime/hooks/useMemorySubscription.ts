@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TypedMemoryReference } from '../contracts/IMemoryReference';
+import { TypedMemoryReference } from '../impl/TypedMemoryReference';
 
 /**
  * React hook for subscribing to memory reference changes.

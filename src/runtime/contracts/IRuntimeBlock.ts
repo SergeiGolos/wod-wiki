@@ -1,45 +1,29 @@
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from './IRuntimeAction';
 import { IBlockContext } from './IBlockContext';
-import { IScriptRuntime } from './IScriptRuntime';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
-import { IRuntimeClock } from './IRuntimeClock';
+import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { MetricVisibility } from '../memory/MetricVisibility';
+import type { IBlockRef, IMemoryEntryShim as IMemoryEntryShimPrimitive } from './primitives/IBlockRef';
+import type { BlockLifecycleOptions as BlockLifecycleOptionsPrimitive } from './primitives/IBlockLifecycle';
 
 /**
  * Backward-compatible memory entry shape.
  * Provides a shim over IMemoryLocation for callers still using the old API.
+ *
+ * Re-exported from the primitives layer (`primitives/IBlockRef.ts`) for
+ * backward compatibility with existing import sites.
  */
-export interface IMemoryEntryShim<V = unknown> {
-    readonly value: V;
-    subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void;
-}
+export type IMemoryEntryShim<V = unknown> = IMemoryEntryShimPrimitive<V>;
 
-export interface BlockLifecycleOptions {
-    /** Start timestamp when the block was pushed onto the stack. */
-    startTime?: Date;
-    /** Completion timestamp when the block was popped from the stack. */
-    completedAt?: Date;
-    /** Current timestamp for the operation (onNext, etc). */
-    now?: Date;
-    
-    /**
-     * Clock to use for this lifecycle operation.
-     * 
-     * If provided, this clock is passed to behaviors and child operations,
-     * allowing consistent timing during execution chains (pop → next → push).
-     * 
-     * Use `SnapshotClock.at(clock, time)` to freeze time during an execution chain:
-     * - When a timer expires at T₁, create a snapshot at T₁
-     * - Pass the snapshot through pop → parent.next → child push
-     * - All operations see T₁ as `clock.now`, ensuring no timing gaps
-     * 
-     * If not provided, defaults to `runtime.clock`.
-     */
-    clock?: IRuntimeClock;
-}
+/**
+ * Re-export of the primitives `BlockLifecycleOptions` for backward
+ * compatibility with existing import sites that pull this type from
+ * `IRuntimeBlock`.
+ */
+export type BlockLifecycleOptions = BlockLifecycleOptionsPrimitive;
 
 /**
  * Represents a runtime block that can be executed within the WOD runtime stack.
@@ -57,7 +41,7 @@ export interface BlockLifecycleOptions {
  * - Stack operations should be optimized for frequent push/pop cycles
  * - Memory usage should be minimized during execution
  */
-export interface IRuntimeBlock {
+export interface IRuntimeBlock extends IBlockRef {
     /**
      * Execution timing metadata propagated by the runtime (start/completion timestamps).
      * Implementations can rely on RuntimeStack/PushBlockAction to set this.
@@ -103,11 +87,12 @@ export interface IRuntimeBlock {
      * Note: Event registration and resource allocation should happen here,
      * not in the constructor, to ensure they are active only while mounted.
      * 
-     * @param runtime The script runtime context
+     * @param runtime The runtime context (typed as the IRuntimeActionable primitive
+     *                to break the cycle through IScriptRuntime)
      * @param options Lifecycle timing data (start time)
      * @returns Array of runtime actions to execute after mount
      */
-    mount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
+    mount(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Called to advance the block's execution state.
@@ -123,11 +108,12 @@ export interface IRuntimeBlock {
      * - If block is simple (e.g., single movement), mark itself complete.
      * - If block is a timer, handle timer completion logic.
      * 
-     * @param runtime The script runtime context
+     * @param runtime The runtime context (typed as the IRuntimeActionable primitive
+     *                to break the cycle through IScriptRuntime)
      * @param options Lifecycle timing data (completion timestamp if triggered by child pop)
      * @returns Array of runtime actions representing next execution steps (e.g., PushBlock, MarkComplete)
      */
-    next(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
+    next(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Called when this block is popped from the runtime stack.
@@ -136,11 +122,12 @@ export interface IRuntimeBlock {
      * Note: This method MUST unsubscribe from events and dispose 
      * memory entries to complete any active observables.
      * 
-     * @param runtime The script runtime context
+     * @param runtime The runtime context (typed as the IRuntimeActionable primitive
+     *                to break the cycle through IScriptRuntime)
      * @param options Lifecycle timing data (completion timestamp)
      * @returns Array of runtime actions to execute after unmount
      */
-    unmount(runtime: IScriptRuntime, options?: BlockLifecycleOptions): IRuntimeAction[];
+    unmount(runtime: IRuntimeActionable, options?: BlockLifecycleOptions): IRuntimeAction[];
 
     /**
      * Cleans up any resources held by this block.
@@ -157,10 +144,11 @@ export interface IRuntimeBlock {
      * - Release memory references and clear caches
      * - Dispose of child objects and dependencies
      * 
-     * @param runtime The script runtime context
+     * @param runtime The runtime context (typed as the IRuntimeActionable primitive
+     *                to break the cycle through IScriptRuntime)
      * @throws Never - Should handle all cleanup errors internally
      */
-    dispose(runtime: IScriptRuntime): void;
+    dispose(runtime: IRuntimeActionable): void;
 
     /**
      * Gets a specific behavior by type from the behaviors array.

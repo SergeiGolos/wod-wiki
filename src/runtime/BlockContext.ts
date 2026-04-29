@@ -1,5 +1,6 @@
 import { IBlockContext } from './contracts/IBlockContext';
-import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
+import { IMemoryReference } from './contracts/IMemoryReference';
+import { TypedMemoryReference } from './impl/TypedMemoryReference';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeMemory } from './contracts/IRuntimeMemory';
 import { RuntimeMemory } from './RuntimeMemory';
