@@ -31,7 +31,7 @@ export class LabelComposer {
     } = options;
 
     const allFragments = MetricContainer.from(statements
-      .flatMap(s => MetricContainer.from(s.metrics as any).toArray())
+      .flatMap(s => MetricContainer.from(s.metrics).toArray())
       .filter(f => f.origin !== 'runtime'));
 
     if (allFragments.length === 0) return defaultLabel;

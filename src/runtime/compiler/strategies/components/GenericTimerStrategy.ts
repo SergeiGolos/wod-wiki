@@ -70,7 +70,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             .setSourceIds(statements.map(s => s.id));
 
         const metricGroups = statements.flatMap(s => 
-            distribute(MetricContainer.from(s.metrics as any), "Timer")
+            distribute(MetricContainer.from(s.metrics), "Timer")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

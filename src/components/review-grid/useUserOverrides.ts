@@ -128,7 +128,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
 // ─── Serialization helpers (for localStorage) ─────────────────
 
 interface SerializedFragment {
-  type: IMetric['type'];
+  type: MetricType;
   value?: unknown;
   image?: string;
   origin?: string;
@@ -138,7 +138,7 @@ interface SerializedFragment {
 
 function serializeFragment(f: IMetric): SerializedFragment {
   return {
-    type: f.type,
+    type: f.type as MetricType,
     value: f.value,
     image: f.image,
     origin: f.origin,

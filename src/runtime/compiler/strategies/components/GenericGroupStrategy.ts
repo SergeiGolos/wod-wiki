@@ -60,7 +60,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics as any), "Group")
+            distributor.distribute(MetricContainer.from(s.metrics), "Group")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

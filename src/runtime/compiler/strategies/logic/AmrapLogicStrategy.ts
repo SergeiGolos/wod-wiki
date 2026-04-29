@@ -70,7 +70,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics as any), "AMRAP")
+            distributor.distribute(MetricContainer.from(s.metrics), "AMRAP")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

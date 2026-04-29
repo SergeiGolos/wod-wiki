@@ -172,7 +172,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         const extractValue = (metrics: MetricContainer): MemoryValueOf<T> | undefined => {
             if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
 
-            // For   'metrics' type, return { groups: [...all metrics:display groups] }
+            // For 'metrics' type, return { groups: [...all metric:display groups] }
             if (type === 'metrics') {
                 return {
                     groups: this._memory

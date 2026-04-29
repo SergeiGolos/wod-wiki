@@ -54,7 +54,7 @@ export class ParsedCodeStatement extends CodeStatement {
   parent?: number;
   children: number[][] = [];
   meta: CodeMetadata = { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' } as any;
-  private _metrics: MetricContainer = MetricContainer.empty(this.id);
+  private _metrics: MetricContainer = MetricContainer.empty();
   metricMeta: Map<IMetric, CodeMetadata> = new Map();
   isLeaf?: boolean;
   hints?: Set<string>;

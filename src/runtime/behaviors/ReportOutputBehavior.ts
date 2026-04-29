@@ -101,7 +101,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 const resultGroups = this.computeSplitTimeResults(
                     ctx,
                     timer,
-                        displayGroups.map(loc => loc.metrics),
+                    displayGroups.map(loc => loc.metrics),
                     completionLabel
                 );
                 this.writeResultGroups(ctx, resultGroups);

@@ -57,7 +57,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             f => f.type === MetricType.Duration
         ) as DurationMetric | undefined;
 
-        const roundsFragment = statements.flatMap(s => MetricContainer.from(s.metrics as any).toArray()).find(
+        const roundsFragment = statements.flatMap(s => MetricContainer.from(s.metrics).toArray()).find(
             f => f.type === MetricType.Rounds
         ) as RoundsMetric | undefined;
 
@@ -84,7 +84,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(MetricContainer.from(s.metrics as any), "EMOM")
+            distributor.distribute(MetricContainer.from(s.metrics), "EMOM")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);
