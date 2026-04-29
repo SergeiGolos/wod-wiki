@@ -18,7 +18,8 @@ export const ORIGIN_PRECEDENCE: Record<MetricOrigin, number> = {
     'tracked': 1,
     'analyzed': 1,
     'compiler': 2,
-    'hinted': 2,
+    'dialect':  2,
+    'hinted':   2,
     'parser': 3,
 };
 
@@ -81,6 +82,15 @@ export function resolveMetricPrecedence(
             filtered = filtered.filter(f => !filter.excludeTypes!.includes(f.type));
         }
     }
+
+    // Suppress: collect types marked for suppression, then remove both the
+    // sentinel and all other metrics of that type from the display result.
+    const suppressedTypes = new Set(
+        filtered.filter(m => m.action === 'suppress').map(m => m.type)
+    );
+    filtered = filtered.filter(m =>
+        m.action !== 'suppress' && !suppressedTypes.has(m.type)
+    );
 
     // Step 2: Group by MetricType
     const byType = new Map<MetricType, IMetric[]>();
