@@ -10,7 +10,7 @@ import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
-import { globalCompiler } from '@/runtime-test-bench/services/testbench-services';
+import { globalCompiler } from '@/runtime/services/runtimeServices';
 import { EditorShellHeader } from './EditorShellHeader';
 
 import { NoteEditor } from '@/components/Editor/NoteEditor';

@@ -25,7 +25,7 @@
 
 import { create } from 'zustand';
 import type { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import type { UseRuntimeExecutionReturn } from '../../runtime-test-bench/hooks/useRuntimeExecution';
+import type { UseRuntimeExecutionReturn } from '../../runtime/hooks/useRuntimeExecution';
 import type { WodBlock } from '../Editor/types';
 import type { DocumentItem } from '../Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';

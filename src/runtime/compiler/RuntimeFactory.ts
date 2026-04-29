@@ -118,6 +118,6 @@ export class RuntimeFactory implements IRuntimeFactory {
  */
 export async function createDefaultRuntimeFactory(): Promise<RuntimeFactory> {
   // Dynamic import to avoid circular dependency and browser compatibility
-  const { globalCompiler } = await import('../../runtime-test-bench/services/testbench-services');
+  const { globalCompiler } = await import('../../runtime/services/runtimeServices');
   return new RuntimeFactory(globalCompiler);
 }

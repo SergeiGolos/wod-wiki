@@ -13,12 +13,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X, Bug } from 'lucide-react';
-import { RuntimeAdapter } from '../../runtime-test-bench/adapters/RuntimeAdapter';
+import { RuntimeAdapter } from '../../runtime/adapters/RuntimeAdapter';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { WorkoutContextPanel } from './WorkoutContextPanel';
 import { WodBlock } from '../Editor/types';
-import { MemoryValueDialog, useMemoryValueDialog } from '../../runtime-test-bench/components/MemoryValuePopover';
-import type { MemoryEntry } from '../../runtime-test-bench/types/interfaces';
+import { MemoryValueDialog, useMemoryValueDialog } from '../../components/debug/MemoryValuePopover';
+import type { MemoryEntry } from '../../runtime/types/executionSnapshot';
 import { RuntimeLogger } from '../../runtime/RuntimeLogger';
 
 type DebugTab = 'parser' | 'stack';

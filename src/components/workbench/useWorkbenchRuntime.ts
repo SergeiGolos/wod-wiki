@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useRuntimeLifecycle } from '../layout/RuntimeLifecycleProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
-import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
+import { useRuntimeExecution } from '../../runtime/hooks/useRuntimeExecution';
 import { WorkoutEvent } from '../../services/WorkoutEventBus';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
 import { NextEvent } from '../../runtime/events/NextEvent';

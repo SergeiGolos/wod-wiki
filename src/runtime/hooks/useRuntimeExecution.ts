@@ -2,21 +2,20 @@
  * useRuntimeExecution - Custom React hook for managing ScriptRuntime execution
  * 
  * Encapsulates execution logic, interval management, and lifecycle cleanup.
- * Replaces 200+ lines of inline execution logic in RuntimeTestBench.
  * 
  * Architecture Decision:
  * - Fixed 20ms tick rate (50 ticks per second)
  * - No speed control (removed for simplicity)
  * - Automatic cleanup on unmount
- * - Reusable across components (future Clock component)
- * 
- * Phase: 1.3 Foundation - Infrastructure
+ * - Reusable across components
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { ScriptRuntime } from '../../runtime/ScriptRuntime';
-import { TickEvent } from '../../runtime/events/TickEvent';
-import { EXECUTION_TICK_RATE_MS } from '../config/constants';
+import type { ScriptRuntime } from '../ScriptRuntime';
+import { TickEvent } from '../events/TickEvent';
+
+/** Fixed execution tick rate in milliseconds (50 ticks per second) */
+const EXECUTION_TICK_RATE_MS = 20;
 
 /**
  * Execution status states
@@ -45,21 +44,6 @@ export interface UseRuntimeExecutionReturn {
 
 /**
  * Manages ScriptRuntime execution lifecycle with fixed 20ms tick rate
- * 
- * Usage:
- * ```typescript
- * const execution = useRuntimeExecution(runtime);
- * 
- * <ControlsPanel
- *   status={execution.status}
- *   elapsedTime={execution.elapsedTime}
- *   onPlay={execution.start}
- *   onPause={execution.pause}
- *   onStop={execution.stop}
- *   onReset={execution.reset}
- *   onStep={execution.step}
- * />
- * ```
  * 
  * @param runtime - The ScriptRuntime instance to execute (null if not ready)
  * @returns Object with execution state and control methods
@@ -127,9 +111,6 @@ export const useRuntimeExecution = (
     }
 
     if (status === 'running') {
-      // Surface feedback instead of silently no-op'ing — see [UX-02].
-      // Callers should bind their Run button's `disabled` (or visibility)
-      // to `status === 'running'` so this branch is unreachable in normal UX.
       console.warn('Cannot start execution: already running');
       return;
     }
