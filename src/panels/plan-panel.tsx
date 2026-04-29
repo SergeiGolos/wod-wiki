@@ -1,7 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useCallback } from 'react';
 import type { WodBlock, WorkoutResults } from '@/components/Editor/types';
 import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { useTheme } from '@/components/theme/ThemeProvider';
+import { useCollectionImport } from '@/hooks/useCollectionImport';
+import type { WodBlockExtract } from '@/lib/wodBlockExtract';
+import { normalizeDialect } from '@/lib/wodBlockExtract';
+import type { IContentProvider } from '@/types/content-provider';
+import { Download } from 'lucide-react';
 
 export interface PlanPanelProps {
   initialContent?: string;
@@ -15,8 +20,8 @@ export interface PlanPanelProps {
   setBlocks: (blocks: any[]) => void;
   setContent: (content: string) => void;
   readOnly?: boolean;
-  /** @deprecated Ignored — content provider not needed by NoteEditor */
-  provider?: any;
+  /** Content provider — used for history import */
+  provider?: IContentProvider;
   /** @deprecated Ignored */
   sourceNoteId?: string;
 }
@@ -30,6 +35,7 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   setContent,
   readOnly = false,
   sourceNoteId,
+  provider,
 }) => {
   const { theme } = useTheme();
 
@@ -44,8 +50,68 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
     return 'vs';
   }, [theme]);
 
+  // Build insert handler — appends each block as a wod fence to current content.
+  // Dialect is normalised to an editor-supported value (wod/log/plan).
+  const handleInsert = useCallback((blocks: WodBlockExtract[]) => {
+    const currentContent = value ?? initialContent ?? '';
+    const appended = blocks
+      .map(b => `\n\n\`\`\`${normalizeDialect(b.dialect)}\n${b.content.trim()}\n\`\`\``)
+      .join('');
+    setContent(currentContent.trimEnd() + appended);
+  }, [setContent, value, initialContent]);
+
+  const { openCollectionImport, openHistoryImport } = useCollectionImport({
+    onInsert: handleInsert,
+    provider,
+  });
+
+  // Keyboard shortcuts: ⌘/Ctrl+Shift+I → collection import, ⌘/Ctrl+Shift+H → history import
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'i') {
+        e.preventDefault();
+        openCollectionImport();
+        return;
+      }
+
+      if (key === 'h' && provider) {
+        e.preventDefault();
+        openHistoryImport();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [openCollectionImport, openHistoryImport, provider]);
+
   return (
     <div className="h-full w-full relative flex flex-col group/plan-panel">
+      {/* Import toolbar */}
+      <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 border-b border-border/40 bg-muted/30">
+        <button
+          type="button"
+          onClick={openCollectionImport}
+          className="flex items-center gap-1.5 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          title="Import from collection (⌘/Ctrl+Shift+I)"
+        >
+          <Download className="h-3 w-3" />
+          <span>From Collection</span>
+        </button>
+        {provider && (
+          <button
+            type="button"
+            onClick={openHistoryImport}
+            className="flex items-center gap-1.5 text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Import from history (⌘/Ctrl+Shift+H)"
+          >
+            <Download className="h-3 w-3" />
+            <span>From History</span>
+          </button>
+        )}
+      </div>
       <div className="flex-1 min-h-0 relative">
         <NoteEditor
           noteId={sourceNoteId}

@@ -1,20 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HistoryLayout } from '@/components/history/HistoryLayout';
 import { useWodCollections } from '@/hooks/useWodCollections';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, FolderOpen, Play, Copy } from 'lucide-react';
 import { ListOfNotes } from '@/components/workbench/ListOfNotes';
 import { NotePreview } from '@/components/workbench/NotePreview';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import { toShortId } from '@/lib/idUtils';
 import { planPath, trackPath } from '@/lib/routes';
-import { createHistoryView } from '@/panels/panel-system/viewDescriptors';
-import { PanelGrid } from '@/panels/panel-system/PanelGrid';
-import type { PanelSpan } from '@/panels/panel-system/types';
 import { CollectionsFilter } from '@/components/history/CollectionsFilter';
+import { cn } from '@/lib/utils';
 
 export const CollectionsPage: React.FC<{ provider: IContentProvider }> = ({ provider }) => {
     const navigate = useNavigate();
@@ -171,24 +165,22 @@ export const CollectionsPage: React.FC<{ provider: IContentProvider }> = ({ prov
         );
     }, [entryToShow, navigate, provider]);
 
-    // Using createHistoryView with our constructed panels matches the layout system
-    const historyView = createHistoryView(mainPanel, previewPanel);
-    const layoutState = {
-        viewId: 'collections',
-        panelSpans: historyView.panels.reduce((acc, p) => {
-            acc[p.id] = p.defaultSpan as PanelSpan;
-            return acc;
-        }, {} as Record<string, PanelSpan>),
-        expandedPanelId: null,
-    };
-
     return (
-        <HistoryLayout>
-            <PanelGrid
-                panels={historyView.panels}
-                layoutState={layoutState}
-                className="h-full"
-            />
-        </HistoryLayout>
+        <div className="flex h-full w-full overflow-hidden">
+            {/* Left: filter + list (full width when nothing selected, half when preview open) */}
+            <div className={cn(
+                "flex flex-col h-full transition-all duration-200",
+                entryToShow ? "w-1/2 border-r border-border" : "w-full"
+            )}>
+                {mainPanel}
+            </div>
+
+            {/* Right: preview panel (only rendered when an entry is selected) */}
+            {entryToShow && (
+                <div className="w-1/2 h-full overflow-hidden">
+                    {previewPanel}
+                </div>
+            )}
+        </div>
     );
 };

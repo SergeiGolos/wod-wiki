@@ -26,7 +26,7 @@ import type { WodCommand } from "./WodCommand";
 import { useWodBlockResults } from "../hooks/useWodBlockResults";
 import { useWodLineResults } from "../hooks/useWodLineResults";
 import type { LineExecutionSummary } from "../hooks/useWodLineResults";
-import { History, ExternalLink, Activity } from "lucide-react";
+import { History, ExternalLink, Activity, Plus, Search } from "lucide-react";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 import { wodResultsField } from "../extensions/wod-results-widget";
@@ -386,6 +386,8 @@ export interface WodCompanionProps {
   extendedResults?: any[];
   /** Callback to open the full-screen review grid for a set of segments. */
   onOpenReview?: (segments: Segment[]) => void;
+  /** Callback to open the import palette for an empty block. */
+  onImportBlock?: () => void;
 }
 
 export const WodCompanion: React.FC<WodCompanionProps> = ({
@@ -403,6 +405,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   commands,
   extendedResults,
   onOpenReview,
+  onImportBlock,
 }) => {
   const noteId = propNoteId || (view.state as any).noteId || "current";
   const { results } = useWodBlockResults(noteId, sectionId, extendedResults);
@@ -498,6 +501,18 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
               </div>
               <div className="h-3 w-[1px] bg-border/40 mx-0.5" />
             </>
+          )}
+          {statements.length === 0 && onImportBlock && (
+            <button
+              type="button"
+              onClick={onImportBlock}
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-border/40 transition-colors"
+              title="Import WOD from collection"
+              aria-label="Import WOD from collection"
+            >
+              <Plus className="h-3 w-3" />
+              <Search className="h-3 w-3" />
+            </button>
           )}
           <CommandButtons
             commands={commands}

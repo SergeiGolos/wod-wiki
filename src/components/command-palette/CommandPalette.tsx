@@ -11,6 +11,9 @@ export const CommandPalette: React.FC = () => {
   useEffect(() => {
     if (isOpen && activeStrategy?.initialInputValue) {
       setSearch(activeStrategy.initialInputValue);
+    } else if (isOpen && activeStrategy) {
+      // Clear search when strategy changes (e.g., navigating to sub-level)
+      setSearch('');
     } else if (!isOpen) {
       setSearch('');
     }
@@ -76,7 +79,9 @@ export const CommandPalette: React.FC = () => {
                       value={`${item.id} ${item.label} ${item.keywords?.join(' ') ?? ''}`}
                       onSelect={() => {
                         item.payload.action();
-                        setIsOpen(false);
+                        if (!item.payload.keepOpen) {
+                          setIsOpen(false);
+                        }
                       }}
                       onPointerDown={(e) => e.preventDefault()}
                       className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground data-[selected='true']:bg-accent data-[selected='true']:text-accent-foreground data-[disabled='true']:pointer-events-none data-[disabled='true']:opacity-50"
