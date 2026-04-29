@@ -1,4 +1,3 @@
-import { JitCompiler } from '../compiler/JitCompiler';
 import { WodScript } from '../../parser/WodScript';
 import { RuntimeError } from '../actions/ErrorAction';
 import { IEventBus } from './events/IEventBus';
@@ -12,6 +11,16 @@ import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRunt
 import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
 import type { IRuntimeBlock } from './IRuntimeBlock';
+import type { ICodeStatement } from '../../core/models/CodeStatement';
+
+/**
+ * Interface for the Just-In-Time compiler that converts parsed statements
+ * into executable runtime blocks. Defined here alongside IScriptRuntime to
+ * avoid a mutual-import cycle between the two interface files.
+ */
+export interface IJitCompiler {
+    compile(nodes: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
+}
 
 /**
  * Listener callback for output statement events.
@@ -31,7 +40,7 @@ export interface IScriptRuntime extends IRuntimeActionable {
     eventBus: IEventBus;
     stack: IRuntimeStack;
 
-    jit: JitCompiler;
+    jit: IJitCompiler;
     clock: IRuntimeClock;
 
     /** Errors collected during runtime execution */

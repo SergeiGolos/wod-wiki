@@ -1,5 +1,6 @@
 // Core runtime interfaces
 export type { IScriptRuntime } from './IScriptRuntime';
+export type { IJitCompiler } from './IJitCompiler';
 export type { IRuntimeBlock, BlockLifecycleOptions } from './IRuntimeBlock';
 export type { IRuntimeAction } from './IRuntimeAction';
 export type { IRuntimeBehavior } from './IRuntimeBehavior';

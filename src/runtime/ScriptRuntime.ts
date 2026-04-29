@@ -1,5 +1,5 @@
 import { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
-import { JitCompiler } from './compiler/JitCompiler';
+import type { IJitCompiler } from './contracts/IJitCompiler';
 import { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';
 import type { RuntimeError } from './actions/ErrorAction';
@@ -37,7 +37,7 @@ export class ScriptRuntime implements IScriptRuntime {
     public readonly eventBus: IEventBus;
     public readonly clock: IRuntimeClock;
     public readonly stack: IRuntimeStack;
-    public readonly jit: JitCompiler;
+    public readonly jit: IJitCompiler;
 
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
@@ -71,7 +71,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     constructor(
         public readonly script: WodScript,
-        compiler: JitCompiler,
+        compiler: IJitCompiler,
         dependencies: ScriptRuntimeDependencies,
         options: RuntimeStackOptions = {}
     ) {

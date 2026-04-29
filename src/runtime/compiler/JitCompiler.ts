@@ -5,12 +5,13 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
 import { isFragmentPromoter } from "../contracts/behaviors/IMetricPromoter";
+import type { IJitCompiler } from "../contracts/IScriptRuntime";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks.
  * Coordinates strategy application to build composed RuntimeBlocks.
  */
-export class JitCompiler {
+export class JitCompiler implements IJitCompiler {
   private dialectRegistry: DialectRegistry;
 
   /**
