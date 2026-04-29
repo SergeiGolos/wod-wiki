@@ -261,18 +261,57 @@ export class ProxyBlock implements IRuntimeBlock {
     }
 
     getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
+        if (type === 'metrics') {
+            const self = this;
+            return {
+                get value(): MemoryValueOf<T> {
+                    return {
+                        groups: self.displayLocations.map(location => location.metrics.clone())
+                    } as unknown as MemoryValueOf<T>;
+                },
+                subscribe: (listener) => {
+                    const unsubscribes = self.displayLocations.map(location =>
+                        location.subscribe(() => {
+                            listener(
+                                { groups: self.displayLocations.map(loc => loc.metrics.clone()) } as unknown as MemoryValueOf<T>,
+                                undefined
+                            );
+                        })
+                    );
+                    return () => unsubscribes.forEach(unsubscribe => unsubscribe());
+                },
+            };
+        }
+
         const loc = this.getMemoryByTag(type as string as MemoryTag)[0];
         if (!loc) return undefined;
 
-        const readValue = () => loc.metrics[0]?.value as MemoryValueOf<T>;
+        const extractValue = (metrics: MetricContainer): MemoryValueOf<T> | undefined => {
+            if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
+
+            if (type === 'metric:display') {
+                return loc as unknown as MemoryValueOf<T>;
+            }
+
+            if (type === 'round') {
+                const metric = metrics[0] as unknown as { current?: number; total?: number; value?: unknown };
+                if (metric?.current !== undefined) {
+                    return { current: metric.current, total: metric.total } as unknown as MemoryValueOf<T>;
+                }
+                return metric?.value as MemoryValueOf<T>;
+            }
+
+            return metrics[0]?.value as MemoryValueOf<T>;
+        };
+
         return {
             get value(): MemoryValueOf<T> {
-                return readValue();
+                return extractValue(loc.metrics) as MemoryValueOf<T>;
             },
             subscribe: (listener) => loc.subscribe((newMetrics, oldMetrics) => {
                 listener(
-                    newMetrics[0]?.value as MemoryValueOf<T> | undefined,
-                    oldMetrics[0]?.value as MemoryValueOf<T> | undefined
+                    extractValue(newMetrics),
+                    extractValue(oldMetrics)
                 );
             }),
         };

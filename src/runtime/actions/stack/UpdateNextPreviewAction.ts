@@ -5,7 +5,7 @@ import { MemoryLocation } from '../../memory/MemoryLocation';
 
 /**
  * UpdateNextPreviewAction resolves the next child statement(s) and stores
- * their metrics in the block's `metrics:next` memory location.
+ * their metrics in the block's `metric:next` memory location.
  *
  * ## Purpose
  *
@@ -16,7 +16,7 @@ import { MemoryLocation } from '../../memory/MemoryLocation';
  *
  * ## Memory Contract
  *
- * - Tag: `metrics:next`
+ * - Tag: `metric:next`
  * - Value: `MetricContainer` from the next statement(s) to be compiled
  * - When `nextStatementIds` is empty, any existing `metric:next` memory
  *   is cleared (updated to empty metric) to signal "no more children".
@@ -25,7 +25,7 @@ import { MemoryLocation } from '../../memory/MemoryLocation';
  *
  * - `useNextPreview` hook → `LookaheadView` component
  * - The UI walks the stack leaf-to-root and shows the deepest block's
- *   `metrics:next` as the "Up Next" preview.
+ *   `metric:next` as the "Up Next" preview.
  */
 export class UpdateNextPreviewAction implements IRuntimeAction {
     readonly type = 'update-next-preview';

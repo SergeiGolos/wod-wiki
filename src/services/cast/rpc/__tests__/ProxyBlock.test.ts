@@ -82,6 +82,33 @@ describe('ProxyBlock', () => {
             }));
             expect(block.getMemoryByTag('metric:display')).toHaveLength(1);
         });
+
+        it("getMemory('metrics') returns display metric groups", () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                displayFragments: [
+                    [{ type: 'text', image: 'Run' } as any],
+                    [{ type: 'duration', image: '10:00' } as any],
+                ],
+            }));
+
+            const memory = block.getMemory('metrics');
+
+            expect(memory).toBeDefined();
+            expect(memory!.value.groups).toHaveLength(2);
+            expect(memory!.value.groups[0].toArray()[0].image).toBe('Run');
+            expect(memory!.value.groups[1].toArray()[0].image).toBe('10:00');
+        });
+
+        it("getMemory('metric:display') returns the display memory location", () => {
+            const block = new ProxyBlock(createSerializedBlock({
+                displayFragments: [[{ type: 'text', image: 'Run' } as any]],
+            }));
+
+            const memory = block.getMemory('metric:display');
+
+            expect(memory).toBeDefined();
+            expect(memory!.value).toBe(block.getMemoryByTag('metric:display')[0]);
+        });
     });
 
     describe('timer memory', () => {

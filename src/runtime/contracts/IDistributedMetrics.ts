@@ -14,6 +14,6 @@ export interface IDistributedMetrics {
  */
 export class PassthroughMetricDistributor implements IDistributedMetrics {
   distribute(base: MetricContainer, _blockType?: string): MetricContainer[] {
-    return [MetricContainer.from(base).clone()];
+    return [base.clone()];
   }
 }

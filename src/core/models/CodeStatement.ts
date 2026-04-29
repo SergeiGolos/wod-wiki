@@ -29,23 +29,29 @@ export abstract class CodeStatement implements ICodeStatement, IMetricSource {
   // ── IMetricSource ─────────────────────────────────────────────
 
   hasMetric(type: MetricType): boolean {
-    return MetricContainer.from(this.metrics, this.id).hasMetric(type);
+    return this.metricContainer.hasMetric(type);
   }
 
   getDisplayMetrics(filter?: MetricFilter): IMetric[] {
-    return MetricContainer.from(this.metrics, this.id).getDisplayMetrics(filter);
+    return this.metricContainer.getDisplayMetrics(filter);
   }
 
   getMetric(type: MetricType): IMetric | undefined {
-    return MetricContainer.from(this.metrics, this.id).getMetric(type);
+    return this.metricContainer.getMetric(type);
   }
 
   getAllMetricsByType(type: MetricType): IMetric[] {
-    return MetricContainer.from(this.metrics, this.id).getAllMetricsByType(type);
+    return this.metricContainer.getAllMetricsByType(type);
   }
 
   get rawMetrics(): IMetric[] {
-    return MetricContainer.from(this.metrics, this.id).rawMetrics;
+    return this.metricContainer.rawMetrics;
+  }
+
+  private get metricContainer(): MetricContainer {
+    return this.metrics instanceof MetricContainer
+      ? this.metrics
+      : MetricContainer.from(this.metrics as unknown as IMetric[], this.id);
   }
 }
 
