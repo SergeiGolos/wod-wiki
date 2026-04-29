@@ -2,7 +2,7 @@ import { ICodeStatement } from './CodeStatement';
 import { IMetric, MetricType } from './Metric';
 import { MetricContainer } from './MetricContainer';
 import { CodeMetadata } from './CodeMetadata';
-import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { TimeSpan } from './TimeSpan';
 import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
 
 /**
@@ -283,20 +283,26 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     // Deprecated proxy computation (kept for backward compat)
     // ═══════════════════════════════════════════════════════════════
 
+    private static spanLength(span: TimeSpan, now: number): number {
+        return Math.max(0, (span.ended ?? now) - span.started);
+    }
+
     private calculateElapsed(): number {
+        const now = Date.now();
         if (this.spans.length === 0) {
-            return this.timeSpan.duration;
+            return OutputStatement.spanLength(this.timeSpan, now);
         }
-        return this.spans.reduce((sum, span) => sum + span.duration, 0);
+        return this.spans.reduce((sum, span) => sum + OutputStatement.spanLength(span, now), 0);
     }
 
     private calculateTotal(): number {
+        const now = Date.now();
         if (this.spans.length === 0) {
-            return this.timeSpan.duration;
+            return OutputStatement.spanLength(this.timeSpan, now);
         }
         const firstStart = this.spans[0].started;
         const lastSpan = this.spans[this.spans.length - 1];
-        const lastEnd = lastSpan.ended ?? Date.now();
+        const lastEnd = lastSpan.ended ?? now;
         return Math.max(0, lastEnd - firstStart);
     }
 
