@@ -1,6 +1,5 @@
 import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
-import { Exercise } from '../../../../exercise';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
 import { IOutputStatement } from '../../../../core/models/OutputStatement';
@@ -28,7 +27,7 @@ export class VolumeProjectionEngine implements IAnalyticsStage {
     const allMetrics = extractMetrics(outputs);
     const workoutResults = this.calculateFromWorkout(allMetrics);
     const exerciseResults = this._runPerExercise(allMetrics);
-    return exerciseResults.length > 0 ? exerciseResults : workoutResults;
+    return [...workoutResults, ...exerciseResults];
   }
 
   private _runPerExercise(metrics: IMetric[]): ProjectionResult[] {
@@ -46,8 +45,7 @@ export class VolumeProjectionEngine implements IAnalyticsStage {
 
     const results: ProjectionResult[] = [];
     for (const [exerciseId, frags] of grouped.entries()) {
-      const stubExercise = { name: exerciseId } as any;
-      results.push(...this.calculateFromFragments(frags, exerciseId, stubExercise));
+      results.push(...this.calculateFromFragments(frags, exerciseId));
     }
     return results;
   }
@@ -67,7 +65,7 @@ export class VolumeProjectionEngine implements IAnalyticsStage {
    * @param definition Exercise definition
    * @returns Array with single volume projection result, or empty if no valid data
    */
-  calculateFromFragments(metrics: IMetric[], _exerciseId: string, definition: Exercise): ProjectionResult[] {
+  calculateFromFragments(metrics: IMetric[], exerciseName: string): ProjectionResult[] {
     if (metrics.length === 0) return [];
 
     let totalVolume = 0;
@@ -104,13 +102,13 @@ export class VolumeProjectionEngine implements IAnalyticsStage {
     const now = new Date();
 
     return [{
-      name: "Total Volume",
+      name: `${exerciseName} Volume`,
       value: totalVolume,
       unit: "kg",
       metricType: MetricType.Volume,
       timeSpan: new TimeSpan(now.getTime(), now.getTime()),
       metadata: {
-        exerciseName: definition.name,
+        exerciseName: exerciseName,
         totalSets,
         source: 'metrics',
       }
