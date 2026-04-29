@@ -107,13 +107,15 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
   const {
     content,
     blocks,
-    selectedBlockId,
     viewMode,
     setActiveBlockId,
     startWorkout,
     completeWorkout,
     currentEntry,
   } = useWorkbench();
+
+  // selectedBlockId is now canonical in the Zustand store (pushed by WorkbenchContext)
+  const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
 
   // --- Document structure → store ---
   const documentItems = useMemo(() => {

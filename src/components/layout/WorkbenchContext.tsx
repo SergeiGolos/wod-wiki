@@ -20,6 +20,7 @@ import type { Section as EditorSection } from '../Editor/types/section'; import 
 import { INavigationProvider } from '@/types/navigation';
 import { useReactRouterNavigation } from '@/hooks/useReactRouterNavigation';
 import { fileProcessor } from '../../services/attachments/FileProcessor';
+import { useWorkbenchSyncStore } from './workbenchSyncStore';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -47,7 +48,7 @@ interface WorkbenchContextState {
   saveState: SaveState;
 
   // Execution State
-  selectedBlockId: string | null; // Target for execution
+  // selectedBlockId removed from context — canonical source is workbenchSyncStore
   viewMode: ViewMode;
 
   // Route context — section & result filtering from URL
@@ -401,6 +402,11 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // Execution State (runtime now managed by RuntimeProvider)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
+  // Sync selectedBlockId to Zustand store (canonical source of truth)
+  useEffect(() => {
+    useWorkbenchSyncStore.getState().setSelectedBlockId(selectedBlockId);
+  }, [selectedBlockId]);
+
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
 
@@ -656,7 +662,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     sections,
     blocks,
     activeBlockId,
-    selectedBlockId,
     viewMode,
     routeSectionId,
     routeResultId,
@@ -688,7 +693,6 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     content,
     blocks,
     activeBlockId,
-    selectedBlockId,
     viewMode,
     routeSectionId,
     routeResultId,
