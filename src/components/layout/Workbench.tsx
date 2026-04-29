@@ -20,7 +20,7 @@ import { planPath } from '@/lib/routes';
 import { NoteEditorProps } from '../Editor/NoteEditor';
 import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
 import { CommandPalette } from '../../components/command-palette/CommandPalette';
-import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File } from 'lucide-react';
+import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File, Plus } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { NotebookMenu } from '../notebook/NotebookMenu';
 import { toNotebookTag } from '../../types/notebook';
@@ -57,6 +57,7 @@ import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
+import { useCollectionImport } from '@/hooks/useCollectionImport';
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
@@ -134,6 +135,20 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   }, []);
 
   const { provider } = useWorkbench();
+
+  // Collection import for nav-bar multi-block import
+  const handleNavInsert = useCallback((blocks: import('@/lib/wodBlockExtract').WodBlockExtract[]) => {
+    const appended = blocks
+      .map(b => `\n\n\`\`\`${b.dialect}\n${b.content.trim()}\n\`\`\``)
+      .join('');
+    setContent((content ?? '').trimEnd() + appended);
+  }, [setContent, content]);
+
+  const { openCollectionImport: openNavCollectionImport } =
+    useCollectionImport({
+      onInsert: handleNavInsert,
+      provider: provider.mode === 'history' ? provider : undefined,
+    });
 
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
@@ -401,6 +416,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
         onCompleteWorkout={handleCompleteWorkout}
         setBlocks={setBlocks}
         setContent={setContent}
+        provider={provider.mode === 'history' ? provider : undefined}
       />
     </div>
   );
@@ -581,6 +597,19 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
             )}
 
             {!isMobile && <div className="h-6 w-px bg-border mx-2" />}
+
+            {/* Import WOD button — shown in plan view for multi-block import */}
+            {viewMode === 'plan' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={openNavCollectionImport}
+                className="text-muted-foreground hover:text-foreground"
+                title="Import WOD from collection (Ctrl+Shift+I)"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
 
             <DebugButton />
 

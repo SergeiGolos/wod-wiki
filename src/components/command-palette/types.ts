@@ -6,6 +6,11 @@ export interface Command {
   context?: string; // 'global', 'editor', 'timer', etc.
   group?: string;
   keywords?: string[]; // For fuzzy search
+  /**
+   * When true, the command palette stays open after this command is executed.
+   * Useful for navigation strategies that swap to a sub-level (e.g. collection → workout → block).
+   */
+  keepOpen?: boolean;
 }
 
 export interface CommandPaletteResult {

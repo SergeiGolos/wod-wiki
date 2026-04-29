@@ -205,6 +205,8 @@ export interface NoteEditorProps {
   widgetComponents?: WidgetRegistry;
   /** ID of section to scroll into view (matches IDs from lineIdsExtension) */
   scrollToSectionId?: string;
+  /** Callback to open the import palette for an empty WOD block. */
+  onImportBlock?: () => void;
 }
 
 export const NoteEditor: React.FC<NoteEditorProps> = ({
@@ -232,6 +234,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   enableInlineRuntime = true,
   widgetComponents,
   scrollToSectionId,
+  onImportBlock,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -728,6 +731,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           commands={effectiveCommands}
           extendedResults={extendedResults}
           onOpenReview={handleOpenReview}
+          onImportBlock={onImportBlock}
           hoverLine={props.hoverLine}
           stickyTopOffset={props.stickyTopOffset}
           isPanelHovered={props.isPanelHovered}
