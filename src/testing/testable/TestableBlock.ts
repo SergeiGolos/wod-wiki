@@ -4,15 +4,10 @@ import { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IBlockContext } from '../../runtime/contracts/IBlockContext';
+import { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
 
-/**
- * Configuration for method interception behavior
- */
-export type InterceptMode =
-  | 'passthrough'  // Call underlying method normally
-  | 'spy'          // Call method and record arguments/return
-  | 'override'     // Replace with custom implementation
-  | 'ignore';      // Skip method call entirely
+// Re-export so existing consumers of this module continue to work
+export type { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
 
 /**
  * Recorded method call for inspection
@@ -46,37 +41,6 @@ export interface StackOperation {
   blockKey: string;
   blockType?: string;
   timestamp: number;
-}
-
-/**
- * Configuration for TestableBlock behavior
- */
-export interface TestableBlockConfig {
-  /** Custom ID for easy identification in visualizations */
-  testId?: string;
-
-  /** Custom label override for display purposes */
-  labelOverride?: string;
-
-  /** Mode for mount() interception */
-  mountMode?: InterceptMode;
-  /** Custom mount implementation when mode is 'override' */
-  mountOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
-
-  /** Mode for next() interception */
-  nextMode?: InterceptMode;
-  /** Custom next implementation when mode is 'override' */
-  nextOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
-
-  /** Mode for unmount() interception */
-  unmountMode?: InterceptMode;
-  /** Custom unmount implementation when mode is 'override' */
-  unmountOverride?: (runtime: IScriptRuntime) => IRuntimeAction[];
-
-  /** Mode for dispose() interception */
-  disposeMode?: InterceptMode;
-  /** Custom dispose implementation when mode is 'override' */
-  disposeOverride?: (runtime: IScriptRuntime) => void;
 }
 
 /**
