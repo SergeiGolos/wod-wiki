@@ -111,7 +111,6 @@ export const ErrorState: Story = {
 };
 
 /**
-/**
  * UX-03 regression: the badge for a `(N Rounds)` group must include the
  * "Rounds" label so it is not confused with a rep count badge.
  *

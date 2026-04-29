@@ -87,17 +87,15 @@ export interface WorkoutItem {
 
 const MAX_TIMESTAMP_ID_RETRIES = 10
 
-/** Generate a date-based name: YYYY-MM-DD-HH-MM-SS-MMM. */
+/** Generate a date-based name: YYYY-MM-DD-HH-MM-SS-MMM, with numeric suffix on collision. */
 async function generatePlaygroundName(): Promise<string> {
-  let name = formatPlaygroundTimestampId(Date.now())
-  let existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
-  for (let attempt = 0; existing && attempt < MAX_TIMESTAMP_ID_RETRIES; attempt++) {
-    await new Promise(resolve => setTimeout(resolve, 1))
-    name = formatPlaygroundTimestampId(Date.now())
-    existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
+  const baseName = formatPlaygroundTimestampId(Date.now())
+  for (let attempt = 0; attempt <= MAX_TIMESTAMP_ID_RETRIES; attempt++) {
+    const name = attempt === 0 ? baseName : `${baseName}-${attempt}`
+    const existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
+    if (!existing) return name
   }
-  if (existing) throw new Error('Unable to allocate unique playground timestamp ID')
-  return name
+  throw new Error('Unable to allocate unique playground timestamp ID')
 }
 
 function PlaygroundRedirect() {
