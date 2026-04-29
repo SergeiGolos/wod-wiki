@@ -44,7 +44,7 @@ import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
 import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
-import { DisplaySyncBridge } from './DisplaySyncBridge';
+
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
@@ -764,7 +764,7 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
         <RuntimeLifecycleProvider factory={runtimeFactory}>
           <WorkbenchSyncBridge>
             <WorkbenchCastBridge />
-            <DisplaySyncBridge />
+
             <WorkbenchContent {...props} />
           </WorkbenchSyncBridge>
         </RuntimeLifecycleProvider>

@@ -31,7 +31,6 @@ import type { DocumentItem } from '../Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import type { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
-import type { ITimerDisplayEntry } from '../../clock/types/DisplayTypes';
 import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
@@ -105,14 +104,6 @@ interface WorkbenchSyncState {
   cursorLine: number;
   highlightedLine: number | null;
 
-  // --- Display State (Derived UI state for casting) ---
-  displayState: {
-    primaryTimer?: ITimerDisplayEntry;
-    secondaryTimers?: ITimerDisplayEntry[];
-    subLabel?: string;
-    isRunning: boolean;
-  };
-
   // --- Cast Transport (shared between CastButtonRpc and WorkbenchCastBridge) ---
   /** Active RPC transport while casting, null otherwise */
   castTransport: IRpcTransport | null;
@@ -140,7 +131,6 @@ interface WorkbenchSyncActions {
   setSelectedBlock: (block: WodBlock | null) => void;
   setCursorLine: (line: number) => void;
   setHighlightedLine: (line: number | null) => void;
-  setDisplayState: (state: WorkbenchSyncState['displayState']) => void;
   setCastTransport: (transport: IRpcTransport | null) => void;
   setViewMode: (mode: ViewMode) => void;
 
@@ -183,10 +173,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   cursorLine: 1,
   highlightedLine: null,
-
-  displayState: {
-    isRunning: false,
-  },
 
   castTransport: null,
 
@@ -247,7 +233,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setSelectedBlock: (block) => set({ selectedBlock: block }),
   setCursorLine: (line) => set({ cursorLine: line }),
   setHighlightedLine: (line) => set({ highlightedLine: line }),
-  setDisplayState: (displayState) => set({ displayState }),
   setCastTransport: (castTransport) => set({ castTransport }),
   setViewMode: (viewMode) => set({ viewMode }),
 
@@ -280,10 +265,6 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
     cursorLine: 1,
     highlightedLine: null,
-
-    displayState: {
-      isRunning: false,
-    },
 
     castTransport: null,
 

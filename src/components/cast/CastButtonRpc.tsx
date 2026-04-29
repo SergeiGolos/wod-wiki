@@ -313,7 +313,7 @@ export const CastButtonRpc: React.FC = () => {
                 const workbenchState = useWorkbenchSyncStore.getState();
                 transport.send({
                     type: 'rpc-workbench-update',
-                    mode: workbenchState.displayState.isRunning ? 'active' : 'idle',
+                    mode: workbenchState.execution.status === 'running' ? 'active' : 'idle',
                 });
 
                 console.log('[CastButtonRpc] Cast session established and synchronized');
