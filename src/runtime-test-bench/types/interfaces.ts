@@ -5,6 +5,7 @@
 import type { ScriptRuntime as RealScriptRuntime } from '../../runtime/ScriptRuntime';
 import type { ICodeStatement } from '../../core/models/CodeStatement';
 import type { IMetric } from '../../core/models/Metric';
+import type { MetricContainer } from '../../core/models/MetricContainer';
 
 // ============================================================================
 // 1. UI STATE LAYER
@@ -185,11 +186,11 @@ export interface RuntimeStackBlock {
 
   // Fragments for unified visualization (new format)
   // These are the pre-defined metrics in metric format for consistent display
-  metrics?: IMetric[];
+  metrics?: MetricContainer;
 
   // Fragment groups for multi-line display (from FragmentMemory)
   // Each inner array is a semantic group (e.g., per-round metrics from + linked statements)
-  metricGroups?: IMetric[][];
+  metricGroups?: MetricContainer[];
 
   // Source
   sourceIds: number[];
