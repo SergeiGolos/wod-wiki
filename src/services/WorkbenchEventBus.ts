@@ -1,4 +1,5 @@
 import { WodBlock } from '../components/Editor/types';
+import { SimpleEventBus } from './events/SimpleEventBus';
 
 export enum WorkbenchEvent {
     // Navigation / Sync
@@ -30,64 +31,58 @@ export interface StartWorkoutPayload {
     block: WodBlock;
 }
 
-// Simple EventEmitter implementation compatible with browser
-class SimpleEventEmitter {
-    private listeners: Record<string, Function[]> = {};
+export type WorkbenchEventPayload =
+    | { type: WorkbenchEvent.SCROLL_TO_BLOCK; payload: ScrollToBlockPayload }
+    | { type: WorkbenchEvent.HIGHLIGHT_BLOCK; payload: HighlightBlockPayload }
+    | { type: WorkbenchEvent.BLOCK_CLICKED; payload: ScrollToBlockPayload }
+    | { type: WorkbenchEvent.NAVIGATE_TO; payload: NavigateToPayload }
+    | { type: WorkbenchEvent.START_WORKOUT; payload: StartWorkoutPayload };
 
-    emit(event: string, ...args: any[]) {
-        if (!this.listeners[event]) return;
-        this.listeners[event].forEach(listener => listener(...args));
-    }
+class WorkbenchEventBus {
+    private bus = new SimpleEventBus<WorkbenchEventPayload>();
 
-    on(event: string, listener: Function) {
-        if (!this.listeners[event]) {
-            this.listeners[event] = [];
-        }
-        this.listeners[event].push(listener);
-        return () => this.off(event, listener);
-    }
+    // --- emit helpers ---
 
-    off(event: string, listener: Function) {
-        if (!this.listeners[event]) return;
-        this.listeners[event] = this.listeners[event].filter(l => l !== listener);
-    }
-}
-
-class WorkbenchEventBus extends SimpleEventEmitter {
     emitScrollToBlock(blockId: string, source: string = 'unknown') {
-        this.emit(WorkbenchEvent.SCROLL_TO_BLOCK, { blockId, source } as ScrollToBlockPayload);
+        this.bus.emit({ type: WorkbenchEvent.SCROLL_TO_BLOCK, payload: { blockId, source } });
     }
 
     emitHighlightBlock(blockId: string, source: string = 'unknown') {
-        this.emit(WorkbenchEvent.HIGHLIGHT_BLOCK, { blockId, source } as HighlightBlockPayload);
+        this.bus.emit({ type: WorkbenchEvent.HIGHLIGHT_BLOCK, payload: { blockId, source } });
     }
 
     emitStartWorkout(block: WodBlock) {
-        this.emit(WorkbenchEvent.START_WORKOUT, { block } as StartWorkoutPayload);
+        this.bus.emit({ type: WorkbenchEvent.START_WORKOUT, payload: { block } });
     }
 
     emitNavigateTo(entryId: string, view?: string) {
-        this.emit(WorkbenchEvent.NAVIGATE_TO, { entryId, view } as NavigateToPayload);
+        this.bus.emit({ type: WorkbenchEvent.NAVIGATE_TO, payload: { entryId, view } });
     }
 
-    onScrollToBlock(callback: (payload: ScrollToBlockPayload) => void) {
-        this.on(WorkbenchEvent.SCROLL_TO_BLOCK, callback);
-        return () => this.off(WorkbenchEvent.SCROLL_TO_BLOCK, callback);
+    // --- subscribe helpers ---
+
+    onScrollToBlock(callback: (payload: ScrollToBlockPayload) => void): () => void {
+        return this.bus.subscribe(e => {
+            if (e.type === WorkbenchEvent.SCROLL_TO_BLOCK) callback(e.payload);
+        });
     }
 
-    onHighlightBlock(callback: (payload: HighlightBlockPayload) => void) {
-        this.on(WorkbenchEvent.HIGHLIGHT_BLOCK, callback);
-        return () => this.off(WorkbenchEvent.HIGHLIGHT_BLOCK, callback);
+    onHighlightBlock(callback: (payload: HighlightBlockPayload) => void): () => void {
+        return this.bus.subscribe(e => {
+            if (e.type === WorkbenchEvent.HIGHLIGHT_BLOCK) callback(e.payload);
+        });
     }
 
-    onStartWorkout(callback: (payload: StartWorkoutPayload) => void) {
-        this.on(WorkbenchEvent.START_WORKOUT, callback);
-        return () => this.off(WorkbenchEvent.START_WORKOUT, callback);
+    onStartWorkout(callback: (payload: StartWorkoutPayload) => void): () => void {
+        return this.bus.subscribe(e => {
+            if (e.type === WorkbenchEvent.START_WORKOUT) callback(e.payload);
+        });
     }
 
-    onNavigateTo(callback: (payload: NavigateToPayload) => void) {
-        this.on(WorkbenchEvent.NAVIGATE_TO, callback);
-        return () => this.off(WorkbenchEvent.NAVIGATE_TO, callback);
+    onNavigateTo(callback: (payload: NavigateToPayload) => void): () => void {
+        return this.bus.subscribe(e => {
+            if (e.type === WorkbenchEvent.NAVIGATE_TO) callback(e.payload);
+        });
     }
 }
 

@@ -1,131 +1,86 @@
 /**
- * WorkoutEventBus - Centralized event system for workout lifecycle events
- * 
- * This event bus decouples workout actions from component hierarchies.
- * Instead of passing callbacks through 4+ component layers, any component
- * can emit events and any component can subscribe to them.
- * 
+ * WorkoutEventBus - Centralized event system for workout lifecycle events.
+ *
+ * Backed by SimpleEventBus<WorkoutEvent>.  Public API is unchanged so all
+ * existing callers continue to work without modification.
+ *
  * Event Types:
  * - start-workout: User wants to start tracking a workout block
- * - stop-workout: User stopped/completed a workout
+ * - stop-workout:  User stopped/completed a workout
  * - pause-workout: User paused the workout
  * - resume-workout: User resumed the workout
- * 
+ * - next-segment:  (deprecated — will move to runtime.dispatch() per doctrine)
+ *
  * @example
  * ```typescript
- * // Emitting an event (from any component)
  * import { workoutEventBus } from '@/services/WorkoutEventBus';
+ *
+ * // Emit
  * workoutEventBus.emit({ type: 'start-workout', block: wodBlock });
- * 
- * // Subscribing to events (usually in a hook or provider)
+ *
+ * // Subscribe (returns unsubscribe function)
  * useEffect(() => {
  *   return workoutEventBus.subscribe((event) => {
- *     if (event.type === 'start-workout') {
- *       // Handle start workout
- *     }
+ *     if (event.type === 'start-workout') { ... }
  *   });
  * }, []);
  * ```
  */
 
 import type { WodBlock, WorkoutResults } from '../components/Editor/types';
+import { SimpleEventBus } from './events/SimpleEventBus';
 
 /**
- * Union type for all workout-related events
+ * Union type for all workout-related events.
+ *
+ * Note: `next-segment` is a runtime-internal concern that leaked here.
+ * It will be removed in a follow-up and routed via runtime.dispatch().
  */
-export type WorkoutEvent = 
+export type WorkoutEvent =
   | { type: 'start-workout'; block: WodBlock }
   | { type: 'stop-workout'; results: WorkoutResults }
   | { type: 'pause-workout' }
   | { type: 'resume-workout' }
   | { type: 'next-segment' };
 
-/**
- * Event subscriber function type
- */
+/** @deprecated Use the unsubscribe function returned by subscribe() */
 export type WorkoutEventSubscriber = (event: WorkoutEvent) => void;
 
-/**
- * WorkoutEventBus class - Simple pub/sub event bus
- * 
- * Thread-safe for React's concurrent mode.
- * Subscribers are called synchronously in registration order.
- */
 class WorkoutEventBus {
-  private subscribers = new Set<WorkoutEventSubscriber>();
+  private bus = new SimpleEventBus<WorkoutEvent>();
   private debugMode = false;
 
-  /**
-   * Enable/disable debug logging
-   */
   setDebugMode(enabled: boolean): void {
     this.debugMode = enabled;
   }
 
-  /**
-   * Subscribe to workout events
-   * @param fn - Callback function to receive events
-   * @returns Unsubscribe function
-   */
   subscribe(fn: WorkoutEventSubscriber): () => void {
-    this.subscribers.add(fn);
-    
-    if (this.debugMode) {
-
-    }
-    
-    // Return unsubscribe function
-    return () => {
-      this.subscribers.delete(fn);
-      if (this.debugMode) {
-
-      }
-    };
+    return this.bus.subscribe(fn);
   }
 
-  /**
-   * Emit an event to all subscribers
-   * @param event - The workout event to emit
-   */
   emit(event: WorkoutEvent): void {
     if (this.debugMode) {
-
+      console.debug('[WorkoutEventBus] emit', event.type);
     }
-    
-    this.subscribers.forEach(fn => {
-      try {
-        fn(event);
-      } catch (error) {
-        console.error('[WorkoutEventBus] Subscriber error:', error);
-      }
-    });
+    try {
+      this.bus.emit(event);
+    } catch (error) {
+      console.error('[WorkoutEventBus] Subscriber error:', error);
+    }
   }
 
-  /**
-   * Get the current subscriber count (for debugging)
-   */
   get subscriberCount(): number {
-    return this.subscribers.size;
+    return this.bus.size;
   }
 
-  /**
-   * Clear all subscribers (mainly for testing)
-   */
   clear(): void {
-    this.subscribers.clear();
-    if (this.debugMode) {
-
-    }
+    // Replace the underlying bus so all listeners are dropped atomically.
+    (this as any).bus = new SimpleEventBus<WorkoutEvent>();
   }
 }
 
-/**
- * Singleton instance of the workout event bus
- * Import this from components that need to emit or subscribe to events
- */
 export const workoutEventBus = new WorkoutEventBus();
 
-// Enable debug mode in development
 const windowWithDebug = typeof window !== 'undefined' ? window as Window & { __WOD_WIKI_DEBUG__?: boolean } : null;
 if (windowWithDebug?.__WOD_WIKI_DEBUG__) {
   workoutEventBus.setDebugMode(true);
