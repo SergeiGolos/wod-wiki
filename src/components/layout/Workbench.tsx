@@ -43,7 +43,7 @@ import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
-import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
+import { useWorkbenchEffects } from './useWorkbenchEffects';
 
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
@@ -85,6 +85,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   hidePlanUnlessDebug = false,
   ...editorProps
 }) => {
+  useWorkbenchEffects();
   const navigate = useNavigate();
   const { noteId: routeId } = useParams<{ noteId: string }>();
   const { theme, setTheme } = useTheme();
@@ -299,7 +300,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [currentEntry?.createdAt, currentEntry?.title, currentEntry?.type, routeId]);
 
-  // Consume synced state from Zustand store (via WorkbenchSyncBridge)
+  // Consume synced state from Zustand store (via useWorkbenchEffects)
   const {
     runtime,
     execution,
@@ -762,11 +763,9 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
         provider={props.provider}
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
-          <WorkbenchSyncBridge>
             <WorkbenchCastBridge />
 
             <WorkbenchContent {...props} />
-          </WorkbenchSyncBridge>
         </RuntimeLifecycleProvider>
       </WorkbenchProvider>
     </CommandProvider>
