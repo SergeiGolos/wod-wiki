@@ -5,7 +5,7 @@ import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { useParams } from 'react-router-dom';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
-import { UseRuntimeExecutionReturn } from '@/runtime-test-bench/hooks/useRuntimeExecution';
+import { UseRuntimeExecutionReturn } from '@/runtime/hooks/useRuntimeExecution';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel';

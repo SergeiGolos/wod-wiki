@@ -11,7 +11,9 @@
  *
  * @see docs/architecture/time-terminology.md
  */
-export class TimeSpan {
+import type { TimeSpan as TimeSpanShape } from '@/core/models/TimeSpan';
+
+export class TimeSpan implements TimeSpanShape {
     constructor(
         public started: number,
         public ended?: number

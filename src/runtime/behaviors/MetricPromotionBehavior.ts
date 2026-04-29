@@ -9,6 +9,7 @@ import { RoundState } from '../memory/MemoryTypes';
 import { IMetricPromoter } from '../contracts/behaviors/IMetricPromoter';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IBlockRef } from '../contracts/primitives/IBlockRef';
 
 export interface PromotionRule {
     metricType: MetricType;
@@ -163,7 +164,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
         return this.findSourceFragmentInBlock(ctx.block, rule);
     }
 
-    private findSourceFragmentInBlock(block: IRuntimeBlock, rule: PromotionRule): IMetric | undefined {
+    private findSourceFragmentInBlock(block: IBlockRef, rule: PromotionRule): IMetric | undefined {
         const memory = block.getAllMemory();
 
         for (const location of memory) {

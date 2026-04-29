@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { RuntimeHistoryLog } from '../history/RuntimeHistoryLog';
 import { FragmentSourceEntry } from '../metrics/MetricSourceRow';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWorkoutTracker } from '../../runtime/hooks/useWorkoutTracker';
+import { useWorkoutTracker } from '@/hooks/useRuntimeTimer';
 import { Sparkles, Sigma } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

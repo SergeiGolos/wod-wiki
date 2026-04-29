@@ -15,23 +15,17 @@ import { TvMinimal, Cast } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { useSubscriptionManager } from '@/components/layout/SubscriptionManagerContext';
-import { SubscriptionManager } from '@/runtime/subscriptions/SubscriptionManager';
-import { ChromecastSdk, type CastSdkState } from '@/services/cast/ChromecastSdk';
-import { SenderCastSignaling } from '@/services/cast/CastSignaling';
-import { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
-import { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
-import { ChromecastEventProvider } from '@/services/cast/rpc/ChromecastEventProvider';
-import { CAST_APP_ID, hasCustomCastAppId } from '@/services/cast/config';
+import { SubscriptionManager } from '@/hooks/useRuntimeTimer';
+import { ChromecastSdk, type CastSdkState, SenderCastSignaling, WebRtcRpcTransport, ChromecastRuntimeSubscription, ChromecastEventProvider, CAST_APP_ID, hasCustomCastAppId, ClockSyncService } from '@/hooks/useCastSignaling';
+import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
 import { CAST_NAMESPACE as CAST_NAMESPACE_STR } from '@/types/cast/messages';
 import { cn } from '@/lib/utils';
-import { ClockSyncService } from '@/services/cast/rpc/ClockSync';
 import { ProjectionSyncProvider } from './ProjectionSyncContext';
 import { useLocation } from 'react-router-dom';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
 import type { WodBlock } from '@/components/Editor/types';
-import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
 
 const CHROMECAST_SUBSCRIPTION_ID = 'chromecast';
 
@@ -346,7 +340,7 @@ export const CastButtonRpc: React.FC = () => {
 
         const unsub = eventProvider.onEvent((event) => {
             const state = useWorkbenchSyncStore.getState();
-            const { handleNext, handleStart, handlePause, handleStop } = state;
+            const { handleNext, handleStart, handlePause, handleStop } = state.handles;
             switch (event.name) {
                 case 'next': handleNext(); break;
                 case 'start': handleStart(); break;

@@ -3,10 +3,11 @@
  */
 
 import { ICodeStatement } from '../../../core/models/CodeStatement';
-import { ScriptRuntime } from '../../../runtime/ScriptRuntime';
-import { MdTimerRuntime } from '../../../parser/md-timer';
+import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
+import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
 import { IOutputStatement } from '../../../core/models/OutputStatement';
+import type { ParseError } from '@/core';
 export * from './section';
 export type { WodDialect } from './section';
 export { VALID_WOD_DIALECTS } from './section';
@@ -27,24 +28,10 @@ export type WodBlockState =
   | 'stopped';   // Workout stopped early
 
 /**
- * Parse error information
+ * Parse error information - re-exported from core types
  */
-export interface ParseError {
-  /** Line number (1-indexed for display) */
-  line?: number;
+export type { ParseError } from '@/core';
 
-  /** Column number (1-indexed for display) */
-  column?: number;
-
-  /** Error message */
-  message: string;
-
-  /** Severity level */
-  severity: 'error' | 'warning' | 'info';
-
-  /** Code excerpt showing the error */
-  excerpt?: string;
-}
 
 import { MetricOrigin } from '../../../core/models/Metric';
 

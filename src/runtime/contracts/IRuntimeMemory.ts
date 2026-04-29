@@ -1,4 +1,5 @@
-import { IMemoryReference, TypedMemoryReference } from './IMemoryReference';
+import type { IMemoryReference } from './IMemoryReference';
+import type { TypedMemoryReference } from '../impl/TypedMemoryReference';
 
 export type Nullable<T> = { [K in keyof T]: T[K] | null };
 

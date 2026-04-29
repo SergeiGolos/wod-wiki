@@ -8,7 +8,7 @@ import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers

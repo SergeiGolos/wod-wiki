@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
-import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, ListTree, Timer, Table2 } from 'lucide-react';
-import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
-import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
+import { useTimerElapsed, useRoundDisplay, useScriptRuntime, useNextPreview } from '@/hooks/useRuntimeTimer';
+import type { IScriptRuntime, IRuntimeBlock, MetricVisibility } from '@/hooks/useRuntimeTimer';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { MetricSourceRow } from '../metrics/MetricSourceRow';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 import { VisibilityBadge } from '../metrics/VisibilityBadge';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
-import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import { BlockDebugDialog } from './BlockDebugDialog';
-import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 
 // ============================================================================
 // History View

@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext } from 'react';
-import type { IRuntimeSubscription } from '../../runtime/contracts/IRuntimeSubscription';
+import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 
 interface ProjectionSyncContextValue {
     updateFromSegments: (
@@ -33,7 +33,7 @@ export function useProjectionSync(): ProjectionSyncContextValue {
 
 export interface ProjectionSyncProviderProps {
     children: React.ReactNode;
-    chromecastSubscription?: IRuntimeSubscription | null;
+    chromecastSubscription?: ICastSubscription | null;
 }
 
 /**
@@ -50,7 +50,7 @@ export const ProjectionSyncProvider: React.FC<ProjectionSyncProviderProps> = ({
         <ProjectionSyncContext.Provider value={{
             updateFromSegments: (segments, totalElapsedMs, segmentCount) => {
                 // Send analytics summary to Chromecast subscription
-                if (chromecastSubscription?.sendAnalyticsSummary) {
+                if (chromecastSubscription) {
                     chromecastSubscription.sendAnalyticsSummary(
                         [],
                         totalElapsedMs,

@@ -36,7 +36,8 @@ export type { IRuntimeBlock } from './runtime/contracts/IRuntimeBlock';
 export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
 export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
 export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
-export type { IMemoryReference, TypedMemoryReference } from './runtime/contracts/IMemoryReference';
+export type { IMemoryReference } from './runtime/contracts/IMemoryReference';
+export type { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
 export type { IEvent } from './runtime/contracts/events/IEvent';
 export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
 

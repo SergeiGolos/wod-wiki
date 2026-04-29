@@ -1,1 +1,0 @@
-export { RuntimeAdapter } from './RuntimeAdapter';

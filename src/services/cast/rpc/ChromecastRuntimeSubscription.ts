@@ -1,4 +1,4 @@
-import { IRuntimeSubscription } from '@/runtime/contracts/IRuntimeSubscription';
+import { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
@@ -14,7 +14,7 @@ import { serializeStackSnapshot, serializeOutput, serializeTrackerUpdate, serial
  * state hasn't changed (timer tick values are excluded; the receiver
  * interpolates elapsed time locally from spans).
  */
-export class ChromecastRuntimeSubscription implements IRuntimeSubscription {
+export class ChromecastRuntimeSubscription implements ICastSubscription {
     readonly id: string;
     private lastFingerprint = '';
 

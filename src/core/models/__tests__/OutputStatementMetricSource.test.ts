@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'bun:test';
 import { OutputStatement, OutputStatementOptions } from '../OutputStatement';
 import { IMetric, MetricType, MetricOrigin } from '../Metric';
 import { IMetricSource } from '../../contracts/IMetricSource';
-import { TimeSpan } from '../../../runtime/models/TimeSpan';
+import { TimeSpanImpl } from '../../models/TimeSpanImpl';
 
 /**
  * Helper to create a minimal IMetric for testing.
@@ -23,10 +23,10 @@ function frag(
 /**
  * Helper to create a minimal TimeSpan for testing.
  */
-function makeTimeSpan(): TimeSpan {
+function makeTimeSpan(): TimeSpanImpl {
     const start = new Date('2024-01-01T12:00:00Z');
     const end = new Date('2024-01-01T12:10:00Z');
-    return new TimeSpan(start.getTime(), end.getTime());
+    return new TimeSpanImpl(start.getTime(), end.getTime());
 }
 
 /**
@@ -305,8 +305,8 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
 
     it('should store provided spans', () => {
         const spans = [
-            new TimeSpan(1000, 4000),
-            new TimeSpan(6000, 9000),
+            new TimeSpanImpl(1000, 4000),
+            new TimeSpanImpl(6000, 9000),
         ];
         const output = new OutputStatement({
             ...makeOptions(),
@@ -320,8 +320,8 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     it('should compute elapsed as sum of span durations (pause-aware)', () => {
         // Two spans: 3s active, 3s active, with 2s pause between
         const spans = [
-            new TimeSpan(1000, 4000), // 3000ms
-            new TimeSpan(6000, 9000), // 3000ms
+            new TimeSpanImpl(1000, 4000), // 3000ms
+            new TimeSpanImpl(6000, 9000), // 3000ms
         ];
         const output = new OutputStatement({
             ...makeOptions(),
@@ -334,8 +334,8 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     it('should compute total as wall-clock bracket from first start to last end', () => {
         // Two spans: first starts at 1000, last ends at 9000
         const spans = [
-            new TimeSpan(1000, 4000),
-            new TimeSpan(6000, 9000),
+            new TimeSpanImpl(1000, 4000),
+            new TimeSpanImpl(6000, 9000),
         ];
         const output = new OutputStatement({
             ...makeOptions(),
@@ -346,7 +346,7 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     });
 
     it('should fall back to timeSpan.duration when no spans provided', () => {
-        const timeSpan = new TimeSpan(5000, 15000); // 10s
+        const timeSpan = new TimeSpanImpl(5000, 15000); // 10s
         const output = new OutputStatement({
             outputType: 'completion',
             timeSpan,
@@ -359,7 +359,7 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
 
     it('should handle timestamp (start === end) as zero-duration span', () => {
         // A "timestamp" is a degenerate span with start === end
-        const timestamp = new TimeSpan(5000, 5000);
+        const timestamp = new TimeSpanImpl(5000, 5000);
         const output = new OutputStatement({
             ...makeOptions(),
             spans: [timestamp],
@@ -371,9 +371,9 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     it('should handle multiple timestamps with zero elapsed but nonzero total', () => {
         // Multiple timestamps (point-in-time markers) spread across time
         const spans = [
-            new TimeSpan(1000, 1000), // timestamp at t=1s
-            new TimeSpan(5000, 5000), // timestamp at t=5s
-            new TimeSpan(8000, 8000), // timestamp at t=8s
+            new TimeSpanImpl(1000, 1000), // timestamp at t=1s
+            new TimeSpanImpl(5000, 5000), // timestamp at t=5s
+            new TimeSpanImpl(8000, 8000), // timestamp at t=8s
         ];
         const output = new OutputStatement({
             ...makeOptions(),
@@ -386,7 +386,7 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     });
 
     it('should handle single continuous span (no pauses)', () => {
-        const spans = [new TimeSpan(2000, 12000)]; // 10s
+        const spans = [new TimeSpanImpl(2000, 12000)]; // 10s
         const output = new OutputStatement({
             ...makeOptions(),
             spans,
@@ -398,10 +398,10 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
 
     it('should handle mix of timestamps and spans', () => {
         const spans = [
-            new TimeSpan(1000, 1000), // timestamp (0ms)
-            new TimeSpan(2000, 5000), // 3000ms active
-            new TimeSpan(7000, 7000), // timestamp (0ms)
-            new TimeSpan(8000, 11000), // 3000ms active
+            new TimeSpanImpl(1000, 1000), // timestamp (0ms)
+            new TimeSpanImpl(2000, 5000), // 3000ms active
+            new TimeSpanImpl(7000, 7000), // timestamp (0ms)
+            new TimeSpanImpl(8000, 11000), // 3000ms active
         ];
         const output = new OutputStatement({
             ...makeOptions(),
@@ -414,13 +414,13 @@ describe('OutputStatement time semantics (spans, elapsed, total)', () => {
     });
 
     it('should be readonly (spans array)', () => {
-        const spans = [new TimeSpan(1000, 4000)];
+        const spans = [new TimeSpanImpl(1000, 4000)];
         const output = new OutputStatement({
             ...makeOptions(),
             spans,
         });
         // ReadonlyArray — original array mutations don't affect output
-        spans.push(new TimeSpan(5000, 8000));
+        spans.push(new TimeSpanImpl(5000, 8000));
         expect(output.spans).toHaveLength(1);
     });
 });

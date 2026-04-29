@@ -12,7 +12,7 @@ import { Diagnostic, linter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { sectionField } from "./section-state";
-import { wodscriptLanguage } from "../../../parser/wodscript-language";
+import { wodscriptLanguage } from "@/hooks/useRuntimeParser";
 import { syntaxTree } from "@codemirror/language";
 
 /**

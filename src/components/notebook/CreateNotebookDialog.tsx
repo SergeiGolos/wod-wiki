@@ -14,7 +14,7 @@ import {
 } from '../headless/Dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { NotebookService } from '../../services/NotebookService';
+import { NotebookService } from '@/hooks/useBrowserServices';
 
 const ICONS = NotebookService.ICONS;
 

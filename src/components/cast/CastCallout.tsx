@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Cast, ArrowUpRight } from 'lucide-react'
-import { ChromecastSdk } from '@/services/cast/ChromecastSdk'
+import { ChromecastSdk } from '@/hooks/useCastSignaling'
 
 export function CastCallout() {
   const [isCasting, setIsCasting] = useState(() => ChromecastSdk.isSessionActive());

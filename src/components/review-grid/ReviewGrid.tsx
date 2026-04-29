@@ -12,7 +12,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { ALL_FRAGMENT_COLUMNS } from './gridPresets';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';

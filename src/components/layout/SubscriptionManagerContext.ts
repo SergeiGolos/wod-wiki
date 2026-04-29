@@ -7,7 +7,7 @@
  */
 
 import { createContext, useContext } from 'react';
-import { SubscriptionManager } from '../../runtime/subscriptions/SubscriptionManager';
+import { SubscriptionManager } from '@/hooks/useRuntimeTimer';
 
 export const SubscriptionManagerContext = createContext<SubscriptionManager | null>(null);
 
