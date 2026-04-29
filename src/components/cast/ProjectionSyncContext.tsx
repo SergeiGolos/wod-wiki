@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext } from 'react';
-import type { ICastSubscription } from '@/runtime/contracts/ICastSubscription';
+import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 
 interface ProjectionSyncContextValue {
     updateFromSegments: (

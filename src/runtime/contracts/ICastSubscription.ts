@@ -23,5 +23,5 @@ export interface ICastSubscription extends IRuntimeSubscription {
  * Type guard to check if a subscription supports Chromecast analytics.
  */
 export function isCastSubscription(s: IRuntimeSubscription): s is ICastSubscription {
-    return 'sendAnalyticsSummary' in s;
+    return 'sendAnalyticsSummary' in s && typeof (s as ICastSubscription).sendAnalyticsSummary === 'function';
 }
