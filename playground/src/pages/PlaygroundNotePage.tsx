@@ -10,21 +10,16 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import { v4 as uuidv4 } from 'uuid'
-import { ArrowTopRightOnSquareIcon, PlayIcon } from '@heroicons/react/20/solid'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
-import { AudioToggle } from '@/components/audio/AudioToggle'
 import { JournalPageShell } from '@/panels/page-shells'
-import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import type { WodBlock } from '@/components/Editor/types'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
-import { useNav } from '../nav/NavContext'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { pendingRuntimes } from '../runtimeStore'
-import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './shared/PageToolbar'
-import { extractPageIndex, mapIndexToL3 } from './shared/pageUtils'
-import newPlaygroundTemplate from '../templates/new-playground.md?raw'
+import { NotePageActions } from './shared/NotePageActions'
+import { useNotePageNav } from './shared/useNotePageNav'
 import { applyTemplate } from './shared/pageUtils'
+import newPlaygroundTemplate from '../templates/new-playground.md?raw'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
 
 const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
@@ -72,40 +67,7 @@ export function PlaygroundNotePage({
   )
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useMemo((): PageNavLink[] => {
-    const base = extractPageIndex(content)
-    return base.map(link => {
-      if (link.type !== 'wod') return link
-      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
-      const block = wodBlocks.find(b => b.startLine + 1 === lineNum)
-      return {
-        ...link,
-        onRun: () => {
-          const b = block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0]
-          if (b) handleStartWorkout(b)
-        },
-      }
-    })
-  }, [content, wodBlocks, handleStartWorkout])
-
-  const { setL3Items } = useNav()
-  useEffect(() => {
-    setL3Items(index.map(link => ({
-      id: link.id,
-      label: link.label,
-      level: 3 as const,
-      action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun
-        ? {
-            id: link.id + '-run',
-            label: 'Run',
-            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-            action: { type: 'call' as const, handler: link.onRun },
-          }
-        : undefined,
-    })))
-    return () => setL3Items([])
-  }, [index, setL3Items])
+  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
 
   useEffect(() => {
     document.title = `Wod.Wiki - ${pageTitle}`
@@ -124,15 +86,7 @@ export function PlaygroundNotePage({
       title={pageTitle}
       index={index}
       onScrollToSection={onScrollToSection}
-      actions={
-        <div className="flex items-center gap-4">
-          <NewEntryButton />
-          <CastButtonRpc />
-          <AudioToggle />
-          <ThemeSwitcher />
-          <ActionsMenu currentWorkout={{ name: pageTitle, content }} items={mapIndexToL3(index)} />
-        </div>
-      }
+      actions={<NotePageActions currentWorkout={{ name: pageTitle, content }} index={index} />}
       editor={
         <NoteEditor
           value={content}

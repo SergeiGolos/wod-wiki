@@ -44,6 +44,7 @@ import { LoadZipPage } from './pages/LoadZipPage'
 import { Toaster } from '@/components/ui/toaster'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
+import { NotePageActions } from './pages/shared/NotePageActions'
 import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
@@ -559,7 +560,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
@@ -568,7 +569,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
@@ -576,11 +577,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
-            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
