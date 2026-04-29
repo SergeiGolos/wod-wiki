@@ -1,4 +1,4 @@
-import { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
+import type { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
 import type { IJitCompiler } from './contracts/IJitCompiler';
 import { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import { WodScript } from '../parser/WodScript';

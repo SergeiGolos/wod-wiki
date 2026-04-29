@@ -1,11 +1,11 @@
-import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
-import { IScriptRuntime } from "../contracts/IScriptRuntime";
-import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
-import { ICodeStatement } from "@/core/models/CodeStatement";
+import type { IRuntimeBlock } from "../contracts/IRuntimeBlock";
+import type { IScriptRuntime } from "../contracts/IScriptRuntime";
+import type { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
+import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
 import { isFragmentPromoter } from "../contracts/behaviors/IMetricPromoter";
-import type { IJitCompiler } from "../contracts/IScriptRuntime";
+import type { IJitCompiler } from "../contracts/IJitCompiler";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks.
