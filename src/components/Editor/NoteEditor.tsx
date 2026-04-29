@@ -136,8 +136,6 @@ import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
 import { v4 as uuidv4 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 
-// Existing state fields
-import { activeWorkoutIdField, wodBlockRuntimeField } from "./state-fields";
 import { themeCompartment, languageCompartment, modeCompartment } from "./compartments";
 
 import type { WodBlock } from "./types";
@@ -575,10 +573,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Read-only state
       EditorState.readOnly.of(readonly),
-
-      // Existing state fields
-      activeWorkoutIdField,
-      wodBlockRuntimeField,
     ],
     [
       onChange,

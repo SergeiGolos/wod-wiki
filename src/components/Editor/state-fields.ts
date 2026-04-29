@@ -1,52 +1,6 @@
-import { StateField, StateEffect } from "@codemirror/state";
-import { WodBlockState } from "./types";
-
-/**
- * Effect to update the active workout block ID.
- */
-export const setActiveWorkoutId = StateEffect.define<string | null>();
-
-/**
- * Field storing the currently active workout block ID.
- */
-export const activeWorkoutIdField = StateField.define<string | null>({
-  create() { return null; },
-  update(value, tr) {
-    for (let e of tr.effects) if (e.is(setActiveWorkoutId)) return e.value;
-    return value;
-  }
-});
-
-/**
- * Metadata for a WOD block's runtime state.
- */
-export interface WodBlockRuntimeMeta {
-  blockId: string;
-  state: WodBlockState;
-  progress?: number; // 0 to 1
-  completedExercises?: Set<number>; // statement IDs
-  collectibles?: Record<string, any>;
-}
-
-/**
- * Effect to update runtime metadata for a WOD block.
- */
-export const setWodBlockRuntimeMeta = StateEffect.define<WodBlockRuntimeMeta>();
-
-/**
- * Field storing runtime metadata for all WOD blocks in the document.
- */
-export const wodBlockRuntimeField = StateField.define<Record<string, WodBlockRuntimeMeta>>({
-  create() { return {}; },
-  update(value, tr) {
-    let newValue = { ...value };
-    let changed = false;
-    for (let e of tr.effects) {
-      if (e.is(setWodBlockRuntimeMeta)) {
-        newValue[e.value.blockId] = e.value;
-        changed = true;
-      }
-    }
-    return changed ? newValue : value;
-  }
-});
+// CM6 StateField definitions for the Note Editor.
+// Active workout ID and WOD block runtime metadata were removed — they duplicated
+// Zustand WorkoutStore state (activeBlockId, blocks) and were never consumed by
+// any CM6 plugin/extension.  Consumers should read directly from the store:
+//   import { useWorkoutStore } from '../layout/WorkoutStore';
+//   const activeBlockId = useWorkoutStore(s => s.activeBlockId);
