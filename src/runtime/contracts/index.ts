@@ -20,7 +20,7 @@ export { TypedMemoryReference } from '../impl/TypedMemoryReference';
 export { PassthroughMetricDistributor } from '../impl/PassthroughMetricDistributor';
 
 // Primitive interfaces (interface-segregation layer)
-export type { IRuntimeActionable, IBlockRef, IMemoryEntryShim } from './primitives';
+export type { IRuntimeActionable, IRuntimeActionLike, IBlockRef, IMemoryEntryShim, IEventDispatchContext, IEventDispatchStack } from './primitives';
 
 // Subscription & Event Provider interfaces
 export type { IRuntimeSubscription } from './IRuntimeSubscription';

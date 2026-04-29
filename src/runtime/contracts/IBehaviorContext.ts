@@ -1,6 +1,6 @@
 import { IEvent } from './events/IEvent';
 import { IRuntimeAction } from './IRuntimeAction';
-import { IBlockRef } from './primitives/IBlockRef';
+import type { IBlockRef } from './primitives/IBlockRef';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';

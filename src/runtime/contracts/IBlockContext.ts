@@ -1,5 +1,5 @@
-import { IMemoryReference } from './IMemoryReference';
-import { TypedMemoryReference } from '../impl/TypedMemoryReference';
+import type { IMemoryReference } from './IMemoryReference';
+import type { TypedMemoryReference } from '../impl/TypedMemoryReference';
 import { MemoryTypeEnum } from '../models/MemoryTypeEnum';
 import { IAnchorValue } from './IAnchorValue';
 

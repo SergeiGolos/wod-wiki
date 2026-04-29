@@ -10,8 +10,8 @@ import { IEvent } from './events/IEvent';
 import { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
 import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRuntimeOptions';
 import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
-import type { IBlockRef } from './primitives/IBlockRef';
 import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
+import type { IRuntimeBlock } from './IRuntimeBlock';
 
 /**
  * Listener callback for output statement events.
@@ -68,7 +68,7 @@ export interface IScriptRuntime extends IRuntimeActionable {
      * @param block The block to push
      * @param lifecycle Optional lifecycle options (startTime, etc.)
      */
-    pushBlock(block: IBlockRef, lifecycle?: BlockLifecycleOptions): void;
+    pushBlock(block: IRuntimeBlock, lifecycle?: BlockLifecycleOptions): void;
 
     /**
      * Pops the current block from the runtime stack.

@@ -1,16 +1,20 @@
 import type { IEvent } from './IEvent';
-import type { IRuntimeActionable } from '../primitives/IRuntimeActionable';
+import type { IEventDispatchContext } from '../primitives/IEventDispatchContext';
 import type { IRuntimeAction } from '../IRuntimeAction';
 import type { IEventHandler } from './IEventHandler';
 
 /**
  * Simple callback type for UI event listeners that don't produce actions.
  *
- * Receives an {@link IRuntimeActionable} primitive instead of `IScriptRuntime`
- * to break the `IEventBus ↔ IScriptRuntime` cycle. Concrete callbacks are
- * free to narrow the parameter type to `IScriptRuntime`.
+ * Receives an {@link IEventDispatchContext} — the same primitive used by
+ * {@link IEventBus.dispatch} — so callbacks can rely on the stack
+ * accessors and `handle()` / `do()` surface the bus already requires.
+ * This avoids importing `IScriptRuntime` (which would re-introduce the
+ * `IEventBus ↔ IScriptRuntime` cycle) while keeping the contract
+ * type-accurate. Concrete callbacks are free to narrow the parameter type
+ * to `IScriptRuntime`.
  */
-export type EventCallback = (event: IEvent, runtime: IRuntimeActionable) => void;
+export type EventCallback = (event: IEvent, runtime: IEventDispatchContext) => void;
 
 /**
  * Handler scope determines when a handler receives events.
@@ -63,20 +67,24 @@ export interface IEventBus {
      * Dispatch an event and return the resulting actions without executing them.
      * Used internally when actions need special handling.
      *
-     * The runtime is typed as the {@link IRuntimeActionable} primitive to break
-     * the `IEventBus ↔ IScriptRuntime` cycle.
+     * @param runtime - The runtime context. Typed as the
+     * {@link IEventDispatchContext} primitive so the implementation can rely
+     * on `stack` (for scope filtering) and `errors` (for early-exit) without
+     * importing `IScriptRuntime` and re-introducing the
+     * `IEventBus ↔ IScriptRuntime` cycle.
      */
-    dispatch(event: IEvent, runtime: IRuntimeActionable): IRuntimeAction[];
+    dispatch(event: IEvent, runtime: IEventDispatchContext): IRuntimeAction[];
 
     /**
      * Dispatch an event and execute all resulting actions immediately.
      * This is the primary entry point for event handling.
      *
      * @param event - The event to dispatch
-     * @param runtime - The runtime context (typed as the {@link IRuntimeActionable}
-     *                  primitive to break the `IEventBus ↔ IScriptRuntime` cycle)
+     * @param runtime - The runtime context. Typed as the
+     * {@link IEventDispatchContext} primitive so the implementation can call
+     * `runtime.handle(event)` without importing `IScriptRuntime`.
      */
-    emit(event: IEvent, runtime: IRuntimeActionable): void;
+    emit(event: IEvent, runtime: IEventDispatchContext): void;
 
     /**
      * Dispose of all handlers and callbacks, releasing all references.

@@ -1,5 +1,5 @@
 import type { IEvent } from "./IEvent";
-import type { IRuntimeActionable } from "../primitives/IRuntimeActionable";
+import type { IEventDispatchContext } from "../primitives/IEventDispatchContext";
 import type { IRuntimeAction } from "../IRuntimeAction";
 
 /**
@@ -21,9 +21,11 @@ export type EventHandlerResponse = {
  *
  * For error handling, use the ErrorAction to push errors to runtime.errors.
  *
- * The runtime is typed as the {@link IRuntimeActionable} primitive to break
- * the contract-layer cycle through `IScriptRuntime`. Concrete handler
- * implementations are free to narrow their parameter type to `IScriptRuntime`.
+ * The runtime is typed as the {@link IEventDispatchContext} primitive so
+ * handlers can rely on the stack accessors / `do()` / `handle()` surface
+ * the bus already requires, without importing `IScriptRuntime` and
+ * re-introducing the contract-layer cycle. Concrete handler implementations
+ * are free to narrow their parameter type to `IScriptRuntime`.
  */
 
 export interface IEventHandler {
@@ -39,5 +41,5 @@ export interface IEventHandler {
    * @param runtime Runtime context for event processing (primitive form)
    * @returns Array of actions to execute (empty if event not handled)
    */
-  handler(event: IEvent, runtime: IRuntimeActionable): IRuntimeAction[];
+  handler(event: IEvent, runtime: IEventDispatchContext): IRuntimeAction[];
 }

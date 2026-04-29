@@ -1,4 +1,4 @@
-import type { IRuntimeActionable } from "./primitives/IRuntimeActionable";
+import type { IRuntimeActionable, IRuntimeActionLike } from "./primitives/IRuntimeActionable";
 
 /**
  * Interface for actions that can be performed by the runtime in response to events.
@@ -8,15 +8,16 @@ import type { IRuntimeActionable } from "./primitives/IRuntimeActionable";
  * LIFO stack, ensuring depth-first processing without actions needing to know
  * about stack mechanics.
  *
- * The `do()` method receives the runtime via the {@link IRuntimeActionable}
- * primitive instead of `IScriptRuntime`. This breaks the cycle
- * `IRuntimeAction ↔ IScriptRuntime`. Concrete implementations are free to
- * narrow their parameter type to `IScriptRuntime` (method bivariance allows
- * this), and callers always pass an `IScriptRuntime` since `IScriptRuntime
- * extends IRuntimeActionable`.
+ * Extends {@link IRuntimeActionLike} so the queue surface
+ * ({@link IRuntimeActionable.do}/{@link IRuntimeActionable.doAll}) accepts
+ * `IRuntimeAction` instances. The `do()` method receives the runtime via the
+ * {@link IRuntimeActionable} primitive instead of `IScriptRuntime`. This
+ * breaks the cycle `IRuntimeAction ↔ IScriptRuntime`. Concrete
+ * implementations are free to narrow their parameter type to `IScriptRuntime`
+ * (method bivariance allows this), and callers always pass an
+ * `IScriptRuntime` since `IScriptRuntime extends IRuntimeActionable`.
  */
-
-export interface IRuntimeAction {
+export interface IRuntimeAction extends IRuntimeActionLike {
   /** Type of action to perform */
   type: string;
 
