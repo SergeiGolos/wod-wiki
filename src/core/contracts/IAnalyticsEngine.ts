@@ -1,6 +1,6 @@
 import { IOutputStatement } from '../models/OutputStatement';
 import { IAnalyticsStage } from '../analytics/IAnalyticsStage';
-import { RuntimeStackTracker } from '../../runtime/contracts/IRuntimeOptions';
+import { RuntimeStackTracker } from './RuntimeStackTracker';
 
 export interface IAnalyticsEngine {
   /** Register a unified stage */

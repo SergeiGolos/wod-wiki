@@ -23,6 +23,5 @@ export interface CollectionSpan {
 
 /**
  * TimeSpan represents a discrete period of time.
- * Re-exported from runtime for convenience.
  */
-export { TimeSpan } from '../../runtime/models/TimeSpan';
+export { TimeSpan } from './TimeSpan';

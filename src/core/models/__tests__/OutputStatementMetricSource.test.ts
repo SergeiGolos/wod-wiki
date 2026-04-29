@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'bun:test';
 import { OutputStatement, OutputStatementOptions } from '../OutputStatement';
 import { IMetric, MetricType, MetricOrigin } from '../Metric';
 import { IMetricSource } from '../../contracts/IMetricSource';
-import { TimeSpan } from '../../../runtime/models/TimeSpan';
+import { TimeSpan } from '../../models/TimeSpanImpl';
 
 /**
  * Helper to create a minimal IMetric for testing.

@@ -6,9 +6,10 @@
  */
 
 import { TypedMemoryReference } from './runtime';
-import type { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import type { RuntimeBlock } from '@/runtime/RuntimeBlock';
-import type { TimeSpan } from '@/runtime/models/TimeSpan';
+
+// NOTE: `core/` must not depend on `runtime/`. These runtime-facing types are
+// intentionally declared as `unknown` here for legacy/compatibility.
+import type { TimeSpan } from '../models/OutputStatement';
 
 /**
  * Workout type constants
@@ -94,13 +95,13 @@ export interface ClockAnchorProps {
  */
 export interface TimerHarnessResult {
   /** Script runtime instance */
-  runtime: ScriptRuntime;
+  runtime: unknown;
 
   /** Block key for the timer */
   blockKey: string;
 
   /** Timer block instance */
-  block: RuntimeBlock;
+  block: unknown;
 
   /** Memory references for timer state */
   memoryRefs: {
@@ -143,8 +144,3 @@ export interface TimerHarnessProps {
   /** Children to render with runtime context */
   children: (harness: TimerHarnessResult) => React.ReactNode;
 }
-
-/**
- * Re-export TimeSpan from models
- */
-export type { TimeSpan } from '@/runtime/models/TimeSpan';

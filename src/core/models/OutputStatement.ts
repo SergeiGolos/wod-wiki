@@ -2,7 +2,7 @@ import { ICodeStatement } from './CodeStatement';
 import { IMetric, MetricType } from './Metric';
 import { MetricContainer } from './MetricContainer';
 import { CodeMetadata } from './CodeMetadata';
-import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { TimeSpan } from './TimeSpan';
 import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
 
 /**
