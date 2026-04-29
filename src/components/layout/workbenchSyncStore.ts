@@ -99,6 +99,7 @@ interface WorkbenchSyncState {
   // --- Document Structure ---
   documentItems: DocumentItem[];
   selectedBlock: WodBlock | null;
+  selectedBlockId: string | null;
 
   // --- Editor Bridge ---
   cursorLine: number;
@@ -129,6 +130,7 @@ interface WorkbenchSyncActions {
   setHoveredBlockKey: (key: string | null) => void;
   setDocumentItems: (items: DocumentItem[]) => void;
   setSelectedBlock: (block: WodBlock | null) => void;
+  setSelectedBlockId: (id: string | null) => void;
   setCursorLine: (line: number) => void;
   setHighlightedLine: (line: number | null) => void;
   setCastTransport: (transport: IRpcTransport | null) => void;
@@ -170,6 +172,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   documentItems: [],
   selectedBlock: null,
+  selectedBlockId: null,
 
   cursorLine: 1,
   highlightedLine: null,
@@ -231,6 +234,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setHoveredBlockKey: (key) => set({ hoveredBlockKey: key }),
   setDocumentItems: (items) => set({ documentItems: items }),
   setSelectedBlock: (block) => set({ selectedBlock: block }),
+  setSelectedBlockId: (id) => set({ selectedBlockId: id }),
   setCursorLine: (line) => set({ cursorLine: line }),
   setHighlightedLine: (line) => set({ highlightedLine: line }),
   setCastTransport: (castTransport) => set({ castTransport }),
@@ -262,6 +266,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
     documentItems: [],
     selectedBlock: null,
+    selectedBlockId: null,
 
     cursorLine: 1,
     highlightedLine: null,
