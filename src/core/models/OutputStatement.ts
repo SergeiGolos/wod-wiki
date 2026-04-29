@@ -283,20 +283,26 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     // Deprecated proxy computation (kept for backward compat)
     // ═══════════════════════════════════════════════════════════════
 
+    private static spanLength(span: TimeSpan, now: number): number {
+        return Math.max(0, (span.ended ?? now) - span.started);
+    }
+
     private calculateElapsed(): number {
+        const now = Date.now();
         if (this.spans.length === 0) {
-            return (this.timeSpan.ended ?? Date.now()) - this.timeSpan.started;
+            return OutputStatement.spanLength(this.timeSpan, now);
         }
-        return this.spans.reduce((sum, span) => sum + ((span.ended ?? Date.now()) - span.started), 0);
+        return this.spans.reduce((sum, span) => sum + OutputStatement.spanLength(span, now), 0);
     }
 
     private calculateTotal(): number {
+        const now = Date.now();
         if (this.spans.length === 0) {
-            return Math.max(0, (this.timeSpan.ended ?? Date.now()) - this.timeSpan.started);
+            return OutputStatement.spanLength(this.timeSpan, now);
         }
         const firstStart = this.spans[0].started;
         const lastSpan = this.spans[this.spans.length - 1];
-        const lastEnd = lastSpan.ended ?? Date.now();
+        const lastEnd = lastSpan.ended ?? now;
         return Math.max(0, lastEnd - firstStart);
     }
 
