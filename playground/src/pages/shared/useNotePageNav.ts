@@ -67,8 +67,12 @@ export function useNotePageNav({
         ...badge,
         onRun: () => {
           // Re-resolve at click time in case `wodBlocks` changed.
-          const b = block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0]
-          if (b) onStartWorkout(b)
+          // Falls back to `wodBlocks[0]` to preserve prior behavior of all
+          // three pages this hook replaced — clicking a wod link before the
+          // parser has produced a precise match still runs *something*.
+          const resolvedBlock =
+            block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0]
+          if (resolvedBlock) onStartWorkout(resolvedBlock)
         },
       }
     })
