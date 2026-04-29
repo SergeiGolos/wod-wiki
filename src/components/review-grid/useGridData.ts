@@ -373,8 +373,10 @@ function groupFragmentIntoCell(
 
   const existing = cells.get(ft);
   if (existing) {
-    // Mutably append — safe because we've just allocated these arrays
-    existing.metrics.add(frag);
+    cells.set(ft, {
+      metrics: existing.metrics.clone().add(frag),
+      hasUserOverride: existing.hasUserOverride,
+    });
   } else {
     cells.set(ft, {
       metrics: MetricContainer.empty(ft).add(frag),

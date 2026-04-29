@@ -303,9 +303,9 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                 source = MetricContainer.empty(block.key.toString());
             } else {
                 // Create an IMetricSource adapter from the memory locations
-                const allFragments = MetricContainer.empty(block.key.toString());
-                for (const loc of displayLocs) allFragments.merge(loc.metrics);
-                source = allFragments;
+                const mergedMetrics = MetricContainer.empty(block.key.toString());
+                for (const loc of displayLocs) mergedMetrics.merge(loc.metrics);
+                source = mergedMetrics;
             }
 
             const isLeaf = index === orderedBlocks.length - 1;

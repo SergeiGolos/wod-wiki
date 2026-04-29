@@ -118,7 +118,10 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // Default single-output result
         const resultFragments = shouldComputeTimeResults
             ? this.computeTimeResults(ctx, timer, completionLabel)
-            : MetricContainer.empty(ctx.block.key.toString()).add(new SystemTimeMetric(new Date(), ctx.block.key.toString()));
+            : MetricContainer.from(
+                [new SystemTimeMetric(new Date(), ctx.block.key.toString())],
+                ctx.block.key.toString()
+            );
 
         this.writeResultMemory(ctx, resultFragments);
 

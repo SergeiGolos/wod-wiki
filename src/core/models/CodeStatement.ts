@@ -64,6 +64,7 @@ export class ParsedCodeStatement extends CodeStatement {
   }
 
   set metrics(metrics: MetricContainer | IMetric[]) {
+    // Always clone on assignment so ParsedCodeStatement owns its handoff container.
     this._metrics = MetricContainer.from(metrics, this.id);
   }
 

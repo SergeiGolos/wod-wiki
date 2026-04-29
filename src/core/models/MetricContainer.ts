@@ -11,6 +11,12 @@ import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrece
  * `OutputStatement`. Immutable-friendly: mutating methods return `this`
  * for chaining; non-mutating projections return new arrays.
  *
+ * Numeric indexes are mirrored for backwards compatibility with existing
+ * `metrics[0]` call sites, but `MetricContainer` is not an Array. Prefer
+ * `.toArray()` for handoff to array APIs and iterator/lookup methods for reads.
+ * Index mirroring is synchronized on mutation and is intended for small metric
+ * groups, not performance-critical bulk processing.
+ *
  * @example
  * ```ts
  * const c = MetricContainer.from(statement.metrics);
@@ -194,6 +200,8 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
 
     /**
      * Merge another container (or raw array) into this one.
+     * The structural `{ metrics: MetricContainer }` shape supports
+     * `IMetricContainer` handoff contracts without importing that interface here.
      *
      * For each MetricType present in the incoming metrics:
      * - If the incoming metric's origin has higher precedence (lower rank)
