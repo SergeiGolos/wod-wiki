@@ -67,7 +67,7 @@ export const CompilationPanel: React.FC<CompilationPanelProps> = ({
                       [{columnStart}-{columnEnd}]
                     </td>
                     <td className="px-4 py-3 border-b border-gray-100">
-                      <MetricVisualizer metrics={statement.metrics} />
+                      <MetricVisualizer metrics={statement.metrics.toArray()} />
                     </td>
                   </tr>
                 );

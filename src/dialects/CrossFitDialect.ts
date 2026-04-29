@@ -1,6 +1,7 @@
 import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { MetricType, IMetric } from "../core/models/Metric";
+import { MetricType } from "../core/models/Metric";
+import { MetricContainer } from "../core/models/MetricContainer";
 
 /**
  * CrossFit dialect for recognizing CrossFit-specific workout patterns.
@@ -18,7 +19,7 @@ export class CrossFitDialect implements IDialect {
   /**
    * Check if any Action or Effort metrics contains a keyword (case-insensitive)
    */
-  private hasKeyword(metrics: IMetric[], keyword: string): boolean {
+  private hasKeyword(metrics: MetricContainer, keyword: string): boolean {
     return metrics.some(f =>
       (f.type === MetricType.Action || f.type === MetricType.Effort) &&
       typeof f.value === 'string' &&
@@ -35,7 +36,7 @@ export class CrossFitDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics || [];
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     // Check for AMRAP - time-bound workout
     const isAmrap = this.hasKeyword(metrics, 'AMRAP');

@@ -5,6 +5,7 @@ import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
 import { RuntimeBlock } from "../RuntimeBlock";
 import { IScriptRuntime } from "../contracts/IScriptRuntime";
 import { IMetric, MetricType } from "../../core/models/Metric";
+import { MetricContainer } from "../../core/models/MetricContainer";
 import { MemoryLocation } from "../memory/MemoryLocation";
 import { RestBlock } from "../blocks/RestBlock";
 import { PushBlockAction } from "../actions/stack/PushBlockAction";
@@ -49,7 +50,7 @@ export class BlockBuilder {
     private key: BlockKey | undefined;
     private label: string = "";
     private blockType: string = "Block";
-    private metrics: IMetric[][] | undefined;
+    private metrics: MetricContainer[] | undefined;
     private sourceIds: number[] = [];
     /** Pending round config stored by asRepeater(), consumed by asContainer() */
     private pendingRoundConfig: RepeaterConfig | undefined;
@@ -135,8 +136,8 @@ export class BlockBuilder {
         return this;
     }
 
-    setFragments(metrics: IMetric[][]): BlockBuilder {
-        this.metrics = metrics;
+    setFragments(metrics: IMetric[][] | MetricContainer[]): BlockBuilder {
+        this.metrics = metrics.map(group => MetricContainer.from(group));
         return this;
     }
 

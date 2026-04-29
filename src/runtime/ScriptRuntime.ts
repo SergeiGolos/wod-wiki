@@ -19,6 +19,7 @@ import { ExecutionContext } from './ExecutionContext';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
 import { IMetric, MetricType } from '../core/models/Metric';
+import { MetricContainer } from '../core/models/MetricContainer';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
@@ -554,7 +555,7 @@ export class ScriptRuntime implements IScriptRuntime {
             timeSpan: new TimeSpan(now.getTime(), now.getTime()),
             sourceBlockKey: block.key.toString(),
             stackLevel: event.depth,
-            metrics: [metric],
+            metrics: MetricContainer.empty(block.key.toString()).add(metric),
         });
 
         this.addOutput(output);
@@ -570,17 +571,17 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // If we have multiple result groups, emit one segment for each
         for (let i = 0; i < resultLocs.length; i++) {
-            const resultFragments = resultLocs[i].metrics ?? [];
+            const resultFragments = resultLocs[i].metrics ?? MetricContainer.empty();
             
             // Match with corresponding display metrics if available
             // (Assumes 1:1 pairing from ReportOutputBehavior)
-            const sourceFragments = displayLocs[i]?.metrics ?? [];
+            const sourceFragments = displayLocs[i]?.metrics ?? MetricContainer.empty();
 
             // 2. Merge: Runtime results override source definitions (for same type)
             const resultTypes = new Set(resultFragments.map(f => f.type));
             const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.type));
 
-            const metrics = [...effectiveSourceFragments, ...resultFragments];
+            const metrics = MetricContainer.from(effectiveSourceFragments, block.key.toString()).merge(resultFragments);
 
             if (metrics.length === 0) {
                 continue;
@@ -593,7 +594,7 @@ export class ScriptRuntime implements IScriptRuntime {
             const timeSpan = new TimeSpan(fallbackStartMs, fallbackEndMs);
 
             // Extract internal timer spans if available
-            const spans = this.extractSpansFromResultFragments(metrics);
+            const spans = this.extractSpansFromResultFragments(metrics.toArray());
 
             const output = new OutputStatement({
                 outputType: 'segment',
@@ -651,14 +652,14 @@ export class ScriptRuntime implements IScriptRuntime {
             const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset + 1);
 
             // Start with the parsed metrics from the statement
-            const metrics: IMetric[] = stmt.metrics ? [...stmt.metrics] : [];
+            const metrics = MetricContainer.from(stmt.metrics as any, stmt.id);
 
             // Add a Label metrics for the raw text if one doesn't exist? 
             // Or just always add it as the "Source" representation?
             // The existing code created a valid 'Label' metrics. Let's keep it but maybe ensuring it doesn't duplicate if 'Text' exists?
             // For 'load', having the raw text as a Label is useful for the "Name" column.
 
-            metrics.push({
+            metrics.add({
                 type: MetricType.Label,
                 image: rawText || 'Statement',
                 value: rawText,
@@ -697,8 +698,7 @@ export class ScriptRuntime implements IScriptRuntime {
         const currentBlock = this.stack.current;
         const blockKey = currentBlock?.key.toString() ?? 'root';
 
-        const metrics: IMetric[] = [
-            {
+        const metrics = MetricContainer.empty(blockKey).add({
                 type: MetricType.System,
                 image: `event: ${event.name}`,
                 value: {
@@ -709,8 +709,7 @@ export class ScriptRuntime implements IScriptRuntime {
                 },
                 origin: 'runtime',
                 timestamp: now
-            }
-        ];
+            });
 
         const output = new OutputStatement({
             outputType: 'event',
@@ -726,15 +725,13 @@ export class ScriptRuntime implements IScriptRuntime {
     private emitCompilerOutput(block: IRuntimeBlock): void {
         // Emit behavior configuration/compiler info
         const now = this.clock.now;
-        const metrics: IMetric[] = [
-            {
+        const metrics = MetricContainer.empty(block.key.toString()).add({
                 type: MetricType.Label,
                 image: `Behaviors: ${block.behaviors.map(b => b.constructor.name).join(', ')}`,
                 value: block.behaviors.map(b => b.constructor.name),
                 origin: 'runtime',
                 timestamp: now
-            }
-        ];
+            });
 
         const output = new OutputStatement({
             outputType: 'compiler',

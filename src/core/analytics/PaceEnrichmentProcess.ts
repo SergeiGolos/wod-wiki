@@ -34,7 +34,7 @@ export class PaceEnrichmentProcess implements IAnalyticsProcess {
 
         if (reps > 0) {
             const repsPerMin = reps / elapsedMin;
-            output.metrics.push({
+            output.metrics.add({
                 type: 'pace',
                 image: `${repsPerMin.toFixed(1)} reps/min`,
                 value: parseFloat(repsPerMin.toFixed(1)),
@@ -51,7 +51,7 @@ export class PaceEnrichmentProcess implements IAnalyticsProcess {
         if (distanceM > 0) {
             // "Pace" as distance/time (as requested by user)
             const speedMs = distanceM / elapsedSec;
-            output.metrics.push({
+            output.metrics.add({
                 type: 'pace',
                 image: `${speedMs.toFixed(2)} m/s`,
                 value: parseFloat(speedMs.toFixed(2)),
@@ -64,7 +64,7 @@ export class PaceEnrichmentProcess implements IAnalyticsProcess {
             const distanceKm = distanceM / 1000;
             if (distanceKm > 0) {
                 const paceMinKm = elapsedMin / distanceKm;
-                output.metrics.push({
+                output.metrics.add({
                     type: 'pace',
                     image: `${paceMinKm.toFixed(2)} min/km`,
                     value: parseFloat(paceMinKm.toFixed(2)),

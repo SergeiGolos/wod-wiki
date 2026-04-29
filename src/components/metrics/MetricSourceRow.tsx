@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { MetricVisualizer } from '../../views/runtime/MetricVisualizer';
 import { IMetricSource } from '@/core/contracts/IMetricSource';
 import { IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
 
 export type FragmentSourceStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
@@ -50,7 +51,7 @@ export interface FragmentSourceEntry {
     /** End time in milliseconds */
     endTime?: number;
     /** Raw metrics groups from block memory for multi-line display */
-    metricGroups?: readonly (readonly IMetric[])[];
+    metricGroups?: readonly MetricContainer[];
 }
 
 /**
@@ -62,9 +63,9 @@ export interface MetricSourceData {
     /** The metric source to render (optional if metrics provided directly) */
     source?: IMetricSource;
     /** Direct metric array (takes precedence over source.getDisplayMetrics()) */
-    metrics?: IMetric[];
+    metrics?: IMetric[] | MetricContainer;
     /** Raw metrics groups for multi-line rendering within a single row */
-    metricGroups?: readonly (readonly IMetric[])[];
+    metricGroups?: readonly MetricContainer[];
 }
 
 /**
@@ -190,10 +191,12 @@ export const MetricSourceRow: React.FC<MetricSourceRowProps> = ({
     const paddingLeft = depth * currentConfig.indent;
 
     // Get display-ready metrics: prioritize direct metric prop, fall back to source
-    const metrics = metricProp ?? (source?.getDisplayMetrics(filter ? {
+    const metrics = MetricContainer.from(
+        metricProp ?? (source?.getDisplayMetrics(filter ? {
         origins: filter.allowedOrigins,
         // Map VisualizerFilter to MetricFilter where possible
-    } : undefined) || []);
+        } : undefined) || [])
+    ).toArray();
 
     const handleClick = (e: React.MouseEvent) => {
         onClick?.(source, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
@@ -255,7 +258,7 @@ export const MetricSourceRow: React.FC<MetricSourceRowProps> = ({
                                 )}
                             >
                                 <MetricVisualizer
-                                    metrics={[...group]}
+                                    metrics={group.toArray()}
                                     size={size}
                                     filter={filter}
                                     className={cn("inline-flex", currentConfig.fontSize)}

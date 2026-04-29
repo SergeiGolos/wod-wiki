@@ -1,4 +1,4 @@
-import { IMetric } from "../core/models/Metric";
+import { MetricContainer } from "../../core/models/MetricContainer";
 
 /**
  * Describes a strategy for distributing metric across repeated block runs.
@@ -6,14 +6,14 @@ import { IMetric } from "../core/models/Metric";
  * recordings land in the correct iteration bucket.
  */
 export interface IDistributedMetrics {
-  distribute(base: IMetric[], blockType?: string): IMetric[][];
+  distribute(base: MetricContainer, blockType?: string): MetricContainer[];
 }
 
 /**
  * Default passthrough distributor: keeps a single metric group.
  */
 export class PassthroughMetricDistributor implements IDistributedMetrics {
-  distribute(base: IMetric[], _blockType?: string): IMetric[][] {
-    return [base];
+  distribute(base: MetricContainer, _blockType?: string): MetricContainer[] {
+    return [base.clone()];
   }
 }

@@ -30,7 +30,7 @@ export const StatementList: React.FC<StatementListProps> = ({
                 {statement.meta?.line ?? (idx + 1)}
               </span>
               <div className="flex-1 min-w-0">
-                <MetricVisualizer metrics={statement.metrics} />
+                <MetricVisualizer metrics={statement.metrics.toArray()} />
               </div>
             </div>
           </div>

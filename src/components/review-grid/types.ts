@@ -5,7 +5,8 @@
  * and MetricType columns as the primary data axis.
  */
 
-import type { IMetric, MetricType, MetricOrigin } from '@/core/models/Metric';
+import type { MetricType, MetricOrigin } from '@/core/models/Metric';
+import type { MetricContainer } from '@/core/models/MetricContainer';
 import type { OutputStatementType } from '@/core/models/OutputStatement';
 
 // ─── Grid Row ──────────────────────────────────────────────────
@@ -62,7 +63,7 @@ export interface GridRow {
  */
 export interface GridCell {
   /** All metrics of this type for this row */
-  readonly metrics: IMetric[];
+  readonly metrics: MetricContainer;
   /** True if any metric has origin 'user' */
   readonly hasUserOverride: boolean;
 }

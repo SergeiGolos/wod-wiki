@@ -8,13 +8,17 @@
  */
 
 import { IMetric, MetricType } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 
 /**
  * Extract a human-readable label from an array of metric.
  */
-export function metricsToLabel(metrics: IMetric[] | IMetric[][]): string {
-    const first = metric[0];
-    const flat = Array.isArray(first) ? (metric as IMetric[][]).flat() : (metric as IMetric[]);
+export function metricsToLabel(metrics: MetricContainer | IMetric[] | IMetric[][]): string {
+    if (metrics instanceof MetricContainer) {
+        return metricsToLabel(metrics.toArray());
+    }
+    const first = metrics[0];
+    const flat = Array.isArray(first) ? (metrics as IMetric[][]).flat() : (metrics as IMetric[]);
 
     // Highest priority: explicit Label metric
     const labelFragment = flat.find(f => f.type === MetricType.Label);

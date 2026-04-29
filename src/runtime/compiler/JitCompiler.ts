@@ -80,7 +80,7 @@ export class JitCompiler {
     if (parentBlock) {
       // 1. Static promotions from memory (metrics:promote, metrics:rep-target)
       const promotedLocations = parentBlock.getMetricMemoryByVisibility('promote');
-      const promotedFragments = [...promotedLocations.flatMap(loc => loc.metrics)];
+      const promotedFragments = promotedLocations.flatMap(loc => loc.metrics.toArray());
 
       // 2. Dynamic promotions from behaviors (compiler-time concern)
       // This allows behaviors to compute promotions based on current parent state
@@ -111,7 +111,7 @@ export class JitCompiler {
           // Create a clone that preserves the prototype chain (to keep methods like getFragment)
           const clone = Object.create(Object.getPrototypeOf(node));
           Object.assign(clone, node);
-          clone.metrics = [...node.metrics, ...promotedFragments];
+          clone.metrics = node.metrics.clone(node.id).add(...promotedFragments);
           return clone;
         });
       }

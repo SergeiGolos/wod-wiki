@@ -1,4 +1,5 @@
 import { IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 import { TimeSpan } from '../models/TimeSpan';
 
 /**
@@ -68,7 +69,7 @@ export interface ChildrenStatusState {
  */
 export interface FragmentState {
     /** Fragment groups — each inner array is a semantic group (e.g., per-round metrics) */
-    readonly groups: readonly (readonly IMetric[])[];
+    readonly groups: readonly MetricContainer[];
 }
 
 /**
@@ -80,7 +81,7 @@ export interface FragmentState {
  */
 export interface FragmentDisplayState {
     /** All raw metrics flattened from groups (before precedence) */
-    readonly metrics: readonly IMetric[];
+    readonly metrics: MetricContainer;
     /** Precedence-resolved metric ready for display */
     readonly resolved: readonly IMetric[];
 }
@@ -198,4 +199,3 @@ export interface MemoryTypeMap {
  * Utility to resolve the value type for a given memory type key.
  */
 export type MemoryValueOf<T extends MemoryType> = MemoryTypeMap[T];
-

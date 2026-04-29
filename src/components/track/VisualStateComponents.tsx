@@ -8,7 +8,7 @@ import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { MetricSourceRow } from '../metrics/MetricSourceRow';
-import { IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 import { VisibilityBadge } from '../metrics/VisibilityBadge';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
@@ -77,9 +77,9 @@ const StackBlockItem: React.FC<{
     const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
     // Subscribe to round state for dynamic round label (updates reactively as rounds advance)
     const roundDisplay = useRoundDisplay(block);
-    const [displayRows, setDisplayRows] = useState<IMetric[][]>([]);
-    const [promoteRows, setPromoteRows] = useState<IMetric[][]>([]);
-    const [privateRows, setPrivateRows] = useState<IMetric[][]>([]);
+    const [displayRows, setDisplayRows] = useState<MetricContainer[]>([]);
+    const [promoteRows, setPromoteRows] = useState<MetricContainer[]>([]);
+    const [privateRows, setPrivateRows] = useState<MetricContainer[]>([]);
     const [debugDialogOpen, setDebugDialogOpen] = useState(false);
 
     // Subscribe to metrics memory by visibility tier
@@ -122,7 +122,7 @@ const StackBlockItem: React.FC<{
 
     /** Render a visibility-tagged section of metrics rows */
     const renderFragmentSection = (
-        rows: IMetric[][],
+        rows: MetricContainer[],
         visibility: MetricVisibility,
         showBadge: boolean,
         isLeaf: boolean
@@ -359,4 +359,3 @@ export const LookaheadView: React.FC<{
         </div>
     );
 };
-

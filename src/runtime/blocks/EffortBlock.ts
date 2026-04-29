@@ -1,4 +1,5 @@
 import { IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
@@ -81,7 +82,7 @@ export class EffortBlock extends RuntimeBlock {
     runtime: IScriptRuntime,
     sourceIds: number[],
     private readonly config: EffortBlockConfig,
-    metrics?: IMetric[][]
+    metrics?: MetricContainer[]
   ) {
     super(
       runtime,

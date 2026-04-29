@@ -1,4 +1,5 @@
 import { MetricOrigin, MetricType, IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 import { IRepSource } from '../contracts/behaviors/IRepSource';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
@@ -55,8 +56,8 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
      * compilation. This ensures inheritance works even when a round
      * advances and children are compiled in the same runtime tick.
      */
-    getPromotedFragments(runtime: IScriptRuntime, parentBlock: IRuntimeBlock): IMetric[] {
-        const metrics: IMetric[] = [];
+    getPromotedFragments(runtime: IScriptRuntime, parentBlock: IRuntimeBlock): MetricContainer {
+        const metrics = MetricContainer.empty(parentBlock.key.toString());
 
         // 1. Dynamic rep scheme promotion
         if (this._repScheme.length > 0) {
@@ -65,7 +66,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
             const reps = this.getRepsForRound(round);
             
             if (reps !== undefined) {
-                metrics.push({
+                metrics.add({
                     type: MetricType.Rep,
                     image: reps.toString(),
                     origin: 'compiler',
@@ -81,7 +82,7 @@ export class MetricPromotionBehavior implements IRuntimeBehavior, IRepSource, IM
         for (const rule of this.config.promotions) {
             const sourceFragment = this.findSourceFragmentInBlock(parentBlock, rule);
             if (sourceFragment) {
-                metrics.push({
+                metrics.add({
                     ...sourceFragment,
                     origin: rule.origin ?? 'compiler'
                 });

@@ -1,5 +1,5 @@
 import { ICodeStatement } from "./CodeStatement";
-import { IMetric } from "./Metric";
+import { MetricContainer } from "./MetricContainer";
 
 /**
  * Mode for inheritance rules - how child statements should handle parent values
@@ -30,7 +30,7 @@ export interface DialectAnalysis {
    * `DialectRegistry.process()` pushes these onto `statement.metrics`;
    * the compiler and display resolver then react to the action field.
    */
-  metrics?: IMetric[];
+  metrics?: MetricContainer;
   /** Inheritance rules for child statements (optional) */
   inheritance?: InheritanceRule[];
 }
