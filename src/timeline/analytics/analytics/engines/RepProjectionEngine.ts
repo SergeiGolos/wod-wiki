@@ -1,6 +1,9 @@
 import { IProjectionEngine } from '../IProjectionEngine';
+import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -9,8 +12,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Implements calculateFromWorkout so it fires on every call to
  * AnalysisService.runWorkoutProjections() with all metrics so far.
  */
-export class RepProjectionEngine implements IProjectionEngine {
+export class RepProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+  public readonly id = 'rep-projection';
   public readonly name = 'RepProjectionEngine';
+
+  project(outputs: IOutputStatement[]): ProjectionResult[] {
+    return this.calculateFromWorkout(extractMetrics(outputs));
+  }
 
   calculateFromWorkout(metrics: IMetric[]): ProjectionResult[] {
     let totalReps = 0;

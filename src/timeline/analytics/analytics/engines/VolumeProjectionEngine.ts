@@ -1,7 +1,10 @@
 import { IProjectionEngine } from '../IProjectionEngine';
+import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { Exercise } from '../../../../exercise';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -18,8 +21,37 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * // Result: Total Volume = 1000kg
  * ```
  */
-export class VolumeProjectionEngine implements IProjectionEngine {
+export class VolumeProjectionEngine implements IProjectionEngine, IAnalyticsStage {
+  public readonly id = 'volume-projection';
   public readonly name = "VolumeProjectionEngine";
+
+  project(outputs: IOutputStatement[]): ProjectionResult[] {
+    const allMetrics = extractMetrics(outputs);
+    const workoutResults = this.calculateFromWorkout(allMetrics);
+    const exerciseResults = this._runPerExercise(allMetrics);
+    return exerciseResults.length > 0 ? exerciseResults : workoutResults;
+  }
+
+  private _runPerExercise(metrics: IMetric[]): ProjectionResult[] {
+    const grouped = new Map<string, IMetric[]>();
+    let currentExerciseId: string | null = null;
+
+    for (const metric of metrics) {
+      if (metric.type === MetricType.Effort && typeof metric.value === 'string') {
+        currentExerciseId = metric.value;
+        if (!grouped.has(currentExerciseId)) grouped.set(currentExerciseId, []);
+        continue;
+      }
+      if (currentExerciseId) grouped.get(currentExerciseId)!.push(metric);
+    }
+
+    const results: ProjectionResult[] = [];
+    for (const [exerciseId, frags] of grouped.entries()) {
+      const stubExercise = { name: exerciseId } as any;
+      results.push(...this.calculateFromFragments(frags, exerciseId, stubExercise));
+    }
+    return results;
+  }
 
   /**
    * Calculate volume from code metrics.
