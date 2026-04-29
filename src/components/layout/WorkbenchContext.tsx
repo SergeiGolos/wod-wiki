@@ -303,7 +303,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   // --- Load route-specific result for review view ---
   // When the URL contains a sectionId (and optionally resultId), load the
   // matching WorkoutResult from IndexedDB and patch currentEntry.results
-  // so that WorkbenchSyncBridge renders analytics for the correct result.
+  // so that useWorkbenchEffects renders analytics for the correct result.
   useEffect(() => {
     if (!currentEntry || routeView !== 'review') return;
     if (!routeSectionId && !routeResultId) return;

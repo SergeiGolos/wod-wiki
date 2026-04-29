@@ -12,7 +12,7 @@
  * - viewMode 'review'                            → 'review'  (analytics summary)
  * - viewMode 'plan' / 'analyze' / other          → 'preview' (document info) or 'idle'
  *
- * Placement: inside WorkbenchSyncBridge so the store is fully hydrated.
+ * Placement: inside RuntimeLifecycleProvider so the store is fully hydrated.
  */
 
 import React, { useEffect, useRef } from 'react';
