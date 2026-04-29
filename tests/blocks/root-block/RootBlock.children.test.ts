@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
+import { sessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
 import { ChildSelectionBehavior } from '@/runtime/behaviors';
 import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
 import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
@@ -51,7 +51,7 @@ describe('RootBlock Child Execution', () => {
         // Create root block and push via PushBlockAction
         // ExecutionContext processes the full chain:
         // PushBlockAction → mount → ChildSelectionBehavior → CompileChildBlockAction → PushBlockAction(child)
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups
         });
 
@@ -78,7 +78,7 @@ describe('RootBlock Child Execution', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2], [3]]
         });
 
@@ -117,7 +117,7 @@ describe('RootBlock Child Execution', () => {
 
     it('should handle empty childGroups gracefully', () => {
         // Scenario: No children to execute
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: []
         });
 
@@ -137,7 +137,7 @@ describe('RootBlock Child Execution', () => {
             ]
         });
 
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]]
         });
 
@@ -177,7 +177,7 @@ describe('RootBlock Child Execution', () => {
             statements: [{ id: 1, source: 'Single exercise' }]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -209,7 +209,7 @@ describe('RootBlock Child Execution', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups
         });
 
@@ -240,7 +240,7 @@ describe('RootBlock Child Execution', () => {
 
     it('should handle missing statement IDs gracefully', () => {
         // Scenario: Statement IDs that don't exist
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[999]]
         });
 
