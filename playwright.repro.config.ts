@@ -12,6 +12,9 @@ const appBaseURL = httpsHost
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
+  // Acceptance tests target Storybook (localhost:6006); this config targets the
+  // Vite dev server (localhost:5173), so Storybook-specific tests must be excluded.
+  testIgnore: ['**/acceptance/**', '**/storybook/**'],
   timeout: 45 * 1000,
   use: {
     baseURL: appBaseURL,

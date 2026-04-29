@@ -10,7 +10,7 @@ export { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './ut
 // Export classes (not just types) from models
 export { BlockKey } from './models/BlockKey';
 export { MetricType } from './models/Metric';
-export type { IMetric, MetricOrigin } from './models/Metric';
+export type { IMetric, MetricOrigin, MetricAction } from './models/Metric';
 export type { CodeMetadata } from './models/CodeMetadata';
 export { CodeStatement, ParsedCodeStatement } from './models/CodeStatement';
 export { Duration, SpanDuration } from './models/Duration';
