@@ -1,26 +1,22 @@
 /**
- * WorkbenchSyncBridge - Bridges React hooks into the Zustand store
+ * useWorkbenchEffects - Bridges React hooks into the Zustand store
  *
- * This component sits in the React tree (inside RuntimeLifecycleProvider)
- * and performs two jobs:
+ * Performs two jobs:
  *
  * 1. **Hydration** — Reads React hook values (runtime, execution, controls)
  *    and pushes them into the Zustand store so panels can consume them
  *    via selectors without needing a Context provider.
  *
- * 2. **Side Effects** — Runs all the application-logic effects that were
- *    previously in WorkbenchSyncProvider:
+ * 2. **Side Effects** — Runs all the application-logic effects:
  *    - Runtime initialization/disposal on view mode changes
  *    - Wake lock management
  *    - Analytics polling and refresh
  *    - Active segment/statement derivation from runtime stack
  *    - Document structure computation
  *    - Cursor → activeBlockId mapping
- *
- * This is a renderless component (returns only {children}).
  */
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useWorkbench } from './WorkbenchContext';
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { useWakeLock } from '../../hooks/useWakeLock';
@@ -37,7 +33,6 @@ import { useProjectionSync } from '../../components/cast/ProjectionSyncContext';
 // Helper to generate a unique key for a block based on its content/statements
 const getBlockKey = (block: WodBlock | null): string => {
   if (!block) return 'null';
-  // Include version and hash of statements to ensure re-init when content or parsing changes
   return `${block.id}-v${block.version || 0}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
 };
 
@@ -56,7 +51,6 @@ function segmentsToAnalyticsPoints(
   for (const seg of segments) {
     const segId = String(seg.id);
 
-    // Persist elapsed time as a metric
     if (seg.elapsed != null && seg.elapsed > 0) {
       points.push({
         id: `${segId}-elapsed-${now}`,
@@ -73,7 +67,6 @@ function segmentsToAnalyticsPoints(
       });
     }
 
-    // Persist each dynamic metric (reps, resistance, distance, etc.)
     for (const [key, value] of Object.entries(seg.metric)) {
       if (typeof value !== 'number') continue;
       points.push({
@@ -95,25 +88,21 @@ function segmentsToAnalyticsPoints(
   return points;
 }
 
-interface WorkbenchSyncBridgeProps {
-  children: React.ReactNode;
-}
-
-export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ children }) => {
+export function useWorkbenchEffects(): void {
   const store = useWorkbenchSyncStore;
   const projectionSync = useProjectionSync();
 
-  // --- Consume upstream React contexts ---
   const {
     content,
     blocks,
-    selectedBlockId,
     viewMode,
     setActiveBlockId,
     startWorkout,
     completeWorkout,
     currentEntry,
   } = useWorkbench();
+
+  const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
 
   // --- Document structure → store ---
   const documentItems = useMemo(() => {
@@ -144,26 +133,23 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
   }, [selectedBlock]);
 
   // Clear stale analytics whenever the user navigates to a different note.
-  // Without this, the Chromecast stays stuck on the old completed/review state
-  // because analyticsSegments is only cleared inside the 'track' runtime-init
-  // effect, which doesn't run for non-track viewModes (e.g., 'review').
   const lastSelectedBlockIdRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (selectedBlockId !== lastSelectedBlockIdRef.current) {
       if (lastSelectedBlockIdRef.current !== undefined) {
-        console.log('[WorkbenchSyncBridge] Block navigated:', lastSelectedBlockIdRef.current, '→', selectedBlockId, '— clearing analytics for Chromecast');
+        console.log('[useWorkbenchEffects] Block navigated:', lastSelectedBlockIdRef.current, '→', selectedBlockId, '— clearing analytics for Chromecast');
         store.getState().setAnalytics([], []);
       }
       lastSelectedBlockIdRef.current = selectedBlockId;
     }
   }, [selectedBlockId]);
 
-  // --- View mode → store (drives receiver display mode over RPC) ---
+  // --- View mode → store ---
   useEffect(() => {
     store.getState().setViewMode(viewMode);
   }, [viewMode]);
 
-  // --- Runtime lifecycle & execution (from React hooks) ---
+  // --- Runtime lifecycle & execution ---
   const {
     runtime,
     initializeRuntime,
@@ -178,30 +164,17 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
 
   // --- Hydrate runtime + controls into Zustand store ---
   useEffect(() => {
-    store.getState()._hydrateRuntime({
-      runtime,
-      execution,
-      initializeRuntime,
-      disposeRuntime,
-      handleStart,
-      handlePause,
-      handleStop,
-      handleNext,
-      handleStartWorkoutAction,
-    });
-  }, [
-    runtime,
-    execution,
-    initializeRuntime,
-    disposeRuntime,
-    handleStart,
-    handlePause,
-    handleStop,
-    handleNext,
-    handleStartWorkoutAction,
-  ]);
+    store.getState().setRuntime(runtime);
+  }, [runtime]);
 
-  // --- Runtime initialization on view mode changes ---
+  useEffect(() => {
+    store.getState().setExecution(execution);
+  }, [execution]);
+
+  useEffect(() => {
+    store.getState().setHandles({ handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction });
+  }, [handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction]);
+
   // --- Runtime initialization on view mode changes ---
   const lastInitializedKeyRef = useRef<string | null>(null);
 
@@ -209,11 +182,8 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     if (viewMode === 'track' && selectedBlock && selectedBlock.statements) {
       const currentKey = getBlockKey(selectedBlock);
       if (lastInitializedKeyRef.current !== currentKey) {
-        console.log('[WorkbenchSyncBridge] Re-initializing runtime for block', selectedBlock.id, 'old:', lastInitializedKeyRef.current, 'new:', currentKey);
-        
-        // Clear analytics before starting the new runtime
+        console.log('[useWorkbenchEffects] Re-initializing runtime for block', selectedBlock.id, 'old:', lastInitializedKeyRef.current, 'new:', currentKey);
         store.getState().setAnalytics([], []);
-        
         initializeRuntime(selectedBlock);
         lastInitializedKeyRef.current = currentKey;
       }
@@ -225,12 +195,12 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
     }
   }, [viewMode, selectedBlock, initializeRuntime, disposeRuntime]);
 
-  // --- Wake lock (keep screen awake during workouts) ---
+  // --- Wake lock ---
   useWakeLock({
     enabled: viewMode === 'track' && execution.status === 'running',
   });
 
-  // --- Analytics polling (persisted across runtime disposal) ---
+  // --- Analytics polling ---
   const lastAnalyticsUpdateRef = useRef(0);
   const lastStatusRef = useRef(execution.status);
 
@@ -244,15 +214,13 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
         const { segments, groups } = getAnalyticsFromRuntime(runtime);
         store.getState().setAnalytics(segments, groups);
 
-        // Calculate total elapsed time and segment count for projection sync
         let totalElapsedMs = 0;
         for (const seg of segments) {
           if (seg.elapsed !== undefined) {
-            totalElapsedMs += seg.elapsed * 1000; // Convert seconds to ms
+            totalElapsedMs += seg.elapsed * 1000;
           }
         }
 
-        // Send projection results to Chromecast
         projectionSync?.updateFromSegments(
           segments,
           totalElapsedMs,
@@ -263,24 +231,16 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
         lastStatusRef.current = execution.status;
       }
     } else if (currentEntry?.results?.logs) {
-      // If no runtime, but we have historical logs, use them for analytics
       const logs = currentEntry.results.logs;
       const { segments, groups } = getAnalyticsFromLogs(logs, currentEntry.results.startTime);
       store.getState().setAnalytics(segments, groups);
     }
-    // We REMOVED the auto-clear else block here.
-    // Analytics will persist until:
-    // 1. A new runtime starts (overwrites)
-    // 2. A new entry with logs is loaded (overwrites)
-    // 3. Manual Reset (calls store.resetStore())
-    // 4. Bridge unmounts (calls store.resetStore())
   }, [runtime, execution.stepCount, execution.status, currentEntry]);
 
   // --- Persist analytics to IndexedDB on workout completion ---
   const hasPersisted = useRef(false);
 
   useEffect(() => {
-    // Reset the flag when a new runtime starts
     if (execution.status === 'running') {
       hasPersisted.current = false;
     }
@@ -294,13 +254,13 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
       if (currentSegments.length > 0) {
         const points = segmentsToAnalyticsPoints(currentSegments, noteId);
         indexedDBService.saveAnalyticsPoints(points)
-          .then(() => console.log(`[WorkbenchSyncBridge] Persisted ${points.length} analytics points`))
-          .catch((err: unknown) => console.error('[WorkbenchSyncBridge] Failed to persist analytics:', err));
+          .then(() => console.log(`[useWorkbenchEffects] Persisted ${points.length} analytics points`))
+          .catch((err: unknown) => console.error('[useWorkbenchEffects] Failed to persist analytics:', err));
       }
     }
   }, [execution.status, currentEntry, selectedBlock]);
 
-  // --- Active segment/statement tracking (derived from runtime stack) ---
+  // --- Active segment/statement tracking ---
   useEffect(() => {
     if (!runtime || viewMode !== 'track') {
       store.getState().setActiveSegmentIds(new Set());
@@ -324,10 +284,8 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
   // --- Reset store on unmount ---
   useEffect(() => {
     return () => {
-      console.log('[WorkbenchSyncBridge] Unmounting, resetting store');
+      console.log('[useWorkbenchEffects] Unmounting, resetting store');
       store.getState().resetStore();
     };
   }, []);
-
-  return <>{children}</>;
-};
+}

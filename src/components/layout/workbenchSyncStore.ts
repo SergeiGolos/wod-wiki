@@ -31,7 +31,6 @@ import type { DocumentItem } from '../Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import type { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
-import type { ITimerDisplayEntry } from '../../clock/types/DisplayTypes';
 import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
@@ -50,21 +49,33 @@ const noopExecution: UseRuntimeExecutionReturn = {
   step: () => { },
 };
 
+// ─── Handles interface (React hook closures — kept separate from plain state) ─
+
+export interface WorkbenchHandles {
+  handleStart: () => void;
+  handlePause: () => void;
+  handleStop: () => void;
+  handleNext: () => void;
+  handleStartWorkoutAction: (block: WodBlock) => void;
+}
+
+const noopHandles: WorkbenchHandles = {
+  handleStart: () => { },
+  handlePause: () => { },
+  handleStop: () => { },
+  handleNext: () => { },
+  handleStartWorkoutAction: () => { },
+};
+
 // ─── State shape ───────────────────────────────────────────────
 
 interface WorkbenchSyncState {
   // --- Runtime & Execution (hydrated from React hooks via bridge) ---
   runtime: IScriptRuntime | null;
   execution: UseRuntimeExecutionReturn;
-  initializeRuntime: (block: WodBlock) => void;
-  disposeRuntime: () => void;
 
-  // --- Execution Controls (hydrated from React hooks via bridge) ---
-  handleStart: () => void;
-  handlePause: () => void;
-  handleStop: () => void;
-  handleNext: () => void;
-  handleStartWorkoutAction: (block: WodBlock) => void;
+  // --- Execution Handles (React hook closures, injected via bridge) ---
+  handles: WorkbenchHandles;
 
   // --- Active Tracking (derived from runtime stack) ---
   activeSegmentIds: Set<number>;
@@ -88,18 +99,11 @@ interface WorkbenchSyncState {
   // --- Document Structure ---
   documentItems: DocumentItem[];
   selectedBlock: WodBlock | null;
+  selectedBlockId: string | null;
 
   // --- Editor Bridge ---
   cursorLine: number;
   highlightedLine: number | null;
-
-  // --- Display State (Derived UI state for casting) ---
-  displayState: {
-    primaryTimer?: ITimerDisplayEntry;
-    secondaryTimers?: ITimerDisplayEntry[];
-    subLabel?: string;
-    isRunning: boolean;
-  };
 
   // --- Cast Transport (shared between CastButtonRpc and WorkbenchCastBridge) ---
   /** Active RPC transport while casting, null otherwise */
@@ -126,24 +130,16 @@ interface WorkbenchSyncActions {
   setHoveredBlockKey: (key: string | null) => void;
   setDocumentItems: (items: DocumentItem[]) => void;
   setSelectedBlock: (block: WodBlock | null) => void;
+  setSelectedBlockId: (id: string | null) => void;
   setCursorLine: (line: number) => void;
   setHighlightedLine: (line: number | null) => void;
-  setDisplayState: (state: WorkbenchSyncState['displayState']) => void;
   setCastTransport: (transport: IRpcTransport | null) => void;
   setViewMode: (mode: ViewMode) => void;
 
-  // --- Bridge hydration (called by WorkbenchSyncBridge to inject React hook values) ---
-  _hydrateRuntime: (payload: {
-    runtime: IScriptRuntime | null;
-    execution: UseRuntimeExecutionReturn;
-    initializeRuntime: (block: WodBlock) => void;
-    disposeRuntime: () => void;
-    handleStart: () => void;
-    handlePause: () => void;
-    handleStop: () => void;
-    handleNext: () => void;
-    handleStartWorkoutAction: (block: WodBlock) => void;
-  }) => void;
+  // --- Runtime & execution setters (replaces _hydrateRuntime) ---
+  setRuntime: (runtime: IScriptRuntime | null) => void;
+  setExecution: (execution: UseRuntimeExecutionReturn) => void;
+  setHandles: (handles: WorkbenchHandles) => void;
 
   /** Resets the entire store to its initial state */
   resetStore: () => void;
@@ -159,13 +155,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   // --- Initial state ---
   runtime: null,
   execution: noopExecution,
-  initializeRuntime: () => { },
-  disposeRuntime: () => { },
-  handleStart: () => { },
-  handlePause: () => { },
-  handleStop: () => { },
-  handleNext: () => { },
-  handleStartWorkoutAction: () => { },
+  handles: noopHandles,
 
   activeSegmentIds: new Set(),
   activeStatementIds: new Set(),
@@ -182,13 +172,10 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   documentItems: [],
   selectedBlock: null,
+  selectedBlockId: null,
 
   cursorLine: 1,
   highlightedLine: null,
-
-  displayState: {
-    isRunning: false,
-  },
 
   castTransport: null,
 
@@ -247,26 +234,22 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setHoveredBlockKey: (key) => set({ hoveredBlockKey: key }),
   setDocumentItems: (items) => set({ documentItems: items }),
   setSelectedBlock: (block) => set({ selectedBlock: block }),
+  setSelectedBlockId: (id) => set({ selectedBlockId: id }),
   setCursorLine: (line) => set({ cursorLine: line }),
   setHighlightedLine: (line) => set({ highlightedLine: line }),
-  setDisplayState: (displayState) => set({ displayState }),
   setCastTransport: (castTransport) => set({ castTransport }),
   setViewMode: (viewMode) => set({ viewMode }),
 
-  // Bridge hydration — pushes React hook values into the store
-  _hydrateRuntime: (payload) => set(payload),
+  // Bridge runtime setters
+  setRuntime: (runtime) => set({ runtime }),
+  setExecution: (execution) => set({ execution }),
+  setHandles: (handles) => set({ handles }),
 
   // Reset the store to its initial state
   resetStore: () => set({
     runtime: null,
     execution: noopExecution,
-    initializeRuntime: () => { },
-    disposeRuntime: () => { },
-    handleStart: () => { },
-    handlePause: () => { },
-    handleStop: () => { },
-    handleNext: () => { },
-    handleStartWorkoutAction: () => { },
+    handles: noopHandles,
 
     activeSegmentIds: new Set(),
     activeStatementIds: new Set(),
@@ -283,13 +266,10 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
     documentItems: [],
     selectedBlock: null,
+    selectedBlockId: null,
 
     cursorLine: 1,
     highlightedLine: null,
-
-    displayState: {
-      isRunning: false,
-    },
 
     castTransport: null,
 
