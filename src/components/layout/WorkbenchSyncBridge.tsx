@@ -178,28 +178,16 @@ export const WorkbenchSyncBridge: React.FC<WorkbenchSyncBridgeProps> = ({ childr
 
   // --- Hydrate runtime + controls into Zustand store ---
   useEffect(() => {
-    store.getState()._hydrateRuntime({
-      runtime,
-      execution,
-      initializeRuntime,
-      disposeRuntime,
-      handleStart,
-      handlePause,
-      handleStop,
-      handleNext,
-      handleStartWorkoutAction,
-    });
-  }, [
-    runtime,
-    execution,
-    initializeRuntime,
-    disposeRuntime,
-    handleStart,
-    handlePause,
-    handleStop,
-    handleNext,
-    handleStartWorkoutAction,
-  ]);
+    store.getState().setRuntime(runtime);
+  }, [runtime]);
+
+  useEffect(() => {
+    store.getState().setExecution(execution);
+  }, [execution]);
+
+  useEffect(() => {
+    store.getState().setHandles({ handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction });
+  }, [handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction]);
 
   // --- Runtime initialization on view mode changes ---
   // --- Runtime initialization on view mode changes ---
