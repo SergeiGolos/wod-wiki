@@ -20,19 +20,25 @@
  */
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 // ── Config ────────────────────────────────────────────────────────────────
 const VAULT_PATH = process.env.OBSIDIAN_VAULT_PATH
-  || path.join(process.env.HOME, 'Documents/captains-log/captains-log');
+  || path.join(os.homedir(), 'Documents/captains-log/captains-log');
+
+if (!fs.existsSync(VAULT_PATH)) {
+  console.error(`❌ Vault path not found: ${VAULT_PATH}\n   Set OBSIDIAN_VAULT_PATH to override.`);
+  process.exit(1);
+}
 
 const STORIES_DIR = path.resolve(process.cwd(), 'stories/catalog');
 const VAULT_TARGET = path.join(VAULT_PATH, 'projects', 'wod-wiki', 'docs', 'design-system');
 
 // Storybook boilerplate lines to strip (after removing, skip leading blanks)
-const BOILERPLATE_RE = /^import\s+\{[^}]+\}\s+from\s+'[^']+';\s*\n/m;
-const IMPORT_STORIES_RE = /^import\s+\*\s+as\s+stories\s+from\s+'[^']+';\s*\n/m;
-const META_TAG_RE = /^<Meta\s+[^/]*\/>\s*\n/m;
+const BOILERPLATE_RE = /^import\s+\{[^}]+\}\s+from\s+'[^']+';\s*\n/gm;
+const IMPORT_STORIES_RE = /^import\s+\*\s+as\s+stories\s+from\s+'[^']+';\s*\n/gm;
+const META_TAG_RE = /^<Meta\s+[^/]*\/>\s*\n/gm;
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -42,7 +48,7 @@ function stripBoilerplate(content) {
   stripped = stripped.replace(IMPORT_STORIES_RE, '');
   stripped = stripped.replace(META_TAG_RE, '');
   // Remove leading blank lines
-  stripped = stripped.replace(/^\n+/, '');
+  stripped = stripped.trimStart();
   return stripped;
 }
 
