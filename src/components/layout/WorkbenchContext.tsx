@@ -400,12 +400,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   }, [content]);
 
   // Execution State (runtime now managed by RuntimeProvider)
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
-
-  // Sync selectedBlockId to Zustand store (canonical source of truth)
-  useEffect(() => {
-    useWorkbenchSyncStore.getState().setSelectedBlockId(selectedBlockId);
-  }, [selectedBlockId]);
+  // selectedBlockId is read directly from the Zustand store — no local state needed.
+  const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
 
   // Results State
   const [results, setResults] = useState<WorkoutResults[]>([]);
@@ -433,7 +429,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   useEffect(() => {
     if (routeSectionId) {
       if (routeSectionId !== selectedBlockId) {
-        setSelectedBlockId(routeSectionId);
+        useWorkbenchSyncStore.getState().setSelectedBlockId(routeSectionId);
       }
     } else if (selectedBlockId && viewMode !== 'plan') {
       // Clear selection when navigating away from a specific track/review section
@@ -441,7 +437,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       
       // Only clear if the pathname explicitly ends with /track or /review (no ID segment).
       if (pathname.match(/\/(track|review)\/?$/)) {
-        setSelectedBlockId(null);
+        useWorkbenchSyncStore.getState().setSelectedBlockId(null);
       }
     }
   }, [routeSectionId, selectedBlockId, viewMode, pathname]);
@@ -476,7 +472,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
         if (match) {
           console.log(`[WorkbenchContext] Block shifted. Healing ID: ${selectedBlockId} -> ${match.id}`);
-          setSelectedBlockId(match.id);
+          useWorkbenchSyncStore.getState().setSelectedBlockId(match.id);
           if (routeId) {
             navigation.goToTrack(routeId, match.id);
           }
@@ -515,11 +511,11 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   }, [resolvedMode, navigation, routeId]);
 
   const selectBlock = useCallback((id: string | null) => {
-    setSelectedBlockId(id);
+    useWorkbenchSyncStore.getState().setSelectedBlockId(id);
   }, []);
 
   const startWorkout = useCallback((block: WodBlock) => {
-    setSelectedBlockId(block.id);
+    useWorkbenchSyncStore.getState().setSelectedBlockId(block.id);
     // Navigate to track view with the block's id as the section identifier
     navigation.goToTrack(routeId || 'static', block.id);
   }, [routeId, navigation]);
