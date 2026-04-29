@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { globalParser, globalCompiler } from './testbench-services';
+import { globalParser, globalCompiler } from './runtimeServices';
 import { MdTimerRuntime } from '../../parser/md-timer';
-import { JitCompiler } from '../../runtime/compiler/JitCompiler';
+import { JitCompiler } from '../compiler/JitCompiler';
 
-describe('testbench-services', () => {
+describe('runtimeServices', () => {
   describe('globalParser', () => {
     it('should export a MdTimerRuntime instance', () => {
       expect(globalParser).toBeInstanceOf(MdTimerRuntime);

@@ -1,13 +1,12 @@
-import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, MemoryGrouping, ExecutionStatus, BlockType, BlockStatus, MemoryType } from '../types/interfaces';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
-import { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
-import { IMetric } from '../../core/models/Metric';
-import { searchStackMemory } from '../../runtime/utils/MemoryUtils';
+import { IRuntimeAdapter, ExecutionSnapshot, RuntimeStackBlock, MemoryEntry, MemoryGrouping, ExecutionStatus, BlockType, BlockStatus, MemoryType } from '../types/executionSnapshot';
+import { IScriptRuntime } from '../contracts/IScriptRuntime';
+import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
+import { IMemoryReference } from '../contracts/IMemoryReference';
+import { MetricContainer } from '../../core/models/MetricContainer';
+import { searchStackMemory } from '../utils/MemoryUtils';
 
 /**
  * Adapter that converts ScriptRuntime state to UI-friendly ExecutionSnapshot
- * Follows TDD principles - implementation makes contract tests pass
  */
 export class RuntimeAdapter implements IRuntimeAdapter {
 
@@ -46,11 +45,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
         stepCount: 0, // TODO: Track actual step count
         elapsedTime: 0, // TODO: Track actual elapsed time
         lastEvent: undefined,
-        lastEventTime: undefined,
-        performanceMetrics: {
-          snapshotCreationTime: Date.now(),
-          renderTime: 0
-        }
+        lastEventTime: undefined
       },
       timestamp: Date.now()
     };
@@ -73,7 +68,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
       // Extract metrics groups from block memory for multi-line display
       const displayLocs = block.getMemoryByTag('metric:display');
       const metricGroups = displayLocs.length > 1
-        ? displayLocs.map(loc => [...loc.metrics])
+        ? displayLocs.map(loc => MetricContainer.from([...loc.metrics]))
         : undefined;
 
       return {
@@ -105,7 +100,7 @@ export class RuntimeAdapter implements IRuntimeAdapter {
   /**
    * Extracts metrics from block's source statements for unified visualization
    */
-  private extractBlockFragments(_runtime: IScriptRuntime, block: IRuntimeBlock): IMetric[] | undefined {
+  private extractBlockFragments(_runtime: IScriptRuntime, block: IRuntimeBlock): MetricContainer | undefined {
     // Try to get statements from runtime's compilation context
     if (!block.sourceIds || block.sourceIds.length === 0) {
       return undefined;

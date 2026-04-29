@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { renderHook, act } from '@testing-library/react';
 import { useRuntimeExecution } from '../useRuntimeExecution';
-import type { ScriptRuntime } from '../../../runtime/ScriptRuntime';
+import type { ScriptRuntime } from '../../ScriptRuntime';
 
 function createMockRuntime(): ScriptRuntime {
   // Minimal stub — only the surface used by useRuntimeExecution is implemented:

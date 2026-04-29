@@ -49,7 +49,7 @@ import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
 import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
-import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
+import { globalCompiler } from '../../runtime/services/runtimeServices';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import { HistoryEntry, WorkoutResults } from '../../types/history';
 import { workbenchEventBus } from '../../services/WorkbenchEventBus';
