@@ -47,7 +47,7 @@ describe('CrossFitDialect — EMOM metrics', () => {
       expectNotDisplayed(statement, MetricType.Action);
     });
 
-    it.failing('should show Rounds=20 in display (parser origin)', () => {
+    it('should show Rounds=20 in display (parser origin)', () => {
       const { statement } = parseWithDialect('(20) EMOM', 'crossfit');
       expectDisplayMetric(statement, MetricType.Rounds, 20);
     });
@@ -64,19 +64,19 @@ describe('CrossFitDialect — EMOM metrics', () => {
       expect(statement.hints?.has('workout.emom')).toBe(true);
     });
 
-    it.failing('should NOT synthesize a Duration (one already exists)', () => {
+    it('should NOT synthesize a Duration (one already exists)', () => {
       const { statement } = parseWithDialect('(20) EMOM :30', 'crossfit');
       const dialectDurations = rawMetricsOfType(statement, MetricType.Duration)
         .filter(m => m.origin === 'dialect');
       expect(dialectDurations).toHaveLength(0);
     });
 
-    it.failing('should preserve parser Duration=30000 in display', () => {
+    it('should preserve parser Duration=30000 in display', () => {
       const { statement } = parseWithDialect('(20) EMOM :30', 'crossfit');
       expectDisplayMetric(statement, MetricType.Duration, 30000);
     });
 
-    it.failing('should suppress the EMOM Action label from display', () => {
+    it('should suppress the EMOM Action label from display', () => {
       const { statement } = parseWithDialect('(20) EMOM :30', 'crossfit');
       expectNotDisplayed(statement, MetricType.Action);
     });
@@ -94,7 +94,7 @@ describe('CrossFitDialect — EMOM metrics', () => {
       expectRawMetric(statement, MetricType.Rounds, 'dialect', 20);
     });
 
-    it.failing('should suppress the EMOM Action label from display', () => {
+    it('should suppress the EMOM Action label from display', () => {
       const { statement } = parseWithDialect('EMOM 20 mins', 'crossfit');
       expectNotDisplayed(statement, MetricType.Action);
     });
@@ -116,7 +116,7 @@ describe('CrossFitDialect — EMOM metrics', () => {
       expect(statement.hints?.has('workout.emom')).toBe(false);
     });
 
-    it.failing('should NOT synthesize Duration when :60 is already present', () => {
+    it('should NOT synthesize Duration when :60 is already present', () => {
       const { statement } = parseWithDialect(block, 'crossfit');
       const dialectDurations = rawMetricsOfType(statement, MetricType.Duration)
         .filter(m => m.origin === 'dialect');
@@ -136,7 +136,7 @@ describe('CrossFitDialect — AMRAP metrics', () => {
     expect(statement.hints?.has('behavior.time_bound')).toBe(true);
   });
 
-  it.failing('should suppress the AMRAP Action label from display', () => {
+  it('should suppress the AMRAP Action label from display', () => {
     const { statement } = parseWithDialect('AMRAP 20 mins', 'crossfit');
     expectNotDisplayed(statement, MetricType.Action);
   });
@@ -164,7 +164,7 @@ describe('CrossFitDialect — TABATA metrics', () => {
     expectRawMetric(statement, MetricType.Duration, 'dialect', 20000);
   });
 
-  it.failing('should suppress the Tabata Action label from display', () => {
+  it('should suppress the Tabata Action label from display', () => {
     const { statement } = parseWithDialect('Tabata Squats', 'crossfit');
     expectNotDisplayed(statement, MetricType.Action);
   });
@@ -181,7 +181,7 @@ describe('CrossFitDialect — FOR TIME metrics', () => {
     expect(statement.hints?.has('behavior.time_bound')).toBe(true);
   });
 
-  it.failing('should suppress the "For Time" Action label from display', () => {
+  it('should suppress the "For Time" Action label from display', () => {
     const { statement } = parseWithDialect('For Time', 'crossfit');
     expectNotDisplayed(statement, MetricType.Action);
   });
@@ -214,7 +214,7 @@ describe('CrossFitDialect — plain exercises (no dialect metrics)', () => {
 // ──────────────────────────────────────────────────────────
 
 describe('CrossFitDialect — metric origin purity', () => {
-  it.failing('parser metrics should never have action set (origin: parser, action: undefined)', () => {
+  it('parser metrics should never have action set (origin: parser, action: undefined)', () => {
     const { statement } = parseWithDialect('(20) EMOM :30', 'crossfit');
     const parserMetrics = statement.metrics.filter(m => m.origin === 'parser');
     parserMetrics.forEach(m => {
