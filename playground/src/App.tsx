@@ -87,13 +87,35 @@ export interface WorkoutItem {
 
 const MAX_TIMESTAMP_ID_RETRIES = 10
 
-/** Generate a date-based name: YYYY-MM-DD-HH-MM-SS-MMM, with numeric suffix on collision. */
-async function generatePlaygroundName(): Promise<string> {
+/**
+ * Atomically create a new playground page.
+ *
+ * Tries `baseName`, then `baseName-1` … `baseName-N`. Each attempt uses
+ * IndexedDB `add()` (via `addPage`), which throws a `ConstraintError` if the
+ * key already exists — making the check-and-create race-free even when two
+ * tabs open simultaneously.
+ *
+ * Returns the ID that was successfully written.
+ */
+async function createPlaygroundPage(content: string): Promise<string> {
   const baseName = formatPlaygroundTimestampId(Date.now())
+  const now = Date.now()
   for (let attempt = 0; attempt <= MAX_TIMESTAMP_ID_RETRIES; attempt++) {
     const name = attempt === 0 ? baseName : `${baseName}-${attempt}`
-    const existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
-    if (!existing) return name
+    const pageId = PlaygroundDBService.pageId('playground', name)
+    try {
+      await playgroundDB.addPage({
+        id: pageId,
+        category: 'playground',
+        name,
+        content,
+        updatedAt: now,
+      })
+      return name
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'ConstraintError') continue
+      throw err
+    }
   }
   throw new Error('Unable to allocate unique playground timestamp ID')
 }
@@ -103,16 +125,7 @@ function PlaygroundRedirect() {
 
   useEffect(() => {
     ;(async () => {
-      const id = await generatePlaygroundName()
-      const now = Date.now()
-      const pageId = PlaygroundDBService.pageId('playground', id)
-      await playgroundDB.savePage({
-        id: pageId,
-        category: 'playground',
-        name: id,
-        content: PLAYGROUND_TEMPLATE.content,
-        updatedAt: now,
-      })
+      const id = await createPlaygroundPage(PLAYGROUND_TEMPLATE.content)
       navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
     })()
   }, [navigate])
