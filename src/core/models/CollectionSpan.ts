@@ -24,4 +24,4 @@ export interface CollectionSpan {
 /**
  * TimeSpan represents a discrete period of time.
  */
-export { TimeSpan } from './TimeSpan';
+export type { TimeSpan } from './TimeSpan';

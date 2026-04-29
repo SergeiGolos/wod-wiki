@@ -22,7 +22,7 @@ export type IRuntimeAction = unknown;
 export type IRuntimeMemory = unknown;
 export type MemorySearchCriteria = unknown;
 export type IMemoryReference = unknown;
-export type TypedMemoryReference = unknown;
+export type TypedMemoryReference<T = unknown> = unknown;
 export type IRuntimeBlockStrategy = unknown;
 export type IRuntimeBehavior = unknown;
 export type IBlockContext = unknown;

@@ -1,6 +1,6 @@
 import type { TimeSpan as TimeSpanShape } from './TimeSpan';
 
-export class TimeSpan implements TimeSpanShape {
+export class TimeSpanImpl implements TimeSpanShape {
   constructor(
     public started: number,
     public ended?: number

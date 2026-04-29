@@ -285,14 +285,14 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
 
     private calculateElapsed(): number {
         if (this.spans.length === 0) {
-            return this.timeSpan.duration;
+            return (this.timeSpan.ended ?? Date.now()) - this.timeSpan.started;
         }
-        return this.spans.reduce((sum, span) => sum + span.duration, 0);
+        return this.spans.reduce((sum, span) => sum + ((span.ended ?? Date.now()) - span.started), 0);
     }
 
     private calculateTotal(): number {
         if (this.spans.length === 0) {
-            return this.timeSpan.duration;
+            return Math.max(0, (this.timeSpan.ended ?? Date.now()) - this.timeSpan.started);
         }
         const firstStart = this.spans[0].started;
         const lastSpan = this.spans[this.spans.length - 1];

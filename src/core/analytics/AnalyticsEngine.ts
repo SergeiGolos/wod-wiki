@@ -3,16 +3,15 @@ import { IAnalyticsStage } from './IAnalyticsStage';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 import { MetricContainer } from '../models/MetricContainer';
-import { TimeSpan } from '../models/TimeSpan';
-import { RuntimeStackTracker } from '../contracts/RuntimeStackTracker';
+import { IRuntimeStackTracker } from '../contracts/RuntimeStackTracker';
 import { ProjectionResult } from './ProjectionResult';
 
 export class AnalyticsEngine implements IAnalyticsEngine {
   private stages: IAnalyticsStage[] = [];
   private outputHistory: IOutputStatement[] = [];
-  private tracker?: RuntimeStackTracker;
+  private tracker?: IRuntimeStackTracker;
 
-  setTracker(tracker: RuntimeStackTracker): void {
+  setTracker(tracker: IRuntimeStackTracker): void {
     this.tracker = tracker;
   }
 
