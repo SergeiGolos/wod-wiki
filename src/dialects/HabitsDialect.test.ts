@@ -51,9 +51,10 @@ describe('HabitsDialect', () => {
   describe('timed habit detection', () => {
     it('should emit workout.habit_timed when a habit has a duration', () => {
       const statement = parseStatement('Meditation Daily 10:00');
-      const analysis = dialect.analyze(statement);
 
       expect(statement.metrics.some(m => m.type === MetricType.Duration)).toBe(true);
+
+      const analysis = dialect.analyze(statement);
       expect(analysis.hints).toContain('domain.habits');
       expect(analysis.hints).toContain('workout.habit_timed');
     });
@@ -69,9 +70,10 @@ describe('HabitsDialect', () => {
   describe('rep-based habit detection', () => {
     it('should emit workout.habit_rep when a habit has a rep count', () => {
       const statement = parseStatement('10 Pushups Daily');
-      const analysis = dialect.analyze(statement);
 
       expect(statement.metrics.some(m => m.type === MetricType.Rep)).toBe(true);
+
+      const analysis = dialect.analyze(statement);
       expect(analysis.hints).toContain('domain.habits');
       expect(analysis.hints).toContain('workout.habit_rep');
     });

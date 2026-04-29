@@ -27,9 +27,10 @@ describe('YogaDialect', () => {
 
     it('should add behavior.hold when pose has a duration', () => {
       const statement = parseStatement('Warrior II :60');
-      const analysis = dialect.analyze(statement);
 
       expect(statement.metrics.some(m => m.type === MetricType.Duration)).toBe(true);
+
+      const analysis = dialect.analyze(statement);
       expect(analysis.hints).toContain('workout.pose');
       expect(analysis.hints).toContain('behavior.hold');
     });
