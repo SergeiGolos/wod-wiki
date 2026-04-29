@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
-import { v4 as uuidv4 } from 'uuid';
 import { decodeZip } from '../services/decodeZip';
 import { playgroundDB, PlaygroundDBService } from '../services/playgroundDB';
+import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
 
 export function useZipProcessor() {
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ export function useZipProcessor() {
       try {
         const content = await decodeZip(zip);
         if (cancelled) return;
-        const id = uuidv4();
         const now = Date.now();
+        const id = formatPlaygroundTimestampId(now);
         const pageId = PlaygroundDBService.pageId('playground', id);
         await playgroundDB.savePage({
           id: pageId,

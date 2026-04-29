@@ -45,6 +45,7 @@ import { Toaster } from '@/components/ui/toaster'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
+import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -84,16 +85,19 @@ export interface WorkoutItem {
 }
 
 
-/** Generate a date-based name: YYYY-MM-DD HH-MM, with -SS.mmm if collision */
+const MAX_TIMESTAMP_ID_RETRIES = 10
+
+/** Generate a date-based name: YYYY-MM-DD-HH-MM-SS-MMM. */
 async function generatePlaygroundName(): Promise<string> {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const base = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}`
-  const basePageId = PlaygroundDBService.pageId('playground', base)
-  const existing = await playgroundDB.getPage(basePageId)
-  if (!existing) return base
-  const precise = `${base}-${pad(now.getSeconds())}.${String(now.getMilliseconds()).padStart(3, '0')}`
-  return precise
+  let name = formatPlaygroundTimestampId(Date.now())
+  let existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
+  for (let attempt = 0; existing && attempt < MAX_TIMESTAMP_ID_RETRIES; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 1))
+    name = formatPlaygroundTimestampId(Date.now())
+    existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
+  }
+  if (existing) throw new Error('Unable to allocate unique playground timestamp ID')
+  return name
 }
 
 function PlaygroundRedirect() {

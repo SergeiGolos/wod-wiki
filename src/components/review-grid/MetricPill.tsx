@@ -61,7 +61,16 @@ function metricDisplayText(frag: IMetric): string {
     return formatDurationSmart(frag.value);
   }
 
-  if (frag.image) return frag.image;
+  if (frag.image) {
+    // Round-group metrics (parser sets image = count) render as a bare number
+    // and are indistinguishable from rep badges. Append the "Round"/"Rounds"
+    // label so the pill reads e.g. "3 Rounds" (issue UX-03).
+    if (frag.type === MetricType.Rounds && /^\d+$/.test(frag.image.trim())) {
+      const n = Number(frag.image);
+      return `${frag.image} ${n === 1 ? 'Round' : 'Rounds'}`;
+    }
+    return frag.image;
+  }
   if (frag.value !== undefined && frag.value !== null) {
     if (typeof frag.value === 'object') {
       const val = frag.value as any;

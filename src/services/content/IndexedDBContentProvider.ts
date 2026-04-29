@@ -6,6 +6,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import { toShortId } from '../../lib/idUtils';
 import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
@@ -13,6 +14,8 @@ import { indexedDBService } from '../db/IndexedDBService';
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType } from '../../components/Editor/types/section';
+
+const MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS = 100;
 
 /**
  * Map legacy SectionType values stored in older DBs to current types.
@@ -75,6 +78,9 @@ export class IndexedDBContentProvider implements IContentProvider {
                 targetDate: note.targetDate || note.createdAt,
                 rawContent,
                 tags: note.tags,
+                type: note.type || 'note',
+                templateId: note.templateId,
+                clonedIds: note.clonedIds,
                 schemaVersion: 1,
             } as HistoryEntry;
         });
@@ -209,8 +215,19 @@ export class IndexedDBContentProvider implements IContentProvider {
     }
 
     async saveEntry(entry: Omit<HistoryEntry, 'id' | 'createdAt' | 'updatedAt' | 'schemaVersion'>): Promise<HistoryEntry> {
-        const noteId = uuidv4();
         const now = Date.now();
+        let noteId = entry.type === 'playground' ? formatPlaygroundTimestampId(now) : uuidv4();
+        if (entry.type === 'playground') {
+            const baseNoteId = noteId;
+            let attempt = 0;
+            while (await indexedDBService.getNote(noteId)) {
+                attempt += 1;
+                if (attempt > MAX_TIMESTAMP_ID_SUFFIX_ATTEMPTS) {
+                    throw new Error('Unable to allocate unique playground timestamp ID');
+                }
+                noteId = `${baseNoteId}-${attempt}`;
+            }
+        }
 
         // TRANSITION TO SEGMENTS
         const sections = parseDocumentSections(entry.rawContent);

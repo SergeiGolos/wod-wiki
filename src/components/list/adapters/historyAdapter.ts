@@ -1,5 +1,10 @@
 import React from 'react';
-import { Calendar } from 'lucide-react';
+import {
+  BeakerIcon,
+  BookOpenIcon,
+  DocumentDuplicateIcon,
+} from '@heroicons/react/24/outline';
+import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
 import type { HistoryEntry } from '@/types/history';
 import type { IListItem } from '../types';
 
@@ -18,6 +23,22 @@ function formatDuration(ms: number): string {
   return secs > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${mins}:00`;
 }
 
+function getLabel(entry: HistoryEntry): string {
+  if (entry.title) return entry.title;
+  if (entry.type === 'playground') return formatPlaygroundTimestampLabel(entry.createdAt);
+  return 'Untitled workout';
+}
+
+function getIcon(entry: HistoryEntry): React.ReactNode {
+  if (entry.type === 'playground') {
+    return React.createElement(BeakerIcon, { className: 'w-4 h-4' });
+  }
+  if (entry.type === 'template') {
+    return React.createElement(DocumentDuplicateIcon, { className: 'w-4 h-4' });
+  }
+  return React.createElement(BookOpenIcon, { className: 'w-4 h-4' });
+}
+
 export function historyEntryToListItem(entry: HistoryEntry): IListItem<HistoryEntry> {
   const duration = entry.results?.duration;
   const durationStr = duration ? formatDuration(duration) : undefined;
@@ -25,9 +46,9 @@ export function historyEntryToListItem(entry: HistoryEntry): IListItem<HistoryEn
 
   return {
     id: entry.id,
-    label: entry.title || 'Untitled workout',
+    label: getLabel(entry),
     subtitle: durationStr ? `${dateStr} · ${durationStr}` : dateStr,
-    icon: React.createElement(Calendar, { className: 'w-4 h-4' }),
+    icon: getIcon(entry),
     group: new Date(entry.targetDate).toLocaleDateString('en-US', {
       month: 'long',
       year: 'numeric',

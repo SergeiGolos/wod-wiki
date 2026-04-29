@@ -26,6 +26,7 @@ import type { WorkoutResults } from '@/components/Editor/types'
 import { MacOSChrome } from '../components/MacOSChrome'
 import { ButtonGroup } from '@/components/ui/ButtonGroup'
 import { cn } from '@/lib/utils'
+import { stripFrontmatter } from '@/utils/frontmatter'
 import { CanvasProse } from './CanvasProse'
 import { executeNavAction } from '../nav/navTypes'
 import type { INavActivation, NavActionDeps, INavAction } from '../nav/navTypes'
@@ -46,7 +47,7 @@ function resolveSource(dslPath: string, wodFiles: Record<string, string>): strin
   // Explicit markdown/canvas/ path
   if (dslPath.startsWith('markdown/')) {
     const key = '../../' + dslPath
-    if (wodFiles[key]) return wodFiles[key]
+    if (key in wodFiles) return stripFrontmatter(wodFiles[key])
   }
 
   // Legacy wods/ or collections/ prefixes
@@ -62,14 +63,14 @@ function resolveSource(dslPath: string, wodFiles: Record<string, string>): strin
   } else {
     // Check both canvas and collections as fallback
     const canvasKey = '../../markdown/canvas/' + dslPath
-    if (wodFiles[canvasKey]) return wodFiles[canvasKey]
+    if (canvasKey in wodFiles) return stripFrontmatter(wodFiles[canvasKey])
     
     const collectionsKey = '../../markdown/collections/' + dslPath
-    if (wodFiles[collectionsKey]) return wodFiles[collectionsKey]
+    if (collectionsKey in wodFiles) return stripFrontmatter(wodFiles[collectionsKey])
     
     key = '../../markdown/' + dslPath
   }
-  return wodFiles[key] ?? `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
+  return key in wodFiles ? stripFrontmatter(wodFiles[key]) : `# Source not found\n\nPath: \`${dslPath}\`\nResolved: \`${key}\``
 }
 
 // ── Section attribute helpers ─────────────────────────────────────────────────
@@ -744,11 +745,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                           )
                         }
                         
-                        return viewDef
-                          ? <p className="text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-6">
-                              {section.prose}
-                            </p>
-                          : <CanvasProse prose={section.prose} className="mb-6" />
+                        return <CanvasProse prose={section.prose} className="mb-6" />
                       })()
                     )}
 

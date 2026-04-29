@@ -14,6 +14,8 @@
  * Uses Vite's import.meta.glob — resolved at build time.
  */
 
+import { parseFrontmatter } from '@/utils/frontmatter';
+
 const exampleModules = import.meta.glob('../../markdown/canvas/**/*.md', {
     query: '?raw',
     eager: true,
@@ -26,26 +28,6 @@ export interface PageTabExample {
     section: string;
     order: number;
     content: string;
-}
-
-/**
- * Parse simple YAML frontmatter (flat key: value only, no nesting).
- * Returns parsed metadata and the body after the closing `---`.
- */
-function parseFrontmatter(raw: string): { meta: Record<string, string | number>; body: string } {
-    const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-    if (!match) return { meta: {}, body: raw };
-
-    const meta: Record<string, string | number> = {};
-    for (const line of match[1].split('\n')) {
-        const colonIdx = line.indexOf(':');
-        if (colonIdx === -1) continue;
-        const key = line.slice(0, colonIdx).trim();
-        const rawVal = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
-        const num = Number(rawVal);
-        meta[key] = rawVal !== '' && !isNaN(num) ? num : rawVal;
-    }
-    return { meta, body: match[2].trim() };
 }
 
 /**
@@ -70,7 +52,7 @@ export function getTabExamples(page: string, section: string): PageTabExample[] 
             subtitle: String(meta.subtitle ?? ''),
             section: String(meta.section ?? ''),
             order: Number(meta.order ?? 0),
-            content: body,
+            content: body.trim(),
         });
     }
 
@@ -87,5 +69,5 @@ export function getHomeExample(name: string): string {
     );
     if (!key) return '';
     const { body } = parseFrontmatter(exampleModules[key] as string);
-    return body;
+    return body.trim();
 }
