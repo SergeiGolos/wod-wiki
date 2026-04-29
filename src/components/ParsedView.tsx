@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { sharedParser } from '../parser/parserInstance';
+import { sharedParser } from '@/hooks/useRuntimeParser';
 import { WodScriptVisualizer } from './WodScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
 

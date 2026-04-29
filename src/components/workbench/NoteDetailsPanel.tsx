@@ -13,7 +13,7 @@ import { isNotebookTag } from '@/types/notebook';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { AddToNotebookButton } from '@/components/notebook/AddToNotebookButton';
 import { CloneDateDropdown } from '@/components/workbench/CloneDateDropdown';
-import { exportAllNotes, exportNote, importFromZip, pickFile } from '@/services/ExportImportService';
+import { exportAllNotes, exportNote, importFromZip, pickFile } from '@/hooks/useWorkbenchServices';
 
 export interface NoteDetailsPanelProps {
     isOpen: boolean;

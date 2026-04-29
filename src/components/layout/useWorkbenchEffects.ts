@@ -21,12 +21,11 @@ import { useWorkbench } from './WorkbenchContext';
 import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { parseDocumentStructure } from '../Editor/utils/documentStructure';
-import { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '../../services/AnalyticsTransformer';
-import type { SegmentWithMetadata } from '../../services/AnalyticsTransformer';
+import { getAnalyticsFromRuntime, getAnalyticsFromLogs, indexedDBService } from '@/hooks/useWorkbenchServices';
+import type { SegmentWithMetadata } from '@/hooks/useWorkbenchServices';
 import { hashCode } from '../../lib/utils';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
 import { WodBlock } from '../Editor/types';
-import { indexedDBService } from '../../services/db/IndexedDBService';
 import type { AnalyticsDataPoint } from '../../types/storage';
 import { useProjectionSync } from '../../components/cast/ProjectionSyncContext';
 

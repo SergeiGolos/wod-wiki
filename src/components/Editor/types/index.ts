@@ -3,8 +3,8 @@
  */
 
 import { ICodeStatement } from '../../../core/models/CodeStatement';
-import { ScriptRuntime } from '../../../runtime/ScriptRuntime';
-import { MdTimerRuntime } from '../../../parser/md-timer';
+import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
+import { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
 import { IOutputStatement } from '../../../core/models/OutputStatement';
 export * from './section';

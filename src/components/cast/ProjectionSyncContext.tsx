@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext } from 'react';
-import type { IRuntimeSubscription } from '../../runtime/contracts/IRuntimeSubscription';
+import type { IRuntimeSubscription } from '@/hooks/useRuntimeTimer';
 
 interface ProjectionSyncContextValue {
     updateFromSegments: (

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { audioService } from '../../services/AudioService';
+import { audioService } from '@/hooks/useWorkbenchServices';
 import { useWorkbenchSyncStore } from '../layout/workbenchSyncStore';
 
 interface AudioContextType {

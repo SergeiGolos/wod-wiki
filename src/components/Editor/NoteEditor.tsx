@@ -42,7 +42,7 @@ import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirro
 import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 
-import { wodscriptLanguage } from "../../parser/wodscript-language";
+import { wodscriptLanguage } from "@/hooks/useRuntimeParser";
 import { editorTheme } from "./extensions/theme";
 import { smartIncrement } from "./extensions/smart-increment";
 
@@ -131,8 +131,7 @@ import { FullscreenReview } from "./overlays/FullscreenReview";
 import { InlineCommandBar } from "./overlays/InlineCommandBar";
 import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
-import { indexedDBService } from "@/services/db/IndexedDBService";
-import { getAnalyticsFromLogs } from "@/services/AnalyticsTransformer";
+import { indexedDBService, getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
 import { v4 as uuidv4 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 

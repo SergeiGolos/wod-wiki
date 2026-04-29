@@ -13,7 +13,8 @@
 import React from 'react';
 import { Eye, ArrowUpCircle, Lock, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MetricVisibility, VISIBILITY_LABELS } from '@/runtime/memory/MetricVisibility';
+import type { MetricVisibility } from '@/hooks/useRuntimeTimer';
+import { VISIBILITY_LABELS } from '@/hooks/useRuntimeTimer';
 
 export const VISIBILITY_ICON_MAP: Record<MetricVisibility, React.ElementType> = {
     display: Eye,

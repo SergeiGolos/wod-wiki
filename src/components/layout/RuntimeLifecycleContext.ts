@@ -9,7 +9,7 @@
  */
 
 import { createContext } from 'react';
-import { ScriptRuntime } from '../../runtime/ScriptRuntime';
+import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { WodBlock } from '../Editor/types';
 
 /**

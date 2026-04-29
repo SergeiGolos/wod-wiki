@@ -12,7 +12,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Bug } from 'lucide-react';
-import { RuntimeLogger } from '../../runtime/RuntimeLogger';
+import { RuntimeLogger } from '@/hooks/useRuntimeDebug';
 
 // ── Context ────────────────────────────────────────────────────
 
