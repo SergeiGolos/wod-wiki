@@ -4,7 +4,7 @@ import { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
 import { BlockLifecycleOptions, IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IBlockContext } from '../../runtime/contracts/IBlockContext';
-import { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
+import type { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';
 
 // Re-export so existing consumers of this module continue to work
 export type { InterceptMode, TestableBlockConfig } from '../../runtime/contracts/ITestableBlockConfig';

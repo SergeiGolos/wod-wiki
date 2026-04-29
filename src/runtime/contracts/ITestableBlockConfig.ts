@@ -1,5 +1,5 @@
-import { IRuntimeAction } from './IRuntimeAction';
-import { IScriptRuntime } from './IScriptRuntime';
+import type { IRuntimeAction } from './IRuntimeAction';
+import type { IScriptRuntime } from './IScriptRuntime';
 
 /**
  * Configuration for method interception behavior.

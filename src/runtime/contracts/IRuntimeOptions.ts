@@ -1,5 +1,5 @@
 import { IRuntimeBlock } from './IRuntimeBlock';
-import { TestableBlockConfig } from './ITestableBlockConfig';
+import type { TestableBlockConfig } from './ITestableBlockConfig';
 
 /**
  * Factory function type for wrapping blocks in debug mode.
