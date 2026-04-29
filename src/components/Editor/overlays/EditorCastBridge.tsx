@@ -16,8 +16,7 @@
 import { useEffect, useRef } from 'react';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import type { EditorSection } from '../extensions/section-state';
-import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
-import type { RpcMessage } from '@/services/cast/rpc/RpcMessages';
+import type { RpcWorkbenchUpdate, RpcMessage } from '@/hooks/useCastSignaling';
 import type { EditorState } from '@codemirror/state';
 import type { WodBlock } from '../types';
 

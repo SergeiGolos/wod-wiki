@@ -8,18 +8,17 @@ import type { ContentProviderMode, IContentProvider } from '../../types/content-
 import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
-import { StaticContentProvider } from '../../services/content/StaticContentProvider';
+import { StaticContentProvider, indexedDBService, fileProcessor } from '@/hooks/useBrowserServices';
+import { sharedParser } from '@/hooks/useRuntimeParser';
 import { getWodContent } from '@/repositories/wod-loader';
 import { toNotebookTag } from '../../types/notebook';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRef } from 'react';
 import { parseDocumentSections, matchSectionIds } from '../Editor/utils/sectionParser';
 import { parseWodBlock } from '../Editor/utils/parseWodBlock';
-import { sharedParser } from '../../parser/parserInstance';
-import type { Section as EditorSection } from '../Editor/types/section'; import { indexedDBService } from '../../services/db/IndexedDBService';
+import type { Section as EditorSection } from '../Editor/types/section';
 import { INavigationProvider } from '@/types/navigation';
 import { useReactRouterNavigation } from '@/hooks/useReactRouterNavigation';
-import { fileProcessor } from '../../services/attachments/FileProcessor';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
 
 /**

@@ -20,30 +20,22 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import type { EditorView } from "@codemirror/view";
-import { ScriptRuntimeProvider } from "@/runtime/context/RuntimeContext";
 import { TimerDisplay } from "@/panels/timer-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
-import { RuntimeFactory } from "@/runtime/compiler/RuntimeFactory";
-import { globalCompiler, globalParser } from "@/runtime/services/runtimeServices";
-import { useRuntimeExecution, type UseRuntimeExecutionReturn } from "@/runtime/hooks/useRuntimeExecution";
+import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, SubscriptionManager, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
+import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
+import { runtimeFactory, globalParser } from "@/hooks/useRuntimeFactory";
+import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncService } from "@/hooks/useCastSignaling";
+import type { RpcWorkbenchUpdate } from "@/hooks/useCastSignaling";
 import { useWorkbenchSyncStore } from "@/components/layout/workbenchSyncStore";
-import { SubscriptionManager } from "@/runtime/subscriptions/SubscriptionManager";
-import { ChromecastRuntimeSubscription } from "@/services/cast/rpc/ChromecastRuntimeSubscription";
-import { ChromecastEventProvider } from "@/services/cast/rpc/ChromecastEventProvider";
-import { ClockSyncService } from "@/services/cast/rpc/ClockSync";
 import type { WodBlock, WorkoutResults } from "../types";
-import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
-import type { ScriptRuntime } from "@/runtime/ScriptRuntime";
-import type { StackSnapshot } from "@/runtime/contracts/IRuntimeStack";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-unified";
-import { NextEvent } from "@/runtime/events/NextEvent";
 import { formatTimeMMSS } from "@/lib/formatTime";
-import type { RpcWorkbenchUpdate } from "@/services/cast/rpc/RpcMessages";
 
-// Singleton factory — avoids re-constructing the compiler on every render
-const factory = new RuntimeFactory(globalCompiler);
+// Singleton factory — use shared factory from hooks layer to avoid re-constructing the compiler
+const factory = runtimeFactory;
 
 // ── Types ───────────────────────────────────────────────────────────────
 

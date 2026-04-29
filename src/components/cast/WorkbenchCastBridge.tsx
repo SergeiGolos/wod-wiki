@@ -20,7 +20,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
-import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
+import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';
