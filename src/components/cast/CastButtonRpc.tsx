@@ -346,7 +346,7 @@ export const CastButtonRpc: React.FC = () => {
 
         const unsub = eventProvider.onEvent((event) => {
             const state = useWorkbenchSyncStore.getState();
-            const { handleNext, handleStart, handlePause, handleStop } = state;
+            const { handleNext, handleStart, handlePause, handleStop } = state.handles;
             switch (event.name) {
                 case 'next': handleNext(); break;
                 case 'start': handleStart(); break;
