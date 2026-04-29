@@ -50,21 +50,33 @@ const noopExecution: UseRuntimeExecutionReturn = {
   step: () => { },
 };
 
+// ─── Handles interface (React hook closures — kept separate from plain state) ─
+
+export interface WorkbenchHandles {
+  handleStart: () => void;
+  handlePause: () => void;
+  handleStop: () => void;
+  handleNext: () => void;
+  handleStartWorkoutAction: (block: WodBlock) => void;
+}
+
+const noopHandles: WorkbenchHandles = {
+  handleStart: () => { },
+  handlePause: () => { },
+  handleStop: () => { },
+  handleNext: () => { },
+  handleStartWorkoutAction: () => { },
+};
+
 // ─── State shape ───────────────────────────────────────────────
 
 interface WorkbenchSyncState {
   // --- Runtime & Execution (hydrated from React hooks via bridge) ---
   runtime: IScriptRuntime | null;
   execution: UseRuntimeExecutionReturn;
-  initializeRuntime: (block: WodBlock) => void;
-  disposeRuntime: () => void;
 
-  // --- Execution Controls (hydrated from React hooks via bridge) ---
-  handleStart: () => void;
-  handlePause: () => void;
-  handleStop: () => void;
-  handleNext: () => void;
-  handleStartWorkoutAction: (block: WodBlock) => void;
+  // --- Execution Handles (React hook closures, injected via bridge) ---
+  handles: WorkbenchHandles;
 
   // --- Active Tracking (derived from runtime stack) ---
   activeSegmentIds: Set<number>;
@@ -132,18 +144,10 @@ interface WorkbenchSyncActions {
   setCastTransport: (transport: IRpcTransport | null) => void;
   setViewMode: (mode: ViewMode) => void;
 
-  // --- Bridge hydration (called by WorkbenchSyncBridge to inject React hook values) ---
-  _hydrateRuntime: (payload: {
-    runtime: IScriptRuntime | null;
-    execution: UseRuntimeExecutionReturn;
-    initializeRuntime: (block: WodBlock) => void;
-    disposeRuntime: () => void;
-    handleStart: () => void;
-    handlePause: () => void;
-    handleStop: () => void;
-    handleNext: () => void;
-    handleStartWorkoutAction: (block: WodBlock) => void;
-  }) => void;
+  // --- Runtime & execution setters (replaces _hydrateRuntime) ---
+  setRuntime: (runtime: IScriptRuntime | null) => void;
+  setExecution: (execution: UseRuntimeExecutionReturn) => void;
+  setHandles: (handles: WorkbenchHandles) => void;
 
   /** Resets the entire store to its initial state */
   resetStore: () => void;
@@ -159,13 +163,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   // --- Initial state ---
   runtime: null,
   execution: noopExecution,
-  initializeRuntime: () => { },
-  disposeRuntime: () => { },
-  handleStart: () => { },
-  handlePause: () => { },
-  handleStop: () => { },
-  handleNext: () => { },
-  handleStartWorkoutAction: () => { },
+  handles: noopHandles,
 
   activeSegmentIds: new Set(),
   activeStatementIds: new Set(),
@@ -253,20 +251,16 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
   setCastTransport: (castTransport) => set({ castTransport }),
   setViewMode: (viewMode) => set({ viewMode }),
 
-  // Bridge hydration — pushes React hook values into the store
-  _hydrateRuntime: (payload) => set(payload),
+  // Bridge runtime setters
+  setRuntime: (runtime) => set({ runtime }),
+  setExecution: (execution) => set({ execution }),
+  setHandles: (handles) => set({ handles }),
 
   // Reset the store to its initial state
   resetStore: () => set({
     runtime: null,
     execution: noopExecution,
-    initializeRuntime: () => { },
-    disposeRuntime: () => { },
-    handleStart: () => { },
-    handlePause: () => { },
-    handleStop: () => { },
-    handleNext: () => { },
-    handleStartWorkoutAction: () => { },
+    handles: noopHandles,
 
     activeSegmentIds: new Set(),
     activeStatementIds: new Set(),

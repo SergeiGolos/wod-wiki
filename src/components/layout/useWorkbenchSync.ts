@@ -20,5 +20,6 @@
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
 
 export const useWorkbenchSync = () => {
-  return useWorkbenchSyncStore();
+  const store = useWorkbenchSyncStore();
+  return { ...store, ...store.handles };
 };
