@@ -67,7 +67,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ snapshot, highlighte
                 block.key === output.sourceBlockKey && block.lineNumber === highlightedLine
               );
 
-            const label = metricsToLabel(output.metrics);
+            const label = metricsToLabel(output.metrics.toArray());
             const type = output.metrics.find(f => f.type === 'rounds' || f.type === 'current-round' || f.type === 'duration' || f.type === 'effort')?.type || 'group';
             const isOpen = output.timeSpan && !output.timeSpan.ended;
 

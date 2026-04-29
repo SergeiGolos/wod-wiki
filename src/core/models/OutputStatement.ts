@@ -1,9 +1,9 @@
 import { ICodeStatement } from './CodeStatement';
 import { IMetric, MetricType } from './Metric';
+import { MetricContainer } from './MetricContainer';
 import { CodeMetadata } from './CodeMetadata';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
-import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrecedence';
 
 /**
  * Output statement types indicating what kind of result this represents.
@@ -95,7 +95,7 @@ export interface IOutputStatement extends ICodeStatement, IMetricSource {
      * Fragments on IOutputStatement are runtime-generated.
      * They should have `origin: 'runtime'` or `origin: 'user'`.
      */
-    readonly metrics: IMetric[];
+    readonly metrics: MetricContainer;
 
     /** Metadata mapping for metrics. Each metrics can have an optional associated meta object. */
     readonly metricMeta: Map<IMetric, CodeMetadata>;
@@ -148,7 +148,7 @@ export interface OutputStatementOptions {
     sourceStatementId?: number;
 
     /** Runtime-collected metrics */
-    metrics?: IMetric[];
+    metrics?: MetricContainer | IMetric[];
 
     /** Map of metrics to metadata */
     metricMeta?: Map<IMetric, CodeMetadata>;
@@ -191,7 +191,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     readonly sourceStatementId?: number;
     readonly sourceBlockKey: string;
     readonly stackLevel: number;
-    readonly metrics: IMetric[];
+    readonly metrics: MetricContainer;
     readonly metricMeta: Map<IMetric, CodeMetadata>;
 
     /**
@@ -221,7 +221,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
         this.sourceBlockKey = options.sourceBlockKey;
         this.sourceStatementId = options.sourceStatementId;
         this.stackLevel = options.stackLevel;
-        this.metrics = options.metrics ?? [];
+        this.metrics = MetricContainer.from(options.metrics, this.id);
         this.metricMeta = options.metricMeta ?? new Map();
         this.completionReason = options.completionReason;
         this.parent = options.parent;
@@ -246,30 +246,14 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      * precedence origin tier.
      */
     getDisplayMetrics(filter?: MetricFilter): IMetric[] {
-        let frags = this.metrics;
-        if (filter?.types) {
-            const types = new Set(filter.types);
-            frags = frags.filter(f => types.has(f.type));
-        }
-        if (filter?.excludeTypes) {
-            const exclude = new Set(filter.excludeTypes);
-            frags = frags.filter(f => !exclude.has(f.type));
-        }
-        if (filter?.origins) {
-            const origins = new Set(filter.origins);
-            frags = frags.filter(f => f.origin !== undefined && origins.has(f.origin));
-        }
-        return resolveMetricPrecedence(frags);
+        return this.metrics.getDisplayMetrics(filter);
     }
 
     /**
      * Get the highest-precedence single metrics of a given type.
      */
     getMetric(type: MetricType): IMetric | undefined {
-        const matches = this.metrics.filter(f => f.type === type);
-        if (matches.length === 0) return undefined;
-        const resolved = resolveMetricPrecedence(matches);
-        return resolved[0];
+        return this.metrics.getMetric(type);
     }
 
     /**
@@ -277,20 +261,14 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      * Unlike `getMetric()`, this returns every tier, not just the winning one.
      */
     getAllMetricsByType(type: MetricType): IMetric[] {
-        const matches = this.metrics.filter(f => f.type === type);
-        // Sort by precedence rank (lowest = highest precedence = first)
-        return [...matches].sort((a, b) => {
-            const rankA = ORIGIN_PRECEDENCE[a.origin ?? 'parser'] ?? 3;
-            const rankB = ORIGIN_PRECEDENCE[b.origin ?? 'parser'] ?? 3;
-            return rankA - rankB;
-        });
+        return this.metrics.getAllMetricsByType(type);
     }
 
     /**
      * Check if any metrics of this type exists.
      */
     hasMetric(type: MetricType): boolean {
-        return this.metrics.some(f => f.type === type);
+        return this.metrics.hasMetric(type);
     }
 
     /**
@@ -298,7 +276,7 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
      * Returns a defensive copy so mutations don't affect internal state.
      */
     get rawMetrics(): IMetric[] {
-        return [...this.metrics];
+        return this.metrics.rawMetrics;
     }
 
     // ═══════════════════════════════════════════════════════════════

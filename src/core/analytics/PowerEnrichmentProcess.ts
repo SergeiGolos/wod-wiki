@@ -45,7 +45,7 @@ export class PowerEnrichmentProcess implements IAnalyticsProcess {
         const elapsedSec = elapsedMs / 1000;
         const power = volumeLoad / elapsedSec;
 
-        output.metrics.push({
+        output.metrics.add({
             type: 'power',
             image: `${power.toFixed(1)} ${units}/s`,
             value: parseFloat(power.toFixed(1)),

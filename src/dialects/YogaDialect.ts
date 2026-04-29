@@ -1,6 +1,7 @@
 import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { MetricType, IMetric } from "../core/models/Metric";
+import { MetricType } from "../core/models/Metric";
+import { MetricContainer } from "../core/models/MetricContainer";
 
 /**
  * Yoga dialect for recognizing yoga and mindfulness practice patterns.
@@ -50,7 +51,7 @@ export class YogaDialect implements IDialect {
     'VISUALIZATION',
   ];
 
-  private hasAnyKeyword(metrics: IMetric[], keywords: string[]): boolean {
+  private hasAnyKeyword(metrics: MetricContainer, keywords: string[]): boolean {
     return metrics.some(
       m =>
         (m.type === MetricType.Action ||
@@ -63,7 +64,7 @@ export class YogaDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics ?? [];
+    const metrics = statement.metrics;
     const hasDuration = metrics.some(m => m.type === MetricType.Duration);
 
     // TODO: Detect individual pose holds

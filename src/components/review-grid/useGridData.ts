@@ -13,6 +13,7 @@
 
 import { useMemo } from 'react';
 import { MetricType, type IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type {
   GridRow,
@@ -31,7 +32,7 @@ export interface UseGridDataOptions {
   /** Analytics segments produced by AnalyticsTransformer */
   segments: Segment[];
   /** User-supplied overrides keyed by sourceBlockKey */
-  userOutputOverrides: Map<string, IMetric[]>;
+  userOutputOverrides: Map<string, MetricContainer>;
   /** Active preset id */
   presetId: string;
   /** Whether the workbench is in debug mode */
@@ -234,7 +235,7 @@ interface SegmentWithContext extends Segment {
 
 function segmentsToRows(
   segments: Segment[],
-  userOverrides: Map<string, IMetric[]>,
+  userOverrides: Map<string, MetricContainer>,
 ): GridRow[] {
   return segments.map((seg, idx) => {
     const cells = new Map<MetricType, GridCell>();
@@ -259,7 +260,10 @@ function segmentsToRows(
           if (withoutHinted.length === 0) {
             cells.delete(frag.type as MetricType);
           } else {
-            cells.set(frag.type as MetricType, { metrics: withoutHinted, hasUserOverride: false });
+            cells.set(frag.type as MetricType, {
+              metrics: MetricContainer.from(withoutHinted, frag.type),
+              hasUserOverride: false
+            });
           }
         }
         groupFragmentIntoCell(cells, frag);
@@ -342,12 +346,12 @@ function deriveVolumeCell(cells: Map<MetricType, GridCell>): void {
 
   const volume = reps * weightKg;
   cells.set(MetricType.Volume, {
-    metrics: [{
+    metrics: MetricContainer.empty('volume').add({
       type: MetricType.Volume,
       value: volume,
       image: `${volume} ${unit}`,
       origin: 'analyzed',
-    }],
+    }),
     hasUserOverride: false,
   });
 }
@@ -370,10 +374,10 @@ function groupFragmentIntoCell(
   const existing = cells.get(ft);
   if (existing) {
     // Mutably append — safe because we've just allocated these arrays
-    (existing.metrics as IMetric[]).push(frag);
+    existing.metrics.add(frag);
   } else {
     cells.set(ft, {
-      metrics: [frag],
+      metrics: MetricContainer.empty(ft).add(frag),
       hasUserOverride: false,
     });
   }

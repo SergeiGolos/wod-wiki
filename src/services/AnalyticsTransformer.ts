@@ -3,6 +3,7 @@
 import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/AnalyticsModels';
 
 import { IMetric } from '../core/models/Metric';
+import { MetricContainer } from '../core/models/MetricContainer';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 
@@ -48,6 +49,7 @@ function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, nu
  * UI-ready segment format.
  */
 export interface SegmentWithMetadata extends Segment {
+  metrics?: MetricContainer;
   tags?: string[];
   spanType?: string;
   context?: Record<string, any>;
@@ -78,7 +80,7 @@ export class AnalyticsTransformer {
 
     return outputs.map(output => {
       // Paranoid copy of metrics to ensure they persist
-      const outputMetrics = output.metrics ? [...output.metrics] : [];
+      const outputMetrics = MetricContainer.from(output.metrics, output.id);
 
       // Intent: parser-defined duration (if any)
       const durationFrag = outputMetrics.find(f => f.type === 'duration');
@@ -92,7 +94,7 @@ export class AnalyticsTransformer {
       const startTimeMs = output.timeSpan?.started ?? startTime;
       const endTimeMs = output.timeSpan?.ended ?? Date.now();
 
-      const extractedMetrics = extractMetricsFromGroups([outputMetrics]);
+      const extractedMetrics = extractMetricsFromGroups([outputMetrics.toArray()]);
 
       const nameMetric = outputMetrics.find(f =>
         f.type === 'effort' ||

@@ -77,16 +77,16 @@ function extractTimer(block: IRuntimeBlock): SerializedTimer | null {
 export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
     // ── Display tier ──────────────────────────────────────────────────────
     const displayLocs = block.getMetricMemoryByVisibility('display');
-    const displayFragments = displayLocs.map(loc => loc.metrics);
+    const displayFragments = displayLocs.map(loc => loc.metrics.toArray());
 
     // ── Promote tier ──────────────────────────────────────────────────────
     // metrics:promote and metrics:rep-target locations
     const promoteLocs = block.getMetricMemoryByVisibility('promote');
-    const promoteFragments: IMetric[][] = promoteLocs.map(loc => loc.metrics);
+    const promoteFragments: IMetric[][] = promoteLocs.map(loc => loc.metrics.toArray());
 
     // ── Result tier ───────────────────────────────────────────────────────
     const resultLocs = block.getMetricMemoryByVisibility('result');
-    const resultFragments: IMetric[][] = resultLocs.map(loc => loc.metrics);
+    const resultFragments: IMetric[][] = resultLocs.map(loc => loc.metrics.toArray());
 
     // ── Private tier ──────────────────────────────────────────────────────
     // Group private locations by tag: Record<tag, IMetric[][]>
@@ -96,12 +96,12 @@ export function serializeBlock(block: IRuntimeBlock): SerializedBlock {
         if (!privateFragments[loc.tag]) {
             privateFragments[loc.tag] = [];
         }
-        privateFragments[loc.tag].push(loc.metrics);
+        privateFragments[loc.tag].push(loc.metrics.toArray());
     }
 
     // ── 'Up Next' preview ─────────────────────────────────────────────────
     const nextLocs = block.getMemoryByTag('metric:next');
-    const nextFragments = nextLocs.flatMap(loc => loc.metrics);
+    const nextFragments = nextLocs.flatMap(loc => loc.metrics.toArray());
 
     // ── Behavior metadata ─────────────────────────────────────────────────
     let behaviorsMetadata: SerializedBehavior[] | undefined;
@@ -157,7 +157,7 @@ export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
         outputType: output.outputType,
         sourceBlockKey: output.sourceBlockKey,
         stackLevel: output.stackLevel,
-        metrics: output.metrics,
+        metrics: output.metrics.toArray(),
         completionReason: output.completionReason,
         timeSpan: { started, ended },
         elapsed,
@@ -206,4 +206,3 @@ export function serializeAnalyticsSummary(
         projections,
     };
 }
-

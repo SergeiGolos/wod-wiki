@@ -1,5 +1,5 @@
 import { IMetric, MetricType, MetricOrigin } from './Metric';
-import { MetricFilter } from '../contracts/IMetricSource';
+import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
 import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrecedence';
 
 /**
@@ -19,23 +19,41 @@ import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrece
  * const merged = c.merge(otherContainer);
  * ```
  */
-export class MetricContainer implements Iterable<IMetric> {
+export class MetricContainer implements IMetricSource, Iterable<IMetric> {
+    [index: number]: IMetric;
     private _metrics: IMetric[];
+    private _indexedLength = 0;
+    readonly id: string | number;
 
     // ── Construction ───────────────────────────────────────────
 
-    constructor(metrics?: IMetric[]) {
+    constructor(metrics?: IMetric[] | MetricContainer, id: string | number = 'metrics') {
+        this.id = id;
+        if (metrics instanceof MetricContainer) {
+            this._metrics = metrics.toArray();
+            this.syncIndexProperties();
+            return;
+        }
         this._metrics = metrics ? [...metrics] : [];
+        this.syncIndexProperties();
     }
 
     /** Create a container from an existing metric array. */
-    static from(metrics: IMetric[]): MetricContainer {
-        return new MetricContainer(metrics);
+    static from(metrics: IMetric[] | MetricContainer | undefined, id: string | number = 'metrics'): MetricContainer {
+        if (metrics instanceof MetricContainer) {
+            return metrics.clone(id);
+        }
+        return new MetricContainer(metrics, id);
     }
 
     /** Create an empty container. */
-    static empty(): MetricContainer {
-        return new MetricContainer();
+    static empty(id: string | number = 'metrics'): MetricContainer {
+        return new MetricContainer(undefined, id);
+    }
+
+    /** Create a defensive copy of this container. */
+    clone(id: string | number = this.id): MetricContainer {
+        return new MetricContainer(this._metrics, id);
     }
 
     // ── Read ───────────────────────────────────────────────────
@@ -82,6 +100,26 @@ export class MetricContainer implements Iterable<IMetric> {
         return this._metrics.some(m => m.type === type);
     }
 
+    hasMetric(type: MetricType): boolean {
+        return this.has(type);
+    }
+
+    getDisplayMetrics(filter?: MetricFilter): IMetric[] {
+        return this.resolve(filter);
+    }
+
+    getMetric(type: MetricType): IMetric | undefined {
+        return this.getFirst(type);
+    }
+
+    getAllMetricsByType(type: MetricType): IMetric[] {
+        return this.getByType(type);
+    }
+
+    get rawMetrics(): IMetric[] {
+        return this.toArray();
+    }
+
     /**
      * Get all metrics matching the given origin.
      */
@@ -104,6 +142,7 @@ export class MetricContainer implements Iterable<IMetric> {
     /** Append one or more metrics. */
     add(...metrics: IMetric[]): this {
         this._metrics.push(...metrics);
+        this.syncIndexProperties();
         return this;
     }
 
@@ -120,6 +159,7 @@ export class MetricContainer implements Iterable<IMetric> {
             }
             return true;
         });
+        this.syncIndexProperties();
         return removed;
     }
 
@@ -134,6 +174,7 @@ export class MetricContainer implements Iterable<IMetric> {
     /** Remove all metrics. */
     clear(): this {
         this._metrics = [];
+        this.syncIndexProperties();
         return this;
     }
 
@@ -145,6 +186,7 @@ export class MetricContainer implements Iterable<IMetric> {
     replaceByType(type: MetricType, ...replacements: IMetric[]): IMetric[] {
         const removed = this.removeByType(type);
         this._metrics.push(...replacements);
+        this.syncIndexProperties();
         return removed;
     }
 
@@ -162,11 +204,15 @@ export class MetricContainer implements Iterable<IMetric> {
      *
      * Returns `this` for chaining.
      */
-    merge(other: MetricContainer | IMetric[]): this {
-        const incoming = other instanceof MetricContainer ? other._metrics : other;
+    merge(other: MetricContainer | IMetric[] | { metrics: MetricContainer }): this {
+        const incoming = other instanceof MetricContainer
+            ? other._metrics
+            : Array.isArray(other)
+                ? other
+                : other.metrics.toArray();
 
         // Group incoming by MetricType
-        const byType = new Map<MetricType, IMetric[]>();
+        const byType = new Map<IMetric['type'], IMetric[]>();
         for (const m of incoming) {
             const group = byType.get(m.type) ?? [];
             group.push(m);
@@ -200,6 +246,7 @@ export class MetricContainer implements Iterable<IMetric> {
             // Lower precedence — ignore incoming
         }
 
+        this.syncIndexProperties();
         return this;
     }
 
@@ -218,6 +265,11 @@ export class MetricContainer implements Iterable<IMetric> {
     /** Map metrics to a new array. */
     map<T>(fn: (m: IMetric, index: number) => T): T[] {
         return this._metrics.map(fn);
+    }
+
+    /** Flat-map metrics to a new array. */
+    flatMap<T>(fn: (m: IMetric, index: number) => T | readonly T[]): T[] {
+        return this._metrics.flatMap(fn);
     }
 
     /** Find the first metric matching a predicate. */
@@ -245,6 +297,16 @@ export class MetricContainer implements Iterable<IMetric> {
     /** Spread-friendly: returns the underlying array (no copy). */
     get raw(): IMetric[] {
         return this._metrics;
+    }
+
+    private syncIndexProperties(): void {
+        for (let i = 0; i < this._indexedLength; i++) {
+            delete this[i];
+        }
+        for (let i = 0; i < this._metrics.length; i++) {
+            this[i] = this._metrics[i];
+        }
+        this._indexedLength = this._metrics.length;
     }
 
     /** Useful for debugging. */

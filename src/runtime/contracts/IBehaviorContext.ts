@@ -3,6 +3,7 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { IRuntimeBlock } from './IRuntimeBlock';
 import { IRuntimeClock } from './IRuntimeClock';
 import { IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
 import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
@@ -200,7 +201,7 @@ export interface IBehaviorContext {
      */
     emitOutput(
         type: OutputStatementType,
-        metrics: IMetric[],
+        metrics: MetricContainer | IMetric[],
         options?: OutputOptions
     ): void;
 
@@ -231,7 +232,7 @@ export interface IBehaviorContext {
      * ctx.pushMemory('metric:display', [timerFrag, actionFrag, effortFrag]);
      * ```
      */
-    pushMemory(tag: MemoryTag, metrics: IMetric[]): IMemoryLocation;
+    pushMemory(tag: MemoryTag, metrics: MetricContainer | IMetric[]): IMemoryLocation;
 
     /**
      * Get all memory locations matching the given tag.
@@ -255,7 +256,7 @@ export interface IBehaviorContext {
      * ctx.updateMemory('time', [updatedTimerMetric]);
      * ```
      */
-    updateMemory(tag: MemoryTag, metrics: IMetric[]): void;
+    updateMemory(tag: MemoryTag, metrics: MetricContainer | IMetric[]): void;
 
     // ============================================================================
     // Block Control

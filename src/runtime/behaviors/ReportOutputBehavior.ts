@@ -2,6 +2,7 @@ import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { MetricType, IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
 import { calculateElapsed } from '../time/calculateElapsed';
@@ -100,7 +101,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 const resultGroups = this.computeSplitTimeResults(
                     ctx,
                     timer,
-                    displayGroups.map(loc => loc.metrics),
+                        displayGroups.map(loc => loc.metrics),
                     completionLabel
                 );
                 this.writeResultGroups(ctx, resultGroups);
@@ -117,7 +118,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // Default single-output result
         const resultFragments = shouldComputeTimeResults
             ? this.computeTimeResults(ctx, timer, completionLabel)
-            : [new SystemTimeMetric(new Date(), ctx.block.key.toString())];
+            : MetricContainer.empty(ctx.block.key.toString()).add(new SystemTimeMetric(new Date(), ctx.block.key.toString()));
 
         this.writeResultMemory(ctx, resultFragments);
 
@@ -132,42 +133,47 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         // No cleanup needed
     }
 
-    private collectDisplayFragments(ctx: IBehaviorContext): IMetric[] {
-        return ctx.block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
+    private collectDisplayFragments(ctx: IBehaviorContext): MetricContainer {
+        const metrics = MetricContainer.empty(ctx.block.key.toString());
+        for (const loc of ctx.block.getMemoryByTag('metric:display')) {
+            metrics.merge(loc.metrics);
+        }
+        return metrics;
     }
 
-    private collectStateFragments(ctx: IBehaviorContext): IMetric[] {
-        const roundFragments = ctx.block.getMemoryByTag('round').flatMap(loc => loc.metrics);
-        const timerFragments = ctx.block.getMemoryByTag('time').flatMap(loc => loc.metrics);
-        return [...roundFragments, ...timerFragments];
+    private collectStateFragments(ctx: IBehaviorContext): MetricContainer {
+        const metrics = MetricContainer.empty(ctx.block.key.toString());
+        for (const loc of ctx.block.getMemoryByTag('round')) metrics.merge(loc.metrics);
+        for (const loc of ctx.block.getMemoryByTag('time')) metrics.merge(loc.metrics);
+        return metrics;
     }
 
-    private mergeFragments(displayFragments: IMetric[], stateFragments: IMetric[]): IMetric[] {
+    private mergeFragments(displayFragments: MetricContainer, stateFragments: MetricContainer): MetricContainer {
         const displayTypes = new Set(displayFragments.map(f => `${f.type}:${f.type}`));
         const uniqueStateFragments = stateFragments.filter(
             f => !displayTypes.has(`${f.type}:${f.type}`)
         );
-        return [...displayFragments, ...uniqueStateFragments];
+        return displayFragments.clone().add(...uniqueStateFragments);
     }
 
-    private buildMilestoneFragments(ctx: IBehaviorContext, round: RoundState): IMetric[] {
-        const metrics: IMetric[] = [
+    private buildMilestoneFragments(ctx: IBehaviorContext, round: RoundState): MetricContainer {
+        const metrics = MetricContainer.empty(ctx.block.key.toString()).add(
             new CurrentRoundMetric(
                 round.current,
                 round.total,
                 ctx.block.key.toString(),
                 ctx.clock.now,
             ),
-        ];
+        );
 
         const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
         if (timer) {
             const nowMs = ctx.clock.now.getTime();
             const elapsed = calculateElapsed(timer, nowMs);
-            metrics.push(new ElapsedMetric(elapsed, ctx.block.key.toString(), ctx.clock.now));
+            metrics.add(new ElapsedMetric(elapsed, ctx.block.key.toString(), ctx.clock.now));
 
             if (timer.spans.length > 0) {
-                metrics.push(new SpansMetric([...timer.spans], ctx.block.key.toString(), ctx.clock.now));
+                metrics.add(new SpansMetric([...timer.spans], ctx.block.key.toString(), ctx.clock.now));
             }
         }
 
@@ -178,7 +184,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         ctx: IBehaviorContext,
         timer: TimerState | undefined,
         customRoundLabel?: string
-    ): IMetric[] {
+    ): MetricContainer {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
@@ -191,27 +197,27 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const lastEnd = lastSpan.ended ?? nowMs;
             const total = Math.max(0, lastEnd - firstStart);
 
-            const metrics: IMetric[] = [
+            const metrics = MetricContainer.empty(blockKey).add(
                 new ElapsedMetric(elapsed, blockKey, now),
                 new TotalMetric(total, blockKey, now),
                 new SpansMetric([...timer.spans], blockKey, now),
                 new SystemTimeMetric(new Date(), blockKey),
-            ];
+            );
             if (round) {
-                metrics.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
+                metrics.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
             }
             return metrics;
         }
 
         const degenerateSpan = new TimeSpan(nowMs, nowMs);
-        const metrics: IMetric[] = [
+        const metrics = MetricContainer.empty(blockKey).add(
             new ElapsedMetric(0, blockKey, now),
             new TotalMetric(0, blockKey, now),
             new SpansMetric([degenerateSpan], blockKey, now),
             new SystemTimeMetric(new Date(), blockKey),
-        ];
+        );
         if (round) {
-            metrics.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
+            metrics.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
         }
         return metrics;
     }
@@ -219,9 +225,9 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     private computeSplitTimeResults(
         ctx: IBehaviorContext,
         timer: TimerState | undefined,
-        groups: IMetric[][],
+        groups: MetricContainer[],
         customRoundLabel?: string
-    ): IMetric[][] {
+    ): MetricContainer[] {
         const now = ctx.clock.now;
         const nowMs = now.getTime();
         const blockKey = ctx.block.key.toString();
@@ -229,15 +235,14 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
 
         if (!timer || timer.spans.length === 0) {
             return groups.map((group) => {
-                const groupFragments: IMetric[] = [
-                    ...group,
+                const groupFragments = group.clone().add(
                     new ElapsedMetric(0, blockKey, now),
                     new TotalMetric(0, blockKey, now),
                     new SpansMetric([new TimeSpan(nowMs, nowMs)], blockKey, now),
                     new SystemTimeMetric(new Date(), blockKey),
-                ];
+                );
                 if (round) {
-                    groupFragments.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
+                    groupFragments.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
                 }
                 return groupFragments;
             });
@@ -270,21 +275,20 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const groupEnd = groupStart + groupTotal;
             currentOffsetMs += groupTotal;
 
-            const groupFragments: IMetric[] = [
-                ...group,
+            const groupFragments = group.clone().add(
                 new ElapsedMetric(groupElapsed, blockKey, now),
                 new TotalMetric(groupTotal, blockKey, now),
                 new SpansMetric([new TimeSpan(groupStart, groupEnd)], blockKey, now),
                 new SystemTimeMetric(new Date(), blockKey),
-            ];
+            );
             if (round) {
-                groupFragments.push(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
+                groupFragments.add(new CurrentRoundMetric(round.current, round.total, blockKey, now, customRoundLabel));
             }
             return groupFragments;
         });
     }
 
-    private writeResultMemory(ctx: IBehaviorContext, resultFragments: IMetric[]): void {
+    private writeResultMemory(ctx: IBehaviorContext, resultFragments: MetricContainer): void {
         const existing = ctx.block.getMemoryByTag('metric:result');
         if (existing.length > 0) {
             ctx.updateMemory('metric:result', resultFragments);
@@ -294,7 +298,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         ctx.pushMemory('metric:result', resultFragments);
     }
 
-    private writeResultGroups(ctx: IBehaviorContext, resultGroups: IMetric[][]): void {
+    private writeResultGroups(ctx: IBehaviorContext, resultGroups: MetricContainer[]): void {
         const existing = ctx.block.getMemoryByTag('metric:result');
         if (existing.length > 0) {
             // Not supporting partial updates of groups yet

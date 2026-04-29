@@ -30,7 +30,8 @@ import type { WodBlock } from '../Editor/types';
 import type { DocumentItem } from '../Editor/utils/documentStructure';
 import type { Segment, AnalyticsGroup } from '../../core/models/AnalyticsModels';
 import type { IMetric } from '../../core/models/Metric';
-import type { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
+import { MetricContainer } from '../../core/models/MetricContainer';
+import type { ITimerDisplayEntry } from '../../clock/types/DisplayTypes';
 import type { IRpcTransport } from '../../services/cast/rpc/IRpcTransport';
 import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 
@@ -77,7 +78,7 @@ interface WorkbenchSyncState {
 
   // --- Review Grid ---
   /** User-supplied metrics overrides keyed by sourceBlockKey */
-  userOutputOverrides: Map<string, IMetric[]>;
+  userOutputOverrides: Map<string, MetricContainer>;
   /** Active grid view preset id ('default' | 'debug' | custom) */
   gridViewPreset: string;
 
@@ -119,7 +120,7 @@ interface WorkbenchSyncActions {
   toggleAnalyticsSegment: (id: number, modifiers?: { ctrlKey: boolean; shiftKey: boolean }, visibleIds?: number[]) => void;
 
   // --- Review Grid Actions ---
-  setUserOverride: (blockKey: string, metrics: IMetric[]) => void;
+  setUserOverride: (blockKey: string, metrics: MetricContainer | IMetric[]) => void;
   clearUserOverride: (blockKey: string) => void;
   setGridViewPreset: (presetId: string) => void;
   setHoveredBlockKey: (key: string | null) => void;
@@ -231,7 +232,7 @@ export const useWorkbenchSyncStore = create<WorkbenchSyncStore>()((set) => ({
 
   setUserOverride: (blockKey, metrics) => set((state) => {
     const next = new Map(state.userOutputOverrides);
-    next.set(blockKey, metrics);
+    next.set(blockKey, MetricContainer.from(metrics, blockKey));
     return { userOutputOverrides: next };
   }),
 

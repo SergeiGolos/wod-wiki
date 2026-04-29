@@ -1,4 +1,5 @@
 import { IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 
 /**
  * Tags for memory locations. A block can have multiple locations with the same tag.
@@ -47,20 +48,20 @@ export type MemoryTag =
  * - Multiple display rows per block (metrics:display)
  * - Multiple round counters
  *
- * All memory values are IMetric[] — metrics are the universal currency.
+ * All memory values are MetricContainer instances — metrics are the universal currency.
  */
 export interface IMemoryLocation {
     /** Discriminator tag — multiple locations can share the same tag */
     readonly tag: MemoryTag;
 
     /** The metrics data stored at this location */
-    readonly metrics: IMetric[];
+    readonly metrics: MetricContainer;
 
     /** Subscribe to changes at this location */
-    subscribe(listener: (newValue: IMetric[], oldValue: IMetric[]) => void): () => void;
+    subscribe(listener: (newValue: MetricContainer, oldValue: MetricContainer) => void): () => void;
 
     /** Update the metrics at this location */
-    update(metrics: IMetric[]): void;
+    update(metrics: MetricContainer | IMetric[]): void;
 
     /** Dispose of this location and notify subscribers */
     dispose(): void;
@@ -73,37 +74,37 @@ export interface IMemoryLocation {
  * When disposed, sends empty array to all subscribers for cleanup.
  */
 export class MemoryLocation implements IMemoryLocation {
-    private _listeners = new Set<(nv: IMetric[], ov: IMetric[]) => void>();
-    private _metrics: IMetric[];
+    private _listeners = new Set<(nv: MetricContainer, ov: MetricContainer) => void>();
+    private _metrics: MetricContainer;
     private _isDisposed = false;
 
     constructor(
         public readonly tag: MemoryTag,
-        initialFragments: IMetric[] = []
+        initialFragments: MetricContainer | IMetric[] = MetricContainer.empty()
     ) {
-        this._metrics = initialFragments;
+        this._metrics = MetricContainer.from(initialFragments, tag);
     }
 
-    get metrics(): IMetric[] {
+    get metrics(): MetricContainer {
         return this._metrics;
     }
 
-    update(metrics: IMetric[]): void {
+    update(metrics: MetricContainer | IMetric[]): void {
         if (this._isDisposed) {
             console.warn(`Attempted to update disposed MemoryLocation with tag '${this.tag}'`);
             return;
         }
 
         const old = this._metrics;
-        this._metrics = metrics;
+        this._metrics = MetricContainer.from(metrics, this.tag);
 
         // Notify all listeners
         for (const listener of this._listeners) {
-            listener(metrics, old);
+            listener(this._metrics, old);
         }
     }
 
-    subscribe(listener: (nv: IMetric[], ov: IMetric[]) => void): () => void {
+    subscribe(listener: (nv: MetricContainer, ov: MetricContainer) => void): () => void {
         if (this._isDisposed) {
             console.warn(`Attempted to subscribe to disposed MemoryLocation with tag '${this.tag}'`);
             return () => {}; // No-op unsubscribe
@@ -120,11 +121,11 @@ export class MemoryLocation implements IMemoryLocation {
 
         this._isDisposed = true;
         const old = this._metrics;
-        this._metrics = [];
+        this._metrics = MetricContainer.empty(this.tag);
 
         // Notify all listeners about disposal
         for (const listener of this._listeners) {
-            listener([], old);
+            listener(this._metrics, old);
         }
 
         this._listeners.clear();

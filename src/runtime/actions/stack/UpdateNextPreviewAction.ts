@@ -1,6 +1,6 @@
 import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
-import { IMetric } from '../../../core/models/Metric';
+import { MetricContainer } from '../../../core/models/MetricContainer';
 import { MemoryLocation } from '../../memory/MemoryLocation';
 
 /**
@@ -17,7 +17,7 @@ import { MemoryLocation } from '../../memory/MemoryLocation';
  * ## Memory Contract
  *
  * - Tag: `metrics:next`
- * - Value: `IMetric[]` from the next statement(s) to be compiled
+ * - Value: `MetricContainer` from the next statement(s) to be compiled
  * - When `nextStatementIds` is empty, any existing `metric:next` memory
  *   is cleared (updated to empty metric) to signal "no more children".
  *
@@ -63,11 +63,11 @@ export class UpdateNextPreviewAction implements IRuntimeAction {
         const script = runtime.script;
         if (!script) return [];
 
-        const metrics: IMetric[] = [];
+        const metrics = MetricContainer.empty(this.blockKey);
         for (const id of this.nextStatementIds) {
             const statement = script.getId(id);
             if (statement) {
-                metrics.push(...statement.metrics);
+                metrics.merge(statement.metrics);
             }
         }
 

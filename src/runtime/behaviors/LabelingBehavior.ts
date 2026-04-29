@@ -2,6 +2,7 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { MetricType, IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 
 export interface LabelingConfig {
     mode?: 'clock' | 'timer' | 'countdown' | 'hidden';
@@ -18,7 +19,8 @@ export class LabelingBehavior implements IRuntimeBehavior {
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         const staticLabels = this.createStaticLabels(ctx);
         const roundLabel = this.createRoundLabel(ctx);
-        const metrics = roundLabel ? [...staticLabels, roundLabel] : staticLabels;
+        const metrics = staticLabels.clone();
+        if (roundLabel) metrics.add(roundLabel);
 
         if (metrics.length > 0) {
             ctx.pushMemory('display', metrics);
@@ -52,22 +54,22 @@ export class LabelingBehavior implements IRuntimeBehavior {
     onDispose(_ctx: IBehaviorContext): void {
     }
 
-    private createStaticLabels(ctx: IBehaviorContext): IMetric[] {
+    private createStaticLabels(ctx: IBehaviorContext): MetricContainer {
         const label = this.config.label ?? ctx.block.label;
         const subtitle = this.config.subtitle;
         const actionDisplay = this.config.actionDisplay;
-        const metrics: IMetric[] = [];
+        const metrics = MetricContainer.empty(ctx.block.key.toString());
 
         if (label) {
-            metrics.push(this.createTextMetric(ctx, label, 'label'));
+            metrics.add(this.createTextMetric(ctx, label, 'label'));
         }
 
         if (subtitle) {
-            metrics.push(this.createTextMetric(ctx, subtitle, 'subtitle'));
+            metrics.add(this.createTextMetric(ctx, subtitle, 'subtitle'));
         }
 
         if (actionDisplay) {
-            metrics.push(this.createTextMetric(ctx, actionDisplay, 'action'));
+            metrics.add(this.createTextMetric(ctx, actionDisplay, 'action'));
         }
 
         return metrics;

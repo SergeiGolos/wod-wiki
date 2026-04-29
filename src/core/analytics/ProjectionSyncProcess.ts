@@ -1,6 +1,7 @@
 import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
-import { IMetric, MetricType } from '../models/Metric';
+import { MetricType } from '../models/Metric';
+import { MetricContainer } from '../models/MetricContainer';
 import { AnalysisService } from '../../timeline/analytics/analytics/AnalysisService';
 import { RuntimeStackTracker } from '../../runtime/contracts/IRuntimeOptions';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
@@ -21,7 +22,7 @@ import { TimeSpan } from '../../runtime/models/TimeSpan';
 export class ProjectionSyncProcess implements IAnalyticsProcess {
   public readonly id = 'projection-sync';
 
-  private allMetrics: IMetric[] = [];
+  private allMetrics: MetricContainer = MetricContainer.empty('projection-sync');
 
   constructor(
     private readonly analysisService: AnalysisService,
@@ -32,15 +33,16 @@ export class ProjectionSyncProcess implements IAnalyticsProcess {
     if (output.outputType !== 'segment') return output;
 
     // Accumulate metrics from this segment
-    this.allMetrics.push(...output.metrics);
+    this.allMetrics.merge(output.metrics);
 
     if (!this.tracker?.recordMetric) return output;
 
     // Workout-level projections (reps, distance, volume, load, energy)
-    const workoutResults = this.analysisService.runWorkoutProjections(this.allMetrics);
+    const currentMetrics = this.allMetrics.resolve();
+    const workoutResults = this.analysisService.runWorkoutProjections(currentMetrics);
 
     // Per-exercise projections (needs exerciseService set on analysisService)
-    const exerciseResults = this.analysisService.runAllProjectionsFromFragments(this.allMetrics);
+    const exerciseResults = this.analysisService.runAllProjectionsFromFragments(currentMetrics);
 
     for (const result of [...workoutResults, ...exerciseResults]) {
       this.tracker.recordMetric('session-totals', result.name, result.value, result.unit);
@@ -50,13 +52,14 @@ export class ProjectionSyncProcess implements IAnalyticsProcess {
   }
 
   finalize(): IOutputStatement[] {
-    const workoutResults = this.analysisService.runWorkoutProjections(this.allMetrics);
-    const exerciseResults = this.analysisService.runAllProjectionsFromFragments(this.allMetrics);
+    const resolvedMetrics = this.allMetrics.resolve();
+    const workoutResults = this.analysisService.runWorkoutProjections(resolvedMetrics);
+    const exerciseResults = this.analysisService.runAllProjectionsFromFragments(resolvedMetrics);
 
     const now = Date.now();
     return [...workoutResults, ...exerciseResults].map(result => {
       // Create a Label metric for the result name so it appears as a row title
-      const metrics: IMetric[] = [
+      const metrics = MetricContainer.empty(`projection-${result.name}`).add(
         {
           type: MetricType.Label,
           image: result.name,
@@ -72,7 +75,7 @@ export class ProjectionSyncProcess implements IAnalyticsProcess {
           origin: 'analyzed',
           timestamp: new Date(now)
         }
-      ];
+      );
 
       return new OutputStatement({
         outputType: 'analytics',

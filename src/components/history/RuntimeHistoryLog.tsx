@@ -71,7 +71,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
 
     // Convert output statements directly — they implement IMetricSource
     let displayEntries: FragmentSourceEntry[] = outputs.map((output): FragmentSourceEntry => {
-      const metrics = output.metrics.flat();
+      const metrics = output.metrics.toArray();
 
       let status: FragmentSourceStatus = 'completed';
       if (output.outputType === 'segment') {

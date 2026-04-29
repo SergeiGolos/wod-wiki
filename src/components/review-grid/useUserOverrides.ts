@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { MetricType, type IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 
 const STORAGE_KEY = 'wod-wiki:userOutputOverrides';
@@ -18,7 +19,7 @@ const STORAGE_KEY = 'wod-wiki:userOutputOverrides';
 
 export interface UseUserOverridesReturn {
   /** Current override map (from store) */
-  overrides: Map<string, IMetric[]>;
+  overrides: Map<string, MetricContainer>;
 
   /** Add or replace a single user metrics for a block+metricType */
   setOverride: (blockKey: string, metricType: MetricType, value: unknown, image?: string) => void;
@@ -73,7 +74,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
 
   const setOverride = useCallback(
     (blockKey: string, metricType: MetricType, value: unknown, image?: string) => {
-      const existing = overrides.get(blockKey) ?? [];
+      const existing = overrides.get(blockKey) ?? MetricContainer.empty(blockKey);
 
       // Replace any existing metrics of the same type, keep others
       const filtered = existing.filter((f) => f.type !== metricType);
@@ -87,7 +88,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
         timestamp: new Date(),
       };
 
-      storeSet(blockKey, [...filtered, newFragment]);
+      storeSet(blockKey, MetricContainer.from(filtered, blockKey).add(newFragment));
     },
     [overrides, storeSet],
   );
@@ -127,7 +128,7 @@ export function useUserOverrides(persistToStorage = false): UseUserOverridesRetu
 // ─── Serialization helpers (for localStorage) ─────────────────
 
 interface SerializedFragment {
-  type: MetricType;
+  type: IMetric['type'];
   value?: unknown;
   image?: string;
   origin?: string;

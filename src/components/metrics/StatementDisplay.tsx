@@ -65,7 +65,7 @@ export const StatementDisplay: React.FC<StatementDisplayProps> = ({
     <div className={containerClass} onClick={onClick}>
       <div className="flex-1 min-w-0">
         <MetricVisualizer
-          metrics={statement.metrics || []}
+          metrics={statement.metrics.toArray()}
           className={compact ? 'gap-0.5' : 'gap-1'}
         />
       </div>

@@ -1,6 +1,7 @@
 import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { MetricType, IMetric } from "../core/models/Metric";
+import { MetricType } from "../core/models/Metric";
+import { MetricContainer } from "../core/models/MetricContainer";
 
 /**
  * Habits dialect for tracking daily/recurring habit completions.
@@ -38,7 +39,7 @@ export class HabitsDialect implements IDialect {
     'STREAK', 'CONSECUTIVE', 'IN A ROW',
   ];
 
-  private hasAnyKeyword(metrics: IMetric[], keywords: string[]): boolean {
+  private hasAnyKeyword(metrics: MetricContainer, keywords: string[]): boolean {
     return metrics.some(
       m =>
         (m.type === MetricType.Action ||
@@ -52,7 +53,7 @@ export class HabitsDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics ?? [];
+    const metrics = statement.metrics;
 
     const hasDuration = metrics.some(m => m.type === MetricType.Duration);
     const hasReps = metrics.some(m => m.type === MetricType.Rep);

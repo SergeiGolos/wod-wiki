@@ -11,6 +11,7 @@ import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocat
 import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { MetricVisibility, getMetricVisibility } from './memory/MetricVisibility';
 import { IMetric, MetricType } from '../core/models/Metric';
+import { MetricContainer } from '../core/models/MetricContainer';
 import { OutputStatement } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
@@ -79,7 +80,8 @@ export class RuntimeBlock implements IRuntimeBlock {
         contextOrBlockType?: IBlockContext | string,
         blockKey?: BlockKey,
         blockTypeParam?: string,
-        label?: string
+        label?: string,
+        metrics?: MetricContainer[] | IMetric[][]
     ) {
         this._runtime = runtime;
         this.sourceIds = sourceIds;
@@ -104,6 +106,12 @@ export class RuntimeBlock implements IRuntimeBlock {
                 origin: 'compiler',
                 value: label,
             } as IMetric]));
+        }
+
+        if (metrics) {
+            for (const group of metrics) {
+                this._memory.push(new MemoryLocation('metric:display', group));
+            }
         }
     }
 
@@ -161,7 +169,7 @@ export class RuntimeBlock implements IRuntimeBlock {
         const loc = locations[0];
 
         // Helper to extract the value from metrics based on the memory type
-        const extractValue = (metrics: readonly IMetric[]): MemoryValueOf<T> | undefined => {
+        const extractValue = (metrics: MetricContainer): MemoryValueOf<T> | undefined => {
             if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
 
             // For   'metrics' type, return { groups: [...all metrics:display groups] }

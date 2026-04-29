@@ -43,5 +43,5 @@ export interface Segment {
   /** Raw time spans from the output statement (seconds relative to workout start) */
   spans?: { started: number; ended?: number }[];
   /** Optional metrics carried from runtime spans for visualization */
-  metrics?: import('./Metric').IMetric[];
+  metrics?: import('./MetricContainer').MetricContainer;
 }

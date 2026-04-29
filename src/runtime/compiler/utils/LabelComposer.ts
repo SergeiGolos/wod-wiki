@@ -1,5 +1,6 @@
 import { ICodeStatement } from "../../../core/models/CodeStatement";
 import { MetricType, IMetric } from "../../../core/models/Metric";
+import { MetricContainer } from "../../../core/models/MetricContainer";
 
 export interface LabelOptions {
   includeMetric?: boolean;
@@ -29,9 +30,9 @@ export class LabelComposer {
       format = 'logic-first'
     } = options;
 
-    const allFragments = statements
-      .flatMap(s => s.metrics)
-      .filter(f => f.origin !== 'runtime');
+    const allFragments = MetricContainer.from(statements
+      .flatMap(s => s.metrics.toArray())
+      .filter(f => f.origin !== 'runtime'));
 
     if (allFragments.length === 0) return defaultLabel;
 
@@ -79,7 +80,7 @@ export class LabelComposer {
     return parts.join(" ").trim().replace(/\s+/g, ' ');
   }
 
-  private static getPrimaryMetric(metrics: IMetric[]): string | undefined {
+  private static getPrimaryMetric(metrics: MetricContainer): string | undefined {
     // Priority 1: Rounds sequence (21-15-9) or Rounds count
     const rounds = metrics.find(f => f.type === MetricType.Rounds);
     if (rounds && rounds.image) return rounds.image;
@@ -93,7 +94,7 @@ export class LabelComposer {
     return undefined;
   }
 
-  private static getLogicKeyword(statements: ICodeStatement[], metrics: IMetric[]): string | undefined {
+  private static getLogicKeyword(statements: ICodeStatement[], metrics: MetricContainer): string | undefined {
     // Check hints first (from Dialect analysis)
     if (statements.some(s => s.hints?.has('workout.amrap'))) return 'AMRAP';
     if (statements.some(s => s.hints?.has('workout.emom'))) return 'EMOM';
@@ -110,7 +111,7 @@ export class LabelComposer {
     return undefined;
   }
 
-  private static getIdentityText(metrics: IMetric[]): string | undefined {
+  private static getIdentityText(metrics: MetricContainer): string | undefined {
     const logicKeywords = ['AMRAP', 'EMOM', 'TABATA', 'FOR TIME'];
     
     // Filter metrics that contribute to the identity
@@ -129,7 +130,7 @@ export class LabelComposer {
     return identityFragments.map(f => f.image).join(" ").trim();
   }
 
-  private static getAttributesText(metrics: IMetric[]): string | undefined {
+  private static getAttributesText(metrics: MetricContainer): string | undefined {
     const attrFragments = metrics.filter(f => 
       f.type === MetricType.Resistance || 
       f.type === MetricType.Distance

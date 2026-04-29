@@ -1,4 +1,4 @@
-import type { IMetric } from './Metric';
+import type { MetricContainer } from './MetricContainer';
 
 /**
  * CollectionSpan represents a span of time with associated metrics data.
@@ -6,7 +6,7 @@ import type { IMetric } from './Metric';
  */
 export interface CollectionSpan {
     /** Array of metrics groups for display */
-    metrics?: IMetric[][];
+    metrics?: MetricContainer[];
     
     /** Associated block key */
     blockKey?: string;

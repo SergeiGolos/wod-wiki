@@ -8,6 +8,7 @@ import { MemoryType, MemoryValueOf, TimerState } from '@/runtime/memory/MemoryTy
 import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 import { BlockKey } from '@/core/models/BlockKey';
 import { IMetric, MetricType } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import type { SerializedBlock } from './RpcMessages';
 
@@ -23,19 +24,19 @@ import type { SerializedBlock } from './RpcMessages';
  * stack message arrives for the same block.
  */
 export class ReactiveMemoryLocation implements IMemoryLocation {
-    private _metrics: IMetric[];
-    private listeners = new Set<(nv: IMetric[], ov: IMetric[]) => void>();
+    private _metrics: MetricContainer;
+    private listeners = new Set<(nv: MetricContainer, ov: MetricContainer) => void>();
 
     constructor(
         readonly tag: MemoryTag,
-        metrics: IMetric[],
+        metrics: MetricContainer | IMetric[],
     ) {
-        this._metrics = metrics;
+        this._metrics = MetricContainer.from(metrics, tag);
     }
 
-    get metrics(): IMetric[] { return this._metrics; }
+    get metrics(): MetricContainer { return this._metrics; }
 
-    subscribe(listener: (nv: IMetric[], ov: IMetric[]) => void): () => void {
+    subscribe(listener: (nv: MetricContainer, ov: MetricContainer) => void): () => void {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     }
@@ -44,11 +45,11 @@ export class ReactiveMemoryLocation implements IMemoryLocation {
      * Replace the stored metrics and notify all subscribers.
      * Called by ProxyBlock.update() when a new RPC snapshot arrives for this block.
      */
-    update(metrics: IMetric[]): void {
+    update(metrics: MetricContainer | IMetric[]): void {
         const old = this._metrics;
-        this._metrics = metrics;
+        this._metrics = MetricContainer.from(metrics, this.tag);
         for (const listener of this.listeners) {
-            listener(metrics, old);
+            listener(this._metrics, old);
         }
     }
 
