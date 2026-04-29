@@ -23,20 +23,17 @@ This project exposes a convenience script (see `package.json`):
 bun run analyze:deps
 ```
 
-For additional analysis options:
+For additional analysis options (`madge` is already installed as a devDependency in this repository):
 
 ```bash
-# 1. Install madge (dev dependency, one-time)
-bun add -d madge
-
-# 2. Full report including test files (may inflate layer-violation counts — see pitfall below)
+# 1. Full report including test files (may inflate layer-violation counts — see pitfall below)
 bun x madge --extensions ts,tsx --ts-config tsconfig.json --circular src/
 
-# 3. Output as JSON for programmatic analysis
-bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --json src/ > deps.json
+# 2. Output as JSON for programmatic analysis
+bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude __tests__ --json src/ > deps.json
 
-# 5. Generate a visual dependency graph (requires graphviz)
-bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --image graph.svg src/
+# 3. Generate a visual dependency graph (requires graphviz)
+bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude __tests__ --image graph.svg src/
 ```
 
 ---
@@ -140,4 +137,4 @@ print(json.dumps(violations, indent=2))
 ## Related
 
 - Issue [#525](https://github.com/SergeiGolos/wod-wiki/issues/525) — `runtime → testing` false positive resolved
-- Architecture Debt Report v3: `Journal/2026-04-29/architecture-debt-report-2026-04-29-v3`
+- Architecture Debt Report v3 — external notes reference (not tracked in this repo): `Journal/2026-04-29/architecture-debt-report-2026-04-29-v3`

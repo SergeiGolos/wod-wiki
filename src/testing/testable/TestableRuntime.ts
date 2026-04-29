@@ -1,11 +1,13 @@
-import { IMemoryReference, IRuntimeBlock, IScriptRuntime, JitCompiler } from "@/core";
+import type { IMemoryReference, IRuntimeBlock, IScriptRuntime } from "@/runtime/contracts";
+import { JitCompiler } from "@/runtime/compiler/JitCompiler";
 import { IMetric } from "@/core/models/Metric";
 import { WodScript, IScript } from "@/parser/WodScript";
 import { BlockKey } from "@/core/models/BlockKey";
 import { CodeStatement } from "@/core/models/CodeStatement";
 import { MetricType } from "@/core/models/Metric";
 import { IBlockContext, RuntimeError } from "@/core-entry";
-import { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, TypedMemoryReference, Unsubscribe, StackObserver } from "@/runtime/contracts";
+import { TypedMemoryReference } from "@/runtime/contracts";
+import type { IRuntimeStack, IRuntimeClock, IEventBus, IEvent, Unsubscribe, StackObserver } from "@/runtime/contracts";
 import { IOutputStatement } from "@/core/models/OutputStatement";
 import { ITestSetupAction } from "../setup";
 import { MemoryOperation, StackOperation } from "./TestableBlock";

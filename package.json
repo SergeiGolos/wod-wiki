@@ -36,7 +36,7 @@
     "prebuild-storybook": "bun run clean-storybook",
     "build-storybook": "NODE_OPTIONS=--max-old-space-size=4096 storybook build",
     "postbuild-storybook": "bun x vite build --config vite.receiver.config.ts",
-    "analyze:deps": "bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude '__tests__' --circular src/",
+    "analyze:deps": "bun x madge --extensions ts,tsx --ts-config tsconfig.json --exclude __tests__ --circular src/",
     "docs:check": "bun scripts/check-docs-links.cjs",
     "docs:sync-vault": "node scripts/sync-storybook-to-vault.mjs --write",
     "docs:sync-vault:check": "node scripts/sync-storybook-to-vault.mjs",
