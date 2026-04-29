@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { TimerState, ButtonConfig } from '../memory/MemoryTypes';
 import { IMetricSource } from '../../core/contracts/IMetricSource';
-import { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { FragmentSourceEntry } from '../../components/metrics/MetricSourceRow';
 import { useSnapshotBlocks } from './useStackSnapshot';
@@ -301,14 +300,7 @@ export function useStackFragmentSources(): StackFragmentEntry[] | undefined {
                 // Fallback: create synthetic metrics source from block label
                 if (!block.label) return; // Skip blocks with no display entry AND no label
 
-                source = {
-                    id: block.key.toString(),
-                    getDisplayMetrics: () => [],
-                    getFragment: () => undefined,
-                    getAllMetricsByType: () => [],
-                    hasFragment: () => false,
-                    rawMetrics: [],
-                } as IMetricSource;
+                source = MetricContainer.empty(block.key.toString());
             } else {
                 // Create an IMetricSource adapter from the memory locations
                 const allFragments = MetricContainer.empty(block.key.toString());

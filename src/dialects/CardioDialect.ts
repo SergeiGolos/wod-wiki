@@ -44,7 +44,7 @@ export class CardioDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics;
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     // TODO: Detect running activities
     if (

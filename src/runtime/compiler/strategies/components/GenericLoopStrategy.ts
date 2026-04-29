@@ -7,6 +7,7 @@ import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { MetricContainer } from "@/core/models/MetricContainer";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -87,12 +88,11 @@ export class GenericLoopStrategy implements IRuntimeBlockStrategy {
             .setSourceIds(statements.map(s => s.id));
 
         const distributor = new PassthroughMetricDistributor();
-        const metricGroups = statements.flatMap(s => 
-            distributor.distribute(
-                s.metrics.filter(f => f.type !== MetricType.Rep),
-                "Rounds"
-            )
-        ).filter(group => group.length > 0);
+        const metricGroups = statements.flatMap(s => {
+            const metrics = MetricContainer.from(s.metrics as any);
+            const withoutReps = MetricContainer.from(metrics.filter(f => f.type !== MetricType.Rep));
+            return distributor.distribute(withoutReps, "Rounds");
+        }).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);
 

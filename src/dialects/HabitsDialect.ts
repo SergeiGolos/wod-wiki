@@ -53,7 +53,7 @@ export class HabitsDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics;
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     const hasDuration = metrics.some(m => m.type === MetricType.Duration);
     const hasReps = metrics.some(m => m.type === MetricType.Rep);

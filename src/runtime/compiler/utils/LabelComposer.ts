@@ -1,5 +1,5 @@
 import { ICodeStatement } from "../../../core/models/CodeStatement";
-import { MetricType, IMetric } from "../../../core/models/Metric";
+import { MetricType } from "../../../core/models/Metric";
 import { MetricContainer } from "../../../core/models/MetricContainer";
 
 export interface LabelOptions {
@@ -31,7 +31,7 @@ export class LabelComposer {
     } = options;
 
     const allFragments = MetricContainer.from(statements
-      .flatMap(s => s.metrics.toArray())
+      .flatMap(s => MetricContainer.from(s.metrics as any).toArray())
       .filter(f => f.origin !== 'runtime'));
 
     if (allFragments.length === 0) return defaultLabel;
@@ -52,14 +52,14 @@ export class LabelComposer {
         if (metrics) parts.push(metrics);
         if (identity) parts.push(identity);
         if (attributes) parts.push(attributes);
-    } else if (format === 'metrics-first') {
-        if (metric) parts.push(metric);
+    } else if (format === 'metric-first') {
+        if (metrics) parts.push(metrics);
         if (logic) parts.push(logic);
         if (identity) parts.push(identity);
         if (attributes) parts.push(attributes);
     } else { // identity-first
         if (identity) parts.push(identity);
-        if (metric) parts.push(metric);
+        if (metrics) parts.push(metrics);
         if (logic) parts.push(logic);
         if (attributes) parts.push(attributes);
     }

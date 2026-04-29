@@ -260,6 +260,32 @@ export class ProxyBlock implements IRuntimeBlock {
         return all;
     }
 
+    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
+        const loc = this.getMemoryByTag(type as string as MemoryTag)[0];
+        if (!loc) return undefined;
+
+        const readValue = () => loc.metrics[0]?.value as MemoryValueOf<T>;
+        return {
+            get value(): MemoryValueOf<T> {
+                return readValue();
+            },
+            subscribe: (listener) => loc.subscribe((newMetrics, oldMetrics) => {
+                listener(
+                    newMetrics[0]?.value as MemoryValueOf<T> | undefined,
+                    oldMetrics[0]?.value as MemoryValueOf<T> | undefined
+                );
+            }),
+        };
+    }
+
+    hasMemory(type: MemoryType): boolean {
+        return this.getMemoryByTag(type as string as MemoryTag).length > 0;
+    }
+
+    setMemoryValue<T extends MemoryType>(_type: T, _value: MemoryValueOf<T>): void {
+        // No-op: proxy blocks are read-only.
+    }
+
     pushMemory(_location: IMemoryLocation): void {
         // No-op: proxy blocks are read-only
     }

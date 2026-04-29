@@ -37,7 +37,7 @@ export class WodDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics;
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     // TODO: Detect STRENGTH blocks
     // "Strength: 5x5 Back Squat", "5x5 225lb Squat" etc.

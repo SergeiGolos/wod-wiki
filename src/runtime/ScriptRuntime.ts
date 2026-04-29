@@ -652,7 +652,7 @@ export class ScriptRuntime implements IScriptRuntime {
             const rawText = this.script.source.substring(stmt.meta.startOffset, stmt.meta.endOffset + 1);
 
             // Start with the parsed metrics from the statement
-            const metrics = stmt.metrics.clone(stmt.id);
+            const metrics = MetricContainer.from(stmt.metrics as any, stmt.id);
 
             // Add a Label metrics for the raw text if one doesn't exist? 
             // Or just always add it as the "Source" representation?

@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { MetricType, IMetric } from '../../core/models/Metric';
+import { MetricType } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
@@ -31,7 +31,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             const stateFragments = this.collectStateFragments(ctx);
             const mergedFragments = this.mergeFragments(displayFragments, stateFragments);
 
-            ctx.emitOutput('segment', mergedFragments, {
+            ctx.emitOutput('segment', mergedFragments.toArray(), {
                 label: this.formatLabel(ctx),
             });
         }
@@ -40,7 +40,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         const shouldEmitMilestones = this.config.emitMilestones ?? !!round;
         if (shouldEmitMilestones && round && (round.total === undefined || round.total > 1)) {
             this.lastEmittedRound = round.current;
-            ctx.emitOutput('milestone', this.buildMilestoneFragments(ctx, round), {
+            ctx.emitOutput('milestone', this.buildMilestoneFragments(ctx, round).toArray(), {
                 label: this.formatRoundLabel(round),
             });
         }
@@ -69,7 +69,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         }
 
         this.lastEmittedRound = round.current;
-        ctx.emitOutput('milestone', this.buildMilestoneFragments(ctx, round), {
+        ctx.emitOutput('milestone', this.buildMilestoneFragments(ctx, round).toArray(), {
             label: this.formatRoundLabel(round),
         });
 
@@ -107,7 +107,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
                 this.writeResultGroups(ctx, resultGroups);
 
                 for (const group of resultGroups) {
-                    ctx.emitOutput('completion', group, {
+                    ctx.emitOutput('completion', group.toArray(), {
                         label: completionLabel,
                     });
                 }
@@ -122,7 +122,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
 
         this.writeResultMemory(ctx, resultFragments);
 
-        ctx.emitOutput('completion', resultFragments, {
+        ctx.emitOutput('completion', resultFragments.toArray(), {
             label: completionLabel,
         });
 
@@ -291,11 +291,11 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     private writeResultMemory(ctx: IBehaviorContext, resultFragments: MetricContainer): void {
         const existing = ctx.block.getMemoryByTag('metric:result');
         if (existing.length > 0) {
-            ctx.updateMemory('metric:result', resultFragments);
+            ctx.updateMemory('metric:result', resultFragments.toArray());
             return;
         }
 
-        ctx.pushMemory('metric:result', resultFragments);
+        ctx.pushMemory('metric:result', resultFragments.toArray());
     }
 
     private writeResultGroups(ctx: IBehaviorContext, resultGroups: MetricContainer[]): void {
@@ -306,7 +306,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
         }
 
         for (const group of resultGroups) {
-            ctx.pushMemory('metric:result', group);
+            ctx.pushMemory('metric:result', group.toArray());
         }
     }
 

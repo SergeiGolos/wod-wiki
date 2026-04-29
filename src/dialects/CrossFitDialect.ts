@@ -36,7 +36,7 @@ export class CrossFitDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics;
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     // Check for AMRAP - time-bound workout
     const isAmrap = this.hasKeyword(metrics, 'AMRAP');

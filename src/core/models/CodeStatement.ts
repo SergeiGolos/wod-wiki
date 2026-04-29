@@ -7,6 +7,7 @@ export interface ICodeStatement extends IMetricSource {
   id: number;
   parent?: number;
   children: number[][];
+  exerciseId?: string;
   metrics: MetricContainer;
   isLeaf?: boolean;
   meta: CodeMetadata;

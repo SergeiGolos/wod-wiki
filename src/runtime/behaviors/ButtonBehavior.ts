@@ -67,7 +67,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
 
         // Push action metrics to list-based memory
         if (metrics.length > 0) {
-            ctx.pushMemory('controls', metrics);
+            ctx.pushMemory('controls', metrics.toArray());
         }
 
         return [];

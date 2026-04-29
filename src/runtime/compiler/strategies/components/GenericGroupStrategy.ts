@@ -5,6 +5,7 @@ import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { MetricContainer } from "@/core/models/MetricContainer";
 import { MetricType } from "@/core/models/Metric";
 import { LabelComposer } from "../../utils/LabelComposer";
 
@@ -59,7 +60,7 @@ export class GenericGroupStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(s.metrics || [], "Group")
+            distributor.distribute(MetricContainer.from(s.metrics as any), "Group")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

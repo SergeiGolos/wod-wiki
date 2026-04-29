@@ -2,6 +2,7 @@ import { IRuntimeBlock } from '@/runtime/contracts/IRuntimeBlock';
 import { IOutputStatement } from '@/core/models/OutputStatement';
 import { StackSnapshot } from '@/runtime/contracts/IRuntimeStack';
 import { IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { MemoryTag } from '@/runtime/memory/MemoryLocation';
 import { TrackerUpdate } from '@/runtime/contracts/IRuntimeOptions';
 import {
@@ -157,7 +158,7 @@ export function serializeOutput(output: IOutputStatement): RpcOutputStatement {
         outputType: output.outputType,
         sourceBlockKey: output.sourceBlockKey,
         stackLevel: output.stackLevel,
-        metrics: output.metrics.toArray(),
+        metrics: MetricContainer.from(output.metrics as any).toArray(),
         completionReason: output.completionReason,
         timeSpan: { started, ended },
         elapsed,

@@ -3,6 +3,7 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { MetricType } from "@/core/models/Metric";
+import { MetricContainer } from "@/core/models/MetricContainer";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { BlockContext } from "../../../BlockContext";
@@ -56,7 +57,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             f => f.type === MetricType.Duration
         ) as DurationMetric | undefined;
 
-        const roundsFragment = statements.flatMap(s => s.metrics.toArray()).find(
+        const roundsFragment = statements.flatMap(s => MetricContainer.from(s.metrics as any).toArray()).find(
             f => f.type === MetricType.Rounds
         ) as RoundsMetric | undefined;
 
@@ -83,7 +84,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(s.metrics || [], "EMOM")
+            distributor.distribute(MetricContainer.from(s.metrics as any), "EMOM")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

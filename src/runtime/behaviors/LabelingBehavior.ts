@@ -23,7 +23,7 @@ export class LabelingBehavior implements IRuntimeBehavior {
         if (roundLabel) metrics.add(roundLabel);
 
         if (metrics.length > 0) {
-            ctx.pushMemory('display', metrics);
+            ctx.pushMemory('display', metrics.toArray());
         }
 
         return [];

@@ -173,8 +173,12 @@ export class RuntimeBlock implements IRuntimeBlock {
             if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
 
             // For   'metrics' type, return { groups: [...all metrics:display groups] }
-            if (type ===   'metric') {
-                return { groups: metric } as unknown as MemoryValueOf<T>;
+            if (type === 'metrics') {
+                return {
+                    groups: this._memory
+                        .filter(memory => memory.tag === 'metric:display')
+                        .map(memory => memory.metrics.clone())
+                } as unknown as MemoryValueOf<T>;
             }
 
             // For 'metric:display', return the location itself (it may implement IMetricSource)
