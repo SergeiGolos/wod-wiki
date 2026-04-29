@@ -4,17 +4,29 @@ export interface WodBlockExtract {
   id: string;
   /** Nearest preceding heading, or "Block N" if none found */
   label: string;
-  /** Fence dialect: "wod", "crossfit", "amrap", "emom", "tabata" */
+  /** Fence dialect as found in the source (wod/log/plan/crossfit/amrap/emom/tabata). Use normalizeDialect() before inserting. */
   dialect: string;
   /** Inner content of the fenced block (trimmed) */
   content: string;
 }
 
-const WOD_DIALECTS = ['wod', 'crossfit', 'amrap', 'emom', 'tabata'];
+
+/** The editor only recognizes wod/log/plan as runnable WOD fence dialects. */
+const EDITOR_DIALECTS = ['wod', 'log', 'plan'] as const;
+
+/** Dialects this extractor recognises when reading source markdown. */
+const WOD_DIALECTS = ['wod', 'log', 'plan', 'crossfit', 'amrap', 'emom', 'tabata'];
+
+/** Map any extracted dialect to a dialect the editor will actually run. */
+export function normalizeDialect(dialect: string): 'wod' | 'log' | 'plan' {
+  const d = dialect.toLowerCase() as 'wod' | 'log' | 'plan';
+  return (EDITOR_DIALECTS as readonly string[]).includes(d) ? d : 'wod';
+}
 
 /**
  * Parse raw markdown and extract all WOD fenced code blocks.
- * Supports dialects: wod, crossfit, amrap, emom, tabata.
+ * Recognised opening fences: ```wod, ```log, ```plan, ```crossfit, ```amrap, ```emom, ```tabata
+ * (all normalised to an editor-supported dialect on insert via normalizeDialect).
  */
 export function extractWodBlocks(markdown: string): WodBlockExtract[] {
   const lines = markdown.split('\n');
@@ -34,8 +46,9 @@ export function extractWodBlocks(markdown: string): WodBlockExtract[] {
         continue;
       }
 
-      // Detect opening fence
-      const fenceOpen = line.match(/^```(\w+)\s*$/);
+      // Detect opening fence — allow optional trailing whitespace/info after dialect
+      // e.g. ```wod, ```wod my-label, ```WOD
+      const fenceOpen = line.match(/^```(\w+)(?:\s|$)/);
       if (fenceOpen && WOD_DIALECTS.includes(fenceOpen[1].toLowerCase())) {
         inFence = true;
         fenceDialect = fenceOpen[1].toLowerCase();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { extractWodBlocks } from './wodBlockExtract';
+import { extractWodBlocks, normalizeDialect } from './wodBlockExtract';
 
 const FRAN_MD = `
 # Fran
@@ -56,5 +56,42 @@ describe('extractWodBlocks', () => {
     const md = `\`\`\`wod\n10 push-ups\n\`\`\``;
     const blocks = extractWodBlocks(md);
     expect(blocks[0].label).toBe('Block 1');
+  });
+
+  it('extracts log and plan dialect fences', () => {
+    const md = `\`\`\`log\nDone Fran\n\`\`\`\n\`\`\`plan\nFran tomorrow\n\`\`\``;
+    const blocks = extractWodBlocks(md);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].dialect).toBe('log');
+    expect(blocks[1].dialect).toBe('plan');
+  });
+
+  it('handles fences with trailing info text (e.g. ```wod my-label)', () => {
+    const md = `\`\`\`wod my-label\n10 burpees\n\`\`\``;
+    const blocks = extractWodBlocks(md);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].content).toBe('10 burpees');
+  });
+
+  it('handles uppercase dialect (e.g. ```WOD)', () => {
+    const md = `\`\`\`WOD\n5 pull-ups\n\`\`\``;
+    const blocks = extractWodBlocks(md);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].dialect).toBe('wod');
+  });
+});
+
+describe('normalizeDialect', () => {
+  it('passes through editor-supported dialects unchanged', () => {
+    expect(normalizeDialect('wod')).toBe('wod');
+    expect(normalizeDialect('log')).toBe('log');
+    expect(normalizeDialect('plan')).toBe('plan');
+  });
+
+  it('normalizes unsupported dialects to "wod"', () => {
+    expect(normalizeDialect('crossfit')).toBe('wod');
+    expect(normalizeDialect('amrap')).toBe('wod');
+    expect(normalizeDialect('emom')).toBe('wod');
+    expect(normalizeDialect('tabata')).toBe('wod');
   });
 });

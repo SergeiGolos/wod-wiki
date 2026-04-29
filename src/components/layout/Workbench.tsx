@@ -58,6 +58,7 @@ import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 import { useCollectionImport } from '@/hooks/useCollectionImport';
+import { normalizeDialect } from '@/lib/wodBlockExtract';
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
@@ -139,7 +140,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Collection import for nav-bar multi-block import
   const handleNavInsert = useCallback((blocks: import('@/lib/wodBlockExtract').WodBlockExtract[]) => {
     const appended = blocks
-      .map(b => `\n\n\`\`\`${b.dialect}\n${b.content.trim()}\n\`\`\``)
+      .map(b => `\n\n\`\`\`${normalizeDialect(b.dialect)}\n${b.content.trim()}\n\`\`\``)
       .join('');
     setContent((content ?? '').trimEnd() + appended);
   }, [setContent, content]);
@@ -606,6 +607,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 onClick={openNavCollectionImport}
                 className="text-muted-foreground hover:text-foreground"
                 title="Import WOD from collection (⌘/Ctrl+Shift+I)"
+                aria-label="Import WOD from collection"
               >
                 <Plus className="h-4 w-4" />
               </Button>

@@ -508,6 +508,7 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
               onClick={onImportBlock}
               className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-border/40 transition-colors"
               title="Import WOD from collection"
+              aria-label="Import WOD from collection"
             >
               <Plus className="h-3 w-3" />
               <Search className="h-3 w-3" />

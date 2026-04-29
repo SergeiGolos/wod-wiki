@@ -29,7 +29,12 @@ export function useCollectionImport({ onInsert, provider }: UseCollectionImportO
   const openHistoryImport = useCallback(async () => {
     if (!provider) return;
     const strategy = new HistoryImportStrategy(provider, onInsert, setStrategy);
-    await strategy.init();
+    try {
+      await strategy.init();
+    } catch (error) {
+      console.error('Failed to initialize history import strategy', error);
+      return;
+    }
     setStrategy(strategy);
     setIsOpen(true);
   }, [provider, onInsert, setStrategy, setIsOpen]);

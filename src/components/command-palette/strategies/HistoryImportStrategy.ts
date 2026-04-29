@@ -1,7 +1,7 @@
 import type { Command, CommandStrategy } from '../types';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
-import { extractWodBlocks, type WodBlockExtract } from '@/lib/wodBlockExtract';
+import { extractWodBlocks, normalizeDialect, type WodBlockExtract } from '@/lib/wodBlockExtract';
 
 type SetStrategy = (strategy: CommandStrategy | null) => void;
 type OnInsert = (blocks: WodBlockExtract[]) => void;
@@ -21,6 +21,7 @@ class HistoryBlockSelectStrategy implements CommandStrategy {
     private entry: HistoryEntry,
     private onInsert: OnInsert,
     private setStrategy: SetStrategy,
+    private parentStrategy: CommandStrategy,
   ) {
     this.placeholder = `Select block from "${entry.title}"…`;
   }
@@ -28,10 +29,18 @@ class HistoryBlockSelectStrategy implements CommandStrategy {
   getCommands(): Command[] {
     if (this.cachedCommands) return this.cachedCommands;
 
+    const backCommand: Command = {
+      id: '__back__',
+      label: '← Back',
+      group: '─',
+      keepOpen: true,
+      action: () => this.setStrategy(this.parentStrategy),
+    };
+
     const blocks = extractWodBlocks(this.entry.rawContent ?? '');
 
     if (blocks.length === 0) {
-      this.cachedCommands = [{
+      this.cachedCommands = [backCommand, {
         id: 'import-whole',
         label: `Import entire note`,
         group: this.entry.title,
@@ -48,16 +57,16 @@ class HistoryBlockSelectStrategy implements CommandStrategy {
       return this.cachedCommands;
     }
 
-    this.cachedCommands = blocks.map(block => ({
+    this.cachedCommands = [backCommand, ...blocks.map(block => ({
       id: block.id,
       label: block.label,
       group: this.entry.title,
       keywords: [block.dialect],
       action: () => {
-        this.onInsert([block]);
+        this.onInsert([{ ...block, dialect: normalizeDialect(block.dialect) }]);
         this.setStrategy(null);
       },
-    }));
+    }))];
     return this.cachedCommands;
   }
 }
@@ -80,12 +89,11 @@ export class HistoryImportStrategy implements CommandStrategy {
   ) {}
 
   async init() {
-    // Pre-load entries; filter to only those with wod blocks
+    // Pre-load entries; use extractWodBlocks for robust dialect matching (case-insensitive, trailing info)
     const all = await this.provider.getEntries();
     this.entries = all.filter(e =>
       e.type !== 'template' &&
-      e.rawContent &&
-      /```(wod|crossfit|amrap|emom|tabata)/.test(e.rawContent)
+      extractWodBlocks(e.rawContent ?? '').length > 0
     );
   }
 
@@ -102,7 +110,7 @@ export class HistoryImportStrategy implements CommandStrategy {
         keepOpen: true,
         action: () => {
           this.setStrategy(
-            new HistoryBlockSelectStrategy(entry, this.onInsert, this.setStrategy)
+            new HistoryBlockSelectStrategy(entry, this.onInsert, this.setStrategy, this)
           );
         },
       };

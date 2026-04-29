@@ -4,6 +4,7 @@ import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { useCollectionImport } from '@/hooks/useCollectionImport';
 import type { WodBlockExtract } from '@/lib/wodBlockExtract';
+import { normalizeDialect } from '@/lib/wodBlockExtract';
 import type { IContentProvider } from '@/types/content-provider';
 import { Download } from 'lucide-react';
 
@@ -49,11 +50,12 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
     return 'vs';
   }, [theme]);
 
-  // Build insert handler — appends each block as a wod fence to current content
+  // Build insert handler — appends each block as a wod fence to current content.
+  // Dialect is normalised to an editor-supported value (wod/log/plan).
   const handleInsert = useCallback((blocks: WodBlockExtract[]) => {
     const currentContent = value ?? initialContent ?? '';
     const appended = blocks
-      .map(b => `\n\n\`\`\`${b.dialect}\n${b.content.trim()}\n\`\`\``)
+      .map(b => `\n\n\`\`\`${normalizeDialect(b.dialect)}\n${b.content.trim()}\n\`\`\``)
       .join('');
     setContent(currentContent.trimEnd() + appended);
   }, [setContent, value, initialContent]);
@@ -66,18 +68,24 @@ export const PlanPanel: React.FC<PlanPanelProps> = ({
   // Keyboard shortcuts: ⌘/Ctrl+Shift+I → collection import, ⌘/Ctrl+Shift+H → history import
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'I') {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'i') {
         e.preventDefault();
         openCollectionImport();
+        return;
       }
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'H') {
+
+      if (key === 'h' && provider) {
         e.preventDefault();
         openHistoryImport();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [openCollectionImport, openHistoryImport]);
+  }, [openCollectionImport, openHistoryImport, provider]);
 
   return (
     <div className="h-full w-full relative flex flex-col group/plan-panel">

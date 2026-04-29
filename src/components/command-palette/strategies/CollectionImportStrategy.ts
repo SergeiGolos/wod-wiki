@@ -1,7 +1,7 @@
 import type { Command, CommandStrategy } from '../types';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
 import { getWodCollections } from '@/repositories/wod-collections';
-import { extractWodBlocks, type WodBlockExtract } from '@/lib/wodBlockExtract';
+import { extractWodBlocks, normalizeDialect, type WodBlockExtract } from '@/lib/wodBlockExtract';
 
 type SetStrategy = (strategy: CommandStrategy | null) => void;
 type OnInsert = (blocks: WodBlockExtract[]) => void;
@@ -22,6 +22,7 @@ class WodBlockSelectStrategy implements CommandStrategy {
     private collectionName: string,
     private onInsert: OnInsert,
     private setStrategy: SetStrategy,
+    private parentStrategy: CommandStrategy,
   ) {
     this.placeholder = `Select block from "${item.name}"…`;
   }
@@ -30,10 +31,17 @@ class WodBlockSelectStrategy implements CommandStrategy {
     if (this.cachedCommands) return this.cachedCommands;
 
     const blocks = extractWodBlocks(this.item.content);
+    const backCommand: Command = {
+      id: '__back__',
+      label: '← Back',
+      group: '─',
+      keepOpen: true,
+      action: () => this.setStrategy(this.parentStrategy),
+    };
 
     if (blocks.length === 0) {
       // Fallback: import the whole item as a plain wod block
-      this.cachedCommands = [{
+      this.cachedCommands = [backCommand, {
         id: 'import-whole',
         label: `Import entire "${this.item.name}"`,
         group: 'Import',
@@ -50,16 +58,16 @@ class WodBlockSelectStrategy implements CommandStrategy {
       return this.cachedCommands;
     }
 
-    this.cachedCommands = blocks.map((block) => ({
+    this.cachedCommands = [backCommand, ...blocks.map((block) => ({
       id: block.id,
       label: block.label,
       group: `${this.collectionName} › ${this.item.name}`,
       keywords: [block.dialect, block.content.slice(0, 60)],
       action: () => {
-        this.onInsert([block]);
+        this.onInsert([{ ...block, dialect: normalizeDialect(block.dialect) }]);
         this.setStrategy(null);
       },
-    }));
+    }))];
     return this.cachedCommands;
   }
 }
@@ -79,6 +87,7 @@ class WodWorkoutSelectStrategy implements CommandStrategy {
     collectionName: string,
     private onInsert: OnInsert,
     private setStrategy: SetStrategy,
+    private parentStrategy: CommandStrategy,
   ) {
     this.placeholder = `Select workout from "${collectionName}"…`;
   }
@@ -88,7 +97,15 @@ class WodWorkoutSelectStrategy implements CommandStrategy {
     const col = collections.find(c => c.id === this.collectionId);
     if (!col) return [];
 
-    return col.items.map(item => ({
+    const backCommand: Command = {
+      id: '__back__',
+      label: '← Back',
+      group: '─',
+      keepOpen: true,
+      action: () => this.setStrategy(this.parentStrategy),
+    };
+
+    return [backCommand, ...col.items.map(item => ({
       id: item.id,
       label: item.name,
       group: col.name,
@@ -96,10 +113,10 @@ class WodWorkoutSelectStrategy implements CommandStrategy {
       keepOpen: true,
       action: () => {
         this.setStrategy(
-          new WodBlockSelectStrategy(item, col.name, this.onInsert, this.setStrategy)
+          new WodBlockSelectStrategy(item, col.name, this.onInsert, this.setStrategy, this)
         );
       },
-    }));
+    }))];
   }
 }
 
@@ -129,7 +146,7 @@ export class CollectionImportStrategy implements CommandStrategy {
       keepOpen: true,
       action: () => {
         this.setStrategy(
-          new WodWorkoutSelectStrategy(col.id, col.name, this.onInsert, this.setStrategy)
+          new WodWorkoutSelectStrategy(col.id, col.name, this.onInsert, this.setStrategy, this)
         );
       },
     }));
