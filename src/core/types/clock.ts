@@ -10,6 +10,7 @@ import { TypedMemoryReference } from './runtime';
 // NOTE: `core/` must not depend on `runtime/`. These runtime-facing types are
 // intentionally declared as `unknown` here for legacy/compatibility.
 import type { TimeSpan } from '../models/TimeSpan';
+export type { TimeSpan } from '../models/TimeSpan';
 
 /**
  * Workout type constants

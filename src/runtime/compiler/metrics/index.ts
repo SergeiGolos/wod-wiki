@@ -1,19 +1,4 @@
-export { TimerMetric } from './TimerMetric';
-export { DurationMetric } from './DurationMetric';
-export { SpansMetric } from './SpansMetric';
-export { ElapsedMetric } from './ElapsedMetric';
-export { TotalMetric } from './TotalMetric';
-export { SystemTimeMetric } from './SystemTimeMetric';
-export { EffortMetric } from './EffortMetric';
-export { RoundsMetric } from './RoundsMetric';
-export { CurrentRoundMetric } from './CurrentRoundMetric';
-export { RepMetric } from './RepMetric';
-export { TextMetric } from './TextMetric';
-export { DistanceMetric } from './DistanceMetric';
-export { ResistanceMetric } from './ResistanceMetric';
-export { IncrementMetric } from './IncrementMetric';
-export { GroupMetric } from './GroupMetric';
-export { ActionMetric } from './ActionMetric';
-export type { ActionMetricOptions } from './ActionMetric';
-export { SoundMetric } from './SoundMetric';
-export type { SoundTrigger, SoundMetricValue } from './SoundMetric';
+// Metric classes are imported directly from their individual source files
+// (e.g. @/runtime/compiler/metrics/TimerMetric) rather than via this barrel.
+// This barrel is intentionally empty to preserve the directory as a package
+// boundary while avoiding wildcard re-exports that inflate the dead-symbol count.
