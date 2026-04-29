@@ -39,3 +39,7 @@ export { isTimerSource } from './ITimerSource';
 // Rep/metric configuration
 export type { IRepSource } from './IRepSource';
 export { isRepSource } from './IRepSource';
+
+// Metric promotion (parent → child fragment promotion at compile time)
+export type { IMetricPromoter } from './IMetricPromoter';
+export { isFragmentPromoter } from './IMetricPromoter';

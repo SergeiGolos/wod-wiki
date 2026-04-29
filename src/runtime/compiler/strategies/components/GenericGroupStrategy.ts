@@ -4,7 +4,7 @@ import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
 import { MetricContainer } from "@/core/models/MetricContainer";
 import { MetricType } from "@/core/models/Metric";
 import { LabelComposer } from "../../utils/LabelComposer";

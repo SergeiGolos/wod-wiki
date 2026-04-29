@@ -9,6 +9,9 @@ import { IRuntimeAction } from './IRuntimeAction';
 import { IEvent } from './events/IEvent';
 import { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
 import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRuntimeOptions';
+import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
+import type { IBlockRef } from './primitives/IBlockRef';
+import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
 
 /**
  * Listener callback for output statement events.
@@ -20,7 +23,7 @@ export type OutputListener = (output: IOutputStatement) => void;
  */
 export type TrackerListener = (update: TrackerUpdate) => void;
 
-export interface IScriptRuntime {
+export interface IScriptRuntime extends IRuntimeActionable {
     options: RuntimeStackOptions;
     tracker?: RuntimeStackTracker;
     script: WodScript;
@@ -65,7 +68,7 @@ export interface IScriptRuntime {
      * @param block The block to push
      * @param lifecycle Optional lifecycle options (startTime, etc.)
      */
-    pushBlock(block: import('./IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./IRuntimeBlock').BlockLifecycleOptions): void;
+    pushBlock(block: IBlockRef, lifecycle?: BlockLifecycleOptions): void;
 
     /**
      * Pops the current block from the runtime stack.
@@ -74,7 +77,7 @@ export interface IScriptRuntime {
      * 
      * @param lifecycle Optional lifecycle options (completedAt, etc.)
      */
-    popBlock(lifecycle?: import('./IRuntimeBlock').BlockLifecycleOptions): void;
+    popBlock(lifecycle?: BlockLifecycleOptions): void;
 
     // ============================================================================
     // Output Statement API
