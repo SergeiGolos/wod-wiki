@@ -1,51 +1,104 @@
-import { IAnalyticsEngine, IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
-import { IOutputStatement } from '../models/OutputStatement';
+import { IAnalyticsEngine } from '../contracts/IAnalyticsEngine';
+import { IAnalyticsStage } from './IAnalyticsStage';
+import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
+import { MetricType } from '../models/Metric';
+import { MetricContainer } from '../models/MetricContainer';
+import { TimeSpan } from '../../runtime/models/TimeSpan';
+import { RuntimeStackTracker } from '../../runtime/contracts/IRuntimeOptions';
+import { ProjectionResult } from './ProjectionResult';
 
-/**
- * AnalyticsEngine - Chains multiple enrichment processes on the runtime output stream.
- *
- * Each process is purely stateless and segment-local: it reads the current
- * statement's metrics (including those added by earlier processes) and pushes
- * additional derived metrics back onto `output.metrics`.
- *
- * Aggregation processes can also be added here, which accumulate state
- * across multiple segments and emit summary statements when finalize() is called.
- */
 export class AnalyticsEngine implements IAnalyticsEngine {
-    private processes: IAnalyticsProcess[] = [];
+  private stages: IAnalyticsStage[] = [];
+  private outputHistory: IOutputStatement[] = [];
+  private tracker?: RuntimeStackTracker;
 
-    addProcess(process: IAnalyticsProcess): void {
-        this.processes.push(process);
+  setTracker(tracker: RuntimeStackTracker): void {
+    this.tracker = tracker;
+  }
+
+  addStage(stage: IAnalyticsStage): void {
+    if (!stage.enrich && !stage.project) {
+      console.warn(`[AnalyticsEngine] Stage '${stage.id}' implements neither enrich nor project — skipping.`);
+      return;
     }
+    this.stages.push(stage);
+  }
 
-    /**
-     * Run all registered processes on an output statement in order.
-     * Each process sees metrics added by its predecessors.
-     */
-    run(output: IOutputStatement): IOutputStatement {
-        let currentOutput = output;
-        for (const process of this.processes) {
-            try {
-                currentOutput = process.process(currentOutput);
-            } catch (err) {
-                console.error(`[AnalyticsEngine] Error in process '${process.id}':`, err);
-            }
+  run(output: IOutputStatement): IOutputStatement {
+    // Phase 1: enrich — per-segment metric derivation
+    let current = output;
+    for (const stage of this.stages) {
+      if (stage.enrich) {
+        try {
+          current = stage.enrich(current);
+        } catch (err) {
+          console.error(`[AnalyticsEngine] enrich error in '${stage.id}':`, err);
         }
-        return currentOutput;
+      }
     }
 
-    /**
-     * Finalize all processes and collect any summary output statements.
-     */
-    finalize(): IOutputStatement[] {
-        const results: IOutputStatement[] = [];
-        for (const process of this.processes) {
-            try {
-                results.push(...process.finalize());
-            } catch (err) {
-                console.error(`[AnalyticsEngine] Error finalizing process '${process.id}':`, err);
-            }
+    // Accumulate segment outputs for projection
+    if (current.outputType === 'segment') {
+      this.outputHistory.push(current);
+
+      // Phase 2: live projection update — runs after every new segment
+      if (this.tracker?.recordMetric) {
+        const projections = this._runProjections();
+        for (const p of projections) {
+          this.tracker.recordMetric('session-totals', p.name, p.value, p.unit);
         }
-        return results;
+      }
     }
+
+    return current;
+  }
+
+  finalize(): IOutputStatement[] {
+    const projections = this._runProjections();
+    const now = Date.now();
+
+    const results: IOutputStatement[] = projections.map(p => {
+      const metrics = MetricContainer.empty(`projection-${p.name}`).add(
+        {
+          type: MetricType.Label,
+          image: p.name,
+          value: p.name,
+          origin: 'analyzed',
+          timestamp: new Date(now),
+        },
+        {
+          type: (p.metricType as MetricType) || MetricType.Metric,
+          image: `${p.value} ${p.unit}`,
+          value: p.value,
+          unit: p.unit,
+          origin: 'analyzed',
+          timestamp: new Date(now),
+        }
+      );
+      return new OutputStatement({
+        outputType: 'analytics',
+        timeSpan: new TimeSpan(now, now),
+        sourceBlockKey: 'analytics-summary',
+        stackLevel: 0,
+        metrics,
+      });
+    });
+
+    return results;
+  }
+
+  /** Run all project() stages over current output history. */
+  private _runProjections(): ProjectionResult[] {
+    const results: ProjectionResult[] = [];
+    for (const stage of this.stages) {
+      if (stage.project) {
+        try {
+          results.push(...stage.project(this.outputHistory));
+        } catch (err) {
+          console.error(`[AnalyticsEngine] project error in '${stage.id}':`, err);
+        }
+      }
+    }
+    return results;
+  }
 }
