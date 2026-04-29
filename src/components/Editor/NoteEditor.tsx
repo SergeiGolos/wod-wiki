@@ -131,7 +131,8 @@ import { FullscreenReview } from "./overlays/FullscreenReview";
 import { InlineCommandBar } from "./overlays/InlineCommandBar";
 import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
-import { indexedDBService, getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
+import { indexedDBService } from "@/hooks/useBrowserServices";
+import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
 import { v4 as uuidv4 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 

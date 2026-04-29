@@ -29,9 +29,14 @@ export {
 
 export {
   useRuntimeParser,
-  runtimeFactory,
   type UseRuntimeParserReturn,
 } from './useRuntimeParser';
+
+export {
+  useRuntimeFactory,
+  runtimeFactory,
+  type UseRuntimeFactoryReturn,
+} from './useRuntimeFactory';
 
 export {
   useRuntimeDebug,

@@ -8,7 +8,7 @@
  * runtime inspection data.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // ── Debug utilities ───────────────────────────────────────────────────────
 export { RuntimeLogger } from '@/runtime/RuntimeLogger';
@@ -44,11 +44,6 @@ export function useRuntimeDebug(): UseRuntimeDebugReturn {
   const [isLoggingEnabled, setIsLoggingEnabled] = useState(
     () => RuntimeLogger.enabled,
   );
-
-  useEffect(() => {
-    // Keep local state in sync if logging changes externally
-    setIsLoggingEnabled(RuntimeLogger.enabled);
-  }, []);
 
   const enableLogging = () => {
     RuntimeLogger.enable();

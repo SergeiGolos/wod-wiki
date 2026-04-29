@@ -5,7 +5,7 @@
  * provides reactive state updates via the ChromecastSdk event bus.
  */
 
-import { describe, it, expect, mock } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 
 describe('useCastSignaling', () => {
   it('should export ChromecastSdk singleton', async () => {

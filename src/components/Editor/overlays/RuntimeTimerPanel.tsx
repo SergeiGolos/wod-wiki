@@ -25,7 +25,7 @@ import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, SubscriptionManager, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
-import { runtimeFactory, globalParser } from "@/hooks/useRuntimeParser";
+import { runtimeFactory, globalParser } from "@/hooks/useRuntimeFactory";
 import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncService } from "@/hooks/useCastSignaling";
 import type { RpcWorkbenchUpdate } from "@/hooks/useCastSignaling";
 import { useWorkbenchSyncStore } from "@/components/layout/workbenchSyncStore";

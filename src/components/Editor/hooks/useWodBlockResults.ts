@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
-import { indexedDBService } from '@/hooks/useWorkbenchServices';
+import { indexedDBService } from '@/hooks/useBrowserServices';
 import { useWorkbench } from '@/components/layout/WorkbenchContext';
 
 export interface UseWodBlockResultsReturn {

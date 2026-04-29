@@ -62,11 +62,7 @@ export function useCastSignaling(): UseCastSignalingReturn {
   useEffect(() => {
     const unsub = SDK.on('state-changed', (newState) => {
       setSdkState(newState as CastSdkState);
-      if (newState === 'session-active') {
-        setIsCasting(true);
-      } else if (newState === 'ready' || newState === 'unavailable') {
-        setIsCasting(false);
-      }
+      setIsCasting(newState === 'session-active');
     });
 
     return unsub;

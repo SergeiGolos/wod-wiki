@@ -8,7 +8,7 @@ import type { ContentProviderMode, IContentProvider } from '../../types/content-
 import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
-import { StaticContentProvider, indexedDBService, fileProcessor } from '@/hooks/useWorkbenchServices';
+import { StaticContentProvider, indexedDBService, fileProcessor } from '@/hooks/useBrowserServices';
 import { sharedParser } from '@/hooks/useRuntimeParser';
 import { getWodContent } from '@/repositories/wod-loader';
 import { toNotebookTag } from '../../types/notebook';

@@ -2,10 +2,11 @@
  * Tests for useRuntimeParser hook
  *
  * Verifies that the hook correctly re-exports parser utilities and provides
- * a stable parse/compile API without requiring direct parser/ imports.
+ * a stable parse API without requiring direct parser/ imports.
  */
 
 import { describe, it, expect } from 'bun:test';
+import { renderHook } from '@testing-library/react';
 
 describe('useRuntimeParser', () => {
   it('should export sharedParser singleton', async () => {
@@ -21,21 +22,6 @@ describe('useRuntimeParser', () => {
     expect(instance).toBeDefined();
   });
 
-  it('should export globalCompiler', async () => {
-    const { globalCompiler } = await import('../useRuntimeParser');
-    expect(globalCompiler).toBeDefined();
-  });
-
-  it('should export RuntimeFactory class', async () => {
-    const { RuntimeFactory } = await import('../useRuntimeParser');
-    expect(typeof RuntimeFactory).toBe('function');
-  });
-
-  it('should export runtimeFactory singleton', async () => {
-    const { runtimeFactory } = await import('../useRuntimeParser');
-    expect(runtimeFactory).toBeDefined();
-  });
-
   it('should export extractStatements function', async () => {
     const { extractStatements } = await import('../useRuntimeParser');
     expect(typeof extractStatements).toBe('function');
@@ -46,8 +32,10 @@ describe('useRuntimeParser', () => {
     expect(typeof useRuntimeParser).toBe('function');
   });
 
-  it('runtimeFactory should be an instance of RuntimeFactory', async () => {
-    const { runtimeFactory, RuntimeFactory } = await import('../useRuntimeParser');
-    expect(runtimeFactory).toBeInstanceOf(RuntimeFactory);
+  it('useRuntimeParser hook should expose a parse helper', () => {
+    const { useRuntimeParser } = require('../useRuntimeParser');
+    const { result } = renderHook(() => useRuntimeParser());
+    expect(typeof result.current.parse).toBe('function');
   });
 });
+

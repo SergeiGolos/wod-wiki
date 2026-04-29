@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { ScriptRuntime, SubscriptionManager, LocalRuntimeSubscription, WorkoutTracker } from '@/hooks/useRuntimeTimer';
-import type { IRuntimeFactory } from '@/hooks/useRuntimeParser';
+import type { IRuntimeFactory } from '@/hooks/useRuntimeFactory';
 import type { WodBlock } from '../Editor/types';
 import { RuntimeLifecycleContext, type RuntimeLifecycleState } from './RuntimeLifecycleContext';
 import { SubscriptionManagerContext } from './SubscriptionManagerContext';

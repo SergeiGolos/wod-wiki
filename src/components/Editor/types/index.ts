@@ -4,7 +4,7 @@
 
 import { ICodeStatement } from '../../../core/models/CodeStatement';
 import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
-import { MdTimerRuntime } from '@/hooks/useRuntimeParser';
+import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
 import { IOutputStatement } from '../../../core/models/OutputStatement';
 export * from './section';
