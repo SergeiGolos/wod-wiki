@@ -126,7 +126,13 @@ export const useRuntimeExecution = (
       return;
     }
 
-    if (status === 'running') return;
+    if (status === 'running') {
+      // Surface feedback instead of silently no-op'ing — see [UX-02].
+      // Callers should bind their Run button's `disabled` (or visibility)
+      // to `status === 'running'` so this branch is unreachable in normal UX.
+      console.warn('Cannot start execution: already running');
+      return;
+    }
 
     // Emit timer:resume event when resuming from paused state
     if (status === 'paused') {

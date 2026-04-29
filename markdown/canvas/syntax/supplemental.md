@@ -55,6 +55,23 @@ pipeline:
   - set-state: track
 ```
 
+## Comments {sticky}
+
+Prefix a line with `//` to add a passive coach annotation. Comments are notes
+to yourself or the athlete — they never affect the timer or generate a cue card,
+and they don't require interaction during the workout.
+
+```
+// Warm up first
+[Set up barbell]
+10 Back Squats
+```
+
+In the runner, `// ...` lines render as muted italic text — visually distinct
+from interactive `[action items]` which appear as labeled buttons. Use comments
+for context, coaching cues, or reminders; use `[brackets]` when the runtime
+should pause and wait for you.
+
 ## Progressive Load {sticky}
 
 Use `^` to flag a set as a warm-up ramp. Combine with `?lb` to let the runtime prompt for each weight as you build to your working load.

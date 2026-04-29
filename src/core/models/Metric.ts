@@ -13,6 +13,15 @@
  * - 'tracked': Value is actively being tracked during execution
  * - 'analyzed': Value is derived from analysis
  */
+/**
+ * Compiler instruction attached by dialect-origin metrics.
+ * - 'set':      inject this metric; precedence tier handles display resolution
+ * - 'suppress': hide all metrics of this type from display (sentinel pattern)
+ * - 'inherit':  propagate this metric value down to child statements
+ * Parser metrics never carry an action (undefined = passive).
+ */
+export type MetricAction = 'set' | 'suppress' | 'inherit';
+
 export type MetricOrigin =
   | 'parser'
   | 'compiler'
@@ -35,6 +44,15 @@ export interface IMetric {
   readonly type: MetricType | string;
   readonly origin: MetricOrigin;
   readonly unit?: string;
+
+  /**
+   * Compiler instruction attached by dialect-origin metrics.
+   * - 'set':      inject this metric; precedence tier handles display resolution
+   * - 'suppress': hide all metrics of this type from display (sentinel pattern)
+   * - 'inherit':  propagate this metric value down to child statements
+   * Parser metrics never carry an action (undefined = passive).
+   */
+  readonly action?: MetricAction;
 
   /**
    * Block key that created/owns this metrics.
