@@ -41,7 +41,7 @@ export function PlaygroundNotePage({
   const noteId = PlaygroundDBService.pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
-  const { content, loading, onChange } = usePlaygroundContent({
+  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: 'playground',
     name: pageName,
     mdContent: PLAYGROUND_TEMPLATE.content,
@@ -91,6 +91,8 @@ export function PlaygroundNotePage({
         <NoteEditor
           value={content}
           onChange={onChange}
+          onCursorPositionChange={onLineChange}
+          onBlur={onBlur}
           noteId={noteId}
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}

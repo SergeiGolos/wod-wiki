@@ -99,8 +99,8 @@ Results live in your browser’s local IndexedDB — your data, your device, no 
 - Full-screen mode during workouts
 
 ### 📊 Pre & Post Analytics
-- **Pre-run**: estimated time, total reps, projected volume
-- **Post-run**: actual vs. estimated, intensity graph, per-block breakdown
+- **Pre:** estimated time, total reps, projected volume
+- **Post:** actual vs. estimated, intensity graph, per-block breakdown
 
 ### 📺 Chromecast — Home Gym Ready
 - Cast the timer to any TV in your gym with one click

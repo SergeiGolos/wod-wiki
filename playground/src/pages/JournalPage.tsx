@@ -50,7 +50,7 @@ export function JournalPage({
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [results, setResults] = useState<WorkoutResult[]>([])
 
-  const { content, loading, onChange } = usePlaygroundContent({
+  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: 'journal',
     name: noteId,
     mdContent: PLAYGROUND_TEMPLATE.content,
@@ -161,6 +161,8 @@ export function JournalPage({
         <NoteEditor
           value={content}
           onChange={onChange}
+          onCursorPositionChange={onLineChange}
+          onBlur={onBlur}
           noteId={noteId}
           onStartWorkout={handleStartWorkout}
           enableInlineRuntime={false}
