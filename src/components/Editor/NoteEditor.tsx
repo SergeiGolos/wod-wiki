@@ -191,6 +191,7 @@ export interface NoteEditorProps {
    * When provided, replaces the individual onStartWorkout / onAddToPlan callbacks
    * (those are still accepted for backward compatibility when commands is omitted).
    */
+  hideDefaultCommands?: boolean;
   commands?: WodCommand[];
   /**
    * When true (default), clicking "Run" opens an inline runtime panel below
@@ -230,6 +231,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   enableLinting = true,
   enableOverlay = false,
   commands,
+  hideDefaultCommands = false,
   enableInlineRuntime = true,
   widgetComponents,
   scrollToSectionId,
@@ -391,6 +393,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // When enableInlineRuntime is true the "Run" command uses handleRun
   // instead of routing via onStartWorkout.
   const effectiveCommands = useMemo<WodCommand[]>(() => {
+    if (hideDefaultCommands) return [];
     if (commands && commands.length > 0) return commands;
     const synthesized: WodCommand[] = [];
     if (enableInlineRuntime) {
@@ -630,6 +633,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     setCursorLine(initialLine);
     const initialSection = activeCursorSection(view.state);
     setActiveSectionId(initialSection?.id ?? null);
+
+    // Seed block list so onBlocksChange fires on initial mount (not just on edits)
+    notifyBlockChanges(view.state, onBlocksChange);
 
     return () => {
       view.destroy();

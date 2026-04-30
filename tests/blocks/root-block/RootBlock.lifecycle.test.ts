@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
+import { sessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
 import {
     ChildSelectionBehavior,
     HistoryRecordBehavior
@@ -29,7 +29,7 @@ describe('RootBlock Lifecycle', () => {
             statements: [{ id: 1, source: 'Exercise' }]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -50,7 +50,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should track execution start time on mount', () => {
         // Scenario: Verify timing capture
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -74,7 +74,7 @@ describe('RootBlock Lifecycle', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]]
         });
 
@@ -108,7 +108,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should track completion time on unmount', () => {
         // Scenario: Workout completes, root unmounted
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -134,7 +134,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should emit history record on unmount', () => {
         // Scenario: Workout completes, history should be recorded
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -154,7 +154,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should handle dispose without errors', () => {
         // Scenario: Root removed from stack
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -170,7 +170,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should maintain frozen clock during mount', () => {
         // Scenario: Clock must be frozen during mount actions
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -202,7 +202,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should handle mount with custom clock', () => {
         // Scenario: Mount with specific clock time
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -223,7 +223,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should handle next with no remaining children', () => {
         // Scenario: Call next when all children executed
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -246,7 +246,7 @@ describe('RootBlock Lifecycle', () => {
 
     it('should allow multiple unmount calls safely', () => {
         // Scenario: Defensive unmount handling
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
