@@ -15,7 +15,7 @@ interface JournalWeeklyPageProps extends BaseProps {
   onCreateEntry?: (date: Date) => void;
 }
 
-export function JournalWeeklyPage({ onSelect }: JournalWeeklyPageProps) {
+export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPageProps) {
   const { selectedDate, setDateParam, selectedTags } = useJournalQueryState();
   const [results, setResults] = useState<any[]>([]);
   const [journalEntries, setJournalEntries] = useState<Map<string, JournalEntrySummary>>(new Map());
@@ -143,6 +143,7 @@ export function JournalWeeklyPage({ onSelect }: JournalWeeklyPageProps) {
       onVisibleDateChange={handleVisibleDateChange}
       journalEntries={journalEntries}
       onOpenEntry={handleOpenEntry}
+      onCreateEntry={onCreateEntry}
       className="flex-1 min-h-0"
     />
   );

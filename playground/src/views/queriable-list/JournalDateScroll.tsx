@@ -645,6 +645,8 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                 {isEmpty && (
                   isFuture ? (
                     <button
+                      data-date={key}
+                      data-testid="journal-plan-workout"
                       onClick={() => onCreateEntry?.(date)}
                       className="flex items-center gap-3 px-6 py-3 text-left hover:bg-muted/30 transition-colors group"
                     >
