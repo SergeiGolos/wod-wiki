@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { renderHook, act } from '@testing-library/react';
-import { useRuntimeExecution } from '../useRuntimeExecution';
+import { useRuntimeExecution } from '../../../runtime/hooks/useRuntimeExecution';
 import type { ScriptRuntime } from '../../../runtime/ScriptRuntime';
 
 function createMockRuntime(): ScriptRuntime {
