@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, mock } from 'bun:test';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 
 import { RuntimeLifecycleContext } from '../layout/RuntimeLifecycleContext';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
@@ -60,5 +60,17 @@ describe('useWorkbenchRuntime', () => {
         expect(result.current.handleStop).toBe(firstHandlers.handleStop);
         expect(result.current.handleNext).toBe(firstHandlers.handleNext);
         expect(result.current.handleStartWorkoutAction).toBe(firstHandlers.handleStartWorkoutAction);
+
+        const originalWarn = console.warn;
+        const warnSpy = mock(() => { });
+        console.warn = warnSpy as unknown as typeof console.warn;
+        try {
+            act(() => {
+                result.current.handleStart();
+            });
+            expect(warnSpy).toHaveBeenCalledTimes(1);
+        } finally {
+            console.warn = originalWarn;
+        }
     });
 });
