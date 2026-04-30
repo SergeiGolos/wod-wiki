@@ -151,22 +151,9 @@ export function usePlaygroundContent({
   // Uses refs so the cleanup always sees the latest pageId/category/name.
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current !== null) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-        const value = pendingContentRef.current;
-        if (value !== null) {
-          playgroundDB.savePage({
-            id: pageIdRef.current,
-            category: categoryRef.current,
-            name: nameRef.current,
-            content: value,
-            updatedAt: Date.now(),
-          });
-        }
-      }
+      flush();
     };
-  }, []);
+  }, [flush]);
 
   return { content, loading, onChange, resetToOriginal, isModified, flush };
 }
