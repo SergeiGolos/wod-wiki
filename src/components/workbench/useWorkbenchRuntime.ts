@@ -121,9 +121,9 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock
     // This hook just provides the callbacks and state
 
-    const handleStart = () => execution.start();
-    const handlePause = () => execution.pause();
-    const handleStop = () => {
+    const handleStart = useCallback(() => execution.start(), [execution.start]);
+    const handlePause = useCallback(() => execution.pause(), [execution.pause]);
+    const handleStop = useCallback(() => {
         execution.stop();
         // Finalize summary metrics before completion
         runtime?.finalizeAnalytics();
@@ -136,16 +136,16 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             logs: runtime?.getOutputStatements() || [],
             completed: true
         });
-    };
+    }, [completeWorkout, execution.elapsedTime, execution.startTime, execution.stop, runtime]);
 
-    const handleNext = () => {
+    const handleNext = useCallback(() => {
         if (runtime && execution.status !== 'completed') {
             runtime.handle(new NextEvent());
             if (execution.status !== 'running') {
                 execution.start();
             }
         }
-    };
+    }, [execution.start, execution.status, runtime]);
 
     const handleStartWorkoutAction = useCallback((block: WodBlock) => {
         startWorkout(block);
