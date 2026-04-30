@@ -30,6 +30,7 @@ import {
 } from '@/components/metrics/StatementDisplay';
 import type { ICodeStatement } from '@/core/models/CodeStatement';
 import type { IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { Button } from '@/components/ui/button';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ function makeStatement(metrics: IMetric[]): ICodeStatement {
     id: 1,
     parent: undefined,
     children: [],
-    metrics,
+    metrics: MetricContainer.from(metrics, 1),
     isLeaf: true,
     meta: {} as ICodeStatement['meta'],
     metricMeta: new Map(),
