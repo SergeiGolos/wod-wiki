@@ -5,10 +5,22 @@
  * banner and the home canvas page content.
  */
 
-import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { HomeView } from '../../../playground/src/pages/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
+
+const storyWodFiles = import.meta.glob('../../../markdown/**/*.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+const wodFiles = Object.fromEntries(
+  Object.entries(storyWodFiles).map(([path, content]) => [
+    path.replace('../../../markdown/', '../../markdown/'),
+    content,
+  ]),
+);
 
 const mockWorkoutItems: WorkoutItem[] = [
   { id: 'benchmarks/fran', name: 'Fran', category: 'benchmarks', content: '# Fran\n\n```wod\n(21-15-9)\n  Thrusters 95lb\n  Pullups\n```\n' },
@@ -30,7 +42,7 @@ const meta: Meta<typeof HomeView> = {
     },
   },
   args: {
-    wodFiles: {},
+    wodFiles,
     theme: 'vs',
     workoutItems: mockWorkoutItems,
   },

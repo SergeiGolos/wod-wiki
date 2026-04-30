@@ -206,20 +206,20 @@ const components: Components = {
   // Lists
   ul({ children }) {
     return (
-      <ul className="my-4 space-y-1.5 list-disc list-inside text-sm text-muted-foreground font-medium leading-relaxed">
+      <ul className="my-4 pl-5 space-y-1.5 list-disc list-outside text-left text-sm text-muted-foreground font-medium leading-relaxed">
         {children}
       </ul>
     )
   },
   ol({ children }) {
     return (
-      <ol className="my-4 space-y-1.5 list-decimal list-inside text-sm text-muted-foreground font-medium leading-relaxed">
+      <ol className="my-4 pl-5 space-y-1.5 list-decimal list-outside text-left text-sm text-muted-foreground font-medium leading-relaxed">
         {children}
       </ol>
     )
   },
   li({ children }) {
-    return <li className="leading-relaxed">{children}</li>
+    return <li className="pl-1 leading-relaxed">{children}</li>
   },
 
   // Blockquote
