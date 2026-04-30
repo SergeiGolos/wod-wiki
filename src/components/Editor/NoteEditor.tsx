@@ -152,6 +152,8 @@ export interface NoteEditorProps {
   onChange: (value: string) => void;
   /** Called when cursor position changes */
   onCursorPositionChange?: (line: number, column: number) => void;
+  /** Called when the editor loses focus */
+  onBlur?: () => void;
   /** Editor theme ("vs" | "dark") */
   theme?: string;
   /** Read-only mode */
@@ -210,6 +212,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   value,
   onChange,
   onCursorPositionChange,
+  onBlur,
   theme = "vs",
   readonly = false,
   className = "",
@@ -551,6 +554,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // File drop handler
       fileDropHandler(noteId),
 
+      // Blur handler — fires when the editor loses focus
+      EditorView.domEventHandlers({
+        blur: () => { onBlur?.(); return false; },
+      }),
+
       // Update listener
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -577,6 +585,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     [
       onChange,
       onCursorPositionChange,
+      onBlur,
       onBlocksChange,
       readonly,
       setIsOpen,

@@ -1,15 +1,19 @@
 /**
  * usePlaygroundContent — Loads workout content with IndexedDB-first strategy.
  *
+ * Owns WHAT to load and HOW to persist. Delegates WHEN to save to useEditorSave.
+ *
  * 1. If the page exists in IndexedDB → return the stored content.
  * 2. If not → return the original MD content and seed IndexedDB for next time.
- * 3. On edits (onChange) → persist to IndexedDB so block IDs remain stable.
- * 4. On unmount (navigation away) → flush any pending debounced save immediately
- *    so no edits are lost when the user navigates before the debounce fires.
+ * 3. On edits (onChange) → persist to IndexedDB.
+ *    - Saves after the user leaves the current editing line (line-idle debounce).
+ *    - Saves immediately on blur, navigation, pagehide, or flush() call.
+ *    - Skips write if content hasn't changed.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { playgroundDB, PlaygroundDBService } from '../services/playgroundDB';
+import { useEditorSave } from './useEditorSave';
 
 interface UsePlaygroundContentOptions {
   category: string;
@@ -25,12 +29,19 @@ interface UsePlaygroundContentResult {
   loading: boolean;
   /** Call when the editor content changes */
   onChange: (value: string) => void;
+  /**
+   * Call when the cursor moves to a new line (wire to NoteEditor's
+   * onCursorPositionChange). Triggers an immediate flush of any pending save.
+   */
+  onLineChange: (line: number, column: number) => void;
+  /** Call when the editor loses focus. Flushes immediately. */
+  onBlur: () => void;
   /** Reset this page back to the original MD content */
   resetToOriginal: () => void;
   /** Whether the content has been modified from the original MD */
   isModified: boolean;
-  /** Force an immediate save (skips debounce). Safe to call anytime. */
-  flush: () => void;
+  /** Force an immediate save. Returns a Promise that resolves when done. */
+  flush: () => Promise<void>;
 }
 
 export function usePlaygroundContent({
@@ -42,16 +53,33 @@ export function usePlaygroundContent({
   const [content, setContent] = useState(mdContent);
   const [loading, setLoading] = useState(true);
   const [isModified, setIsModified] = useState(false);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Tracks the latest unsaved content so the unmount flush can write the right value
-  const pendingContentRef = useRef<string | null>(null);
-  // Stable refs for use in the unmount cleanup (avoids stale closure)
+
+  // Stable refs so the save callback never goes stale
   const pageIdRef = useRef(pageId);
   const categoryRef = useRef(category);
   const nameRef = useRef(name);
   useEffect(() => { pageIdRef.current = pageId; }, [pageId]);
   useEffect(() => { categoryRef.current = category; }, [category]);
   useEffect(() => { nameRef.current = name; }, [name]);
+
+  // mdContent ref for isModified tracking inside the save callback
+  const mdContentRef = useRef(mdContent);
+  useEffect(() => { mdContentRef.current = mdContent; }, [mdContent]);
+
+  const handleSave = useCallback(async (value: string) => {
+    await playgroundDB.savePage({
+      id: pageIdRef.current,
+      category: categoryRef.current,
+      name: nameRef.current,
+      content: value,
+      updatedAt: Date.now(),
+    });
+  }, []);
+
+  const { onChange: editorOnChange, onLineChange, onBlur, flush } = useEditorSave({
+    onSave: handleSave,
+    lineIdleMs: 500,
+  });
 
   // Load from IndexedDB on mount (or when page identity changes)
   useEffect(() => {
@@ -64,13 +92,12 @@ export function usePlaygroundContent({
         if (cancelled) return;
 
         if (page) {
-          // Found in IndexedDB — use persisted content
           setContent(page.content);
           setIsModified(page.content !== mdContent);
         } else {
-          // Not in IndexedDB — seed it from MD so block IDs get locked in
           setContent(mdContent);
           setIsModified(false);
+          // Seed IDB so block IDs get locked in
           await playgroundDB.savePage({
             id: pageId,
             category,
@@ -78,9 +105,9 @@ export function usePlaygroundContent({
             content: mdContent,
             updatedAt: Date.now(),
           });
+          if (cancelled) return;
         }
       } catch {
-        // IndexedDB unavailable — fall back to MD
         if (!cancelled) {
           setContent(mdContent);
           setIsModified(false);
@@ -94,46 +121,14 @@ export function usePlaygroundContent({
     return () => { cancelled = true; };
   }, [pageId, mdContent, category, name]);
 
-  // Debounced save on content change
   const onChange = useCallback(
     (value: string) => {
       setContent(value);
-      setIsModified(value !== mdContent);
-      pendingContentRef.current = value;
-
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        saveTimerRef.current = null;
-        pendingContentRef.current = null;
-        playgroundDB.savePage({
-          id: pageId,
-          category,
-          name,
-          content: value,
-          updatedAt: Date.now(),
-        });
-      }, 500);
+      setIsModified(value !== mdContentRef.current);
+      editorOnChange(value);
     },
-    [pageId, category, name, mdContent],
+    [editorOnChange],
   );
-
-  /** Immediately persist any buffered edit (cancel + flush the debounce). */
-  const flush = useCallback(() => {
-    if (saveTimerRef.current === null) return; // nothing pending
-    clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = null;
-    const value = pendingContentRef.current;
-    pendingContentRef.current = null;
-    if (value !== null) {
-      playgroundDB.savePage({
-        id: pageIdRef.current,
-        category: categoryRef.current,
-        name: nameRef.current,
-        content: value,
-        updatedAt: Date.now(),
-      });
-    }
-  }, []);
 
   const resetToOriginal = useCallback(() => {
     setContent(mdContent);
@@ -147,26 +142,5 @@ export function usePlaygroundContent({
     });
   }, [pageId, category, name, mdContent]);
 
-  // Flush any pending debounced save on unmount (navigation away, route change, etc.)
-  // Uses refs so the cleanup always sees the latest pageId/category/name.
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current !== null) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-        const value = pendingContentRef.current;
-        if (value !== null) {
-          playgroundDB.savePage({
-            id: pageIdRef.current,
-            category: categoryRef.current,
-            name: nameRef.current,
-            content: value,
-            updatedAt: Date.now(),
-          });
-        }
-      }
-    };
-  }, []);
-
-  return { content, loading, onChange, resetToOriginal, isModified, flush };
+  return { content, loading, onChange, onLineChange, onBlur, resetToOriginal, isModified, flush };
 }
