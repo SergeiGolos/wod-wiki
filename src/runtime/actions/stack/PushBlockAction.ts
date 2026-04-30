@@ -1,4 +1,6 @@
-import { IRuntimeAction, IRuntimeBlock, IScriptRuntime } from "@/core";
+import { IRuntimeAction } from "@/runtime/contracts/IRuntimeAction";
+import { IRuntimeBlock } from "@/runtime/contracts/IRuntimeBlock";
+import { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
 import { BlockLifecycleOptions } from "@/runtime/contracts";
 import { RuntimeLogger } from "../../RuntimeLogger";
 
