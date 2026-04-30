@@ -1,12 +1,10 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { CommandProvider, useCommandPalette } from '@/components/command-palette/CommandContext';
+import React, { useCallback, useEffect, useState } from 'react';
+import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useWorkbenchEffects } from '@/components/layout/useWorkbenchEffects';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime/services/runtimeServices';
@@ -84,7 +82,6 @@ interface StorybookWorkbenchProps extends WorkbenchProps {
 }
 
 const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
-  initialContent,
   collection,
   title,
 }) => {
