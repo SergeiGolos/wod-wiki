@@ -50,7 +50,7 @@ export function WorkoutEditorPage({
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
   const noteId = PlaygroundDBService.pageId(category, name)
   const navigate = useNavigate()
-  const { content, loading, onChange } = usePlaygroundContent({ category, name, mdContent })
+  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({ category, name, mdContent })
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
 
@@ -168,6 +168,8 @@ export function WorkoutEditorPage({
           <NoteEditor
             value={content}
             onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
             noteId={noteId}
             onStartWorkout={isCollection || usePopup ? undefined : handleStartWorkout}
             enableInlineRuntime={usePopup}
