@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
 import { IOutputStatement } from '../../core/models/OutputStatement';
-import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
 import { cn } from '@/lib/utils';
 import { Clock, CheckCircle2, ListTree, Timer, Table2 } from 'lucide-react';
-import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
-import { useRoundDisplay } from '../../runtime/hooks/useBlockMemory';
+import { useTimerElapsed, useRoundDisplay, useScriptRuntime, useNextPreview } from '@/hooks/useRuntimeTimer';
+import type { IScriptRuntime, IRuntimeBlock, MetricVisibility } from '@/hooks/useRuntimeTimer';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import { MetricSourceRow } from '../metrics/MetricSourceRow';
-import { IMetric } from '@/core/models/Metric';
-import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { VisibilityBadge } from '../metrics/VisibilityBadge';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
-import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
 import { BlockDebugDialog } from './BlockDebugDialog';
-import { useNextPreview } from '@/runtime/hooks/useNextPreview';
 
 // ============================================================================
 // History View
@@ -77,9 +72,9 @@ const StackBlockItem: React.FC<{
     const { elapsed, isRunning, timeSpans } = useTimerElapsed(block.key.toString());
     // Subscribe to round state for dynamic round label (updates reactively as rounds advance)
     const roundDisplay = useRoundDisplay(block);
-    const [displayRows, setDisplayRows] = useState<IMetric[][]>([]);
-    const [promoteRows, setPromoteRows] = useState<IMetric[][]>([]);
-    const [privateRows, setPrivateRows] = useState<IMetric[][]>([]);
+    const [displayRows, setDisplayRows] = useState<MetricContainer[]>([]);
+    const [promoteRows, setPromoteRows] = useState<MetricContainer[]>([]);
+    const [privateRows, setPrivateRows] = useState<MetricContainer[]>([]);
     const [debugDialogOpen, setDebugDialogOpen] = useState(false);
 
     // Subscribe to metrics memory by visibility tier
@@ -122,7 +117,7 @@ const StackBlockItem: React.FC<{
 
     /** Render a visibility-tagged section of metrics rows */
     const renderFragmentSection = (
-        rows: IMetric[][],
+        rows: MetricContainer[],
         visibility: MetricVisibility,
         showBadge: boolean,
         isLeaf: boolean
@@ -359,4 +354,3 @@ export const LookaheadView: React.FC<{
         </div>
     );
 };
-

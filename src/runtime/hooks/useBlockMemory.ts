@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { MemoryType, MemoryValueOf, TimerState, RoundState, DisplayState } from '../memory/MemoryTypes';
 import { IMetricSource } from '../../core/contracts/IMetricSource';
+import { MetricContainer } from '../../core/models/MetricContainer';
 import { formatDurationSmart } from '../../lib/formatTime';
 import { calculateDuration } from '../../lib/timeUtils';
 import { MemoryTag } from '../memory/MemoryLocation';
@@ -303,15 +304,9 @@ export function useFragmentSource(block: IRuntimeBlock | undefined): IMetricSour
         if (!block) return undefined;
         const locs = block.getMemoryByTag('metric:display');
         if (locs.length === 0) return undefined;
-        const allFragments = locs.flatMap(loc => loc.metrics);
-        return {
-            id: block.key.toString(),
-            getDisplayMetrics: () => allFragments,
-            getFragment: (type) => allFragments.find(f => f.type === type),
-            getAllMetricsByType: (type) => allFragments.filter(f => f.type === type),
-            hasFragment: (type) => allFragments.some(f => f.type === type),
-            rawMetrics: allFragments,
-        } as IMetricSource;
+        const allFragments = MetricContainer.empty(block.key.toString());
+        for (const loc of locs) allFragments.merge(loc.metrics);
+        return allFragments;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [block, version]);
 }

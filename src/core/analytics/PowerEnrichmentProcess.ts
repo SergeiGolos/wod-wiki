@@ -1,4 +1,4 @@
-import { IAnalyticsProcess } from '../contracts/IAnalyticsEngine';
+import { IAnalyticsStage } from './IAnalyticsStage';
 import { IOutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 
@@ -13,10 +13,10 @@ import { MetricType } from '../models/Metric';
  *
  * Stateless; every computation is local to the segment.
  */
-export class PowerEnrichmentProcess implements IAnalyticsProcess {
+export class PowerEnrichmentProcess implements IAnalyticsStage {
     public readonly id = 'power-enrichment';
 
-    process(output: IOutputStatement): IOutputStatement {
+    enrich(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
 
         const elapsedMs = output.getMetric(MetricType.Elapsed)?.value as number ?? 0;
@@ -45,7 +45,7 @@ export class PowerEnrichmentProcess implements IAnalyticsProcess {
         const elapsedSec = elapsedMs / 1000;
         const power = volumeLoad / elapsedSec;
 
-        output.metrics.push({
+        output.metrics.add({
             type: 'power',
             image: `${power.toFixed(1)} ${units}/s`,
             value: parseFloat(power.toFixed(1)),
@@ -55,9 +55,5 @@ export class PowerEnrichmentProcess implements IAnalyticsProcess {
         });
 
         return output;
-    }
-
-    finalize(): IOutputStatement[] {
-        return [];
     }
 }

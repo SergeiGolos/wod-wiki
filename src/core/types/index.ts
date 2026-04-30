@@ -1,26 +1,20 @@
 /**
  * WOD Wiki Types
- * 
- * Centralized type exports for the WOD Wiki library.
- * Import types from here for type-only imports.
+ *
+ * Barrel for the subset of core types that are consumed externally
+ * via the `@/core` alias. Only re-export symbols that are genuinely
+ * imported through this barrel — all other types should be imported
+ * directly from their source files.
  */
 
-// Core types
+// Core types actively consumed via the @/core barrel
 export type {
-  IScript,
   ICodeStatement,
-  IBlockKey,
-  IDuration,
-  WodScript,
-  BlockKey,
-  Duration,
-  CodeMetadata,
-  IMetric,
+  ParseError,
 } from './core';
 
-export { MetricType } from './core';
-
-// Runtime types
+// Runtime types — intentional unknown placeholders for backward-compat import sites.
+// Phase 2 cleanup: delete core/types/runtime.ts and migrate callers to @/runtime/contracts.
 export type {
   IScriptRuntime,
   IRuntimeBlock,
@@ -37,48 +31,5 @@ export type {
   ICodeStatement as RuntimeCodeStatement,
 } from './runtime';
 
-// Exercise types
-export {
-  Muscle,
-  Force,
-  Level,
-  Mechanic,
-  Equipment,
-  Category,
-} from './exercise';
-
-export type { Exercise } from './exercise';
-
-// Provider types
-export type {
-  ExercisePathEntry,
-  ExercisePathGroup,
-  ExercisePathIndex,
-  ExerciseDataProvider,
-  WorkoutDataProvider,
-  WorkoutMetadata,
-} from './providers';
-
-// Editor types (Proxied from components/Editor/types)
-export type {
-  WodBlock,
-  WorkoutResults,
-  WodBlockState,
-  ParseError,
-  WorkoutMetricFragment,
-} from '../../components/Editor/types';
-
-// Clock types
-export type {
-  WorkoutType,
-  DigitalClockProps,
-  ClockAnchorProps,
-  TimerHarnessResult,
-  TimerHarnessProps,
-  TimeSpan,
-} from './clock';
-
-// Fragment types
-export type {
-  MetricVisualizerProps,
-} from './metrics';
+// TimeSpan type — used by legacy import sites via @/core
+export type { TimeSpan } from './clock';

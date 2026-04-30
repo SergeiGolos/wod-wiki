@@ -12,7 +12,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { ALL_FRAGMENT_COLUMNS } from './gridPresets';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
-import type { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
+import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';
@@ -261,7 +261,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
       // Find existing metric for context
       const row = rows.find((r) => r.sourceBlockKey === blockKey);
       const cell = row?.cells.get(metricType);
-      const existingFragments = cell?.metrics ?? [];
+      const existingFragments = cell?.metrics.toArray() ?? [];
 
       // Check for existing user override value
       const userFrag = existingFragments.find((f) => f.origin === 'user');

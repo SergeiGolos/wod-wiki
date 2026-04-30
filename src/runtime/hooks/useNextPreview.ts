@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSnapshotBlocks } from './useStackSnapshot';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { IMetric } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 
 /**
  * Result of the next-preview resolution.
@@ -12,7 +12,7 @@ import { IMetric } from '../../core/models/Metric';
  */
 export interface NextPreview {
     /** Fragments describing the next child to be executed */
-    metrics: IMetric[];
+    metrics: MetricContainer;
     /** The block that owns this preview (the parent that will push the child) */
     block: IRuntimeBlock;
 }
@@ -70,7 +70,8 @@ export function useNextPreview(): NextPreview | null {
             if (nextLocs.length === 0) continue;
 
             // Collect metrics from all metrics:next locations
-            const metrics = nextLocs.flatMap(loc => loc.metrics);
+            const metrics = MetricContainer.empty(block.key.toString());
+            for (const loc of nextLocs) metrics.merge(loc.metrics);
             if (metrics.length > 0) {
                 return { metrics, block };
             }

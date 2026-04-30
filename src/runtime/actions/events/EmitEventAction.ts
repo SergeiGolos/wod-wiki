@@ -1,5 +1,6 @@
-import { IRuntimeAction, IScriptRuntime } from "@/core";
-import { IEvent } from "@/core-entry";
+import type { IRuntimeAction } from "@/runtime/contracts/IRuntimeAction";
+import type { IScriptRuntime } from "@/runtime/contracts/IScriptRuntime";
+import type { IEvent } from "@/runtime/contracts/events/IEvent";
 
 /**
  * Action for declarative event emission from behaviors.

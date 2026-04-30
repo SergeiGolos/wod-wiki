@@ -44,6 +44,7 @@ import { LoadZipPage } from './pages/LoadZipPage'
 import { Toaster } from '@/components/ui/toaster'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
+import { NotePageActions } from './pages/shared/NotePageActions'
 import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
@@ -87,17 +88,37 @@ export interface WorkoutItem {
 
 const MAX_TIMESTAMP_ID_RETRIES = 10
 
-/** Generate a date-based name: YYYY-MM-DD-HH-MM-SS-MMM. */
-async function generatePlaygroundName(): Promise<string> {
-  let name = formatPlaygroundTimestampId(Date.now())
-  let existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
-  for (let attempt = 0; existing && attempt < MAX_TIMESTAMP_ID_RETRIES; attempt++) {
-    await new Promise(resolve => setTimeout(resolve, 1))
-    name = formatPlaygroundTimestampId(Date.now())
-    existing = await playgroundDB.getPage(PlaygroundDBService.pageId('playground', name))
+/**
+ * Atomically create a new playground page.
+ *
+ * Tries `baseName`, then `baseName-1` … `baseName-N`. Each attempt uses
+ * IndexedDB `add()` (via `addPage`), which throws a `ConstraintError` if the
+ * key already exists — making the check-and-create race-free even when two
+ * tabs open simultaneously.
+ *
+ * Returns the ID that was successfully written.
+ */
+async function createPlaygroundPage(content: string): Promise<string> {
+  const baseName = formatPlaygroundTimestampId(Date.now())
+  const now = Date.now()
+  for (let attempt = 0; attempt <= MAX_TIMESTAMP_ID_RETRIES; attempt++) {
+    const name = attempt === 0 ? baseName : `${baseName}-${attempt}`
+    const pageId = PlaygroundDBService.pageId('playground', name)
+    try {
+      await playgroundDB.addPage({
+        id: pageId,
+        category: 'playground',
+        name,
+        content,
+        updatedAt: now,
+      })
+      return name
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'ConstraintError') continue
+      throw err
+    }
   }
-  if (existing) throw new Error('Unable to allocate unique playground timestamp ID')
-  return name
+  throw new Error('Unable to allocate unique playground timestamp ID')
 }
 
 function PlaygroundRedirect() {
@@ -105,16 +126,7 @@ function PlaygroundRedirect() {
 
   useEffect(() => {
     ;(async () => {
-      const id = await generatePlaygroundName()
-      const now = Date.now()
-      const pageId = PlaygroundDBService.pageId('playground', id)
-      await playgroundDB.savePage({
-        id: pageId,
-        category: 'playground',
-        name: id,
-        content: PLAYGROUND_TEMPLATE.content,
-        updatedAt: now,
-      })
+      const id = await createPlaygroundPage(PLAYGROUND_TEMPLATE.content)
       navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
     })()
   }, [navigate])
@@ -548,7 +560,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
@@ -557,7 +569,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <JournalWeeklyPage 
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
@@ -565,11 +577,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
-            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<div className="flex items-center gap-4"><NewEntryButton /><CastButtonRpc /><AudioToggle /><ThemeSwitcher /><ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} /></div>}>
+            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}

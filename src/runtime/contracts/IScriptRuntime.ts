@@ -1,14 +1,26 @@
-import { JitCompiler } from '../compiler/JitCompiler';
-import { WodScript } from '../../parser/WodScript';
-import { RuntimeError } from '../actions/ErrorAction';
-import { IEventBus } from './events/IEventBus';
-import { IRuntimeStack, Unsubscribe, StackObserver } from './IRuntimeStack';
-import { IRuntimeClock } from './IRuntimeClock';
-import { IOutputStatement } from '../../core/models/OutputStatement';
-import { IRuntimeAction } from './IRuntimeAction';
-import { IEvent } from './events/IEvent';
-import { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
-import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRuntimeOptions';
+import type { WodScript } from '../../parser/WodScript';
+import type { RuntimeError } from '../actions/ErrorAction';
+import type { IEventBus } from './events/IEventBus';
+import type { IRuntimeStack, Unsubscribe, StackObserver } from './IRuntimeStack';
+import type { IRuntimeClock } from './IRuntimeClock';
+import type { IOutputStatement } from '../../core/models/OutputStatement';
+import type { IRuntimeAction } from './IRuntimeAction';
+import type { IEvent } from './events/IEvent';
+import type { IAnalyticsEngine } from '../../core/contracts/IAnalyticsEngine';
+import type { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate } from './IRuntimeOptions';
+import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
+import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
+import type { IRuntimeBlock } from './IRuntimeBlock';
+import type { ICodeStatement } from '../../core/models/CodeStatement';
+
+/**
+ * Interface for the Just-In-Time compiler that converts parsed statements
+ * into executable runtime blocks. Defined here alongside IScriptRuntime to
+ * avoid a mutual-import cycle between the two interface files.
+ */
+export interface IJitCompiler {
+    compile(nodes: ICodeStatement[], runtime: IScriptRuntime): IRuntimeBlock | undefined;
+}
 
 /**
  * Listener callback for output statement events.
@@ -20,7 +32,7 @@ export type OutputListener = (output: IOutputStatement) => void;
  */
 export type TrackerListener = (update: TrackerUpdate) => void;
 
-export interface IScriptRuntime {
+export interface IScriptRuntime extends IRuntimeActionable {
     options: RuntimeStackOptions;
     tracker?: RuntimeStackTracker;
     script: WodScript;
@@ -28,7 +40,7 @@ export interface IScriptRuntime {
     eventBus: IEventBus;
     stack: IRuntimeStack;
 
-    jit: JitCompiler;
+    jit: IJitCompiler;
     clock: IRuntimeClock;
 
     /** Errors collected during runtime execution */
@@ -65,7 +77,7 @@ export interface IScriptRuntime {
      * @param block The block to push
      * @param lifecycle Optional lifecycle options (startTime, etc.)
      */
-    pushBlock(block: import('./IRuntimeBlock').IRuntimeBlock, lifecycle?: import('./IRuntimeBlock').BlockLifecycleOptions): void;
+    pushBlock(block: IRuntimeBlock, lifecycle?: BlockLifecycleOptions): void;
 
     /**
      * Pops the current block from the runtime stack.
@@ -74,7 +86,7 @@ export interface IScriptRuntime {
      * 
      * @param lifecycle Optional lifecycle options (completedAt, etc.)
      */
-    popBlock(lifecycle?: import('./IRuntimeBlock').BlockLifecycleOptions): void;
+    popBlock(lifecycle?: BlockLifecycleOptions): void;
 
     // ============================================================================
     // Output Statement API

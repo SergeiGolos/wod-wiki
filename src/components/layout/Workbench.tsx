@@ -43,16 +43,15 @@ import type { ViewMode } from '@/panels/panel-system/ResponsiveViewport';
 import { cn } from '../../lib/utils';
 import { WorkbenchProvider, useWorkbench } from './WorkbenchContext';
 import { RuntimeLifecycleProvider } from './RuntimeLifecycleProvider';
-import { WorkbenchSyncBridge } from './WorkbenchSyncBridge';
-import { DisplaySyncBridge } from './DisplaySyncBridge';
+import { useWorkbenchEffects } from './useWorkbenchEffects';
+
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
 import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
-import { RuntimeFactory } from '../../runtime/compiler/RuntimeFactory';
-import { globalCompiler } from '../../runtime-test-bench/services/testbench-services';
+import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import { HistoryEntry, WorkoutResults } from '../../types/history';
-import { workbenchEventBus } from '../../services/WorkbenchEventBus';
+import { workbenchEventBus } from '@/hooks/useBrowserServices';
 import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
@@ -65,8 +64,7 @@ import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
 import { ReviewGrid } from '../review-grid';
 
-// Create singleton factory instance
-const runtimeFactory = new RuntimeFactory(globalCompiler);
+// runtimeFactory is now imported from @/hooks/useRuntimeParser
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
@@ -85,6 +83,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   hidePlanUnlessDebug = false,
   ...editorProps
 }) => {
+  useWorkbenchEffects();
   const navigate = useNavigate();
   const { noteId: routeId } = useParams<{ noteId: string }>();
   const { theme, setTheme } = useTheme();
@@ -299,7 +298,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
   }, [currentEntry?.createdAt, currentEntry?.title, currentEntry?.type, routeId]);
 
-  // Consume synced state from Zustand store (via WorkbenchSyncBridge)
+  // Consume synced state from Zustand store (via useWorkbenchEffects)
   const {
     runtime,
     execution,
@@ -762,11 +761,9 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
         provider={props.provider}
       >
         <RuntimeLifecycleProvider factory={runtimeFactory}>
-          <WorkbenchSyncBridge>
             <WorkbenchCastBridge />
-            <DisplaySyncBridge />
+
             <WorkbenchContent {...props} />
-          </WorkbenchSyncBridge>
         </RuntimeLifecycleProvider>
       </WorkbenchProvider>
     </CommandProvider>

@@ -1,6 +1,6 @@
 /**
  * Core types for WOD Wiki
- * 
+ *
  * These are the fundamental types used throughout the library for
  * representing workout scripts, code statements, and basic data structures.
  */
@@ -13,6 +13,8 @@ export interface ParseError {
   line?: number;
   column?: number;
   token?: unknown;
+  excerpt?: string;
+  severity?: 'error' | 'warning' | 'info';
 }
 
 /**

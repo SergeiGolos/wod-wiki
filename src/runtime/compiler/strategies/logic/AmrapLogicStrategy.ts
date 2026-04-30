@@ -6,7 +6,8 @@ import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
+import { MetricContainer } from "@/core/models/MetricContainer";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -69,7 +70,7 @@ export class AmrapLogicStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(s.metrics || [], "AMRAP")
+            distributor.distribute(MetricContainer.from(s.metrics), "AMRAP")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

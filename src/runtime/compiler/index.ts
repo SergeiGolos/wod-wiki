@@ -6,6 +6,3 @@ export { RuntimeBuilder } from './RuntimeBuilder';
 
 // Strategies
 export * from './strategies';
-
-// Fragments
-export * from './metrics';

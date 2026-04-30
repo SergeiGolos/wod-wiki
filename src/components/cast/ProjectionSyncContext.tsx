@@ -1,12 +1,12 @@
 /**
  * ProjectionSyncContext — Provides Chromecast subscription reference for analytics sync.
  *
- * This allows WorkbenchSyncBridge to send analytics summary projections
+ * This allows useWorkbenchEffects to send analytics summary projections
  * to the Chromecast receiver without requiring dynamic engine imports.
  */
 
 import React, { createContext, useContext } from 'react';
-import type { IRuntimeSubscription } from '../../runtime/contracts/IRuntimeSubscription';
+import type { ICastSubscription } from '@/hooks/useRuntimeTimer';
 
 interface ProjectionSyncContextValue {
     updateFromSegments: (
@@ -33,13 +33,13 @@ export function useProjectionSync(): ProjectionSyncContextValue {
 
 export interface ProjectionSyncProviderProps {
     children: React.ReactNode;
-    chromecastSubscription?: IRuntimeSubscription | null;
+    chromecastSubscription?: ICastSubscription | null;
 }
 
 /**
  * Provider component for projection sync context.
  *
- * Passes the Chromecast subscription reference so WorkbenchSyncBridge
+ * Passes the Chromecast subscription reference so useWorkbenchEffects
  * can send analytics summary results directly.
  */
 export const ProjectionSyncProvider: React.FC<ProjectionSyncProviderProps> = ({
@@ -50,7 +50,7 @@ export const ProjectionSyncProvider: React.FC<ProjectionSyncProviderProps> = ({
         <ProjectionSyncContext.Provider value={{
             updateFromSegments: (segments, totalElapsedMs, segmentCount) => {
                 // Send analytics summary to Chromecast subscription
-                if (chromecastSubscription?.sendAnalyticsSummary) {
+                if (chromecastSubscription) {
                     chromecastSubscription.sendAnalyticsSummary(
                         [],
                         totalElapsedMs,

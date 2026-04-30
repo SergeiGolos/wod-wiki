@@ -30,7 +30,7 @@ import {
   StateField,
 } from "@codemirror/state";
 import { sectionField, type EditorSection } from "./section-state";
-import { sharedParser } from "../../../parser/parserInstance";
+import { sharedParser } from "@/hooks/useRuntimeParser";
 import { MetricType } from "../../../core/models/Metric";
 import type { ICodeStatement } from "../../../core/models/CodeStatement";
 import type { IMetric } from "../../../core/models/Metric";

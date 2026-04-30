@@ -1,6 +1,7 @@
 import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { MetricType, IMetric } from "../core/models/Metric";
+import { MetricType } from "../core/models/Metric";
+import { MetricContainer } from "../core/models/MetricContainer";
 
 /**
  * Cardio dialect for recognizing endurance/aerobic workout patterns.
@@ -28,7 +29,7 @@ export class CardioDialect implements IDialect {
   id = 'cardio';
   name = 'Cardio Dialect';
 
-  private hasKeyword(metrics: IMetric[], keyword: string): boolean {
+  private hasKeyword(metrics: MetricContainer, keyword: string): boolean {
     return metrics.some(
       m =>
         (m.type === MetricType.Action || m.type === MetricType.Effort) &&
@@ -37,13 +38,13 @@ export class CardioDialect implements IDialect {
     );
   }
 
-  private hasDistance(metrics: IMetric[]): boolean {
+  private hasDistance(metrics: MetricContainer): boolean {
     return metrics.some(m => m.type === MetricType.Distance);
   }
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics ?? [];
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     // TODO: Detect running activities
     if (

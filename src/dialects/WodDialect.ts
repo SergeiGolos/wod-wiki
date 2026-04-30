@@ -1,6 +1,7 @@
 import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
-import { MetricType, IMetric } from "../core/models/Metric";
+import { MetricType } from "../core/models/Metric";
+import { MetricContainer } from "../core/models/MetricContainer";
 
 /**
  * WOD (Workout of the Day) dialect for recognizing general structured workout patterns.
@@ -25,7 +26,7 @@ export class WodDialect implements IDialect {
   name = 'WOD Dialect';
 
   /** Case-insensitive keyword check on Action/Effort metrics */
-  private hasKeyword(metrics: IMetric[], keyword: string): boolean {
+  private hasKeyword(metrics: MetricContainer, keyword: string): boolean {
     return metrics.some(
       m =>
         (m.type === MetricType.Action || m.type === MetricType.Effort) &&
@@ -36,7 +37,7 @@ export class WodDialect implements IDialect {
 
   analyze(statement: ICodeStatement): DialectAnalysis {
     const hints: string[] = [];
-    const metrics = statement.metrics ?? [];
+    const metrics = MetricContainer.from(statement.metrics as any);
 
     // TODO: Detect STRENGTH blocks
     // "Strength: 5x5 Back Squat", "5x5 225lb Squat" etc.

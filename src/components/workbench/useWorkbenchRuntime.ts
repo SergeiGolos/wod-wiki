@@ -1,21 +1,15 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useRuntimeLifecycle } from '../layout/RuntimeLifecycleProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
-import { useRuntimeExecution } from '../../runtime-test-bench/hooks/useRuntimeExecution';
-import { WorkoutEvent } from '../../services/WorkoutEventBus';
+import { useRuntimeExecution, NextEvent, RegisterEventHandlerAction, UnregisterEventHandlerAction } from '../../hooks/useRuntimeTimer';
+import type { IEventHandler, IEvent, IScriptRuntime } from '../../hooks/useRuntimeTimer';
+import { audioService } from '@/hooks/useBrowserServices';
+import type { WorkoutEvent } from '@/hooks/useBrowserServices';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
-import { NextEvent } from '../../runtime/events/NextEvent';
-import { audioService } from '../../services/AudioService';
-import { IEventHandler } from '../../runtime/contracts/events/IEventHandler';
-import { IEvent } from '../../runtime/contracts/events/IEvent';
-import { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
-import { RegisterEventHandlerAction } from '../../runtime/actions/events/RegisterEventHandlerAction';
-import { UnregisterEventHandlerAction } from '../../runtime/actions/events/UnregisterEventHandlerAction';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
 import { PaceEnrichmentProcess } from '../../core/analytics/PaceEnrichmentProcess';
 import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
-import { ProjectionSyncProcess } from '../../core/analytics/ProjectionSyncProcess';
-import { AnalysisService } from '../../timeline/analytics/analytics/AnalysisService';
+
 import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
 import { RepProjectionEngine } from '../../timeline/analytics/analytics/engines/RepProjectionEngine';
 import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/engines/DistanceProjectionEngine';
@@ -33,6 +27,8 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
     const execution = useRuntimeExecution(runtime);
+    const latestRef = useRef({ runtime, execution, completeWorkout });
+    latestRef.current = { runtime, execution, completeWorkout };
 
     // Register Global Audio Handler when runtime is available
     useEffect(() => {
@@ -57,23 +53,21 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             const action = new RegisterEventHandlerAction(audioHandler, 'global');
             action.do(runtime);
 
-            // Setup Analytics Engine
-            // Pipeline A: stateless per-segment enrichment — derives metrics from
-            // values already on the segment. Processes chain in registration order.
+            // Setup Analytics Engine — unified pipeline via addStage()
             const engine = new AnalyticsEngine();
-            engine.addProcess(new PaceEnrichmentProcess());        // reps/distance + elapsed → pace (multiple units)
-            engine.addProcess(new PowerEnrichmentProcess());       // reps + resistance + elapsed → power
+            engine.addStage(new PaceEnrichmentProcess());        // reps/distance + elapsed → pace (multiple units)
+            engine.addStage(new PowerEnrichmentProcess());       // reps + resistance + elapsed → power
 
-            // Pipeline B: projection engines aggregate across all segments and push
-            // totals into the tracker (shown as cards above the timer).
-            const projectionService = new AnalysisService();
-            projectionService.registerEngine(new RepProjectionEngine());
-            projectionService.registerEngine(new DistanceProjectionEngine());
-            projectionService.registerEngine(new VolumeProjectionEngine());
-            projectionService.registerEngine(new SessionLoadProjectionEngine());
-            projectionService.registerEngine(new MetMinuteProjectionEngine());
+            // Wire tracker for live per-segment metric card updates
+            if (runtime.tracker) {
+                engine.setTracker(runtime.tracker);
+            }
 
-            engine.addProcess(new ProjectionSyncProcess(projectionService, runtime.tracker));
+            engine.addStage(new RepProjectionEngine());
+            engine.addStage(new DistanceProjectionEngine());
+            engine.addStage(new VolumeProjectionEngine());
+            engine.addStage(new SessionLoadProjectionEngine());
+            engine.addStage(new MetMinuteProjectionEngine());
 
             runtime.setAnalyticsEngine(engine);
 
@@ -129,9 +123,11 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock
     // This hook just provides the callbacks and state
 
-    const handleStart = () => execution.start();
-    const handlePause = () => execution.pause();
-    const handleStop = () => {
+    const handleStart = useCallback(() => latestRef.current.execution.start(), []);
+    const handlePause = useCallback(() => latestRef.current.execution.pause(), []);
+    const handleStop = useCallback(() => {
+        const { runtime, execution, completeWorkout } = latestRef.current;
+
         execution.stop();
         // Finalize summary metrics before completion
         runtime?.finalizeAnalytics();
@@ -144,16 +140,18 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             logs: runtime?.getOutputStatements() || [],
             completed: true
         });
-    };
+    }, []);
 
-    const handleNext = () => {
+    const handleNext = useCallback(() => {
+        const { runtime, execution } = latestRef.current;
+
         if (runtime && execution.status !== 'completed') {
             runtime.handle(new NextEvent());
             if (execution.status !== 'running') {
                 execution.start();
             }
         }
-    };
+    }, []);
 
     const handleStartWorkoutAction = useCallback((block: WodBlock) => {
         startWorkout(block);

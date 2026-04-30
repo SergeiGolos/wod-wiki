@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
-import { ScriptRuntime } from '@/runtime/ScriptRuntime';
-import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
+import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
+import { useOutputStatements } from '@/hooks/useRuntimeTimer';
 import { MetricSourceList } from '@/components/metrics/MetricSourceList';
 import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/metrics/MetricSourceRow';
 import { IMetricSource } from '@/core/contracts/IMetricSource';
@@ -71,7 +71,7 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
 
     // Convert output statements directly — they implement IMetricSource
     let displayEntries: FragmentSourceEntry[] = outputs.map((output): FragmentSourceEntry => {
-      const metrics = output.metrics.flat();
+      const metrics = output.metrics.toArray();
 
       let status: FragmentSourceStatus = 'completed';
       if (output.outputType === 'segment') {

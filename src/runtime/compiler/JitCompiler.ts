@@ -1,16 +1,17 @@
-import { IRuntimeBlock } from "../contracts/IRuntimeBlock";
-import { IScriptRuntime } from "../contracts/IScriptRuntime";
-import { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
-import { ICodeStatement } from "@/core/models/CodeStatement";
+import type { IRuntimeBlock } from "../contracts/IRuntimeBlock";
+import type { IScriptRuntime } from "../contracts/IScriptRuntime";
+import type { IRuntimeBlockStrategy } from "../contracts/IRuntimeBlockStrategy";
+import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
 import { isFragmentPromoter } from "../contracts/behaviors/IMetricPromoter";
+import type { IJitCompiler } from "../contracts/IJitCompiler";
 
 /**
  * Just-In-Time Compiler for Runtime Blocks.
  * Coordinates strategy application to build composed RuntimeBlocks.
  */
-export class JitCompiler {
+export class JitCompiler implements IJitCompiler {
   private dialectRegistry: DialectRegistry;
 
   /**
@@ -80,7 +81,7 @@ export class JitCompiler {
     if (parentBlock) {
       // 1. Static promotions from memory (metrics:promote, metrics:rep-target)
       const promotedLocations = parentBlock.getMetricMemoryByVisibility('promote');
-      const promotedFragments = [...promotedLocations.flatMap(loc => loc.metrics)];
+      const promotedFragments = promotedLocations.flatMap(loc => loc.metrics.toArray());
 
       // 2. Dynamic promotions from behaviors (compiler-time concern)
       // This allows behaviors to compute promotions based on current parent state
@@ -111,7 +112,7 @@ export class JitCompiler {
           // Create a clone that preserves the prototype chain (to keep methods like getFragment)
           const clone = Object.create(Object.getPrototypeOf(node));
           Object.assign(clone, node);
-          clone.metrics = [...node.metrics, ...promotedFragments];
+          clone.metrics = node.metrics.clone(node.id).add(...promotedFragments);
           return clone;
         });
       }

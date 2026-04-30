@@ -1,5 +1,6 @@
 import { IRuntimeMemory, MemorySearchCriteria } from './contracts/IRuntimeMemory';
-import { IMemoryReference, TypedMemoryReference } from './contracts/IMemoryReference';
+import { IMemoryReference } from './contracts/IMemoryReference';
+import { TypedMemoryReference } from './impl/TypedMemoryReference';
 
 export type MemoryLocation = {
     ref: IMemoryReference;

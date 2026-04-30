@@ -6,30 +6,25 @@
  * stay linked.
  */
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
 import { EditorView } from '@codemirror/view'
 import { v4 as uuidv4 } from 'uuid'
-import { CalendarDaysIcon, PlayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid'
+import { CalendarDaysIcon, PlayIcon } from '@heroicons/react/20/solid'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
-import { AudioToggle } from '@/components/audio/AudioToggle'
 import { JournalPageShell } from '@/panels/page-shells'
-import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import type { WodBlock } from '@/components/Editor/types'
 import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 import { CalendarCard } from '@/components/ui/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
-import { useNav } from '../nav/NavContext'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { pendingRuntimes } from '../runtimeStore'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
-import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './shared/PageToolbar'
+import { NotePageActions } from './shared/NotePageActions'
+import { useNotePageNav } from './shared/useNotePageNav'
 import {
-  extractPageIndex,
-  mapIndexToL3,
   INLINE_RUNTIME_CATEGORIES,
   NON_COLLECTION_CATEGORIES,
 } from './shared/pageUtils'
@@ -152,41 +147,7 @@ export function WorkoutEditorPage({
   }, [isCollection, handleStartWorkout, handleScheduleBlock])
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useMemo((): PageNavLink[] => {
-    const base = extractPageIndex(content)
-    return base.map(link => {
-      if (link.type !== 'wod') return link
-      const lineNum = parseInt(link.id.replace('wod-line-', ''), 10)
-      const block = wodBlocks.find(b => b.startLine + 1 === lineNum)
-      // Fallback: if block not yet parsed, allow clicking but it might do nothing or use a fallback
-      return {
-        ...link,
-        onRun: () => {
-          const b = block || wodBlocks.find(b => b.startLine + 1 === lineNum) || wodBlocks[0]
-          if (b) handleStartWorkout(b)
-        },
-      }
-    })
-  }, [content, wodBlocks, handleStartWorkout])
-
-  const { setL3Items } = useNav()
-  useEffect(() => {
-    setL3Items(index.map(link => ({
-      id: link.id,
-      label: link.label,
-      level: 3 as const,
-      action: { type: 'scroll' as const, sectionId: link.id },
-      secondaryAction: link.onRun
-        ? {
-            id: link.id + '-run',
-            label: 'Run',
-            icon: link.runIcon === 'link' ? ArrowTopRightOnSquareIcon : PlayIcon,
-            action: { type: 'call' as const, handler: link.onRun },
-          }
-        : undefined,
-    })))
-    return () => setL3Items([])
-  }, [index, setL3Items])
+  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
 
   if (loading) {
     return (
@@ -202,15 +163,7 @@ export function WorkoutEditorPage({
         title={name}
         index={index}
         onScrollToSection={onScrollToSection}
-        actions={
-          <div className="flex items-center gap-4">
-            <NewEntryButton />
-            <CastButtonRpc />
-            <AudioToggle />
-            <ThemeSwitcher />
-            <ActionsMenu currentWorkout={{ name: noteId, content }} items={mapIndexToL3(index)} />
-          </div>
-        }
+        actions={<NotePageActions currentWorkout={{ name: noteId, content }} index={index} />}
         editor={
           <NoteEditor
             value={content}

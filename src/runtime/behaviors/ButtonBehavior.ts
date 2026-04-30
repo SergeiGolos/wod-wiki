@@ -3,6 +3,7 @@ import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import type { ButtonConfig } from '../memory/MemoryTypes';
 import { IMetric, MetricType } from '../../core/models/Metric';
+import { MetricContainer } from '../../core/models/MetricContainer';
 
 // Re-export types for consumers
 export type { ButtonConfig };
@@ -48,7 +49,7 @@ export class ButtonBehavior implements IRuntimeBehavior {
 
     onMount(ctx: IBehaviorContext): IRuntimeAction[] {
         // Create action metrics for each button
-        const metrics: IMetric[] = this.config.buttons.map(button => ({
+        const metrics = MetricContainer.from(this.config.buttons.map(button => ({
             type: MetricType.Action,
             image: button.label,
             origin: 'runtime',
@@ -62,11 +63,11 @@ export class ButtonBehavior implements IRuntimeBehavior {
             },
             sourceBlockKey: ctx.block.key.toString(),
             timestamp: ctx.clock.now,
-        }));
+        })), ctx.block.key.toString());
 
         // Push action metrics to list-based memory
         if (metrics.length > 0) {
-            ctx.pushMemory('controls', metrics);
+            ctx.pushMemory('controls', metrics.toArray());
         }
 
         return [];

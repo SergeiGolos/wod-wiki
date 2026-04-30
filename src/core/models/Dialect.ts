@@ -1,4 +1,5 @@
 import { ICodeStatement } from "./CodeStatement";
+import { MetricContainer } from "./MetricContainer";
 
 /**
  * Mode for inheritance rules - how child statements should handle parent values
@@ -23,6 +24,13 @@ export interface InheritanceRule {
 export interface DialectAnalysis {
   /** Behavioral hints to add to the statement */
   hints: string[];
+  /**
+   * Action-bearing metrics emitted by the dialect.
+   * Each metric carries a `MetricAction` (set / suppress / inherit).
+   * `DialectRegistry.process()` pushes these onto `statement.metrics`;
+   * the compiler and display resolver then react to the action field.
+   */
+  metrics?: MetricContainer;
   /** Inheritance rules for child statements (optional) */
   inheritance?: InheritanceRule[];
 }

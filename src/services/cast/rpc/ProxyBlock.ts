@@ -8,6 +8,7 @@ import { MemoryType, MemoryValueOf, TimerState } from '@/runtime/memory/MemoryTy
 import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 import { BlockKey } from '@/core/models/BlockKey';
 import { IMetric, MetricType } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import type { SerializedBlock } from './RpcMessages';
 
@@ -23,19 +24,19 @@ import type { SerializedBlock } from './RpcMessages';
  * stack message arrives for the same block.
  */
 export class ReactiveMemoryLocation implements IMemoryLocation {
-    private _metrics: IMetric[];
-    private listeners = new Set<(nv: IMetric[], ov: IMetric[]) => void>();
+    private _metrics: MetricContainer;
+    private listeners = new Set<(nv: MetricContainer, ov: MetricContainer) => void>();
 
     constructor(
         readonly tag: MemoryTag,
-        metrics: IMetric[],
+        metrics: MetricContainer | IMetric[],
     ) {
-        this._metrics = metrics;
+        this._metrics = MetricContainer.from(metrics, tag);
     }
 
-    get metrics(): IMetric[] { return this._metrics; }
+    get metrics(): MetricContainer { return this._metrics; }
 
-    subscribe(listener: (nv: IMetric[], ov: IMetric[]) => void): () => void {
+    subscribe(listener: (nv: MetricContainer, ov: MetricContainer) => void): () => void {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     }
@@ -44,11 +45,11 @@ export class ReactiveMemoryLocation implements IMemoryLocation {
      * Replace the stored metrics and notify all subscribers.
      * Called by ProxyBlock.update() when a new RPC snapshot arrives for this block.
      */
-    update(metrics: IMetric[]): void {
+    update(metrics: MetricContainer | IMetric[]): void {
         const old = this._metrics;
-        this._metrics = metrics;
+        this._metrics = MetricContainer.from(metrics, this.tag);
         for (const listener of this.listeners) {
-            listener(metrics, old);
+            listener(this._metrics, old);
         }
     }
 
@@ -257,6 +258,71 @@ export class ProxyBlock implements IRuntimeBlock {
         if (this.timerLocation) all.push(this.timerLocation);
         if (this.nextLocation)  all.push(this.nextLocation);
         return all;
+    }
+
+    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
+        if (type === 'metrics') {
+            const self = this;
+            return {
+                get value(): MemoryValueOf<T> {
+                    return {
+                        groups: self.displayLocations.map(location => location.metrics.clone())
+                    } as unknown as MemoryValueOf<T>;
+                },
+                subscribe: (listener) => {
+                    const unsubscribes = self.displayLocations.map(location =>
+                        location.subscribe(() => {
+                            listener(
+                                { groups: self.displayLocations.map(loc => loc.metrics.clone()) } as unknown as MemoryValueOf<T>,
+                                undefined
+                            );
+                        })
+                    );
+                    return () => unsubscribes.forEach(unsubscribe => unsubscribe());
+                },
+            };
+        }
+
+        const loc = this.getMemoryByTag(type as string as MemoryTag)[0];
+        if (!loc) return undefined;
+
+        const extractValue = (metrics: MetricContainer): MemoryValueOf<T> | undefined => {
+            if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
+
+            if (type === 'metric:display') {
+                return loc as unknown as MemoryValueOf<T>;
+            }
+
+            if (type === 'round') {
+                const metric = metrics[0] as unknown as { current?: number; total?: number; value?: unknown };
+                if (metric?.current !== undefined) {
+                    return { current: metric.current, total: metric.total } as unknown as MemoryValueOf<T>;
+                }
+                return metric?.value as MemoryValueOf<T>;
+            }
+
+            return metrics[0]?.value as MemoryValueOf<T>;
+        };
+
+        return {
+            get value(): MemoryValueOf<T> {
+                return extractValue(loc.metrics) as MemoryValueOf<T>;
+            },
+            subscribe: (listener) => loc.subscribe((newMetrics, oldMetrics) => {
+                listener(
+                    extractValue(newMetrics),
+                    extractValue(oldMetrics)
+                );
+            }),
+        };
+    }
+
+    hasMemory(type: MemoryType): boolean {
+        return this.getMemoryByTag(type as string as MemoryTag).length > 0;
+    }
+
+    setMemoryValue<T extends MemoryType>(_type: T, _value: MemoryValueOf<T>): void {
+        // No-op: proxy blocks are read-only.
     }
 
     pushMemory(_location: IMemoryLocation): void {

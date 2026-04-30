@@ -6,12 +6,12 @@ import { MetricType } from "@/core/models/Metric";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
+import { MetricContainer } from "@/core/models/MetricContainer";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
 import {
-    CountdownTimerBehavior,
     LabelingBehavior,
     ExitBehavior,
     SoundCueBehavior
@@ -69,9 +69,8 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
             .setLabel(label)
             .setSourceIds(statements.map(s => s.id));
 
-        const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distribute(s.metrics || [], "Timer")
+            distribute(MetricContainer.from(s.metrics), "Timer")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);
@@ -148,7 +147,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
 }
 
 // Keep the logic-heavy metrics distribution local to the strategy
-function distribute(metrics: any[], type: string): any[][] {
+function distribute(metrics: MetricContainer, type: string): MetricContainer[] {
     const distributor = new PassthroughMetricDistributor();
     return distributor.distribute(metrics, type);
 }

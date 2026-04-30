@@ -1,6 +1,8 @@
-import { IProjectionEngine } from '../IProjectionEngine';
+import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -11,8 +13,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  *
  * Formula: ∑(METs × timeMs / 60 000) across all timed segments.
  */
-export class MetMinuteProjectionEngine implements IProjectionEngine {
+export class MetMinuteProjectionEngine implements IAnalyticsStage {
+  public readonly id = 'met-minute-projection';
   public readonly name = 'MetMinuteProjectionEngine';
+
+  project(outputs: IOutputStatement[]): ProjectionResult[] {
+    return this.calculateFromWorkout(extractMetrics(outputs));
+  }
 
   private readonly metLookup: Record<string, number> = {
     run: 9.8,

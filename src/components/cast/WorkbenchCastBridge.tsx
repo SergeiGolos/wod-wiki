@@ -12,12 +12,15 @@
  * - viewMode 'review'                            → 'review'  (analytics summary)
  * - viewMode 'plan' / 'analyze' / other          → 'preview' (document info) or 'idle'
  *
- * Placement: inside WorkbenchSyncBridge so the store is fully hydrated.
+ * Placement: inside RuntimeLifecycleProvider to participate in the runtime
+ * lifecycle, but store-backed values such as runtime, execution, and
+ * documentItems may still be unavailable on the first render because
+ * hydration happens via useWorkbenchEffects() after mount.
  */
 
 import React, { useEffect, useRef } from 'react';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
-import type { RpcWorkbenchUpdate } from '@/services/cast/rpc/RpcMessages';
+import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
 import { formatTimeMMSS } from '@/lib/formatTime';
 import type { Segment } from '@/core/models/AnalyticsModels';
 import type { DocumentItem } from '@/components/Editor/utils/documentStructure';

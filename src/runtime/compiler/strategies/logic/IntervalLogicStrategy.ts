@@ -3,11 +3,12 @@ import { BlockBuilder } from "../../BlockBuilder";
 import { ICodeStatement } from "@/core/models/CodeStatement";
 import { IScriptRuntime } from "../../../contracts/IScriptRuntime";
 import { MetricType } from "@/core/models/Metric";
+import { MetricContainer } from "@/core/models/MetricContainer";
 import { DurationMetric } from "../../metrics/DurationMetric";
 import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
-import { PassthroughMetricDistributor } from "../../../contracts/IDistributedMetrics";
+import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -56,7 +57,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
             f => f.type === MetricType.Duration
         ) as DurationMetric | undefined;
 
-        const roundsFragment = statements.flatMap(s => s.metrics).find(
+        const roundsFragment = statements.flatMap(s => MetricContainer.from(s.metrics).toArray()).find(
             f => f.type === MetricType.Rounds
         ) as RoundsMetric | undefined;
 
@@ -83,7 +84,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
 
         const distributor = new PassthroughMetricDistributor();
         const metricGroups = statements.flatMap(s => 
-            distributor.distribute(s.metrics || [], "EMOM")
+            distributor.distribute(MetricContainer.from(s.metrics), "EMOM")
         ).filter(group => group.length > 0);
         
         builder.setFragments(metricGroups);

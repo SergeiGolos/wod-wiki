@@ -22,6 +22,7 @@ import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
 import { RuntimeTimerPanel } from '@/components/Editor/overlays/RuntimeTimerPanel'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
+import { ReviewGrid } from '@/components/review-grid/ReviewGrid'
 import type { WorkoutResults } from '@/components/Editor/types'
 import { MacOSChrome } from '../components/MacOSChrome'
 import { ButtonGroup } from '@/components/ui/ButtonGroup'
@@ -334,6 +335,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const [panelMode, setPanelMode] = useState<PanelMode>('editor')
   const [viewTimerBlock, setViewTimerBlock] = useState<WodBlock | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
+  const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set())
   // Block that was last launched in view mode — kept for reconnect support
   const activeViewBlockRef = useRef<WodBlock | null>(null)
 
@@ -386,6 +388,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     } else {
       setReviewSegments([])
     }
+    setSelectedSegmentIds(new Set())
     setPanelMode('review')
   }, [])
 
@@ -568,15 +571,32 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
             Back to editor
           </button>
           <div className="flex-1 min-h-0 overflow-auto">
-            <div className="p-3">
-              {reviewSegments.length > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Workout complete — {reviewSegments.length} segment{reviewSegments.length !== 1 ? 's' : ''} recorded.
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">Workout complete.</p>
-              )}
-            </div>
+            <ReviewGrid
+              runtime={null}
+              segments={reviewSegments}
+              selectedSegmentIds={selectedSegmentIds}
+              onSelectSegment={(id, modifiers, visibleIds) => {
+                setSelectedSegmentIds(prev => {
+                  const next = new Set(prev)
+                  if (modifiers?.ctrlKey) {
+                    if (next.has(id)) next.delete(id); else next.add(id)
+                  } else if (modifiers?.shiftKey && visibleIds) {
+                    const lastId = Array.from(prev).pop()
+                    if (lastId !== undefined) {
+                      const startIdx = visibleIds.indexOf(lastId)
+                      const endIdx = visibleIds.indexOf(id)
+                      if (startIdx !== -1 && endIdx !== -1) {
+                        const min = Math.min(startIdx, endIdx)
+                        const max = Math.max(startIdx, endIdx)
+                        for (let i = min; i <= max; i++) next.add(visibleIds[i])
+                      } else { next.add(id) }
+                    } else { next.add(id) }
+                  } else { next.clear(); next.add(id) }
+                  return next
+                })
+              }}
+              groups={[]}
+            />
           </div>
         </div>
       )

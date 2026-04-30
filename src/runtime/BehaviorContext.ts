@@ -5,6 +5,7 @@ import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IMetric } from '../core/models/Metric';
+import { MetricContainer } from '../core/models/MetricContainer';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
@@ -93,7 +94,7 @@ export class BehaviorContext implements IBehaviorContext {
 
     emitOutput(
         type: OutputStatementType,
-        metrics: IMetric[],
+        metrics: MetricContainer | IMetric[],
         _options?: OutputOptions
     ): void {
         const now = this.clock.now;
@@ -125,11 +126,11 @@ export class BehaviorContext implements IBehaviorContext {
         // If the caller provided no metrics, pull display metrics from the
         // block's metrics:display memory so the output carries the source
         // label, effort, rep, etc. metrics that the UI needs to render.
-        let effectiveFragments = metrics;
+        let effectiveFragments = MetricContainer.from(metrics, this.block.key.toString());
         if (effectiveFragments.length === 0) {
             const displayLocations = this.block.getMemoryByTag('metric:display');
             if (displayLocations.length > 0) {
-                effectiveFragments = [...displayLocations[0].metrics];
+                effectiveFragments = displayLocations[0].metrics.clone(this.block.key.toString());
             }
         }
 
@@ -168,7 +169,7 @@ export class BehaviorContext implements IBehaviorContext {
     // List-Based Memory API
     // ============================================================================
 
-    pushMemory(tag: MemoryTag, metrics: IMetric[]): IMemoryLocation {
+    pushMemory(tag: MemoryTag, metrics: MetricContainer | IMetric[]): IMemoryLocation {
         const location = new MemoryLocation(tag, metrics);
         this.block.pushMemory(location);
         return location;
@@ -178,7 +179,7 @@ export class BehaviorContext implements IBehaviorContext {
         return this.block.getMemoryByTag(tag);
     }
 
-    updateMemory(tag: MemoryTag, metrics: IMetric[]): void {
+    updateMemory(tag: MemoryTag, metrics: MetricContainer | IMetric[]): void {
         const locations = this.block.getMemoryByTag(tag);
         if (locations.length > 0) {
             locations[0].update(metrics);

@@ -11,7 +11,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { Notebook } from '../../types/notebook';
 import { toNotebookTag, fromNotebookTag } from '../../types/notebook';
-import { notebookService } from '../../services/NotebookService';
+import { notebookService } from '@/hooks/useBrowserServices';
 import { matchesId } from '../../lib/idUtils';
 
 interface NotebookContextState {

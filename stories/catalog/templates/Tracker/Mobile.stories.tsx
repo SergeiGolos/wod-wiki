@@ -47,7 +47,7 @@ import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { DebugModeProvider } from '@/components/layout/DebugModeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
 import { TimerDisplay } from '@/panels/timer-panel';
-import { useRuntimeExecution } from '@/runtime-test-bench/hooks/useRuntimeExecution';
+import { useRuntimeExecution } from '@/runtime/hooks/useRuntimeExecution';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

@@ -1,6 +1,8 @@
-import { IProjectionEngine } from '../IProjectionEngine';
+import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 
 /**
@@ -9,8 +11,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Distance values are expected as `{ amount: number; units?: string }` objects
  * (the standard parser representation). Falls back to raw numeric values too.
  */
-export class DistanceProjectionEngine implements IProjectionEngine {
+export class DistanceProjectionEngine implements IAnalyticsStage {
+  public readonly id = 'distance-projection';
   public readonly name = 'DistanceProjectionEngine';
+
+  project(outputs: IOutputStatement[]): ProjectionResult[] {
+    return this.calculateFromWorkout(extractMetrics(outputs));
+  }
 
   calculateFromWorkout(metrics: IMetric[]): ProjectionResult[] {
     let totalDistance = 0;
