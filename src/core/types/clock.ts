@@ -5,7 +5,7 @@
  * DigitalClock, ClockAnchor, and TimerHarness.
  */
 
-import { TypedMemoryReference } from './runtime';
+import type { TypedMemoryReference } from './runtime';
 
 // NOTE: `core/` must not depend on `runtime/`. These runtime-facing types are
 // intentionally declared as `unknown` here for legacy/compatibility.
