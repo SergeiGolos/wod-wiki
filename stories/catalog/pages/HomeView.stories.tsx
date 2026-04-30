@@ -9,14 +9,14 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { HomeView } from '../../../playground/src/pages/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
 
-const storyWodFiles = import.meta.glob('../../../markdown/**/*.md', {
+const markdownFilesByPath = import.meta.glob('../../../markdown/**/*.md', {
   eager: true,
   query: '?raw',
   import: 'default',
 }) as Record<string, string>;
 
 const wodFiles = Object.fromEntries(
-  Object.entries(storyWodFiles).map(([path, content]) => [
+  Object.entries(markdownFilesByPath).map(([path, content]) => [
     path.replace('../../../markdown/', '../../markdown/'),
     content,
   ]),

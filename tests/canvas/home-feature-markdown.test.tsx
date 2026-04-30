@@ -5,7 +5,7 @@ import { readFileSync } from 'fs'
 import { CanvasProse } from '../../playground/src/canvas/CanvasProse'
 import { parseCanvasMarkdown } from '../../playground/src/canvas/parseCanvasMarkdown'
 
-const homeMarkdown = readFileSync('markdown/canvas/home/README.md', 'utf8')
+const homeMarkdown = readFileSync(new URL('../../markdown/canvas/home/README.md', import.meta.url), 'utf8')
 const page = parseCanvasMarkdown(homeMarkdown)
 
 function getSectionProse(id: string): string {

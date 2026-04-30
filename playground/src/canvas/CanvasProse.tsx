@@ -219,7 +219,7 @@ const components: Components = {
     )
   },
   li({ children }) {
-    return <li className="pl-1 leading-relaxed">{children}</li>
+    return <li className="leading-relaxed">{children}</li>
   },
 
   // Blockquote
