@@ -18,6 +18,7 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import MetricSourceRow from '@/components/metrics/MetricSourceRow';
 import type { IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ export const MultiGroup: Story = {
       <MetricSourceRow
         status="active"
         isLeaf
-        metricGroups={[SQUAT, RUN]}
+        metricGroups={[MetricContainer.from(SQUAT), MetricContainer.from(RUN)]}
       />
     </Shell>
   ),
