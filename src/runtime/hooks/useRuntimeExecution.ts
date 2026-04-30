@@ -10,7 +10,7 @@
  * - Reusable across components
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { ScriptRuntime } from '../ScriptRuntime';
 import { TickEvent } from '../events/TickEvent';
 
@@ -241,7 +241,7 @@ export const useRuntimeExecution = (
     reset();
   }, [runtime, reset]);
 
-  return {
+  return useMemo(() => ({
     status,
     elapsedTime,
     stepCount,
@@ -251,5 +251,5 @@ export const useRuntimeExecution = (
     stop,
     reset,
     step
-  };
+  }), [status, elapsedTime, stepCount, startTime, start, pause, stop, reset, step]);
 };

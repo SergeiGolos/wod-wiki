@@ -1,13 +1,10 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { CommandProvider, useCommandPalette } from '@/components/command-palette/CommandContext';
+import React, { useCallback, useEffect, useState } from 'react';
+import { CommandProvider } from '@/components/command-palette/CommandContext';
 import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
 import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
-import { WorkbenchSyncBridge } from '@/components/layout/WorkbenchSyncBridge';
-import { DisplaySyncBridge } from '@/components/layout/DisplaySyncBridge';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
+import { useWorkbenchEffects } from '@/components/layout/useWorkbenchEffects';
 import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
-import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 import { globalCompiler } from '@/runtime/services/runtimeServices';
@@ -19,6 +16,11 @@ import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { useInMemoryNavigation } from '@/hooks/useInMemoryNavigation';
 
 const runtimeFactory = new RuntimeFactory(globalCompiler);
+
+const WorkbenchEffectsBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useWorkbenchEffects();
+  return <>{children}</>;
+};
 
 // --- ?z support (same as before) ---
 function extractAndStripZ(): string | null {
@@ -80,7 +82,6 @@ interface StorybookWorkbenchProps extends WorkbenchProps {
 }
 
 const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
-  initialContent,
   collection,
   title,
 }) => {
@@ -162,11 +163,10 @@ export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => 
           navigation={navigation}
         >
           <RuntimeLifecycleProvider factory={runtimeFactory}>
-            <WorkbenchSyncBridge>
+            <WorkbenchEffectsBridge>
               <WorkbenchCastBridge />
-              <DisplaySyncBridge />
               <StorybookWorkbenchContent {...props} />
-            </WorkbenchSyncBridge>
+            </WorkbenchEffectsBridge>
           </RuntimeLifecycleProvider>
         </WorkbenchProvider>
       </CommandProvider>

@@ -1,9 +1,9 @@
 import type { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
 import type { IJitCompiler } from './contracts/IJitCompiler';
-import { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
-import { WodScript } from '../parser/WodScript';
+import type { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
+import type { WodScript } from '../parser/WodScript';
 import type { RuntimeError } from './actions/ErrorAction';
-import { IEventBus } from './contracts/events/IEventBus';
+import type { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,
     RuntimeStackOptions,

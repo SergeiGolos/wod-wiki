@@ -169,7 +169,7 @@ export function useWorkbenchEffects(): void {
 
   useEffect(() => {
     store.getState().setExecution(execution);
-  }, [execution]);
+  }, [execution.status, execution.elapsedTime, execution.stepCount, execution.startTime]);
 
   useEffect(() => {
     store.getState().setHandles({ handleStart, handlePause, handleStop, handleNext, handleStartWorkoutAction });

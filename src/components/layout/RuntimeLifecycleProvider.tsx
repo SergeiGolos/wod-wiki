@@ -42,6 +42,8 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
   // Track current runtime and subscription manager in refs to avoid stale closure issues
   const currentRuntimeRef = useRef<ScriptRuntime | null>(null);
   const currentSubManagerRef = useRef<SubscriptionManager | null>(null);
+  // Ref-based guard to prevent duplicate initialization without causing re-renders
+  const isInitializingRef = useRef(false);
 
   /**
    * Dispose the current runtime safely
@@ -77,11 +79,12 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
    * Automatically disposes existing runtime first
    */
   const initializeRuntime = useCallback((block: WodBlock) => {
-    // Guard against duplicate initialization
-    if (isInitializing) {
+    // Guard against duplicate initialization using ref (avoids re-render cascade)
+    if (isInitializingRef.current) {
       return;
     }
 
+    isInitializingRef.current = true;
     setIsInitializing(true);
     setError(null);
 
@@ -130,9 +133,10 @@ export const RuntimeLifecycleProvider: React.FC<RuntimeLifecycleProviderProps> =
       setError(err instanceof Error ? err : new Error(String(err)));
       currentRuntimeRef.current = null;
     } finally {
+      isInitializingRef.current = false;
       setIsInitializing(false);
     }
-  }, [isInitializing]);
+  }, []);
 
   // Cleanup on unmount - use ref to avoid stale closure
   useEffect(() => {
