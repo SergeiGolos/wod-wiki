@@ -5,10 +5,11 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Collections, Search
+ *   L1: Home, Journal, Collections, Feeds, Search
  *   L2 of Home:    Zero to Hero + Syntax/* (canvas pages)
  *   L2 of Journal: <JournalNavPanel>   — calendar filter + tag chips
  *   L2 of Collect: <CollectionsNavPanel> — category toggles
+ *   L2 of Feeds:   <FeedsNavPanel>     — feed name chip toggles
  *   L2 of Search:  <SearchNavPanel>    — scope radio
  */
 
@@ -19,6 +20,7 @@ import {
   MagnifyingGlassIcon,
   AcademicCapIcon,
   CodeBracketIcon,
+  RssIcon,
 } from '@heroicons/react/20/solid'
 
 import type { NavItem } from './navTypes'
@@ -26,6 +28,7 @@ import type { Location } from 'react-router-dom'
 
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
+import { FeedsNavPanel }       from './panels/FeedsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -112,6 +115,16 @@ export function buildAppNavTree(openSearch: () => void): NavItem[] {
     action: { type: 'route', to: '/collections' },
     isActive: isRouteActive('/collections'),
     panel: CollectionsNavPanel,
+  },
+
+  {
+    id: 'feeds',
+    label: 'Feeds',
+    level: 1,
+    icon: RssIcon,
+    action: { type: 'route', to: '/feeds' },
+    isActive: isRouteActive('/feeds'),
+    panel: FeedsNavPanel,
   },
 
   {

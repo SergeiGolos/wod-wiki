@@ -600,9 +600,10 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                   </button>
                 ) : null}
 
-                {/* Results — split into Workouts and Playground groups */}
+                {/* Results — split into Feeds, Workouts and Playground groups */}
                 {(() => {
-                  const workoutResults = dayResults.filter(i => i.group !== 'playground')
+                  const feedResults = dayResults.filter(i => i.group === 'feeds')
+                  const workoutResults = dayResults.filter(i => i.group !== 'playground' && i.group !== 'feeds')
                   const playgroundResults = dayResults.filter(i => i.group === 'playground')
 
                   const renderResultRow = (item: FilteredListItem) => (
@@ -635,6 +636,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
                   return (
                     <>
+                      {renderGroup('Feeds', feedResults)}
                       {renderGroup('Workouts', workoutResults)}
                       {renderGroup('Playground', playgroundResults)}
                     </>

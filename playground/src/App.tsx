@@ -40,6 +40,10 @@ import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
+// ── Feeds ────────────────────────────────────────────────────────────────────
+import { FeedsListPage } from './views/FeedsListPage'
+import { FeedEntryPage } from './views/FeedEntryPage'
+import { parseFeedFiles } from './services/parseFeedFiles'
 // ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
 // ── Shared page utilities ────────────────────────────────────────────────────
@@ -157,6 +161,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const isJournalEntryRoute = location.pathname.startsWith('/journal/') && (!!urlName || !!playgroundId)
   const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
 
+  // Feeds routes: /feeds (list) and /feeds/:stem (entry)
+  const isFeedsListRoute = location.pathname === '/feeds'
+  const isFeedsEntryRoute = location.pathname.startsWith('/feeds/') && !!playgroundId
+  const feedStem = isFeedsEntryRoute ? decodeURIComponent(playgroundId!) : undefined
+
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
       const parts = path.split('/')
@@ -201,6 +210,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
     if (isJournalEntryRoute && journalEntryId) {
       return { name: journalEntryId, content: '', category: 'journal' }
+    }
+    if (isFeedsListRoute) {
+      return { name: 'Feeds', content: '', category: 'feeds' }
+    }
+    if (isFeedsEntryRoute && feedStem) {
+      const entry = parseFeedFiles().find(f => f.stem === feedStem)
+      return { name: entry?.title ?? feedStem, content: entry?.content ?? '', category: 'feeds' }
     }
     if (canvasPage) {
       return { name: canvasPage.sections[0]?.heading ?? 'Canvas', content: '', category: 'canvas' }
@@ -576,6 +592,20 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                 onCreateEntry={handleCreateJournalEntry}
               />
             </CanvasPage>
+          ) : isFeedsListRoute ? (
+            <CanvasPage title="Feeds" actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+              <FeedsListPage />
+            </CanvasPage>
+          ) : isFeedsEntryRoute && feedStem ? (
+            <WorkoutEditorPage
+              key={`feeds/${feedStem}`}
+              category="feeds"
+              name={currentWorkout.name}
+              mdContent={currentWorkout.content}
+              theme={actualTheme}
+              onViewCreated={handleViewCreated}
+              onScrollToSection={scrollToSection}
+            />
           ) : location.pathname === '/collections' ? (
             <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <CollectionsPage />
@@ -672,6 +702,8 @@ export function App() {
                 <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/feeds" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/feeds/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/load" element={<LoadZipPage />} />
                 <Route path="/playground" element={<PlaygroundRedirect />} />

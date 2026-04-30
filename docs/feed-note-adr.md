@@ -1,6 +1,6 @@
 # ADR: FeedNote — Composing Journal List + Collection Canvas as a New Note Subtype
 
-**Status**: Proposed  
+**Status**: Revised  
 **Date**: 2026-04-30  
 **Refs**: `feed-note-prd.md`, `note-editor-adr.md`
 
@@ -17,9 +17,11 @@ wod-wiki has four distinct page contexts for rendering markdown content, each im
 | CollectionNote | `collections` | Bundled `.md` | ✗ | ✓ (folder list) |
 | WorkoutNote | `<category>` | Bundled `.md` | ✓ | ✗ |
 
-The request is to add a fifth subtype — **FeedNote** — that reads bundled markdown files with a date-stamped naming convention and presents them with the Journal's chronological scroll UI and the Collection's read-only canvas renderer.
+The request is to add a fifth subtype — **FeedNote** — that reads bundled markdown files with a date-stamped naming convention, groups them by date using the Journal's scroll component, and renders individual entries via the Collection's read-only canvas renderer.
 
-The constraint is: **no new reusable UI components**. Everything must be assembled from what already exists.
+Key structural fact: the `{feed-name}` suffix in the filename is the **channel identity** — not a slug for routing. Multiple files share the same feed-name, forming a stream. The detail route uses the entire filename stem as its unique key.
+
+The hard constraint: **no new reusable UI components**. Assemble from existing primitives only.
 
 ---
 
@@ -27,104 +29,141 @@ The constraint is: **no new reusable UI components**. Everything must be assembl
 
 ### 1. New Category Key: `feeds`
 
-FeedNote uses `category: 'feeds'` as its type discriminator, parallel to `journal`, `playground`, etc. This is consistent with how `NON_COLLECTION_CATEGORIES` and `INLINE_RUNTIME_CATEGORIES` sets gate behavior in `pageUtils.ts`.
+FeedNote uses `category: 'feeds'` as its type discriminator, consistent with how `NON_COLLECTION_CATEGORIES` and `INLINE_RUNTIME_CATEGORIES` gate behavior in `pageUtils.ts`.
 
 ### 2. File Convention
 
 Files live in `markdown/feeds/` and are named:
 
 ```
-YYYY-MM-DD-HHMM-{slug}.md
+{YYYY-MM-DD}-{HHMM}-{feed-name}.md
 ```
 
-This prefix is parsed (not stored in front matter) to produce the date key used by `JournalDateScroll`. The slug is title-cased for display. Files not matching the pattern are ignored at parse time.
+| Segment | Role |
+|---|---|
+| `YYYY-MM-DD` | Date → `JournalDateScroll` grouping key |
+| `HHMM` | Time → displayed in the list row |
+| `feed-name` | Channel identity → used for sidebar filter chips and display |
 
-### 3. List View: `FeedsListPage`
+The full filename stem (`{YYYY-MM-DD}-{HHMM}-{feed-name}`) is globally unique by construction and serves as the route param. Files not matching the pattern are silently ignored by `parseFeedFiles()`.
 
-A new view file at `playground/src/views/FeedsListPage.tsx` wraps `JournalDateScroll` — the same component used by `JournalWeeklyPage`. Instead of populating it from IndexedDB results, it populates it from the statically parsed `feedItems` array (derived from `import.meta.glob`). No new scroll/date infrastructure is required.
+### 3. Data Model
 
-### 4. Detail View: `FeedNotePage`
+A new pure-function utility at `playground/src/lib/feedFiles.ts`:
 
-A new page file at `playground/src/pages/FeedNotePage.tsx`. Because feed files are:
-- Bundled (not user-editable)
-- Markdown canvas documents (may contain wod blocks for display)
-- Read-only
+```ts
+export interface FeedItem {
+  id: string        // full filename stem — unique, used as route param
+  dateKey: string   // 'YYYY-MM-DD' — JournalDateScroll grouping key
+  time: string      // 'HHMM' — for display
+  feedName: string  // channel identity — for filter chips
+  title: string     // title-cased feedName for display
+  content: string   // raw markdown
+}
 
-...the correct renderer is `MarkdownCanvasPage` (already used for `/collections/:slug` entries), wrapped in `CanvasPage` shell (already used for `/collections`). The only work is routing the slug param to the right file and passing the parsed `CanvasPage` data structure.
+export function parseFeedFiles(
+  glob: Record<string, string>
+): FeedItem[]
+```
 
-### 5. Routes
+`parseFeedFiles()` is deterministic and side-effect-free — straightforward to unit test. The regex is:
+
+```
+/^(\d{4}-\d{2}-\d{2})-(\d{2}:\d{2})-(.+)\.md$/
+```
+
+applied to the filename (last path segment).
+
+### 4. Query State: `useFeedsQueryState`
+
+A new hook at `playground/src/hooks/useFeedsQueryState.ts`, parallel to `useCollectionsQueryState`. It manages a `feeds` URL query param (comma-separated feed-names). Exports:
+
+```ts
+{
+  selectedFeeds: string[]
+  toggleFeed: (name: string) => void
+  clearFeeds: () => void
+}
+```
+
+This hook is the only shared state between `FeedsNavPanel` and `FeedsListPage`. No prop-drilling.
+
+### 5. Sidebar Panel: `FeedsNavPanel`
+
+A new panel at `playground/src/nav/panels/FeedsNavPanel.tsx`, structurally identical to `CollectionsNavPanel`:
+
+- Derives the feed-name list from parsed `FeedItem[]` (sorted alphabetically, deduplicated).
+- Renders chip toggles via `useFeedsQueryState()`.
+- Shows a Clear button when any chips are active.
+- Returns `null` on `/feeds/:id` entry pages (same guard: `location.pathname !== '/feeds'`).
+
+No new UI primitives. The chip button markup is copy-equivalent to `CollectionsNavPanel`'s chip rows.
+
+### 6. List View: `FeedsListPage`
+
+A new view at `playground/src/views/FeedsListPage.tsx`. Wraps `JournalDateScroll` — same component used by `JournalWeeklyPage`. Differences from `JournalWeeklyPage`:
+
+- Data source: static `FeedItem[]` from `parseFeedFiles()`, not IndexedDB.
+- Filtering: `selectedFeeds` from `useFeedsQueryState()` applied before passing to scroll component.
+- Entry map shape: `FeedItem[]` adapted to `Map<string, JournalEntrySummary>` (same shape `JournalWeeklyPage` builds from IndexedDB pages).
+
+No changes to `JournalDateScroll`.
+
+### 7. Detail View: `FeedNotePage`
+
+A new page at `playground/src/pages/FeedNotePage.tsx`. Because feed entries are bundled, read-only markdown canvas documents:
+
+- Renderer: `MarkdownCanvasPage` (same as `/collections/:slug` entries).
+- Shell: `CanvasPage` (same as `/collections`).
+- The `:id` param (full filename stem) is looked up in the parsed `FeedItem[]` to recover `content`.
+- The `content` is parsed by `findCanvasPage()` or equivalent to produce the `CanvasPageData` structure `MarkdownCanvasPage` expects.
+
+### 8. Routes
 
 Two new routes added to `App.tsx`:
 
 ```
-/feeds              → FeedsListPage (wrapped in CanvasPage shell)
-/feeds/:slug        → FeedNotePage  (wrapped in CanvasPage shell)
+/feeds           → FeedsListPage (inside CanvasPage shell)
+/feeds/:id       → FeedNotePage  (inside CanvasPage shell)
 ```
 
-The `:slug` parameter is the full filename stem (`YYYY-MM-DD-HHMM-{slug}`), URL-encoded. This avoids ambiguity if two entries share the same slug on different dates.
+`AppContent`'s `currentWorkout` detection and `isJournalEntryRoute`/`isPlaygroundRoute` guards extended with a `/feeds` branch.
 
-### 6. Navigation
+### 9. Navigation
 
-A new L1 nav item added to `appNavTree.ts` immediately after `collections`:
+New L1 item in `appNavTree.ts` after `collections`:
 
 ```ts
 {
   id: 'feeds',
   label: 'Feeds',
   level: 1,
-  icon: NewspaperIcon,  // from @heroicons/react/20/solid
+  icon: NewspaperIcon,   // @heroicons/react/20/solid
   action: { type: 'route', to: '/feeds' },
   isActive: isRouteActive('/feeds'),
+  panel: FeedsNavPanel,
 }
 ```
-
-No L2 panel needed for MVP.
-
-### 7. Data Pipeline
-
-```ts
-// In App.tsx or a dedicated feedFiles.ts
-const feedFiles = import.meta.glob('../../markdown/feeds/*.md', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-})
-
-// parseFeedFiles() — pure function, returns FeedItem[]
-interface FeedItem {
-  slug: string         // full filename stem (used as route param)
-  dateKey: string      // 'YYYY-MM-DD' (used by JournalDateScroll)
-  time: string         // 'HH:MM' (for display in list row)
-  title: string        // formatted from slug suffix
-  content: string      // raw markdown
-}
-```
-
-`parseFeedFiles()` lives in a new utility `playground/src/lib/feedFiles.ts`. It is a pure function with no side effects — easy to unit test.
-
-### 8. `JournalDateScroll` Adaptation
-
-`JournalDateScroll` currently receives `JournalEntrySummary` objects keyed by date. Feed entries need to map onto this same shape. `FeedsListPage` transforms `FeedItem[]` into a `Map<string, JournalEntrySummary>` before passing to the scroll component. No changes to `JournalDateScroll` are required.
 
 ---
 
 ## Alternatives Considered
 
-### A. Reuse the Collections list view instead of Journal scroll
+### A. Embed feed-name as front-matter, not filename
 
-Collections renders a flat folder list (`CollectionsPage`). It has no date grouping, no chronological scroll, and no calendar strip. Rejected — the date-oriented UX is the defining feature of FeedNote.
+Would allow arbitrary filenames. Rejected — front-matter parsing adds complexity and makes the file listing non-obvious. The filename-as-schema is consistent with how the Journal uses `YYYY-MM-DD` date-keys and gives immediate visual sorting in any file browser.
 
-### B. Add date-parsing to the existing workout category system
+### B. Reuse the Collections list view (folder list) instead of Journal date scroll
 
-The `workoutFiles` glob already loads `markdown/**/*.md`. We could detect `feeds/` entries there and add them to the existing item stream. Rejected — it would contaminate the workout search index and make the category routing logic harder to reason about. FeedNote is a distinct concept; it deserves its own data path.
+Collections shows a flat folder list, not a chronological scroll. Rejected — the time-ordered, date-grouped UX is the defining characteristic of this feature.
 
-### C. Extend JournalWeeklyPage to also show feed entries
+### C. Filter by feed-name via a `TextFilterStrip` (like the Collections search bar)
 
-Would couple journal-specific IndexedDB logic with static file logic. Rejected — separation of concerns. The Journal is about user activity; the Feed is about curated content.
+`TextFilterStrip` does substring text search. Feed-names are enumerable and discrete — chip toggles with multi-select are more appropriate (same conclusion the Collections category filter reached). Rejected in favor of the `CollectionsNavPanel` chip pattern.
 
-### D. Store feed entries in IndexedDB on first load
+### D. Use a single query param + `useJournalQueryState` for the filter
 
-Would enable full-text search and offline mutation. Out of scope for MVP — the read-only, bundled-file model is explicitly simpler and avoids sync complexity.
+`useJournalQueryState` conflates date selection, tag filtering, and scroll state in a single hook — coupling concerns. A dedicated `useFeedsQueryState` keeps the feeds filter isolated and mirrors the `useCollectionsQueryState` precedent. More predictable.
 
 ---
 
@@ -132,26 +171,30 @@ Would enable full-text search and offline mutation. Out of scope for MVP — the
 
 **Positive:**
 - Zero new UI components introduced.
-- `JournalDateScroll`, `MarkdownCanvasPage`, `CanvasPage`, `JournalPageShell` are reused as-is.
-- Feature is additive — no existing routes, components, or data flows are modified.
-- `parseFeedFiles()` is a pure function — trivially testable.
+- `JournalDateScroll`, `MarkdownCanvasPage`, `CanvasPage` reused unmodified.
+- `CollectionsNavPanel` and `useCollectionsQueryState` provide a proven template for the sidebar panel and query hook.
+- `parseFeedFiles()` is a pure function — high test confidence with minimal setup.
+- Feature is fully additive — no existing routes, components, or data flows modified.
 
 **Negative / Watch-outs:**
-- The `feeds/` folder must be maintained manually (no in-app creation UI).
-- If `JournalDateScroll`'s `JournalEntrySummary` type evolves, the mapping adapter in `FeedsListPage` may need updating.
-- Large numbers of feed files will increase bundle size (they are eagerly bundled). This is acceptable for typical curated content volumes; if feeds grow large, lazy loading can be added later.
+- `JournalEntrySummary` adapter in `FeedsListPage` must stay in sync if that type evolves.
+- `MarkdownCanvasPage` currently receives a `CanvasPageData` object; how feed markdown content is converted to that shape needs a clean adapter (same as how canvas routes are registered — see `canvasRoutes.ts`). Feed entries likely don't need full canvas section parsing; a single-section wrapper is sufficient.
+- Bundle size grows with feed file count (eagerly bundled). Acceptable for curated content; lazy loading is a future option.
+- `HHMM` in filenames uses a colon — this is valid on Linux/macOS but **not on Windows**. If Windows support matters, the separator should be changed to `-` in the spec (e.g., `HH-MM`). Flag for project decision.
 
 ---
 
 ## Implementation Checklist
 
-- [ ] `markdown/feeds/` folder created with at least one sample file
-- [ ] `playground/src/lib/feedFiles.ts` — `parseFeedFiles()` + `FeedItem` type
-- [ ] Unit tests for `parseFeedFiles()` (valid patterns, invalid patterns, edge cases)
-- [ ] `playground/src/views/FeedsListPage.tsx` — wraps `JournalDateScroll`
-- [ ] `playground/src/pages/FeedNotePage.tsx` — wraps `MarkdownCanvasPage` + `CanvasPage`
-- [ ] Routes `/feeds` and `/feeds/:slug` added to `App.tsx`
-- [ ] `appNavTree.ts` — Feeds L1 nav item added after Collections
-- [ ] `currentWorkout` / `isActive` detection in `AppContent` updated for `/feeds` paths
-- [ ] Storybook story for `FeedsListPage`
-- [ ] Storybook story for `FeedNotePage`
+- [ ] `markdown/feeds/` folder with ≥2 feed-names and ≥2 entries per name
+- [ ] `playground/src/lib/feedFiles.ts` — `FeedItem` type + `parseFeedFiles()`
+- [ ] Unit tests for `parseFeedFiles()` (valid, invalid, edge cases)
+- [ ] `playground/src/hooks/useFeedsQueryState.ts`
+- [ ] `playground/src/nav/panels/FeedsNavPanel.tsx`
+- [ ] `playground/src/views/FeedsListPage.tsx`
+- [ ] `playground/src/pages/FeedNotePage.tsx`
+- [ ] Routes `/feeds` + `/feeds/:id` in `App.tsx`
+- [ ] `AppContent` detection updated for `/feeds` path prefix
+- [ ] `appNavTree.ts` — Feeds L1 item after Collections
+- [ ] Storybook story: `FeedsListPage`
+- [ ] Storybook story: `FeedNotePage`
