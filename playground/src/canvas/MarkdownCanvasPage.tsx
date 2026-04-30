@@ -305,6 +305,18 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const isCollection = route.startsWith('/collections/')
   const collectionSlug = isCollection ? route.split('/').pop() : null
 
+  const handleSelectWorkout = useCallback(
+    (item: WorkoutItem) => {
+      if (onSelect) {
+        onSelect(item)
+        return
+      }
+
+      navigate(`/workout/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}`)
+    },
+    [navigate, onSelect],
+  )
+
   // Check if any section has the {{workouts}} tag
   const hasWorkoutsTag = sections.some(s => s.prose.includes('{{workouts}}'))
 
@@ -757,7 +769,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                                 <CollectionWorkoutsList
                                   category={collectionSlug}
                                   workoutItems={workoutItems}
-                                  onSelect={onSelect ?? (() => {})}
+                                  onSelect={handleSelectWorkout}
                                 />
                               </div>
                               {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
@@ -802,7 +814,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                   <CollectionWorkoutsList
                     category={collectionSlug}
                     workoutItems={workoutItems}
-                    onSelect={onSelect ?? (() => {})}
+                    onSelect={handleSelectWorkout}
                   />
                 </div>
               </div>

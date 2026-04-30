@@ -17,7 +17,7 @@ export class JournalPage {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   async goto(dateKey?: string) {
-    const url = dateKey ? `/journal?d=${dateKey}` : '/journal';
+    const url = dateKey ? `/journal?s=${dateKey}` : '/journal';
     await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
     await this.waitForReady();
   }
@@ -47,7 +47,7 @@ export class JournalPage {
     return this.page.locator(`[data-testid="journal-date-scroll"] [id="${key}"]`);
   }
 
-  /** All rendered date group IDs in DOM order (ascending = oldest first). */
+  /** All rendered date group IDs in DOM order (descending = newest first). */
   async allDateKeys(): Promise<string[]> {
     return this.page.evaluate(() => {
       const scroll = document.querySelector('[data-testid="journal-date-scroll"]');
@@ -58,13 +58,13 @@ export class JournalPage {
     });
   }
 
-  /** The first (oldest) date key in the current window. */
+  /** The first (newest) date key in the current window. */
   async firstDateKey(): Promise<string> {
     const keys = await this.allDateKeys();
     return keys[0] ?? '';
   }
 
-  /** The last (newest) date key in the current window. */
+  /** The last (oldest) date key in the current window. */
   async lastDateKey(): Promise<string> {
     const keys = await this.allDateKeys();
     return keys[keys.length - 1] ?? '';
@@ -72,8 +72,8 @@ export class JournalPage {
 
   // ── Ghost rows ────────────────────────────────────────────────────────────
 
-  addNoteButton(key: string): Locator {
-    return this.page.locator(`[data-testid="add-note-${key}"]`);
+  planWorkoutButton(key: string): Locator {
+    return this.dateGroup(key).getByRole('button', { name: '+ Plan a workout' });
   }
 
   // ── Scroll helpers ────────────────────────────────────────────────────────
@@ -116,13 +116,13 @@ export class JournalPage {
 
   // ── URL helpers ───────────────────────────────────────────────────────────
 
-  /** Return the current ?d= param from the URL. */
+  /** Return the current selected-date param from the URL. */
   currentDateParam(): string | null {
     const url = new URL(this.page.url());
-    return url.searchParams.get('d');
+    return url.searchParams.get('s');
   }
 
-  /** Wait until ?d= stabilises on a given value for two consecutive 200ms checks. */
+  /** Wait until the selected-date param stabilises on a given value for two consecutive 200ms checks. */
   async waitForDateParam(expectedKey: string, timeout = 3000) {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
@@ -132,7 +132,7 @@ export class JournalPage {
       }
       await this.page.waitForTimeout(100);
     }
-    throw new Error(`Timed out waiting for ?d=${expectedKey}; current: ${this.currentDateParam()}`);
+    throw new Error(`Timed out waiting for selected date ${expectedKey}; current: ${this.currentDateParam()}`);
   }
 
   // ── Assertions ────────────────────────────────────────────────────────────
@@ -161,13 +161,13 @@ export class JournalPage {
     ).toBeLessThan(tolerance);
   }
 
-  async expectAscendingOrder() {
+  async expectDescendingOrder() {
     const keys = await this.allDateKeys();
     expect(keys.length, 'Should have at least 2 date groups').toBeGreaterThanOrEqual(2);
     for (let i = 1; i < keys.length; i++) {
       expect(
-        keys[i]! > keys[i - 1]!,
-        `Keys must be in strict ascending order at index ${i}: "${keys[i - 1]}" should be < "${keys[i]}"`,
+        keys[i]! < keys[i - 1]!,
+        `Keys must be in strict descending order at index ${i}: "${keys[i - 1]}" should be > "${keys[i]}"`,
       ).toBe(true);
     }
   }
