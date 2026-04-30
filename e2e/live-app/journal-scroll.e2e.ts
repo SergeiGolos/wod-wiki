@@ -8,13 +8,13 @@ import { JournalPage, localDateKey } from '../pages/JournalPage';
  * Config: playwright.journal.config.ts → https://pluto.forest-adhara.ts.net:5173
  *
  * Design notes used to set correct expectations:
- *  - Dates render ascending: oldest top, newest bottom
- *  - Mount scroll instant-centers the target (or today) in the viewport
+ *  - Dates render descending: newest top, oldest bottom
+ *  - Mount scroll brings the target (or today) into the viewport
  *  - The visible-date IO tracks the date at the TOP of the visible area (below sticky
- *    header), so ?d= after centering reflects ~10 days BEFORE target, not target itself
- *  - "Add note" ghost row exists iff dateKey >= todayKey
- *  - Top sentinel prepends 7 past days with anchor compensation (no viewport jump)
- *  - Bottom sentinel appends 7 future days (no compensation needed)
+ *    header), so the URL's selected-date param tracks the nearest visible group
+ *  - Future empty dates show a "Plan a workout" row; today/past empty dates do not
+ *  - Top sentinel prepends 7 future days with anchor compensation (no viewport jump)
+ *  - Bottom sentinel appends 7 past days (no compensation needed)
  *  - Initial window is ±14 days; sentinels may fire during the first ~700ms, so
  *    effective window can extend beyond ±14 before tests start
  */
@@ -32,10 +32,10 @@ function dayOffset(days: number): string {
 // ── Layout ─────────────────────────────────────────────────────────────────
 
 test.describe('Layout', () => {
-  test('date groups render in strict ascending order', async ({ page }) => {
+  test('date groups render in strict descending order', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
-    await journal.expectAscendingOrder();
+    await journal.expectDescendingOrder();
   });
 
   test("today's date group header contains 'Today' marker", async ({ page }) => {
@@ -88,34 +88,34 @@ test.describe('Initial scroll position', () => {
   });
 });
 
-// ── Ghost "Add note" row ───────────────────────────────────────────────────
+// ── Ghost "Plan a workout" row ─────────────────────────────────────────────
 
-test.describe('"Add note" ghost row', () => {
-  test('yesterday does NOT have an "Add note" button', async ({ page }) => {
+test.describe('"Plan a workout" ghost row', () => {
+  test('yesterday does NOT have a "Plan a workout" button', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
     const key = dayOffset(-1);
     await expect(journal.dateGroup(key)).toBeAttached();
-    await expect(journal.addNoteButton(key)).not.toBeAttached();
+    await expect(journal.planWorkoutButton(key)).not.toBeAttached();
   });
 
-  test('today has an "Add note" button', async ({ page }) => {
+  test('today does NOT have a "Plan a workout" button', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
-    await expect(journal.addNoteButton(todayKey())).toBeVisible();
+    await expect(journal.planWorkoutButton(todayKey())).not.toBeAttached();
   });
 
-  test('tomorrow has an "Add note" button', async ({ page }) => {
+  test('tomorrow has a "Plan a workout" button', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
-    await expect(journal.addNoteButton(dayOffset(1))).toBeVisible();
+    await expect(journal.planWorkoutButton(dayOffset(1))).toBeVisible();
   });
 });
 
 // ── Infinite scroll ────────────────────────────────────────────────────────
 
 test.describe('Infinite scroll – sentinel loading', () => {
-  test('scrolling to the top reveals older dates that were not in the initial window', async ({ page }) => {
+  test('scrolling to the top reveals future dates that were not in the initial window', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
 
@@ -130,7 +130,7 @@ test.describe('Infinite scroll – sentinel loading', () => {
         const ids = Array.from(scroll.querySelectorAll('[id]'))
           .map((el) => el.id)
           .filter((id) => /^\d{4}-\d{2}-\d{2}$/.test(id));
-        return ids.length > 0 && ids[0]! < before;
+        return ids.length > 0 && ids[0]! > before;
       },
       firstKeyBefore,
       { timeout: 5000 },
@@ -138,12 +138,12 @@ test.describe('Infinite scroll – sentinel loading', () => {
 
     const firstKeyAfter = await journal.firstDateKey();
     expect(
-      firstKeyAfter < firstKeyBefore,
-      `After top scroll, first key "${firstKeyAfter}" should be earlier than "${firstKeyBefore}"`,
+      firstKeyAfter > firstKeyBefore,
+      `After top scroll, first key "${firstKeyAfter}" should be later than "${firstKeyBefore}"`,
     ).toBe(true);
   });
 
-  test('scrolling to the bottom reveals future dates that were not in the initial window', async ({ page }) => {
+  test('scrolling to the bottom reveals older dates that were not in the initial window', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
 
@@ -159,7 +159,7 @@ test.describe('Infinite scroll – sentinel loading', () => {
         const ids = Array.from(scroll.querySelectorAll('[id]'))
           .map((el) => el.id)
           .filter((id) => /^\d{4}-\d{2}-\d{2}$/.test(id));
-        return ids.length > 0 && ids[ids.length - 1]! > before;
+        return ids.length > 0 && ids[ids.length - 1]! < before;
       },
       lastKeyBefore,
       { timeout: 5000 },
@@ -167,23 +167,21 @@ test.describe('Infinite scroll – sentinel loading', () => {
 
     const lastKeyAfter = await journal.lastDateKey();
     expect(
-      lastKeyAfter > lastKeyBefore,
-      `After bottom scroll, last key "${lastKeyAfter}" should be later than "${lastKeyBefore}"`,
+      lastKeyAfter < lastKeyBefore,
+      `After bottom scroll, last key "${lastKeyAfter}" should be earlier than "${lastKeyBefore}"`,
     ).toBe(true);
   });
 
-  test('prepending past dates does not jump the viewport (anchor compensation)', async ({ page }) => {
+  test('prepending future dates does not jump the viewport (anchor compensation)', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
 
-    // Get a stable anchor element in the middle of the current window
-    const keys = await journal.allDateKeys();
-    const midIdx = Math.floor(keys.length / 2);
-    const anchorKey = keys[midIdx]!;
-
-    // Scroll up to trigger a prepend, then wait for it to complete
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     const firstKeyBefore = await journal.firstDateKey();
+    const anchorGroup = journal.dateGroup(firstKeyBefore);
+
+    // Scroll up to trigger a prepend, then wait for it to complete.
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    const rectBefore = await journal.viewportRect(anchorGroup);
 
     await page.waitForFunction(
       (before) => {
@@ -192,20 +190,13 @@ test.describe('Infinite scroll – sentinel loading', () => {
         const ids = Array.from(scroll.querySelectorAll('[id]'))
           .map((el) => el.id)
           .filter((id) => /^\d{4}-\d{2}-\d{2}$/.test(id));
-        return ids.length > 0 && ids[0]! < before;
+        return ids.length > 0 && ids[0]! > before;
       },
       firstKeyBefore,
       { timeout: 5000 },
     );
 
     // The anchor element should still be at roughly the same viewport position
-    const anchorGroup = journal.dateGroup(anchorKey);
-    const rectBefore = await journal.viewportRect(anchorGroup);
-
-    // Scroll to top once more to trigger another prepend
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-    await page.waitForTimeout(800);
-
     const rectAfter = await journal.viewportRect(anchorGroup);
     const drift = Math.abs(rectAfter.top - rectBefore.top);
     expect(
@@ -215,10 +206,10 @@ test.describe('Infinite scroll – sentinel loading', () => {
   });
 });
 
-// ── URL sync ───────────────────────────────────────────────────────────────
+// ── URL selected-date sync ─────────────────────────────────────────────────
 
-test.describe('URL ?d= sync', () => {
-  test('?d= is set to a valid date key after initial load', async ({ page }) => {
+test.describe('URL selected-date sync', () => {
+  test('selected-date param is set to a valid date key after initial load', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
     await page.waitForTimeout(400);
@@ -226,7 +217,7 @@ test.describe('URL ?d= sync', () => {
     expect(param).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  test('scrolling a date group to the top-of-viewport updates ?d= to a nearby date', async ({ page }) => {
+  test('scrolling a date group to the top-of-viewport updates selected-date param to a nearby date', async ({ page }) => {
     const journal = new JournalPage(page);
     await journal.goto();
 
@@ -236,7 +227,7 @@ test.describe('URL ?d= sync', () => {
     await page.waitForTimeout(600);
 
     const param = journal.currentDateParam();
-    expect(param, '?d= should be a valid date key after scroll').toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(param, 'selected-date param should be a valid date key after scroll').toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     // The IO tracker reports the date at the top threshold — expect within ±2 days
     const paramDate = new Date(param!);
@@ -244,7 +235,7 @@ test.describe('URL ?d= sync', () => {
     const diffDays = Math.round((paramDate.getTime() - targetDate.getTime()) / 86_400_000);
     expect(
       Math.abs(diffDays),
-      `?d= "${param}" should be within 2 days of target "${targetKey}" (diff: ${diffDays})`,
+      `selected-date param "${param}" should be within 2 days of target "${targetKey}" (diff: ${diffDays})`,
     ).toBeLessThanOrEqual(2);
   });
 });
