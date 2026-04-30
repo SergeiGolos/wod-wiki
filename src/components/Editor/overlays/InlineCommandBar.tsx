@@ -121,6 +121,7 @@ const CommandPill: React.FC<{
           !cmd.primary && "border border-border/50",
         )}
         title={cmd.label}
+        data-testid={cmd.id === 'run' ? 'editor-start-workout' : undefined}
         onClick={(e) => {
           stopEvent(e);
           cmd.onClick(block);

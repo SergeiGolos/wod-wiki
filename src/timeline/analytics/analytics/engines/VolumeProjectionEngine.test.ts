@@ -31,7 +31,7 @@ describe('VolumeProjectionEngine', () => {
       const results = engine.calculateFromFragments(metrics, 'bench-press', mockExercise);
 
       expect(results).toHaveLength(1);
-      expect(results[0].name).toBe('Total Volume');
+      expect(results[0].name).toBe('bench-press Volume');
       expect(results[0].value).toBe(1000); // 10 * 100
       expect(results[0].unit).toBe('kg');
       expect(results[0].metadata?.source).toBe('metrics');

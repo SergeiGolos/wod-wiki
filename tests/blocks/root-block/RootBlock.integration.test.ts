@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
 import { MockBlock } from '@/testing/harness/MockBlock';
-import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
+import { sessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
 import { ChildSelectionBehavior } from '@/runtime/behaviors';
 import { PushBlockAction } from '@/runtime/actions/stack/PushBlockAction';
 import { PopBlockAction } from '@/runtime/actions/stack/PopBlockAction';
@@ -29,7 +29,7 @@ describe('RootBlock Integration: Complete Workout', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]], // Two exercises
             totalRounds: 1
         });
@@ -69,7 +69,7 @@ describe('RootBlock Integration: Complete Workout', () => {
 
     it('should track total workout time across sections', () => {
         // Scenario: Verify timer tracks full workout duration
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]]
         });
 
@@ -132,7 +132,7 @@ describe('RootBlock Integration: Complete Workout', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2], [3], [4], [5]]
         });
 
@@ -180,7 +180,7 @@ describe('RootBlock Integration: Complete Workout', () => {
 
     it('should handle empty workout gracefully', () => {
         // Scenario: Workout with no sections
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: []
         });
 
@@ -201,7 +201,7 @@ describe('RootBlock Integration: Complete Workout', () => {
 
     it('should emit timer events during workout', () => {
         // Scenario: Track timer lifecycle
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -238,7 +238,7 @@ describe('RootBlock Integration: Complete Workout', () => {
 
     it('should handle section compilation failure gracefully', () => {
         // Scenario: JIT returns null for a section
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]]
         });
 
@@ -276,7 +276,7 @@ describe('RootBlock Integration: Complete Workout', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2]]
         });
 
@@ -333,7 +333,7 @@ describe('RootBlock Integration: Complete Workout', () => {
             ]
         });
         
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2], [3]]
         });
 

@@ -1,174 +1,58 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { CommandProvider } from '@/components/command-palette/CommandContext';
-import { WorkbenchProvider, useWorkbench } from '@/components/layout/WorkbenchContext';
-import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
-import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
-import { useWorkbenchEffects } from '@/components/layout/useWorkbenchEffects';
-import { useWorkbenchSync } from '@/components/layout/useWorkbenchSync';
-import { useTheme } from '@/components/theme/ThemeProvider';
-import { RuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
-import { globalCompiler } from '@/runtime/services/runtimeServices';
-import { EditorShellHeader } from './EditorShellHeader';
+/**
+ * StorybookWorkbench — Acceptance-test harness for the full Workbench.
+ *
+ * Renders the real Workbench component (plan/track/review views) so that
+ * Playwright e2e tests can interact with the runtime: start workouts,
+ * click Next, and observe the review panel.
+ *
+ * Context provided by the global StorybookHost decorator:
+ *   ThemeProvider, AudioProvider, DebugModeProvider, MemoryRouter,
+ *   NuqsTestingAdapter, NotebookProvider, CommandProvider
+ *
+ * Workbench sets up its own WorkbenchProvider + RuntimeLifecycleProvider
+ * internally, so no duplication is needed here.
+ */
 
-import { NoteEditor } from '@/components/Editor/NoteEditor';
-import { WorkbenchProps } from '@/components/layout/Workbench';
-import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
-import { useInMemoryNavigation } from '@/hooks/useInMemoryNavigation';
-
-const runtimeFactory = new RuntimeFactory(globalCompiler);
-
-const WorkbenchEffectsBridge: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  useWorkbenchEffects();
-  return <>{children}</>;
-};
-
-// --- ?z support (same as before) ---
-function extractAndStripZ(): string | null {
-  let params = new URLSearchParams(window.location.search);
-  if (!params.has('z')) {
-    try {
-      const parentParams = new URLSearchParams(window.parent.location.search);
-      if (parentParams.has('z')) params = parentParams;
-    } catch { }
-  }
-  return params.get('z');
-}
-
-let _rawZ: string | null = extractAndStripZ();
-
-async function decodeZParam(z: string): Promise<string> {
-  const binary = atob(z.replace(/-/g, '+').replace(/_/g, '/'));
-  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-  try {
-    const ds = new DecompressionStream('gzip');
-    const writer = ds.writable.getWriter();
-    const reader = ds.readable.getReader();
-    writer.write(bytes);
-    writer.close();
-    const chunks: Uint8Array[] = [];
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
-    const totalLen = chunks.reduce((n, c) => n + c.length, 0);
-    const merged = new Uint8Array(totalLen);
-    let off = 0;
-    for (const c of chunks) { merged.set(c, off); off += c.length; }
-    return new TextDecoder().decode(merged);
-  } catch {
-    return new TextDecoder().decode(bytes);
-  }
-}
-
-function useZParamContent(): { content: string | undefined; ready: boolean } {
-  const [content, setContent] = useState<string | undefined>(undefined);
-  const [ready, setReady] = useState(!_rawZ);
-  useEffect(() => {
-    const z = _rawZ;
-    _rawZ = null;
-    if (!z) return;
-    decodeZParam(z).then(decoded => setContent(decoded)).finally(() => setReady(true));
-  }, []);
-  return { content, ready };
-}
+import React from 'react';
+import { Workbench, WorkbenchProps } from '@/components/layout/Workbench';
 
 interface StorybookWorkbenchProps extends WorkbenchProps {
   initialContent?: string;
-  /** Optional collection label shown in the header breadcrumb */
+  /** Optional collection label (unused — kept for story arg compatibility) */
   collection?: string;
-  /** Page title shown in the header (defaults to "WOD Wiki") */
+  /** Page title (unused — kept for story arg compatibility) */
   title?: string;
+  /** @deprecated — WorkbenchProps does not have these; kept for story compat */
+  initialShowPlan?: boolean;
+  initialShowTrack?: boolean;
+  initialShowReview?: boolean;
+  showToolbar?: boolean;
+  readonly?: boolean;
+  theme?: string;
 }
 
-const StorybookWorkbenchContent: React.FC<StorybookWorkbenchProps> = ({
-  collection,
-  title,
+export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = ({
+  initialContent,
+  initialViewMode,
+  // Absorb unknown/compat props so they don't leak to Workbench
+  collection: _collection,
+  title: _title,
+  initialShowPlan: _showPlan,
+  initialShowTrack: _showTrack,
+  initialShowReview: _showReview,
+  showToolbar: _showToolbar,
+  readonly: _readonly,
+  theme: _theme,
+  ...rest
 }) => {
-  const {
-    content,
-    setContent,
-    selectBlock,
-    setActiveBlockId,
-    resetResults,
-  } = useWorkbench();
-
-  const { theme } = useTheme();
-  const editorTheme = theme === 'dark' ? 'dark' : 'vs';
-
-  const resetStore = useWorkbenchSyncStore(s => s.resetStore);
-  const { handleStartWorkoutAction, execution } = useWorkbenchSync();
-
-  const handleReset = useCallback(() => {
-    resetStore();
-    if (execution.status !== 'idle') execution.reset();
-    selectBlock(null);
-    setActiveBlockId(null);
-    resetResults();
-    window.location.reload();
-  }, [resetStore, execution, selectBlock, setActiveBlockId, resetResults]);
-
-  const handleDownload = useCallback(() => {
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `workout-${new Date().getTime()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [content]);
-
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <EditorShellHeader
-        collection={collection}
-        title={title}
-        onDownload={handleDownload}
-        onReset={handleReset}
-      />
-
-      {/* Editor fills remaining height; overflow-y:scroll keeps the header
-          pinned and always shows the scrollbar even when content is short */}
-      <div className="flex-1 min-h-0 overflow-y-scroll">
-        <NoteEditor
-          value={content}
-          onChange={setContent}
-          onStartWorkout={handleStartWorkoutAction}
-          className="h-full w-full"
-          theme={editorTheme}
-        />
-      </div>
-    </div>
+    <Workbench
+      initialContent={initialContent}
+      initialViewMode={initialViewMode ?? 'plan'}
+      mode="static"
+      {...rest}
+    />
   );
 };
 
-export const StorybookWorkbench: React.FC<StorybookWorkbenchProps> = (props) => {
-  const { content: zContent, ready } = useZParamContent();
-  const navigation = useInMemoryNavigation({
-    view: props.initialViewMode || 'plan',
-    noteId: props.initialActiveEntryId || 'static',
-  });
-
-  if (!ready) return null;
-
-  const effectiveContent = zContent ?? props.initialContent ?? '';
-
-  return (
-      <CommandProvider>
-        <WorkbenchProvider
-          initialContent={effectiveContent}
-          mode="static"
-          navigation={navigation}
-        >
-          <RuntimeLifecycleProvider factory={runtimeFactory}>
-            <WorkbenchEffectsBridge>
-              <WorkbenchCastBridge />
-              <StorybookWorkbenchContent {...props} />
-            </WorkbenchEffectsBridge>
-          </RuntimeLifecycleProvider>
-        </WorkbenchProvider>
-      </CommandProvider>
-  );
-};
+export default StorybookWorkbench;
