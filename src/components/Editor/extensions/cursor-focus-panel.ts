@@ -2,11 +2,8 @@
  * Cursor Focus Panel Extension
  *
  * CM6 StateField that tracks the cursor's active WOD line and provides:
- *  1. Block widget decoration — inserted BETWEEN the cursor line and the
- *     next line as a true CM6 block widget (block: true).  The widget
- *     physically occupies space in the editor layout, so line heights,
- *     gutter decorations, hover-tooltip positions, and all other
- *     line-aligned features remain accurate.
+ *  1. Bottom panel — pinned below the editor viewport via CM6 showPanel, so
+ *     cursor feedback does not shift document content while editing.
  *  2. Mark decorations — colored underlines on the cursor line, one per
  *     metric type, using CSS classes defined via EditorView.baseTheme.
  *  3. Exported state — the focused ICodeStatement + EditorSection,
@@ -19,8 +16,8 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
-  WidgetType,
   keymap,
+  showPanel,
 } from "@codemirror/view";
 import {
   EditorState,
@@ -81,96 +78,70 @@ const METRIC_STYLES: Partial<Record<string, MetricStyle>> = {
   [MetricType.Action]:     { label: "Action",   color: "hsl(var(--metric-action))" },
 };
 
-// ── Block widget ──────────────────────────────────────────────────────
+const DIM_OPACITY_HEX = "33";
 
-/**
- * CM6 WidgetType that renders a metric summary panel as a real DOM node
- * inserted between lines.  Because it's a block widget (block: true) the
- * editor accounts for its height in all layout calculations — hover-tooltip
- * positions, gutter markers, line numbers, and scroll offsets all remain
- * accurate.
- */
-class MetricBlockWidget extends WidgetType {
-  constructor(
-    private readonly statement: ICodeStatement | null,
-    private readonly focusedMetricType: string | null,
-  ) {
-    super();
-  }
+// ── Panel rendering ───────────────────────────────────────────────────
 
-  /**
-   * CM6 calls eq() to decide whether to reuse the existing DOM element
-   * when decorations are rebuilt.
-   */
-  eq(other: MetricBlockWidget): boolean {
-    return (
-      other.statement?.meta?.line === this.statement?.meta?.line &&
-      (other.statement?.metrics?.length ?? 0) === (this.statement?.metrics?.length ?? 0) &&
-      other.focusedMetricType === this.focusedMetricType
-    );
-  }
+export function renderPanelContent(
+  statement: ICodeStatement | null,
+  focusedMetricType: string | null,
+): HTMLElement {
+  const container = document.createElement("div");
+  container.className = "cm-wod-metric-panel";
 
-  toDOM(): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "cm-wod-metric-panel";
+  const metrics = (statement?.metrics ?? []).filter(
+    (m) => m.type !== MetricType.Sound && m.type !== MetricType.System
+  );
 
-    const metrics = (this.statement?.metrics ?? []).filter(
-      (m) => m.type !== MetricType.Sound && m.type !== MetricType.System
-    );
-
-    if (metrics.length === 0) {
-      const empty = document.createElement("span");
-      empty.className = "cm-wod-metric-panel__empty";
-      empty.textContent = "—";
-      container.appendChild(empty);
-      return container;
-    }
-
-    // Labels row — no icons, no boxes, color-tinted text
-    const labelsEl = document.createElement("div");
-    labelsEl.className = "cm-wod-metric-panel__labels";
-
-    for (let i = 0; i < metrics.length; i++) {
-      const metric = metrics[i];
-      const style = METRIC_STYLES[metric.type as string];
-      const isFocused = metric.type === this.focusedMetricType;
-
-      const span = document.createElement("span");
-      span.className = "cm-wod-metric-panel__label-item" +
-        (isFocused ? " cm-wod-metric-panel__label-item--focused" : "");
-      span.textContent = style?.label ?? String(metric.type);
-      if (style?.color) {
-        // Full color when focused; 20% opacity hex suffix when dim
-        span.style.color = isFocused ? style.color : `${style.color}33`;
-      }
-      labelsEl.appendChild(span);
-
-      if (i < metrics.length - 1) {
-        const sep = document.createElement("span");
-        sep.className = "cm-wod-metric-panel__sep";
-        sep.textContent = " · ";
-        labelsEl.appendChild(sep);
-      }
-    }
-    container.appendChild(labelsEl);
-
-    // Shortcut hint — varies by focused metric type
-    const focusedMetric = metrics.find(m => m.type === this.focusedMetricType);
-    const hint = document.createElement("span");
-    hint.className = "cm-wod-metric-panel__hint";
-    if (focusedMetric) {
-      const isNumeric = NUMERIC_METRICS.has(focusedMetric.type as string);
-      hint.textContent = isNumeric ? "Ctrl+↑↓ · adjust" : "Ctrl+. · edit";
-    } else {
-      hint.textContent = "Ctrl+←→ · jump metric";
-    }
-    container.appendChild(hint);
-
+  if (metrics.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "cm-wod-metric-panel__empty";
+    empty.textContent = "—";
+    container.appendChild(empty);
     return container;
   }
 
-  /** Let events pass through so the editor can still handle clicks below. */
-  ignoreEvent(): boolean { return false; }
+  // Labels row — no icons, no boxes, color-tinted text
+  const labelsEl = document.createElement("div");
+  labelsEl.className = "cm-wod-metric-panel__labels";
+
+  for (let i = 0; i < metrics.length; i++) {
+    const metric = metrics[i];
+    const style = METRIC_STYLES[metric.type as string];
+    const isFocused = metric.type === focusedMetricType;
+
+    const span = document.createElement("span");
+    span.className = "cm-wod-metric-panel__label-item" +
+      (isFocused ? " cm-wod-metric-panel__label-item--focused" : "");
+    span.textContent = style?.label ?? String(metric.type);
+    if (style?.color) {
+      // Full color when focused; 20% opacity hex suffix when dim
+      span.style.color = isFocused ? style.color : `${style.color}${DIM_OPACITY_HEX}`;
+    }
+    labelsEl.appendChild(span);
+
+    if (i < metrics.length - 1) {
+      const sep = document.createElement("span");
+      sep.className = "cm-wod-metric-panel__sep";
+      sep.textContent = " · ";
+      labelsEl.appendChild(sep);
+    }
+  }
+  container.appendChild(labelsEl);
+
+  // Shortcut hint — varies by focused metric type
+  const focusedMetric = metrics.find(m => m.type === focusedMetricType);
+  const hint = document.createElement("span");
+  hint.className = "cm-wod-metric-panel__hint";
+  if (focusedMetric) {
+    const isNumeric = NUMERIC_METRICS.has(focusedMetric.type as string);
+    hint.textContent = isNumeric ? "Ctrl+↑↓ · adjust" : "Ctrl+. · edit";
+  } else {
+    hint.textContent = "Ctrl+←→ · jump metric";
+  }
+  container.appendChild(hint);
+
+  return container;
 }
 
 // ── Mark decoration class map ─────────────────────────────────────────
@@ -205,38 +176,19 @@ function parseStatements(
 // ── Combined decoration builder ─────────────────────────────────────
 
 /**
- * Build both the block widget (inserted below cursor line) and mark
- * decorations (underlines on metric tokens).  Both must be sorted by `from`
- * and passed to a single Decoration.set() call.
+ * Build mark decorations (underlines on metric tokens).  Decorations must be
+ * sorted by `from` and passed to a single Decoration.set() call.
  *
  * Underlines are always rendered at 20% opacity across ALL WOD sections.
  * The line the cursor is on gets full-opacity underlines.
- *
- * Block widget placement:
- *   range = docLine.to, side = 1  →  widget appears BELOW the cursor line,
- *   pushed into the space between that line and the one below it.
  */
 function buildDecorations(
   allSections: EditorSection[],
   cursorSection: EditorSection | null,
-  stmt: ICodeStatement | null,
   cursorDocLine: number,
-  focusedMetricType: string | null,
   state: EditorState
 ): DecorationSet {
   const decos: Range<Decoration>[] = [];
-
-  // Block widget — only when cursor is inside a WOD section
-  if (cursorSection) {
-    const docLine = state.doc.line(cursorDocLine);
-    decos.push(
-      Decoration.widget({
-        widget: new MetricBlockWidget(stmt, focusedMetricType),
-        block: true,
-        side: 1,
-      }).range(docLine.to)
-    );
-  }
 
   // Mark decorations — iterate ALL WOD sections so underlines are always
   // visible. Metrics on the cursor line get full opacity; all others get
@@ -331,10 +283,9 @@ function computeFocusState(
 
   if (focus) focus.focusedMetric = focusedMetric;
 
-  const focusedMetricType = focusedMetric?.type as string | null ?? null;
-
-  // Build block widget + mark decorations for all sections
-  const decos = buildDecorations(wodSections, cursorSection, stmt, cursorLine, focusedMetricType, state);
+  // Build mark decorations for all sections. The feedback panel is rendered
+  // outside the scrollable document by feedbackPanel below.
+  const decos = buildDecorations(wodSections, cursorSection, cursorLine, state);
 
   return { focus, decos };
 }
@@ -436,6 +387,38 @@ const metricNavKeymap = Prec.high(keymap.of([
   { key: "Ctrl-ArrowLeft",  run: (v) => jumpMetric(v, -1) },
 ]));
 
+// ── Bottom feedback panel ────────────────────────────────────────────
+
+const feedbackPanel = showPanel.of((view) => {
+  const dom = document.createElement("div");
+  dom.className = "cm-wod-metric-panel-host";
+
+  function sync(state: EditorState) {
+    const focus = getCursorFocusState(state);
+    if (!focus?.statement) {
+      dom.style.display = "none";
+      dom.replaceChildren();
+      return;
+    }
+
+    dom.style.display = "";
+    const focusedMetricType = (focus.focusedMetric?.type as string | undefined) ?? null;
+    dom.replaceChildren(
+      renderPanelContent(focus.statement, focusedMetricType)
+    );
+  }
+
+  sync(view.state);
+
+  return {
+    dom,
+    update(update) {
+      if (update.docChanged || update.selectionSet) sync(update.state);
+    },
+    top: false,
+  };
+});
+
 // ── CSS theme ────────────────────────────────────────────────────────
 
 const metricUnderlineTheme = EditorView.baseTheme({
@@ -458,7 +441,10 @@ const metricUnderlineTheme = EditorView.baseTheme({
   ".cm-metric-underline-resistance-dim": { borderBottom: "2px solid hsl(var(--metric-resistance) / 0.2)", color: "hsl(var(--metric-resistance))" },
   ".cm-metric-underline-action-dim":     { borderBottom: "2px solid hsl(var(--metric-action) / 0.2)",     color: "hsl(var(--metric-action))" },
 
-  // ── Block widget panel ────────────────────────────────────────────
+  // ── Bottom feedback panel ─────────────────────────────────────────
+  ".cm-wod-metric-panel-host": {
+    width: "100%",
+  },
   ".cm-wod-metric-panel": {
     display: "flex",
     alignItems: "center",
@@ -513,6 +499,7 @@ const metricUnderlineTheme = EditorView.baseTheme({
 
 export const cursorFocusExtension: Extension = [
   cursorFocusInternal,
+  feedbackPanel,
   metricUnderlineTheme,
   metricNavKeymap,
 ];
