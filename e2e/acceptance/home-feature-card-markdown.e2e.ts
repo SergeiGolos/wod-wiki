@@ -14,6 +14,7 @@ test.describe('Home page feature cards', () => {
     const librarySection = page.locator('#browse-the-library');
 
     await analyticsSection.scrollIntoViewIfNeeded();
+    // HomeView stories must provide the same markdown source map as the app so the sticky panel renders real demo content.
     await expect(page.getByText('Source not found')).toHaveCount(0);
 
     await expect(smartTimerSection.getByRole('listitem')).toHaveText([
