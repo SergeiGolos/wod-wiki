@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useRuntimeLifecycle } from '../layout/RuntimeLifecycleProvider';
 import { useWorkoutEvents } from '../../hooks/useWorkoutEvents';
 import { useRuntimeExecution, NextEvent, RegisterEventHandlerAction, UnregisterEventHandlerAction } from '../../hooks/useRuntimeTimer';
@@ -27,6 +27,8 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
 ) => {
     const { runtime, initializeRuntime, disposeRuntime } = useRuntimeLifecycle();
     const execution = useRuntimeExecution(runtime);
+    const latestRef = useRef({ runtime, execution, completeWorkout });
+    latestRef.current = { runtime, execution, completeWorkout };
 
     // Register Global Audio Handler when runtime is available
     useEffect(() => {
@@ -121,9 +123,11 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
     // Note: Consumer needs to use useEffect to call initializeRuntime/disposeRuntime based on viewMode/selectedBlock
     // This hook just provides the callbacks and state
 
-    const handleStart = () => execution.start();
-    const handlePause = () => execution.pause();
-    const handleStop = () => {
+    const handleStart = useCallback(() => latestRef.current.execution.start(), []);
+    const handlePause = useCallback(() => latestRef.current.execution.pause(), []);
+    const handleStop = useCallback(() => {
+        const { runtime, execution, completeWorkout } = latestRef.current;
+
         execution.stop();
         // Finalize summary metrics before completion
         runtime?.finalizeAnalytics();
@@ -136,16 +140,18 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             logs: runtime?.getOutputStatements() || [],
             completed: true
         });
-    };
+    }, []);
 
-    const handleNext = () => {
+    const handleNext = useCallback(() => {
+        const { runtime, execution } = latestRef.current;
+
         if (runtime && execution.status !== 'completed') {
             runtime.handle(new NextEvent());
             if (execution.status !== 'running') {
                 execution.start();
             }
         }
-    };
+    }, []);
 
     const handleStartWorkoutAction = useCallback((block: WodBlock) => {
         startWorkout(block);
