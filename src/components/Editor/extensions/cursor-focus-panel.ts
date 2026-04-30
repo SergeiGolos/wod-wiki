@@ -78,6 +78,8 @@ const METRIC_STYLES: Partial<Record<string, MetricStyle>> = {
   [MetricType.Action]:     { label: "Action",   color: "hsl(var(--metric-action))" },
 };
 
+const DIM_OPACITY_HEX = "33";
+
 // ── Panel rendering ───────────────────────────────────────────────────
 
 export function renderPanelContent(
@@ -114,7 +116,7 @@ export function renderPanelContent(
     span.textContent = style?.label ?? String(metric.type);
     if (style?.color) {
       // Full color when focused; 20% opacity hex suffix when dim
-      span.style.color = isFocused ? style.color : `${style.color}33`;
+      span.style.color = isFocused ? style.color : `${style.color}${DIM_OPACITY_HEX}`;
     }
     labelsEl.appendChild(span);
 
