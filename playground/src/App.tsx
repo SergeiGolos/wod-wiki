@@ -362,6 +362,25 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     setIsCommandPaletteOpen(true)
   }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
 
+  // Open palette in "load into home editor" mode — selection injects content,
+  // does NOT navigate. onContentSelected receives the raw markdown string.
+  const openHomePalette = useCallback((onContentSelected: (content: string) => void) => {
+    const strategy = createGlobalSearchStrategy(
+      workoutItems,
+      (item: any) => {
+        // Resolve raw markdown content from the item
+        const content: string =
+          item.content ?? item.markdown ?? item.source ?? item.description ?? ''
+        onContentSelected(content)
+        setIsCommandPaletteOpen(false)
+      },
+      navigate,
+      canvasRoutes,
+    )
+    setStrategy(strategy)
+    setIsCommandPaletteOpen(true)
+  }, [workoutItems, navigate, canvasRoutes, setStrategy, setIsCommandPaletteOpen])
+
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
   useEffect(() => {
@@ -560,12 +579,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="WOD Wiki" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
+                onOpenHomePalette={openHomePalette}
               />
             </CanvasPage>
           ) : location.pathname === '/journal' ? (

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ExecutionContextTestHarness } from '@/testing/harness';
-import { workoutRootStrategy } from '@/runtime/compiler/strategies/WorkoutRootStrategy';
+import { sessionRootStrategy } from '@/runtime/compiler/strategies/SessionRootStrategy';
 import {
     TimerBehavior,
     ChildSelectionBehavior,
@@ -22,7 +22,7 @@ describe('RootBlock Behavior Composition', () => {
 
     it('should include all required behaviors for single-round workout', () => {
         // Scenario: Create root block with single round
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1], [2], [3]],
             totalRounds: 1
         });
@@ -37,7 +37,7 @@ describe('RootBlock Behavior Composition', () => {
 
     it('should use default totalRounds=1 when not specified', () => {
         // Scenario: No totalRounds specified
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 
@@ -49,7 +49,7 @@ describe('RootBlock Behavior Composition', () => {
     it('should configure ChildSelectionBehavior with correct childGroups', () => {
         // Scenario: Multiple child groups
         const childGroups = [[1, 2], [3], [4, 5]];
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups
         });
 
@@ -67,7 +67,7 @@ describe('RootBlock Behavior Composition', () => {
             { id: 'skip', label: 'Skip', action: 'block:skip' }
         ];
 
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]],
             executionButtons: customButtons
         });
@@ -78,7 +78,7 @@ describe('RootBlock Behavior Composition', () => {
 
     it('should handle empty childGroups', () => {
         // Scenario: Root block with no children
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: []
         });
 
@@ -89,7 +89,7 @@ describe('RootBlock Behavior Composition', () => {
 
     it('should set correct block type and label', () => {
         // Scenario: Verify root block metadata
-        const rootBlock = workoutRootStrategy.build(harness.runtime, {
+        const rootBlock = sessionRootStrategy.build(harness.runtime, {
             childGroups: [[1]]
         });
 

@@ -12,7 +12,7 @@
  * so only one command pipeline fires at a time — no flicker.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { ArrowLeft, Eye, Maximize2, Play } from 'lucide-react'
@@ -296,9 +296,40 @@ export interface MarkdownCanvasPageProps {
   theme: string
   workoutItems?: WorkoutItem[]
   onSelect?: (item: WorkoutItem) => void
+  /**
+   * Optional in-memory content to load into the editor instead of the DSL
+   * source path. When set (non-empty), it overrides the resolved source.
+   * Used by HomeWelcome search bar to inject a workout without a file path.
+   */
+  contentOverride?: string
+  /**
+   * Optional ReactNode rendered in the first sticky panel's MacOSChrome header.
+   * Used by HomeView to inject Run / Reset / Results / Share controls.
+   */
+  panelHeaderActions?: ReactNode
+  /**
+   * Called once on mount with imperative handles for the first panel.
+   * Lets HomeWelcome wire the Run / Reset / Results / Fullscreen buttons
+   * without the canvas needing to know about external UI.
+   */
+  onPanelActionsReady?: (actions: PanelActions) => void
+  /**
+   * Optional ReactNode rendered as the very first item inside the scrolling
+   * left column — before section 01. Used by HomeView to inject the welcome
+   * hero copy so it sits alongside the sticky editor panel, not above it.
+   */
+  heroSlot?: ReactNode
 }
 
-export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: MarkdownCanvasPageProps) {
+export interface PanelActions {
+  run: () => void
+  reset: () => void
+  results: () => void
+  fullscreen: () => void
+  getSource: () => string
+}
+
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, contentOverride, panelHeaderActions, onPanelActionsReady, heroSlot }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 
@@ -325,7 +356,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   // View definition — carries the initial source and alignment
   const viewDef = sections.find(s => s.view)?.view ?? null
-  const chromeTitle  = viewDef?.name ?? 'WodScript'
+  const chromeTitle  = 'WodScript'
   const stickyAlign  = viewDef?.align ?? 'right'
 
   // Keep editor source in both state (for the NoteEditor value prop) and a ref
@@ -335,9 +366,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const [editorOpacity, setEditorOpacity] = useState(1)
   const editorSourceRef = useRef(initialSource)
   const swapTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Tracks the compiled WodBlocks from the NoteEditor so set-state:track can grab one
-  const wodBlocksRef = useRef<WodBlock[]>([])
 
   // ── Panel state machine ────────────────────────────────────────────────────
   // 'editor'    — NoteEditor shown (default)
@@ -371,7 +399,17 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     }, 180)
   }, [])
 
-  // Launch a block in view (inline) mode
+  // When a content override arrives (e.g. from search bar workout selection), swap it in.
+  const prevContentOverride = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (contentOverride && contentOverride !== prevContentOverride.current) {
+      prevContentOverride.current = contentOverride
+      swapSource(contentOverride)
+    }
+  }, [contentOverride, swapSource])
+
+  // Tracks the compiled WodBlocks from the NoteEditor so set-state:track can grab one
+  const wodBlocksRef = useRef<WodBlock[]>([])
   const launchViewRuntime = useCallback((block: WodBlock) => {
     activeViewBlockRef.current = block
     activeRuntimes.set(block.id, block)
@@ -446,6 +484,37 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // Stable ref so observer callbacks never close over stale deps
   const depsRef = useRef(deps)
   depsRef.current = deps
+
+  // Expose imperative panel actions to parent (e.g. HomeWelcome action bar).
+  // We use mutable refs for all handlers so the panel actions object is stable
+  // but always calls the *current* function — avoids stale-closure bugs.
+  const launchViewRuntimeRef  = useRef(launchViewRuntime)
+  const closeViewRuntimeRef   = useRef(closeViewRuntime)
+  const setPanelModeRef       = useRef(setPanelMode)
+  const setFullscreenBlockRef = useRef(setFullscreenBlock)
+  launchViewRuntimeRef.current  = launchViewRuntime
+  closeViewRuntimeRef.current   = closeViewRuntime
+  setPanelModeRef.current       = setPanelMode
+  setFullscreenBlockRef.current = setFullscreenBlock
+
+  const onPanelActionsReadyRef = useRef(onPanelActionsReady)
+  onPanelActionsReadyRef.current = onPanelActionsReady
+  useEffect(() => {
+    onPanelActionsReadyRef.current?.({
+      run: () => {
+        const block = wodBlocksRef.current[0] ?? null
+        if (block) launchViewRuntimeRef.current(block)
+      },
+      reset: () => closeViewRuntimeRef.current(),
+      results: () => setPanelModeRef.current('review'),
+      fullscreen: () => {
+        const block = wodBlocksRef.current[0] ?? null
+        if (block) setFullscreenBlockRef.current(block)
+      },
+      getSource: () => editorSourceRef.current,
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // RunButtonState — state for the run/reconnect ButtonGroup
   const runState: RunButtonState = {
@@ -626,6 +695,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           enableOverlay={false}
           enableInlineRuntime={false}
           commands={[]}
+          hideDefaultCommands={true}
           className="h-full"
         />
       </div>
@@ -640,7 +710,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
       <div className="flex-1 min-h-0">
-        <MacOSChrome title={panelTitle}>
+        <MacOSChrome title={panelTitle} headerActions={panelHeaderActions}>
           {panelContent}
         </MacOSChrome>
       </div>
@@ -661,7 +731,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     >
       <div className="flex flex-col gap-2" style={{ height: '100%' }}>
         <div className="flex-1 min-h-0">
-          <MacOSChrome title={panelTitle}>
+          <MacOSChrome title={panelTitle} headerActions={panelHeaderActions}>
             {panelContent}
           </MacOSChrome>
         </div>
@@ -715,6 +785,8 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
                 </div>
               )
             })()}
+
+            {heroSlot}
 
             {contentSections.map((section, idx) => {
               const fullBleed = isFullBleed(section)

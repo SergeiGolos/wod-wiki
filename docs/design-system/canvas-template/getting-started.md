@@ -3,7 +3,7 @@
 |                 |                                             |
 | --------------- | ------------------------------------------- |
 | **Route**       | `/getting-started`                          |
-| **Template**    | [Canvas Page](_template.md)                 |
+| **Template**    | [Canvas Page](canvas-template.md)                 |
 | **Source File** | `markdown/canvas/getting-started/README.md` |
 
 ## Page Outline
@@ -65,11 +65,11 @@ Rendered as interactive buttons within or below the prose.
 
 ## State Management
 
-Inherits the standard Canvas state model — see [Canvas Page](_template.md#state-management). No page-specific overrides.
+Inherits the standard Canvas state model — see [Canvas Page](canvas-template.md#state-management). No page-specific overrides.
 
 ## Layout Notes
 
-Inherits all standard Canvas layout behaviour from [Canvas Page](_template.md#layout-system-integration). No structural overrides on this route.
+Inherits all standard Canvas layout behaviour from [Canvas Page](canvas-template.md#layout-system-integration). No structural overrides on this route.
 
 | Detail | Value |
 |--------|-------|

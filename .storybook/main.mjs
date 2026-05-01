@@ -12,7 +12,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const config = {
   "stories": [
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../stories/**/*.mdx"
+    // MDX docs files excluded from e2e Storybook — they cause indexing failures
+    // in Storybook v10 due to CSF path resolution bugs. The e2e tests only need
+    // the .stories.tsx files. Re-enable once Storybook resolves the issue.
+    // "../stories/**/*.mdx"
   ],
 
   "addons": [

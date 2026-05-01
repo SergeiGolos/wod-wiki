@@ -1,0 +1,11 @@
+{
+	"nodes":[
+		{"id":"ae4c19a54286aafb","x":40,"y":-640,"width":400,"height":400,"type":"file","file":"design-system/00.layout-template/app-template.md"},
+		{"id":"39f2b0877fd0807d","x":-800,"y":160,"width":400,"height":400,"type":"file","file":"design-system/01.page-templates/canvas-template.md"},
+		{"id":"2b3c301b58cf73b7","x":1320,"y":240,"width":400,"height":360,"type":"file","file":"design-system/01.page-templates/note-template.md"}
+	],
+	"edges":[
+		{"id":"d326c7c1cd433ffa","fromNode":"39f2b0877fd0807d","fromSide":"top","toNode":"ae4c19a54286aafb","toSide":"bottom"},
+		{"id":"5dd178b55639f40a","fromNode":"2b3c301b58cf73b7","fromSide":"top","toNode":"ae4c19a54286aafb","toSide":"bottom"}
+	]
+}

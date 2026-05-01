@@ -6,7 +6,7 @@ This directory documents the domain model, data access patterns, and storage abs
 
 | Document | Description |
 |----------|-------------|
-| [Overview](overview.md) | High-level entity map, relationships, and data flow |
+| [Overview](domain-model/overview.md) | High-level entity map, relationships, and data flow |
 | [Entities](entities.md) | Every persisted entity with full field specifications |
 | [Repositories & Providers](repositories.md) | Repository interfaces, implementations, and how to add new backends |
 
