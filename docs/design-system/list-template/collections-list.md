@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/collections` |
-| **Template** | [Queriable List](design-system/list-template/_template.md) |
+| **Template** | [Queriable List](list-template.md) |
 | **Query Organism** | **Text Filter** (`TextFilterStrip` subheader) |
 | **Component** | `CollectionsPage` (`playground/src/views/CollectionsPage.tsx`) |
 | **Shell** | `CanvasPage` (title-bar mode) |
@@ -117,4 +117,4 @@ All three are derived (`useMemo`) — no independent `useState`.
 
 - [Collections View](collections-view.md) — the per-slug Canvas page loaded when a collection is selected
 - [Search](search.md) — global search across all data types
-- [Queriable List template](design-system/list-template/_template.md) — the standard filter+list pattern this page follows
+- [Queriable List template](list-template.md) — the standard filter+list pattern this page follows

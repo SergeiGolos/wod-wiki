@@ -1,10 +1,10 @@
 # Template: Note Workspace
 
-| | |
-|--|--|
-| **Name** | Note Workspace |
-| **Code** | `playground/src/App.tsx` (page components), `src/components/Editor/NoteEditor.tsx`, `src/panels/page-shells/JournalPageShell.tsx` |
-| **Routes** | `/workout/*`, `/note/*`, `/playground/*`, `/journal/*` |
+|            |                                                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Name**   | Note Workspace                                                                                                                    |
+| **Code**   | `playground/src/App.tsx` (page components), `src/components/Editor/NoteEditor.tsx`, `src/panels/page-shells/JournalPageShell.tsx` |
+| **Routes** | `/workout/*`, `/note/*`, `/playground/*`, `/journal/*`                                                                            |
 
 ## Description
 

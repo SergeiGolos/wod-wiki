@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Patterns** | `/workout/:category/:name`, `/note/:category/:name` |
-| **Template** | [Note Workspace](design-system/note-template/_template.md) |
+| **Template** | [Note Workspace](note-template.md) |
 | **Component** | `WorkoutEditorPage` |
 
 ## Description
@@ -35,5 +35,5 @@ None. Route identity is carried in path params `:category/:name`; no `nuqs` para
 ## Workflow
 
 1.  **Load**: The `WorkoutEditorPage` resolves the file path based on the route parameters.
-2.  **Edit**: Users can modify the WodScript; changes are persisted via the [Playground DB service](design-system/note-template/_template.md#configurations-by-route).
+2.  **Edit**: Users can modify the WodScript; changes are persisted via the [Playground DB service](note-template.md#configurations-by-route).
 3.  **Run**: Clicking the "Start Workout" overlay in the editor (or a button pipeline) triggers the workout lifecycle.

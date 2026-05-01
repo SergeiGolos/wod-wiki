@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route** | `/` |
-| **Template** | [Canvas Page](design-system/canvas-template/_template.md) |
+| **Template** | [Canvas Page](canvas-template.md) |
 | **Source File** | `markdown/canvas/home/README.md` |
 | **Component** | `HomeView` (wraps `HomeHero` + `MarkdownCanvasPage`) |
 
@@ -46,11 +46,11 @@ Sections are derived from `markdown/canvas/home/README.md`.
 
 ## State Management
 
-Inherits the standard Canvas state model — see [Canvas Page](design-system/canvas-template/_template.md#state-management). No page-specific overrides.
+Inherits the standard Canvas state model — see [Canvas Page](canvas-template.md#state-management). No page-specific overrides.
 
 `HomeView` adds no additional state; `HomeHero` is a purely presentational component with no URL or local state of its own.
 
-Inherits all standard Canvas layout behaviour from [Canvas Page](design-system/canvas-template/_template.md#layout-system-integration). The following overrides apply to this route specifically:
+Inherits all standard Canvas layout behaviour from [Canvas Page](canvas-template.md#layout-system-integration). The following overrides apply to this route specifically:
 
 | Override | Detail |
 |----------|--------|

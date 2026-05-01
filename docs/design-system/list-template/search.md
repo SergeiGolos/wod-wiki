@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/search` |
-| **Template** | [Queriable List](design-system/list-template/_template.md) |
+| **Template** | [Queriable List](list-template.md) |
 | **Query Organism** | **Text Filter Strip** (`TextFilterStrip` as `CanvasPage` subheader) |
 | **Component** | `SearchPage` (`playground/src/views/ListViews.tsx`) |
 | **Shell** | `CanvasPage` (title-bar mode, `TextFilterStrip` as subheader, `autoFocus`) |

@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Patterns** | `/playground`, `/playground/:id` |
-| **Template** | [Note Workspace](design-system/note-template/_template.md) |
+| **Template** | [Note Workspace](note-template.md) |
 | **Component** | `PlaygroundNotePage` |
 
 ## Description
