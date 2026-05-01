@@ -20,7 +20,7 @@ export interface HomeWelcomeProps {
 
 export function HomeWelcome({ onOpenSearch, onRun }: HomeWelcomeProps) {
   return (
-    <div className="relative py-8 pb-6 px-6 lg:px-10 overflow-hidden">
+    <div className="relative py-8 pb-6 px-6 lg:px-10 overflow-hidden lg:min-h-[calc(100vh-104px)] lg:flex lg:flex-col lg:justify-center">
       {/* Atmospheric green glow */}
       <div
         className="pointer-events-none absolute inset-0"

@@ -41,6 +41,9 @@ import { getCategoryForCollection } from '../config/collectionGroups'
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
 const MOBILE_STICKY_TOP = 65
+// Matches Tailwind's `lg` breakpoint (1024px).  Used to select the correct
+// IntersectionObserver rootMargin for mobile vs desktop — mirrors ParallaxSection.
+const MOBILE_BREAKPOINT_PX = 1023
 
 // ── Source resolution ─────────────────────────────────────────────────────────
 
@@ -531,6 +534,10 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const lastActiveSectionId = useRef<string | null>(null)
   const ratioMap            = useRef(new Map<string, number>())
   const scrollDirRef        = useRef<1 | -1>(1)
+  // True once the user (or a programmatic scroll-to) has actually moved the page.
+  // Prevents the observer from writing ?h= or firing scroll-commands on the
+  // initial layout pass before any scrolling has occurred.
+  const hasUserScrolledRef  = useRef(false)
 
   const setStepRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) stepRefs.current.set(id, el)
@@ -540,13 +547,24 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   useEffect(() => {
     if (contentSections.length === 0) return
 
+    // Seed the flag so navigating back to a pre-scrolled position works correctly.
+    hasUserScrolledRef.current = window.scrollY > 0
+
     let lastScrollY = window.scrollY
     const trackScroll = () => {
       const y = window.scrollY
-      if (y !== lastScrollY) scrollDirRef.current = y > lastScrollY ? 1 : -1
+      if (y !== lastScrollY) {
+        scrollDirRef.current = y > lastScrollY ? 1 : -1
+        hasUserScrolledRef.current = true
+      }
       lastScrollY = y
     }
     window.addEventListener('scroll', trackScroll, { passive: true })
+
+    // Use a tighter top dead-zone on mobile to account for the sticky panel
+    // sitting below the global nav bar (mirrors the ParallaxSection pattern).
+    const isMobile = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches
+    const rootMargin = isMobile ? `-${MOBILE_STICKY_TOP}px 0px -20% 0px` : '-30% 0px -30% 0px'
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -577,22 +595,28 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
         if (bestId && bestId !== lastActiveSectionId.current) {
           lastActiveSectionId.current = bestId
-          // Update ?h= via RouteQueryAction (replaceState — no history flood)
-          executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
-          const section = contentSections.find(s => s.id === bestId)
-          if (section) {
-            for (const cmd of section.commands) {
-              // Scroll-triggered commands default to 'view' (inline panel).
-              const steps = cmd.pipeline.map(s => pipelineStepToNavAction(s, cmd.open ?? 'view'))
-              executeNavAction(
-                steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
-                depsRef.current,
-              )
+          // Guard: only update URL and fire scroll-commands after the user (or a
+          // programmatic restore-scroll) has actually moved the page.  This
+          // prevents the initial layout pass from immediately writing ?h= and
+          // triggering view-source swaps before any interaction.
+          if (hasUserScrolledRef.current) {
+            // Update ?h= via RouteQueryAction (replaceState — no history flood)
+            executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
+            const section = contentSections.find(s => s.id === bestId)
+            if (section) {
+              for (const cmd of section.commands) {
+                // Scroll-triggered commands default to 'view' (inline panel).
+                const steps = cmd.pipeline.map(s => pipelineStepToNavAction(s, cmd.open ?? 'view'))
+                executeNavAction(
+                  steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
+                  depsRef.current,
+                )
+              }
             }
           }
         }
       },
-      { rootMargin: '-30% 0px -30% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75] },
+      { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] },
     )
 
     stepRefs.current.forEach(el => observer.observe(el))
