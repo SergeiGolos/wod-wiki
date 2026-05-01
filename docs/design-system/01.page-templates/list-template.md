@@ -1,92 +1,161 @@
-# Template: Queriable List
-# Template: Queriable List
+# Template: List
 
-| | |
-|--|--|
-| **Name** | Queriable List |
-| **Code** | `playground/src/views/queriable-list/QueriableListView.tsx`, `playground/src/views/queriable-list/FilteredList.tsx` |
-| **Routes** | `/journal`, `/search`, `/collections` |
+**Component:** `ListTemplate` (Template)
+**Atomic Level:** Template — queryable list lifecycle + merged data shell
+**Status:** Design Draft
+**Parent Template:** [AppTemplate](../00.layout-template/app-template.md)
+**Last Updated:** 2026-04-30
 
-## Description
+---
 
-A dynamic, high-performance template designed for exploring large datasets through a unified query interface. It decouples query generation from list rendering, allowing for flexible filtering across multiple data sources.
+## Overview
 
-## Core Organisms
+`ListTemplate` is the page-type shell for browsing, filtering, and selecting from large data sets. It owns the query state (text filter, date range, tag filter), loads data from the merged data source (Collections, Playground, Journal), and exposes a typed `ListContext` to child pages. The sticky query organism + virtualized filtered list are the defining UI affordances.
 
-### 1. Query Organism (Interface)
-A sticky, top-aligned organism responsible for generating a structured `QueryObject`. Multiple specialized components can implement this interface.
+This template sits between `AppTemplate` (layout panels) and individual list pages (e.g. `CollectionsPage`, search, journal feed) that configure the query organism and item renderers.
 
-| Implementation | Purpose | UI Pattern | Component |
-|----------------|---------|------------|-----------|
-| **Text Filter** | URL-aware text search bar, usable as a `CanvasPage` subheader. | Single-line input with clear button. | `TextFilterStrip` |
-| **Fuzzy Search** | Inline query organism for collection sub-lists. | Real-time input inside the list container. | `FuzzySearchQuery` |
+---
 
-**Requirements**:
-- **Sticky Position**: Must remain fixed at the top of the viewport during scrolling.
-- **Query Output**: Emits a `QueryObject` containing terms, date ranges, and type filters.
+## Pages Using This Template
 
-### 2. Filtered List Organism
-Consumes the `QueryObject` and applies it to the Merged Data Source to render a sorted, virtualized list of items.
+| Page | Route | Current File |
+|------|-------|------|
+| Collections index | `/collections` | `playground/src/views/CollectionsPage.tsx` |
+| Journal feed | `/journal` | `playground/src/views/ListViews.tsx → JournalWeeklyPage` |
+| Search | `/search` | TBD |
 
-**Requirements**:
-- **Consolidated Querying**: Resolves the `QueryObject` against the unified backend.
-- **Dynamic Rendering**: Switches between data-specific layouts based on the result type.
+---
 
-## Data Integration
+## Routing & URL State
+
+All filter state is URL-encoded so filters survive refresh and can be shared.
+
+| Param | nuqs type | `history` | Purpose |
+|-------|-----------|-----------|---------|
+| `?q=` | `string` | `replace` | Text search / filter query |
+| `?d=` | `string` (YYYY-MM-DD) | `replace` | Selected date (journal feed) |
+| `?month=` | `string` (YYYY-MM) | `replace` | Active month in calendar mini-nav |
+| `?tags=` | `string[]` | `replace` | Active tag filters |
+
+By convention all params use `history: 'replace'` — filter changes do not push new browser history entries.
+
+### Hook: `useListQueryState`
+
+Wraps all nuqs params into a single hook consumed by the template:
+
+```ts
+interface ListQueryState {
+  query: string
+  setQuery: (q: string) => void
+  selectedDate: string | null
+  setDateParam: (d: string) => void
+  selectedTags: string[]
+  setTagsParam: (tags: string[]) => void
+}
+```
+
+---
+
+## Data Loading
+
+The template loads from a merged data source that combines three backends. Loading is triggered on mount and re-runs when query state changes.
 
 ### Merged Data Source
-The template queries a unified provider that merges three distinct sources:
-1.  **Collections**: Static markdown library (read-only).
-2.  **Playground**: Ephemeral user notes (IndexedDB).
-3.  **Journal Entries**: Persisted workout logs and notes (IndexedDB).
 
-### Structured Data Types
-The list renders three distinct types of data, each with its own specialized layout:
+| Source | Backend | Read mode |
+|--------|---------|-----------|
+| Collections | Static markdown (`markdown/collections/`) | Read-only, bundled |
+| Playground notes | IndexedDB (`playgroundDB`) | Read-write |
+| Journal entries + results | IndexedDB (`indexedDBService`) | Read-write |
 
-| Data Type | Attributes Displayed | Visual Pattern |
-|-----------|----------------------|----------------|
-| **Note** | Title, excerpt, tags, last updated. | Standard card with text preview. |
-| **Workout Block** | Movement count, estimated duration, protocol (AMRAP/EMOM). | Pill-heavy layout with protocol icons. |
-| **Result** | Performance metrics (reps/load), completion status, date/time. | Metric-focused row with sparklines/graphs. |
+### Typed Output: `ListContext`
 
-## State Management
+```ts
+interface ListContext {
+  // Query state
+  queryState: ListQueryState
 
-Queriable List pages use **URL query params as the primary filter state** so filters survive page refresh and can be shared as links. Most params use `history: 'replace'` — filter changes do not create browser history entries.
+  // Derived query object (computed, not in URL)
+  queryObject: QueryObject
 
-### URL State patterns (nuqs, `history: 'replace'` by convention)
+  // Loaded data
+  items: FilteredListItem[]        // merged, sorted, filtered
+  isLoading: boolean
+  error: string | null
 
-Query params vary per implementation — see individual page docs for exact param names.
+  // Measurements
+  queryHeight: number              // sticky organism height for scroll layout
 
-| Pattern | Param | Type | Used by |
-|---------|-------|------|---------|
-| Text filter | `?q=` | `string` | Search, Collections index |
-| Selected date | `?d=` | `YYYY-MM-DD` | Journal weekly view |
-| Active month | `?month=` | `YYYY-MM` | Journal nav calendar |
-| Tag filters | `?tags=` | comma-separated | Journal |
+  // Actions (event hub)
+  onSelectItem: (item: FilteredListItem) => void
+  onCreateItem: (type: 'note' | 'workout') => void
+  onDeleteItem: (id: string) => void
+}
+```
 
-### Local State (outside URL)
+### `FilteredListItem` Discriminated Union
 
-| State | Type | Purpose |
-|-------|------|---------|
-| `query` | `QueryObject` | Derived query object passed from the Query Organism to the Filtered List. Not in the URL — computed from URL params. |
-| `queryHeight` | `number` | Height of the sticky query organism used for scroll layout calculations (used by `QueriableListView`). |
+```ts
+type FilteredListItem =
+  | { type: 'note';    id: string; payload: NoteItem }
+  | { type: 'workout'; id: string; payload: WorkoutBlock }
+  | { type: 'result';  id: string; payload: WorkoutResult }
+```
+
+---
+
+## Event Hub
+
+The template defines a stable set of list-level events. Inheriting pages override these to customize navigation and side-effects.
+
+| Event | Default Behaviour | Page Override Purpose |
+|-------|-------------------|-----------------------|
+| `onSelectItem(item)` | Routes based on item type: note → `/note/…`, result → `/review/…` | Open item in right panel instead of navigating |
+| `onCreateItem(type)` | Creates new note/workout in IndexedDB → navigates to it | Pre-fill from a template or show a creation dialog |
+| `onDeleteItem(id)` | Soft-deletes from IndexedDB → removes from list | Show confirmation dialog |
+| `onQueryChange(q)` | Updates `?q=` URL param | Debounce or normalize input |
+
+---
+
+## AppTemplate Slot Assignments
+
+| AppTemplate Panel | Default Content | Provided By |
+|-------------------|-----------------|-------------|
+| `leftPanel` | Section / category navigation | Template — `ListCategoryNav` |
+| `contentPanel` | Sticky query organism + filtered list | Template shell |
+| `rightPanel` | Item detail preview (when item selected) | Template — lazy-loaded detail panel |
+| `contentHeader` | Page title + new-item button | Template — `ListHeader` |
+
+The template injects defaults via `usePageLayout`. Individual pages can override any slot.
+
+---
+
+## Page Contract
+
+| Concern | Template Handles | Page Provides |
+|---------|-----------------|---------------|
+| URL state (`?q=`, `?d=`, `?tags=`) | ✅ | — |
+| Merged data load + filtering | ✅ | — |
+| Default slot injection into AppLayoutContext | ✅ | — |
+| Query organism component | ❌ | `queryOrganism: ReactNode` (e.g. `TextFilterStrip`, `FuzzySearchQuery`) |
+| Item renderer per type | ❌ | `renderItem: (item: FilteredListItem) => ReactNode` |
+| Empty-state content | ❌ | `emptyState?: ReactNode` |
+| Data sources to include | Configurable | `sources?: ('collections' \| 'playground' \| 'journal')[]` — defaults to all three |
+| Custom right-panel detail | Optional override | `rightPanel?: ReactNode` |
+
+---
 
 ## Layout Structure
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ [Query Organism (Sticky Top)]                            │
-│ (TextFilterStrip / FuzzySearchQuery / WeekCalendarStrip) │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  [Filtered List Organism]                                │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │ [Item: Note]                                       │  │
-│  ├────────────────────────────────────────────────────┤  │
-│  │ [Item: Workout Block]                              │  │
-│  ├────────────────────────────────────────────────────┤  │
-│  │ [Item: Result]                                      │  │
-│  └────────────────────────────────────────────────────┘  │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
+AppTemplate
+├── leftPanel     → [ListCategoryNav] section / tag tree
+├── contentHeader → [ListHeader]  page title + new item button
+└── contentPanel
+      ├── [QueryOrganism — sticky]   ← provided by page (TextFilterStrip / etc.)
+      │     emits QueryObject downward
+      └── [FilteredList — scrollable]
+            ├── [Item: Note]         ← rendered by page's renderItem()
+            ├── [Item: WorkoutBlock]
+            └── [Item: Result]
 ```

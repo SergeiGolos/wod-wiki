@@ -1,8 +1,147 @@
-|                  |                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------ |
-| **Name**         | Canvas Page                                                                                      |
-| **Code**         | `playground/src/canvas/MarkdownCanvasPage.tsx` + `parseCanvasMarkdown.ts`                        |
-| **Source files** | `markdown/canvas/**/*.md` and `markdown/collections/**/README.md`  (defined on the loading page) |
+# Template: Canvas
+
+**Component:** `CanvasTemplate` (Template)
+**Atomic Level:** Template — scroll-driven editorial lifecycle + markdown content shell
+**Status:** Design Draft
+**Parent Template:** [AppTemplate](../00.layout-template/app-template.md)
+**Last Updated:** 2026-04-30
+
+---
+
+## Overview
+
+`CanvasTemplate` is the page-type shell for scroll-driven editorial content. It owns markdown loading, section parsing (heading → section model), IntersectionObserver-based scroll tracking, and sticky panel assignment. It exposes a typed `CanvasContext` to child pages. The signature affordances are: full-width prose sections, optional two-column sticky view panels, and command pipelines fired on scroll.
+
+This template sits between `AppTemplate` (layout panels) and individual canvas pages (e.g. `HomeView`, `MarkdownCanvasPage`, syntax guides) that supply a markdown source path and optional command handlers.
+
+---
+
+## Pages Using This Template
+
+| Page | Route | Current File |
+|------|-------|------|
+| Home | `/` | `playground/src/views/HomeView.tsx` |
+| Markdown Canvas | `/canvas/*` | `playground/src/canvas/MarkdownCanvasPage.tsx` |
+| Syntax guide | `/syntax` | TBD (markdown-driven) |
+| Collection READMEs | `/collections/:slug` | markdown source via `README.md` |
+
+---
+
+## Routing & URL State
+
+| Param | nuqs type | `history` | Purpose |
+|-------|-----------|-----------|---------|
+| `?h=` | `string` | `replace` + `shallow` | Slug of the most-visible content section. Written continuously by the IntersectionObserver; read once on mount to restore scroll position. |
+
+### Hook: `useCanvasQueryState`
+
+```ts
+interface CanvasQueryState {
+  activeSection: string | null       // current ?h= value
+  setActiveSection: (slug: string) => void
+}
+```
+
+---
+
+## Data Loading
+
+| Data | Source | How |
+|------|--------|-----|
+| Markdown source | Static file (`markdown/canvas/`, `markdown/collections/`, `wod/`) | `fetch()` or Vite `?raw` import — path provided by the page |
+| Parsed section model | Derived from markdown | `parseCanvasMarkdown(source)` → `CanvasSection[]` |
+
+Loading is triggered on mount and re-runs only when the `sourcePath` prop changes. No IndexedDB access at the template level.
+
+### Typed Output: `CanvasContext`
+
+```ts
+interface CanvasContext {
+  // Query state
+  activeSection: string | null
+
+  // Content
+  sections: CanvasSection[]          // parsed from markdown
+  isLoading: boolean
+  error: string | null
+
+  // View panel state
+  viewSource: string | null          // current sticky panel source
+  viewAlignment: 'left' | 'right'
+
+  // Actions (event hub)
+  onSectionEnter: (section: CanvasSection) => void
+  onSectionLeave: (section: CanvasSection) => void
+  onSetSource: (path: string) => void
+  onNavigate: (route: string) => void
+  onRunWorkout: (path: string, mode: 'view' | 'dialog' | 'route') => void
+}
+```
+
+---
+
+## Event Hub
+
+| Event | Default Behaviour | Page Override Purpose |
+|-------|-------------------|-----------------------|
+| `onSectionEnter(section)` | Fires section's `command` pipeline; updates `?h=` | Trigger analytics, animate custom elements |
+| `onSectionLeave(section)` | Fires section's scroll-out pipeline (when defined) | Teardown section-specific state |
+| `onSetSource(path)` | Swaps the sticky view panel source | Intercept to pre-transform the path or validate permissions |
+| `onNavigate(route)` | `useNavigate()(route)` | Confirm before navigating away |
+| `onRunWorkout(path, mode)` | Resolves path → `WodBlock`, routes to tracker or opens overlay | Override to inject custom launch options |
+
+---
+
+## AppTemplate Slot Assignments
+
+| AppTemplate Panel | Default Content | Provided By |
+|-------------------|-----------------|-------------|
+| `leftPanel` | Section TOC (generated from headings) | Template — `CanvasTOC` |
+| `contentPanel` | Sectioned markdown content | Template shell |
+| `rightPanel` | Not used by default | — |
+| `contentHeader` | Page title (from first `##` hero section) | Template — `CanvasHeader` |
+
+The sticky view panel (two-column layout) lives **inside** `contentPanel`, not in a separate AppTemplate panel.
+
+---
+
+## Page Contract
+
+| Concern | Template Handles | Page Provides |
+|---------|-----------------|---------------|
+| URL state (`?h=`) | ✅ | — |
+| Markdown load + parse | ✅ | `sourcePath: string` — the markdown file to load |
+| IntersectionObserver scroll tracking | ✅ | — |
+| Section command pipeline execution | ✅ | — |
+| Default TOC in leftPanel | ✅ | — |
+| Hero section extraction | ✅ | — |
+| Two-column sticky view panel | ✅ (when `view` block present) | — |
+| Custom command handlers | Configurable via event hub | Override `onRunWorkout`, `onNavigate`, etc. |
+| Extra right panel content | Optional override | `rightPanel?: ReactNode` |
+| Custom TOC | Optional override | `leftPanel?: ReactNode` |
+
+---
+
+## Layout Structure
+
+```
+AppTemplate
+├── leftPanel     → [CanvasTOC]  section headings, active highlighted
+├── contentHeader → [CanvasHeader]  page title from hero section
+└── contentPanel
+      ├── [Section: hero]   extracted, not rendered in scroll flow
+      ├── [Section: full-width prose]
+      │     └── [CanvasProse]  markdown, tables, images, code
+      ├── [Section: two-column]
+      │     ├── [CanvasProse 40%]
+      │     └── [StickyViewPanel 60%]  NoteEditor or RuntimeTimerPanel
+      └── [Section: full-bleed]
+            └── [CanvasProse]  edge-to-edge, prose centred max-w-md
+```
+
+---
+
+
 
 ## Description
 

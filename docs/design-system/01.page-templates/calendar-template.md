@@ -1,89 +1,143 @@
-|            |                                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Name**   | Queriable List                                                                                                      |
-| **Code**   | `playground/src/views/queriable-list/QueriableListView.tsx`, `playground/src/views/queriable-list/FilteredList.tsx` |
-| **Routes** | `/journal`, `/search`, `/collections`                                                                               |
+# Template: Calendar
 
-## Description
+**Component:** `CalendarTemplate` (Template)
+**Atomic Level:** Template — date-navigation lifecycle + journal data shell
+**Status:** Design Draft
+**Parent Template:** [AppTemplate](../00.layout-template/app-template.md)
+**Last Updated:** 2026-04-30
 
-A dynamic, high-performance template designed for exploring large datasets through a unified query interface. It decouples query generation from list rendering, allowing for flexible filtering across multiple data sources.
+---
 
-## Core Organisms
+## Overview
 
-### 1. Query Organism (Interface)
-A sticky, top-aligned organism responsible for generating a structured `QueryObject`. Multiple specialized components can implement this interface.
+`CalendarTemplate` is the page-type shell for date-navigated content. It owns the calendar state (selected date, active month), loads journal entries and workout results keyed to those dates, and exposes a typed `CalendarContext` to child pages. The scrollable timeline / date-strip is the defining UI affordance.
 
-| Implementation | Purpose | UI Pattern | Component |
-|----------------|---------|------------|-----------|
-| **Text Filter** | URL-aware text search bar, usable as a `CanvasPage` subheader. | Single-line input with clear button. | `TextFilterStrip` |
-| **Fuzzy Search** | Inline query organism for collection sub-lists. | Real-time input inside the list container. | `FuzzySearchQuery` |
+This template sits between `AppTemplate` (layout panels) and the individual calendar pages (e.g. `JournalWeeklyPage`, `FeedPage`) that configure what is rendered per date cell.
 
-**Requirements**:
-- **Sticky Position**: Must remain fixed at the top of the viewport during scrolling.
-- **Query Output**: Emits a `QueryObject` containing terms, date ranges, and type filters.
+---
 
-### 2. Filtered List Organism
-Consumes the `QueryObject` and applies it to the Merged Data Source to render a sorted, virtualized list of items.
+## Pages Using This Template
 
-**Requirements**:
-- **Consolidated Querying**: Resolves the `QueryObject` against the unified backend.
-- **Dynamic Rendering**: Switches between data-specific layouts based on the result type.
+| Page | Route | Current File |
+|------|-------|------|
+| Journal Weekly | `/journal` | `playground/src/views/ListViews.tsx → JournalWeeklyPage` |
+| Feed (planned) | `/feed` | TBD |
 
-## Data Integration
+---
 
-### Merged Data Source
-The template queries a unified provider that merges three distinct sources:
-1.  **Collections**: Static markdown library (read-only).
-2.  **Playground**: Ephemeral user notes (IndexedDB).
-3.  **Journal Entries**: Persisted workout logs and notes (IndexedDB).
+## Routing & URL State
 
-### Structured Data Types
-The list renders three distinct types of data, each with its own specialized layout:
+All calendar state is URL-encoded so date selections survive refresh and can be shared as links.
 
-| Data Type | Attributes Displayed | Visual Pattern |
-|-----------|----------------------|----------------|
-| **Note** | Title, excerpt, tags, last updated. | Standard card with text preview. |
-| **Workout Block** | Movement count, estimated duration, protocol (AMRAP/EMOM). | Pill-heavy layout with protocol icons. |
-| **Result** | Performance metrics (reps/load), completion status, date/time. | Metric-focused row with sparklines/graphs. |
+| Param | nuqs type | `history` | Purpose |
+|-------|-----------|-----------|---------|
+| `?d=` | `string` (YYYY-MM-DD) | `replace` | Currently-selected / visible date. Written continuously as the user scrolls the timeline; read once on mount to restore scroll position. |
+| `?month=` | `string` (YYYY-MM) | `replace` | Active month shown in the calendar mini-navigator (left panel). Optional — derived from `?d=` when absent. |
+| `?tags=` | `string[]` | `replace` | Active tag filters. Applied to both journal entries and results. |
 
-## State Management
+### Hook: `useCalendarQueryState`
 
-Queriable List pages use **URL query params as the primary filter state** so filters survive page refresh and can be shared as links. Most params use `history: 'replace'` — filter changes do not create browser history entries.
+Wraps all nuqs params into a single hook consumed by the template:
 
-### URL State patterns (nuqs, `history: 'replace'` by convention)
+```ts
+interface CalendarQueryState {
+  selectedDate: string | null        // YYYY-MM-DD
+  setDateParam: (d: string) => void
+  activeMonth: string | null         // YYYY-MM
+  setMonthParam: (m: string) => void
+  selectedTags: string[]
+  setTagsParam: (tags: string[]) => void
+}
+```
 
-Query params vary per implementation — see individual page docs for exact param names.
+---
 
-| Pattern | Param | Type | Used by |
-|---------|-------|------|---------|
-| Text filter | `?q=` | `string` | Search, Collections index |
-| Selected date | `?d=` | `YYYY-MM-DD` | Journal weekly view |
-| Active month | `?month=` | `YYYY-MM` | Journal nav calendar |
-| Tag filters | `?tags=` | comma-separated | Journal |
+## Data Loading
 
-### Local State (outside URL)
+The template loads two datasets keyed to the active date range (visible week ± buffer):
 
-| State | Type | Purpose |
-|-------|------|---------|
-| `query` | `QueryObject` | Derived query object passed from the Query Organism to the Filtered List. Not in the URL — computed from URL params. |
-| `queryHeight` | `number` | Height of the sticky query organism used for scroll layout calculations (used by `QueriableListView`). |
+| Dataset | Source | Hook / Service |
+|---------|--------|---------------|
+| Journal entries (notes) | IndexedDB (`playgroundDB`) | `playgroundDB.getPagesByCategory('journal')` |
+| Workout results | IndexedDB (`indexedDBService`) | `indexedDBService.getRecentResults()` |
+
+Both datasets are loaded on mount and refreshed when the user navigates to a new month. Individual date cells receive pre-bucketed data; no per-cell fetch is needed.
+
+### Typed Output: `CalendarContext`
+
+```ts
+interface CalendarContext {
+  // Query state
+  selectedDate: string | null
+  activeMonth: string | null
+  selectedTags: string[]
+
+  // Data
+  journalEntries: Map<string, JournalEntrySummary>   // date-key → entry summary
+  results: WorkoutResult[]                           // all results in loaded range
+
+  // Actions (event hub)
+  onSelectDate: (dateKey: string) => void
+  onOpenEntry: (dateKey: string) => void
+  onCreateEntry: (date: Date) => void
+  onSelectResult: (resultId: string) => void
+}
+```
+
+---
+
+## Event Hub
+
+The template defines a stable set of calendar-level events. Inheriting pages override these handlers to customize navigation and side-effects.
+
+| Event | Default Behaviour | Page Override Purpose |
+|-------|-------------------|-----------------------|
+| `onSelectDate(dateKey)` | Updates `?d=` URL param; scrolls timeline to date | Highlight a date in a custom date picker |
+| `onOpenEntry(dateKey)` | `navigate('/journal/:dateKey')` | Open entry in a side panel instead of navigating |
+| `onCreateEntry(date)` | Creates new IndexedDB entry → `navigate('/journal/:dateKey')` | Prompt for entry type before creating |
+| `onSelectResult(resultId)` | `navigate('/review/:resultId')` | Show inline result preview |
+| `onVisibleDateChange(dateKey)` | Writes `?d=` param (IO callback, not user intent) | Track analytics or sync external calendar |
+
+---
+
+## AppTemplate Slot Assignments
+
+| AppTemplate Panel | Default Content | Provided By |
+|-------------------|-----------------|-------------|
+| `leftPanel` | Monthly mini-calendar navigator | Template — `CalendarMiniNav` |
+| `contentPanel` | Scrollable weekly timeline + date cells | Template shell, cell content by page |
+| `rightPanel` | Tag filter panel | Template — `TagFilterPanel` |
+| `contentHeader` | Month/year heading + today button | Template — `CalendarHeader` |
+
+The template injects defaults into `AppLayoutContext`. Individual pages can override any slot by calling `usePageLayout({ leftPanel: <custom />, … })` after the template mounts.
+
+---
+
+## Page Contract
+
+| Concern | Template Handles | Page Provides |
+|---------|-----------------|---------------|
+| URL state (`?d=`, `?month=`, `?tags=`) | ✅ | — |
+| Journal entries load | ✅ | — |
+| Results load | ✅ | — |
+| Default slot injection into AppLayoutContext | ✅ | — |
+| Date cell rendering | ❌ | `renderDateCell: (dateKey, data) => ReactNode` |
+| Empty-state content | ❌ | `emptyState?: ReactNode` |
+| Entry creation destination | Configurable via `onCreateEntry` | Override handler or leave default |
+| Custom left panel content | Optional override | `leftPanel?: ReactNode` |
+
+---
 
 ## Layout Structure
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ [Query Organism (Sticky Top)]                            │
-│ (TextFilterStrip / FuzzySearchQuery / WeekCalendarStrip) │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  [Filtered List Organism]                                │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │ [Item: Note]                                       │  │
-│  ├────────────────────────────────────────────────────┤  │
-│  │ [Item: Workout Block]                              │  │
-│  ├────────────────────────────────────────────────────┤  │
-│  │ [Item: Result]                                      │  │
-│  └────────────────────────────────────────────────────┘  │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
+AppTemplate
+├── leftPanel     → [CalendarMiniNav] month grid, highlights days with data
+├── contentHeader → [CalendarHeader]  "April 2026" + Today button
+└── contentPanel
+      └── [WeeklyTimeline] — horizontal scroll or vertical date strips
+            ├── [DateCell: 2026-04-28]  journalEntries['2026-04-28'], results[…]
+            ├── [DateCell: 2026-04-29]  …
+            ├── [DateCell: 2026-04-30]  ← today
+            └── …
 ```
