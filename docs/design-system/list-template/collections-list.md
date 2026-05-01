@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/collections` |
-| **Template** | [Queriable List](_template.md) |
+| **Template** | [Queriable List](design-system/list-template/_template.md) |
 | **Query Organism** | **Text Filter** (`TextFilterStrip` subheader) |
 | **Component** | `CollectionsPage` (`playground/src/views/CollectionsPage.tsx`) |
 | **Shell** | `CanvasPage` (title-bar mode) |
@@ -12,7 +12,7 @@
 
 The root `/collections` index is a browseable, filterable directory of all available workout libraries. It uses the Queriable List pattern — a sticky Query Organism drives a client-side Filtered List — but with a **custom grouped layout** in place of the standard `QueriableListView`.
 
-Collections are partitioned into methodology groups (Kettlebell, CrossFit, Swimming, Other). Selecting any item navigates to the individual collection's Canvas page ([collections-view](../canvas/collections-view.md)).
+Collections are partitioned into methodology groups (Kettlebell, CrossFit, Swimming, Other). Selecting any item navigates to the individual collection's Canvas page ([collections-view](collections-view.md)).
 
 ## Configuration (Queriable List Template)
 
@@ -115,6 +115,6 @@ All three are derived (`useMemo`) — no independent `useState`.
 
 ## Related
 
-- [Collections View](../canvas/collections-view.md) — the per-slug Canvas page loaded when a collection is selected
+- [Collections View](collections-view.md) — the per-slug Canvas page loaded when a collection is selected
 - [Search](search.md) — global search across all data types
-- [Queriable List template](_template.md) — the standard filter+list pattern this page follows
+- [Queriable List template](design-system/list-template/_template.md) — the standard filter+list pattern this page follows

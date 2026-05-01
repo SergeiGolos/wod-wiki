@@ -3,7 +3,7 @@
 |                   |                                                                       |
 | ----------------- | --------------------------------------------------------------------- |
 | **Route Pattern** | `/collection/:slug` (e.g., `/collections/dan-john`)                   |
-| **Template**      | [Canvas Page](_template.md)                                           |
+| **Template**      | [Canvas Page](design-system/canvas-template/_template.md)                                           |
 | **Shell**         | `CanvasPage` (title-bar mode) via `App.tsx`                           |
 | **Component**     | `MarkdownCanvasPage` (`playground/src/canvas/MarkdownCanvasPage.tsx`) |
 | **Source File**   | `markdown/collections/{slug}/README.md`                               |
@@ -60,7 +60,7 @@ A typical collection `README.md` follows this structure:
 isCollection && workoutItems.filter(item => item.category === slug)
 ```
 
-Each item in the list is a clickable row. Clicking triggers the `onSelect` callback in `App.tsx`, which navigates to the [Workout Editor](../note-workspace/workout.md) for that file. This navigation is handled at the router level — it is not a Canvas pipeline action.
+Each item in the list is a clickable row. Clicking triggers the `onSelect` callback in `App.tsx`, which navigates to the [Workout Editor](workout.md) for that file. This navigation is handled at the router level — it is not a Canvas pipeline action.
 
 ## Active Collections
 

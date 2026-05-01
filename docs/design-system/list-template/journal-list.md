@@ -3,7 +3,7 @@
 | | |
 |--|--|
 | **Route Pattern** | `/journal` |
-| **Template** | [Queriable List](_template.md) |
+| **Template** | [Queriable List](design-system/list-template/_template.md) |
 | **Query Organism** | None (journal nav panel drives date/tag state via URL) |
 | **Component** | `JournalWeeklyPage` → `JournalDateScroll` (`playground/src/views/ListViews.tsx`, `playground/src/views/queriable-list/JournalDateScroll.tsx`) |
 | **Shell** | `CanvasPage` (title-bar mode, no subheader) |
