@@ -4,6 +4,9 @@ import { FolderIcon, ChevronRightIcon } from 'lucide-react';
 import { getWodCollections, type WodCollection } from '@/repositories/wod-collections';
 import { useCollectionsQueryState } from '../hooks/useCollectionsQueryState';
 import { getCategoryGroups, getAssignedIds } from '../config/collectionGroups';
+import { findCanvasPage } from '../canvas/canvasRoutes';
+import { CollectionListTemplate, type CollectionListGroup } from '../templates/CollectionListTemplate';
+import { ListPreludeCanvas } from '../templates/ListPreludeCanvas';
 
 /** Special collection link component — navigates to the collection canvas route */
 function CollectionLink({ collection }: { collection: WodCollection }) {
@@ -31,71 +34,70 @@ function CollectionLink({ collection }: { collection: WodCollection }) {
 
 export function CollectionsPage() {
   const { text, selectedCategories } = useCollectionsQueryState();
-  const allCollections = useMemo(() => getWodCollections(), []);
+  const prependedCanvasPage = useMemo(() => findCanvasPage('/collections'), []);
+  const query = useMemo(() => ({ text, selectedCategories }), [selectedCategories, text]);
 
-  const filtered = useMemo(() => {
-    let result = allCollections;
-    if (text.trim()) {
-      const q = text.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q),
-      );
-    }
-    return result;
-  }, [allCollections, text]);
-
-  const grouped = useMemo(() => {
-    const categoryGroups = getCategoryGroups()
-    const assignedIds = getAssignedIds()
-    const filteredMap = new Map(filtered.map(c => [c.id, c]));
-    const result: { label: string; items: WodCollection[] }[] = [];
-
-    const activeCategories = selectedCategories.length > 0
-      ? selectedCategories
-      : Object.keys(categoryGroups);
-
-    for (const cat of activeCategories) {
-      const ids = categoryGroups[cat] ?? []
-      const items = ids.map(id => filteredMap.get(id)).filter(Boolean) as WodCollection[]
-      if (items.length > 0) {
-        const label = cat.charAt(0).toUpperCase() + cat.slice(1)
-        result.push({ label, items })
+  const loadCollections = useMemo(
+    () => (currentQuery: typeof query) => {
+      let result = getWodCollections();
+      if (currentQuery.text.trim()) {
+        const normalizedQuery = currentQuery.text.toLowerCase();
+        result = result.filter(collection =>
+          collection.name.toLowerCase().includes(normalizedQuery)
+          || collection.id.toLowerCase().includes(normalizedQuery),
+        );
       }
-    }
+      return result;
+    },
+    [],
+  );
 
-    // Ungrouped collections — only show when no category filter is active
-    if (selectedCategories.length === 0) {
-      const ungrouped = filtered.filter(c => !assignedIds.has(c.id));
-      if (ungrouped.length > 0) {
-        const existing = result.find(g => g.label === 'Other');
-        if (existing) existing.items.push(...ungrouped);
-        else result.push({ label: 'Other', items: ungrouped });
+  const groupCollections = useMemo(
+    () => (collections: WodCollection[], currentQuery: typeof query): CollectionListGroup<WodCollection>[] => {
+      const categoryGroups = getCategoryGroups();
+      const assignedIds = getAssignedIds();
+      const filteredMap = new Map(collections.map(collection => [collection.id, collection]));
+      const groupedCollections: CollectionListGroup<WodCollection>[] = [];
+
+      const activeCategories = currentQuery.selectedCategories.length > 0
+        ? currentQuery.selectedCategories
+        : Object.keys(categoryGroups);
+
+      for (const category of activeCategories) {
+        const ids = categoryGroups[category] ?? [];
+        const items = ids.map(id => filteredMap.get(id)).filter(Boolean) as WodCollection[];
+        if (items.length > 0) {
+          const label = category.charAt(0).toUpperCase() + category.slice(1);
+          groupedCollections.push({ id: category, label, items });
+        }
       }
-    }
 
-    return result;
-  }, [filtered, selectedCategories]);
+      if (currentQuery.selectedCategories.length === 0) {
+        const ungrouped = collections.filter(collection => !assignedIds.has(collection.id));
+        if (ungrouped.length > 0) {
+          const existingGroup = groupedCollections.find(group => group.id === 'other');
+          if (existingGroup) {
+            existingGroup.items.push(...ungrouped);
+          } else {
+            groupedCollections.push({ id: 'other', label: 'Other', items: ungrouped });
+          }
+        }
+      }
+
+      return groupedCollections;
+    },
+    [],
+  );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-card">
-      <div className="flex-1 overflow-y-auto">
-        {grouped.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-            <p className="text-sm font-medium">No collections found.</p>
-          </div>
-        ) : (
-          grouped.map(group => (
-            <div key={group.label} className="divide-y divide-border">
-              <div className="px-6 pt-5 pb-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase bg-muted/30">
-                {group.label}
-              </div>
-              {group.items.map(collection => (
-                <CollectionLink key={collection.id} collection={collection} />
-              ))}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+    <CollectionListTemplate
+      query={query}
+      loadRecords={loadCollections}
+      mapRecordToItem={collection => collection}
+      getItemKey={collection => collection.id}
+      groupItems={groupCollections}
+      prependedCanvas={prependedCanvasPage ? <ListPreludeCanvas page={prependedCanvasPage} /> : undefined}
+      renderRecord={collection => <CollectionLink collection={collection} />}
+    />
   );
 }

@@ -52,12 +52,12 @@ import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
 const ZERO_TO_HERO_LINKS = [
   { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'statement', label: 'First Statement', type: 'heading' as const },
-  { id: 'timer', label: 'Timers', type: 'heading' as const },
-  { id: 'metrics', label: 'Metrics', type: 'heading' as const },
-  { id: 'groups', label: 'Groups', type: 'heading' as const },
-  { id: 'protocols', label: 'Protocols', type: 'heading' as const },
-  { id: 'notebook', label: 'Notebook', type: 'heading' as const },
+  { id: 'statement',    label: 'Step 1: Movements', type: 'heading' as const },
+  { id: 'metrics',      label: 'Step 2: Metrics', type: 'heading' as const },
+  { id: 'timer',        label: 'Step 3: Timers', type: 'heading' as const },
+  { id: 'groups',       label: 'Step 4: Groups', type: 'heading' as const },
+  { id: 'protocols',    label: 'Step 5: Protocols', type: 'heading' as const },
+  { id: 'review',       label: 'Step 6: Review', type: 'heading' as const },
 ]
 
 const SYNTAX_LINKS = [
@@ -591,7 +591,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           ) : location.pathname === '/journal' ? (
             <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <JournalWeeklyPage 
-                workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
               />
