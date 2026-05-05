@@ -15,7 +15,14 @@
 import { Extension } from "@codemirror/state";
 import { EditorView, hoverTooltip, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { workbenchEventBus } from "@/hooks/useBrowserServices";
+import { workbenchEventBus } from "@/services/WorkbenchEventBus";
+
+function isNavigableUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (/^(javascript|data|vbscript):/i.test(trimmed)) return false;
+  return /^[a-z][a-z0-9+.-]*:/i.test(trimmed) || /^(\/|\.\/|\.\.\/|#|\?)/.test(trimmed);
+}
 
 // ── URL extraction ───────────────────────────────────────────────────
 
@@ -24,7 +31,7 @@ import { workbenchEventBus } from "@/hooks/useBrowserServices";
  * sits inside a `URL` node (child of `Link`) or an `Autolink` node.
  * Returns null if no link is found at that position.
  */
-function urlAtPos(view: EditorView, pos: number): string | null {
+export function urlAtPos(view: EditorView, pos: number): string | null {
   let url: string | null = null;
 
   const tree = syntaxTree(view.state);
@@ -55,7 +62,7 @@ function urlAtPos(view: EditorView, pos: number): string | null {
     cursor = cursor.parent;
   }
 
-  return url && (url.match(/^https?:\/\//) || url.startsWith('wod:')) ? url : null;
+  return url && isNavigableUrl(url) ? url : null;
 }
 
 // ── Hover tooltip ────────────────────────────────────────────────────
