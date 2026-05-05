@@ -2,6 +2,7 @@
 search: hidden
 template: canvas
 route: /getting-started
+type: syntax
 ---
 
 # Zero to Hero {sticky dark full-bleed}

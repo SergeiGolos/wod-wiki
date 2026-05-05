@@ -50,10 +50,10 @@ Always fills the full display. `overflow-hidden` is intentional — nothing scro
 
 | Mode | Trigger | Page |
 |------|---------|------|
-| `waiting` | No WebRTC connection / SDK not yet ready | [Waiting-Chromecast](Waiting-Chromecast.md) |
-| `preview` | `previewData` received from sender | [Preview-Chromecast](Preview-Chromecast.md) |
-| `active` / `idle` | Runtime connected and running | [Runtime-Chromecast](Runtime-Chromecast.md) |
-| `review` | `reviewData` received on workout completion | [Review-Chromecast](Review-Chromecast.md) |
+| `waiting` | No WebRTC connection / SDK not yet ready | [Waiting-Chromecast](../02.page-routes/Waiting-Chromecast.md) |
+| `preview` | `previewData` received from sender | [Preview-Chromecast](../02.page-routes/Preview-Chromecast.md) |
+| `active` / `idle` | Runtime connected and running | [Runtime-Chromecast](../02.page-routes/Runtime-Chromecast.md) |
+| `review` | `reviewData` received on workout completion | [Review-Chromecast](../02.page-routes/Review-Chromecast.md) |
 
 ---
 
@@ -79,7 +79,7 @@ ReceiverApp
 3. Each new `webrtc-offer` triggers `setupTransport()` — disposes any previous session first (reconnection support)
 4. `WebRtcRpcTransport` connects as `answerer`
 5. `ChromecastProxyRuntime` wraps the transport
-6. On disconnect → transport and runtime disposed → receiver returns to [Waiting-Chromecast](Waiting-Chromecast.md)
+6. On disconnect → transport and runtime disposed → receiver returns to [Waiting-Chromecast](../02.page-routes/Waiting-Chromecast.md)
 
 The signaling instance (`ReceiverCastSignaling`) is owned by `ReceiverApp` and **never** disposed, enabling reconnection without a page reload.
 

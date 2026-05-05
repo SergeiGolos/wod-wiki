@@ -32,18 +32,14 @@ export function HomeWelcome({ onOpenSearch, onRun }: HomeWelcomeProps) {
 
       <div className="relative w-full max-w-sm">
         {/* Headline */}
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase leading-tight mb-6">
-          Welcome to<br />WOD Wiki
+        <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase leading-tight mb-6">          
         </h1>
 
         {/* 3-step flow */}
         <div className="flex flex-col gap-4">
 
           {/* Step 01 — Write */}
-          <div className="flex items-start gap-3">
-            <div className="flex-none mt-0.5 w-6 text-center font-mono text-[9px] font-black uppercase tracking-widest text-primary">
-              01
-            </div>
+          <div className="flex items-start gap-3">            
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
                 ✍️ Write
@@ -65,9 +61,6 @@ export function HomeWelcome({ onOpenSearch, onRun }: HomeWelcomeProps) {
 
           {/* Step 02 — Run */}
           <div className="flex items-start gap-3">
-            <div className="flex-none mt-0.5 w-6 text-center font-mono text-[9px] font-black uppercase tracking-widest text-primary">
-              02
-            </div>
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
                 ▶ Run
@@ -89,9 +82,6 @@ export function HomeWelcome({ onOpenSearch, onRun }: HomeWelcomeProps) {
 
           {/* Step 03 — Analyze */}
           <div className="flex items-start gap-3">
-            <div className="flex-none mt-0.5 w-6 text-center font-mono text-[9px] font-black uppercase tracking-widest text-primary">
-              03
-            </div>
             <div>
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
                 📊 Analyze

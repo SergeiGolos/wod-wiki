@@ -40,7 +40,8 @@ function isRouteActive(to: string) {
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
 const syntaxChildren: NavItem[] = canvasRoutes
-  .filter(r => !r.route.startsWith('/collections'))
+  .filter(r => !r.route.startsWith('/collections'))  
+  .filter(r => r.page.frontmatter?.type === 'syntax')  
   .map(r => ({
   id: `syntax-${r.route}`,
   label: r.page.sections[0]?.heading ?? 'Untitled',
@@ -50,15 +51,7 @@ const syntaxChildren: NavItem[] = canvasRoutes
   isActive: (loc: Location) => loc.pathname === r.route,
 }))
 
-const homeChildren: NavItem[] = [
-  {
-    id: 'zero-to-hero',
-    label: 'Zero to Hero',
-    level: 2,
-    icon: AcademicCapIcon,
-    action: { type: 'route', to: '/getting-started' },
-    isActive: isRouteActive('/getting-started'),
-  },
+const homeChildren: NavItem[] = [  
   {
     id: 'syntax-group',
     label: 'Syntax',

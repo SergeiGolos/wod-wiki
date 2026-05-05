@@ -61,6 +61,7 @@ export interface CanvasSection {
 }
 
 export interface ParsedCanvasPage {
+  frontmatter: Record<string, any>
   template: string
   route: string
   sections: CanvasSection[]
@@ -266,5 +267,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections }
+  return { template: 'canvas', route, sections, frontmatter: meta }
 }
