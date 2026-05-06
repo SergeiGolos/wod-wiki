@@ -540,7 +540,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         if (open === 'view')   launchViewRuntime(block)
         else if (open === 'route') {
           const runtimeId = uuidv4()
-          pendingRuntimes.set(runtimeId, { block, noteId: '' })
+          pendingRuntimes.set(runtimeId, { block, noteId: canvasNoteId })
           navigate(`/tracker/${runtimeId}`)
         } else {
           setFullscreenBlock(block)

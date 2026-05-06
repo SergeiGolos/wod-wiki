@@ -74,10 +74,11 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPage
 
   const mapResultsToItems = useCallback((resultsToMap: any[], currentQuery: typeof query) => {
     const combined: FilteredListItem[] = resultsToMap.map(r => {
-      const isPlayground = r.noteId.startsWith('playground/') || UUID_RE.test(r.noteId)
+      const safeNoteId = r.noteId || ''
+      const isPlayground = safeNoteId.startsWith('playground/') || UUID_RE.test(safeNoteId)
 
-      const parts = r.noteId.split('/');
-      const lastSegment = parts[parts.length - 1] || r.noteId;
+      const parts = safeNoteId.split('/');
+      const lastSegment = parts[parts.length - 1] || safeNoteId;
       const isDateSegment = /^\d{4}-\d{2}-\d{2}$/.test(lastSegment);
       const title = isPlayground
         ? 'Playground'
