@@ -42,6 +42,7 @@ import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
 // ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
+import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
 import { NotePageActions } from './pages/shared/NotePageActions'
@@ -52,12 +53,12 @@ import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
 
 const ZERO_TO_HERO_LINKS = [
   { id: 'introduction', label: 'Introduction', type: 'heading' as const },
-  { id: 'statement', label: 'First Statement', type: 'heading' as const },
-  { id: 'timer', label: 'Timers', type: 'heading' as const },
-  { id: 'metrics', label: 'Metrics', type: 'heading' as const },
-  { id: 'groups', label: 'Groups', type: 'heading' as const },
-  { id: 'protocols', label: 'Protocols', type: 'heading' as const },
-  { id: 'notebook', label: 'Notebook', type: 'heading' as const },
+  { id: 'statement',    label: 'Step 1: Movements', type: 'heading' as const },
+  { id: 'metrics',      label: 'Step 2: Metrics', type: 'heading' as const },
+  { id: 'timer',        label: 'Step 3: Timers', type: 'heading' as const },
+  { id: 'groups',       label: 'Step 4: Groups', type: 'heading' as const },
+  { id: 'protocols',    label: 'Step 5: Protocols', type: 'heading' as const },
+  { id: 'review',       label: 'Step 6: Review', type: 'heading' as const },
 ]
 
 const SYNTAX_LINKS = [
@@ -278,6 +279,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           })
           
           if (isCollection && collectionSlug && s.prose.includes('{{workouts}}')) {
+             links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
              const collectionItems = workoutItems.filter(item => 
                item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
              )
@@ -362,6 +364,25 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     setIsCommandPaletteOpen(true)
   }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
 
+  // Open palette in "load into home editor" mode — selection injects content,
+  // does NOT navigate. onContentSelected receives the raw markdown string.
+  const openHomePalette = useCallback((onContentSelected: (content: string) => void) => {
+    const strategy = createGlobalSearchStrategy(
+      workoutItems,
+      (item: any) => {
+        // Resolve raw markdown content from the item
+        const content: string =
+          item.content ?? item.markdown ?? item.source ?? item.description ?? ''
+        onContentSelected(content)
+        setIsCommandPaletteOpen(false)
+      },
+      navigate,
+      canvasRoutes,
+    )
+    setStrategy(strategy)
+    setIsCommandPaletteOpen(true)
+  }, [workoutItems, navigate, canvasRoutes, setStrategy, setIsCommandPaletteOpen])
+
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
   useEffect(() => {
@@ -380,8 +401,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // Keyboard shortcut for command palette
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + K: Global Search
-      if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
+      // Ctrl/Cmd + /: Global Search
+      if ((e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
         openSearchPalette()
@@ -543,8 +564,9 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           <NavbarSpacer />
           <NavbarSection>
             <NewEntryButton />
-            <NavbarItem onClick={openSearchPalette} aria-label="Search">
+            <NavbarItem onClick={openSearchPalette} aria-label="Search" className="flex items-center gap-3">
               <MagnifyingGlassIcon data-slot="icon" />
+              <ShortcutBadge tokens={['meta', '/']} />
             </NavbarItem>
             <div className="flex items-center">
               <CastButtonRpc />
@@ -560,28 +582,34 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Home" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="Playground" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <HomeView
                 wodFiles={workoutFiles as Record<string, string>}
                 theme={actualTheme}
                 workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
+                onOpenHomePalette={openHomePalette}
               />
             </CanvasPage>
           ) : location.pathname === '/journal' ? (
             <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <JournalWeeklyPage 
-                workoutItems={workoutItems}
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
-            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage
+              title={currentWorkout.name}
+              subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" /> : undefined}
+              index={currentNavLinks}
+              onScrollToSection={scrollToSection}
+              actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}
+            >
               <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}

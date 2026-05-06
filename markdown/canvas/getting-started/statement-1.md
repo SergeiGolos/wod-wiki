@@ -6,5 +6,5 @@ section: statement
 order: 1
 ---
 ```wod
-Pushups
+// Type an exercise here (e.g. Pushups)
 ```

@@ -42,6 +42,10 @@ function formatDateHeader(date: Date): string {
   });
 }
 
+function sameDay(left: Date, right: Date): boolean {
+  return localDateKey(left) === localDateKey(right);
+}
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export interface JournalDateScrollHandle {
@@ -66,6 +70,20 @@ interface JournalDateScrollProps {
   onVisibleDateChange?: (dateKey: string) => void;
   stickyOffset?: number;
   className?: string;
+  renderNoteCard?: (args: {
+    dateKey: string;
+    entry: JournalEntrySummary;
+    isToday: boolean;
+    onOpenEntry?: (dateKey: string) => void;
+  }) => React.ReactNode;
+  renderResultRow?: (item: FilteredListItem, onSelect: (item: FilteredListItem) => void) => React.ReactNode;
+  renderEmptyDate?: (args: {
+    date: Date;
+    dateKey: string;
+    isFuture: boolean;
+    isToday: boolean;
+    onCreateEntry?: (date: Date) => void;
+  }) => React.ReactNode;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -81,6 +99,10 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       onVisibleDateChange,
       stickyOffset = 0,
       className,
+      renderNoteCard,
+      renderResultRow,
+      renderEmptyDate,
+      initialDate,
     },
     ref,
   ) => {
@@ -100,6 +122,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     // Suppress sentinel firing until the initial mount scroll has completed
     const mountScrollDoneRef = useRef(false);
+    const topSentinelArmedRef = useRef(false);
 
     // Refs to allow observer callbacks to read current values without stale closures.
     // Both start and end are tracked so the IO callbacks (empty deps []) never use stale state.
@@ -147,8 +170,14 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     const [dateWindow, setDateWindow] = useState<{ start: Date; end: Date }>(() => {
       const today = new Date();
-      // Start window with today as the top (newest) item and 7 days of history below.
-      // Future dates are loaded lazily by the top sentinel when the user scrolls up.
+      if (initialDate) {
+        const ceiling = addDays(today, 90);
+        return {
+          start: addDays(initialDate, -14),
+          end: addDays(initialDate, 14) > ceiling ? ceiling : addDays(initialDate, 14),
+        };
+      }
+
       return {
         start: addDays(today, -7),
         end: today,
@@ -332,20 +361,25 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
       },
     }), [suppressReportUntilScrollEnd, scrollToElement]);
 
-    // On mount: snap to the top. Today is always the first item in the descending list
-    // (initial window ends at today), so no complex offset math is needed — just reset
-    // scroll position to 0 in case the browser restored a previous position.
-    // Sentinels are suppressed until this completes to avoid mount-time burst loading.
+    // On mount: restore the requested date when present; otherwise keep the existing
+    // behavior of snapping to the top of the timeline.
     useEffect(() => {
-      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
       requestAnimationFrame(() => {
+        if (initialDate && !sameDay(initialDate, new Date())) {
+          const key = localDateKey(initialDate);
+          const el = dateGroupRefs.current.get(key);
+          if (el) {
+            const top = el.getBoundingClientRect().top + window.scrollY - activeStickyTop - 8;
+            window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+          }
+        } else {
+          window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+        }
+
         mountScrollDoneRef.current = true;
-        // Re-check sentinels that were pre-visible during mount suppression
         recheckSentinels();
       });
-      // Intentionally run only on mount; deps are stable
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [activeStickyTop, initialDate, recheckSentinels]);
 
     // After window rebuild: instantly jump to the pending off-window target.
     // Smooth scroll is wrong here — the DOM was fully rebuilt so there is no
@@ -369,12 +403,36 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     // Inserts new rows at the top — useLayoutEffect compensates the viewport shift.
 
     useEffect(() => {
+      const armTopSentinel = () => {
+        if (!mountScrollDoneRef.current || suppressReportRef.current || topSentinelArmedRef.current) {
+          return;
+        }
+
+        topSentinelArmedRef.current = true;
+        recheckSentinels();
+      };
+
+      window.addEventListener('scroll', armTopSentinel, { passive: true });
+      return () => {
+        window.removeEventListener('scroll', armTopSentinel);
+      };
+    }, [recheckSentinels]);
+
+    useEffect(() => {
       const sentinel = topSentinelRef.current;
       if (!sentinel) return;
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting || isPrependingRef.current || !mountScrollDoneRef.current || suppressReportRef.current) return;
+          if (
+            !entry.isIntersecting
+            || isPrependingRef.current
+            || !mountScrollDoneRef.current
+            || suppressReportRef.current
+            || !topSentinelArmedRef.current
+          ) {
+            return;
+          }
 
           // Ceiling: don't load more than 90 days into the future.
           // Pre-check via ref before setting the guard to prevent deadlock if state update is a no-op.
@@ -583,21 +641,30 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
               <div className="flex flex-col gap-0 pb-1">
                 {/* Note card — links to the journal entry for this date */}
                 {noteEntry ? (
-                  <button
-                    onClick={() => onOpenEntry?.(key)}
-                    className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group"
-                  >
-                    <div className="flex-shrink-0 size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <FileTextIcon className="size-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-foreground truncate">
-                        {noteEntry.title}
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground font-medium">Note</p>
-                    </div>
-                    <ChevronRightIcon className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
-                  </button>
+                  renderNoteCard ? (
+                    renderNoteCard({
+                      dateKey: key,
+                      entry: noteEntry,
+                      isToday,
+                      onOpenEntry,
+                    })
+                  ) : (
+                    <button
+                      onClick={() => onOpenEntry?.(key)}
+                      className="flex items-center gap-4 px-6 py-3.5 hover:bg-muted/40 transition-colors text-left group"
+                    >
+                      <div className="flex-shrink-0 size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <FileTextIcon className="size-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-foreground truncate">
+                          {noteEntry.title}
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground font-medium">Note</p>
+                      </div>
+                      <ChevronRightIcon className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
+                    </button>
+                  )
                 ) : null}
 
                 {/* Results — split into Workouts and Playground groups */}
@@ -605,19 +672,25 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                   const workoutResults = dayResults.filter(i => i.group !== 'playground')
                   const playgroundResults = dayResults.filter(i => i.group === 'playground')
 
-                  const renderResultRow = (item: FilteredListItem) => (
-                    <ResultListItem
-                      key={`result-${item.id}`}
-                      timeLabel={
-                        item.date
-                          ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                          : '—'
-                      }
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      onClick={() => onSelect(item)}
-                    />
-                  )
+                  const renderResult = (item: FilteredListItem) => {
+                    if (renderResultRow) {
+                      return renderResultRow(item, onSelect)
+                    }
+
+                    return (
+                      <ResultListItem
+                        key={`result-${item.id}`}
+                        timeLabel={
+                          item.date
+                            ? new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : '—'
+                        }
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        onClick={() => onSelect(item)}
+                      />
+                    )
+                  }
 
                   const renderGroup = (label: string, items: FilteredListItem[]) =>
                     items.length > 0 && (
@@ -629,7 +702,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
                           </span>
                           <div className="h-px flex-1 bg-border/40" />
                         </div>
-                        {items.map(renderResultRow)}
+                        {items.map(renderResult)}
                       </div>
                     )
 
@@ -643,7 +716,15 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
                 {/* Empty state — future dates show a "Plan workout" button; past dates show a quiet placeholder */}
                 {isEmpty && (
-                  isFuture ? (
+                  renderEmptyDate ? (
+                    renderEmptyDate({
+                      date,
+                      dateKey: key,
+                      isFuture,
+                      isToday,
+                      onCreateEntry,
+                    })
+                  ) : isFuture ? (
                     <button
                       data-date={key}
                       data-testid="journal-plan-workout"

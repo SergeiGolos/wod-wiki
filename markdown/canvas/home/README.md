@@ -2,6 +2,7 @@
 search: hidden
 template: canvas
 route: /
+hidden: true
 ---
 
 # WOD Wiki {sticky dark full-bleed}

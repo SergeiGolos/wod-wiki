@@ -142,5 +142,13 @@ export function usePlaygroundContent({
     });
   }, [pageId, category, name, mdContent]);
 
+  // Flush any pending debounced save on unmount (navigation away, route change, etc.)
+  // Uses refs so the cleanup always sees the latest pageId/category/name.
+  useEffect(() => {
+    return () => {
+      flush();
+    };
+  }, [flush]);
+
   return { content, loading, onChange, onLineChange, onBlur, resetToOriginal, isModified, flush };
 }

@@ -3,16 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { FolderIcon, ChevronRightIcon } from 'lucide-react';
 import { getWodCollections, type WodCollection } from '@/repositories/wod-collections';
 import { useCollectionsQueryState } from '../hooks/useCollectionsQueryState';
-import { getCategoryGroups, getAssignedIds } from '../config/collectionGroups';
+import { findCanvasPage } from '../canvas/canvasRoutes';
+import { CollectionListTemplate } from '../templates/CollectionListTemplate';
+import { ListPreludeCanvas } from '../templates/ListPreludeCanvas';
 
-/** Special collection link component — navigates to the collection canvas route */
-function CollectionLink({ collection }: { collection: WodCollection }) {
-  const navigate = useNavigate();
+function CollectionRow({ collection }: { collection: WodCollection }) {
+  const hasCategories = collection.categories.length > 0;
+
   return (
-    <button
-      onClick={() => navigate(`/collections/${encodeURIComponent(collection.id)}`)}
-      className="w-full flex items-center gap-4 px-6 py-4 hover:bg-muted/50 transition-colors text-left group"
-    >
+    <div className="w-full flex items-center gap-4 px-6 py-4 text-left group">
       <div className="flex-shrink-0 size-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-background transition-colors">
         <FolderIcon className="size-4 text-amber-500" />
       </div>
@@ -20,82 +19,72 @@ function CollectionLink({ collection }: { collection: WodCollection }) {
         <h3 className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
           {collection.name}
         </h3>
-        <p className="text-xs text-muted-foreground font-medium">
-          {collection.count} workout{collection.count !== 1 ? 's' : ''}
-        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-1">
+          <p className="text-xs text-muted-foreground font-medium">
+            {collection.count} workout{collection.count !== 1 ? 's' : ''}
+          </p>
+          {hasCategories ? collection.categories.map(category => (
+            <span
+              key={category}
+              className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary"
+            >
+              {category.replace(/-/g, ' ')}
+            </span>
+          )) : (
+            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+              Other
+            </span>
+          )}
+        </div>
       </div>
       <ChevronRightIcon className="size-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-    </button>
+    </div>
   );
 }
 
 export function CollectionsPage() {
   const { text, selectedCategories } = useCollectionsQueryState();
-  const allCollections = useMemo(() => getWodCollections(), []);
+  const prependedCanvasPage = useMemo(() => findCanvasPage('/collections'), []);
+  const query = useMemo(() => ({ text, selectedCategories }), [selectedCategories, text]);
+  const navigate = useNavigate();
 
-  const filtered = useMemo(() => {
-    let result = allCollections;
-    if (text.trim()) {
-      const q = text.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q),
-      );
-    }
-    return result;
-  }, [allCollections, text]);
+  const loadCollections = useMemo(
+    () => (currentQuery: typeof query) => {
+      let result = getWodCollections();
 
-  const grouped = useMemo(() => {
-    const categoryGroups = getCategoryGroups()
-    const assignedIds = getAssignedIds()
-    const filteredMap = new Map(filtered.map(c => [c.id, c]));
-    const result: { label: string; items: WodCollection[] }[] = [];
-
-    const activeCategories = selectedCategories.length > 0
-      ? selectedCategories
-      : Object.keys(categoryGroups);
-
-    for (const cat of activeCategories) {
-      const ids = categoryGroups[cat] ?? []
-      const items = ids.map(id => filteredMap.get(id)).filter(Boolean) as WodCollection[]
-      if (items.length > 0) {
-        const label = cat.charAt(0).toUpperCase() + cat.slice(1)
-        result.push({ label, items })
+      if (currentQuery.selectedCategories.length > 0) {
+        result = result.filter(collection =>
+          collection.categories.some(category => currentQuery.selectedCategories.includes(category)),
+        );
       }
-    }
 
-    // Ungrouped collections — only show when no category filter is active
-    if (selectedCategories.length === 0) {
-      const ungrouped = filtered.filter(c => !assignedIds.has(c.id));
-      if (ungrouped.length > 0) {
-        const existing = result.find(g => g.label === 'Other');
-        if (existing) existing.items.push(...ungrouped);
-        else result.push({ label: 'Other', items: ungrouped });
+      if (currentQuery.text.trim()) {
+        const normalizedQuery = currentQuery.text.toLowerCase();
+        result = result.filter(collection =>
+          collection.name.toLowerCase().includes(normalizedQuery)
+          || collection.id.toLowerCase().includes(normalizedQuery),
+        );
       }
-    }
-
-    return result;
-  }, [filtered, selectedCategories]);
+      return result;
+    },
+    [],
+  );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-card">
-      <div className="flex-1 overflow-y-auto">
-        {grouped.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-            <p className="text-sm font-medium">No collections found.</p>
-          </div>
-        ) : (
-          grouped.map(group => (
-            <div key={group.label} className="divide-y divide-border">
-              <div className="px-6 pt-5 pb-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase bg-muted/30">
-                {group.label}
-              </div>
-              {group.items.map(collection => (
-                <CollectionLink key={collection.id} collection={collection} />
-              ))}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+    <CollectionListTemplate
+      query={query}
+      loadRecords={loadCollections}
+      mapRecordToItem={collection => collection}
+      getItemKey={collection => collection.id}
+      prependedCanvas={prependedCanvasPage ? <ListPreludeCanvas page={prependedCanvasPage} /> : undefined}
+      renderPrimaryContent={collection => <CollectionRow collection={collection} />}
+      getItemActions={collection => [
+        {
+          id: 'open',
+          label: 'Open',
+          onSelect: item => navigate(`/collections/${encodeURIComponent(item.id)}`),
+        },
+      ]}
+    />
   );
 }

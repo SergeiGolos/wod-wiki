@@ -2,12 +2,13 @@
 search: hidden
 template: canvas
 route: /getting-started
+type: syntax
 ---
 
 # Zero to Hero {sticky dark full-bleed}
 
 Go from a blank note to a complete tracked workout in six steps.
-Each section introduces one concept. Try each example before moving on.
+Each section introduces one concept. Follow the "Your Turn" prompts to build your workout.
 
 ```view
 name:    z2h
@@ -19,7 +20,7 @@ align:   right
 width:   48%
 ```
 
-## Step 1 — Your First Movement {sticky}
+## Step 1: Movements {sticky #statement}
 
 A WOD block is a fenced code block tagged `wod`. The simplest possible workout is a single movement on one line.
 
@@ -30,7 +31,7 @@ pipeline:
   - set-state: note
 ```
 
-Type an exercise name. That's it. The runtime will track how many reps you do when you hit play.
+**Your Turn:** Click into the editor on the right and type an exercise name (e.g., `Pushups`). That's it.
 
 ```button
 label:  Try This →
@@ -39,7 +40,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 2 — Add Reps and Load {sticky}
+## Step 2: Metrics {sticky #metrics}
 
 Put a number before the exercise name for a rep count. Add a weight after for load tracking.
 
@@ -59,9 +60,9 @@ pipeline:
   - set-state: track
 ```
 
-## Step 3 — Your First Timer {sticky}
+## Step 3: Timers {sticky #timer}
 
-Prefix a movement with a time like `5:00` to run it as a countdown. The timer starts when you hit play and stops when the time is up.
+Prefix a movement with a time like `5:00` to run it as a countdown.
 
 ```command
 target: z2h
@@ -79,7 +80,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 4 — Rounds and Groups {sticky}
+## Step 4: Groups {sticky #groups}
 
 Wrap movements in `(N Rounds)` to repeat them. Indent everything inside the group.
 
@@ -99,7 +100,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 5 — Your First AMRAP {sticky}
+## Step 5: Protocols {sticky #protocols}
 
 AMRAP — As Many Rounds As Possible. Set a time cap, mark the block `(AMRAP)`, and race the clock.
 
@@ -119,9 +120,9 @@ pipeline:
   - set-state: track
 ```
 
-## Step 6 — Save and Review {sticky}
+## Step 6: Review {sticky #review}
 
-Every session you track is stored in your notebook. Open Review to see reps, times, and load side by side across sessions.
+Every session you track is stored in your Journal. Open Review to see reps, times, and load side by side across sessions.
 
 ```command
 target: z2h

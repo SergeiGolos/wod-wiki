@@ -61,6 +61,7 @@ export interface CanvasSection {
 }
 
 export interface ParsedCanvasPage {
+  frontmatter: Record<string, any>
   template: string
   route: string
   sections: CanvasSection[]
@@ -243,11 +244,15 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
 
   const flush = (acc: Acc) => {
     const { prose, view, commands, buttons } = extractBlocks(acc.lines.join('\n'))
+    
+    // Support explicit ID in attributes (e.g. {#statement})
+    const explicitId = acc.attrs.find(a => a.startsWith('#'))?.slice(1)
+    
     sections.push({
-      id:       slugify(acc.heading) || `section-${sections.length}`,
+      id:       explicitId || slugify(acc.heading) || `section-${sections.length}`,
       heading:  acc.heading,
       level:    acc.level,
-      attrs:    acc.attrs,
+      attrs:    acc.attrs.filter(a => !a.startsWith('#')), // Strip ID from visual attrs
       prose,
       view,
       commands,
@@ -266,5 +271,5 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   }
   if (cur) flush(cur)
 
-  return { template: 'canvas', route, sections }
+  return { template: 'canvas', route, sections, frontmatter: meta }
 }

@@ -11,13 +11,18 @@
  * result be linked to the note rather than the static collection file.
  */
 
+import { getWodCollection } from '@/repositories/wod-collections';
 import { playgroundDB, PlaygroundDBService } from './playgroundDB';
 
 export interface AppendWorkoutOptions {
   /** Display name of the workout (e.g. 'Fran'). */
   workoutName: string;
-  /** Collection category slug (e.g. 'crossfit-girls'). Used for the backlink. */
+  /** Collection slug used as a fallback source when no explicit note link is provided. */
   category: string;
+  /** Optional display label for the source note link. */
+  sourceNoteLabel?: string;
+  /** Optional route to the source note. */
+  sourceNotePath?: string;
   /** Raw text inside the wod fence (without backticks) or full page content. */
   wodContent: string;
   /**
@@ -42,6 +47,8 @@ export interface AppendWorkoutOptions {
 export async function appendWorkoutToJournal({
   workoutName,
   category,
+  sourceNoteLabel,
+  sourceNotePath,
   wodContent,
   date,
   wrapInWod = true,
@@ -53,13 +60,20 @@ export async function appendWorkoutToJournal({
   const existing = await playgroundDB.getPage(noteId);
   const baseContent = existing?.content ?? `# ${dateKey}\n`;
 
-  const collectionPath = `/collections/${encodeURIComponent(category)}`;
+  const resolvedSourceLabel = sourceNoteLabel?.trim() || category;
+  const resolvedSourcePath = sourceNotePath?.trim() || `/collections/${encodeURIComponent(category)}`;
+  const collection = getWodCollection(category);
+  const siblingLinks = collection?.items
+    .filter(item => item.id !== workoutName)
+    .map(item => `[${category}-${item.id}](/workout/${encodeURIComponent(category)}/${encodeURIComponent(item.id)})`) ?? [];
   
   const lines = [
     `\n## ${workoutName}`,
-    `Source: [${category}](${collectionPath})`,
+    `Source: [${resolvedSourceLabel}](${resolvedSourcePath})`,
+    collection ? `Collection: [${collection.id}](/collections/${encodeURIComponent(collection.id)})` : null,
+    siblingLinks.length > 0 ? `Other Workouts: ${siblingLinks.join(' · ')}` : null,
     '',
-  ];
+  ].filter((line): line is string => line !== null);
 
   if (wrapInWod) {
     lines.push('```wod');

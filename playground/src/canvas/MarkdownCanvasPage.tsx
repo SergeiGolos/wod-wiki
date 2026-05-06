@@ -12,7 +12,7 @@
  * so only one command pipeline fires at a time — no flicker.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { ArrowLeft, Eye, Maximize2, Play } from 'lucide-react'
@@ -36,11 +36,29 @@ import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
 import { CollectionWorkoutsList } from '../views/queriable-list/CollectionWorkoutsList'
-import { getCategoryForCollection } from '../config/collectionGroups'
 
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
 const MOBILE_STICKY_TOP = 65
+// Matches Tailwind's `lg` breakpoint (1024px).  Used to select the correct
+// IntersectionObserver rootMargin for mobile vs desktop — mirrors ParallaxSection.
+const MOBILE_BREAKPOINT_PX = 1023
+
+function getPageStickyOffset(fallback: number): number {
+  if (typeof document === 'undefined') return fallback
+
+  const stickyElements = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-page-sticky-boundary="true"]'),
+  )
+
+  const visibleBottom = stickyElements.reduce((maxBottom, element) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.height <= 0 || rect.bottom <= 0) return maxBottom
+    return Math.max(maxBottom, rect.bottom)
+  }, 0)
+
+  return visibleBottom > 0 ? visibleBottom + 24 : fallback
+}
 
 // ── Source resolution ─────────────────────────────────────────────────────────
 
@@ -296,9 +314,40 @@ export interface MarkdownCanvasPageProps {
   theme: string
   workoutItems?: WorkoutItem[]
   onSelect?: (item: WorkoutItem) => void
+  /**
+   * Optional in-memory content to load into the editor instead of the DSL
+   * source path. When set (non-empty), it overrides the resolved source.
+   * Used by HomeWelcome search bar to inject a workout without a file path.
+   */
+  contentOverride?: string
+  /**
+   * Optional ReactNode rendered in the first sticky panel's MacOSChrome header.
+   * Used by HomeView to inject Run / Reset / Results / Share controls.
+   */
+  panelHeaderActions?: ReactNode
+  /**
+   * Called once on mount with imperative handles for the first panel.
+   * Lets HomeWelcome wire the Run / Reset / Results / Fullscreen buttons
+   * without the canvas needing to know about external UI.
+   */
+  onPanelActionsReady?: (actions: PanelActions) => void
+  /**
+   * Optional ReactNode rendered as the very first item inside the scrolling
+   * left column — before section 01. Used by HomeView to inject the welcome
+   * hero copy so it sits alongside the sticky editor panel, not above it.
+   */
+  heroSlot?: ReactNode
 }
 
-export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect }: MarkdownCanvasPageProps) {
+export interface PanelActions {
+  run: () => void
+  reset: () => void
+  results: () => void
+  fullscreen: () => void
+  getSource: () => string
+}
+
+export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, contentOverride, panelHeaderActions, onPanelActionsReady, heroSlot }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
 
@@ -325,7 +374,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   // View definition — carries the initial source and alignment
   const viewDef = sections.find(s => s.view)?.view ?? null
-  const chromeTitle  = viewDef?.name ?? 'WodScript'
+  const chromeTitle  = 'WodScript'
   const stickyAlign  = viewDef?.align ?? 'right'
 
   // Keep editor source in both state (for the NoteEditor value prop) and a ref
@@ -335,9 +384,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const [editorOpacity, setEditorOpacity] = useState(1)
   const editorSourceRef = useRef(initialSource)
   const swapTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Tracks the compiled WodBlocks from the NoteEditor so set-state:track can grab one
-  const wodBlocksRef = useRef<WodBlock[]>([])
 
   // ── Panel state machine ────────────────────────────────────────────────────
   // 'editor'    — NoteEditor shown (default)
@@ -371,7 +417,17 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     }, 180)
   }, [])
 
-  // Launch a block in view (inline) mode
+  // When a content override arrives (e.g. from search bar workout selection), swap it in.
+  const prevContentOverride = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (contentOverride && contentOverride !== prevContentOverride.current) {
+      prevContentOverride.current = contentOverride
+      swapSource(contentOverride)
+    }
+  }, [contentOverride, swapSource])
+
+  // Tracks the compiled WodBlocks from the NoteEditor so set-state:track can grab one
+  const wodBlocksRef = useRef<WodBlock[]>([])
   const launchViewRuntime = useCallback((block: WodBlock) => {
     activeViewBlockRef.current = block
     activeRuntimes.set(block.id, block)
@@ -412,6 +468,10 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     history: 'replace',
     shallow: true,
   })
+  const [collectionQuery] = useQueryState('q', {
+    defaultValue: '',
+    shallow: true,
+  })
 
   // ── NavActionDeps — single dispatch object for all INavAction surfaces ──────
   const deps = useMemo<NavActionDeps>(() => ({
@@ -447,6 +507,37 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const depsRef = useRef(deps)
   depsRef.current = deps
 
+  // Expose imperative panel actions to parent (e.g. HomeWelcome action bar).
+  // We use mutable refs for all handlers so the panel actions object is stable
+  // but always calls the *current* function — avoids stale-closure bugs.
+  const launchViewRuntimeRef  = useRef(launchViewRuntime)
+  const closeViewRuntimeRef   = useRef(closeViewRuntime)
+  const setPanelModeRef       = useRef(setPanelMode)
+  const setFullscreenBlockRef = useRef(setFullscreenBlock)
+  launchViewRuntimeRef.current  = launchViewRuntime
+  closeViewRuntimeRef.current   = closeViewRuntime
+  setPanelModeRef.current       = setPanelMode
+  setFullscreenBlockRef.current = setFullscreenBlock
+
+  const onPanelActionsReadyRef = useRef(onPanelActionsReady)
+  onPanelActionsReadyRef.current = onPanelActionsReady
+  useEffect(() => {
+    onPanelActionsReadyRef.current?.({
+      run: () => {
+        const block = wodBlocksRef.current[0] ?? null
+        if (block) launchViewRuntimeRef.current(block)
+      },
+      reset: () => closeViewRuntimeRef.current(),
+      results: () => setPanelModeRef.current('review'),
+      fullscreen: () => {
+        const block = wodBlocksRef.current[0] ?? null
+        if (block) setFullscreenBlockRef.current(block)
+      },
+      getSource: () => editorSourceRef.current,
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // RunButtonState — state for the run/reconnect ButtonGroup
   const runState: RunButtonState = {
     isReconnect: hasActiveViewRuntime && panelMode !== 'running',
@@ -462,6 +553,10 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const lastActiveSectionId = useRef<string | null>(null)
   const ratioMap            = useRef(new Map<string, number>())
   const scrollDirRef        = useRef<1 | -1>(1)
+  // True once the user (or a programmatic scroll-to) has actually moved the page.
+  // Prevents the observer from writing ?h= or firing scroll-commands on the
+  // initial layout pass before any scrolling has occurred.
+  const hasUserScrolledRef  = useRef(false)
 
   const setStepRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) stepRefs.current.set(id, el)
@@ -471,13 +566,24 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   useEffect(() => {
     if (contentSections.length === 0) return
 
+    // Seed the flag so navigating back to a pre-scrolled position works correctly.
+    hasUserScrolledRef.current = window.scrollY > 0
+
     let lastScrollY = window.scrollY
     const trackScroll = () => {
       const y = window.scrollY
-      if (y !== lastScrollY) scrollDirRef.current = y > lastScrollY ? 1 : -1
+      if (y !== lastScrollY) {
+        scrollDirRef.current = y > lastScrollY ? 1 : -1
+        hasUserScrolledRef.current = true
+      }
       lastScrollY = y
     }
     window.addEventListener('scroll', trackScroll, { passive: true })
+
+    // Use a tighter top dead-zone on mobile to account for the sticky panel
+    // sitting below the global nav bar (mirrors the ParallaxSection pattern).
+    const isMobile = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches
+    const rootMargin = isMobile ? `-${MOBILE_STICKY_TOP}px 0px -20% 0px` : '-30% 0px -30% 0px'
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -508,22 +614,28 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
         if (bestId && bestId !== lastActiveSectionId.current) {
           lastActiveSectionId.current = bestId
-          // Update ?h= via RouteQueryAction (replaceState — no history flood)
-          executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
-          const section = contentSections.find(s => s.id === bestId)
-          if (section) {
-            for (const cmd of section.commands) {
-              // Scroll-triggered commands default to 'view' (inline panel).
-              const steps = cmd.pipeline.map(s => pipelineStepToNavAction(s, cmd.open ?? 'view'))
-              executeNavAction(
-                steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
-                depsRef.current,
-              )
+          // Guard: only update URL and fire scroll-commands after the user (or a
+          // programmatic restore-scroll) has actually moved the page.  This
+          // prevents the initial layout pass from immediately writing ?h= and
+          // triggering view-source swaps before any interaction.
+          if (hasUserScrolledRef.current) {
+            // Update ?h= via RouteQueryAction (replaceState — no history flood)
+            executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
+            const section = contentSections.find(s => s.id === bestId)
+            if (section) {
+              for (const cmd of section.commands) {
+                // Scroll-triggered commands default to 'view' (inline panel).
+                const steps = cmd.pipeline.map(s => pipelineStepToNavAction(s, cmd.open ?? 'view'))
+                executeNavAction(
+                  steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
+                  depsRef.current,
+                )
+              }
             }
           }
         }
       },
-      { rootMargin: '-30% 0px -30% 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75] },
+      { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] },
     )
 
     stepRefs.current.forEach(el => observer.observe(el))
@@ -544,12 +656,33 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     requestAnimationFrame(() => {
       const el = stepRefs.current.get(headingParam)
       if (!el) return
-      const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - STICKY_NAV_HEIGHT - 24
+      const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - getPageStickyOffset(STICKY_NAV_HEIGHT)
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     })
     // Only run on mount — intentionally omitting headingParam from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentSections])
+
+  const previousCollectionQueryRef = useRef(collectionQuery)
+  useEffect(() => {
+    if (!isCollection) {
+      previousCollectionQueryRef.current = collectionQuery
+      return
+    }
+
+    const nextQuery = collectionQuery.trim()
+    const previousQuery = previousCollectionQueryRef.current.trim()
+
+    if (nextQuery && nextQuery !== previousQuery) {
+      const listElement = document.getElementById('collection-workouts')
+      if (listElement) {
+        const top = listElement.getBoundingClientRect().top + window.scrollY - getPageStickyOffset(STICKY_NAV_HEIGHT)
+        window.scrollTo({ top, behavior: 'smooth' })
+      }
+    }
+
+    previousCollectionQueryRef.current = collectionQuery
+  }, [collectionQuery, isCollection])
 
   // ── Panel node — shared between desktop and mobile ────────────────────────
 
@@ -626,6 +759,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           enableOverlay={false}
           enableInlineRuntime={false}
           commands={[]}
+          hideDefaultCommands={true}
           className="h-full"
         />
       </div>
@@ -640,7 +774,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
       <div className="flex-1 min-h-0">
-        <MacOSChrome title={panelTitle}>
+        <MacOSChrome title={panelTitle} headerActions={panelHeaderActions}>
           {panelContent}
         </MacOSChrome>
       </div>
@@ -661,7 +795,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     >
       <div className="flex flex-col gap-2" style={{ height: '100%' }}>
         <div className="flex-1 min-h-0">
-          <MacOSChrome title={panelTitle}>
+          <MacOSChrome title={panelTitle} headerActions={panelHeaderActions}>
             {panelContent}
           </MacOSChrome>
         </div>
@@ -672,6 +806,103 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
             deps={deps}
           />
         )}
+      </div>
+    </div>
+  )
+
+  const renderCanvasSection = ({
+    section,
+    idx,
+    prose,
+    blockId,
+    keySuffix,
+    showHeading = true,
+    showEyebrow = true,
+    renderButtons = true,
+    registerForObserver = false,
+  }: {
+    section: CanvasSection
+    idx: number
+    prose?: string
+    blockId: string
+    keySuffix: string
+    showHeading?: boolean
+    showEyebrow?: boolean
+    renderButtons?: boolean
+    registerForObserver?: boolean
+  }) => {
+    const fullBleed = isFullBleed(section)
+    const dark = isDark(section)
+    const trimmedProse = prose?.trim() ?? ''
+
+    return (
+      <div
+        key={`${section.id}-${keySuffix}`}
+        id={blockId}
+        ref={registerForObserver ? setStepRef(section.id) : undefined}
+        data-section-id={registerForObserver ? section.id : undefined}
+        className={cn(
+          'border-b border-border/50',
+          viewDef
+            ? fullBleed
+              ? 'min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10'
+              : 'min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10'
+            : 'py-16 lg:py-24 px-6 lg:px-12',
+          dark && 'bg-muted/20 relative overflow-hidden',
+          !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
+        )}
+      >
+        {dark && (
+          <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+        )}
+
+        <div className={cn(
+          'relative',
+          viewDef
+            ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
+            : 'max-w-4xl w-full mx-auto',
+        )}>
+          {showEyebrow && (!fullBleed || !viewDef) && (
+            <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
+              {String(idx + 1).padStart(2, '0')}
+            </div>
+          )}
+
+          {showHeading ? (
+            <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
+              {section.heading}
+            </h2>
+          ) : null}
+
+          {trimmedProse ? <CanvasProse prose={trimmedProse} className="mb-6" /> : null}
+
+          {renderButtons ? (
+            <SectionButtons
+              activations={section.buttons.map((b, i) => buttonToActivation(b, i))}
+              fullBleed={fullBleed}
+              runState={viewDef ? runState : undefined}
+              deps={deps}
+            />
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  const renderCollectionListSection = (key: string) => (
+    <div
+      key={key}
+      id="collection-workouts"
+      className="border-b border-border/50 bg-card"
+    >
+      <div className="w-full mx-auto">
+        <CollectionWorkoutsList
+          category={collectionSlug ?? ''}
+          workoutItems={workoutItems ?? []}
+          onSelect={handleSelectWorkout}
+          showSearch={false}
+          variant="flat"
+        />
       </div>
     </div>
   )
@@ -699,125 +930,48 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           <div className={cn('w-full', viewDef && 'lg:w-[40%]')}>
             {mobilePanel}
 
-            {/* Category chip — collection detail pages only */}
-            {isCollection && collectionSlug && (() => {
-              const category = getCategoryForCollection(collectionSlug)
-              if (!category) return null
-              const slug = category.toLowerCase()
-              return (
-                <div className="px-6 lg:px-12 pt-6 pb-0">
-                  <button
-                    onClick={() => navigate(`/collections?categories=${slug}`)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                  >
-                    {category}
-                  </button>
-                </div>
-              )
-            })()}
+            {heroSlot}
 
             {contentSections.map((section, idx) => {
-              const fullBleed = isFullBleed(section)
-              const dark      = isDark(section)
+              if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
+                const [beforeProse = '', afterProse = ''] = section.prose.split('{{workouts}}')
 
-              return (
-                <div
-                  key={section.id}
-                  id={section.id}
-                  ref={setStepRef(section.id)}
-                  data-section-id={section.id}
-                  className={cn(
-                    'border-b border-border/50',
-                    viewDef
-                      ? fullBleed
-                        ? 'min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10'
-                        : 'min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10'
-                      : 'py-16 lg:py-24 px-6 lg:px-12',
-                    dark && 'bg-muted/20 relative overflow-hidden',
-                    !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
-                  )}
-                >
-                  {dark && (
-                    <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-                  )}
+                return [
+                  renderCanvasSection({
+                    section,
+                    idx,
+                    prose: beforeProse,
+                    blockId: section.id,
+                    keySuffix: 'before-workouts',
+                    renderButtons: false,
+                    registerForObserver: true,
+                  }),
+                  renderCollectionListSection(`${section.id}-workouts`),
+                  afterProse.trim() || section.buttons.length > 0 ? renderCanvasSection({
+                    section,
+                    idx,
+                    prose: afterProse,
+                    blockId: `${section.id}-after`,
+                    keySuffix: 'after-workouts',
+                    showHeading: false,
+                    showEyebrow: false,
+                  }) : null,
+                ]
+              }
 
-                  <div className={cn(
-                    'relative',
-                    viewDef
-                      ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
-                      : 'max-w-4xl w-full mx-auto',
-                  )}>
-                    {/* Eyebrow — section index in the existing primary-colored style */}
-                    {(!fullBleed || !viewDef) && (
-                      <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-                        {String(idx + 1).padStart(2, '0')}
-                      </div>
-                    )}
-
-                    <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
-                      {section.heading}
-                    </h2>
-
-                    {section.prose && (
-                      (() => {
-                        if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
-                          const parts = section.prose.split('{{workouts}}')
-                          return (
-                            <>
-                              {parts[0] && <CanvasProse prose={parts[0]} className="mb-6" />}
-                              <div className="h-[600px] flex flex-col mb-6">
-                                <CollectionWorkoutsList
-                                  category={collectionSlug}
-                                  workoutItems={workoutItems}
-                                  onSelect={handleSelectWorkout}
-                                />
-                              </div>
-                              {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
-                            </>
-                          )
-                        }
-                        
-                        return <CanvasProse prose={section.prose} className="mb-6" />
-                      })()
-                    )}
-
-                    <SectionButtons
-                      activations={section.buttons.map((b, i) => buttonToActivation(b, i))}
-                      fullBleed={fullBleed}
-                      runState={viewDef ? runState : undefined}
-                      deps={deps}
-                    />
-                  </div>
-                </div>
-              )
+              return renderCanvasSection({
+                section,
+                idx,
+                prose: section.prose,
+                blockId: section.id,
+                keySuffix: 'default',
+                registerForObserver: true,
+              })
             })}
 
             {/* Collection workouts list fallback if tag not found in any section */}
             {isCollection && !hasWorkoutsTag && collectionSlug && workoutItems && (
-              <div 
-                id="collection-workouts"
-                className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50"
-              >
-                <div className="max-w-sm mb-12">
-                  <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-                    Explore
-                  </div>
-                  <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
-                    Collection Workouts
-                  </h2>
-                  <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                    Browse and search every workout in the {collectionSlug.replace(/-/g, ' ')} collection.
-                  </p>
-                </div>
-
-                <div className="flex-1 min-h-[500px] h-[600px] flex flex-col">
-                  <CollectionWorkoutsList
-                    category={collectionSlug}
-                    workoutItems={workoutItems}
-                    onSelect={handleSelectWorkout}
-                  />
-                </div>
-              </div>
+              renderCollectionListSection('collection-workouts-fallback')
             )}
           </div>
 

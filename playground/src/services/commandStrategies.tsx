@@ -4,7 +4,7 @@ import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
 
 /**
- * Strategy 1: Global Search (Ctrl + K)
+ * Strategy 1: Global Search (Ctrl + /)
  * Searches across collections and results/notes in IndexedDB.
  * Canvas template pages are surfaced as navigation route cards, not workout items.
  */

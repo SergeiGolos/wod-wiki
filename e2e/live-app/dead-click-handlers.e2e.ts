@@ -5,6 +5,12 @@ const viewports = [
   { name: 'mobile', size: { width: 375, height: 812 } },
 ];
 
+async function openSidebarIfNeeded(page: Parameters<typeof test>[0]['page'], viewportName: string) {
+  if (viewportName === 'mobile') {
+    await page.getByLabel('Open navigation').click();
+  }
+}
+
 function localDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -15,12 +21,30 @@ test.describe('Live App Click Handler Navigation', () => {
       await page.setViewportSize(viewport.size);
       await page.goto('/collections?categories=crossfit', { waitUntil: 'domcontentloaded' });
 
+      await page.goto('/collections/crossfit-games-2020', { waitUntil: 'domcontentloaded' });
+      await openSidebarIfNeeded(page, viewport.name);
+      await expect(page.getByRole('button', { name: /^kettlebell$/i }).last()).toBeVisible();
+      await page.getByRole('button', { name: /^crossfit$/i }).click();
+      await expect(page).toHaveURL(/\/collections\?categories=crossfit$/);
+
       await page.getByRole('button', { name: /crossfit girls/i }).click();
       await expect(page).toHaveURL(/\/collections\/crossfit-girls$/);
 
-      await page.locator('#collection-workouts').getByRole('button', { name: /^fran\b/i }).click();
+      await page.locator('#collection-workouts').getByRole('button', { name: /^annie\b/i }).click();
+      await expect(page).toHaveURL(/\/workout\/crossfit-girls\/annie$/);
+
+      await openSidebarIfNeeded(page, viewport.name);
+      await expect(page.getByRole('button', { name: /crossfit girls/i }).last()).toBeVisible();
+      await expect(page.getByRole('button', { name: /^annie$/i }).last()).toBeVisible();
+      await expect(page.getByRole('button', { name: /^annie$/i }).last()).toHaveClass(/bg-primary\/10/);
+      await expect(page.getByRole('button', { name: /^fran$/i }).last()).toBeVisible();
+
+      await page.getByRole('button', { name: /^fran$/i }).last().click();
       await expect(page).toHaveURL(/\/workout\/crossfit-girls\/fran$/);
-      await expect(page.getByText(/famous CrossFit benchmark workout/i).first()).toBeVisible();
+
+      await openSidebarIfNeeded(page, viewport.name);
+      await page.getByRole('button', { name: /crossfit girls/i }).last().click();
+      await expect(page).toHaveURL(/\/collections\/crossfit-girls$/);
 
       await page.screenshot({
         path: `e2e/screenshots/dead-click-collections-workout-${viewport.name}.png`,

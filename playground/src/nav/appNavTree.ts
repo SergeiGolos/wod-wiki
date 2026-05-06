@@ -17,7 +17,6 @@ import {
   RectangleStackIcon,
   FolderIcon,
   MagnifyingGlassIcon,
-  AcademicCapIcon,
   CodeBracketIcon,
 } from '@heroicons/react/20/solid'
 
@@ -27,6 +26,7 @@ import type { Location } from 'react-router-dom'
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
+import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -37,10 +37,19 @@ function isRouteActive(to: string) {
       : loc.pathname.startsWith(to)
 }
 
+function isCollectionWorkoutRoute(loc: Location): boolean {
+  const match = loc.pathname.match(/^\/workout\/([^/]+)\/[^/]+$/)
+  if (!match) return false
+
+  const category = decodeURIComponent(match[1])
+  return !NON_COLLECTION_CATEGORIES.has(category)
+}
+
 // ─── L2 children for Home ─────────────────────────────────────────────────────
 
 const syntaxChildren: NavItem[] = canvasRoutes
-  .filter(r => !r.route.startsWith('/collections'))
+  .filter(r => !r.route.startsWith('/collections'))  
+  .filter(r => r.page.frontmatter?.type === 'syntax')  
   .map(r => ({
   id: `syntax-${r.route}`,
   label: r.page.sections[0]?.heading ?? 'Untitled',
@@ -50,15 +59,7 @@ const syntaxChildren: NavItem[] = canvasRoutes
   isActive: (loc: Location) => loc.pathname === r.route,
 }))
 
-const homeChildren: NavItem[] = [
-  {
-    id: 'zero-to-hero',
-    label: 'Zero to Hero',
-    level: 2,
-    icon: AcademicCapIcon,
-    action: { type: 'route', to: '/getting-started' },
-    isActive: isRouteActive('/getting-started'),
-  },
+const homeChildren: NavItem[] = [  
   {
     id: 'syntax-group',
     label: 'Syntax',
@@ -110,7 +111,7 @@ export function buildAppNavTree(openSearch: () => void): NavItem[] {
     level: 1,
     icon: FolderIcon,
     action: { type: 'route', to: '/collections' },
-    isActive: isRouteActive('/collections'),
+    isActive: (loc) => isRouteActive('/collections')(loc) || isCollectionWorkoutRoute(loc),
     panel: CollectionsNavPanel,
   },
 

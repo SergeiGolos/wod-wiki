@@ -11,7 +11,7 @@
  *  3. MultiSourceSearch    – workouts + results mixed (global search pattern)
  *  4. StatementBuilder     – contextual header with segment pills
  *  5. EmptyResults         – query that matches nothing
- *  6. DialogTrigger        – full dialog experience (click or ⌘K to open)
+ *  6. DialogTrigger        – full dialog experience (click or ⌘/ to open)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -30,7 +30,7 @@ const navItems: IListItem<{ action: string }>[] = [
   { id: 'n2', label: 'Go to Playground',        group: 'Navigation', shortcut: ['g', 'h'], keywords: ['playground'], payload: { action: 'nav-home' } },
   { id: 'n3', label: 'Go to Calendar',           group: 'Navigation', shortcut: ['g', 'c'], keywords: ['calendar'], payload: { action: 'nav-calendar' } },
   { id: 'a1', label: 'New Journal Entry',        group: 'Actions',    shortcut: ['meta', 'n'], payload: { action: 'new-entry' } },
-  { id: 'a2', label: 'Search Workouts',          group: 'Actions',    shortcut: ['meta', 'k'], payload: { action: 'search' } },
+  { id: 'a2', label: 'Search Workouts',          group: 'Actions',    shortcut: ['meta', '/'], payload: { action: 'search' } },
 ];
 
 const wodItems: IListItem<{ action: string }>[] = [
@@ -247,7 +247,7 @@ const DialogTriggerDemo: React.FC = () => {
   useEffect(() => {
     const cleanups = dialogCommands.map(cmd => registerCommand(cmd));
     const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setIsOpen(true); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setIsOpen(true); }
     };
     window.addEventListener('keydown', handleKey);
     return () => { cleanups.forEach(c => c()); window.removeEventListener('keydown', handleKey); };
@@ -256,7 +256,7 @@ const DialogTriggerDemo: React.FC = () => {
   return (
     <div className="flex flex-col items-center gap-6 py-16">
       <p className="text-sm text-zinc-500 text-center">
-        Click the button or press <kbd className="rounded border border-zinc-200 px-1.5 py-0.5 text-xs">⌘K</kbd> to open the palette as a dialog.
+        Click the button or press <kbd className="rounded border border-zinc-200 px-1.5 py-0.5 text-xs">⌘/</kbd> to open the palette as a dialog.
       </p>
       <button
         onClick={() => setIsOpen(true)}
@@ -264,7 +264,7 @@ const DialogTriggerDemo: React.FC = () => {
       >
         <Search className="h-3.5 w-3.5 text-zinc-400" />
         Open palette
-        <kbd className="ml-1 rounded border border-zinc-200 px-1 py-0.5 text-[10px] text-zinc-400 dark:border-zinc-600">⌘K</kbd>
+        <kbd className="ml-1 rounded border border-zinc-200 px-1 py-0.5 text-[10px] text-zinc-400 dark:border-zinc-600">⌘/</kbd>
       </button>
       <CommandPalette />
     </div>

@@ -16,6 +16,7 @@
 
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
 import { EditorState, Range, StateField, Extension } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
 import { sectionField } from "./section-state";
 
 // ── Regex patterns ───────────────────────────────────────────────────
@@ -54,6 +55,7 @@ function buildDecorations(state: EditorState): DecorationSet {
   const cursor = state.selection.main.head;
   const cursorLineNum = state.doc.lineAt(cursor).number;
   const decos: Range<Decoration>[] = [];
+  const tree = syntaxTree(state);
 
   for (const section of sections) {
     // Only decorate markdown prose — leave wod/code/frontmatter alone.
@@ -87,7 +89,41 @@ function buildDecorations(state: EditorState): DecorationSet {
 
       if (onCursorLine) continue;
 
-      // 1. Process bold `**text**` first and record their char ranges so
+      // 1. Hide inline markdown link syntax while leaving the visible label.
+      const linkRanges: Array<[number, number]> = [];
+
+      tree.iterate({
+        from: line.from,
+        to: line.to,
+        enter(node) {
+          if (node.name !== "Link" || node.from < line.from || node.to > line.to) {
+            return;
+          }
+
+          const linkText = state.doc.sliceString(node.from, node.to);
+          const labelStart = linkText.indexOf("[");
+          const labelEnd = linkText.indexOf("](");
+          const urlEnd = linkText.lastIndexOf(")");
+
+          if (labelStart !== 0 || labelEnd <= labelStart || urlEnd <= labelEnd + 1) {
+            return false;
+          }
+
+          const absoluteLabelEnd = node.from + labelEnd;
+          const absoluteUrlStart = absoluteLabelEnd + 2;
+          const absoluteUrlEnd = node.from + urlEnd;
+
+          linkRanges.push([node.from, node.to]);
+          decos.push(Decoration.replace({}).range(node.from, node.from + 1));
+          decos.push(Decoration.replace({}).range(absoluteLabelEnd, absoluteLabelEnd + 2));
+          decos.push(Decoration.replace({}).range(absoluteUrlStart, absoluteUrlEnd));
+          decos.push(Decoration.replace({}).range(absoluteUrlEnd, absoluteUrlEnd + 1));
+
+          return false;
+        },
+      });
+
+      // 2. Process bold `**text**` first and record their char ranges so
       //    the italic pass can skip positions already covered.
       const boldRanges: Array<[number, number]> = [];
 
@@ -106,19 +142,24 @@ function buildDecorations(state: EditorState): DecorationSet {
       const overlapsWithBold = (start: number, end: number): boolean =>
         boldRanges.some(([bs, be]) => start < be && end > bs);
 
-      // 2. Italic with `*` — skip matches that fall inside a bold span.
+      const overlapsWithLink = (start: number, end: number): boolean =>
+        linkRanges.some(([ls, le]) => start < le && end > ls);
+
+      // 3. Italic with `*` — skip matches that fall inside a bold or link span.
       ITALIC_STAR_RE.lastIndex = 0;
       while ((m = ITALIC_STAR_RE.exec(lineText)) !== null) {
         if (overlapsWithBold(m.index, m.index + m[0].length)) continue;
+        if (overlapsWithLink(line.from + m.index, line.from + m.index + m[0].length)) continue;
         const from = line.from + m.index;
         const to = from + m[0].length;
         decos.push(Decoration.replace({}).range(from, from + 1));
         decos.push(Decoration.replace({}).range(to - 1, to));
       }
 
-      // 3. Italic with `_`.
+      // 4. Italic with `_`.
       ITALIC_UNDER_RE.lastIndex = 0;
       while ((m = ITALIC_UNDER_RE.exec(lineText)) !== null) {
+        if (overlapsWithLink(line.from + m.index, line.from + m.index + m[0].length)) continue;
         const from = line.from + m.index;
         const to = from + m[0].length;
         decos.push(Decoration.replace({}).range(from, from + 1));

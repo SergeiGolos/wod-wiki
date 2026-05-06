@@ -3,12 +3,12 @@
 |                    |                                                       |
 | ------------------ | ----------------------------------------------------- |
 | **Route Patterns** | `/tracker/:runtimeId`, `/review/:runtimeId`           |
-| **Template**       | [Tracker / Review](_template.md) |
+| **Template**       | [Tracker / Review](design-system/runtime-execution/_template.md) |
 | **Components**     | `TrackerPage`, `ReviewPage`                           |
 
 ## State Management
 
-See [Tracker / Review template](_template.md#state-management) for the shared state model.
+See [Tracker / Review template](design-system/runtime-execution/_template.md#state-management) for the shared state model.
 
 ## Description
 

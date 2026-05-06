@@ -29,6 +29,7 @@ import {
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
 import { useTheme } from '@/components/theme/ThemeProvider'
+import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '@/components/ui/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
 import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton'
 import { playgroundDB } from '../../services/playgroundDB'
@@ -143,6 +144,10 @@ export function ActionsMenu({
     URL.revokeObjectURL(url)
   }
 
+  const handleBuyMeACoffee = () => {
+    window.open(BUY_ME_A_COFFEE_URL, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <Dropdown>
       <DropdownButton plain>
@@ -183,6 +188,10 @@ export function ActionsMenu({
         <DropdownItem onClick={handleDownload}>
           <ArrowDownTrayIcon data-slot="icon" />
           <DropdownLabel>Download Markdown</DropdownLabel>
+        </DropdownItem>
+        <DropdownItem onClick={handleBuyMeACoffee}>
+          <BuyMeACoffeeIcon data-slot="icon" className="size-5" />
+          <DropdownLabel>Buy Me a Coffee</DropdownLabel>
         </DropdownItem>
         <DropdownItem onClick={handleToggleDebug}>
           <BugAntIcon data-slot="icon" />

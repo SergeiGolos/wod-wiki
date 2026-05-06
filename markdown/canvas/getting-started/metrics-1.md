@@ -7,6 +7,6 @@ order: 1
 ---
 ```wod
 10 Pushups
-15 Situps
-20 Air Squats
+5 Deadlift 225lb
+Run 400m
 ```

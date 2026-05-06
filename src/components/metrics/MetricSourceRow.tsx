@@ -258,7 +258,7 @@ export const MetricSourceRow: React.FC<MetricSourceRowProps> = ({
                                 )}
                             >
                                 <MetricVisualizer
-                                    metrics={group.toArray()}
+                                    metrics={group}
                                     size={size}
                                     filter={filter}
                                     className={cn("inline-flex", currentConfig.fontSize)}

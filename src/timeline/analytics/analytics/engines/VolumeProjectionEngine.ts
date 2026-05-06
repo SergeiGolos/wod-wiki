@@ -102,7 +102,7 @@ export class VolumeProjectionEngine implements IAnalyticsStage {
     const now = new Date();
 
     return [{
-      name: `${exerciseName} Volume`,
+      name: 'Total Volume',
       value: totalVolume,
       unit: "kg",
       metricType: MetricType.Volume,

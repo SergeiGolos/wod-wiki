@@ -1,4 +1,4 @@
-# Atomic Design Audit — wod-wiki Storybook
+										# Atomic Design Audit — wod-wiki Storybook
 
 > **Analyzed:** 2026-04-21
 > **Scope:** All 38 Storybook entries across `stories/catalog/{atoms,molecules,organisms,templates,pages}/`
@@ -8,13 +8,13 @@
 
 ## Summary
 
-| Classification | Total | Correct | Misclassified |
-|---------------|-------|---------|---------------|
-| **Atoms** | 25 | 11 | **14** |
-| **Molecules** | 6 | 2 | **4** (2 should be organisms, 1 duplicate, 1 missing) |
-| **Organisms** | 3 | 3 | 0 |
-| **Templates** | 8 | 8 | 0 |
-| **Pages** | 4 | 4 | 0 |
+| Classification | Total | Correct | Misclassified                                         |
+| -------------- | ----- | ------- | ----------------------------------------------------- |
+| **Atoms**      | 25    | 11      | **14**                                                |
+| **Molecules**  | 6     | 2       | **4** (2 should be organisms, 1 duplicate, 1 missing) |
+| **Organisms**  | 3     | 3       | 0                                                     |
+| **Templates**  | 8     | 8       | 0                                                     |
+| **Pages**      | 4     | 4       | 0                                                     |
 
 **17 misclassifications found.** The `atoms/` folder is heavily overloaded — it contains components that are clearly molecules (composing 2+ atoms) and one organism. The root cause is likely that "atom" was used as a catch-all for "anything that isn't a full page section."
 
