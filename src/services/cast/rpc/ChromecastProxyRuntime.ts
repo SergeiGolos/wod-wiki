@@ -10,7 +10,7 @@ import { IOutputStatement } from '@/core/models/OutputStatement';
 import { RuntimeStackOptions, RuntimeStackTracker, TrackerUpdate, TrackerSnapshot } from '@/runtime/contracts/IRuntimeOptions';
 import { TimeSpan } from '@/runtime/models/TimeSpan';
 import { BlockKey } from '@/core/models/BlockKey';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { JitCompiler } from '@/runtime/compiler/JitCompiler';
 import { IAnalyticsEngine } from '@/core/contracts/IAnalyticsEngine';
 import type { IRpcTransport } from './IRpcTransport';
@@ -156,7 +156,7 @@ export type WorkbenchStateListener = (state: WorkbenchDisplayState) => void;
  */
 export class ChromecastProxyRuntime implements IScriptRuntime {
     readonly options: RuntimeStackOptions = {};
-    readonly script: WodScript = new WodScript('', []);
+    readonly script: WhiteboardScript = new WhiteboardScript('', []);
     readonly eventBus: IEventBus;
     readonly stack: IRuntimeStack;
     readonly jit: JitCompiler = null as any; // Not available on proxy

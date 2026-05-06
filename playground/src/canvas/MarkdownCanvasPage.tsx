@@ -381,7 +381,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   // View definition — carries the initial source and alignment
   const viewDef = sections.find(s => s.view)?.view ?? null
-  const chromeTitle  = 'WodScript'
+  const chromeTitle  = 'Whiteboard Script'
   const stickyAlign  = viewDef?.align ?? 'right'
 
   // Keep editor source in both state (for the NoteEditor value prop) and a ref

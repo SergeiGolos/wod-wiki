@@ -1,7 +1,7 @@
 import type { IScriptRuntime, OutputListener, TrackerListener } from './contracts/IScriptRuntime';
 import type { IJitCompiler } from './contracts/IJitCompiler';
 import type { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
-import type { WodScript } from '../parser/WodScript';
+import type { WhiteboardScript } from '../parser/WhiteboardScript';
 import type { RuntimeError } from './actions/ErrorAction';
 import type { IEventBus } from './contracts/events/IEventBus';
 import {
@@ -70,7 +70,7 @@ export class ScriptRuntime implements IScriptRuntime {
     private _abortHandlerUnsub: (() => void) | null = null;
 
     constructor(
-        public readonly script: WodScript,
+        public readonly script: WhiteboardScript,
         compiler: IJitCompiler,
         dependencies: ScriptRuntimeDependencies,
         options: RuntimeStackOptions = {}

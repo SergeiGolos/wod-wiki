@@ -63,9 +63,9 @@ Your score is the sum of your heaviest successful lift in each movement.
 
 export const WithCodeBlocks: Story = {
   args: {
-    prose: `## WodScript Syntax
+    prose: `## Whiteboard Script Syntax
 
-Use the WodScript language to define timed and rep-based workouts.
+Use the Whiteboard Script language to define timed and rep-based workouts.
 
 ### Timer
 

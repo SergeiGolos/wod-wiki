@@ -6,12 +6,12 @@
  * 
  * @example
  * ```typescript
- * import { WodScript, ScriptRuntime, JitCompiler } from 'wod-wiki/core';
+ * import { WhiteboardScript, ScriptRuntime, JitCompiler } from 'wod-wiki/core';
  * ```
  */
 
 // Core classes
-export { WodScript } from './parser/WodScript';
+export { WhiteboardScript } from './parser/WhiteboardScript';
 export { BlockKey } from './core/models/BlockKey';
 export { Duration, SpanDuration } from './core/models/Duration';
 export { CodeStatement } from './core/models/CodeStatement';

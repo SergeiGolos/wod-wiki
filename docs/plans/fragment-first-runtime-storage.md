@@ -24,7 +24,7 @@ This creates a conversion layer (`metricsToFragments.ts`) that:
 ### Current Flow (With Adapters)
 
 ```
-Parse: WodScript → Parser → ICodeFragment[] → UI ✅
+Parse: WhiteboardScript → Parser → ICodeFragment[] → UI ✅
                                       ↑
                                (direct binding)
 
@@ -36,7 +36,7 @@ Runtime: Block → SpanMetrics → metricsToFragments() → ICodeFragment[] → 
 ### Goal: Unified Fragment-Based Storage
 
 ```
-Parse: WodScript → Parser → ICodeFragment[] → UI ✅
+Parse: WhiteboardScript → Parser → ICodeFragment[] → UI ✅
 
 Runtime: Block → ICodeFragment[] → UI ✅
                       ↑
@@ -223,7 +223,7 @@ return [new EmitFragmentAction(fragments)];
 | `RuntimeHistoryLog` | `SpanMetrics` → `spanMetricsToFragments()` → `ICodeFragment[]` | `ICodeFragment[]` (direct) |
 | `HistoryRow` | `HistoryItem.fragments` | `ICodeFragment[]` (unchanged) |
 | `FragmentVisualizer` | `ICodeFragment[]` | `ICodeFragment[]` (unchanged) |
-| `WodScriptVisualizer` | `ICodeStatement.fragments` | `ICodeFragment[]` (unchanged) |
+| `WhiteboardScriptVisualizer` | `ICodeStatement.fragments` | `ICodeFragment[]` (unchanged) |
 | `AnalyticsTransformer` | `SpanMetrics` → extract values | `ICodeFragment[]` (extract values) |
 
 ### Analytics Engine Compatibility

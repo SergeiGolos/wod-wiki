@@ -4,7 +4,7 @@ import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { PushBlockAction } from '../actions/stack/PushBlockAction';
 import { IRuntimeBlock, BlockLifecycleOptions } from '../contracts/IRuntimeBlock';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock, createMockClock } from '../RuntimeClock';
@@ -41,7 +41,7 @@ const createBlockStub = (label: string, nextImpl?: (options?: BlockLifecycleOpti
 };
 
 describe('Lifecycle timestamps', () => {
-  const script = new WodScript('test', []);
+  const script = new WhiteboardScript('test', []);
   const compiler = {} as JitCompiler;
 
   it('passes completedAt from pop to parent.next', () => {

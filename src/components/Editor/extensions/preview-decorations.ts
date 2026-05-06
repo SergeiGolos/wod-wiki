@@ -1,13 +1,13 @@
 /**
  * WOD Block Decorations
  *
- * Line-level decorations that visually distinguish WodScript code-fence blocks
+ * Line-level decorations that visually distinguish WhiteboardScript code-fence blocks
  * from surrounding markdown. Instead of replacing blocks with preview widgets,
  * this approach:
  *
  * 1. Decorates the opening/closing ``` fence lines with a collapsed "shelf"
  *    style (muted background, smaller text, rounded corners).
- * 2. Decorates inner WodScript lines with a raised "card" appearance —
+ * 2. Decorates inner WhiteboardScript lines with a raised "card" appearance —
  *    slightly larger font, background tint, and left accent border — so
  *    the block pops visually above the surrounding page.
  * 3. Provides a keymap where ArrowUp / ArrowDown skip over entire WOD
@@ -45,7 +45,7 @@ const fenceCloseDeco = Decoration.line({
   },
 });
 
-/** Inner WodScript content lines — indented, larger, card background */
+/** Inner WhiteboardScript content lines — indented, larger, card background */
 const wodInnerDeco = Decoration.line({
   attributes: {
     class: "cm-wod-inner",

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { ICodeStatement } from '../../src/CodeStatement';
 import { NoteEditor } from '../../src/components/Editor/NoteEditor';
-import { IScript } from '../../src/WodScript';
+import { IScript } from '../../src/parser/WhiteboardScript';
 import { MetricVisualizer } from '../../src/components/metrics';
 
 const StatementRow = ({ statement }: { statement: ICodeStatement }) => {

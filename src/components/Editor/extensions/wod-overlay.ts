@@ -1,5 +1,5 @@
 /**
- * Wod Overlay — shared action registry for WodScript block panels.
+ * Wod Overlay — shared action registry for WhiteboardScript block panels.
  *
  * The visual overlay companion (WodCompanion) lives in
  * src/components/Editor/overlays/WodCompanion.tsx and is rendered

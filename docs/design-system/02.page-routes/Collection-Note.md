@@ -10,7 +10,7 @@
 
 ## Overview
 
-A Collection Note is an individual workout file rendered in the WodScript editor. The content source is the bundled `wods/` markdown file, but changes are persisted to IndexedDB so personal edits survive. This page is the editing surface for named workout scripts — it handles both the "read a collection workout" and "run it" use cases.
+A Collection Note is an individual workout file rendered in the WhiteboardScript editor. The content source is the bundled `wods/` markdown file, but changes are persisted to IndexedDB so personal edits survive. This page is the editing surface for named workout scripts — it handles both the "read a collection workout" and "run it" use cases.
 
 The workout launch behaviour differs based on category:
 - **Inline categories** (`INLINE_RUNTIME_CATEGORIES`): navigate directly to `/tracker/:id`

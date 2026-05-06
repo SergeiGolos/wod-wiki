@@ -11,7 +11,7 @@ import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
 import { sharedParser } from '@/parser/parserInstance';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { StartSessionAction, StartSessionOptions } from '@/runtime/actions/stack/StartSessionAction';
 import { NextAction } from '@/runtime/actions/stack/NextAction';
 import { OutputTracingHarness, TracedOutput } from '../../harness/OutputTracingHarness';
@@ -60,7 +60,7 @@ export function createFullCompiler(): JitCompiler {
  */
 export interface SessionTestContext {
     runtime: ScriptRuntime;
-    script: WodScript;
+    script: WhiteboardScript;
     clock: MockClock;
     tracer: OutputTracingHarness;
 }
@@ -77,7 +77,7 @@ export function createSessionContext(
     scriptText: string,
     clockTime: Date = new Date('2024-01-01T12:00:00Z')
 ): SessionTestContext {
-    const script = sharedParser.read(scriptText) as WodScript;
+    const script = sharedParser.read(scriptText) as WhiteboardScript;
     const compiler = createFullCompiler();
     const clock = createMockClock(clockTime);
     const stack = new RuntimeStack();
@@ -183,7 +183,7 @@ export function createStartedPerfContext(
     label = 'PerfTest',
     clockTime: Date = new Date('2024-01-01T12:00:00Z')
 ): PerfSessionContext {
-    const script = sharedParser.read(scriptText) as WodScript;
+    const script = sharedParser.read(scriptText) as WhiteboardScript;
     const compiler = createFullCompiler();
     const clock = createMockClock(clockTime);
     const stack = new RuntimeStack();

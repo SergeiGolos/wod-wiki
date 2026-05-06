@@ -160,7 +160,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
                 <div className="p-4 bg-muted/50 rounded-lg border border-dashed border-border">
                   <p className="text-xs uppercase tracking-wider font-bold mb-2 opacity-50">Suggestion</p>
                   <p className="text-sm italic">
-                    Select a valid WOD script from the preview on the left to begin.
+                    Select a valid Whiteboard script from the preview on the left to begin.
                   </p>
                 </div>
               </>
@@ -172,7 +172,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
                 </p>
                 <div className="p-4 bg-muted/50 rounded-lg border border-dashed border-border">
                   <p className="text-sm italic">
-                    Click "Run" on any WOD script to start the timer and visualizer.
+                    Click "Run" on any Whiteboard script to start the timer and visualizer.
                   </p>
                 </div>
               </>

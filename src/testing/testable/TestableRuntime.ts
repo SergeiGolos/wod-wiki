@@ -1,7 +1,7 @@
 import type { IMemoryReference, IRuntimeBlock, IScriptRuntime } from "@/runtime/contracts";
 import { JitCompiler } from "@/runtime/compiler/JitCompiler";
 import type { IMetric } from "@/core/models/Metric";
-import type { WodScript, IScript } from "@/parser/WodScript";
+import type { WhiteboardScript, IScript } from "@/parser/WhiteboardScript";
 import { BlockKey } from "@/core/models/BlockKey";
 import type { CodeStatement } from "@/core/models/CodeStatement";
 import { MetricType } from "@/core/models/Metric";
@@ -268,7 +268,7 @@ export class TestableRuntime implements IScriptRuntime {
 
   // ========== IScriptRuntime Properties (delegated) ==========
 
-  get script(): WodScript {
+  get script(): WhiteboardScript {
     return this._wrapped.script;
   }
 
@@ -613,14 +613,14 @@ export class TestableRuntime implements IScriptRuntime {
    * Compile and push a statement from a parsed script by statement ID.
    * The statement ID is the unique identifier assigned during parsing.
    * 
-   * @param script - The parsed WodScript containing statements
+   * @param script - The parsed WhiteboardScript containing statements
    * @param statementId - The statement ID to compile and push
    * @param options - Additional options
    * @returns The compiled block, or undefined if statement not found
    * 
    * @example
    * ```typescript
-   * const script = parseWodScript("3 Rounds\n  10 Pushups\n  15 Squats");
+   * const script = parseWhiteboardScript("3 Rounds\n  10 Pushups\n  15 Squats");
    * // Push the "10 Pushups" statement (statement ID depends on parser)
    * const block = testRuntime.pushStatementById(script, 2);
    * ```
@@ -677,7 +677,7 @@ export class TestableRuntime implements IScriptRuntime {
    * Compile and push a statement from a parsed script by array index.
    * The index is 0-based position in the statements array.
    * 
-   * @param script - The parsed WodScript containing statements
+   * @param script - The parsed WhiteboardScript containing statements
    * @param index - The 0-based array index of the statement
    * @param options - Additional options
    * @returns The compiled block, or undefined if index out of bounds

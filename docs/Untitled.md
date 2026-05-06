@@ -5,7 +5,7 @@ the sticky section should be able to load with a subsection to avoid wasting scr
 
 ## Current
 Write your workout
-WodScript uses plain text to define workout structure. Every line you type becomes a block the timer can execute.
+WhiteboardScript uses plain text to define workout structure. Every line you type becomes a block the timer can execute.
 
 ## Update
 

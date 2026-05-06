@@ -6,7 +6,7 @@ import { ScriptRuntime } from '../../runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../runtime/RuntimeBlock';
 import { CountdownTimerBehavior, CountupTimerBehavior } from '../../runtime/behaviors';
 import { JitCompiler } from '../../runtime/compiler/JitCompiler';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import { TimeSpan } from '../../runtime/models/TimeSpan';
 import { TimerState } from '../../runtime/memory/MemoryTypes';
 import { IRuntimeBlock } from '../../runtime/contracts/IRuntimeBlock';
@@ -61,7 +61,7 @@ export const TimerHarness: React.FC<TimerHarnessProps> = ({
 
   // Create minimal runtime with empty script for testing
   const runtime = useMemo(() => {
-    const emptyScript = new WodScript('', []);
+    const emptyScript = new WhiteboardScript('', []);
     const jitCompiler = new JitCompiler([]);
 
     // Create dependencies

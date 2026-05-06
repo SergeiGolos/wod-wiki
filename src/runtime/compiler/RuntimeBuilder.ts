@@ -4,7 +4,7 @@ import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
-import { WodScript } from '../parser/WodScript';
+import { WhiteboardScript } from '../parser/WhiteboardScript';
 import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from '../contracts/IRuntimeOptions';
 import type { TestableBlockConfig } from '../contracts/ITestableBlockConfig';
 
@@ -37,7 +37,7 @@ export class RuntimeBuilder {
     private options: IRuntimeOptions = { ...DEFAULT_RUNTIME_OPTIONS };
 
     constructor(
-        private readonly script: WodScript,
+        private readonly script: WhiteboardScript,
         private readonly compiler: JitCompiler
     ) { }
 
@@ -133,6 +133,6 @@ export class RuntimeBuilder {
  *   .build();
  * ```
  */
-export function createRuntimeBuilder(script: WodScript, compiler: JitCompiler): RuntimeBuilder {
+export function createRuntimeBuilder(script: WhiteboardScript, compiler: JitCompiler): RuntimeBuilder {
     return new RuntimeBuilder(script, compiler);
 }

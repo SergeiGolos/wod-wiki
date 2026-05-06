@@ -3,7 +3,7 @@ import { MockJitCompiler } from './MockJitCompiler';
 import { createMockClock } from '@/runtime/RuntimeClock';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events/EventBus';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
 import { IEvent } from '@/runtime/contracts/events/IEvent';
 import { IRuntimeBlockStrategy } from '@/runtime/contracts/IRuntimeBlockStrategy';
@@ -157,9 +157,9 @@ export class ExecutionContextTestHarness {
     // 3. Create MockJitCompiler with strategies
     this.mockJit = new MockJitCompiler(config.strategies ?? []);
 
-    // 4. Create WodScript with mock statements
+    // 4. Create WhiteboardScript with mock statements
     const statements = (config.statements ?? []).map(s => createMockStatement(s));
-    const script = new WodScript('', statements);
+    const script = new WhiteboardScript('', statements);
 
     // 5. Create dependencies
     const dependencies: ScriptRuntimeDependencies = {

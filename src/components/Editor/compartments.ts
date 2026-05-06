@@ -6,7 +6,7 @@ import { Compartment, Extension } from "@codemirror/state";
 export const themeCompartment = new Compartment();
 
 /**
- * Compartment for dynamic language switching (e.g. plain Markdown vs Markdown + WodScript).
+ * Compartment for dynamic language switching (e.g. plain Markdown vs Markdown + WhiteboardScript).
  */
 export const languageCompartment = new Compartment();
 

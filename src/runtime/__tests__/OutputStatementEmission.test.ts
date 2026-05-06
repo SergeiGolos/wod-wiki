@@ -3,7 +3,7 @@ import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeStack } from '../RuntimeStack';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from '../compiler/JitCompiler';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { IMetric, MetricType } from '../../core/models/Metric';
@@ -113,7 +113,7 @@ function createTestRuntime(): ScriptRuntime {
         eventBus: new EventBus(),
     };
 
-    const script = new WodScript('test workout', []);
+    const script = new WhiteboardScript('test workout', []);
     // JitCompiler expects strategies array, pass empty for test
     const jit = new JitCompiler([]);
 

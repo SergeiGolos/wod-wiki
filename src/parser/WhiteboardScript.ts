@@ -12,7 +12,7 @@ export interface IScript {
   getAt(index: number): ICodeStatement | undefined;
 }
 
-export class WodScript implements IScript {
+export class WhiteboardScript implements IScript {
   source: string;
   statements: ICodeStatement[];
   errors: ParseError[] | undefined;

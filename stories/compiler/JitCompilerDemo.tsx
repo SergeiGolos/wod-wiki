@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NoteEditor } from '../../src/components/Editor/NoteEditor';
 import { ScriptRuntime } from '../../src/runtime/ScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/contracts/IRuntimeBlock';
-import { WodScript } from '../../src/parser/WodScript';
+import { WhiteboardScript } from '../../src/parser/WhiteboardScript';
 import { JitCompiler } from '../../src/runtime/compiler/JitCompiler';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
@@ -597,7 +597,7 @@ export const JitCompilerDemo: React.FC<JitCompilerDemoProps> = ({
   // Create a runtime if one wasn't provided
   const createRuntime = (scriptText: string): ScriptRuntime => {
     const mdRuntime = new MdTimerRuntime();
-    const wodScript = mdRuntime.read(scriptText) as WodScript;    
+    const wodScript = mdRuntime.read(scriptText) as WhiteboardScript;    
     
     // Create JIT compiler and register strategies using new architecture
     const jitCompiler = new JitCompiler([]);

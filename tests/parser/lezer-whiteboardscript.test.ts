@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'bun:test';
 import { EditorState } from "@codemirror/state";
-import { wodscriptLanguage } from "../../src/parser/wodscript-language";
+import { whiteboardScriptLanguage } from "../../src/parser/whiteboard-script-language";
 import { extractStatements } from "../../src/parser/lezer-mapper";
 import { MetricType } from "../../src/core/models/Metric";
 
-describe('Lezer WodScript Parser', () => {
+describe('Lezer WhiteboardScript Parser', () => {
   const parse = (code: string) => {
     const state = EditorState.create({
       doc: code,
-      extensions: [wodscriptLanguage]
+      extensions: [whiteboardScriptLanguage]
     });
     return extractStatements(state);
   };

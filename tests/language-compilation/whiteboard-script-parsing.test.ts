@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { WodScript } from '../../src/parser/WodScript';
+import { WhiteboardScript } from '../../src/parser/WhiteboardScript';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
 
-describe('WodScript ID Type Consistency', () => {
+describe('WhiteboardScript ID Type Consistency', () => {
   const mockMeta: CodeMetadata = {
     line: 1,
     startOffset: 0,
@@ -43,7 +43,7 @@ describe('WodScript ID Type Consistency', () => {
     }
   ];
 
-  const script = new WodScript('test source', mockStatements, []);
+  const script = new WhiteboardScript('test source', mockStatements, []);
 
   it('should accept only numeric IDs for getId', () => {
     const statement = script.getId(1);

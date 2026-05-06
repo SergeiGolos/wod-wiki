@@ -3,7 +3,7 @@
  */
 
 import { EditorState } from "@codemirror/state";
-import { wodscriptLanguage, extractStatements } from "@/hooks/useRuntimeParser";
+import { whiteboardScriptLanguage, extractStatements } from "@/hooks/useRuntimeParser";
 import type { ICodeStatement } from '../../../core/models/CodeStatement';
 import type { ParseError } from '../types';
 
@@ -43,7 +43,7 @@ export function parseWodBlock(
     const doc = content.endsWith('\n') ? content : content + '\n';
     const state = EditorState.create({
       doc,
-      extensions: [wodscriptLanguage]
+      extensions: [whiteboardScriptLanguage]
     });
 
     // Extract statements using the mapper

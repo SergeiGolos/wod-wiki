@@ -8,7 +8,7 @@
 
 ## 1. Requirement Analysis
 
-- **Core Problem**: The existing `HomePage.tsx` (playground) implements a 4-act parallax flow (Editor → Tracker → Review → Notebook) but it is a monolithic ~1000-line file with inline step data, ad-hoc runtime binding, and no consistent design language for guiding users through the product story. The parallax primitives (`ParallaxSection`, `ScopedRuntimeProvider`, `DocsPageShell`) are now extracted into `src/panels/page-shells/`, but the content layer — the actual slides, narrative copy, interactive triggers, and cross-section transitions — has not been designed as a unified experience. This brainstorm defines the **content architecture** for a consistent parallax tour that leverages the panel abstractions to tell the wod.wiki story across five narrative acts: (1) Journal your workout with WodScript, (2) Track it live with the timer, (3) Rest and auto-advance, (4) Review collected metrics, (5) Return to the editor with records.
+- **Core Problem**: The existing `HomePage.tsx` (playground) implements a 4-act parallax flow (Editor → Tracker → Review → Notebook) but it is a monolithic ~1000-line file with inline step data, ad-hoc runtime binding, and no consistent design language for guiding users through the product story. The parallax primitives (`ParallaxSection`, `ScopedRuntimeProvider`, `DocsPageShell`) are now extracted into `src/panels/page-shells/`, but the content layer — the actual slides, narrative copy, interactive triggers, and cross-section transitions — has not been designed as a unified experience. This brainstorm defines the **content architecture** for a consistent parallax tour that leverages the panel abstractions to tell the wod.wiki story across five narrative acts: (1) Journal your workout with WhiteboardScript, (2) Track it live with the timer, (3) Rest and auto-advance, (4) Review collected metrics, (5) Return to the editor with records.
 
 - **Success Criteria**:
   - A clear slide-by-slide narrative that walks the user through a single workout session (`5 Pushups → :10 Rest → 5 Pushups`) from editor to review.
@@ -58,7 +58,7 @@ The view-panel-runtime-coupling brainstorm established the infrastructure layer 
 | ----------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **4-Act HomePage**            | `playground/src/HomePage.tsx`                                                          | Current implementation of the parallax tour. Defines EditorParallaxSection, TrackerParallaxSection, ReviewParallaxSection, NotebookParallaxSection as inline sub-components with step arrays. |
 | **GettingStartedPage**        | `playground/src/GettingStartedPage.tsx`                                                | 6-level progressive tutorial. Uses LessonSection with tabbed examples and `enableInlineRuntime={true}`. Demonstrates the pattern of embedded interactive content alongside explanatory text.  |
-| **SyntaxPage**                | `playground/src/SyntaxPage.tsx`                                                        | Reference page for WodScript syntax. Demonstrates another content layout using the same editor component.                                                                                     |
+| **SyntaxPage**                | `playground/src/SyntaxPage.tsx`                                                        | Reference page for WhiteboardScript syntax. Demonstrates another content layout using the same editor component.                                                                                     |
 | **ParallaxSection primitive** | `src/panels/page-shells/ParallaxSection.tsx`                                           | Desktop: sticky panel (60%) + scrolling steps (40%). Mobile: sticky top (40vh) + stacked steps. Transitions use `duration-500`, `translate-y-3`, `opacity-[0.05]`.                            |
 | **Chromecast receiver**       | `playground/src/receiver-rpc.tsx`                                                      | WebRTC-based cast receiver. Demonstrates the cast-to-TV workflow described in the feature callout section.                                                                                    |
 | **Collection browser**        | `src/app/pages/CollectionsPage.tsx`, `src/components/workbench/CollectionItemList.tsx` | Existing collection browsing UI with category filter and workout previews.                                                                                                                    |
@@ -98,7 +98,7 @@ The view-panel-runtime-coupling brainstorm established the infrastructure layer 
 
 The content architecture defines five narrative acts:
 
-1. **Act 1 — Journal Your Workout** (Editor Panel sticky): Introduces WodScript syntax with the sample workout. Steps explain color coding, metrics, and the Run button. Clicking Run starts the runtime and auto-scrolls to Act 2.
+1. **Act 1 — Journal Your Workout** (Editor Panel sticky): Introduces WhiteboardScript syntax with the sample workout. Steps explain color coding, metrics, and the Run button. Clicking Run starts the runtime and auto-scrolls to Act 2.
 2. **Act 2 — Track: Pushups** (Track Panel sticky): Shows the live timer counting up for the first `5 Pushups` block. Steps explain the timer behavior, parent rounds context, and the Next button. Clicking Next advances the runtime and scrolls to Act 3.
 3. **Act 3 — Track: Rest** (Track Panel sticky, same runtime): Shows the `:10 Rest` countdown. Steps explain the auto-advance behavior and the "next card" indicator. Timer completion auto-scrolls to Act 4.
 4. **Act 4 — Review Metrics** (Review Panel sticky): Shows the ReviewGrid with collected metrics. Steps explain micro-metrics, projection engines (Volume, Rep, Distance, SessionLoad, MetMinute), and calculated projections.
@@ -200,7 +200,7 @@ Acts 2, 3, and 4 share a single `ScopedRuntimeProvider` because they operate on 
 - **Act 3** continues the same runtime (Rest block auto-starts after Pushups).
 - **Act 4** reads the completed runtime's analytics via `getAnalyticsFromRuntime()`.
 
-Acts 1 and 5 use a **frozen editor** (no runtime) showing the WodScript source with syntax highlighting.
+Acts 1 and 5 use a **frozen editor** (no runtime) showing the WhiteboardScript source with syntax highlighting.
 
 ```typescript
 // Conceptual composition
@@ -385,6 +385,6 @@ Acts 1 and 5 use a **frozen editor** (no runtime) showing the WodScript source w
 |---------|-------------|
 | **Chromecast** | Not active during parallax demo (no cast button). Only the Collections section (Config 3 fullscreen) would show cast controls, consistent with the journal-only cast policy from the view-panel brainstorm. |
 | **Command palette** | Ctrl+K opens global search (existing behavior). Collections section sets strategy to collection-scoped search. Parallax acts do not interact with the command palette. |
-| **Syntax highlighting** | Editor panels in Acts 1 and 5 use the same `NoteEditor` with WodScript language support. Syntax colors match the narrative descriptions in Act 1, Step 2. |
+| **Syntax highlighting** | Editor panels in Acts 1 and 5 use the same `NoteEditor` with WhiteboardScript language support. Syntax colors match the narrative descriptions in Act 1, Step 2. |
 | **Analytics pipeline** | Act 4 consumes `getAnalyticsFromRuntime()` output. The same `AnalyticsTransformer` → `Segment[]` → `ProjectionResult[]` pipeline used by the Workbench review panel. No special handling needed. |
 | **Responsive viewport** | The parallax layout is independent of `ResponsiveViewport` (which manages panel stacking within a view). Each act's sticky panel is a single component, not a multi-panel grid. |

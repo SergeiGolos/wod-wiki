@@ -4,7 +4,7 @@ import { ScriptRuntime } from '../../../src/runtime/ScriptRuntime';
 import { RuntimeBlock } from '../../../src/runtime/RuntimeBlock';
 import { TimerInitBehavior, TimerTickBehavior } from '../../../src/runtime/behaviors';
 import { JitCompiler } from '../../../src/runtime/compiler/JitCompiler';
-import { WodScript } from '../../../src/parser/WodScript';
+import { WhiteboardScript } from '../../../src/parser/WhiteboardScript';
 import { TimerState } from '../../../src/runtime/memory/MemoryTypes';
 import { TimeSpan } from '../../../src/runtime/models/TimeSpan';
 import { IRuntimeBlock } from '../../../src/runtime/contracts/IRuntimeBlock';
@@ -18,7 +18,7 @@ import { EventBus } from '../../../src/runtime/events/EventBus';
  * Note: Memory is now owned by blocks, not the runtime.
  */
 export function createTestRuntime(): ScriptRuntime {
-  const emptyScript = new WodScript('', []);
+  const emptyScript = new WhiteboardScript('', []);
   const jitCompiler = new JitCompiler([]);
   const dependencies = {
     stack: new RuntimeStack(),
