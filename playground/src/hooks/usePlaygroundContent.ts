@@ -37,7 +37,7 @@ interface UsePlaygroundContentResult {
   /** Call when the editor loses focus. Flushes immediately. */
   onBlur: () => void;
   /** Reset this page back to the original MD content */
-  resetToOriginal: () => void;
+  resetToOriginal: () => Promise<void>;
   /** Whether the content has been modified from the original MD */
   isModified: boolean;
   /** Force an immediate save. Returns a Promise that resolves when done. */
@@ -130,10 +130,10 @@ export function usePlaygroundContent({
     [editorOnChange],
   );
 
-  const resetToOriginal = useCallback(() => {
+  const resetToOriginal = useCallback(async () => {
     setContent(mdContent);
     setIsModified(false);
-    playgroundDB.savePage({
+    await playgroundDB.savePage({
       id: pageId,
       category,
       name,

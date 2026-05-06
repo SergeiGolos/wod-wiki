@@ -26,6 +26,8 @@ import {
   SunIcon,
   MoonIcon,
   ComputerDesktopIcon,
+  SpeakerWaveIcon,
+  SpeakerXMarkIcon,
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
 import { useTheme } from '@/components/theme/ThemeProvider'
@@ -34,6 +36,7 @@ import { useNav } from '../../nav/NavContext'
 import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton'
 import { playgroundDB } from '../../services/playgroundDB'
 import type { NavItemL3 } from '../../nav/navTypes'
+import { useAudio } from '@/components/audio/AudioContext'
 
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 
@@ -67,38 +70,6 @@ export function NewEntryButton() {
   )
 }
 
-// ── ThemeSwitcher ────────────────────────────────────────────────────────────
-
-export function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
-
-  return (
-    <Dropdown>
-      <DropdownButton plain aria-label="Switch theme">
-        {theme === 'light' && <SunIcon data-slot="icon" className="size-5 text-zinc-500" />}
-        {theme === 'dark' && <MoonIcon data-slot="icon" className="size-5 text-zinc-500" />}
-        {theme === 'system' && <ComputerDesktopIcon data-slot="icon" className="size-5 text-zinc-500" />}
-      </DropdownButton>
-      <DropdownMenu className="min-w-32" anchor="bottom end">
-        <DropdownItem onClick={() => setTheme('light')}>
-          <SunIcon data-slot="icon" />
-          <DropdownLabel>Light</DropdownLabel>
-          {theme === 'light' && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-        <DropdownItem onClick={() => setTheme('dark')}>
-          <MoonIcon data-slot="icon" />
-          <DropdownLabel>Dark</DropdownLabel>
-          {theme === 'dark' && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-        <DropdownItem onClick={() => setTheme('system')}>
-          <ComputerDesktopIcon data-slot="icon" />
-          <DropdownLabel>System</DropdownLabel>
-          {theme === 'system' && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
-  )
-}
 
 // ── ActionsMenu ──────────────────────────────────────────────────────────────
 
@@ -112,6 +83,9 @@ export function ActionsMenu({
   items?: NavItemL3[]
 }) {
   const { l3Items: contextL3, scrollToSection } = useNav()
+  const { theme, setTheme } = useTheme()
+  const { isEnabled: isAudioEnabled, toggleAudio } = useAudio()
+  
   const l3Items = items || contextL3
   const [debugMode, setDebugMode] = useState(
     () => localStorage.getItem('debugMode') === 'true'
@@ -185,6 +159,16 @@ export function ActionsMenu({
             <DropdownDivider />
           </>
         )}
+        <DropdownItem onClick={toggleAudio}>
+          {isAudioEnabled ? <SpeakerWaveIcon data-slot="icon" /> : <SpeakerXMarkIcon data-slot="icon" />}
+          <DropdownLabel>Sound: {isAudioEnabled ? 'On' : 'Off'}</DropdownLabel>
+        </DropdownItem>
+        <DropdownItem onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}>
+          {theme === 'light' && <SunIcon data-slot="icon" />}
+          {theme === 'dark' && <MoonIcon data-slot="icon" />}
+          {theme === 'system' && <ComputerDesktopIcon data-slot="icon" />}
+          <DropdownLabel>Theme: {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}</DropdownLabel>
+        </DropdownItem>
         <DropdownItem onClick={handleDownload}>
           <ArrowDownTrayIcon data-slot="icon" />
           <DropdownLabel>Download Markdown</DropdownLabel>

@@ -12,17 +12,15 @@ import { EditorSelection } from '@codemirror/state'
 import { v4 as uuidv4 } from 'uuid'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
+import { PlaygroundGuidePanel } from '../components/PlaygroundGuidePanel'
 import type { WodBlock } from '@/components/Editor/types'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { pendingRuntimes } from '../runtimeStore'
-import { NotePageActions } from './shared/NotePageActions'
+import { PlaygroundNoteActions } from './shared/PlaygroundNoteActions'
 import { useNotePageNav } from './shared/useNotePageNav'
-import { applyTemplate } from './shared/pageUtils'
-import newPlaygroundTemplate from '../templates/new-playground.md?raw'
+import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
-
-const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
 export interface PlaygroundNotePageProps {
   theme: string
@@ -41,10 +39,10 @@ export function PlaygroundNotePage({
   const noteId = PlaygroundDBService.pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
-  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
+  const { content, loading, onChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
     category: 'playground',
     name: pageName,
-    mdContent: PLAYGROUND_TEMPLATE.content,
+    mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
 
   // Place cursor at the $CURSOR token position on first mount
@@ -53,7 +51,7 @@ export function PlaygroundNotePage({
     onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
-    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
+    const offset = Math.min(DEFAULT_PLAYGROUND_CONTENT.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
   }, [onViewCreated])
 
@@ -86,21 +84,30 @@ export function PlaygroundNotePage({
       title={pageTitle}
       index={index}
       onScrollToSection={onScrollToSection}
-      actions={<NotePageActions currentWorkout={{ name: pageTitle, content }} index={index} />}
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          onCursorPositionChange={onLineChange}
-          onBlur={onBlur}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={handleInternalViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks}
+      actions={
+        <PlaygroundNoteActions
+          currentWorkout={{ name: pageTitle, content }}
+          index={index}
+          onReset={resetToOriginal}
         />
+      }
+      editor={
+        <>
+          <PlaygroundGuidePanel />
+          <NoteEditor
+            value={content}
+            onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
+            noteId={noteId}
+            onStartWorkout={handleStartWorkout}
+            enableInlineRuntime={false}
+            onViewCreated={handleInternalViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setWodBlocks}
+          />
+        </>
       }
     />
   )
