@@ -15,7 +15,7 @@
 import { Extension } from "@codemirror/state";
 import { EditorView, hoverTooltip, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
-import { workbenchEventBus } from "@/services/WorkbenchEventBus";
+import { workbenchEventBus } from "@/hooks/useBrowserServices";
 
 function isNavigableUrl(url: string): boolean {
   const trimmed = url.trim();
