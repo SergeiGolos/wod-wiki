@@ -92,10 +92,10 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Rest Periods
+label:  ← The Basics
 target: ex
 pipeline:
-  - navigate: /syntax/rest
+  - navigate: /syntax/basics
 ```
 
 ```button

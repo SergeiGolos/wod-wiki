@@ -62,8 +62,8 @@ pipeline:
 ```
 
 ```button
-label:  Timers and Intervals →
+label:  Measurements →
 target: ex
 pipeline:
-  - navigate: /syntax/timers
+  - navigate: /syntax/measurements
 ```
