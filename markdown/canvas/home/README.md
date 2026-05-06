@@ -17,7 +17,6 @@ align:   right
 width:   45%
 ```
 
-## Home Gym Friendly {full-bleed dark}
 
 ### 📺 Chromecast & Big Clock Integration
 Cast the timer to any TV or monitor in your home gym with one click. Get a full-screen display readable from across the room, ensuring you stay on pace without squinting at your phone.
@@ -32,34 +31,16 @@ We're constantly evolving. Here's a glimpse of what's coming next:
 
 ## What's Next? {sticky dark full-bleed}
 
-Choose your path to get started with WOD Wiki.
+Keep moving between examples, templates, and prior sessions while you refine the note:
 
-### 🗂️ Browse the Library
-Need inspiration or too lazy to type? Browse hundreds of ready-to-run workouts across every discipline. Click any card to load it in the editor and run immediately.
+- 🔍 [**Feed**](query:search): Pull additional examples into the editor without starting over.
+- 🗂️ [**Collections**](/collections): Jump into the template library when you need a stronger starting point.
+- 🎓 [**Zero to Hero**](/getting-started): The syntax takes about 10 minutes to learn.
 
-```view
-name:    browse-demo
-state:   browse
-source:  markdown/collections/
-runtime: in-memory
-launch:  host
-align:   full
-```
-
-### 🎓 Zero to Hero
-The syntax takes about 10 minutes to learn. The deep-dive guide walks you from your first statement to complex interval protocols.
+Or start your logging journey in your own:
 
 ```button
-label:  Start Zero to Hero →
-pipeline:
-  - navigate: /getting-started
-```
-
-### 📓 Start your Training Journal
-Every workout you run is automatically logged. Plan your sessions, write your intentions, and execute them with the smart timer. Plan, track, and analyze in one place. Your data stays on your device.
-
-```button
-label:  Open Today's Journal →
+label:  Journal
 pipeline:
   - navigate: query:today-journal
 ```

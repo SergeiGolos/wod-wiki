@@ -24,6 +24,8 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import { ReviewGrid } from '@/components/review-grid/ReviewGrid'
 import type { WorkoutResults } from '@/components/Editor/types'
+import { indexedDBService } from '@/services/db/IndexedDBService'
+import type { WorkoutResult } from '@/types/storage'
 import { MacOSChrome } from '../components/MacOSChrome'
 import { ButtonGroup } from '@/components/ui/ButtonGroup'
 import { cn } from '@/lib/utils'
@@ -58,6 +60,10 @@ function getPageStickyOffset(fallback: number): number {
   }, 0)
 
   return visibleBottom > 0 ? visibleBottom + 24 : fallback
+}
+
+function getCanvasNoteId(route: string): string {
+  return route === '/' ? 'canvas:home' : `canvas:${route.replace(/^\//, '')}`
 }
 
 // ── Source resolution ─────────────────────────────────────────────────────────
@@ -350,6 +356,7 @@ export interface PanelActions {
 export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, contentOverride, panelHeaderActions, onPanelActionsReady, heroSlot }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
   const { sections, route } = page
+  const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
   const isCollection = route.startsWith('/collections/')
   const collectionSlug = isCollection ? route.split('/').pop() : null
@@ -394,6 +401,8 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const [viewTimerBlock, setViewTimerBlock] = useState<WodBlock | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set())
+  const [persistedResults, setPersistedResults] = useState<WorkoutResult[]>([])
+  const [activeViewRuntimeId, setActiveViewRuntimeId] = useState<string | null>(null)
   // Block that was last launched in view mode — kept for reconnect support
   const activeViewBlockRef = useRef<WodBlock | null>(null)
 
@@ -403,6 +412,21 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // Stable ref for wodFiles so the observer never stale-closes over a new map
   const wodFilesRef = useRef(wodFiles)
   wodFilesRef.current = wodFiles
+
+  useEffect(() => {
+    let cancelled = false
+
+    indexedDBService.getResultsForNote(canvasNoteId).then((results) => {
+      if (cancelled) return
+      setPersistedResults(results.sort((a, b) => b.completedAt - a.completedAt))
+    }).catch(() => {
+      if (!cancelled) setPersistedResults([])
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canvasNoteId])
 
   // Fade-swap the editor content — clears any pending swap before starting
   const swapSource = useCallback((raw: string) => {
@@ -431,6 +455,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const launchViewRuntime = useCallback((block: WodBlock) => {
     activeViewBlockRef.current = block
     activeRuntimes.set(block.id, block)
+    setActiveViewRuntimeId(uuidv4())
     setViewTimerBlock(block)
     setPanelMode('running')
   }, [])
@@ -440,16 +465,38 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     const block = activeViewBlockRef.current
     if (block) activeRuntimes.delete(block.id)
     activeViewBlockRef.current = null
+    setActiveViewRuntimeId(null)
     setViewTimerBlock(null)
     setPanelMode('editor')
   }, [])
 
   // Called when a view-mode runtime completes naturally
-  const handleViewComplete = useCallback((_blockId: string, results: WorkoutResults) => {
+  const handleViewComplete = useCallback((blockId: string, results: WorkoutResults) => {
     const block = activeViewBlockRef.current
     if (block) activeRuntimes.delete(block.id)
     activeViewBlockRef.current = null
     setViewTimerBlock(null)
+
+    if (results) {
+      const runtimeId = activeViewRuntimeId ?? uuidv4()
+      const nextResult: WorkoutResult = {
+        id: runtimeId,
+        noteId: canvasNoteId,
+        segmentId: blockId,
+        sectionId: blockId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
+      }
+
+      setPersistedResults((previous) => {
+        const deduped = previous.filter((result) => result.id !== nextResult.id)
+        return [nextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
+      })
+
+      indexedDBService.saveResult(nextResult).catch(() => {})
+    }
+
+    setActiveViewRuntimeId(null)
     if (results.completed && results.logs && results.logs.length > 0) {
       const { segments } = getAnalyticsFromLogs(results.logs as any, results.startTime)
       setReviewSegments(segments)
@@ -458,7 +505,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     }
     setSelectedSegmentIds(new Set())
     setPanelMode('review')
-  }, [])
+  }, [activeViewRuntimeId, canvasNoteId])
 
   // Whether any active runtime is currently tracked for view-mode reconnect
   const hasActiveViewRuntime = viewTimerBlock !== null
@@ -750,6 +797,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     return (
       <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }}>
         <NoteEditor
+          noteId={canvasNoteId}
           value={editorSource}
           onChange={v => { setEditorSource(v); editorSourceRef.current = v }}
           onBlocksChange={blocks => { wodBlocksRef.current = blocks }}
@@ -758,6 +806,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           showLineNumbers={false}
           enableOverlay={false}
           enableInlineRuntime={false}
+          extendedResults={persistedResults}
           commands={[]}
           hideDefaultCommands={true}
           className="h-full"

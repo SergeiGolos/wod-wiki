@@ -59,9 +59,9 @@ export interface HomeWelcomeProps {
   onResults: () => void
 }
 
-function InlineDocLink({ to, label }: { to: string; label: string }) {
+function InlineDocLink({ to, label, className }: { to: string; label: string; className?: string }) {
   return (
-    <ButtonLink to={to} variant="link" size="sm" className={inlineDocLinkClassName}>
+    <ButtonLink to={to} variant="link" size="sm" className={className || inlineDocLinkClassName}>
       <BookOpen className="size-3" />
       <strong className="font-semibold">{label}</strong>
     </ButtonLink>
@@ -78,9 +78,15 @@ function WriteReferenceItem({
   children: React.ReactNode
 }) {
   return (
-    <li className="text-sm leading-relaxed text-muted-foreground">
-      <InlineDocLink to={to} label={label} />
-      <span>{children}</span>
+    <li className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+      <div className="mt-[2px] w-[90px] shrink-0">
+        <InlineDocLink
+          to={to}
+          label={label}
+          className="inline-flex h-auto items-center gap-1 px-0 py-0 align-baseline text-xs font-semibold leading-none text-foreground no-underline hover:text-primary"
+        />
+      </div>
+      <div className="flex-1">{children}</div>
     </li>
   )
 }
@@ -98,20 +104,24 @@ function MenuReferenceItem({
   onClick?: () => void
   children: React.ReactNode
 }) {
+  const btnClassName = "inline-flex h-auto items-center gap-1.5 px-0 py-0 align-baseline text-sm font-semibold leading-none text-foreground no-underline hover:text-primary"
+
   return (
-    <li className="text-sm leading-relaxed text-muted-foreground">
-      {to ? (
-        <ButtonLink to={to} variant="link" size="sm" className={inlineDocLinkClassName}>
-          <Icon className="size-3" aria-hidden={true} />
-          <strong className="font-semibold">{label}</strong>
-        </ButtonLink>
-      ) : (
-        <button type="button" onClick={onClick} className={inlineDocLinkClassName}>
-          <Icon className="size-3" aria-hidden={true} />
-          <strong className="font-semibold">{label}</strong>
-        </button>
-      )}
-      <span>{children}</span>
+    <li className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground">
+      <div className="mt-[2px] w-[100px] shrink-0">
+        {to ? (
+          <ButtonLink to={to} variant="link" size="sm" className={btnClassName}>
+            <Icon className="size-4" aria-hidden={true} />
+            <strong className="font-semibold">{label}</strong>
+          </ButtonLink>
+        ) : (
+          <button type="button" onClick={onClick} className={btnClassName}>
+            <Icon className="size-4" aria-hidden={true} />
+            <strong className="font-semibold">{label}</strong>
+          </button>
+        )}
+      </div>
+      <div className="flex-1">{children}</div>
     </li>
   )
 }
@@ -129,7 +139,7 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
       />
 
       <div className="relative w-full max-w-xl">
-                {/* 3-step flow */}
+        {/* 3-step flow */}
         <div className="mt-8 flex flex-col gap-6">
 
           {/* Step 01 — Write */}
@@ -150,85 +160,58 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
                 </ButtonLink>
                 each part of the note becomes structured data for tracking and later analysis. <strong>So what's tracked</strong>?
               </p>
-              <ul className="mt-3 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
-                <WriteReferenceItem
-                  to={WRITE_NOTE_DOC_LINKS.rounds.to}
-                  label={WRITE_NOTE_DOC_LINKS.rounds.label}
-                >
+              <ul className="mt-4 flex flex-col gap-3">
+                <WriteReferenceItem to={WRITE_NOTE_DOC_LINKS.rounds.to} label={WRITE_NOTE_DOC_LINKS.rounds.label}>
                   parens mean multiplication, with <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">(3)</code> meaning 3 rounds.
                 </WriteReferenceItem>
-                <WriteReferenceItem
-                  to={WRITE_NOTE_DOC_LINKS.movement.to}
-                  label={WRITE_NOTE_DOC_LINKS.movement.label}
-                >
+                <WriteReferenceItem to={WRITE_NOTE_DOC_LINKS.movement.to} label={WRITE_NOTE_DOC_LINKS.movement.label}>
                   both <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">Kettlebell Swings</code> and <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">Rest</code> are tracked in this example.
                 </WriteReferenceItem>
-                <WriteReferenceItem
-                  to={WRITE_NOTE_DOC_LINKS.reps.to}
-                  label={WRITE_NOTE_DOC_LINKS.reps.label}
-                >
+                <WriteReferenceItem to={WRITE_NOTE_DOC_LINKS.reps.to} label={WRITE_NOTE_DOC_LINKS.reps.label}>
                   the number <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">10</code> before <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">Kettlebell Swings</code> tells us the number of reps.
                 </WriteReferenceItem>
-                <WriteReferenceItem
-                  to={WRITE_NOTE_DOC_LINKS.load.to}
-                  label={WRITE_NOTE_DOC_LINKS.load.label}
-                >
+                <WriteReferenceItem to={WRITE_NOTE_DOC_LINKS.load.to} label={WRITE_NOTE_DOC_LINKS.load.label}>
                   <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">24kg</code> is a unit of weight used for tracking.
                 </WriteReferenceItem>
-                <WriteReferenceItem
-                  to={WRITE_NOTE_DOC_LINKS.timers.to}
-                  label={WRITE_NOTE_DOC_LINKS.timers.label}
-                >
-                  the obvious one is <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">:30</code> seconds of `Rest`, but timers what about the `Kettlebell Swings`?  Its an unknown.
+                <WriteReferenceItem to={WRITE_NOTE_DOC_LINKS.timers.to} label={WRITE_NOTE_DOC_LINKS.timers.label}>
+                  the obvious one is <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">:30</code> seconds of `Rest`, but what about the swings? It's an unknown.
                 </WriteReferenceItem>
               </ul>
-            
             </div>
           </div>
 
           {/* Step 02 — Run */}
           <div>
             <div className="flex-1">
-              <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
-                Some of the most useful workout data does not exist when you first write the note. That is the point of the runtime: use
-                <button
-                  onClick={onRun}
-                  className={inlinePrimaryActionClassName}
-                  aria-label="Run workout"
-                >
-                  <Play className="size-3 fill-current" />
-                  Run Workout
-                </button>
-                to turn that unknown work into measured output, then open
-                <button
-                  onClick={onResults}
-                  className={inlineActionClassName}
-                  aria-label="View results"
-                >
-                  <BarChart2 className="size-3" />
-                  View Results
-                </button>
-                once the session is complete to inspect lap times, pace changes, and the totals that were only knowable after execution.
+              <p className="text-sm font-medium leading-relaxed text-muted-foreground">
+                Some of the most useful workout data does not exist when you first write the note. Use the runtime to turn that unknown work into measured output.
               </p>
 
-              <p className="mt-3 text-sm font-medium leading-relaxed text-muted-foreground">
-                Keep moving between examples, templates, and prior sessions while you refine the note:
-              </p>
-              <ul className="mt-3 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
-                <MenuReferenceItem label="Feed" icon={MagnifyingGlassIcon} onClick={onOpenSearch}>
-                  opens the same search/feed entry point as the home menu so you can pull additional examples into the editor without starting over.
-                </MenuReferenceItem>
-                <MenuReferenceItem label="Collections" icon={FolderIcon} to="/collections">
-                  jumps into the template library when you want a stronger starting point than a blank note.
-                </MenuReferenceItem>
-                <MenuReferenceItem label="Journal" icon={RectangleStackIcon} to="/journal">
-                  brings your own workout history back into the loop so you can compare runs against what you already logged.
-                </MenuReferenceItem>
-              </ul>
-            </div>
+              <div className="mt-5 mb-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={onRun}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                >
+                  <Play className="size-3.5 fill-current" />
+                  Run Workout
+                </button>
+                <span className="text-sm italic text-muted-foreground">then</span>
+                <button
+                  onClick={onResults}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold text-muted-foreground shadow-sm transition-all hover:border-primary/40 hover:text-foreground"
+                >
+                  <BarChart2 className="size-3.5" />
+                  View Results
+                </button>
+              </div>
+
+              <p className="text-xs font-medium leading-relaxed text-muted-foreground/80">
+                Inspect lap times, pace changes, and the totals that were only knowable after execution.
+              </p>              </div>
           </div>
         </div>
       </div>
     </div>
+
   )
 }
