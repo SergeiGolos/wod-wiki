@@ -599,13 +599,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections…" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
             <CanvasPage
               title={currentWorkout.name}
-              subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts…" /> : undefined}
+              subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" /> : undefined}
               index={currentNavLinks}
               onScrollToSection={scrollToSection}
               actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}

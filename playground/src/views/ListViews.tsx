@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { type JournalEntrySummary } from './queriable-list/JournalDateScroll';
+import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
@@ -15,7 +15,9 @@ interface JournalWeeklyPageProps {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPageProps) {
-  const { selectedDate, setDateParam, selectedTags } = useJournalQueryState();
+  const { dateParam, selectedDate, setDateParam, selectedTags } = useJournalQueryState();
+  const hasExplicitDateParam = Boolean(dateParam);
+  const todayKey = useMemo(() => localDateKey(new Date()), []);
 
   const navigate = useNavigate();
   const handleSelect = (item: FilteredListItem) => {
@@ -33,10 +35,14 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPage
   const handleVisibleDateChange = useCallback(
     (dateKey: string) => {
       if (dateKey && dateKey !== 'no-date') {
+        if (!hasExplicitDateParam && dateKey === todayKey) {
+          return;
+        }
+
         setDateParam(dateKey);
       }
     },
-    [setDateParam],
+    [hasExplicitDateParam, setDateParam, todayKey],
   );
 
   const query = useMemo(() => ({ selectedDate, selectedTags }), [selectedDate, selectedTags]);
@@ -107,7 +113,7 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry }: JournalWeeklyPage
       loadResults={loadResults}
       loadJournalEntries={loadJournalEntries}
       mapResultsToItems={mapResultsToItems}
-      initialDate={selectedDate}
+      initialDate={hasExplicitDateParam ? selectedDate : undefined}
       onSelectItem={handleSelect}
       onVisibleDateChange={handleVisibleDateChange}
       onOpenEntry={handleOpenEntry}

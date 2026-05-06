@@ -122,6 +122,7 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
 
     // Suppress sentinel firing until the initial mount scroll has completed
     const mountScrollDoneRef = useRef(false);
+    const topSentinelArmedRef = useRef(false);
 
     // Refs to allow observer callbacks to read current values without stale closures.
     // Both start and end are tracked so the IO callbacks (empty deps []) never use stale state.
@@ -402,12 +403,36 @@ export const JournalDateScroll = forwardRef<JournalDateScrollHandle, JournalDate
     // Inserts new rows at the top — useLayoutEffect compensates the viewport shift.
 
     useEffect(() => {
+      const armTopSentinel = () => {
+        if (!mountScrollDoneRef.current || suppressReportRef.current || topSentinelArmedRef.current) {
+          return;
+        }
+
+        topSentinelArmedRef.current = true;
+        recheckSentinels();
+      };
+
+      window.addEventListener('scroll', armTopSentinel, { passive: true });
+      return () => {
+        window.removeEventListener('scroll', armTopSentinel);
+      };
+    }, [recheckSentinels]);
+
+    useEffect(() => {
       const sentinel = topSentinelRef.current;
       if (!sentinel) return;
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting || isPrependingRef.current || !mountScrollDoneRef.current || suppressReportRef.current) return;
+          if (
+            !entry.isIntersecting
+            || isPrependingRef.current
+            || !mountScrollDoneRef.current
+            || suppressReportRef.current
+            || !topSentinelArmedRef.current
+          ) {
+            return;
+          }
 
           // Ceiling: don't load more than 90 days into the future.
           // Pre-check via ref before setting the guard to prevent deadlock if state update is a no-op.

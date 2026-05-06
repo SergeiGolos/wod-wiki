@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useQueryState } from 'nuqs';
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { cn } from '@/lib/utils';
@@ -41,6 +41,21 @@ export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
 }) => {
   const [value, setValue] = useQueryState(paramName, { defaultValue: '' });
   const scopeId = navigationScope ?? paramName;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // If pressing '/' and not already in an input/textarea
+      if (e.key === '/' && 
+          document.activeElement?.tagName !== 'INPUT' && 
+          document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -65,6 +80,7 @@ export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
     <div className={cn('flex items-center gap-3 px-6 lg:px-10 pb-3', className)}>
       <MagnifyingGlassIcon className="size-5 text-muted-foreground shrink-0" />
       <input
+        ref={inputRef}
         type="text"
         value={value}
         onChange={e => setValue(e.target.value)}
