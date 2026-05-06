@@ -12,17 +12,16 @@ import { EditorSelection } from '@codemirror/state'
 import { v4 as uuidv4 } from 'uuid'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
+import type { WidgetRegistry } from '@/components/Editor/overlays/WidgetCompanion'
+import { PlaygroundRunTipWidget } from '../components/widgets/PlaygroundRunTipWidget'
 import type { WodBlock } from '@/components/Editor/types'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { pendingRuntimes } from '../runtimeStore'
-import { NotePageActions } from './shared/NotePageActions'
+import { PlaygroundNoteActions } from './shared/PlaygroundNoteActions'
 import { useNotePageNav } from './shared/useNotePageNav'
-import { applyTemplate } from './shared/pageUtils'
-import newPlaygroundTemplate from '../templates/new-playground.md?raw'
+import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 import { formatPlaygroundPageTitle } from '@/lib/playgroundDisplay'
-
-const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
 
 export interface PlaygroundNotePageProps {
   theme: string
@@ -41,10 +40,10 @@ export function PlaygroundNotePage({
   const noteId = PlaygroundDBService.pageId('playground', pageName)
   const pageTitle = useMemo(() => (id ? formatPlaygroundPageTitle(id) : 'Playground'), [id])
   const navigate = useNavigate()
-  const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
+  const { content, loading, onChange, onLineChange, onBlur, resetToOriginal } = usePlaygroundContent({
     category: 'playground',
     name: pageName,
-    mdContent: PLAYGROUND_TEMPLATE.content,
+    mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
 
   // Place cursor at the $CURSOR token position on first mount
@@ -53,7 +52,7 @@ export function PlaygroundNotePage({
     onViewCreated?.(view)
     if (cursorPlaced.current) return
     cursorPlaced.current = true
-    const offset = Math.min(PLAYGROUND_TEMPLATE.cursorOffset, view.state.doc.length)
+    const offset = Math.min(DEFAULT_PLAYGROUND_CONTENT.cursorOffset, view.state.doc.length)
     view.dispatch({ selection: EditorSelection.cursor(offset) })
   }, [onViewCreated])
 
@@ -68,6 +67,28 @@ export function PlaygroundNotePage({
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
   const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
+
+  const handleButtonAction = useCallback(
+    (action: string, params: Record<string, string>) => {
+      if (action === 'route' && params['route']) {
+        navigate(params['route'])
+      } else if (action === 'start-workout') {
+        // Start the first available wod block
+        const firstBlock = wodBlocks[0]
+        if (firstBlock) handleStartWorkout(firstBlock)
+      } else if (action === 'new-note') {
+        navigate('/playground')
+      }
+    },
+    [navigate, wodBlocks, handleStartWorkout],
+  )
+
+  const widgetComponents: WidgetRegistry = useMemo(
+    () => new Map([
+      ['playground-run-tip', PlaygroundRunTipWidget],
+    ]),
+    [],
+  )
 
   useEffect(() => {
     document.title = `Wod.Wiki - ${pageTitle}`
@@ -86,7 +107,13 @@ export function PlaygroundNotePage({
       title={pageTitle}
       index={index}
       onScrollToSection={onScrollToSection}
-      actions={<NotePageActions currentWorkout={{ name: pageTitle, content }} index={index} />}
+      actions={
+        <PlaygroundNoteActions
+          currentWorkout={{ name: pageTitle, content }}
+          index={index}
+          onReset={resetToOriginal}
+        />
+      }
       editor={
         <NoteEditor
           value={content}
@@ -100,6 +127,8 @@ export function PlaygroundNotePage({
           theme={theme}
           showLineNumbers={false}
           onBlocksChange={setWodBlocks}
+          onButtonAction={handleButtonAction}
+          widgetComponents={widgetComponents}
         />
       }
     />

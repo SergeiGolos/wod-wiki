@@ -302,3 +302,41 @@ describe("activeCursorSection", () => {
     expect(section!.type).toBe("markdown");
   });
 });
+
+// ── Widget fence sections ────────────────────────────────────────────
+
+describe("sectionField — widget fences", () => {
+  it("should parse a widget fence into type=widget with widgetName", () => {
+    const s = sections("```widget:playground-run-tip\n{}\n```");
+    expect(s).toHaveLength(1);
+    expect(s[0].type).toBe("widget");
+    expect(s[0].widgetName).toBe("playground-run-tip");
+  });
+
+  it("should set contentFrom/contentTo to the body between the fences", () => {
+    const doc = "```widget:foo\n{\"k\":1}\n```";
+    const state = createState(doc);
+    const sec = state.field(sectionField).sections[0];
+    expect(sec.type).toBe("widget");
+    const inner = state.doc.sliceString(sec.contentFrom!, sec.contentTo!).trim();
+    expect(inner).toBe('{"k":1}');
+  });
+
+  it("should set from/to to cover the entire fenced block", () => {
+    const doc = "```widget:bar\nhello\n```";
+    const state = createState(doc);
+    const sec = state.field(sectionField).sections[0];
+    expect(sec.from).toBe(0);
+    expect(sec.to).toBe(state.doc.length);
+  });
+
+  it("should parse widget section surrounded by other content", () => {
+    const doc = "intro\n\n```widget:tip\n{}\n```\n\n# Title";
+    const s = sections(doc);
+    const widget = s.find(sec => sec.type === "widget");
+    expect(widget).toBeDefined();
+    expect(widget!.widgetName).toBe("tip");
+    expect(widget!.startLine).toBe(3);
+    expect(widget!.endLine).toBe(5);
+  });
+});

@@ -21,14 +21,12 @@ import { JournalWeeklyPage } from './views/ListViews'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
-import { AudioToggle } from '@/components/audio/AudioToggle'
 import { CanvasPage } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
-import { playgroundDB, PlaygroundDBService } from './services/playgroundDB'
+import { playgroundDB } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
-import newPlaygroundTemplate from './templates/new-playground.md?raw'
 import { 
   createStatementBuilderStrategy,
   createGlobalSearchStrategy,
@@ -44,10 +42,11 @@ import { LoadZipPage } from './pages/LoadZipPage'
 import { Toaster } from '@/components/ui/toaster'
 import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 // ── Shared page utilities ────────────────────────────────────────────────────
-import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
+import { NewEntryButton, ActionsMenu } from './pages/shared/PageToolbar'
 import { NotePageActions } from './pages/shared/NotePageActions'
-import { mapIndexToL3, applyTemplate } from './pages/shared/pageUtils'
-import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay'
+import { mapIndexToL3 } from './pages/shared/pageUtils'
+import { DEFAULT_PLAYGROUND_CONTENT } from './templates/defaultPlaygroundContent'
+import { createPlaygroundPage } from './services/createPlaygroundPage'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -72,8 +71,6 @@ const SYNTAX_LINKS = [
   { id: 'document', label: 'Document', type: 'heading' as const },
 ]
 
-const PLAYGROUND_TEMPLATE = applyTemplate(newPlaygroundTemplate)
-
 // Load all markdown files from the markdown directory
 const workoutFiles = import.meta.glob('../../markdown/**/*.md', { eager: true, query: '?raw', import: 'default' })
 
@@ -85,49 +82,12 @@ export interface WorkoutItem {
   /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
   searchHidden?: boolean
 }
-
-
-const MAX_TIMESTAMP_ID_RETRIES = 10
-
-/**
- * Atomically create a new playground page.
- *
- * Tries `baseName`, then `baseName-1` … `baseName-N`. Each attempt uses
- * IndexedDB `add()` (via `addPage`), which throws a `ConstraintError` if the
- * key already exists — making the check-and-create race-free even when two
- * tabs open simultaneously.
- *
- * Returns the ID that was successfully written.
- */
-async function createPlaygroundPage(content: string): Promise<string> {
-  const baseName = formatPlaygroundTimestampId(Date.now())
-  const now = Date.now()
-  for (let attempt = 0; attempt <= MAX_TIMESTAMP_ID_RETRIES; attempt++) {
-    const name = attempt === 0 ? baseName : `${baseName}-${attempt}`
-    const pageId = PlaygroundDBService.pageId('playground', name)
-    try {
-      await playgroundDB.addPage({
-        id: pageId,
-        category: 'playground',
-        name,
-        content,
-        updatedAt: now,
-      })
-      return name
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'ConstraintError') continue
-      throw err
-    }
-  }
-  throw new Error('Unable to allocate unique playground timestamp ID')
-}
-
 function PlaygroundRedirect() {
   const navigate = useNavigate()
 
   useEffect(() => {
     ;(async () => {
-      const id = await createPlaygroundPage(PLAYGROUND_TEMPLATE.content)
+      const id = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
       navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
     })()
   }, [navigate])
@@ -570,8 +530,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             </NavbarItem>
             <div className="flex items-center">
               <CastButtonRpc />
-              <AudioToggle />
-              <ThemeSwitcher />
             </div>
             <ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(currentNavLinks)} />
           </NavbarSection>
