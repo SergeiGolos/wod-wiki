@@ -4,7 +4,7 @@ import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
-import { WhiteboardScript } from '../../parser/WhiteboardScript';
+import type { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { IRuntimeOptions, DEFAULT_RUNTIME_OPTIONS } from '../contracts/IRuntimeOptions';
 import type { TestableBlockConfig } from '../contracts/ITestableBlockConfig';
 

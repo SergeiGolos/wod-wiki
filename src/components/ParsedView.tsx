@@ -4,21 +4,21 @@ import { WhiteboardScriptVisualizer } from './WhiteboardScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
 
 interface ParsedViewProps {
-  whiteboardScript: string;
+  scriptText: string;
   className?: string;
   /** Display size variant @default 'normal' */
   size?: VisualizerSize;
 }
 
 export const ParsedView: React.FC<ParsedViewProps> = ({ 
-  whiteboardScript, 
+  scriptText, 
   className = '',
   size = 'normal'
 }) => {
   const { statements, error } = useMemo(() => {
-    if (!whiteboardScript) return { statements: [], error: null };
+    if (!scriptText) return { statements: [], error: null };
     
-    const trimmedScript = whiteboardScript.trim();
+    const trimmedScript = scriptText.trim();
 
     try {
       const script = sharedParser.read(trimmedScript);
@@ -31,7 +31,7 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
     } catch (e) {
       return { statements: [], error: e as Error };
     }
-  }, [whiteboardScript]);
+  }, [scriptText]);
 
   // Filter configuration for Plan Screen Overlay
   const planFilter: VisualizerFilter = {
