@@ -51,6 +51,14 @@ export function WorkoutEditorPage({
   const noteId = PlaygroundDBService.pageId(category, name)
   const navigate = useNavigate()
   const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({ category, name, mdContent })
+  const sourceNote = useMemo(() => {
+    if (!isCollection) return null
+
+    return {
+      label: `${category}-${name}`,
+      path: `/workout/${encodeURIComponent(category)}/${encodeURIComponent(name)}`,
+    }
+  }, [category, isCollection, name])
 
   const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
 
@@ -68,6 +76,8 @@ export function WorkoutEditorPage({
         const journalNoteId = await appendWorkoutToJournal({
           workoutName: name,
           category,
+          sourceNoteLabel: sourceNote?.label,
+          sourceNotePath: sourceNote?.path,
           wodContent: block.content,
         })
         pendingRuntimes.set(runtimeId, { block, noteId: journalNoteId })
@@ -79,7 +89,7 @@ export function WorkoutEditorPage({
         navigate(`/tracker/${runtimeId}`)
       }
     },
-    [usePopup, noteId, name, category, navigate],
+    [usePopup, noteId, name, category, sourceNote, navigate],
   )
 
   const handleScheduleBlock = useCallback(
@@ -94,6 +104,8 @@ export function WorkoutEditorPage({
         noteId = await appendWorkoutToJournal({
           workoutName: name,
           category,
+          sourceNoteLabel: sourceNote?.label,
+          sourceNotePath: sourceNote?.path,
           wodContent: block.content,
           date,
           wrapInWod: true,
@@ -118,7 +130,7 @@ export function WorkoutEditorPage({
         duration: 7000,
       })
     },
-    [name, category, navigate],
+    [name, category, sourceNote, navigate],
   )
 
   const collectionCommands = useMemo<WodCommand[]>(() => {
