@@ -27,7 +27,7 @@ import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock } from '@/runtime/RuntimeClock';
 import { sharedParser } from '@/parser/parserInstance';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 // Strategies
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
@@ -74,7 +74,7 @@ function runToCompletion(
   stepMs = 30_000,
   maxSteps = 50,
 ): { segments: Segment[]; runtime: ScriptRuntime } {
-  const script = sharedParser.read(scriptText) as WodScript;
+  const script = sharedParser.read(scriptText) as WhiteboardScript;
   const compiler = buildCompiler();
   const clock = createMockClock(new Date('2024-06-15T09:00:00Z'));
   const stack = new RuntimeStack();

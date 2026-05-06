@@ -1,12 +1,12 @@
-# PRD: Unified Markdown & WodScript Experience
+# PRD: Unified Markdown & WhiteboardScript Experience
 
 ## 1. Overview
-The `wod-wiki` editor experience is currently fragmented between a raw Markdown editor and a disjointed, split-view section editor. This document outlines the requirements for a unified, seamless "Wysiwyg-lite" experience where Markdown and WodScript blocks are rendered as previews when not actively focused, but transition instantly to edit mode when clicked.
+The `wod-wiki` editor experience is currently fragmented between a raw Markdown editor and a disjointed, split-view section editor. This document outlines the requirements for a unified, seamless "Wysiwyg-lite" experience where Markdown and WhiteboardScript blocks are rendered as previews when not actively focused, but transition instantly to edit mode when clicked.
 
 ## 2. Objectives
 - **Eliminate Disjointedness**: Transition from a multi-component `SectionEditor` to a single, highly-extensible CodeMirror 6 instance.
 - **Contextual Editing**: Automatically toggle between "Preview" and "Edit" modes at the block level (paragraphs, headers, and code blocks).
-- **Deep WodScript Integration**: Provide rich, real-time feedback (errors, structural relationships) directly within the editor.
+- **Deep WhiteboardScript Integration**: Provide rich, real-time feedback (errors, structural relationships) directly within the editor.
 - **Fluid Authoring**: Introduce smart autocompletes and shortcuts for dialects and embedded components.
 
 ## 3. Functional Requirements
@@ -17,13 +17,13 @@ The `wod-wiki` editor experience is currently fragmented between a raw Markdown 
 - **Edit Mode**: The currently focused block must show its raw text for editing.
 - **Seamless Interaction**: Clicking a preview widget must immediately place the cursor at the corresponding text position and reveal the raw source.
 
-### 3.2. WodScript Syntax & Feedback
-- **Inline Linting**: Errors in WodScript syntax must be highlighted with red squiggly underlines. Hovering over an underline should display the specific parse error.
+### 3.2. WhiteboardScript Syntax & Feedback
+- **Inline Linting**: Errors in WhiteboardScript syntax must be highlighted with red squiggly underlines. Hovering over an underline should display the specific parse error.
 - **Structural Visualization**:
     - Show indentation guides for nested groups/loops.
     - Visualize child relationships using indented brackets in the gutter or background.
 - **Overlay Panel**:
-    - A floating panel should appear near the active WodScript line.
+    - A floating panel should appear near the active WhiteboardScript line.
     - It should offer quick actions: "Run Block", "Add to Plan", and buttons for metric adjustment (increment/decrement).
 
 ### 3.3. Smart Autocomplete & Shortcuts

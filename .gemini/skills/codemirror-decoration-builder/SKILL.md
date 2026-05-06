@@ -1,6 +1,6 @@
 ---
 name: codemirror-decoration-builder
-description: A specialized guide for building CodeMirror 6 (CM6) decorations to create a unified Markdown and WodScript editing experience. Use this when implementing block-level previews, syntax feedback, or structural visualizations in the editor.
+description: A specialized guide for building CodeMirror 6 (CM6) decorations to create a unified Markdown and WhiteboardScript editing experience. Use this when implementing block-level previews, syntax feedback, or structural visualizations in the editor.
 ---
 
 # CodeMirror 6 Decoration Builder
@@ -13,7 +13,7 @@ Identify the appropriate decoration type based on the desired UI behavior:
 
 | UI Behavior | CM6 Decoration Type | Use Case |
 | :--- | :--- | :--- |
-| **Block-level Preview** | `Decoration.replace` | Replace unfocused WodScript or Markdown blocks with a rendered preview widget. |
+| **Block-level Preview** | `Decoration.replace` | Replace unfocused WhiteboardScript or Markdown blocks with a rendered preview widget. |
 | **Syntax Feedback** | `Decoration.mark` | Apply CSS classes (e.g., underlines) to text ranges for errors or highlights. |
 | **Line Highlighting** | `Decoration.line` | Style the entire background or border of a line (e.g., active block highlight). |
 | **Inlay Hints / Emojis** | `Decoration.widget` | Insert non-editable DOM elements (e.g., metric emojis, gutter buttons) at specific positions. |
@@ -42,7 +42,7 @@ To implement a "preview-on-blur, edit-on-focus" behavior:
 ### 2. Syntax Feedback & Linting (`Decoration.mark`)
 To highlight errors directly in the text:
 
-1.  **Map Errors to Ranges**: Run the WodScript parser to get a list of error ranges.
+1.  **Map Errors to Ranges**: Run the WhiteboardScript parser to get a list of error ranges.
 2.  **Create Marks**:
     ```typescript
     const errorMark = Decoration.mark({

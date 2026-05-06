@@ -117,7 +117,7 @@ export const SyntaxMode: StoryObj<typeof WorkoutEditorPage> = {
   args: {
     category: 'syntax',
     name: 'Syntax Guide',
-    mdContent: `# WOD Wiki Syntax Guide
+    mdContent: `# Whiteboard Script Guide
 
 ## Basic Statement
 

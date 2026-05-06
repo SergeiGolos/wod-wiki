@@ -173,7 +173,7 @@ block.getBehavior(TimerBehavior)  // Get specific behavior instance
 
 - `parser-integration.test.ts` - Parser integration with runtime
 - `statement-ids.test.ts` - Statement ID validation
-- `wod-script-parsing.test.ts` - WodScript parsing logic
+- `whiteboard-script-parsing.test.ts` - Whiteboard Script parsing logic
 - `parser-error-recovery.test.ts` - Error recovery behavior
 
 ### JIT Compilation Tests

@@ -26,7 +26,7 @@ import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { RuntimeClock } from '@/runtime/RuntimeClock';
 import { sharedParser } from '@/parser/parserInstance';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 // Strategies — the same set used in production
 import { AmrapLogicStrategy } from '@/runtime/compiler/strategies/logic/AmrapLogicStrategy';
@@ -69,7 +69,7 @@ function buildCompiler(): JitCompiler {
 }
 
 function buildRuntime(scriptText: string): ScriptRuntime {
-  const script = sharedParser.read(scriptText) as WodScript;
+  const script = sharedParser.read(scriptText) as WhiteboardScript;
   const compiler = buildCompiler();
   const clock = new RuntimeClock();
   const stack = new RuntimeStack();

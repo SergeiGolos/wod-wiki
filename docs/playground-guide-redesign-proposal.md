@@ -11,7 +11,7 @@
 
 | Page | Route | Purpose | Sections |
 |------|-------|---------|----------|
-| `HomePage` | `/` | Marketing / feature showcase | WodScript basics, AMRAP/EMOM/Countdown, Rep tracking, Metrics |
+| `HomePage` | `/` | Marketing / feature showcase | WhiteboardScript basics, AMRAP/EMOM/Countdown, Rep tracking, Metrics |
 | `GettingStartedPage` | `/getting-started` | "Zero to Hero" tutorial | Markdown basics → Advanced blocks → CTA |
 | `SyntaxPage` | `/syntax` | Reference guide | Basics, Timers, Repeaters, Groups, Measurements, Supplemental, Agentic |
 
@@ -26,7 +26,7 @@ The progressive tutorial leads with **Markdown features first**:
 5. → Metadata JSON block
 6. Smart Intervals (4-round tabata example)
 
-**Problem:** Leading with generic Markdown before WodScript means users must read through the workspace/notes framing before they learn the core language. This is backwards for someone wanting to write workouts.
+**Problem:** Leading with generic Markdown before WhiteboardScript means users must read through the workspace/notes framing before they learn the core language. This is backwards for someone wanting to write workouts.
 
 #### SyntaxPage
 Covers the language breadth but treats each topic as equal-weight:
@@ -42,9 +42,9 @@ Covers the language breadth but treats each topic as equal-weight:
 
 ---
 
-## 2. Full WodScript Syntax Inventory
+## 2. Full WhiteboardScript Syntax Inventory
 
-Drawn from `src/grammar/wodscript.grammar`, the parser metrics, and the compiler strategies.
+Drawn from `src/grammar/whiteboardscript.grammar`, the parser metrics, and the compiler strategies.
 
 ### 2.1 Statement Structure
 
@@ -118,7 +118,7 @@ The CrossFit dialect recognizes these keywords and applies behavior rules automa
 
 ### 2.7 Markdown Integration
 
-WodScript sits _inside_ a Markdown document. Everything outside a ` ```wod ``` ` fence is standard Markdown:
+WhiteboardScript sits _inside_ a Markdown document. Everything outside a ` ```wod ``` ` fence is standard Markdown:
 
 - Headings (`# H1`, `## H2`)
 - Prose / notes
@@ -160,7 +160,7 @@ Features in the grammar / runtime that are **missing or under-explained** in the
 
 > **"Inside-out"**: learn how to express a single workout statement, then scale to groupings, then to a full document.
 
-The current structure leads with the document (Markdown workspace) and ends with syntax depth. We propose reversing this: start with the atom (a single WodScript line), build to molecules (groups), and only then reveal the document layer.
+The current structure leads with the document (Markdown workspace) and ends with syntax depth. We propose reversing this: start with the atom (a single WhiteboardScript line), build to molecules (groups), and only then reveal the document layer.
 
 ---
 
@@ -343,7 +343,7 @@ Topics:
 - JSON blocks for custom metadata / tags
 - Multiple wod blocks per document (separate workouts)
 
-This is the **workspace** concept: WodScript lives inside a Markdown document.
+This is the **workspace** concept: WhiteboardScript lives inside a Markdown document.
 
 ```markdown
 # Tuesday Upper Body
@@ -373,7 +373,7 @@ The current `NoteEditor` with live runtime. Keep this as the "do it" view.
 
 ### 5.2 Statement Anatomy View (New — High Priority)
 
-A **static exploded diagram** of a single WodScript line. Like a grammar railroad diagram but visual.
+A **static exploded diagram** of a single WhiteboardScript line. Like a grammar railroad diagram but visual.
 
 ```
 Input:  10 Thrusters 95lb

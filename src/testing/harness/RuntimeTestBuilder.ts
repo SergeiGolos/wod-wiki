@@ -7,7 +7,7 @@ import { RuntimeMemory } from '@/runtime/RuntimeMemory';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 
 export interface RuntimeSnapshot {
@@ -32,7 +32,7 @@ export interface SnapshotDiff {
 
 export class RuntimeTestHarness {
   readonly runtime: ScriptRuntime;
-  readonly script: WodScript;
+  readonly script: WhiteboardScript;
   readonly jit: JitCompiler;
   readonly clock: MockClock;
 
@@ -42,7 +42,7 @@ export class RuntimeTestHarness {
     clockTime: Date = new Date()
   ) {
     // 1. Parser (use shared singleton)
-    this.script = sharedParser.read(scriptText) as WodScript;
+    this.script = sharedParser.read(scriptText) as WhiteboardScript;
 
     // 2. JIT
     this.jit = new JitCompiler(strategies);

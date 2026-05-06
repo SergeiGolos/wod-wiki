@@ -1,11 +1,11 @@
 import { describe, it } from 'bun:test';
 import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { wodscriptLanguage } from '@/parser/wodscript-language';
+import { whiteboardScriptLanguage } from '@/parser/whiteboard-script-language';
 
 function printTree(input: string): string {
     const doc = input.endsWith('\n') ? input : input + '\n';
-    const state = EditorState.create({ doc, extensions: [wodscriptLanguage] });
+    const state = EditorState.create({ doc, extensions: [whiteboardScriptLanguage] });
     const tree = syntaxTree(state);
     const parts: string[] = [];
     tree.iterate({

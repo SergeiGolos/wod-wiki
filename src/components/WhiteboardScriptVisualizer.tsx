@@ -6,7 +6,7 @@ import { IMetricSource } from '../core/contracts/IMetricSource';
 import { MetricType } from '../core/models/Metric';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
 
-export interface WodScriptVisualizerProps {
+export interface WhiteboardScriptVisualizerProps {
   statements: ICodeStatement[];
   showTimestamps?: boolean;
   showDurations?: boolean;
@@ -44,7 +44,7 @@ function calculateDepth(statement: ICodeStatement, map: Map<number, ICodeStateme
   return depth;
 }
 
-export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
+export const WhiteboardScriptVisualizer: React.FC<WhiteboardScriptVisualizerProps> = ({
   statements,
   showDurations,
   autoScroll,

@@ -12,7 +12,7 @@
  * @example
  * ```typescript
  * // Import specific modules for better tree-shaking
- * import { WodScript, ScriptRuntime } from 'wod-wiki/core';
+ * import { WhiteboardScript, ScriptRuntime } from 'wod-wiki/core';
  * import { WodWiki } from 'wod-wiki/editor';
  * import { DigitalClock } from 'wod-wiki/clock';
  * import type { IScriptRuntime } from 'wod-wiki/types';

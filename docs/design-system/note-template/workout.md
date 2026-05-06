@@ -8,7 +8,7 @@
 
 ## Description
 
-The main workspace for authoring and editing WodScript files stored in the repository. `/note/` is a direct alias for `/workout/`.
+The main workspace for authoring and editing WhiteboardScript files stored in the repository. `/note/` is a direct alias for `/workout/`.
 
 ## Configuration (Note Workspace)
 
@@ -35,5 +35,5 @@ None. Route identity is carried in path params `:category/:name`; no `nuqs` para
 ## Workflow
 
 1.  **Load**: The `WorkoutEditorPage` resolves the file path based on the route parameters.
-2.  **Edit**: Users can modify the WodScript; changes are persisted via the [Playground DB service](note-template.md#configurations-by-route).
+2.  **Edit**: Users can modify the WhiteboardScript; changes are persisted via the [Playground DB service](note-template.md#configurations-by-route).
 3.  **Run**: Clicking the "Start Workout" overlay in the editor (or a button pipeline) triggers the workout lifecycle.

@@ -1,4 +1,4 @@
-# WOD Syntax Linting Report
+# Whiteboard Script Linting Report
 
 **Total Files Scanned:** 335
 **Files with Errors:** 0

@@ -12,7 +12,7 @@ Training only one rotational direction creates imbalances that can lead to compe
 
 The Reverse Mill is often described as a "preparation" or "build-up" movement for the Mill in some training progressions, but it deserves equal standing as a primary exercise. The movement develops the same qualities as the forward Mill - shoulder mobility, grip strength, core stability, and rotational power - but emphasizes slightly different muscle fibers and movement patterns due to the reversed direction.
 
-## WOD Wiki Syntax
+## Whiteboard Script
 
 ### Reverse Mill Practice
 ```wod

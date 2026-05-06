@@ -40,14 +40,14 @@ const PlaceholderContent = () => (
 
 export const Default: Story = {
   args: {
-    title: 'WodScript',
+    title: 'Whiteboard Script',
     children: <PlaceholderContent />,
   },
 }
 
 export const WithReset: Story = {
   args: {
-    title: 'WodScript',
+    title: 'Whiteboard Script',
     onReset: () => alert('Reset!'),
     children: <PlaceholderContent />,
   },
@@ -55,7 +55,7 @@ export const WithReset: Story = {
 
 export const WithHeaderActions: Story = {
   args: {
-    title: 'WodScript',
+    title: 'Whiteboard Script',
     headerActions: (
       <button className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
         <RefreshCw className="size-3.5" />

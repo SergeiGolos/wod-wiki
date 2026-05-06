@@ -1,5 +1,5 @@
 /**
- * WodCommand — public command interface for WodScript block overlays.
+ * WodCommand — public command interface for WhiteboardScript block overlays.
  *
  * Pass an array to NoteEditor via the `commands` prop.
  * The first `visibleCommands` items (default 1) render as direct buttons.

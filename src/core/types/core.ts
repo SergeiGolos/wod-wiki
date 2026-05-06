@@ -75,9 +75,9 @@ export enum MetricType {
 }
 
 /**
- * Re-export WodScript class
+ * Re-export WhiteboardScript class
  */
-export type { WodScript } from '@/parser/WodScript';
+export type { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 /**
  * Re-export BlockKey class

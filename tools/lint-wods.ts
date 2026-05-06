@@ -2,7 +2,7 @@ import { readdir, stat, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { wodscriptLanguage } from "../src/parser/wodscript-language";
+import { whiteboardScriptLanguage } from "../src/parser/whiteboard-script-language";
 
 // Types
 interface LintError {
@@ -18,9 +18,9 @@ interface FileReport {
 }
 
 /**
- * Extracts WodScript blocks from markdown content
+ * Extracts Whiteboard Script blocks from markdown content
  */
-function extractWodBlocks(markdown: string): string[] {
+function extractWhiteboardScriptBlocks(markdown: string): string[] {
   const blocks: string[] = [];
   const regex = /```wod\n([\s\S]*?)```/g;
   let match;
@@ -33,15 +33,15 @@ function extractWodBlocks(markdown: string): string[] {
 }
 
 /**
- * Parses WodScript content and finds any syntax errors using the Lezer tree
+ * Parses Whiteboard Script content and finds any syntax errors using the Lezer tree
  */
-function lintWodScript(content: string, blockIndex: number): LintError[] {
+function lintWhiteboardScript(content: string, blockIndex: number): LintError[] {
   if (!content.trim()) return [];
 
   const doc = content.endsWith("\n") ? content : content + "\n";
   const tempState = EditorState.create({
     doc,
-    extensions: [wodscriptLanguage],
+    extensions: [whiteboardScriptLanguage],
   });
 
   const tree = syntaxTree(tempState);
@@ -96,10 +96,10 @@ async function findMarkdownFiles(dir: string, fileList: string[] = []): Promise<
 async function generateReport(reports: FileReport[], totalFiles: number, outputPath: string) {
   const filesWithErrors = reports.filter(r => r.errors.length > 0);
   
-  let reportContent = `# WOD Syntax Linting Report\n\n`;
+  let reportContent = `# Whiteboard Script Linting Report\n\n`;
   reportContent += `**Total Files Scanned:** ${totalFiles}\n`;
   reportContent += `**Files with Errors:** ${filesWithErrors.length}\n`;
-  reportContent += `**Status:** ${filesWithErrors.length === 0 ? "✅ All WODs pass validation" : "❌ Syntax errors found"}\n\n`;
+  reportContent += `**Status:** ${filesWithErrors.length === 0 ? "✅ All Whiteboard Script blocks pass validation" : "❌ Syntax errors found"}\n\n`;
 
   if (filesWithErrors.length > 0) {
     reportContent += `## Details\n\n`;
@@ -120,13 +120,13 @@ async function generateReport(reports: FileReport[], totalFiles: number, outputP
 }
 
 async function main() {
-  const wodDir = join(process.cwd(), "wod");
+  const whiteboardScriptDir = join(process.cwd(), "wod");
   const reportPath = join(process.cwd(), "wod-lint-report.md");
   
-  console.log(`Scanning directory: ${wodDir}`);
+  console.log(`Scanning directory: ${whiteboardScriptDir}`);
   
   try {
-    const mdFiles = await findMarkdownFiles(wodDir);
+    const mdFiles = await findMarkdownFiles(whiteboardScriptDir);
     console.log(`Found ${mdFiles.length} markdown file(s). Linting...`);
     
     const fileReports: FileReport[] = [];
@@ -134,12 +134,12 @@ async function main() {
 
     for (const filePath of mdFiles) {
       const content = await readFile(filePath, "utf-8");
-      const wodBlocks = extractWodBlocks(content);
+      const whiteboardScriptBlocks = extractWhiteboardScriptBlocks(content);
       
       let fileErrors: LintError[] = [];
       
-      wodBlocks.forEach((blockContent, index) => {
-        const errors = lintWodScript(blockContent, index);
+      whiteboardScriptBlocks.forEach((blockContent, index) => {
+        const errors = lintWhiteboardScript(blockContent, index);
         if (errors.length > 0) {
           fileErrors.push(...errors);
           totalErrors += errors.length;
@@ -169,7 +169,7 @@ async function main() {
       console.error("\n❌ Syntax errors were found. Please check the report.");
       process.exit(1);
     } else {
-      console.log("\n✅ All WOD blocks are valid!");
+      console.log("\n✅ All Whiteboard Script blocks are valid!");
       process.exit(0);
     }
     

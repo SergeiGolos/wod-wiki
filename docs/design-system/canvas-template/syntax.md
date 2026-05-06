@@ -8,7 +8,7 @@
 
 ## Page Outline
 
-This route serves as the central documentation for the WodScript syntax. It features an interactive index page plus four consolidated guide pages: core concepts, structure, protocols, and complex examples.
+This route serves as the central documentation for the WhiteboardScript syntax. It features an interactive index page plus four consolidated guide pages: core concepts, structure, protocols, and complex examples.
 
 ### Header Navigation (TSX Hardcoded)
 The global `PageNavDropdown` (defined in `App.tsx`) shows the following links when on the `/syntax` index route:

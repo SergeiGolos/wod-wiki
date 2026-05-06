@@ -4,7 +4,7 @@ description: 'Extract and convert any workout description into WOD Wiki syntax. 
 license: MIT
 ---
 
-# WOD Extraction — Converting Workouts to WOD Wiki Syntax
+# WOD Extraction — Converting Workouts to Whiteboard Script
 
 ## Overview
 
@@ -48,7 +48,7 @@ When a value is **prescribed** (given to the athlete), write it literally. When 
 
 ---
 
-## WOD Wiki Syntax Reference
+## Whiteboard Script Reference
 
 ### Statement Structure
 

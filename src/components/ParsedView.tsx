@@ -1,24 +1,24 @@
 import React, { useMemo } from 'react';
 import { sharedParser } from '@/hooks/useRuntimeParser';
-import { WodScriptVisualizer } from './WodScriptVisualizer';
+import { WhiteboardScriptVisualizer } from './WhiteboardScriptVisualizer';
 import { VisualizerSize, VisualizerFilter } from '../core/models/DisplayItem';
 
 interface ParsedViewProps {
-  wodscript: string;
+  scriptText: string;
   className?: string;
   /** Display size variant @default 'normal' */
   size?: VisualizerSize;
 }
 
 export const ParsedView: React.FC<ParsedViewProps> = ({ 
-  wodscript, 
+  scriptText, 
   className = '',
   size = 'normal'
 }) => {
   const { statements, error } = useMemo(() => {
-    if (!wodscript) return { statements: [], error: null };
+    if (!scriptText) return { statements: [], error: null };
     
-    const trimmedScript = wodscript.trim();
+    const trimmedScript = scriptText.trim();
 
     try {
       const script = sharedParser.read(trimmedScript);
@@ -31,7 +31,7 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
     } catch (e) {
       return { statements: [], error: e as Error };
     }
-  }, [wodscript]);
+  }, [scriptText]);
 
   // Filter configuration for Plan Screen Overlay
   const planFilter: VisualizerFilter = {
@@ -57,7 +57,7 @@ export const ParsedView: React.FC<ParsedViewProps> = ({
   return (
     <div className={`h-full overflow-hidden flex flex-col ${className}`}>
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <WodScriptVisualizer 
+        <WhiteboardScriptVisualizer 
           statements={statements} 
           size={size}
           filter={planFilter}

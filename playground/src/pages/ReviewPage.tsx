@@ -29,9 +29,10 @@ export function ReviewPage() {
         setError('Result not found.')
         return
       }
-      const noteLabel = result.noteId.includes('/')
-        ? result.noteId.split('/').pop()!
-        : result.noteId
+      const safeNoteId = result.noteId || ''
+      const noteLabel = safeNoteId.includes('/')
+        ? safeNoteId.split('/').pop()!
+        : safeNoteId || 'Workout Review'
       setTitle(noteLabel)
       if (result.data?.logs && result.data.logs.length > 0) {
         const { segments: s } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime)

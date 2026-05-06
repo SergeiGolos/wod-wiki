@@ -155,7 +155,7 @@ export interface ButtonConfig {
 
     /** 
      * Whether this button is pinned (always visible).
-     * Derived from `[:!action]` syntax in WOD scripts.
+     * Derived from `[:!action]` syntax in Whiteboard scripts.
      */
     readonly isPinned?: boolean;
 }

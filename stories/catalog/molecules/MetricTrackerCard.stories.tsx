@@ -25,11 +25,11 @@ import { EventBus } from '@/runtime/events';
 import { RuntimeClock } from '@/runtime/RuntimeClock';
 import { WorkoutTracker } from '@/runtime/tracking/WorkoutTracker';
 import { sharedParser } from '@/parser/parserInstance';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 
 /** Build an idle runtime — no blocks pushed, just enough for the context hook. */
 function buildIdleRuntime(): ScriptRuntime {
-  const script = sharedParser.read('') as WodScript;
+  const script = sharedParser.read('') as WhiteboardScript;
   const compiler = new JitCompiler();
   const clock = new RuntimeClock();
   const stack = new RuntimeStack();
@@ -41,7 +41,7 @@ function buildIdleRuntime(): ScriptRuntime {
 function buildRuntimeWithMetrics(
   metrics: Array<{ key: string; value: number | string; unit?: string }>,
 ): ScriptRuntime {
-  const script = sharedParser.read('') as WodScript;
+  const script = sharedParser.read('') as WhiteboardScript;
   const compiler = new JitCompiler();
   const clock = new RuntimeClock();
   const stack = new RuntimeStack();
@@ -231,7 +231,7 @@ export const LiveUpdates: Story = {
   render: () => {
     const tracker = React.useMemo(() => new WorkoutTracker(), []);
     const runtime = React.useMemo(() => {
-      const script = sharedParser.read('') as WodScript;
+      const script = sharedParser.read('') as WhiteboardScript;
       const compiler = new JitCompiler();
       const clock = new RuntimeClock();
       const stack = new RuntimeStack();

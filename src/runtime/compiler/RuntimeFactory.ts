@@ -3,7 +3,7 @@
  * 
  * This factory encapsulates the runtime creation logic, decoupling it from
  * UI components like WorkbenchContext. It handles:
- * - WodScript creation from block content
+ * - WhiteboardScript creation from block content
  * - ScriptRuntime instantiation with JIT compiler
  * - Root block compilation and mounting
  * - Optional debug mode enabling
@@ -23,7 +23,7 @@ import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
 import { JitCompiler } from './JitCompiler';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import type { WodBlock } from '../../components/Editor/types';
 import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
@@ -60,7 +60,7 @@ export class RuntimeFactory implements IRuntimeFactory {
    * 
    * Process:
    * 1. Validates block has statements
-   * 2. Creates WodScript from content + statements
+   * 2. Creates WhiteboardScript from content + statements
    * 3. Instantiates ScriptRuntime with JIT compiler and options
    * 4. Dispatches StartSessionAction to wrap script in session root block and push it
    * 
@@ -73,8 +73,8 @@ export class RuntimeFactory implements IRuntimeFactory {
       return null;
     }
 
-    // Create WodScript from block content and statements
-    const script = new WodScript(block.content, block.statements);
+    // Create WhiteboardScript from block content and statements
+    const script = new WhiteboardScript(block.content, block.statements);
 
     // Instantiate dependencies
     const stack = new RuntimeStack();

@@ -5,7 +5,7 @@ import { RuntimeMemory } from '../RuntimeMemory';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { IRuntimeOptions } from '../contracts/IRuntimeOptions';
 import { RuntimeStack } from '../RuntimeStack';
@@ -60,7 +60,7 @@ const createBlock = (
 
 describe('ScriptRuntime Lifecycle', () => {
   // Mock dependencies
-  const script = new WodScript('test', []);
+  const script = new WhiteboardScript('test', []);
   const compiler = {} as JitCompiler; // Mock compiler
 
   it('sequences push hooks, tracker, wrapper, and logger in order', () => {

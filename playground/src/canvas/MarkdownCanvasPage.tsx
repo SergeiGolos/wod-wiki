@@ -381,7 +381,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   // View definition — carries the initial source and alignment
   const viewDef = sections.find(s => s.view)?.view ?? null
-  const chromeTitle  = 'WodScript'
+  const chromeTitle  = 'Whiteboard Script'
   const stickyAlign  = viewDef?.align ?? 'right'
 
   // Keep editor source in both state (for the NoteEditor value prop) and a ref
@@ -540,7 +540,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         if (open === 'view')   launchViewRuntime(block)
         else if (open === 'route') {
           const runtimeId = uuidv4()
-          pendingRuntimes.set(runtimeId, { block, noteId: '' })
+          pendingRuntimes.set(runtimeId, { block, noteId: canvasNoteId })
           navigate(`/tracker/${runtimeId}`)
         } else {
           setFullscreenBlock(block)

@@ -1,10 +1,10 @@
 /**
- * WodScript Linting Extension
+ * Whiteboard Script Linting Extension
  * 
- * CM6 LintSource that runs the WodScript parser on content within code fences
+ * CM6 LintSource that runs the Whiteboard Script parser on content within code fences
  * and shows real-time syntax errors as inline underlines.
  * 
- * Per ADR: "Develop a LintSource that runs the WodScript parser on content
+ * Per ADR: "Develop a LintSource that runs the Whiteboard Script parser on content
  * within code fences to show real-time syntax errors as inline underlines."
  */
 
@@ -12,11 +12,11 @@ import { Diagnostic, linter } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 import { sectionField } from "./section-state";
-import { wodscriptLanguage } from "@/hooks/useRuntimeParser";
+import { whiteboardScriptLanguage } from "@/hooks/useRuntimeParser";
 import { syntaxTree } from "@codemirror/language";
 
 /**
- * Parse WodScript content and extract error nodes from the Lezer tree.
+ * Parse Whiteboard Script content and extract error nodes from the Lezer tree.
  */
 function findWodErrors(content: string, offsetInDoc: number): Diagnostic[] {
   if (!content.trim()) return [];
@@ -24,7 +24,7 @@ function findWodErrors(content: string, offsetInDoc: number): Diagnostic[] {
   const doc = content.endsWith("\n") ? content : content + "\n";
   const tempState = EditorState.create({
     doc,
-    extensions: [wodscriptLanguage],
+    extensions: [whiteboardScriptLanguage],
   });
 
   const tree = syntaxTree(tempState);
@@ -39,7 +39,7 @@ function findWodErrors(content: string, offsetInDoc: number): Diagnostic[] {
           from,
           to: Math.min(to, from + 50), // Cap underline length
           severity: "error",
-          message: "Syntax error in WodScript",
+          message: "Syntax error in Whiteboard Script",
         });
       }
     },
@@ -49,7 +49,7 @@ function findWodErrors(content: string, offsetInDoc: number): Diagnostic[] {
 }
 
 /**
- * Lint source that finds WodScript errors inside fenced code blocks.
+ * Lint source that finds Whiteboard Script errors inside fenced code blocks.
  */
 function wodLintSource(view: EditorView): Diagnostic[] {
   const { sections } = view.state.field(sectionField);
@@ -72,7 +72,7 @@ function wodLintSource(view: EditorView): Diagnostic[] {
 }
 
 /**
- * CM6 linter extension for WodScript code fences.
+ * CM6 linter extension for Whiteboard Script code fences.
  * Debounced at 500ms to avoid excessive parsing during typing.
  */
 export const wodLinter = linter(wodLintSource, {

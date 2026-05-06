@@ -39,11 +39,11 @@ WOD Wiki is a smart workout companion that lets you write, run, and track workou
 
 ## How It Works
 
-1. **Write** a workout script using the WodScript language
+1. **Write** a workout script using the Whiteboard Script language
 2. **Run** it in real time with the built-in timer
 3. **Track** results automatically across sessions
 
-## The WodScript Language
+## The Whiteboard Script Language
 
 \`\`\`wod
 20:00 AMRAP
@@ -70,7 +70,7 @@ template: canvas
 route: /story/editor
 ---
 
-# Try WodScript
+# Try Whiteboard Script
 
 ## The Editor
 
@@ -107,7 +107,7 @@ Use the editor on the right to write your own workout script.
 Click **Run** to start the timer. Results are saved automatically.
 
 :::view
-name: WodScript Editor
+name: Whiteboard Script Editor
 source: 3x\n  10 Push-ups\n  10 Pull-ups
 align: right
 :::

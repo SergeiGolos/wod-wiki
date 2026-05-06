@@ -10,7 +10,7 @@
 
 ## Description
 
-A dedicated page for global discovery across the entire WodScript ecosystem. Provides a permanent, URL-shareable interface for searching collections, personal notes, and historical results.
+A dedicated page for global discovery across the entire WhiteboardScript ecosystem. Provides a permanent, URL-shareable interface for searching collections, personal notes, and historical results.
 
 ## Configuration (Queriable List Template)
 

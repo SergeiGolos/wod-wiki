@@ -19,7 +19,7 @@ import { EffortMetric } from "../runtime/compiler/metrics/EffortMetric";
 export type GroupType = 'round' | 'compose' | 'repeat';
 
 /**
- * Extracts WodScript statements from the CodeMirror editor state using the Lezer tree.
+ * Extracts WhiteboardScript statements from the CodeMirror editor state using the Lezer tree.
  */
 export function extractStatements(state: EditorState): ICodeStatement[] {
   const tree = syntaxTree(state);

@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, vi } from 'bun:test';
 import { RuntimeBuilder } from '../compiler/RuntimeBuilder';
 import { ScriptRuntime } from '../ScriptRuntime';
 import { JitCompiler } from '../compiler/JitCompiler';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import { TestableBlock } from '../../testing/testable/TestableBlock';
 import { IRuntimeBlock } from '../contracts/IRuntimeBlock';
 import { BlockKey } from '../../core/models/BlockKey';
@@ -98,11 +98,11 @@ function createDebugWrapper(): { wrapper: RuntimeStackWrapper; wrappedBlocks: Ma
 
 describe('Runtime Debugging and Testing Architecture', () => {
     let compiler: JitCompiler;
-    let script: WodScript;
+    let script: WhiteboardScript;
 
     beforeEach(() => {
         compiler = new JitCompiler([]);
-        script = new WodScript('10 Pushups', []);
+        script = new WhiteboardScript('10 Pushups', []);
     });
 
     describe('RuntimeBuilder', () => {

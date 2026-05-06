@@ -10,7 +10,7 @@
 
 ## Overview
 
-The Home page is the entry point to wod-wiki. It is a Canvas page driven by `markdown/canvas/home/README.md` with a live WodScript editor in the first sticky view panel. The user can type, load, run, share, and go fullscreen — all without leaving the page.
+The Home page is the entry point to wod-wiki. It is a Canvas page driven by `markdown/canvas/home/README.md` with a live WhiteboardScript editor in the first sticky view panel. The user can type, load, run, share, and go fullscreen — all without leaving the page.
 
 ---
 
@@ -61,7 +61,7 @@ The "Share" button base64-encodes the current editor content into a `?z=` query 
 |-------|---------|-------|
 | `leftPanel` | Section TOC (canvas headings) | Highlights active section on scroll |
 | `contentHeader` | Page title ("Home") | From hero `##` heading |
-| `contentPanel` | Sectioned markdown canvas | First section: two-column with sticky WodScript editor |
+| `contentPanel` | Sectioned markdown canvas | First section: two-column with sticky WhiteboardScript editor |
 | `rightPanel` | — | Not used |
 
 ---

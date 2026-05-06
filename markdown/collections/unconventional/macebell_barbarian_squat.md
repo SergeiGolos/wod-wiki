@@ -12,7 +12,7 @@ The beauty of the Barbarian Squat lies in its ability to train multiple qualitie
 
 The mace's uneven weight distribution creates a destabilizing effect that forces the practitioner to engage more muscle fibers than would be required with a balanced implement like a barbell. This instability is a feature, not a bug - it trains the nervous system to make micro-adjustments in real-time, improving proprioception and reactive stability.
 
-## WOD Wiki Syntax
+## Whiteboard Script
 
 ### Basic Strength Sets
 ```wod

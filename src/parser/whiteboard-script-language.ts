@@ -2,7 +2,7 @@ import { LRLanguage, LanguageSupport } from "@codemirror/language";
 import { styleTags, tags as t } from "@lezer/highlight";
 import { parser } from "../grammar/parser";
 
-export const wodscriptLanguage = LRLanguage.define({
+export const whiteboardScriptLanguage = LRLanguage.define({
   parser: parser.configure({
     props: [
       styleTags({
@@ -34,6 +34,6 @@ export const wodscriptLanguage = LRLanguage.define({
   }
 });
 
-export function wodscript() {
-  return new LanguageSupport(wodscriptLanguage);
+export function whiteboardScript() {
+  return new LanguageSupport(whiteboardScriptLanguage);
 }

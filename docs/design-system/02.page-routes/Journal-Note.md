@@ -10,7 +10,7 @@
 
 ## Overview
 
-The Journal Note page is the primary editing surface for a single journal entry identified by its date key (`YYYY-MM-DD`). It combines the WodScript editor with an inline timer launch flow, making it the natural home for logging a daily workout. Results from workouts run here are linked to this note.
+The Journal Note page is the primary editing surface for a single journal entry identified by its date key (`YYYY-MM-DD`). It combines the WhiteboardScript editor with an inline timer launch flow, making it the natural home for logging a daily workout. Results from workouts run here are linked to this note.
 
 Journal notes are editable on any date but the UI can surface edit-lock affordances for past entries in a future iteration.
 

@@ -3,7 +3,7 @@ import { IScriptRuntime } from '../../src/runtime/IScriptRuntime';
 import { IRuntimeBlock } from '../../src/runtime/IRuntimeBlock';
 import { IEvent } from '../../src/runtime/IEvent';
 import { IRuntimeAction } from '../../src/runtime/IRuntimeAction';
-import { WodScript } from '../../src/parser/WodScript';
+import { WhiteboardScript } from '../../src/parser/WhiteboardScript';
 import { ICodeStatement } from '../../src/core/models/CodeStatement';
 
 /**
@@ -20,10 +20,10 @@ import { ICodeStatement } from '../../src/core/models/CodeStatement';
  */
 
 /**
- * @deprecated Use `sharedParser.read(scriptText) as WodScript` instead.
+ * @deprecated Use `sharedParser.read(scriptText) as WhiteboardScript` instead.
  */
-export function createMockScript(statements: ICodeStatement[]): WodScript {
-  return new WodScript('mock source', statements, []);
+export function createMockScript(statements: ICodeStatement[]): WhiteboardScript {
+  return new WhiteboardScript('mock source', statements, []);
 }
 
 /**

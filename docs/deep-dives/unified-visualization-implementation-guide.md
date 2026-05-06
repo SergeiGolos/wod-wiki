@@ -1040,12 +1040,12 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
 };
 ```
 
-### Migrating WodScriptVisualizer
+### Migrating WhiteboardScriptVisualizer
 
 Replace with unified components:
 
 ```typescript
-// src/components/WodScriptVisualizer.tsx
+// src/components/WhiteboardScriptVisualizer.tsx
 
 import React, { useMemo } from 'react';
 import { ICodeStatement } from '../core/models/CodeStatement';
@@ -1053,7 +1053,7 @@ import { IDisplayItem } from '../core/models/DisplayItem';
 import { UnifiedItemList } from './unified';
 import { statementsToDisplayItems } from '@/core/utils/displayItemAdapters';
 
-export interface WodScriptVisualizerProps {
+export interface WhiteboardScriptVisualizerProps {
   statements: ICodeStatement[];
   activeStatementIds?: Set<number>;
   selectedStatementId?: number | null;
@@ -1064,7 +1064,7 @@ export interface WodScriptVisualizerProps {
   className?: string;
 }
 
-export const WodScriptVisualizer: React.FC<WodScriptVisualizerProps> = ({
+export const WhiteboardScriptVisualizer: React.FC<WhiteboardScriptVisualizerProps> = ({
   statements,
   activeStatementIds = new Set(),
   selectedStatementId,

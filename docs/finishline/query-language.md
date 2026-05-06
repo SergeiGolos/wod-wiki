@@ -128,7 +128,7 @@ From existing `IMetric` types and `Segment` properties:
 
 ### Phase 1: Query Parser
 
-Build a Lezer grammar for the query language, paralleling the existing WOD script parser pattern.
+Build a Lezer grammar for the query language, paralleling the existing Whiteboard script parser pattern.
 
 ```
 src/

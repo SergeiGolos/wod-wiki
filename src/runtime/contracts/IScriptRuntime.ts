@@ -1,4 +1,4 @@
-import type { WodScript } from '../../parser/WodScript';
+import type { WhiteboardScript } from '../../parser/WhiteboardScript';
 import type { RuntimeError } from '../actions/ErrorAction';
 import type { IEventBus } from './events/IEventBus';
 import type { IRuntimeStack, Unsubscribe, StackObserver } from './IRuntimeStack';
@@ -35,7 +35,7 @@ export type TrackerListener = (update: TrackerUpdate) => void;
 export interface IScriptRuntime extends IRuntimeActionable {
     options: RuntimeStackOptions;
     tracker?: RuntimeStackTracker;
-    script: WodScript;
+    script: WhiteboardScript;
 
     eventBus: IEventBus;
     stack: IRuntimeStack;
