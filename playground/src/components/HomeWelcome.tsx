@@ -9,9 +9,9 @@
  * Step 03 — Analyze: results view explains what changed in the run
  */
 
-import { Search, Play, BookOpen, BarChart2 } from 'lucide-react'
+import { FolderIcon, MagnifyingGlassIcon, RectangleStackIcon } from '@heroicons/react/20/solid'
+import { Play, BookOpen, BarChart2 } from 'lucide-react'
 import { ButtonLink } from '@/components/ui/ButtonLink'
-import { HOME_WORKFLOW_DOC_LINKS } from '../views/homeDocumentationLinks'
 
 const inlineActionClassName = 'mx-1 inline-flex h-6 items-center gap-1 rounded-md border border-border bg-muted/30 px-2 align-baseline text-[11px] font-semibold leading-none text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/50 hover:text-foreground'
 
@@ -80,6 +80,37 @@ function WriteReferenceItem({
   return (
     <li className="text-sm leading-relaxed text-muted-foreground">
       <InlineDocLink to={to} label={label} />
+      <span>{children}</span>
+    </li>
+  )
+}
+
+function MenuReferenceItem({
+  label,
+  icon: Icon,
+  to,
+  onClick,
+  children,
+}: {
+  label: string
+  icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+  to?: string
+  onClick?: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <li className="text-sm leading-relaxed text-muted-foreground">
+      {to ? (
+        <ButtonLink to={to} variant="link" size="sm" className={inlineDocLinkClassName}>
+          <Icon className="size-3" aria-hidden={true} />
+          <strong className="font-semibold">{label}</strong>
+        </ButtonLink>
+      ) : (
+        <button type="button" onClick={onClick} className={inlineDocLinkClassName}>
+          <Icon className="size-3" aria-hidden={true} />
+          <strong className="font-semibold">{label}</strong>
+        </button>
+      )}
       <span>{children}</span>
     </li>
   )
@@ -159,7 +190,7 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
           <div>
             <div className="flex-1">
               <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
-                Measuring the unknown, is the whole points, so
+                Some of the most useful workout data does not exist when you first write the note. That is the point of the runtime: use
                 <button
                   onClick={onRun}
                   className={inlinePrimaryActionClassName}
@@ -168,28 +199,32 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
                   <Play className="size-3 fill-current" />
                   Run Workout
                 </button>
-                 and collect the data, and after completing all the laps  <button
+                to turn that unknown work into measured output, then open
+                <button
                   onClick={onResults}
                   className={inlineActionClassName}
                   aria-label="View results"
                 >
                   <BarChart2 className="size-3" />
                   View Results
-                </button> for a deeper anlysis.
+                </button>
+                once the session is complete to inspect lap times, pace changes, and the totals that were only knowable after execution.
               </p>
-              
-              
+
               <p className="mt-3 text-sm font-medium leading-relaxed text-muted-foreground">
-              
-                                <button
-                  onClick={onOpenSearch}
-                  className={`${inlineActionClassName} group`}
-                  aria-label="Find workout content"
-                >
-                  <Search className="size-3 transition-colors group-hover:text-primary" />
-                  Find Content
-                </button> for additional examples from feeds collections and your own workout history if you keep a journal.
+                Keep moving between examples, templates, and prior sessions while you refine the note:
               </p>
+              <ul className="mt-3 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
+                <MenuReferenceItem label="Feed" icon={MagnifyingGlassIcon} onClick={onOpenSearch}>
+                  opens the same search/feed entry point as the home menu so you can pull additional examples into the editor without starting over.
+                </MenuReferenceItem>
+                <MenuReferenceItem label="Collections" icon={FolderIcon} to="/collections">
+                  jumps into the template library when you want a stronger starting point than a blank note.
+                </MenuReferenceItem>
+                <MenuReferenceItem label="Journal" icon={RectangleStackIcon} to="/journal">
+                  brings your own workout history back into the loop so you can compare runs against what you already logged.
+                </MenuReferenceItem>
+              </ul>
             </div>
           </div>
         </div>
