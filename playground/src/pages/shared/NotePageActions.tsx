@@ -9,8 +9,7 @@
 
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
-import { AudioToggle } from '@/components/audio/AudioToggle'
-import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './PageToolbar'
+import { NewEntryButton, ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
 
 export interface NotePageActionsProps {
@@ -25,8 +24,6 @@ export function NotePageActions({ currentWorkout, index }: NotePageActionsProps)
     <div className="flex items-center gap-4">
       <NewEntryButton />
       <CastButtonRpc />
-      <AudioToggle />
-      <ThemeSwitcher />
       <ActionsMenu currentWorkout={currentWorkout} items={mapIndexToL3(index)} />
     </div>
   )

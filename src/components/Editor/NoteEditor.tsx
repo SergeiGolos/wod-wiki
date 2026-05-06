@@ -56,6 +56,8 @@ import { markdownSyntaxHiding } from "./extensions/markdown-syntax-hiding";
 import { wodLinter } from "./extensions/wod-linter";
 import { wodAutocompletion, wodEditorKeymap } from "./extensions/wod-autocomplete";
 import { wodOverlayPanel } from "./extensions/wod-overlay";
+import { widgetBlockPreview } from "./extensions/widget-block-preview";
+import { inlineButtonDecoration, type ButtonAction } from "./extensions/inline-button-decoration";
 import { sectionGeometry } from "./extensions/section-geometry";
 import { linkOpen } from "./extensions/link-open";
 import { gutterUnified } from "./extensions/gutter-unified";
@@ -202,8 +204,17 @@ export interface NoteEditorProps {
   /**
    * Registry of custom widget components rendered inside ```widget:<name> blocks.
    * Keys are widget names (e.g. "hero"), values are React components.
+   * Each registered widget replaces the fenced block with a full-width React component.
    */
   widgetComponents?: WidgetRegistry;
+  /**
+   * Called when an inline button `[Label]{.button ...}` is activated.
+   * Receives the action name and a key-value param bag.
+   * - route action:    onButtonAction("route", { route: "/tracker" })
+   * - named action:    onButtonAction("start-workout", {})
+   * - emit action:     onButtonAction("emit", { name: "my-event" })
+   */
+  onButtonAction?: ButtonAction;
   /** ID of section to scroll into view (matches IDs from lineIdsExtension) */
   scrollToSectionId?: string;
 }
@@ -234,6 +245,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   hideDefaultCommands = false,
   enableInlineRuntime = true,
   widgetComponents,
+  onButtonAction,
   scrollToSectionId,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -554,6 +566,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Results bar widgets — shown after each WOD block's closing fence
       ...wodResultsWidget,
 
+      // Full-row widget block replacements (```widget:<name>``` sections)
+      ...(widgetComponents && widgetComponents.size > 0
+        ? [widgetBlockPreview(widgetComponents)]
+        : []),
+
+      // Inline button decorations ([Label]{.button action=...})
+      ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
+
       // File drop handler
       fileDropHandler(noteId),
 
@@ -598,6 +618,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       enableLinting,
       enableOverlay,
       noteId,
+      widgetComponents,
+      onButtonAction,
     ]
   );
 
