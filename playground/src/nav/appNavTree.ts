@@ -17,7 +17,6 @@ import {
   RectangleStackIcon,
   FolderIcon,
   MagnifyingGlassIcon,
-  AcademicCapIcon,
   CodeBracketIcon,
 } from '@heroicons/react/20/solid'
 
@@ -27,6 +26,7 @@ import type { Location } from 'react-router-dom'
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
+import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +35,14 @@ function isRouteActive(to: string) {
     to === '/'
       ? loc.pathname === '/' || loc.pathname === ''
       : loc.pathname.startsWith(to)
+}
+
+function isCollectionWorkoutRoute(loc: Location): boolean {
+  const match = loc.pathname.match(/^\/workout\/([^/]+)\/[^/]+$/)
+  if (!match) return false
+
+  const category = decodeURIComponent(match[1])
+  return !NON_COLLECTION_CATEGORIES.has(category)
 }
 
 // ─── L2 children for Home ─────────────────────────────────────────────────────
@@ -103,7 +111,7 @@ export function buildAppNavTree(openSearch: () => void): NavItem[] {
     level: 1,
     icon: FolderIcon,
     action: { type: 'route', to: '/collections' },
-    isActive: isRouteActive('/collections'),
+    isActive: (loc) => isRouteActive('/collections')(loc) || isCollectionWorkoutRoute(loc),
     panel: CollectionsNavPanel,
   },
 

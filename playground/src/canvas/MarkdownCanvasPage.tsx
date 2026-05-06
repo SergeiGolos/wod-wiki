@@ -36,7 +36,6 @@ import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
 import { CollectionWorkoutsList } from '../views/queriable-list/CollectionWorkoutsList'
-import { getCategoryForCollection } from '../config/collectionGroups'
 
 // Match the existing parallax constants exactly
 const STICKY_NAV_HEIGHT = 104
@@ -930,23 +929,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           {/* ── Scrolling text column ─────────────────────────────────── */}
           <div className={cn('w-full', viewDef && 'lg:w-[40%]')}>
             {mobilePanel}
-
-            {/* Category chip — collection detail pages only */}
-            {isCollection && collectionSlug && (() => {
-              const category = getCategoryForCollection(collectionSlug)
-              if (!category) return null
-              const slug = category.toLowerCase()
-              return (
-                <div className="px-6 lg:px-12 pt-6 pb-0">
-                  <button
-                    onClick={() => navigate(`/collections?categories=${slug}`)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                  >
-                    {category}
-                  </button>
-                </div>
-              )
-            })()}
 
             {heroSlot}
 

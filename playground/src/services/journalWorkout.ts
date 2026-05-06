@@ -11,6 +11,7 @@
  * result be linked to the note rather than the static collection file.
  */
 
+import { getWodCollection } from '@/repositories/wod-collections';
 import { playgroundDB, PlaygroundDBService } from './playgroundDB';
 
 export interface AppendWorkoutOptions {
@@ -61,12 +62,18 @@ export async function appendWorkoutToJournal({
 
   const resolvedSourceLabel = sourceNoteLabel?.trim() || category;
   const resolvedSourcePath = sourceNotePath?.trim() || `/collections/${encodeURIComponent(category)}`;
+  const collection = getWodCollection(category);
+  const siblingLinks = collection?.items
+    .filter(item => item.id !== workoutName)
+    .map(item => `[${category}-${item.id}](/workout/${encodeURIComponent(category)}/${encodeURIComponent(item.id)})`) ?? [];
   
   const lines = [
     `\n## ${workoutName}`,
     `Source: [${resolvedSourceLabel}](${resolvedSourcePath})`,
+    collection ? `Collection: [${collection.id}](/collections/${encodeURIComponent(collection.id)})` : null,
+    siblingLinks.length > 0 ? `Other Workouts: ${siblingLinks.join(' · ')}` : null,
     '',
-  ];
+  ].filter((line): line is string => line !== null);
 
   if (wrapInWod) {
     lines.push('```wod');

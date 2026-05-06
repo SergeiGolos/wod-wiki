@@ -11,6 +11,26 @@ interface SavedPage {
 const savedPages: SavedPage[] = [];
 const existingPages = new Map<string, SavedPage>();
 
+mock.module('@/repositories/wod-collections', () => ({
+  getWodCollection: (id: string) => {
+    if (id === 'crossfit-games-2021') {
+      return {
+        id: 'crossfit-games-2021',
+        name: 'Crossfit Games 2021',
+        count: 3,
+        categories: ['crossfit'],
+        items: [
+          { id: 'Event-04', name: 'Event 04', content: '', path: 'Event-04.md' },
+          { id: 'Event-05', name: 'Event 05', content: '', path: 'Event-05.md' },
+          { id: 'Event-06', name: 'Event 06', content: '', path: 'Event-06.md' },
+        ],
+      };
+    }
+
+    return undefined;
+  },
+}));
+
 mock.module('./playgroundDB', () => ({
   PlaygroundDBService: {
     pageId: (category: string, name: string) => `${category}/${name}`,
@@ -49,6 +69,10 @@ describe('appendWorkoutToJournal', () => {
 
     expect(savedPages).toHaveLength(1);
     expect(savedPages[0]?.content).toContain('Source: [crossfit-games-2021-Event-05](/workout/crossfit-games-2021/Event-05)');
+    expect(savedPages[0]?.content).toContain('Collection: [crossfit-games-2021](/collections/crossfit-games-2021)');
+    expect(savedPages[0]?.content).toContain('[crossfit-games-2021-Event-04](/workout/crossfit-games-2021/Event-04)');
+    expect(savedPages[0]?.content).toContain('[crossfit-games-2021-Event-06](/workout/crossfit-games-2021/Event-06)');
+    expect(savedPages[0]?.content).not.toContain('[crossfit-games-2021-Event-05](/workout/crossfit-games-2021/Event-05) ·');
     expect(savedPages[0]?.content).not.toContain('Source: [crossfit-games-2021](/collections/crossfit-games-2021)');
   });
 
