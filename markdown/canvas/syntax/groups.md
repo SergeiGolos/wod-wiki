@@ -90,15 +90,15 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Rep Schemes
+label:  ← Supplemental Data
 target: ex
 pipeline:
-  - navigate: /syntax/repeaters
+  - navigate: /syntax/supplemental
 ```
 
 ```button
-label:  AMRAP →
+label:  Rep Schemes →
 target: ex
 pipeline:
-  - navigate: /syntax/amrap
+  - navigate: /syntax/repeaters
 ```

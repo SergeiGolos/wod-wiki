@@ -91,10 +91,10 @@ pipeline:
 You've seen the full syntax. Time to write your own.
 
 ```button
-label:  ← Supplemental Data
+label:  ← Tabata and Intervals
 target: ex
 pipeline:
-  - navigate: /syntax/supplemental
+  - navigate: /syntax/tabata
 ```
 
 ```button

@@ -55,15 +55,15 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Tabata and Intervals
+label:  ← Timers and Intervals
 target: ex
 pipeline:
-  - navigate: /syntax/tabata
+  - navigate: /syntax/timers
 ```
 
 ```button
-label:  Measurements →
+label:  AMRAP →
 target: ex
 pipeline:
-  - navigate: /syntax/measurements
+  - navigate: /syntax/amrap
 ```

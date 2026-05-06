@@ -75,15 +75,15 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Timers and Intervals
-target: ex
-pipeline:
-  - navigate: /syntax/timers
-```
-
-```button
-label:  Rounds and Groups →
+label:  ← Rounds and Groups
 target: ex
 pipeline:
   - navigate: /syntax/groups
+```
+
+```button
+label:  Timers and Rest →
+target: ex
+pipeline:
+  - navigate: /syntax/timers
 ```

@@ -99,8 +99,8 @@ pipeline:
 ```
 
 ```button
-label:  Complex Examples →
+label:  Rounds and Groups →
 target: ex
 pipeline:
-  - navigate: /syntax/complex
+  - navigate: /syntax/groups
 ```

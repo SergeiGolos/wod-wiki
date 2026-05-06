@@ -73,10 +73,10 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Rounds and Groups
+label:  ← Rest Periods
 target: ex
 pipeline:
-  - navigate: /syntax/groups
+  - navigate: /syntax/rest
 ```
 
 ```button

@@ -80,8 +80,8 @@ pipeline:
 ```
 
 ```button
-label:  Rest Periods →
+label:  Complex Workouts →
 target: ex
 pipeline:
-  - navigate: /syntax/rest
+  - navigate: /syntax/complex
 ```

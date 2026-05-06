@@ -91,15 +91,15 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← The Basics
-target: ex
-pipeline:
-  - navigate: /syntax/basics
-```
-
-```button
-label:  Rep Schemes →
+label:  ← Rep Schemes
 target: ex
 pipeline:
   - navigate: /syntax/repeaters
+```
+
+```button
+label:  Rest Periods →
+target: ex
+pipeline:
+  - navigate: /syntax/rest
 ```
