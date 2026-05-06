@@ -2,6 +2,7 @@
 search: hidden
 template: canvas
 route: /syntax/complex
+type: syntax
 ---
 
 # Complex Workouts {sticky dark full-bleed}
@@ -91,10 +92,10 @@ pipeline:
 You've seen the full syntax. Time to write your own.
 
 ```button
-label:  ← Tabata and Intervals
+label:  ← Timers & Protocols
 target: ex
 pipeline:
-  - navigate: /syntax/tabata
+  - navigate: /syntax/protocols
 ```
 
 ```button

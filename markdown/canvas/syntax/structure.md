@@ -1,13 +1,13 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/groups
+route: /syntax/structure
+type: syntax
 ---
 
-# Rounds and Groups {sticky dark full-bleed}
+# Structure & Rep Schemes {sticky dark full-bleed}
 
-Groups organise movements into repeating blocks, named sections, or nested structures.
-Indentation is the only delimiter — everything inside a group must be indented one level deeper.
+Groups organise movements into repeating blocks, named sections, or nested structures. Rep schemes define how many times you perform those movements.
 
 ```view
 name:    ex
@@ -70,14 +70,49 @@ pipeline:
   - set-state: track
 ```
 
-## Mixed Sections {sticky}
+## Rep Schemes {sticky}
 
-Chain several named groups to describe a full training session — warmup, strength block, conditioning, cool-down — in a single note.
+Put a number before a movement to set its rep count: `10 Pushups` means 10 reps. The runtime tracks your count as you do them and logs the total.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/groups-2.md
+  - set-source: wods/examples/getting-started/metrics-1.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
+## Descending Reps — (21-15-9) {sticky}
+
+The `(21-15-9)` syntax creates three rounds automatically — 21 reps, then 15, then 9 — for every movement in the block.
+The classic "Fran" uses this format: `(21-15-9)` Thrusters and Pullups.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/syntax/repeaters.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
+## Multiple Sets {sticky}
+
+`(5 Sets)` repeats the block five times with equal reps each set. Add a rest line inside the group for structured recovery.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/metrics-2.md
 ```
 
 ```button
@@ -90,15 +125,15 @@ pipeline:
 ## What's Next {sticky full-bleed dark}
 
 ```button
-label:  ← Supplemental Data
+label:  ← Core Concepts
 target: ex
 pipeline:
-  - navigate: /syntax/supplemental
+  - navigate: /syntax/basics
 ```
 
 ```button
-label:  Rep Schemes →
+label:  Timers & Protocols →
 target: ex
 pipeline:
-  - navigate: /syntax/repeaters
+  - navigate: /syntax/protocols
 ```

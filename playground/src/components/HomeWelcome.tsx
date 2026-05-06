@@ -34,53 +34,40 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
         }}
       />
 
-      <div className="relative w-full max-w-xl">
-        {/* Headline */}
-        <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground uppercase leading-tight mb-3">
-          Write once. Run it. Analyze what happened.
-        </h1>
-        <p className="max-w-lg text-sm lg:text-[15px] font-medium text-muted-foreground leading-relaxed mb-8">
-          Start from plain-language workout notes, load a real example into the active editor, then move straight into runtime and review without leaving the home canvas. The landing section should teach the loop, not just advertise it.
-        </p>
-
+      <div className="relative w-full max-w-lg">
+        
         {/* 3-step flow */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col">
 
           {/* Step 01 — Write */}
-          <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-4 shadow-sm backdrop-blur-sm">
+          <div className="py-4 first:pt-0">
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
-                Write
+                Write Notes
               </span>
               <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
-                Draft workouts in the same language coaches already use: movements, reps, rounds, load, rest, and time. Pull a sample into the active content window if you want a fast starting point instead of a blank editor.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
+                Powered by the `whiteboard-script` runtime, your text notes are supercharged for  way they appear on a whiteboard: movement, reps, rounds, load, rest, and time.  <button
                   onClick={onOpenSearch}
                   className="inline-flex min-w-[10.5rem] items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/50 hover:text-foreground group"
                   aria-label="Find workout content"
                 >
                   <Search className="size-3 group-hover:text-primary transition-colors" />
                   Find Content
-                </button>
-                <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.write.to} variant="outline" size="sm" icon={BookOpen}>
-                  {HOME_WORKFLOW_DOC_LINKS.write.label}
-                </ButtonLink>
+                </button> If you do not want to start blank, pull a real workout into the active editor first.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                
+                <p className="text-xs text-muted-foreground">
+                  Use this when you want examples of statement structure before editing.
+                </p>
               </div>
             </div>
           </div>
 
           {/* Step 02 — Run */}
-          <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-4 shadow-sm backdrop-blur-sm">
+          <div className="py-4">
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
-                Run
-              </span>
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
-                Move from editor to runtime without reformatting anything. Timers count down, rounds advance, and grouped blocks keep the active pane synchronized with what you are doing.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={onRun}
                   className="inline-flex min-w-[10.5rem] items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
@@ -89,21 +76,26 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
                   <Play className="size-3 fill-current" />
                   Run Workout
                 </button>
-                <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.run.to} variant="outline" size="sm" icon={BookOpen}>
-                  {HOME_WORKFLOW_DOC_LINKS.run.label}
-                </ButtonLink>
+              </span>
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
+                Move straight from text to runtime. Timers count down, rounds advance, and section context stays aligned with the active block while you work.
+              </p>
+              <div className="flex flex-wrap items-center gap-3">                
+                <p className="text-xs text-muted-foreground">
+                  The editor and runtime stay in one loop, so you can validate structure as soon as it is written.
+                </p>
               </div>
             </div>
           </div>
 
           {/* Step 03 — Analyze */}
-          <div className="rounded-2xl border border-border/70 bg-background/70 px-4 py-4 shadow-sm backdrop-blur-sm">
+          <div className="py-4 last:pb-0">
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
                 Analyze
               </span>
               <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
-                Review results as soon as the run ends. Volume, pace, and splits are already structured so you can compare attempts and understand where the session changed shape.
+                Results become useful because statements, sections, and runtime events are already structured. Review volume, pace, and splits without reconstructing the session afterward.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -114,13 +106,29 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
                   <BarChart2 className="size-3" />
                   View Results
                 </button>
-                <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} variant="outline" size="sm" icon={BookOpen}>
-                  {HOME_WORKFLOW_DOC_LINKS.analyze.label}
-                </ButtonLink>
+                <p className="text-xs text-muted-foreground">
+                  Use review to compare attempts and see where a workout actually changed shape.
+                </p>
               </div>
             </div>
           </div>
 
+        </div>
+
+        <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+            <BookOpen className="size-3.5" />
+            Learn the language:
+          </span>
+          <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.write.to} variant="link" size="sm" className="h-auto px-0 py-0 text-xs text-muted-foreground hover:text-foreground">
+            {HOME_WORKFLOW_DOC_LINKS.write.label}
+          </ButtonLink>
+          <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.run.to} variant="link" size="sm" className="h-auto px-0 py-0 text-xs text-muted-foreground hover:text-foreground">
+            {HOME_WORKFLOW_DOC_LINKS.run.label}
+          </ButtonLink>
+          <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} variant="link" size="sm" className="h-auto px-0 py-0 text-xs text-muted-foreground hover:text-foreground">
+            {HOME_WORKFLOW_DOC_LINKS.analyze.label}
+          </ButtonLink>
         </div>
       </div>
     </div>

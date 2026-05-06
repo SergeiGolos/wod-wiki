@@ -29,7 +29,6 @@ import { ButtonLink } from '@/components/ui/ButtonLink'
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
 import type { NavItem, NavActionDeps } from './navTypes'
-import { HOME_SYNTAX_DEEP_LINKS } from '../views/homeDocumentationLinks'
 
 // App version injected by Vite define
 declare const __APP_VERSION__: string | undefined
@@ -89,24 +88,7 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
               title={child.label}
               count={child.children.length}
               defaultOpen={child.children.some(gc => isItemActive(gc, navState, location))}
-            >
-              {child.id === 'syntax-group' && (
-                <div className="mb-2 flex flex-col gap-2 px-2 pb-2">
-                  {HOME_SYNTAX_DEEP_LINKS.map(link => (
-                    <ButtonLink
-                      key={link.id}
-                      to={link.to}
-                      variant="outline"
-                      size="sm"
-                      icon={BookOpen}
-                      fullWidth
-                      className="justify-start rounded-xl border-border/70 bg-background/80 text-xs font-semibold shadow-none"
-                    >
-                      {link.label}
-                    </ButtonLink>
-                  ))}
-                </div>
-              )}
+            >              
               {child.children.map(gc => {
                 const gcActive = isItemActive(gc, navState, location)
                 return (
