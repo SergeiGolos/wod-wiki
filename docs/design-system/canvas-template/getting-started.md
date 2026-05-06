@@ -8,7 +8,7 @@
 
 ## Page Outline
 
-This route provides an interactive tutorial ("Zero to Hero") using the Canvas template to guide users through the WodScript syntax and runtime.
+This route provides an interactive tutorial ("Zero to Hero") using the Canvas template to guide users through the WhiteboardScript syntax and runtime.
 
 ### Header Navigation (TSX Hardcoded)
 The global `PageNavDropdown` (defined in `App.tsx`) shows the following links when on the `/getting-started` route:

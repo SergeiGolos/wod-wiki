@@ -224,7 +224,7 @@ Canvas is a **content system** that sits inside the standard WOD Wiki layout pri
 | `viewTimerBlock` | `WodBlock \| null` | Block currently running inline in the view panel (triggered by `set-state: track` without `launch: dialog`). |
 | `fullscreenBlock` | `WodBlock \| null` | Block open in the fullscreen dialog overlay (triggered by `launch: dialog`). |
 | `reviewSegments` | `Segment[]` | Post-workout analytics segments; populated when a block completes in view mode. |
-| `editorSource` | `string` | Current markdown/WodScript content in the `NoteEditor`. Updated by `set-source:` pipeline commands. |
+| `editorSource` | `string` | Current markdown/WhiteboardScript content in the `NoteEditor`. Updated by `set-source:` pipeline commands. |
 | `editorOpacity` | `number` | Fade-transition value (0 → 1) during source swaps; provides smooth content crossfades. |
 
 > **Note:** `panelMode` is deliberately ephemeral — a running workout is not bookmarkable via URL. If `launch: route` is used instead, the URL does change (new route).
@@ -234,5 +234,5 @@ Canvas is a **content system** that sits inside the standard WOD Wiki layout pri
 Collection pages (`markdown/collections/{slug}/README.md`) use Canvas as a structured tutorial/walkthrough format:
 - No `route:` frontmatter — route is auto-derived from folder name at build time
 - Prose sections introduce each workout in the collection
-- Each workout gets its own `##` heading with description, the WodScript as a fenced `wod` block (preserved as a code block in the prose via `CanvasProse`), and optionally a `button` to load/run it
+- Each workout gets its own `##` heading with description, the WhiteboardScript as a fenced `wod` block (preserved as a code block in the prose via `CanvasProse`), and optionally a `button` to load/run it
 - The sticky editor panel (`view` block) loads workout content on scroll via `command` blocks

@@ -10,7 +10,7 @@
 
 ## Overview
 
-A Collection Detail page renders the `README.md` of a specific collection as a scroll-driven Canvas page. The README introduces the collection philosophy, walks through individual workouts with prose and WodScript code blocks, and typically includes a `{{workouts}}` tag that injects a sortable list of all workouts in that collection.
+A Collection Detail page renders the `README.md` of a specific collection as a scroll-driven Canvas page. The README introduces the collection philosophy, walks through individual workouts with prose and WhiteboardScript code blocks, and typically includes a `{{workouts}}` tag that injects a sortable list of all workouts in that collection.
 
 Routes are **auto-generated at build time** from the folder structure of `markdown/collections/`. No `route:` frontmatter key is required — the route is derived from the folder name.
 

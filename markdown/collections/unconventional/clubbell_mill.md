@@ -12,7 +12,7 @@ Just as the kettlebell swing forms the foundation for cleans, snatches, and othe
 
 The Mill differs from mace swinging in that the club's center of mass is closer to the handle, creating a different leverage profile. This allows for a wider variety of grip positions and movement patterns while still challenging shoulder stability and core engagement. The Mill's circular path creates a traction effect on the shoulder joint, promoting mobility while building strength through a full range of motion.
 
-## WOD Wiki Syntax
+## Whiteboard Script
 
 ### Two-Hand Mill Practice
 ```wod

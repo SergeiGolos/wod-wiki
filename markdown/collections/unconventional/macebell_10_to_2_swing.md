@@ -12,7 +12,7 @@ Unlike the continuous circular motion of the 360 Swing, the 10-to-2 requires pre
 
 The 10-to-2 Swing is particularly valuable for athletes who need rotational power and stability, such as golfers, baseball players, tennis players, and combat athletes. The movement trains the obliques, transverse abdominis, and shoulder stabilizers in a coordinated pattern that directly transfers to rotational sports performance.
 
-## WOD Wiki Syntax
+## Whiteboard Script
 
 ### Beginner Practice (One Direction)
 ```wod

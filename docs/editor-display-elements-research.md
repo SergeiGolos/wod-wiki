@@ -25,7 +25,7 @@ Defined in [src/components/Editor/extensions/section-state.ts](../src/components
 | `EditorSectionType` | Triggered by | Notes |
 |---------------------|-------------|-------|
 | `markdown` | Plain prose lines between other blocks | Has subtypes: `heading`, `paragraph`, `list`, `blockquote`, `table`, `unknown` |
-| `wod` | ` ```wod `, ` ```log `, ` ```plan ` fences | WodScript dialect code fence |
+| `wod` | ` ```wod `, ` ```log `, ` ```plan ` fences | WhiteboardScript dialect code fence |
 | `frontmatter` | `---` ... `---` blocks | YAML key/value blocks (YouTube, Amazon, Strava, generic) |
 | `code` | Any other ` ```<lang> ` fence | Non-WOD code fence |
 | `widget` | ` ```widget:<name> ` | Named interactive widget blocks |
@@ -35,7 +35,7 @@ Defined in [src/components/Editor/extensions/section-state.ts](../src/components
 
 ## Display Elements and Their Decorations
 
-### 1. WodScript Block (`wod` / `log` / `plan`)
+### 1. WhiteboardScript Block (`wod` / `log` / `plan`)
 
 **Source files:**  
 - [src/components/Editor/extensions/preview-decorations.ts](../src/components/Editor/extensions/preview-decorations.ts) — card-style line decorations  
@@ -218,17 +218,17 @@ Replaces both `lintGutter()` and any separate runtime highlight gutter. Single c
 
 ---
 
-### 8. WodScript Linter (diagnostic underlines)
+### 8. WhiteboardScript Linter (diagnostic underlines)
 
 **Source file:** [src/components/Editor/extensions/wod-linter.ts](../src/components/Editor/extensions/wod-linter.ts)
 
-Runs the Lezer-based WodScript parser on the content of every `wod` section, extracting `⚠ Error` nodes from the Lezer syntax tree.
+Runs the Lezer-based WhiteboardScript parser on the content of every `wod` section, extracting `⚠ Error` nodes from the Lezer syntax tree.
 
 | Element | Description |
 |---------|-------------|
 | Diagnostic severity | `"error"` |
 | Underline | Standard `@codemirror/lint` red wavy underline on the offending token range (capped at 50 chars) |
-| Message | "Syntax error in WodScript" |
+| Message | "Syntax error in WhiteboardScript" |
 | Debounce | 500 ms |
 
 The linter feeds results back into the unified gutter column (see §7).

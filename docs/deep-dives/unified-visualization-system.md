@@ -191,15 +191,15 @@ interface IRuntimeBlock {
 - Text: Gray
 - Resistance: Red
 
-### 2. WodScriptVisualizer (Statement List)
+### 2. WhiteboardScriptVisualizer (Statement List)
 
-**Location**: `src/components/WodScriptVisualizer.tsx`
+**Location**: `src/components/WhiteboardScriptVisualizer.tsx`
 
 **Purpose**: Renders a list of `ICodeStatement` objects with hierarchy and grouping
 
 **Input**: 
 ```typescript
-interface WodScriptVisualizerProps {
+interface WhiteboardScriptVisualizerProps {
   statements: ICodeStatement[];
   activeStatementIds?: Set<number>;
   selectedStatementId?: number | null;
@@ -294,10 +294,10 @@ interface MetricItem {
 ### Parser View Flow
 
 ```
-WodScript Text
+WhiteboardScript Text
     ↓ (Lexer + Parser)
 ICodeStatement[]
-    ↓ (WodScriptVisualizer)
+    ↓ (WhiteboardScriptVisualizer)
 For each statement:
     ↓ (FragmentVisualizer)
 [Colored Fragment Tags]
@@ -336,7 +336,7 @@ Convert to HistoryItem[]
 
 ### Pattern 1: Direct Fragment Binding
 
-**Used by**: ParsedView, WodScriptVisualizer
+**Used by**: ParsedView, WhiteboardScriptVisualizer
 
 ```typescript
 // Data already has fragments
@@ -515,7 +515,7 @@ function blockToDisplayItem(
 **Steps**:
 1. Create `UnifiedItemRow` based on existing `HistoryRow` patterns
 2. Create `UnifiedItemList` with support for:
-   - Grouping (from WodScriptVisualizer)
+   - Grouping (from WhiteboardScriptVisualizer)
    - Tree connectors (from MetricsTreeView)
    - Auto-scroll (from HistoryList)
 3. Ensure existing `FragmentVisualizer` is reused
@@ -525,7 +525,7 @@ function blockToDisplayItem(
 
 **Files to Update** (one at a time):
 1. `src/components/history/RuntimeHistoryLog.tsx` → Use UnifiedItemList
-2. `src/components/WodScriptVisualizer.tsx` → Use UnifiedItemList
+2. `src/components/WhiteboardScriptVisualizer.tsx` → Use UnifiedItemList
 3. `src/components/workout/AnalyticsHistoryPanel.tsx` → Use UnifiedItemList
 
 **Migration Strategy**:
@@ -564,7 +564,7 @@ src/
 
 ```
 src/components/
-├── WodScriptVisualizer.tsx        # Migrate to UnifiedItemList
+├── WhiteboardScriptVisualizer.tsx        # Migrate to UnifiedItemList
 ├── history/
 │   └── RuntimeHistoryLog.tsx      # Migrate to UnifiedItemList
 └── workout/

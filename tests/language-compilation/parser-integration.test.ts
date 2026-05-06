@@ -1,12 +1,12 @@
 /**
  * Parser Integration Tests
- * Tests T076: Parse Code to WodScript
+ * Tests T076: Parse Code to Whiteboard Script
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { MdTimerRuntime } from '../../src/parser/md-timer';
 
-describe('T076: Parse Code to WodScript', () => {
+describe('T076: Parse Code to Whiteboard Script', () => {
   let parser: MdTimerRuntime;
 
   beforeEach(() => {

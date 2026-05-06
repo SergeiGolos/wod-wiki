@@ -42,7 +42,7 @@ import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirro
 import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 
-import { wodscriptLanguage } from "@/hooks/useRuntimeParser";
+import { whiteboardScriptLanguage } from "@/hooks/useRuntimeParser";
 import { editorTheme } from "./extensions/theme";
 import { smartIncrement } from "./extensions/smart-increment";
 
@@ -160,13 +160,13 @@ export interface NoteEditorProps {
   readonly?: boolean;
   /** CSS class name */
   className?: string;
-  /** Called when user triggers "Run" on a WodScript block */
+  /** Called when user triggers "Run" on a Whiteboard Script block */
   onStartWorkout?: (block: WodBlock) => void;
   /** Called when a workout is completed with the results */
   onCompleteWorkout?: (blockId: string, results: WodBlock["results"]) => void;
-  /** Called when WodScript blocks change */
+  /** Called when Whiteboard Script blocks change */
   onBlocksChange?: (blocks: WodBlock[]) => void;
-  /** Called when user triggers "Add to Plan" on a WodScript block */
+  /** Called when user triggers "Add to Plan" on a Whiteboard Script block */
   onAddToPlan?: (block: WodBlock) => void;
   /** Called when user wants to review a specific result (for custom routing/popups) */
   onOpenReview?: (result: WorkoutResult) => void;
@@ -182,12 +182,12 @@ export interface NoteEditorProps {
   showLineNumbers?: boolean;
   /** Enable block-level preview (default: true) */
   enablePreview?: boolean;
-  /** Enable WodScript linting (default: true) */
+  /** Enable Whiteboard Script linting (default: true) */
   enableLinting?: boolean;
   /** Enable overlay panel (default: true) */
   enableOverlay?: boolean;
   /**
-   * Command buttons shown on WodScript block overlays.
+   * Command buttons shown on Whiteboard Script block overlays.
    * When provided, replaces the individual onStartWorkout / onAddToPlan callbacks
    * (those are still accepted for backward compatibility when commands is omitted).
    */
@@ -445,12 +445,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     return synthesized;
   }, [commands, onStartWorkout, onAddToPlan, enableInlineRuntime, handleRun]);
 
-  // Mixed language: Markdown + embedded WodScript in code fences
+  // Mixed language: Markdown + embedded Whiteboard Script in code fences
   const languages = useMemo(() => {
     return markdown({
       codeLanguages: (info) => {
         if (info === "wod" || info === "log" || info === "plan")
-          return wodscriptLanguage;
+          return whiteboardScriptLanguage;
         return null;
       },
     });
@@ -524,14 +524,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         markdownSyntaxHiding(),
       ] : []),
 
-      // WodScript linting (no separate lintGutter — unified gutter handles it)
+      // Whiteboard Script linting (no separate lintGutter — unified gutter handles it)
       ...(enableLinting ? [wodLinter] : []),
 
       // Autocomplete (dialect + embed completions)
       wodAutocompletion,
       wodEditorKeymap,
 
-      // Overlay panel for WodScript blocks
+      // Overlay panel for Whiteboard Script blocks
       ...(enableOverlay ? [wodOverlayPanel] : []),
 
       // Section geometry measurement (for overlay track)

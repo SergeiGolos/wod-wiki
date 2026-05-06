@@ -10,7 +10,7 @@
 
 ## Overview
 
-`NoteTemplate` is the page-type shell for authoring, executing, and reviewing WodScript notes. It owns content loading from IndexedDB (or file), WodBlock compilation state, workout launch flow (note → tracker → review), and overlay lifecycle (FullscreenTimer, FullscreenReview). It exposes a typed `NoteContext` to child pages.
+`NoteTemplate` is the page-type shell for authoring, executing, and reviewing WhiteboardScript notes. It owns content loading from IndexedDB (or file), WodBlock compilation state, workout launch flow (note → tracker → review), and overlay lifecycle (FullscreenTimer, FullscreenReview). It exposes a typed `NoteContext` to child pages.
 
 This template sits between `AppTemplate` (layout panels) and the individual note pages (JournalPage, PlaygroundNotePage, WorkoutEditorPage) that supply the content source and override execution behaviour.
 
@@ -161,7 +161,7 @@ AppTemplate
 
 ## Description
 
-The central interactive workspace for authoring, tracking, and reviewing WodScript notes. While visually similar, different routes configure this workspace through the **Workbench Context** and **Editor Mode**.
+The central interactive workspace for authoring, tracking, and reviewing WhiteboardScript notes. While visually similar, different routes configure this workspace through the **Workbench Context** and **Editor Mode**.
 
 The workspace typically consists of:
 1.  **Sidebar**: Navigation for collections, results, and recent pages.
@@ -213,7 +213,7 @@ The following table outlines how the Note Workspace is configured based on the a
 
 | Component | Responsibility |
 |-----------|----------------|
-| `NoteEditor` | Core WodScript editing surface; handles compilation and inline UI feedback. |
+| `NoteEditor` | Core WhiteboardScript editing surface; handles compilation and inline UI feedback. |
 | `JournalPageShell` | Layout shell specifically for stored notes; manages the visibility and lifecycle of timer/review dialogs. |
 | `FullscreenTimer` | Full-screen execution panel for running the compiled `WodBlock`. |
 | `FullscreenReview` | Post-workout results matrix and analytics visualization. |

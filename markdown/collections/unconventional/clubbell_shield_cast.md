@@ -12,7 +12,7 @@ What makes the Shield Cast particularly valuable is its unique combination of st
 
 The Shield Cast is often considered a progression from the Mill - while both are circular movements, the Shield Cast involves a different path and requires more precise timing and control. The movement can be performed as an "inside shield cast" (swinging the club toward the midline first) or "outside shield cast" (swinging away from the body first), and practitioners typically train both variations for balanced development.
 
-## WOD Wiki Syntax
+## Whiteboard Script
 
 ### Basic Shield Cast Practice
 ```wod

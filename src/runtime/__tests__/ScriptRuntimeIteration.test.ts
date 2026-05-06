@@ -3,7 +3,7 @@ import { ScriptRuntime } from '../ScriptRuntime';
 import { RuntimeStack } from '../RuntimeStack';
 import { RuntimeClock } from '../RuntimeClock';
 import { EventBus } from '../events/EventBus';
-import { WodScript } from '../../parser/WodScript';
+import { WhiteboardScript } from '../../parser/WhiteboardScript';
 import { JitCompiler } from '../compiler/JitCompiler';
 import { BlockKey } from '../../core/models/BlockKey';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
@@ -45,7 +45,7 @@ const createMockBlock = (
 describe('ScriptRuntime Iteration (Explicit Next)', () => {
     it('should call parent.next() when child is popped', () => {
         // Setup
-        const script = new WodScript('test', []);
+        const script = new WhiteboardScript('test', []);
         const compiler = {} as JitCompiler;
         const dependencies = {
             stack: new RuntimeStack(),
@@ -86,7 +86,7 @@ describe('ScriptRuntime Iteration (Explicit Next)', () => {
 
     it('should not call next() if no parent exists (popping root)', () => {
         // Setup
-        const script = new WodScript('test', []);
+        const script = new WhiteboardScript('test', []);
         const compiler = {} as JitCompiler;
         const dependencies = {
             stack: new RuntimeStack(),

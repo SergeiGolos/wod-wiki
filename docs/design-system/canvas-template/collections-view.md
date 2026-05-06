@@ -10,7 +10,7 @@
 
 ## Description
 
-Each collection slug resolves to a scroll-driven Canvas page built from its `README.md`. The page acts as a **curated tutorial or catalog** for a specific training methodology — introducing the philosophy, walking through individual workouts with inline WodScript blocks, and finishing with a full list of the collection's files.
+Each collection slug resolves to a scroll-driven Canvas page built from its `README.md`. The page acts as a **curated tutorial or catalog** for a specific training methodology — introducing the philosophy, walking through individual workouts with inline WhiteboardScript blocks, and finishing with a full list of the collection's files.
 
 Unlike other Canvas pages, collection routes are **auto-generated from folder structure** — no `route:` key in frontmatter is needed.
 
@@ -71,14 +71,14 @@ Each item in the list is a clickable row. Clicking triggers the `onSelect` callb
 | `crossfit-girls` | Classic CrossFit "Girl" benchmarks. |
 | `crossfit-games - 20xx` | Annual CrossFit Games workouts (2020–2024). |
 | `swimming-*` | Specialized swim programming (7 skill-level categories). |
-| `syntax` | Interactive examples of every WodScript feature. |
+| `syntax` | Interactive examples of every WhiteboardScript feature. |
 
 ## DSL Usage in Collections
 
 Collection `README.md` files use a constrained subset of the Canvas DSL:
 
-### Inline WodScript (`wod` block)
-WodScript is fenced as a `wod` block inside the markdown. `CanvasProse` renders it as a styled code block — it is **not** compiled at read time.
+### Inline WhiteboardScript (`wod` block)
+WhiteboardScript is fenced as a `wod` block inside the markdown. `CanvasProse` renders it as a styled code block — it is **not** compiled at read time.
 
 ```markdown
 ```wod

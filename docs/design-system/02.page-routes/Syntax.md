@@ -10,7 +10,7 @@
 
 ## Overview
 
-The Syntax Guide is the documentation section of wod-wiki. Each page is a scroll-driven Canvas page with prose explanations and a sticky WodScript editor panel. Code examples are interactive — the user can edit them and run the workout inline. Pages are sourced entirely from markdown and auto-routed.
+The Syntax Guide is the documentation section of wod-wiki. Each page is a scroll-driven Canvas page with prose explanations and a sticky WhiteboardScript editor panel. Code examples are interactive — the user can edit them and run the workout inline. Pages are sourced entirely from markdown and auto-routed.
 
 ---
 

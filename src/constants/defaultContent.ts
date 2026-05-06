@@ -1,7 +1,7 @@
 export const PLAYGROUND_CONTENT = `# My Workout Notebook
 
 Welcome to the **WOD.WIKI** playground. 
-This editor uses **WodScript**, a markdown-based language for defining workouts.
+This editor uses **Whiteboard Script**, a markdown-based language for defining workouts.
 
 ## Getting Started
 1. Hover over a code block below.

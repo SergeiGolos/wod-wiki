@@ -1,7 +1,7 @@
 # Dialect System - Implementation Strategy
 
 ## Overview
-WodScript is designed to support different contexts of use through "dialects." While the core syntax remains the same, the *execution semantics* change based on the active dialect. The three primary dialects are `wod` (live execution), `log` (historical recording), and `plan` (future targeting).
+WhiteboardScript is designed to support different contexts of use through "dialects." While the core syntax remains the same, the *execution semantics* change based on the active dialect. The three primary dialects are `wod` (live execution), `log` (historical recording), and `plan` (future targeting).
 
 ## The Dialects
 

@@ -8,7 +8,7 @@
 ## 1. Architecture Overview
 
 ```
-WOD Script Text
+Whiteboard Script Text
      │
      ▼
   MdTimerRuntime.read()

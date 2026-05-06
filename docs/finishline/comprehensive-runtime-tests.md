@@ -1,7 +1,7 @@
 # Comprehensive Runtime Test Suite - Implementation Strategy
 
 ## Overview
-As the WodScript engine matures and supports more complex workout structures, interactions, and dialects, our testing strategy must evolve. We need a comprehensive, data-driven test suite that explicitly covers all permutations of block types, metric inheritance, and the specific effects of dialects on runtime execution.
+As the WhiteboardScript engine matures and supports more complex workout structures, interactions, and dialects, our testing strategy must evolve. We need a comprehensive, data-driven test suite that explicitly covers all permutations of block types, metric inheritance, and the specific effects of dialects on runtime execution.
 
 ## Goals
 - Ensure absolute reliability of the runtime engine across complex, nested workout structures (e.g., AMRAP inside For Time, Intervals with varying rest periods).
@@ -35,7 +35,7 @@ The runtime behaves differently based on the active dialect:
 
 ### Data-Driven Fixtures
 Instead of purely programmatic tests, we should define test cases using a declarative fixture format (e.g., YAML or JSON alongside a `.wod` file).
-- `input.wod`: The WodScript snippet.
+- `input.wod`: The WhiteboardScript snippet.
 - `expected_wod.json`: Expected AST and runtime emission trace for the `wod` dialect.
 - `expected_log.json`: Expected behavior for the `log` dialect.
 - `expected_plan.json`: Expected behavior for the `plan` dialect.

@@ -1,6 +1,6 @@
 /**
  * Tests for wod-linter extension.
- * Validates that the linter finds errors in WodScript code fences.
+ * Validates that the linter finds errors in WhiteboardScript code fences.
  */
 
 import { describe, it, expect } from "bun:test";

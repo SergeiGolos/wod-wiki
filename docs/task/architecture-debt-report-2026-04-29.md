@@ -114,15 +114,15 @@ These are the structural load-bearing files. Changes propagate widely. Treat as 
 |---------------------|
 | `components/Editor/types/index.ts → components/Editor/types/section.ts → components/Editor/types/index.ts` |
 | `components/Editor/types/index.ts → components/Editor/utils/documentStructure.ts → components/Editor/types/index.ts` |
-| `components/Editor/types/index.ts → parser/md-timer.ts → parser/WodScript.ts → core/index.ts...` |
-| `parser/WodScript.ts → core/index.ts → core/types/index.ts → core/types/clock.ts...` |
+| `components/Editor/types/index.ts → parser/md-timer.ts → parser/WhiteboardScript.ts → core/index.ts...` |
+| `parser/WhiteboardScript.ts → core/index.ts → core/types/index.ts → core/types/clock.ts...` |
 | `runtime/contracts/IMemoryReference.ts → runtime/contracts/IRuntimeMemory.ts → runtime/contracts/IMemoryReference.ts` |
 | `runtime/contracts/IScriptRuntime.ts → core/contracts/IAnalyticsEngine.ts → runtime/contracts/IRuntimeOptions.ts → runtime/contracts/IRuntimeBlock.ts...` |
 | `runtime/contracts/IRuntimeBlock.ts → runtime/contracts/IRuntimeBehavior.ts → runtime/contracts/IBehaviorContext.ts → runtime/contracts/IRuntimeBlock.ts` |
 | `runtime/contracts/IScriptRuntime.ts → core/contracts/IAnalyticsEngine.ts → runtime/contracts/IRuntimeOptions.ts → runtime/contracts/IRuntimeBlock.ts...` |
 | `runtime/contracts/IScriptRuntime.ts → core/contracts/IAnalyticsEngine.ts → runtime/contracts/IRuntimeOptions.ts → runtime/contracts/IRuntimeBlock.ts...` |
 | `runtime/contracts/IScriptRuntime.ts → core/contracts/IAnalyticsEngine.ts → runtime/contracts/IRuntimeOptions.ts → testing/testable/TestableBlock.ts...` |
-| `parser/WodScript.ts → core/index.ts → core/types/index.ts → core/types/clock.ts...` |
+| `parser/WhiteboardScript.ts → core/index.ts → core/types/index.ts → core/types/clock.ts...` |
 | `runtime/contracts/IScriptRuntime.ts → runtime/actions/ErrorAction.ts → runtime/contracts/IScriptRuntime.ts` |
 | `runtime/contracts/IScriptRuntime.ts → runtime/compiler/JitCompiler.ts → runtime/compiler/BlockBuilder.ts → runtime/RuntimeBlock.ts...` |
 | `runtime/BlockContext.ts → runtime/contracts/IScriptRuntime.ts → runtime/compiler/JitCompiler.ts → runtime/compiler/BlockBuilder.ts...` |
@@ -195,7 +195,7 @@ The `runtime-test-bench` subsystem appears largely orphaned from the main entry 
 |------|-------|---------|
 | `src/runtime-test-bench/types/interfaces.ts` | 38 | `RuntimeTestBenchState`, `RuntimeTestBenchProps`, `ParseResults`, `ParseError`... |
 | `src/types/cast/messages.ts` | 38 | `ExecutionRecord`, `IDisplayStackState`, `ITimerDisplayEntry`, `IDisplayCardEntry`... |
-| `src/core/types/index.ts` | 36 | `IScript`, `IBlockKey`, `IDuration`, `WodScript`... |
+| `src/core/types/index.ts` | 36 | `IScript`, `IBlockKey`, `IDuration`, `WhiteboardScript`... |
 | `src/core/types/runtime.ts` | 24 | `BlockLifecycleOptions`, `IRuntimeMemory`, `MemorySearchCriteria`, `IMemoryReference`... |
 | `src/runtime/contracts/index.ts` | 22 | `IRuntimeMemory`, `MemorySearchCriteria`, `Nullable`, `IRuntimeStack`... |
 | `src/core/index.ts` | 16 | `IMetricSource`, `MetricFilter`, `IMetricContainer`, `IMetricSummary`... |

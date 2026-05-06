@@ -10,7 +10,7 @@ The 360 Swing is the foundational movement of macebell training, often described
 
 The 360 Swing is unique because it combines ballistic movement with precise control, requiring the practitioner to manage the momentum of an unevenly weighted implement while maintaining structural integrity through the shoulders, core, and grip. Unlike traditional weight training that works muscles in isolation, the 360 Swing trains the body as an integrated unit, developing functional strength that transfers to athletic movements and daily activities.
 
-## WOD Wiki Syntax
+## Whiteboard Script
 
 ### Beginner Practice Session
 ```wod

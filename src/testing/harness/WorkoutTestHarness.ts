@@ -5,7 +5,7 @@ import { sharedParser } from '@/parser/parserInstance';
 import { RuntimeStack } from '@/runtime/RuntimeStack';
 import { EventBus } from '@/runtime/events';
 import { createMockClock, type MockClock } from '@/runtime/RuntimeClock';
-import { WodScript } from '@/parser/WodScript';
+import { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { ICodeStatement } from '@/core/models/CodeStatement';
 import { IMetric } from '@/core/models/Metric';
 import { IOutputStatement } from '@/core/models/OutputStatement';
@@ -48,7 +48,7 @@ export interface WorkoutReport {
  */
 export class WorkoutTestHarness {
   readonly runtime: ScriptRuntime;
-  readonly script: WodScript;
+  readonly script: WhiteboardScript;
   readonly jit: JitCompiler;
   
   private _roundsCompleted = 0;
@@ -66,7 +66,7 @@ export class WorkoutTestHarness {
     dialectRegistry?: DialectRegistry
   ) {
     // 1. Parser (use shared singleton)
-    this.script = sharedParser.read(scriptText) as WodScript;
+    this.script = sharedParser.read(scriptText) as WhiteboardScript;
 
     // 2. JIT (with optional dialect registry)
     this.jit = new JitCompiler(strategies, dialectRegistry);

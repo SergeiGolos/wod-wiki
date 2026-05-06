@@ -8,7 +8,7 @@
 
 ## Description
 
-An ephemeral scratchpad workspace for experimenting with WodScript without creating a permanent file.
+An ephemeral scratchpad workspace for experimenting with WhiteboardScript without creating a permanent file.
 
 ## Configuration (Note Workspace)
 
@@ -35,5 +35,5 @@ None. Route identity is entirely in the path param `:id`; no `nuqs` params.
 ## Workflow
 
 1.  **Create**: Visiting `/playground` redirects to a new UUID-based route (e.g., `/playground/2026-03-24-14-30`).
-2.  **Initialize**: The page is pre-populated with a standard WodScript template for quick start.
+2.  **Initialize**: The page is pre-populated with a standard WhiteboardScript template for quick start.
 3.  **Persist**: All changes are automatically saved to the browser's IndexedDB.

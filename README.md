@@ -12,7 +12,7 @@ We have comprehensive documentation available in the `docs/` directory:
 ### Guides
 - **[Architecture](./docs/Architecture.md)**: High-level overview of the system components and data flow.
 - **[UI Overview](./docs/UI_Overview.md)**: Guide to the editor and runtime visualization interface.
-- **[WOD Syntax](./docs/Wod_Wiki_Syntax.md)**: detailed explanation of the workout definition language.
+- **[Whiteboard Script](./docs/Wod_Wiki_Syntax.md)**: detailed explanation of the workout definition language.
 - **[Metrics Collection](./docs/Metrics_Collection.md)**: How performance data is tracked and stored.
 
 ### Features

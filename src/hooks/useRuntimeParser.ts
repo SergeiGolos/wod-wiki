@@ -14,13 +14,13 @@ import { sharedParser } from '@/parser/parserInstance';
 // ── Parser exports ────────────────────────────────────────────────────────
 export { sharedParser } from '@/parser/parserInstance';
 export { MdTimerRuntime } from '@/parser/md-timer';
-export { wodscriptLanguage } from '@/parser/wodscript-language';
+export { whiteboardScriptLanguage } from '@/parser/whiteboard-script-language';
 export { extractStatements } from '@/parser/lezer-mapper';
 
 // ── React hook ────────────────────────────────────────────────────────────
 
 export interface UseRuntimeParserReturn {
-  /** Parse a WOD script string into an IScript */
+  /** Parse a Whiteboard script string into an IScript */
   parse: (text: string) => ReturnType<typeof sharedParser.read>;
 }
 
