@@ -19,6 +19,33 @@ const inlinePrimaryActionClassName = 'mx-1 inline-flex h-6 items-center gap-1 ro
 
 const inlineDocLinkClassName = 'mx-1 inline-flex h-auto items-center gap-1 px-0 py-0 align-baseline text-xs font-semibold leading-none text-foreground no-underline hover:text-primary'
 
+const WRITE_NOTE_DOC_LINKS = {
+  movement: {
+    to: '/getting-started?h=statement',
+    label: 'Movement',
+  },
+  reps: {
+    to: '/syntax/structure?h=rep-schemes',
+    label: 'Reps',
+  },
+  rounds: {
+    to: '/syntax/structure?h=simple-rounds',
+    label: 'Rounds',
+  },
+  load: {
+    to: '/syntax/basics?h=measurements',
+    label: 'Load',
+  },
+  rest: {
+    to: '/syntax/protocols?h=timers-and-rest',
+    label: 'Rest',
+  },
+  sectionLabels: {
+    to: '/syntax/structure?h=named-groups',
+    label: 'Section Labels',
+  },
+} as const
+
 export interface HomeWelcomeProps {
   /** Opens the command palette with the workout search strategy. */
   onOpenSearch: () => void
@@ -50,23 +77,22 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
       />
 
       <div className="relative w-full max-w-xl">
-        <div className="max-w-lg">
-          <p className="text-sm font-medium leading-relaxed text-muted-foreground">
-            WOD Wiki keeps the same workout note connected from writing to runtime to review. The home panel should read like guidance first, with the actions folded into the copy instead of separated into large controls.
-          </p>
-        </div>
-
-        {/* 3-step flow */}
+                {/* 3-step flow */}
         <div className="mt-8 flex flex-col gap-6">
 
           {/* Step 01 — Write */}
           <div>
-            <div className="flex-1">
-              <span className="text-sm font-black text-foreground uppercase tracking-wide">
-                Write Notes
-              </span>
+            <div className="flex-1">              
               <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
-                Start with the same lines a coach would write on a whiteboard: movement, reps, rounds, load, rest, and section labels. Use
+                Start with the same lines a coach would write on a whiteboard:
+                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.movement.to} label={WRITE_NOTE_DOC_LINKS.movement.label} />
+                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.reps.to} label={WRITE_NOTE_DOC_LINKS.reps.label} />
+                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.rounds.to} label={WRITE_NOTE_DOC_LINKS.rounds.label} />
+                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.load.to} label={WRITE_NOTE_DOC_LINKS.load.label} />
+                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.rest.to} label={WRITE_NOTE_DOC_LINKS.rest.label} />
+                and
+                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.sectionLabels.to} label={WRITE_NOTE_DOC_LINKS.sectionLabels.label} />
+                . Use
                 <button
                   onClick={onOpenSearch}
                   className={`${inlineActionClassName} group`}
