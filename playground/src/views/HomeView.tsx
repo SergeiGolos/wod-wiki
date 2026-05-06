@@ -123,7 +123,13 @@ export function HomeView({ wodFiles, theme, workoutItems, onSelect, onOpenHomePa
 
   // HomeWelcome is injected as the heroSlot so it renders as the first item
   // inside the left scrolling column — sitting alongside the sticky editor panel.
-  const heroSlot = <HomeWelcome onOpenSearch={handleOpenSearch} onRun={() => panelActionsRef.current?.run()} />
+  const heroSlot = (
+    <HomeWelcome
+      onOpenSearch={handleOpenSearch}
+      onRun={() => panelActionsRef.current?.run()}
+      onResults={() => panelActionsRef.current?.results()}
+    />
+  )
 
   return page ? (
     <MarkdownCanvasPage

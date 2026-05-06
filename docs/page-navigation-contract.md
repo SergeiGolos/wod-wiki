@@ -109,106 +109,52 @@ export interface RouteQueryAction {
   type: 'query'
   /** Key/value pairs to merge into the current search string.
    *  Pass null for a value to remove that key entirely. */
-  params: Record<string, string | null>
+  ### Core Concepts (`/syntax/basics`)
   pushHistory?: boolean   // default: false (replaceState)
 }
 
 /**
  * Swap the sticky view panel's editor source content.
+  | `measurements` | Measurements |
+  | `unknown-load` | Unknown Load |
+  | `supplemental-data` | Supplemental Data |
+  | `setup-actions--comments` | Setup Actions & Comments |
+  | `progressive-load` | Progressive Load |
  * Replaces the current PipelineStep { action: 'set-source', value } pattern.
  * The panel performs a fade-swap transition (180 ms opacity cross-fade).
  */
 export interface ViewSourceAction {
-  type: 'view-source'
+  ### Structure & Rep Schemes (`/syntax/structure`)
   /** Resolved file path or inline wod content string. */
   source: string
 }
-
-/**
- * Transition the view panel's state machine.
- * Replaces the current PipelineStep { action: 'set-state', value } pattern.
+  | `simple-rounds` | Simple Rounds |
+  | `named-groups` | Named Groups |
+  | `nested-groups` | Nested Groups |
+  | `mixed-sections` | Mixed Sections |
+  | `rep-schemes` | Rep Schemes |
+  | `descending-reps-21-15-9` | Descending Reps — (21-15-9) |
+  | `multiple-sets` | Multiple Sets |
  *
  * States:
  *   'note'    — show the NoteEditor (default / reset)
  *   'track'   — compile + launch the first WOD block
- *   'review'  — show the post-workout review panel
+  ### Timers & Protocols (`/syntax/protocols`)
  *
  * The `open` field controls where 'track' launches the runtime:
  *   'view'    — inline in the sticky panel (default for scroll-triggered commands)
- *   'dialog'  — fullscreen overlay (FullscreenTimer)
- *   'route'   — navigate to /tracker/:runtimeId (full-page tracker)
- */
-export interface ViewStateAction {
-  type: 'view-state'
-  state: 'note' | 'track' | 'review'
-  open?: 'view' | 'dialog' | 'route'  // only relevant when state = 'track'
-}
-
-/**
- * Execute a sequence of actions in order.
+  | `timers-and-rest` | Timers and Rest |
+  | `longer-durations` | Longer Durations |
+  | `mixed-timers` | Mixed Timers |
  * Replaces the PipelineStep[] array + executePipeline() pattern.
  * Used by canvas ButtonBlock and CommandBlock which chain multiple steps.
- *
- * Example — a "Try It" button that loads a source file then launches tracking:
- *   {
- *     type: 'pipeline',
- *     steps: [
- *       { type: 'view-source', source: 'markdown/canvas/syntax/sample.md' },
- *       { type: 'view-state',  state: 'track', open: 'view' },
- *     ]
+  | `multiple-amrap-windows` | Multiple AMRAP Windows |
  *   }
  */
 export interface PipelineAction {
-  type: 'pipeline'
-  steps: INavAction[]
-}
-
-/**
- * Invoke an arbitrary handler. Used for toolbar actions, play buttons,
- * and any activation that doesn't produce a URL change.
  */
 export interface CallAction {
   type: 'call'
-  handler: () => void
-  /** Optional tooltip / aria-label override. Defaults to parent label. */
-  label?: string
-}
-
-/**
- * No-op — used for accordion group headers that expand/collapse only.
- */
-export interface NoneAction {
-  type: 'none'
-}
-```
-
-### Dependency injection for action execution
-
-Child action types must not close over framework-specific hooks. Instead, a shared `NavActionDeps` object is passed at execution time by the rendering surface. Canvas pages supply the additional `view*` deps; nav-only surfaces leave them undefined.
-
-```typescript
-export interface NavActionDeps {
-  // ── Navigation ────────────────────────────────────────────────────────────
-  navigate:        (to: string, opts?: { replace?: boolean }) => void
-  setQueryParam:   (params: Record<string, string | null>, replace?: boolean) => void
-
-  // ── View container (canvas pages only) ───────────────────────────────────
-  /** Fade-swap the sticky editor panel's source content. */
-  swapSource?:     (source: string) => void
-  /** Transition the panel state machine. */
-  setPanelState?:  (state: 'note' | 'track' | 'review', open?: 'view' | 'dialog' | 'route') => void
-}
-
-/**
- * executeNavAction — the single dispatch function used by all rendering
- * surfaces (sidebar rows, dropdown items, keyboard bindings, canvas buttons,
- * scroll-triggered commands).
- *
- * View-container actions are silently skipped on surfaces that don't supply
- * the optional view deps, so the same INavAction shapes are safe to use
- * everywhere.
- */
-export function executeNavAction(action: INavAction, deps: NavActionDeps): void {
   switch (action.type) {
     case 'route':
       deps.navigate(action.to, { replace: !(action.pushHistory ?? true) })
@@ -370,7 +316,7 @@ const nextButton: INavActivation = {
   id:     'next-timers',
   label:  'Next: Timers',
   icon:   ChevronRightIcon,
-  action: { type: 'route', to: '/syntax/timers', pushHistory: true },
+  action: { type: 'route', to: '/syntax/protocols', pushHistory: true },
 }
 ```
 
@@ -386,7 +332,7 @@ The migration from the current stringly-typed system is a one-to-one mapping:
 | `{ action: 'set-state', value: 'track' }` + `open: 'view'` | `{ type: 'view-state', state: 'track', open: 'view' }` |
 | `{ action: 'set-state', value: 'track' }` + `open: 'dialog'` | `{ type: 'view-state', state: 'track', open: 'dialog' }` |
 | `{ action: 'set-state', value: 'track' }` + `open: 'route'` | `{ type: 'view-state', state: 'track', open: 'route' }` |
-| `{ action: 'navigate', value: '/syntax/timers' }` | `{ type: 'route', to: '/syntax/timers' }` |
+| `{ action: 'navigate', value: '/syntax/protocols' }` | `{ type: 'route', to: '/syntax/protocols' }` |
 | Multiple steps in `pipeline[]` | `{ type: 'pipeline', steps: [...] }` |
 
 ### Building `NavActionDeps` inside `MarkdownCanvasPage`
@@ -562,16 +508,9 @@ These pages are listed as L2 children under the Home L1 item in `appNavTree`.
 |------|-------|-----------|------------|-----------|---------|
 | **Zero to Hero** | `/getting-started` | `zero-to-hero` | `"Zero to Hero"` | Canvas sections | See [Getting Started sections](#zero-to-hero-getting-started) |
 | **Syntax Reference** | `/syntax` | `syntax-/syntax` | `"Syntax Reference"` | Canvas sections | See [Syntax Overview sections](#syntax-reference-syntax) |
-| **The Basics** | `/syntax/basics` | `syntax-/syntax/basics` | `"The Basics"` | Canvas sections | See [The Basics sections](#the-basics-syntaxbasics) |
-| **Timers and Intervals** | `/syntax/timers` | `syntax-/syntax/timers` | `"Timers and Intervals"` | Canvas sections | See [Timers sections](#timers-and-intervals-syntaxtimers) |
-| **Rounds and Groups** | `/syntax/groups` | `syntax-/syntax/groups` | `"Rounds and Groups"` | Canvas sections | See [Groups sections](#rounds-and-groups-syntaxgroups) |
-| **AMRAP** | `/syntax/amrap` | `syntax-/syntax/amrap` | `"AMRAP"` | Canvas sections | See [AMRAP sections](#amrap-syntaxamrap) |
-| **EMOM** | `/syntax/emom` | `syntax-/syntax/emom` | `"EMOM"` | Canvas sections | See [EMOM sections](#emom-syntaxemom) |
-| **Tabata and Intervals** | `/syntax/tabata` | `syntax-/syntax/tabata` | `"Tabata and Intervals"` | Canvas sections | See [Tabata sections](#tabata-and-intervals-syntaxtabata) |
-| **Rep Schemes** | `/syntax/repeaters` | `syntax-/syntax/repeaters` | `"Rep Schemes"` | Canvas sections | See [Rep Schemes sections](#rep-schemes-syntaxrepeaters) |
-| **Rest Periods** | `/syntax/rest` | `syntax-/syntax/rest` | `"Rest Periods"` | Canvas sections | See [Rest sections](#rest-periods-syntaxrest) |
-| **Measurements** | `/syntax/measurements` | `syntax-/syntax/measurements` | `"Measurements"` | Canvas sections | See [Measurements sections](#measurements-syntaxmeasurements) |
-| **Supplemental Data** | `/syntax/supplemental` | `syntax-/syntax/supplemental` | `"Supplemental Data"` | Canvas sections | See [Supplemental sections](#supplemental-data-syntaxsupplemental) |
+| **Core Concepts** | `/syntax/basics` | `syntax-/syntax/basics` | `"Core Concepts"` | Canvas sections | See [Core Concepts sections](#core-concepts-syntaxbasics) |
+| **Structure & Rep Schemes** | `/syntax/structure` | `syntax-/syntax/structure` | `"Structure & Rep Schemes"` | Canvas sections | See [Structure sections](#structure--rep-schemes-syntaxstructure) |
+| **Timers & Protocols** | `/syntax/protocols` | `syntax-/syntax/protocols` | `"Timers & Protocols"` | Canvas sections | See [Protocols sections](#timers--protocols-syntaxprotocols) |
 | **Complex Workouts** | `/syntax/complex` | `syntax-/syntax/complex` | `"Complex Workouts"` | Canvas sections | See [Complex sections](#complex-workouts-syntaxcomplex) |
 
 ---
@@ -636,16 +575,9 @@ Each canvas page's L3 items are the **H2 headings** rendered as scroll anchors. 
 
 | L3 ID | L3 Label |
 |-------|----------|
-| `the-basics` | The Basics |
-| `timers-and-intervals` | Timers and Intervals |
-| `rep-schemes` | Rep Schemes |
-| `rounds-and-groups` | Rounds and Groups |
-| `amrap` | AMRAP |
-| `emom` | EMOM |
-| `tabata-and-intervals` | Tabata and Intervals |
-| `rest-periods` | Rest Periods |
-| `measurements` | Measurements |
-| `supplemental-data` | Supplemental Data |
+| `core-concepts` | Core Concepts |
+| `structure--rep-schemes` | Structure & Rep Schemes |
+| `timers--protocols` | Timers & Protocols |
 | `complex-workouts` | Complex Workouts |
 | `start-writing` | Start Writing |
 

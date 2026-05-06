@@ -70,8 +70,7 @@ export async function appendWorkoutToJournal({
   const lines = [
     `\n## ${workoutName}`,
     `Source: [${resolvedSourceLabel}](${resolvedSourcePath})`,
-    collection ? `Collection: [${collection.id}](/collections/${encodeURIComponent(collection.id)})` : null,
-    siblingLinks.length > 0 ? `Other Workouts: ${siblingLinks.join(' · ')}` : null,
+    collection ? `Collection: [${collection.id}](/collections/${encodeURIComponent(collection.id)})` : null,    
     '',
   ].filter((line): line is string => line !== null);
 

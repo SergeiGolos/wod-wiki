@@ -34,13 +34,13 @@ export const Collapsed: Story = {
   render: () => (
     <SidebarAccordion title="Syntax" defaultOpen={false}>
       <SidebarSection>
-        <SidebarItem href="/syntax/timers">
+        <SidebarItem href="/syntax/protocols">
           <DocumentTextIcon data-slot="icon" />
-          <SidebarLabel>Timers</SidebarLabel>
+          <SidebarLabel>Protocols</SidebarLabel>
         </SidebarItem>
-        <SidebarItem href="/syntax/reps">
+        <SidebarItem href="/syntax/structure">
           <BoltIcon data-slot="icon" />
-          <SidebarLabel>Reps</SidebarLabel>
+          <SidebarLabel>Structure</SidebarLabel>
         </SidebarItem>
       </SidebarSection>
     </SidebarAccordion>
@@ -52,17 +52,17 @@ export const Expanded: Story = {
   render: () => (
     <SidebarAccordion title="Syntax" defaultOpen>
       <SidebarSection>
-        <SidebarItem href="/syntax/timers">
+        <SidebarItem href="/syntax/protocols">
           <DocumentTextIcon data-slot="icon" />
-          <SidebarLabel>Timers</SidebarLabel>
+          <SidebarLabel>Protocols</SidebarLabel>
         </SidebarItem>
-        <SidebarItem href="/syntax/reps">
+        <SidebarItem href="/syntax/structure">
           <BoltIcon data-slot="icon" />
-          <SidebarLabel>Reps</SidebarLabel>
+          <SidebarLabel>Structure</SidebarLabel>
         </SidebarItem>
-        <SidebarItem href="/syntax/efforts">
+        <SidebarItem href="/syntax/basics">
           <CubeIcon data-slot="icon" />
-          <SidebarLabel>Efforts</SidebarLabel>
+          <SidebarLabel>Basics</SidebarLabel>
         </SidebarItem>
       </SidebarSection>
     </SidebarAccordion>

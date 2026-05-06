@@ -12,7 +12,7 @@
 
 import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
-import { Dumbbell } from 'lucide-react'
+import { BookOpen, Dumbbell } from 'lucide-react'
 
 import {
   Sidebar,
@@ -24,6 +24,7 @@ import {
 } from '@/components/playground/sidebar'
 import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
 import { ShortcutBadge } from '@/components/list/ShortcutBadge'
+import { ButtonLink } from '@/components/ui/ButtonLink'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
@@ -87,7 +88,7 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
               title={child.label}
               count={child.children.length}
               defaultOpen={child.children.some(gc => isItemActive(gc, navState, location))}
-            >
+            >              
               {child.children.map(gc => {
                 const gcActive = isItemActive(gc, navState, location)
                 return (
