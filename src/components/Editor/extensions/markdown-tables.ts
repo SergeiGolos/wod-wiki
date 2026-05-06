@@ -76,6 +76,135 @@ function parseTableAlignment(
   });
 }
 
+const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:"]);
+
+function findUnescaped(source: string, needle: string, from: number): number {
+  let index = source.indexOf(needle, from);
+  while (index !== -1) {
+    let slashCount = 0;
+    for (let pos = index - 1; pos >= 0 && source[pos] === "\\"; pos--) {
+      slashCount++;
+    }
+    if (slashCount % 2 === 0) return index;
+    index = source.indexOf(needle, index + needle.length);
+  }
+  return -1;
+}
+
+function safeLinkHref(href: string): string | null {
+  const trimmed = href.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) return trimmed;
+
+  try {
+    const url = new URL(trimmed, window.location.href);
+    return SAFE_LINK_PROTOCOLS.has(url.protocol) ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+function appendInlineMarkdown(parent: HTMLElement | DocumentFragment, source: string): void {
+  let cursor = 0;
+
+  const appendText = (text: string) => {
+    if (text) parent.appendChild(document.createTextNode(text));
+  };
+
+  while (cursor < source.length) {
+    if (source[cursor] === "\\" && cursor + 1 < source.length) {
+      appendText(source[cursor + 1]);
+      cursor += 2;
+      continue;
+    }
+
+    if (source[cursor] === "`") {
+      const end = findUnescaped(source, "`", cursor + 1);
+      if (end !== -1) {
+        const code = document.createElement("code");
+        code.className = "cm-md-table-inline-code";
+        code.textContent = source.slice(cursor + 1, end);
+        parent.appendChild(code);
+        cursor = end + 1;
+        continue;
+      }
+    }
+
+    if (source[cursor] === "[") {
+      const labelEnd = findUnescaped(source, "](", cursor + 1);
+      if (labelEnd !== -1) {
+        const hrefEnd = findUnescaped(source, ")", labelEnd + 2);
+        if (hrefEnd !== -1) {
+          const label = source.slice(cursor + 1, labelEnd);
+          const href = safeLinkHref(source.slice(labelEnd + 2, hrefEnd));
+          if (href) {
+            const link = document.createElement("a");
+            link.className = "cm-md-table-link";
+            link.href = href;
+            if (/^https?:\/\//.test(href)) {
+              link.rel = "noopener noreferrer";
+              link.target = "_blank";
+            }
+            appendInlineMarkdown(link, label);
+            parent.appendChild(link);
+          } else {
+            appendInlineMarkdown(parent, label);
+          }
+          cursor = hrefEnd + 1;
+          continue;
+        }
+      }
+    }
+
+    const token = source.startsWith("**", cursor)
+      ? { marker: "**", tag: "strong" }
+      : source.startsWith("~~", cursor)
+        ? { marker: "~~", tag: "s" }
+        : null;
+
+    if (token) {
+      const end = findUnescaped(source, token.marker, cursor + token.marker.length);
+      if (end !== -1) {
+        const element = document.createElement(token.tag);
+        appendInlineMarkdown(element, source.slice(cursor + token.marker.length, end));
+        parent.appendChild(element);
+        cursor = end + token.marker.length;
+        continue;
+      }
+    }
+
+    if ((source[cursor] === "*" && !source.startsWith("**", cursor)) || source[cursor] === "_") {
+      const marker = source[cursor];
+      const end = findUnescaped(source, marker, cursor + 1);
+      if (end !== -1) {
+        const element = document.createElement("em");
+        appendInlineMarkdown(element, source.slice(cursor + 1, end));
+        parent.appendChild(element);
+        cursor = end + 1;
+        continue;
+      }
+    }
+
+    const nextSpecial = ["\\", "`", "[", "*", "_", "~"]
+      .map((char) => source.indexOf(char, cursor + 1))
+      .filter((index) => index !== -1)
+      .sort((a, b) => a - b)[0] ?? source.length;
+    appendText(source.slice(cursor, nextSpecial));
+    cursor = nextSpecial;
+  }
+}
+
+function renderTableCellMarkdown(cell: string): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  if (!cell) {
+    fragment.appendChild(document.createTextNode("\u00A0"));
+    return fragment;
+  }
+
+  appendInlineMarkdown(fragment, cell);
+  return fragment;
+}
+
 // ── Table widget ─────────────────────────────────────────────────────
 
 class MarkdownTableWidget extends WidgetType {
@@ -130,7 +259,7 @@ class MarkdownTableWidget extends WidgetType {
         const td = document.createElement(isHeader ? "th" : "td");
         const align = alignments[ci] ?? "left";
         td.className = `cm-md-table-cell cm-md-align-${align}`;
-        td.textContent = cell || "\u00A0";
+        td.appendChild(renderTableCellMarkdown(cell));
 
         // Click → move cursor into the source cell, collapsing the preview
         td.addEventListener("mousedown", (e) => {
@@ -277,6 +406,32 @@ const tablePreviewTheme = EditorView.baseTheme({
   // Hover highlight for clickable cells
   ".cm-md-table-cell:hover": {
     backgroundColor: "rgba(128,128,128,0.08)",
+  },
+
+  ".cm-md-table-cell strong": {
+    fontWeight: "700",
+  },
+
+  ".cm-md-table-cell em": {
+    fontStyle: "italic",
+  },
+
+  ".cm-md-table-cell s": {
+    textDecoration: "line-through",
+  },
+
+  ".cm-md-table-inline-code": {
+    padding: "1px 4px",
+    borderRadius: "4px",
+    backgroundColor: "rgba(128,128,128,0.12)",
+    fontFamily: "var(--font-mono, monospace)",
+    fontSize: "0.92em",
+  },
+
+  ".cm-md-table-link": {
+    color: "hsl(var(--primary, 212 32% 50%))",
+    textDecoration: "underline",
+    textUnderlineOffset: "2px",
   },
 
   // Column separators between cells

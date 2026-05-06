@@ -12,7 +12,8 @@ import { EditorSelection } from '@codemirror/state'
 import { v4 as uuidv4 } from 'uuid'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
-import { PlaygroundGuidePanel } from '../components/PlaygroundGuidePanel'
+import type { WidgetRegistry } from '@/components/Editor/overlays/WidgetCompanion'
+import { PlaygroundRunTipWidget } from '../components/widgets/PlaygroundRunTipWidget'
 import type { WodBlock } from '@/components/Editor/types'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
@@ -67,6 +68,28 @@ export function PlaygroundNotePage({
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
   const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
 
+  const handleButtonAction = useCallback(
+    (action: string, params: Record<string, string>) => {
+      if (action === 'route' && params['route']) {
+        navigate(params['route'])
+      } else if (action === 'start-workout') {
+        // Start the first available wod block
+        const firstBlock = wodBlocks[0]
+        if (firstBlock) handleStartWorkout(firstBlock)
+      } else if (action === 'new-note') {
+        navigate('/playground')
+      }
+    },
+    [navigate, wodBlocks, handleStartWorkout],
+  )
+
+  const widgetComponents: WidgetRegistry = useMemo(
+    () => new Map([
+      ['playground-run-tip', PlaygroundRunTipWidget],
+    ]),
+    [],
+  )
+
   useEffect(() => {
     document.title = `Wod.Wiki - ${pageTitle}`
   }, [pageTitle])
@@ -92,22 +115,21 @@ export function PlaygroundNotePage({
         />
       }
       editor={
-        <>
-          <PlaygroundGuidePanel />
-          <NoteEditor
-            value={content}
-            onChange={onChange}
-            onCursorPositionChange={onLineChange}
-            onBlur={onBlur}
-            noteId={noteId}
-            onStartWorkout={handleStartWorkout}
-            enableInlineRuntime={false}
-            onViewCreated={handleInternalViewCreated}
-            theme={theme}
-            showLineNumbers={false}
-            onBlocksChange={setWodBlocks}
-          />
-        </>
+        <NoteEditor
+          value={content}
+          onChange={onChange}
+          onCursorPositionChange={onLineChange}
+          onBlur={onBlur}
+          noteId={noteId}
+          onStartWorkout={handleStartWorkout}
+          enableInlineRuntime={false}
+          onViewCreated={handleInternalViewCreated}
+          theme={theme}
+          showLineNumbers={false}
+          onBlocksChange={setWodBlocks}
+          onButtonAction={handleButtonAction}
+          widgetComponents={widgetComponents}
+        />
       }
     />
   )

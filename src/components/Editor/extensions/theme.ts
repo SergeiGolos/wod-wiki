@@ -24,7 +24,8 @@ export function editorTheme(isDark: boolean): Extension {
     ".cm-content": {
       fontFamily: "Monaco, Menlo, Ubuntu Mono, Consolas, monospace",
       lineHeight: "22px",
-      padding: "0"
+      padding: "0",
+      margin: "0 3px"
     },
     ".cm-gutters": {
       backgroundColor: isDark ? "#252841" : "transparent",
