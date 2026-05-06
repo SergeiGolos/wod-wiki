@@ -34,7 +34,7 @@ export const ButtonLink = React.memo(React.forwardRef<HTMLAnchorElement, ButtonL
     const content = (
       <>
         {Icon && <Icon className={iconSize} aria-hidden="true" />}
-        <span className="truncate">{children}</span>
+        <span className="truncate flex gap-1">{children}</span>
         {TrailingIcon && <TrailingIcon className={cn(iconSize, 'ml-auto')} aria-hidden="true" />}
       </>
     )

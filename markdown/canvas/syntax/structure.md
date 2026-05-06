@@ -70,6 +70,23 @@ pipeline:
   - set-state: track
 ```
 
+## Mixed Sections {sticky}
+
+Chain several named groups to describe a full training session in one note: warmup, strength, conditioning, and cooldown. Sections do not need to repeat to stay useful.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/groups-2.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
 ## Rep Schemes {sticky}
 
 Put a number before a movement to set its rep count: `10 Pushups` means 10 reps. The runtime tracks your count as you do them and logs the total.

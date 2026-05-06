@@ -2,13 +2,13 @@
 
 | | |
 |--|--|
-| **Route Pattern** | `/syntax`, `/syntax/:topic` |
+| **Route Pattern** | `/syntax`, `/syntax/basics`, `/syntax/structure`, `/syntax/protocols`, `/syntax/complex` |
 | **Template** | [Canvas Page](canvas-template.md) |
 | **Source Files** | `markdown/canvas/syntax/README.md` (index), `markdown/canvas/syntax/{topic}.md` (sub-pages) |
 
 ## Page Outline
 
-This route serves as the central documentation for the WodScript syntax. It features an interactive index page and over 60 detailed sub-pages.
+This route serves as the central documentation for the WodScript syntax. It features an interactive index page plus four consolidated guide pages: core concepts, structure, protocols, and complex examples.
 
 ### Header Navigation (TSX Hardcoded)
 The global `PageNavDropdown` (defined in `App.tsx`) shows the following links when on the `/syntax` index route:
@@ -30,16 +30,9 @@ Sections are derived from `markdown/canvas/syntax/README.md`.
 | Section | Slug (ID) | Sticky/Dark | Alignment | View Target |
 |---------|-----------|-------------|-----------|-------------|
 | **Syntax Reference** | `syntax-reference` | Sticky, Dark, Full-Bleed | Right | `preview` |
-| **The Basics** | `the-basics` | Sticky | Right | `preview` |
-| **Timers and Intervals** | `timers-and-intervals` | Sticky | Right | `preview` |
-| **Rep Schemes** | `rep-schemes` | Sticky | Right | `preview` |
-| **Rounds and Groups** | `rounds-and-groups` | Sticky | Right | `preview` |
-| **AMRAP** | `amrap` | Sticky | Right | `preview` |
-| **EMOM** | `emom` | Sticky | Right | `preview` |
-| **Tabata and Intervals** | `tabata-and-intervals` | Sticky | Right | `preview` |
-| **Rest Periods** | `rest-periods` | Sticky | Right | `preview` |
-| **Measurements** | `measurements` | Sticky | Right | `preview` |
-| **Supplemental Data** | `supplemental-data` | Sticky | Right | `preview` |
+| **Core Concepts** | `core-concepts` | Sticky | Right | `preview` |
+| **Structure & Rep Schemes** | `structure--rep-schemes` | Sticky | Right | `preview` |
+| **Timers & Protocols** | `timers--protocols` | Sticky | Right | `preview` |
 | **Complex Workouts** | `complex-workouts` | Sticky | Right | `preview` |
 | **Start Writing** | `start-writing` | Sticky, Dark, Full-Bleed | - | - |
 
@@ -50,20 +43,21 @@ Each section swaps the `preview` view's source to the corresponding syntax examp
 
 | Target | Pipeline Action | Value |
 |--------|-----------------|-------|
-| `preview` | `set-source` | `wods/syntax/basics.md`, `wods/syntax/timers.md`, etc. |
+| `preview` | `set-source` | `wods/syntax/basics.md`, `wods/examples/getting-started/groups-1.md`, `wods/examples/syntax/timers-1.md`, `wods/syntax/complex.md` |
 
 ### Button Actions
 Buttons navigate to the detailed sub-page for each topic.
 
 | Label | Pipeline Action | Value |
 |-------|-----------------|-------|
-| **Open Basics Guide →** | `navigate` | `/syntax/basics` |
-| **Open Timers Guide →** | `navigate` | `/syntax/timers` |
+| **Open Core Concepts →** | `navigate` | `/syntax/basics` |
+| **Open Structure & Reps →** | `navigate` | `/syntax/structure` |
+| **Open Timers & Protocols →** | `navigate` | `/syntax/protocols` |
 | **New Workout Note →** | `set-source`, `set-state`, `launch` | `query:new`, `note`, `dialog` |
 | **← Back to Home** | `navigate` | `/` |
 
-## Sub-pages (`/syntax/:topic`)
-Detailed sub-pages (e.g., `/syntax/basics`) are also rendered using the Canvas template, typically loading a specific markdown file from `markdown/canvas/syntax/`. These pages follow the same scroll-driven pattern with interactive examples in the sticky view panel.
+## Sub-pages
+Detailed sub-pages are rendered using the Canvas template and now group related topics into four guides: `/syntax/basics`, `/syntax/structure`, `/syntax/protocols`, and `/syntax/complex`. These pages follow the same scroll-driven pattern with interactive examples in the sticky view panel.
 
 ## State Management
 

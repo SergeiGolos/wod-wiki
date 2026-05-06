@@ -39,6 +39,23 @@ pipeline:
   - set-state: track
 ```
 
+## Longer Durations {sticky}
+
+Use `H:MM:SS` format for anything over an hour. `1:30:00 Row` is a 90-minute row, and the runtime preserves the longer countdown without changing syntax rules.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/timers-4.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
 ## Mixed Timers {sticky}
 
 Combine timed and untimed work freely. A run with a time cap, followed by unlimited pushups, followed by a rest — all in one block.
@@ -90,6 +107,23 @@ pipeline:
   - set-state: track
 ```
 
+## Multiple AMRAP Windows {sticky}
+
+Chain several AMRAP blocks in one note. Each window gets its own countdown and round count, which makes this format useful for partner pieces and interval-style conditioning.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/protocols-1.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
 ## Basic EMOM {sticky}
 
 **Every Minute on the Minute.** Total duration followed by `(EMOM)`. The runtime splits it into 1-minute intervals and restarts the countdown each minute.
@@ -98,6 +132,23 @@ pipeline:
 target: ex
 pipeline:
   - set-source: wods/syntax/emom.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
+## Longer Intervals {sticky}
+
+`Every 2:00` creates two-minute windows instead of one-minute resets. Use longer intervals when a heavier movement or transition needs built-in recovery.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/protocols-2.md
 ```
 
 ```button
@@ -124,7 +175,7 @@ pipeline:
   - set-state: track
 ```
 
-## Tabata and Intervals {sticky}
+## Standard Tabata {sticky}
 
 Intervals combine a work period and a rest period, repeated for a set number of rounds. A standard Tabata is `(8 Rounds)` with `:20 Work` and `:10 Rest` inside.
 
@@ -149,6 +200,23 @@ Change the round count, work duration, or rest duration to any values. `:40` wor
 target: ex
 pipeline:
   - set-source: wods/examples/syntax/protocols-4.md
+```
+
+```button
+label:  Try It →
+target: ex
+pipeline:
+  - set-state: track
+```
+
+## Intervals with Distance {sticky}
+
+Pair a timed rest with a distance-based work interval. `3:00 Run 800m` followed by `2:00 Rest` over several rounds is a common track-session pattern.
+
+```command
+target: ex
+pipeline:
+  - set-source: wods/examples/syntax/protocols-5.md
 ```
 
 ```button

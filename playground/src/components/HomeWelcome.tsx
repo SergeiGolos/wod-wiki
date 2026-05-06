@@ -13,6 +13,12 @@ import { Search, Play, BookOpen, BarChart2 } from 'lucide-react'
 import { ButtonLink } from '@/components/ui/ButtonLink'
 import { HOME_WORKFLOW_DOC_LINKS } from '../views/homeDocumentationLinks'
 
+const inlineActionClassName = 'mx-1 inline-flex h-6 items-center gap-1 rounded-md border border-border bg-muted/30 px-2 align-baseline text-[11px] font-semibold leading-none text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/50 hover:text-foreground'
+
+const inlinePrimaryActionClassName = 'mx-1 inline-flex h-6 items-center gap-1 rounded-md bg-primary px-2 align-baseline text-[11px] font-bold leading-none text-primary-foreground transition-colors hover:bg-primary/90'
+
+const inlineDocLinkClassName = 'mx-1 inline-flex h-auto items-center gap-1 px-0 py-0 align-baseline text-xs font-semibold leading-none text-foreground no-underline hover:text-primary'
+
 export interface HomeWelcomeProps {
   /** Opens the command palette with the workout search strategy. */
   onOpenSearch: () => void
@@ -20,6 +26,15 @@ export interface HomeWelcomeProps {
   onRun: () => void
   /** Opens the review/results mode in the editor panel. */
   onResults: () => void
+}
+
+function InlineDocLink({ to, label }: { to: string; label: string }) {
+  return (
+    <ButtonLink to={to} variant="link" size="sm" className={inlineDocLinkClassName}>
+      <BookOpen className="size-3" />
+      <strong className="font-semibold">{label}</strong>
+    </ButtonLink>
+  )
 }
 
 export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps) {
@@ -34,101 +49,91 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
         }}
       />
 
-      <div className="relative w-full max-w-lg">
-        
+      <div className="relative w-full max-w-xl">
+        <div className="max-w-lg">
+          <p className="text-sm font-medium leading-relaxed text-muted-foreground">
+            WOD Wiki keeps the same workout note connected from writing to runtime to review. The home panel should read like guidance first, with the actions folded into the copy instead of separated into large controls.
+          </p>
+        </div>
+
         {/* 3-step flow */}
-        <div className="flex flex-col">
+        <div className="mt-8 flex flex-col gap-6">
 
           {/* Step 01 — Write */}
-          <div className="py-4 first:pt-0">
+          <div>
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
                 Write Notes
               </span>
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
-                Powered by the `whiteboard-script` runtime, your text notes are supercharged for  way they appear on a whiteboard: movement, reps, rounds, load, rest, and time.  <button
+              <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
+                Start with the same lines a coach would write on a whiteboard: movement, reps, rounds, load, rest, and section labels. Use
+                <button
                   onClick={onOpenSearch}
-                  className="inline-flex min-w-[10.5rem] items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/50 hover:text-foreground group"
+                  className={`${inlineActionClassName} group`}
                   aria-label="Find workout content"
                 >
-                  <Search className="size-3 group-hover:text-primary transition-colors" />
+                  <Search className="size-3 transition-colors group-hover:text-primary" />
                   Find Content
-                </button> If you do not want to start blank, pull a real workout into the active editor first.
+                </button>
+                when you want a starting point, and keep
+                <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.write.to} label={HOME_WORKFLOW_DOC_LINKS.write.label} />
+                close if you want the quick rules for statements and section structure while you edit.
               </p>
-              <div className="flex flex-wrap items-center gap-3">
-                
-                <p className="text-xs text-muted-foreground">
-                  Use this when you want examples of statement structure before editing.
-                </p>
-              </div>
             </div>
           </div>
 
           {/* Step 02 — Run */}
-          <div className="py-4">
+          <div>
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
+                Run Workout
+              </span>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
+                Move straight from note to runtime with
                 <button
                   onClick={onRun}
-                  className="inline-flex min-w-[10.5rem] items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                  className={inlinePrimaryActionClassName}
                   aria-label="Run workout"
                 >
                   <Play className="size-3 fill-current" />
                   Run Workout
                 </button>
-              </span>
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
-                Move straight from text to runtime. Timers count down, rounds advance, and section context stays aligned with the active block while you work.
+                so the editor and tracker stay in one loop. If you want the rules for timers, rounds, and grouped blocks nearby, use
+                <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.run.to} label={HOME_WORKFLOW_DOC_LINKS.run.label} />
+                as the quick reference.
               </p>
-              <div className="flex flex-wrap items-center gap-3">                
-                <p className="text-xs text-muted-foreground">
-                  The editor and runtime stay in one loop, so you can validate structure as soon as it is written.
-                </p>
-              </div>
             </div>
           </div>
 
           {/* Step 03 — Analyze */}
-          <div className="py-4 last:pb-0">
+          <div>
             <div className="flex-1">
               <span className="text-sm font-black text-foreground uppercase tracking-wide">
                 Analyze
               </span>
-              <p className="text-sm font-medium text-muted-foreground leading-relaxed mt-1 mb-3">
-                Results become useful because statements, sections, and runtime events are already structured. Review volume, pace, and splits without reconstructing the session afterward.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
+              <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
+                Review becomes useful because the note, sections, and runtime events are already aligned. Open
                 <button
                   onClick={onResults}
-                  className="inline-flex min-w-[10.5rem] items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted/50 hover:text-foreground"
+                  className={inlineActionClassName}
                   aria-label="View results"
                 >
                   <BarChart2 className="size-3" />
                   View Results
                 </button>
-                <p className="text-xs text-muted-foreground">
-                  Use review to compare attempts and see where a workout actually changed shape.
-                </p>
-              </div>
+                to compare attempts, then use
+                <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} label={HOME_WORKFLOW_DOC_LINKS.analyze.label} />
+                if you want the review model explained in more detail.
+              </p>
             </div>
           </div>
 
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
-            <BookOpen className="size-3.5" />
-            Learn the language:
-          </span>
-          <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.write.to} variant="link" size="sm" className="h-auto px-0 py-0 text-xs text-muted-foreground hover:text-foreground">
-            {HOME_WORKFLOW_DOC_LINKS.write.label}
-          </ButtonLink>
-          <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.run.to} variant="link" size="sm" className="h-auto px-0 py-0 text-xs text-muted-foreground hover:text-foreground">
-            {HOME_WORKFLOW_DOC_LINKS.run.label}
-          </ButtonLink>
-          <ButtonLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} variant="link" size="sm" className="h-auto px-0 py-0 text-xs text-muted-foreground hover:text-foreground">
-            {HOME_WORKFLOW_DOC_LINKS.analyze.label}
-          </ButtonLink>
+        <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+          <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.write.to} label={HOME_WORKFLOW_DOC_LINKS.write.label} />
+          <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.run.to} label={HOME_WORKFLOW_DOC_LINKS.run.label} />
+          <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} label={HOME_WORKFLOW_DOC_LINKS.analyze.label} />
         </div>
       </div>
     </div>
