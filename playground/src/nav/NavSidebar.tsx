@@ -23,6 +23,7 @@ import {
   SidebarSection,
 } from '@/components/playground/sidebar'
 import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
+import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'
@@ -186,6 +187,7 @@ export function NavSidebar() {
                 <SidebarLabel className="font-semibold tracking-tight">
                   {item.label}
                 </SidebarLabel>
+                {item.id === 'search' && <ShortcutBadge tokens={['ctrl', '/']} delimiter="+" />}
               </SidebarItem>
             )
           })}

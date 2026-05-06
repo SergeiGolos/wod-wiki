@@ -21,10 +21,10 @@ import { ShortcutBadge } from '@/components/list/ShortcutBadge';
 
 // ─── Shell ───────────────────────────────────────────────────────────────────
 
-const Row: React.FC<{ label: string; tokens: string[] }> = ({ label, tokens }) => (
+const Row: React.FC<{ label: string; tokens: string[]; delimiter?: string }> = ({ label, tokens, delimiter }) => (
   <div className="flex items-center gap-4 py-2 border-b border-border/30 last:border-0">
     <span className="text-xs text-muted-foreground w-40 shrink-0">{label}</span>
-    <ShortcutBadge tokens={tokens} />
+    <ShortcutBadge tokens={tokens} delimiter={delimiter} />
   </div>
 );
 
@@ -50,12 +50,12 @@ export const SingleKey: Story = {
 export const ModifierPlusKey: Story = {
   render: () => (
     <div className="flex flex-col gap-0 w-fit">
-      <Row label="Open palette"  tokens={['meta', 'k']} />
-      <Row label="New entry"     tokens={['meta', 'n']} />
-      <Row label="Save"          tokens={['meta', 's']} />
-      <Row label="Find"          tokens={['meta', 'f']} />
-      <Row label="Undo"          tokens={['meta', 'z']} />
-      <Row label="Redo"          tokens={['meta', 'shift', 'z']} />
+      <Row label="Open palette"  tokens={['meta', 'k']} delimiter="+" />
+      <Row label="New entry"     tokens={['meta', 'n']} delimiter="+" />
+      <Row label="Save"          tokens={['meta', 's']} delimiter="+" />
+      <Row label="Find"          tokens={['meta', 'f']} delimiter="+" />
+      <Row label="Undo"          tokens={['meta', 'z']} delimiter="+" />
+      <Row label="Redo"          tokens={['meta', 'shift', 'z']} delimiter="+" />
       <Row label="Close"         tokens={['Escape']} />
     </div>
   ),
@@ -80,7 +80,15 @@ export const AllModifiers: Story = {
       <Row label="shift → ⇧" tokens={['shift']} />
       <Row label="alt   → ⌥" tokens={['alt']} />
       <Row label="plain key" tokens={['Enter']} />
-      <Row label="combo"     tokens={['meta', 'shift', 'p']} />
+      <Row label="combo"     tokens={['meta', 'shift', 'p']} delimiter="+" />
     </div>
   ),
+};
+
+/** Optional delimiter rendered between adjacent tokens. */
+export const WithDelimiter: Story = {
+  args: {
+    tokens: ['ctrl', '/'],
+    delimiter: '+',
+  },
 };

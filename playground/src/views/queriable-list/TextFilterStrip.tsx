@@ -3,6 +3,13 @@ import { useQueryState } from 'nuqs';
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { cn } from '@/lib/utils';
 
+export const TEXT_FILTER_NAVIGATION_EVENT = 'wodwiki:text-filter-navigation';
+
+export interface TextFilterNavigationDetail {
+  key: string;
+  scopeId: string;
+}
+
 interface TextFilterStripProps {
   /** URL query param name to read/write (default: 'q') */
   paramName?: string;
@@ -12,6 +19,8 @@ interface TextFilterStripProps {
   autoFocus?: boolean;
   /** Additional CSS classes */
   className?: string;
+  /** Scope id used to route keyboard navigation commands to a matching list */
+  navigationScope?: string;
 }
 
 /**
@@ -28,8 +37,29 @@ export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
   placeholder = 'Search…',
   autoFocus = false,
   className,
+  navigationScope,
 }) => {
   const [value, setValue] = useQueryState(paramName, { defaultValue: '' });
+  const scopeId = navigationScope ?? paramName;
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(event.key)) return;
+
+    const navigationEvent = new CustomEvent<TextFilterNavigationDetail>(TEXT_FILTER_NAVIGATION_EVENT, {
+      detail: {
+        key: event.key,
+        scopeId,
+      },
+      cancelable: true,
+    });
+
+    window.dispatchEvent(navigationEvent);
+
+    if (navigationEvent.defaultPrevented) {
+      event.preventDefault();
+    }
+  };
 
   return (
     <div className={cn('flex items-center gap-3 px-6 lg:px-10 pb-3', className)}>
@@ -38,6 +68,7 @@ export const TextFilterStrip: React.FC<TextFilterStripProps> = ({
         type="text"
         value={value}
         onChange={e => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         autoFocus={autoFocus}
         autoComplete="off"

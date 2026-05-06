@@ -1,6 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { renderTemplateSlot, type TemplateSlot } from './templateSlots';
+import {
+  TEXT_FILTER_NAVIGATION_EVENT,
+  type TextFilterNavigationDetail,
+} from '../views/queriable-list/TextFilterStrip';
+
+export interface CollectionListTemplateAction<TItem> {
+  id: string;
+  label: string;
+  onSelect: (item: TItem) => void;
+}
 
 export interface CollectionListGroup<TItem> {
   id: string;
@@ -23,7 +33,8 @@ export interface CollectionListTemplateProps<TQuery, TRecord, TItem> {
   loadRecords: (query: TQuery) => Promise<TRecord[]> | TRecord[];
   mapRecordToItem: (record: TRecord, query: TQuery) => TItem;
   getItemKey: (item: TItem) => string;
-  renderRecord: (item: TItem, context: CollectionListTemplateContext<TQuery, TRecord, TItem>) => React.ReactNode;
+  renderPrimaryContent: (item: TItem, context: CollectionListTemplateContext<TQuery, TRecord, TItem>) => React.ReactNode;
+  getItemActions?: (item: TItem, context: CollectionListTemplateContext<TQuery, TRecord, TItem>) => CollectionListTemplateAction<TItem>[];
   groupItems?: (items: TItem[], query: TQuery) => CollectionListGroup<TItem>[];
   prependedCanvas?: TemplateSlot<CollectionListTemplateContext<TQuery, TRecord, TItem>>;
   filterSlot?: TemplateSlot<CollectionListTemplateContext<TQuery, TRecord, TItem>>;
@@ -32,6 +43,7 @@ export interface CollectionListTemplateProps<TQuery, TRecord, TItem> {
   loadingState?: React.ReactNode;
   errorState?: (error: string, context: CollectionListTemplateContext<TQuery, TRecord, TItem>) => React.ReactNode;
   className?: string;
+  navigationScope?: string;
 }
 
 export function CollectionListTemplate<TQuery, TRecord, TItem>({
@@ -39,7 +51,8 @@ export function CollectionListTemplate<TQuery, TRecord, TItem>({
   loadRecords,
   mapRecordToItem,
   getItemKey,
-  renderRecord,
+  renderPrimaryContent,
+  getItemActions,
   groupItems,
   prependedCanvas,
   filterSlot,
@@ -48,11 +61,15 @@ export function CollectionListTemplate<TQuery, TRecord, TItem>({
   loadingState,
   errorState,
   className,
+  navigationScope = 'q',
 }: CollectionListTemplateProps<TQuery, TRecord, TItem>) {
   const [records, setRecords] = useState<TRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+  const [selectedActionIndex, setSelectedActionIndex] = useState(0);
+  const actionRefs = useRef<Array<Array<HTMLButtonElement | null>>>([]);
 
   const reload = useCallback(() => {
     setReloadToken(current => current + 1);
@@ -119,6 +136,95 @@ export function CollectionListTemplate<TQuery, TRecord, TItem>({
   const renderedFilterSlot = renderTemplateSlot(filterSlot, context);
   const renderedSearchSlot = renderTemplateSlot(searchSlot, context);
   const renderedEmptyState = renderTemplateSlot(emptyState, context);
+  const flatItems = useMemo(() => groups.flatMap(group => group.items), [groups]);
+
+  const itemActions = useMemo(
+    () => flatItems.map(item => getItemActions?.(item, context) ?? []),
+    [context, flatItems, getItemActions],
+  );
+
+  useEffect(() => {
+    if (flatItems.length === 0) {
+      setSelectedRowIndex(0);
+      setSelectedActionIndex(0);
+      return;
+    }
+
+    const clampedRowIndex = Math.min(selectedRowIndex, flatItems.length - 1);
+    const actionCount = itemActions[clampedRowIndex]?.length ?? 0;
+    const maxActionIndex = Math.max(actionCount - 1, 0);
+
+    if (clampedRowIndex !== selectedRowIndex) {
+      setSelectedRowIndex(clampedRowIndex);
+    }
+
+    if (selectedActionIndex > maxActionIndex) {
+      setSelectedActionIndex(maxActionIndex);
+    }
+  }, [flatItems, itemActions, selectedActionIndex, selectedRowIndex]);
+
+  useEffect(() => {
+    actionRefs.current = [];
+  }, [flatItems, itemActions]);
+
+  useEffect(() => {
+    setSelectedRowIndex(0);
+    setSelectedActionIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    const currentAction = actionRefs.current[selectedRowIndex]?.[selectedActionIndex];
+    currentAction?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [selectedActionIndex, selectedRowIndex]);
+
+  useEffect(() => {
+    const handleNavigation = (event: Event) => {
+      const navigationEvent = event as CustomEvent<TextFilterNavigationDetail>;
+
+      if (navigationEvent.detail.scopeId !== navigationScope) return;
+      if (flatItems.length === 0) return;
+
+      switch (navigationEvent.detail.key) {
+        case 'ArrowDown':
+          navigationEvent.preventDefault();
+          setSelectedRowIndex(currentIndex => Math.min(currentIndex + 1, flatItems.length - 1));
+          setSelectedActionIndex(0);
+          break;
+        case 'ArrowUp':
+          navigationEvent.preventDefault();
+          setSelectedRowIndex(currentIndex => Math.max(currentIndex - 1, 0));
+          setSelectedActionIndex(0);
+          break;
+        case 'ArrowRight': {
+          const actionCount = itemActions[selectedRowIndex]?.length ?? 0;
+          if (actionCount <= 1) return;
+          navigationEvent.preventDefault();
+          setSelectedActionIndex(currentIndex => Math.min(currentIndex + 1, actionCount - 1));
+          break;
+        }
+        case 'ArrowLeft': {
+          const actionCount = itemActions[selectedRowIndex]?.length ?? 0;
+          if (actionCount <= 1) return;
+          navigationEvent.preventDefault();
+          setSelectedActionIndex(currentIndex => Math.max(currentIndex - 1, 0));
+          break;
+        }
+        case 'Enter': {
+          const action = itemActions[selectedRowIndex]?.[selectedActionIndex];
+          const item = flatItems[selectedRowIndex];
+          if (!action || !item) return;
+          navigationEvent.preventDefault();
+          action.onSelect(item);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener(TEXT_FILTER_NAVIGATION_EVENT, handleNavigation as EventListener);
+    return () => {
+      window.removeEventListener(TEXT_FILTER_NAVIGATION_EVENT, handleNavigation as EventListener);
+    };
+  }, [flatItems, itemActions, navigationScope, selectedActionIndex, selectedRowIndex]);
 
   if (isLoading) {
     return (
@@ -168,9 +274,67 @@ export function CollectionListTemplate<TQuery, TRecord, TItem>({
                   {group.label}
                 </div>
               ) : null}
-              {group.items.map(item => (
-                <div key={getItemKey(item)}>{renderRecord(item, context)}</div>
-              ))}
+              {group.items.map(item => {
+                const rowIndex = flatItems.findIndex(flatItem => getItemKey(flatItem) === getItemKey(item));
+                const actions = itemActions[rowIndex] ?? [];
+                const isSelectedRow = rowIndex === selectedRowIndex;
+
+                return (
+                  <div
+                    key={getItemKey(item)}
+                    role="option"
+                    aria-selected={isSelectedRow}
+                    className={cn(
+                      'flex items-stretch gap-2 px-3 py-2 transition-colors',
+                      isSelectedRow ? 'bg-muted/50' : 'hover:bg-muted/40',
+                    )}
+                  >
+                    <button
+                      ref={element => {
+                        if (!actionRefs.current[rowIndex]) actionRefs.current[rowIndex] = [];
+                        actionRefs.current[rowIndex][0] = element;
+                      }}
+                      onClick={() => actions[0]?.onSelect(item)}
+                      onMouseEnter={() => {
+                        setSelectedRowIndex(rowIndex);
+                        setSelectedActionIndex(0);
+                      }}
+                      className={cn(
+                        'flex-1 rounded-2xl text-left transition-colors hover:bg-background/80',
+                        isSelectedRow && selectedActionIndex === 0 && 'bg-background ring-2 ring-primary/40',
+                      )}
+                    >
+                      {renderPrimaryContent(item, context)}
+                    </button>
+
+                    {actions.slice(1).map((action, actionIndex) => {
+                      const absoluteActionIndex = actionIndex + 1;
+                      const isSelectedAction = isSelectedRow && absoluteActionIndex === selectedActionIndex;
+
+                      return (
+                        <button
+                          key={action.id}
+                          ref={element => {
+                            if (!actionRefs.current[rowIndex]) actionRefs.current[rowIndex] = [];
+                            actionRefs.current[rowIndex][absoluteActionIndex] = element;
+                          }}
+                          onClick={() => action.onSelect(item)}
+                          onMouseEnter={() => {
+                            setSelectedRowIndex(rowIndex);
+                            setSelectedActionIndex(absoluteActionIndex);
+                          }}
+                          className={cn(
+                            'shrink-0 self-center rounded-full border border-border px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground',
+                            isSelectedAction && 'bg-background text-foreground ring-2 ring-primary/40',
+                          )}
+                        >
+                          {action.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           ))
         )}

@@ -103,6 +103,22 @@ export function CanvasPage({
   const programmaticScrollTargetRef = useRef<string | null>(null);
   const programmaticScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const getStickyOffset = () => {
+    if (typeof document === 'undefined') return 100;
+
+    const stickyElements = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-page-sticky-boundary="true"]'),
+    );
+
+    const visibleBottom = stickyElements.reduce((maxBottom, element) => {
+      const rect = element.getBoundingClientRect();
+      if (rect.height <= 0 || rect.bottom <= 0) return maxBottom;
+      return Math.max(maxBottom, rect.bottom);
+    }, 0);
+
+    return visibleBottom > 0 ? visibleBottom + 24 : 100;
+  };
+
   // Clear any pending programmatic-scroll timeout on unmount to avoid stray timers.
   useEffect(() => {
     return () => {
@@ -195,7 +211,7 @@ export function CanvasPage({
     }, 900);
     const el = document.getElementById(id);
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 100;
+      const y = el.getBoundingClientRect().top + window.scrollY - getStickyOffset();
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
@@ -266,7 +282,10 @@ export function CanvasPage({
         PAGE_SHELL_CONTENT_SURFACE_CLASS,
       )}>
         {/* Sticky header — hidden on mobile (SidebarLayout navbar covers it), sticky on desktop */}
-        <div className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8">
+        <div
+          data-page-sticky-boundary="true"
+          className="hidden lg:block lg:sticky lg:top-0 lg:z-30 lg:bg-background/80 lg:backdrop-blur-md lg:pt-8"
+        >
           <div className="flex items-center justify-between px-6 lg:px-10">
             <div className="flex items-center gap-4 truncate">
               <div className="h-10 w-2 shrink-0 rounded-full bg-primary" />
@@ -284,7 +303,10 @@ export function CanvasPage({
 
         {/* Subheader — mobile only: sticky bar below the SidebarLayout mobile navbar */}
         {subheader && (
-          <div className="block lg:hidden sticky top-[60px] sm:top-14 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 py-2">
+          <div
+            data-page-sticky-boundary="true"
+            className="block lg:hidden sticky top-[60px] sm:top-14 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 py-2"
+          >
             {subheader}
           </div>
         )}

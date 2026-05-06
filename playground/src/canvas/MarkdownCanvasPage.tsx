@@ -45,6 +45,22 @@ const MOBILE_STICKY_TOP = 65
 // IntersectionObserver rootMargin for mobile vs desktop — mirrors ParallaxSection.
 const MOBILE_BREAKPOINT_PX = 1023
 
+function getPageStickyOffset(fallback: number): number {
+  if (typeof document === 'undefined') return fallback
+
+  const stickyElements = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-page-sticky-boundary="true"]'),
+  )
+
+  const visibleBottom = stickyElements.reduce((maxBottom, element) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.height <= 0 || rect.bottom <= 0) return maxBottom
+    return Math.max(maxBottom, rect.bottom)
+  }, 0)
+
+  return visibleBottom > 0 ? visibleBottom + 24 : fallback
+}
+
 // ── Source resolution ─────────────────────────────────────────────────────────
 
 function resolveSource(dslPath: string, wodFiles: Record<string, string>): string {
@@ -453,6 +469,10 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     history: 'replace',
     shallow: true,
   })
+  const [collectionQuery] = useQueryState('q', {
+    defaultValue: '',
+    shallow: true,
+  })
 
   // ── NavActionDeps — single dispatch object for all INavAction surfaces ──────
   const deps = useMemo<NavActionDeps>(() => ({
@@ -637,12 +657,33 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     requestAnimationFrame(() => {
       const el = stepRefs.current.get(headingParam)
       if (!el) return
-      const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - STICKY_NAV_HEIGHT - 24
+      const top = (el as HTMLElement).getBoundingClientRect().top + window.scrollY - getPageStickyOffset(STICKY_NAV_HEIGHT)
       window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
     })
     // Only run on mount — intentionally omitting headingParam from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentSections])
+
+  const previousCollectionQueryRef = useRef(collectionQuery)
+  useEffect(() => {
+    if (!isCollection) {
+      previousCollectionQueryRef.current = collectionQuery
+      return
+    }
+
+    const nextQuery = collectionQuery.trim()
+    const previousQuery = previousCollectionQueryRef.current.trim()
+
+    if (nextQuery && nextQuery !== previousQuery) {
+      const listElement = document.getElementById('collection-workouts')
+      if (listElement) {
+        const top = listElement.getBoundingClientRect().top + window.scrollY - getPageStickyOffset(STICKY_NAV_HEIGHT)
+        window.scrollTo({ top, behavior: 'smooth' })
+      }
+    }
+
+    previousCollectionQueryRef.current = collectionQuery
+  }, [collectionQuery, isCollection])
 
   // ── Panel node — shared between desktop and mobile ────────────────────────
 
@@ -770,6 +811,103 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     </div>
   )
 
+  const renderCanvasSection = ({
+    section,
+    idx,
+    prose,
+    blockId,
+    keySuffix,
+    showHeading = true,
+    showEyebrow = true,
+    renderButtons = true,
+    registerForObserver = false,
+  }: {
+    section: CanvasSection
+    idx: number
+    prose?: string
+    blockId: string
+    keySuffix: string
+    showHeading?: boolean
+    showEyebrow?: boolean
+    renderButtons?: boolean
+    registerForObserver?: boolean
+  }) => {
+    const fullBleed = isFullBleed(section)
+    const dark = isDark(section)
+    const trimmedProse = prose?.trim() ?? ''
+
+    return (
+      <div
+        key={`${section.id}-${keySuffix}`}
+        id={blockId}
+        ref={registerForObserver ? setStepRef(section.id) : undefined}
+        data-section-id={registerForObserver ? section.id : undefined}
+        className={cn(
+          'border-b border-border/50',
+          viewDef
+            ? fullBleed
+              ? 'min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10'
+              : 'min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10'
+            : 'py-16 lg:py-24 px-6 lg:px-12',
+          dark && 'bg-muted/20 relative overflow-hidden',
+          !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
+        )}
+      >
+        {dark && (
+          <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+        )}
+
+        <div className={cn(
+          'relative',
+          viewDef
+            ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
+            : 'max-w-4xl w-full mx-auto',
+        )}>
+          {showEyebrow && (!fullBleed || !viewDef) && (
+            <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
+              {String(idx + 1).padStart(2, '0')}
+            </div>
+          )}
+
+          {showHeading ? (
+            <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
+              {section.heading}
+            </h2>
+          ) : null}
+
+          {trimmedProse ? <CanvasProse prose={trimmedProse} className="mb-6" /> : null}
+
+          {renderButtons ? (
+            <SectionButtons
+              activations={section.buttons.map((b, i) => buttonToActivation(b, i))}
+              fullBleed={fullBleed}
+              runState={viewDef ? runState : undefined}
+              deps={deps}
+            />
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  const renderCollectionListSection = (key: string) => (
+    <div
+      key={key}
+      id="collection-workouts"
+      className="border-b border-border/50 bg-card"
+    >
+      <div className="w-full mx-auto">
+        <CollectionWorkoutsList
+          category={collectionSlug ?? ''}
+          workoutItems={workoutItems ?? []}
+          onSelect={handleSelectWorkout}
+          showSearch={false}
+          variant="flat"
+        />
+      </div>
+    </div>
+  )
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -813,107 +951,45 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
             {heroSlot}
 
             {contentSections.map((section, idx) => {
-              const fullBleed = isFullBleed(section)
-              const dark      = isDark(section)
+              if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
+                const [beforeProse = '', afterProse = ''] = section.prose.split('{{workouts}}')
 
-              return (
-                <div
-                  key={section.id}
-                  id={section.id}
-                  ref={setStepRef(section.id)}
-                  data-section-id={section.id}
-                  className={cn(
-                    'border-b border-border/50',
-                    viewDef
-                      ? fullBleed
-                        ? 'min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10'
-                        : 'min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10'
-                      : 'py-16 lg:py-24 px-6 lg:px-12',
-                    dark && 'bg-muted/20 relative overflow-hidden',
-                    !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
-                  )}
-                >
-                  {dark && (
-                    <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-                  )}
+                return [
+                  renderCanvasSection({
+                    section,
+                    idx,
+                    prose: beforeProse,
+                    blockId: section.id,
+                    keySuffix: 'before-workouts',
+                    renderButtons: false,
+                    registerForObserver: true,
+                  }),
+                  renderCollectionListSection(`${section.id}-workouts`),
+                  afterProse.trim() || section.buttons.length > 0 ? renderCanvasSection({
+                    section,
+                    idx,
+                    prose: afterProse,
+                    blockId: `${section.id}-after`,
+                    keySuffix: 'after-workouts',
+                    showHeading: false,
+                    showEyebrow: false,
+                  }) : null,
+                ]
+              }
 
-                  <div className={cn(
-                    'relative',
-                    viewDef
-                      ? fullBleed ? 'max-w-md w-full text-center' : 'max-w-sm'
-                      : 'max-w-4xl w-full mx-auto',
-                  )}>
-                    {/* Eyebrow — section index in the existing primary-colored style */}
-                    {(!fullBleed || !viewDef) && (
-                      <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-                        {String(idx + 1).padStart(2, '0')}
-                      </div>
-                    )}
-
-                    <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
-                      {section.heading}
-                    </h2>
-
-                    {section.prose && (
-                      (() => {
-                        if (isCollection && collectionSlug && workoutItems && section.prose.includes('{{workouts}}')) {
-                          const parts = section.prose.split('{{workouts}}')
-                          return (
-                            <>
-                              {parts[0] && <CanvasProse prose={parts[0]} className="mb-6" />}
-                              <div className="h-[600px] flex flex-col mb-6">
-                                <CollectionWorkoutsList
-                                  category={collectionSlug}
-                                  workoutItems={workoutItems}
-                                  onSelect={handleSelectWorkout}
-                                />
-                              </div>
-                              {parts[1] && <CanvasProse prose={parts[1]} className="mb-6" />}
-                            </>
-                          )
-                        }
-                        
-                        return <CanvasProse prose={section.prose} className="mb-6" />
-                      })()
-                    )}
-
-                    <SectionButtons
-                      activations={section.buttons.map((b, i) => buttonToActivation(b, i))}
-                      fullBleed={fullBleed}
-                      runState={viewDef ? runState : undefined}
-                      deps={deps}
-                    />
-                  </div>
-                </div>
-              )
+              return renderCanvasSection({
+                section,
+                idx,
+                prose: section.prose,
+                blockId: section.id,
+                keySuffix: 'default',
+                registerForObserver: true,
+              })
             })}
 
             {/* Collection workouts list fallback if tag not found in any section */}
             {isCollection && !hasWorkoutsTag && collectionSlug && workoutItems && (
-              <div 
-                id="collection-workouts"
-                className="min-h-[70vh] flex flex-col py-16 lg:py-24 px-6 lg:px-10 bg-background border-t border-border/50"
-              >
-                <div className="max-w-sm mb-12">
-                  <div className="text-[10px] font-black tracking-[0.25em] uppercase text-primary mb-4">
-                    Explore
-                  </div>
-                  <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-foreground uppercase leading-tight mb-5">
-                    Collection Workouts
-                  </h2>
-                  <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                    Browse and search every workout in the {collectionSlug.replace(/-/g, ' ')} collection.
-                  </p>
-                </div>
-
-                <div className="flex-1 min-h-[500px] h-[600px] flex flex-col">
-                  <CollectionWorkoutsList
-                    category={collectionSlug}
-                    workoutItems={workoutItems}
-                    onSelect={handleSelectWorkout}
-                  />
-                </div>
-              </div>
+              renderCollectionListSection('collection-workouts-fallback')
             )}
           </div>
 

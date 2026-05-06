@@ -42,6 +42,7 @@ import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
 // ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
+import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 // ── Shared page utilities ────────────────────────────────────────────────────
 import { NewEntryButton, ThemeSwitcher, ActionsMenu } from './pages/shared/PageToolbar'
 import { NotePageActions } from './pages/shared/NotePageActions'
@@ -278,6 +279,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           })
           
           if (isCollection && collectionSlug && s.prose.includes('{{workouts}}')) {
+             links.push({ id: 'collection-workouts', label: 'Explore', type: 'heading' as const })
              const collectionItems = workoutItems.filter(item => 
                item.category === collectionSlug && item.name.toLowerCase() !== 'readme'
              )
@@ -399,8 +401,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   // Keyboard shortcut for command palette
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + K: Global Search
-      if ((e.key === 'k' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
+      // Ctrl/Cmd + /: Global Search
+      if ((e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
         openSearchPalette()
@@ -562,8 +564,9 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           <NavbarSpacer />
           <NavbarSection>
             <NewEntryButton />
-            <NavbarItem onClick={openSearchPalette} aria-label="Search">
+            <NavbarItem onClick={openSearchPalette} aria-label="Search" className="flex items-center gap-3">
               <MagnifyingGlassIcon data-slot="icon" />
+              <ShortcutBadge tokens={['meta', '/']} />
             </NavbarItem>
             <div className="flex items-center">
               <CastButtonRpc />
@@ -600,7 +603,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
-            <CanvasPage title={currentWorkout.name} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage
+              title={currentWorkout.name}
+              subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts…" /> : undefined}
+              index={currentNavLinks}
+              onScrollToSection={scrollToSection}
+              actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}
+            >
               <MarkdownCanvasPage
                 page={canvasPage}
                 wodFiles={workoutFiles as Record<string, string>}
