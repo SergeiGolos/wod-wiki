@@ -1,6 +1,6 @@
 # Morning Strength
 ```wod
-3 rounds
+(3)
   10 Kettlebell Swings 24kg
-  :30 Rest
+  *:30 Rest
 ```

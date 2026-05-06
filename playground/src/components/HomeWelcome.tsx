@@ -28,6 +28,10 @@ const WRITE_NOTE_DOC_LINKS = {
     to: '/syntax/structure?h=rep-schemes',
     label: 'Reps',
   },
+  timers: {
+    to: '/syntax/protocols',
+    label: 'Timers',
+  },
   rounds: {
     to: '/syntax/structure?h=simple-rounds',
     label: 'Rounds',
@@ -64,6 +68,23 @@ function InlineDocLink({ to, label }: { to: string; label: string }) {
   )
 }
 
+function WriteReferenceItem({
+  to,
+  label,
+  children,
+}: {
+  to: string
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <li className="text-sm leading-relaxed text-muted-foreground">
+      <InlineDocLink to={to} label={label} />
+      <span>{children}</span>
+    </li>
+  )
+}
+
 export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps) {
   return (
     <div className="relative py-8 pb-6 px-6 lg:px-10 overflow-hidden lg:min-h-[calc(100vh-104px)] lg:flex lg:flex-col lg:justify-center">
@@ -82,40 +103,63 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
 
           {/* Step 01 — Write */}
           <div>
-            <div className="flex-1">              
+            <div className="flex-1">
               <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
-                Start with the same lines a coach would write on a whiteboard:
-                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.movement.to} label={WRITE_NOTE_DOC_LINKS.movement.label} />
-                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.reps.to} label={WRITE_NOTE_DOC_LINKS.reps.label} />
-                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.rounds.to} label={WRITE_NOTE_DOC_LINKS.rounds.label} />
-                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.load.to} label={WRITE_NOTE_DOC_LINKS.load.label} />
-                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.rest.to} label={WRITE_NOTE_DOC_LINKS.rest.label} />
-                and
-                <InlineDocLink to={WRITE_NOTE_DOC_LINKS.sectionLabels.to} label={WRITE_NOTE_DOC_LINKS.sectionLabels.label} />
-                . Use
-                <button
-                  onClick={onOpenSearch}
-                  className={`${inlineActionClassName} group`}
-                  aria-label="Find workout content"
+                Start with simple whiteboard text in the example. Powered by
+                <ButtonLink
+                  href="https://pluto.forest-adhara.ts.net:5173/syntax"
+                  target="_blank"
+                  rel="noreferrer"
+                  variant="link"
+                  size="sm"
+                  className={inlineDocLinkClassName}
                 >
-                  <Search className="size-3 transition-colors group-hover:text-primary" />
-                  Find Content
-                </button>
-                when you want a starting point, and keep
-                <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.write.to} label={HOME_WORKFLOW_DOC_LINKS.write.label} />
-                close if you want the quick rules for statements and section structure while you edit.
+                  <BookOpen className="size-3" />
+                  <strong className="font-semibold">whiteboard-script</strong>
+                </ButtonLink>
+                each part of the note becomes structured data for tracking and later analysis. <strong>So what's tracked</strong>?
               </p>
+              <ul className="mt-3 list-disc space-y-1.5 pl-5 marker:text-muted-foreground">
+                <WriteReferenceItem
+                  to={WRITE_NOTE_DOC_LINKS.rounds.to}
+                  label={WRITE_NOTE_DOC_LINKS.rounds.label}
+                >
+                  parens mean multiplication, with <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">(3)</code> meaning 3 rounds.
+                </WriteReferenceItem>
+                <WriteReferenceItem
+                  to={WRITE_NOTE_DOC_LINKS.movement.to}
+                  label={WRITE_NOTE_DOC_LINKS.movement.label}
+                >
+                  both <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">Kettlebell Swings</code> and <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">Rest</code> are tracked in this example.
+                </WriteReferenceItem>
+                <WriteReferenceItem
+                  to={WRITE_NOTE_DOC_LINKS.reps.to}
+                  label={WRITE_NOTE_DOC_LINKS.reps.label}
+                >
+                  the number <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">10</code> before <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">Kettlebell Swings</code> tells us the number of reps.
+                </WriteReferenceItem>
+                <WriteReferenceItem
+                  to={WRITE_NOTE_DOC_LINKS.load.to}
+                  label={WRITE_NOTE_DOC_LINKS.load.label}
+                >
+                  <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">24kg</code> is a unit of weight used for tracking.
+                </WriteReferenceItem>
+                <WriteReferenceItem
+                  to={WRITE_NOTE_DOC_LINKS.timers.to}
+                  label={WRITE_NOTE_DOC_LINKS.timers.label}
+                >
+                  the obvious one is <code className="rounded bg-muted/40 px-1.5 py-0.5 font-mono text-xs text-foreground">:30</code> seconds of `Rest`, but timers what about the `Kettlebell Swings`?  Its an unknown.
+                </WriteReferenceItem>
+              </ul>
+            
             </div>
           </div>
 
           {/* Step 02 — Run */}
           <div>
             <div className="flex-1">
-              <span className="text-sm font-black text-foreground uppercase tracking-wide">
-                Run Workout
-              </span>
               <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
-                Move straight from note to runtime with
+                Measuring the unknown, is the whole points, so
                 <button
                   onClick={onRun}
                   className={inlinePrimaryActionClassName}
@@ -124,42 +168,30 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
                   <Play className="size-3 fill-current" />
                   Run Workout
                 </button>
-                so the editor and tracker stay in one loop. If you want the rules for timers, rounds, and grouped blocks nearby, use
-                <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.run.to} label={HOME_WORKFLOW_DOC_LINKS.run.label} />
-                as the quick reference.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 03 — Analyze */}
-          <div>
-            <div className="flex-1">
-              <span className="text-sm font-black text-foreground uppercase tracking-wide">
-                Analyze
-              </span>
-              <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
-                Review becomes useful because the note, sections, and runtime events are already aligned. Open
-                <button
+                 and collect the data, and after completing all the laps  <button
                   onClick={onResults}
                   className={inlineActionClassName}
                   aria-label="View results"
                 >
                   <BarChart2 className="size-3" />
                   View Results
-                </button>
-                to compare attempts, then use
-                <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} label={HOME_WORKFLOW_DOC_LINKS.analyze.label} />
-                if you want the review model explained in more detail.
+                </button> for a deeper anlysis.
+              </p>
+              
+              
+              <p className="mt-3 text-sm font-medium leading-relaxed text-muted-foreground">
+              
+                                <button
+                  onClick={onOpenSearch}
+                  className={`${inlineActionClassName} group`}
+                  aria-label="Find workout content"
+                >
+                  <Search className="size-3 transition-colors group-hover:text-primary" />
+                  Find Content
+                </button> for additional examples from feeds collections and your own workout history if you keep a journal.
               </p>
             </div>
           </div>
-
-        </div>
-
-        <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-          <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.write.to} label={HOME_WORKFLOW_DOC_LINKS.write.label} />
-          <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.run.to} label={HOME_WORKFLOW_DOC_LINKS.run.label} />
-          <InlineDocLink to={HOME_WORKFLOW_DOC_LINKS.analyze.to} label={HOME_WORKFLOW_DOC_LINKS.analyze.label} />
         </div>
       </div>
     </div>

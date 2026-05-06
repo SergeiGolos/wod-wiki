@@ -62,8 +62,7 @@ This replaces the current parallax acts and follows a single simple example thro
 
 #### Sample Script (used throughout all acts)
 ```
-# Morning Strength
-3 rounds
+(3) rounds
   10 Kettlebell Swings 24kg
   :30 Rest
 ```
