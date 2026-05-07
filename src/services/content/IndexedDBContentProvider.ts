@@ -361,9 +361,13 @@ export class IndexedDBContentProvider implements IContentProvider {
         // Handle Results (linked to latest version state of note)
         if (patch.results) {
             const resultData = patch.results;
+            const latestSegment = patch.sectionId
+                ? await indexedDBService.getLatestSegmentVersion(patch.sectionId)
+                : undefined;
             const newResult: WorkoutResult = {
                 id: patch.resultId || uuidv4(),
                 segmentId: patch.sectionId, // Link to the NoteSegment that was executed
+                segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
                 sectionId: patch.sectionId, // Legacy compat
                 data: resultData,

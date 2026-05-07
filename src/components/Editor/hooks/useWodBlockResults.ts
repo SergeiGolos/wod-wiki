@@ -8,7 +8,6 @@
 
 import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
-import { indexedDBService } from '@/hooks/useBrowserServices';
 import { useWorkbench } from '@/components/layout/WorkbenchContext';
 
 export interface UseWodBlockResultsReturn {
@@ -34,7 +33,7 @@ export function useWodBlockResults(
   const [loading, setLoading] = useState(true);
 
   // Attempt to consume WorkbenchContext for in-memory results (Static Mode)
-  let workbench;
+  let workbench: ReturnType<typeof useWorkbench> | undefined;
   try {
     workbench = useWorkbench();
   } catch {
@@ -73,9 +72,16 @@ export function useWodBlockResults(
         }
       }
 
-      // 2. Fallback to IndexedDB (History Mode)
+      // 2. Fallback through the note persistence seam (History Mode)
       try {
-        const all = await indexedDBService.getResultsForSection(noteId!, sectionId!);
+        const entry = await workbench?.notePersistence.getNote(noteId!, {
+          projection: 'history-detail',
+          resultSelection: {
+            mode: 'all-for-section',
+            sectionId: sectionId!,
+          },
+        });
+        const all: WorkoutResult[] = entry?.extendedResults ?? [];
         if (!cancelled) {
           // Sort by completedAt descending (most recent first)
           setResults(all.sort((a, b) => b.completedAt - a.completedAt));

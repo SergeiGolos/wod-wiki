@@ -64,8 +64,11 @@ import { gutterUnified } from "./extensions/gutter-unified";
 import { cursorFocusExtension, getCursorFocusState } from "./extensions/cursor-focus-panel";
 import { lineIdsExtension } from "./extensions/line-ids";
 
+import type { INotePersistence } from "@/services/persistence";
+import { IndexedDBNotePersistence } from "@/services/persistence";
+
 /** File drop handler extension */
-const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandlers({
+const fileDropHandler = (noteId: string | undefined, notePersistence: INotePersistence) => EditorView.domEventHandlers({
   drop: (event, view) => {
     const files = event.dataTransfer?.files;
     if (!files || files.length === 0) return false;
@@ -84,15 +87,10 @@ const fileDropHandler = (noteId: string | undefined) => EditorView.domEventHandl
       reader.onload = async () => {
         const data = reader.result as ArrayBuffer;
         
-        // Save to storage
-        await indexedDBService.saveAttachment({
-          id,
-          noteId: noteId || 'current',
-          label: file.name,
-          mimeType: file.type,
-          data,
-          createdAt: Date.now(),
-          timeSpan: { start: Date.now(), end: Date.now() }
+        await notePersistence.mutateNote(noteId || 'current', {
+          attachments: {
+            add: [new File([data], file.name, { type: file.type })],
+          },
         });
 
         // Insert markdown link
@@ -133,7 +131,6 @@ import { FullscreenReview } from "./overlays/FullscreenReview";
 import { InlineCommandBar } from "./overlays/InlineCommandBar";
 import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
-import { indexedDBService } from "@/hooks/useBrowserServices";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
 import { v4 as uuidv4 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
@@ -174,6 +171,8 @@ export interface NoteEditorProps {
   onOpenReview?: (result: WorkoutResult) => void;
   /** In-memory results fallback (for non-persistent sessions) */
   extendedResults?: WorkoutResult[];
+  /** Note persistence seam used for result and attachment projections */
+  notePersistence?: INotePersistence;
   /** Exposed EditorView ref */
   onViewCreated?: (view: EditorView) => void;
   /** Editor mode */
@@ -234,6 +233,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   onAddToPlan,
   onOpenReview,
   extendedResults,
+  notePersistence: providedNotePersistence,
   onViewCreated,
   mode = "edit",
   lineWrapping: initialLineWrapping = true,
@@ -252,6 +252,10 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const viewRef = useRef<EditorView | null>(null);
   const { setIsOpen } = useCommandPalette();
   const isDark = theme === "dark" || theme === "vs-dark";
+  const notePersistence = useMemo(
+    () => providedNotePersistence ?? new IndexedDBNotePersistence(),
+    [providedNotePersistence],
+  );
 
   // Overlay track state
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
@@ -353,12 +357,18 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       }
 
       // 2. Fallback: Persistent storage (History/App Mode)
-      indexedDBService
-        .getResultsForSection(noteId ?? "", section.id)
-        .then((results) => {
+      notePersistence
+        .getNote(noteId ?? "", {
+          projection: "history-detail",
+          resultSelection: {
+            mode: "all-for-section",
+            sectionId: section.id,
+          },
+        })
+        .then((entry) => {
           const view = viewRef.current;
           if (!view || !view.dom.isConnected) return;
-          const sorted = results.sort((a, b) => b.completedAt - a.completedAt);
+          const sorted = (entry.extendedResults ?? []).sort((a, b) => b.completedAt - a.completedAt);
           view.dispatch({
             effects: [
               updateSectionResults.of({ sectionId: section.id, results: sorted }),
@@ -369,7 +379,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           // IndexedDB unavailable (e.g. Storybook) – silently ignore
         });
     }
-  }, [noteId, sections, extendedResults]);
+  }, [noteId, sections, extendedResults, notePersistence]);
 
   // Listen for result pill clicks fired by the CM6 widget and open the
   // full-screen review overlay if the result has detailed logs.
@@ -575,7 +585,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
 
       // File drop handler
-      fileDropHandler(noteId),
+      fileDropHandler(noteId, notePersistence),
 
       // Blur handler — fires when the editor loses focus
       EditorView.domEventHandlers({
@@ -618,6 +628,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       enableLinting,
       enableOverlay,
       noteId,
+      notePersistence,
       widgetComponents,
       onButtonAction,
     ]

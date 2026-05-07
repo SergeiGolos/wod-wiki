@@ -11,9 +11,6 @@
  * `@/hooks/useWorkbenchServices` instead.
  */
 
-// ── Database ──────────────────────────────────────────────────────────────
-export { indexedDBService } from '@/services/db/IndexedDBService';
-
 // ── File processing ───────────────────────────────────────────────────────
 export { fileProcessor } from '@/services/attachments/FileProcessor';
 
