@@ -256,7 +256,12 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
                   ? { mode: 'latest-for-section', sectionId: routeSectionId }
                   : { mode: 'latest' },
             }).catch(async err => {
-              console.warn('[WorkbenchProvider] Note persistence projection failed, falling back to provider entry:', err);
+              console.warn('[WorkbenchProvider] Note persistence projection failed, falling back to provider entry:', {
+                routeId,
+                projection: routeView === 'review' ? 'review' : 'workbench',
+                resultSelectionMode: routeResultId ? 'by-result-id' : routeSectionId && routeView === 'review' ? 'latest-for-section' : 'latest',
+                err,
+              });
               return provider.getEntry(routeId);
             });
             if (entry) {

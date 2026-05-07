@@ -33,9 +33,10 @@ function sameNote(resultNoteId: string, noteId: string): boolean {
 function normalizeAnalyticsSegments(
   segments: AnalyticsSegmentInput[],
   noteId: string,
-  resultId = '',
+  resultId?: string,
 ): AnalyticsDataPoint[] {
   const now = Date.now();
+  const resolvedResultId = resultId ?? '';
   const points: AnalyticsDataPoint[] = [];
 
   for (const segment of segments) {
@@ -46,7 +47,7 @@ function normalizeAnalyticsSegments(
         noteId,
         segmentId,
         segmentVersion: 0,
-        resultId,
+        resultId: resolvedResultId,
         type: 'elapsed',
         value: segment.elapsed,
         unit: 's',
@@ -63,7 +64,7 @@ function normalizeAnalyticsSegments(
         noteId,
         segmentId,
         segmentVersion: 0,
-        resultId,
+        resultId: resolvedResultId,
         type: key,
         value,
         unit: '',
@@ -213,8 +214,9 @@ export class IndexedDBNotePersistence implements INotePersistence {
     if (locator.shortId) {
       return notes.find(note => toShortId(note.id) === locator.shortId);
     }
-    if (locator.title) {
-      return notes.find(note => note.title.toLowerCase() === locator.title!.toLowerCase());
+    const title = locator.title;
+    if (title) {
+      return notes.find(note => note.title.toLowerCase() === title.toLowerCase());
     }
     return undefined;
   }
