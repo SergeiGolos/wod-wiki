@@ -73,8 +73,15 @@ export function useWodBlockResults(
       }
 
       // 2. Fallback through the note persistence seam (History Mode)
+      if (!workbench) {
+        if (!cancelled) {
+          setResults([]);
+        }
+        return;
+      }
+
       try {
-        const entry = await workbench?.notePersistence.getNote(noteId!, {
+        const entry = await workbench.notePersistence.getNote(noteId!, {
           projection: 'history-detail',
           resultSelection: {
             mode: 'all-for-section',

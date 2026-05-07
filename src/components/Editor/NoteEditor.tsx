@@ -142,8 +142,6 @@ import { useCommandPalette } from "../command-palette/CommandContext";
 import { Play, Plus, ExternalLink, Copy, Check } from "lucide-react";
 import { buildPlaygroundUrl } from "./md-components/WodPlaygroundButton";
 
-const defaultNotePersistence = new IndexedDBNotePersistence();
-
 export interface NoteEditorProps {
   /** Note ID for result lookup */
   noteId?: string;
@@ -252,9 +250,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const defaultNotePersistenceRef = useRef<INotePersistence | null>(null);
   const { setIsOpen } = useCommandPalette();
   const isDark = theme === "dark" || theme === "vs-dark";
-  const notePersistence = providedNotePersistence ?? defaultNotePersistence;
+  if (!defaultNotePersistenceRef.current) {
+    defaultNotePersistenceRef.current = new IndexedDBNotePersistence();
+  }
+  const notePersistence = providedNotePersistence ?? defaultNotePersistenceRef.current;
 
   // Overlay track state
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);

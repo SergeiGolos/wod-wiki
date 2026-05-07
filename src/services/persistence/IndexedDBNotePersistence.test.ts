@@ -85,6 +85,24 @@ function createHarness() {
 }
 
 describe('IndexedDBNotePersistence', () => {
+  it('normalizes runtime analytics segments for persistence', async () => {
+    const { normalizeAnalyticsSegments } = await persistenceModule;
+
+    const points = normalizeAnalyticsSegments([
+      {
+        id: 'segment-a',
+        elapsed: 12,
+        metric: { reps: 30, label: 'ignored' },
+        name: 'AMRAP',
+        absoluteStartTime: 123,
+      },
+    ], note.id, 'result-a');
+
+    expect(points.map(point => point.type)).toEqual(['elapsed', 'reps']);
+    expect(points.every(point => point.noteId === note.id)).toBe(true);
+    expect(points.every(point => point.resultId === 'result-a')).toBe(true);
+  });
+
   it('selects an exact review result by result id', async () => {
     const { IndexedDBNotePersistence } = await persistenceModule;
     const { storage, contentProvider } = createHarness();

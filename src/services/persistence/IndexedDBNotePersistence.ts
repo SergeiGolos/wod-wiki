@@ -30,7 +30,10 @@ function sameNote(resultNoteId: string, noteId: string): boolean {
   return resultNoteId === noteId || resultNoteId.endsWith(`-${noteId}`) || noteId.endsWith(`-${resultNoteId}`);
 }
 
-function normalizeAnalyticsSegments(
+/**
+ * Convert runtime analytics segment snapshots into persisted analytics rows.
+ */
+export function normalizeAnalyticsSegments(
   segments: AnalyticsSegmentInput[],
   noteId: string,
   resultId?: string,
@@ -267,5 +270,3 @@ export class IndexedDBNotePersistence implements INotePersistence {
     return { results: results[0]?.data };
   }
 }
-
-export { normalizeAnalyticsSegments };

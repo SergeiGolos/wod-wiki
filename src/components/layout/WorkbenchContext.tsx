@@ -246,20 +246,21 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         if (provider.mode === 'history' || provider.mode === 'static') {
           try {
             console.log(`[WorkbenchProvider] Attempting to load entry for ID: ${routeId}`);
+            const resultSelection = routeResultId
+              ? { mode: 'by-result-id' as const, resultId: routeResultId }
+              : routeSectionId && routeView === 'review'
+                ? { mode: 'latest-for-section' as const, sectionId: routeSectionId }
+                : { mode: 'latest' as const };
             const entry = await notePersistence.getNote(routeId, {
               projection: routeView === 'review' ? 'review' : 'workbench',
               includeAttachments: true,
               includeSections: true,
-              resultSelection: routeResultId
-                ? { mode: 'by-result-id', resultId: routeResultId }
-                : routeSectionId && routeView === 'review'
-                  ? { mode: 'latest-for-section', sectionId: routeSectionId }
-                  : { mode: 'latest' },
+              resultSelection,
             }).catch(async err => {
               console.warn('[WorkbenchProvider] Note persistence projection failed, falling back to provider entry:', {
                 routeId,
                 projection: routeView === 'review' ? 'review' : 'workbench',
-                resultSelectionMode: routeResultId ? 'by-result-id' : routeSectionId && routeView === 'review' ? 'latest-for-section' : 'latest',
+                resultSelectionMode: resultSelection.mode,
                 err,
               });
               return provider.getEntry(routeId);

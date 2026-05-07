@@ -113,14 +113,14 @@ export class ContentProviderNotePersistence implements INotePersistence {
       : await this.getNote(locator);
 
     if (mutation.attachments?.add) {
-      for (const file of mutation.attachments.add) {
-        await this.provider.saveAttachment(entry.id, {
+      await Promise.all(mutation.attachments.add.map(async file =>
+        this.provider.saveAttachment(entry.id, {
           label: file.name,
           mimeType: file.type,
           data: await file.arrayBuffer(),
           timeSpan: { start: Date.now(), end: Date.now() },
-        });
-      }
+        })
+      ));
     }
     if (mutation.attachments?.remove) {
       await Promise.all(mutation.attachments.remove.map(attachmentId => this.provider.deleteAttachment(attachmentId)));
