@@ -31,28 +31,26 @@ function createView(doc: string, selectionLine: number): EditorView {
 }
 
 describe("cursorFocusExtension", () => {
-  it("renders feedback in a bottom panel instead of the scrollable document", () => {
+  it("renders feedback as a widget anchored to the focused WOD closing fence", () => {
     const view = createView("Intro\n```wod\n10 Pushups\n```", 3);
-    const panel = view.dom.querySelector(".cm-panels-bottom .cm-wod-metric-panel");
+    const panel = view.contentDOM.querySelector(".cm-wod-metric-panel-anchor .cm-wod-metric-panel");
 
     expect(panel?.textContent).toContain("Reps");
     expect(panel?.textContent).toContain("Exercise");
-    expect(view.contentDOM.querySelector(".cm-wod-metric-panel")).toBeNull();
+    expect(view.dom.querySelector(".cm-panels-bottom .cm-wod-metric-panel")).toBeNull();
 
     view.destroy();
   });
 
-  it("hides the bottom panel when the cursor leaves the WOD section", () => {
+  it("removes the closing-fence widget when the cursor leaves the WOD section", () => {
     const view = createView("Intro\n```wod\n10 Pushups\n```", 3);
-    const host = view.dom.querySelector<HTMLElement>(".cm-wod-metric-panel-host");
 
-    expect(host?.style.display).toBe("");
+    expect(view.contentDOM.querySelector(".cm-wod-metric-panel-anchor")).not.toBeNull();
 
     view.dispatch({ selection: { anchor: 0 } });
 
     expect(getCursorFocusState(view.state)).toBeNull();
-    expect(host?.style.display).toBe("none");
-    expect(host?.querySelector(".cm-wod-metric-panel")).toBeNull();
+    expect(view.contentDOM.querySelector(".cm-wod-metric-panel-anchor")).toBeNull();
 
     view.destroy();
   });

@@ -2,8 +2,8 @@
  * Cursor Focus Panel Extension
  *
  * CM6 StateField that tracks the cursor's active WOD line and provides:
- *  1. Bottom panel — pinned below the editor viewport via CM6 showPanel, so
- *     cursor feedback does not shift document content while editing.
+ *  1. Focus widget — anchored to the closing fence of the focused WOD block,
+ *     so cursor feedback lives with the block instead of in a viewport panel.
  *  2. Mark decorations — colored underlines on the cursor line, one per
  *     metric type, using CSS classes defined via EditorView.baseTheme.
  *  3. Exported state — the focused ICodeStatement + EditorSection,
@@ -16,8 +16,8 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
+  WidgetType,
   keymap,
-  showPanel,
 } from "@codemirror/view";
 import {
   EditorState,
@@ -144,6 +144,39 @@ export function renderPanelContent(
   return container;
 }
 
+// ── Focus widget ──────────────────────────────────────────────────────
+
+class CursorFocusPanelWidget extends WidgetType {
+  constructor(
+    readonly sectionId: string,
+    readonly cursorLine: number,
+    readonly statement: ICodeStatement,
+    readonly focusedMetricType: string | null,
+  ) {
+    super();
+  }
+
+  eq(other: CursorFocusPanelWidget): boolean {
+    return (
+      other.sectionId === this.sectionId &&
+      other.cursorLine === this.cursorLine &&
+      other.statement === this.statement &&
+      other.focusedMetricType === this.focusedMetricType
+    );
+  }
+
+  toDOM(): HTMLElement {
+    const host = document.createElement("div");
+    host.className = "cm-wod-metric-panel-anchor";
+    host.appendChild(renderPanelContent(this.statement, this.focusedMetricType));
+    return host;
+  }
+
+  ignoreEvent(): boolean {
+    return false;
+  }
+}
+
 // ── Mark decoration class map ─────────────────────────────────────────
 
 /** Map from MetricType to a CSS class added to mark decorations. */
@@ -186,7 +219,8 @@ function buildDecorations(
   allSections: EditorSection[],
   cursorSection: EditorSection | null,
   cursorDocLine: number,
-  state: EditorState
+  state: EditorState,
+  focus: CursorFocusState | null,
 ): DecorationSet {
   const decos: Range<Decoration>[] = [];
 
@@ -221,6 +255,26 @@ function buildDecorations(
         decos.push(Decoration.mark({ class: cssClass }).range(from, to));
       }
     }
+  }
+
+  // Focus panel widget — anchored to the focused WOD block's closing fence.
+  // The widget is a block decoration at the end of the bottom ``` line, so it
+  // scrolls with the document and only appears for the block containing cursor.
+  if (focus?.statement && focus.section.endLine <= state.doc.lines) {
+    const closeLine = state.doc.line(focus.section.endLine);
+    const focusedMetricType = (focus.focusedMetric?.type as string | undefined) ?? null;
+    decos.push(
+      Decoration.widget({
+        widget: new CursorFocusPanelWidget(
+          focus.section.id,
+          focus.cursorLine,
+          focus.statement,
+          focusedMetricType,
+        ),
+        block: true,
+        side: -1,  // before the closing ``` line
+      }).range(closeLine.from),
+    );
   }
 
   decos.sort((a, b) => a.from - b.from);
@@ -283,9 +337,8 @@ function computeFocusState(
 
   if (focus) focus.focusedMetric = focusedMetric;
 
-  // Build mark decorations for all sections. The feedback panel is rendered
-  // outside the scrollable document by feedbackPanel below.
-  const decos = buildDecorations(wodSections, cursorSection, cursorLine, state);
+  // Build mark decorations for all sections plus the focused block widget.
+  const decos = buildDecorations(wodSections, cursorSection, cursorLine, state, focus);
 
   return { focus, decos };
 }
@@ -387,38 +440,6 @@ const metricNavKeymap = Prec.high(keymap.of([
   { key: "Ctrl-ArrowLeft",  run: (v) => jumpMetric(v, -1) },
 ]));
 
-// ── Bottom feedback panel ────────────────────────────────────────────
-
-const feedbackPanel = showPanel.of((view) => {
-  const dom = document.createElement("div");
-  dom.className = "cm-wod-metric-panel-host";
-
-  function sync(state: EditorState) {
-    const focus = getCursorFocusState(state);
-    if (!focus?.statement) {
-      dom.style.display = "none";
-      dom.replaceChildren();
-      return;
-    }
-
-    dom.style.display = "";
-    const focusedMetricType = (focus.focusedMetric?.type as string | undefined) ?? null;
-    dom.replaceChildren(
-      renderPanelContent(focus.statement, focusedMetricType)
-    );
-  }
-
-  sync(view.state);
-
-  return {
-    dom,
-    update(update) {
-      if (update.docChanged || update.selectionSet) sync(update.state);
-    },
-    top: false,
-  };
-});
-
 // ── CSS theme ────────────────────────────────────────────────────────
 
 const metricUnderlineTheme = EditorView.baseTheme({
@@ -441,9 +462,11 @@ const metricUnderlineTheme = EditorView.baseTheme({
   ".cm-metric-underline-resistance-dim": { borderBottom: "2px solid hsl(var(--metric-resistance) / 0.2)", color: "hsl(var(--metric-resistance))" },
   ".cm-metric-underline-action-dim":     { borderBottom: "2px solid hsl(var(--metric-action) / 0.2)",     color: "hsl(var(--metric-action))" },
 
-  // ── Bottom feedback panel ─────────────────────────────────────────
-  ".cm-wod-metric-panel-host": {
+  // ── Closing-fence focus widget ────────────────────────────────────
+  ".cm-wod-metric-panel-anchor": {
+    display: "block",
     width: "100%",
+    boxSizing: "border-box",
   },
   ".cm-wod-metric-panel": {
     display: "flex",
@@ -499,7 +522,6 @@ const metricUnderlineTheme = EditorView.baseTheme({
 
 export const cursorFocusExtension: Extension = [
   cursorFocusInternal,
-  feedbackPanel,
   metricUnderlineTheme,
   metricNavKeymap,
 ];
