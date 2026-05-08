@@ -1,0 +1,55 @@
+name: CI – Dev
+
+# Runs on every push to dev and on PRs targeting dev.
+# No release, no deploy — tests and preview dispatches only.
+on:
+  push:
+    branches: ["dev"]
+  pull_request:
+    branches: ["dev"]
+  workflow_dispatch:
+
+jobs:
+  calc-variables:
+    uses: ./.github/workflows/_calc-variables.yml
+
+  build:
+    needs: [calc-variables]
+    uses: ./.github/workflows/_build-bun.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.calc-variables.outputs.package-version }}
+
+  test-report:
+    needs: [calc-variables]
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/_test-report.yml
+    secrets: inherit
+
+  # Dispatch preview builds to the companion repos on every dev push.
+  # (preview-dispatch.yml and storybook-dispatch.yml handle the curl calls;
+  #  this job just surfaces the outcome alongside the other checks.)
+  dispatch-previews:
+    if: github.event_name == 'push' && github.ref_name == 'dev'
+    needs: [build]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Dispatch playground preview
+        env:
+          PREVIEW_REPO_PAT: ${{ secrets.PREVIEW_REPO_PAT }}
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer $PREVIEW_REPO_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/SergeiGolos/wod-wiki-preview/dispatches \
+            -d '{"event_type":"playground-preview","client_payload":{"branch":"dev"}}'
+
+      - name: Dispatch storybook preview
+        env:
+          PREVIEW_REPO_PAT: ${{ secrets.PREVIEW_REPO_PAT }}
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer $PREVIEW_REPO_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/SergeiGolos/wod-wiki-storybook/dispatches \
+            -d '{"event_type":"storybook-preview","client_payload":{"branch":"dev"}}'

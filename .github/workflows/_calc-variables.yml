@@ -4,63 +4,47 @@ on:
   workflow_call:
     outputs:
       version:
-        description: "The version for the assembly"
+        description: "The semver version (e.g. 1.2.3)"
         value: ${{ jobs.calculate-variables.outputs.version }}
       package-version:
-        description: "The version for the package"
+        description: "The version for npm publish (tag: 1.2.3, branch: 1.2.3-dev.sha)"
         value: ${{ jobs.calculate-variables.outputs.package-version }}
-      packages-directory:
-        description: "The directory containing the nuget packages"
-        value: ${{ jobs.calculate-variables.outputs.package-directory }}
-
-env:
-  DOTNET_NOLOGO: true
 
 jobs:
   calculate-variables:
     runs-on: ubuntu-22.04
     outputs:
-      version: ${{ steps.calculate-version.outputs.VERSION }}
-      package-version: ${{ steps.calculate-version.outputs.PACKAGE_VERSION }}
-      package-directory: ${{ github.workspace }}/packages
+      version: ${{ steps.calc.outputs.VERSION }}
+      package-version: ${{ steps.calc.outputs.PACKAGE_VERSION }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          show-progress: false
           fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            6.0.x
-            7.0.x
-
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.13.6
-        with:
-          versionSpec: "5.x"
-
-      - name: Get Current Version
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.13.6
-
-      - name: Calculate Package Version
-        id: calculate-version
-        shell: pwsh
+      - name: Calculate version
+        id: calc
         run: |
-          function saveOutput($name, $value) {
-            echo "Saving output: $name=$value"
-            echo "$name=$value" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8NoBom -Append
-          }
+          # Base version from package.json
+          BASE=$(node -p "require('./package.json').version")
 
-          $packageVersion = if ($env:GitVersion_TagName) {
-            $env:GitVersion_MajorMinorPatch + '-' + $env:GitVersion_TagName
-          } else {
-            $env:GitVersion_SemVer
-          }
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            # Tag push: use the tag as-is (strip leading 'v' if present)
+            VERSION="${GITHUB_REF_NAME#v}"
+            PACKAGE_VERSION="$VERSION"
+          elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
+            # Main branch: use package.json version
+            VERSION="$BASE"
+            PACKAGE_VERSION="$BASE"
+          else
+            # Feature / dev branch: prerelease suffix with short SHA
+            SHA=$(git rev-parse --short HEAD)
+            BRANCH=$(echo "$GITHUB_REF_NAME" | sed 's/[^a-zA-Z0-9]/-/g')
+            VERSION="$BASE"
+            PACKAGE_VERSION="${BASE}-${BRANCH}.${SHA}"
+          fi
 
-          saveOutput 'VERSION' $env:GitVersion_MajorMinorPatch
-          saveOutput 'PACKAGE_VERSION' $packageVersion
+          echo "VERSION=$VERSION"       >> "$GITHUB_OUTPUT"
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved: VERSION=$VERSION  PACKAGE_VERSION=$PACKAGE_VERSION"
