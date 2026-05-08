@@ -6,7 +6,7 @@
  * Coexists with the legacy `LocalStorageProvider` which uses `wodwiki:results:*`.
  */
 
-import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import { v4 as uuidv4 } from 'uuid';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
@@ -194,8 +194,8 @@ export class LocalStorageContentProvider implements IContentProvider {
     return attachments;
   }
 
-  async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
-    const id = uuidv4();
+  async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
+    const id = attachment.id ?? uuidv4();
     const now = Date.now();
     const fullAttachment: Attachment = {
       ...attachment,

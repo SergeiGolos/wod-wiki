@@ -8,7 +8,8 @@ import type { ContentProviderMode, IContentProvider } from '../../types/content-
 import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
-import { StaticContentProvider, indexedDBService, fileProcessor } from '@/hooks/useBrowserServices';
+import { StaticContentProvider, fileProcessor } from '@/hooks/useBrowserServices';
+import { createNotePersistence, type INotePersistence } from '@/services/persistence';
 import { sharedParser } from '@/hooks/useRuntimeParser';
 import { getWodContent } from '@/repositories/wod-loader';
 import { toNotebookTag } from '../../types/notebook';
@@ -62,6 +63,7 @@ interface WorkbenchContextState {
 
   // Content Provider
   provider: IContentProvider;
+  notePersistence: INotePersistence;
 
   // Navigation Provider
   navigation: INavigationProvider;
@@ -145,6 +147,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Resolve provider: use external if given, else auto-create from mode + initialContent
   const provider = useMemo(() => externalProvider ?? new StaticContentProvider(propInitialContent), [externalProvider, propInitialContent]);
+  const notePersistence = useMemo(() => createNotePersistence(provider), [provider]);
   const resolvedMode = provider.mode;
 
   // State Declarations
@@ -231,6 +234,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Sync content when ID changes or propInitialContent changes
   useEffect(() => {
+    let cancelled = false;
+
     const loadContent = async () => {
       // Clear current note state while loading to avoid stale comparisons
       setContent('');
@@ -243,7 +248,26 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         if (provider.mode === 'history' || provider.mode === 'static') {
           try {
             console.log(`[WorkbenchProvider] Attempting to load entry for ID: ${routeId}`);
-            const entry = await provider.getEntry(routeId);
+            const resultSelection = routeResultId
+              ? { mode: 'by-result-id' as const, resultId: routeResultId }
+              : routeSectionId && routeView === 'review'
+                ? { mode: 'latest-for-section' as const, sectionId: routeSectionId }
+                : { mode: 'latest' as const };
+            const entry = await notePersistence.getNote(routeId, {
+              projection: routeView === 'review' ? 'review' : 'workbench',
+              includeAttachments: true,
+              includeSections: true,
+              resultSelection,
+            }).catch(async err => {
+              console.warn('[WorkbenchProvider] Note persistence projection failed, falling back to provider entry:', {
+                routeId,
+                projection: routeView === 'review' ? 'review' : 'workbench',
+                resultSelectionMode: resultSelection.mode,
+                err,
+              });
+              return provider.getEntry(routeId);
+            });
+            if (cancelled) return;
             if (entry) {
               console.log(`[WorkbenchProvider] Successfully loaded entry: ${entry.title} (${entry.id})`);
               setCurrentEntry(entry);
@@ -252,9 +276,13 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               lastSavedContent.current = entry.rawContent; // Sync ref so we don't auto-save immediately
               setSaveState('idle'); // Reset any lingering save state
 
-              // Load attachments
-              const atts = await provider.getAttachments(entry.id);
-              setAttachments(atts);
+              const entryAttachments = entry.attachments
+                ?? await provider.getAttachments(entry.id).catch(err => {
+                  console.warn('[WorkbenchContext] Failed to load attachments:', err);
+                  return [];
+                });
+              if (cancelled) return;
+              setAttachments(entryAttachments);
 
               // Ensure visual selection matches the resolved entry.
               // Supports friendly name routes like /note/annie/plan.
@@ -281,16 +309,17 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     };
 
     loadContent();
-  }, [routeId, propInitialContent, provider, historySelectionHook.openEntry, initialActiveEntryId]);
+    return () => { cancelled = true; };
+  }, [routeId, propInitialContent, provider, notePersistence, routeView, routeResultId, routeSectionId, historySelectionHook.openEntry, initialActiveEntryId]);
 
   // Refetch attachments on addition or deletion
   const refreshAttachments = useCallback(async () => {
     const targetId = currentEntry?.id || routeId;
     if (targetId) {
-      const atts = await provider.getAttachments(targetId);
-      setAttachments(atts);
+      const entry = await notePersistence.getNote(targetId, { projection: 'workbench', includeAttachments: true });
+      setAttachments(entry.attachments ?? []);
     }
-  }, [currentEntry?.id, routeId, provider]);
+  }, [currentEntry?.id, routeId, notePersistence]);
 
 
   const setBlocks = useCallback((newBlocks: WodBlock[]) => {
@@ -322,31 +351,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
           }
         }
 
-        let targetResult;
+        const entry = await notePersistence.getNote(currentEntry!.id, {
+          projection: 'review',
+          resultSelection: routeResultId
+            ? { mode: 'by-result-id', resultId: routeResultId }
+            : { mode: 'latest-for-section', sectionId: routeSectionId! },
+        });
 
-        if (routeResultId) {
-          // Specific result requested — load by ID
-          targetResult = await indexedDBService.getResultById(routeResultId);
-        }
-
-        if (!targetResult && routeSectionId) {
-          // Load latest result for this section
-          const sectionResults = await indexedDBService.getResultsForSection(
-            currentEntry!.id, routeSectionId
-          );
-          if (sectionResults.length > 0) {
-            targetResult = sectionResults.sort(
-              (a, b) => b.completedAt - a.completedAt
-            )[0];
-          }
-        }
-
-        if (targetResult && !cancelled) {
-          // Patch currentEntry.results with the specific result data
-          setCurrentEntry(prev => {
-            if (!prev) return prev;
-            return { ...prev, results: targetResult!.data };
-          });
+        if (!cancelled) {
+          setCurrentEntry(prev => prev ? ({ ...prev, results: entry.results }) : prev);
         }
       } catch (err) {
         console.error('[WorkbenchContext] Failed to load route-specific result:', err);
@@ -356,7 +369,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     loadRouteResult();
 
     return () => { cancelled = true; };
-  }, [currentEntry?.id, routeView, routeSectionId, routeResultId, locationState]);
+  }, [currentEntry?.id, routeView, routeSectionId, routeResultId, locationState, notePersistence]);
 
   // Derived state: Parse content into sections and blocks whenever content changes
   useEffect(() => {
@@ -541,7 +554,15 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
       if (routeId || provider.mode === 'static') {
         const targetId = routeId || 'static';
         console.log(`[WorkbenchContext] Updating provider entry ${targetId}...`);
-        provider.updateEntry(targetId, payload)
+        notePersistence.mutateNote(targetId, {
+          rawContent: payload.rawContent,
+          metadata: { title: payload.title },
+          workoutResult: {
+            id: payload.resultId,
+            sectionId: payload.sectionId,
+            data: payload.results,
+          },
+        })
           .then(updated => {
             console.log(`[WorkbenchContext] Provider updated. extendedResults count: ${updated.extendedResults?.length || 0}`);
             // Update local state if this is the currently loaded entry
@@ -577,7 +598,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     // Navigate to Review with the specific result ID IMMEDIATELY
     // Pass the result object in state so the destination can use it without waiting for IDB
     navigation.goToReview(routeId || 'static', selectedBlockId ?? undefined, resultId);
-  }, [provider, content, routeId, selectedBlockId, navigation]);
+  }, [provider, notePersistence, routeId, selectedBlockId, navigation]);
 
   const resetResults = useCallback(() => {
     setResults([]);
@@ -633,24 +654,32 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     const metadata = await fileProcessor.process(file);
 
     console.log(`[WorkbenchContext] Saving attachment to entry ${targetId}`);
-    await provider.saveAttachment(targetId, {
-      mimeType: metadata.mimeType,
-      label: metadata.label,
-      data: metadata.data,
-      timeSpan: metadata.timeSpan || { start: Date.now(), end: Date.now() },
+    await notePersistence.mutateNote(targetId, {
+      attachments: {
+        add: [{
+          id: uuidv4(),
+          label: metadata.label,
+          mimeType: metadata.mimeType,
+          data: metadata.data,
+          timeSpan: metadata.timeSpan ?? { start: Date.now(), end: Date.now() },
+        }],
+      },
     });
     
     // Trigger a re-load of the entry or just fire an event
     await refreshAttachments();
     console.log('[WorkbenchContext] Attachment saved successfully');
-  }, [currentEntry?.id, routeId, provider, refreshAttachments]);
+  }, [currentEntry?.id, routeId, provider, notePersistence, refreshAttachments]);
 
   const deleteAttachment = useCallback(async (id: string) => {
-    if (!provider.capabilities.canWrite) return;
-    await provider.deleteAttachment(id);
+    const targetId = currentEntry?.id || routeId;
+    if (!targetId || !provider.capabilities.canWrite) return;
+    await notePersistence.mutateNote(targetId, {
+      attachments: { remove: [id] },
+    });
     await refreshAttachments();
     console.log(`[WorkbenchContext] Attachment ${id} deleted`);
-  }, [provider, refreshAttachments]);
+  }, [provider, notePersistence, currentEntry?.id, routeId, refreshAttachments]);
 
   const value = useMemo(() => ({
     content,
@@ -664,6 +693,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     saveState,
     panelLayouts,
     provider,
+    notePersistence,
     navigation,
     contentMode: resolvedMode,
     stripMode,
@@ -695,6 +725,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     saveState,
     panelLayouts,
     provider,
+    notePersistence,
     navigation,
     resolvedMode,
     stripMode,
