@@ -48,5 +48,5 @@ jobs:
     needs: [calc-variables, qodana, build, deploy]
     uses: ./.github/workflows/_create-release.yml
     with:
-      tag-name: ${{ github.tag_name || needs.calc-variables.outputs.version }}
+      tag-name: ${{ github.ref_type == 'tag' && github.ref_name || needs.calc-variables.outputs.version }}
       version: ${{ needs.calc-variables.outputs.version }}
