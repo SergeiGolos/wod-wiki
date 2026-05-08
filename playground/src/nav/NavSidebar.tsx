@@ -88,6 +88,7 @@ function L2ChildrenList({ items }: { items: NavItem[] }) {
               title={child.label}
               count={child.children.length}
               defaultOpen={child.children.some(gc => isItemActive(gc, navState, location))}
+              collapsible={child.id !== 'syntax-group'}
             >              
               {child.children.map(gc => {
                 const gcActive = isItemActive(gc, navState, location)

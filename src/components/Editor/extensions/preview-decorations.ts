@@ -10,9 +10,6 @@
  * 2. Decorates inner WhiteboardScript lines with a raised "card" appearance —
  *    slightly larger font, background tint, and left accent border — so
  *    the block pops visually above the surrounding page.
- * 3. Provides a keymap where ArrowUp / ArrowDown skip over entire WOD
- *    blocks when the cursor is outside them, landing on the line just
- *    before or after the block.
  *
  * Line numbers remain visible at all times.
  */
@@ -21,13 +18,9 @@ import {
   Decoration,
   DecorationSet,
   EditorView,
-  keymap,
 } from "@codemirror/view";
 import { EditorState, Range, StateField, Extension } from "@codemirror/state";
-import {
-  sectionField,
-  EditorSection,
-} from "./section-state";
+import { sectionField } from "./section-state";
 
 // ── Line decoration specs (allocated once) ──────────────────────────
 
@@ -100,72 +93,6 @@ const wodBlockDecoField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-// ── ArrowUp / ArrowDown skip WOD blocks ─────────────────────────────
-
-/**
- * Given a cursor line, find the WOD section that completely contains
- * that line (i.e. cursor is NOT inside the block content).
- * Returns null when the cursor is inside or not adjacent to a block.
- */
-function wodBlockAt(
-  sections: EditorSection[],
-  lineNumber: number
-): EditorSection | null {
-  return (
-    sections.find(
-      (s) =>
-        s.type === "wod" &&
-        lineNumber >= s.startLine &&
-        lineNumber <= s.endLine
-    ) ?? null
-  );
-}
-
-function skipWodDown(view: EditorView): boolean {
-  const state = view.state;
-  const { head } = state.selection.main;
-  const curLine = state.doc.lineAt(head).number;
-  const nextLine = curLine + 1;
-  if (nextLine > state.doc.lines) return false;
-
-  const { sections } = state.field(sectionField);
-  const block = wodBlockAt(sections, nextLine);
-
-  if (block) {
-    // Jump past the entire block
-    const targetLine = Math.min(block.endLine + 1, state.doc.lines);
-    const pos = state.doc.line(targetLine).from;
-    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
-    return true;
-  }
-  return false; // let default handler run
-}
-
-function skipWodUp(view: EditorView): boolean {
-  const state = view.state;
-  const { head } = state.selection.main;
-  const curLine = state.doc.lineAt(head).number;
-  const prevLine = curLine - 1;
-  if (prevLine < 1) return false;
-
-  const { sections } = state.field(sectionField);
-  const block = wodBlockAt(sections, prevLine);
-
-  if (block) {
-    // Jump before the entire block
-    const targetLine = Math.max(block.startLine - 1, 1);
-    const pos = state.doc.line(targetLine).from;
-    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
-    return true;
-  }
-  return false;
-}
-
-const wodSkipKeymap = keymap.of([
-  { key: "ArrowDown", run: skipWodDown },
-  { key: "ArrowUp", run: skipWodUp },
-]);
-
 // ── Base theme (fallback styles that work without Tailwind runtime) ──
 
 // ── Base theme — the card/depth styling for WOD blocks ──────────────
@@ -236,11 +163,9 @@ const wodBlockBaseTheme = EditorView.baseTheme({
 // ── Public export ────────────────────────────────────────────────────
 
 /**
- * Combined extension: line decorations for WOD block styling +
- * up/down keymap that skips WOD blocks.
+ * Combined extension: line decorations for WOD block styling.
  */
 export const previewDecorations: Extension = [
   wodBlockDecoField,
-  wodSkipKeymap,
   wodBlockBaseTheme,
 ];

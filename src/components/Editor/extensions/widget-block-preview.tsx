@@ -21,14 +21,17 @@ import {
   DecorationSet,
   EditorView,
   WidgetType,
+  keymap,
 } from "@codemirror/view";
-import { Extension, StateField, Range, EditorState } from "@codemirror/state";
+import { Extension, StateField, Range, EditorState, Prec } from "@codemirror/state";
+import type { Line } from "@codemirror/state";
 // @ts-expect-error — react-dom/client subpath types don't resolve under moduleResolution:bundler (baseline issue)
 import { createRoot } from "react-dom/client";
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 import React from "react";
 
 import { sectionField } from "./section-state";
+import type { EditorSection } from "./section-state";
 import type { WidgetRegistry, WidgetProps } from "../overlays/WidgetCompanion";
 
 // ── React widget DOM bridge ──────────────────────────────────────────
@@ -155,6 +158,77 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
   return Decoration.set(decos);
 }
 
+// ── Arrow-key navigation into widget blocks ─────────────────────────
+
+function widgetSectionAtLine(
+  sections: EditorSection[],
+  line: Line,
+): EditorSection | null {
+  return sections.find(
+    (section) =>
+      section.type === "widget" &&
+      line.from >= section.from &&
+      line.from <= section.to,
+  ) ?? null;
+}
+
+function isCursorInsideSection(state: EditorState, section: EditorSection): boolean {
+  const { head } = state.selection.main;
+  return head >= section.from && head <= section.to;
+}
+
+function moveToLinePreservingColumn(view: EditorView, targetLine: Line): void {
+  const { head } = view.state.selection.main;
+  const currentLine = view.state.doc.lineAt(head);
+  const currentColumn = Math.max(0, head - currentLine.from);
+  const targetColumn = Math.min(currentColumn, targetLine.length);
+  const targetPosition = targetLine.from + targetColumn;
+
+  view.dispatch({
+    selection: { anchor: targetPosition, head: targetPosition },
+    scrollIntoView: true,
+  });
+}
+
+function enterWidgetDown(view: EditorView): boolean {
+  const { head } = view.state.selection.main;
+  const currentLineNumber = view.state.doc.lineAt(head).number;
+  const nextLineNumber = currentLineNumber + 1;
+  if (nextLineNumber > view.state.doc.lines) return false;
+
+  const nextLine = view.state.doc.line(nextLineNumber);
+  const { sections } = view.state.field(sectionField);
+  const widgetSection = widgetSectionAtLine(sections, nextLine);
+
+  if (!widgetSection) return false;
+  if (isCursorInsideSection(view.state, widgetSection)) return false;
+
+  moveToLinePreservingColumn(view, nextLine);
+  return true;
+}
+
+function enterWidgetUp(view: EditorView): boolean {
+  const { head } = view.state.selection.main;
+  const currentLineNumber = view.state.doc.lineAt(head).number;
+  const previousLineNumber = currentLineNumber - 1;
+  if (previousLineNumber < 1) return false;
+
+  const previousLine = view.state.doc.line(previousLineNumber);
+  const { sections } = view.state.field(sectionField);
+  const widgetSection = widgetSectionAtLine(sections, previousLine);
+
+  if (!widgetSection) return false;
+  if (isCursorInsideSection(view.state, widgetSection)) return false;
+
+  moveToLinePreservingColumn(view, previousLine);
+  return true;
+}
+
+const widgetNavKeymap = Prec.high(keymap.of([
+  { key: "ArrowDown", run: enterWidgetDown },
+  { key: "ArrowUp", run: enterWidgetUp },
+]));
+
 // ── Factory ──────────────────────────────────────────────────────────
 
 /**
@@ -175,5 +249,5 @@ export function widgetBlockPreview(registry: WidgetRegistry): Extension {
     provide: (f) => EditorView.decorations.from(f),
   });
 
-  return widgetPreviewField;
+  return [widgetPreviewField, widgetNavKeymap];
 }

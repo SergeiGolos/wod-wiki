@@ -1,6 +1,5 @@
 export * from "./theme";
 export * from "./smart-increment";
-export * from "./wod-decorations";
 export * from "./section-state";
 export * from "./preview-decorations";
 export * from "./frontmatter-preview";
