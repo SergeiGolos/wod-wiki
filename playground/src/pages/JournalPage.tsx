@@ -18,7 +18,7 @@ import { JournalPageShell } from '@/panels/page-shells'
 import type { WodBlock } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
-import { notePersistence } from '@/services/persistence'
+import { indexedDBService } from '@/services/db/IndexedDBService'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pendingRuntimes } from '../runtimeStore'
@@ -49,6 +49,9 @@ export function JournalPage({
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [results, setResults] = useState<WorkoutResult[]>([])
+  // Playground notes are stored in wodwiki-playground with key 'journal/<id>'.
+  // Result persistence lives in wodwiki-db (indexedDBService) keyed by this full id.
+  const fullNoteId = `journal/${noteId}`
 
   const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: 'journal',
@@ -57,10 +60,10 @@ export function JournalPage({
   })
 
   const refreshResults = useCallback(() => {
-    notePersistence.listNotes({ ids: [noteId], projection: 'history-detail' })
-      .then(entries => setResults(entries[0]?.extendedResults ?? []))
+    indexedDBService.getResultsForNote(fullNoteId)
+      .then(results => setResults(results))
       .catch(() => {})
-  }, [noteId])
+  }, [fullNoteId])
 
   useEffect(() => {
     refreshResults()
@@ -110,13 +113,12 @@ export function JournalPage({
       // Persist result when we have a runtimeId.
       // Use noteId (the date key) directly — this is what NoteEditor uses for lookups.
       if (activeRuntimeId) {
-        notePersistence.mutateNote(noteId, {
-          workoutResult: {
-            id: activeRuntimeId,
-            sectionId: blockId,
-            data: workoutResults,
-            completedAt: workoutResults?.endTime || Date.now(),
-          },
+        indexedDBService.saveResult({
+          id: activeRuntimeId,
+          noteId: fullNoteId,
+          sectionId: blockId,
+          data: workoutResults,
+          completedAt: workoutResults?.endTime ?? Date.now(),
         }).then(() => {
           refreshResults()
         }).catch(() => {})
@@ -129,7 +131,7 @@ export function JournalPage({
         setIsReviewOpen(true)
       }
     },
-    [activeRuntimeId, noteId, refreshResults],
+    [activeRuntimeId, fullNoteId, refreshResults],
   )
 
   const handleCloseReview = useCallback(() => {
