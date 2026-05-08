@@ -12,18 +12,18 @@ import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
 import { EditorView } from '@codemirror/view'
 import { v4 as uuidv4 } from 'uuid'
-import { CalendarDaysIcon, PlayIcon } from '@heroicons/react/20/solid'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
 import type { WodBlock } from '@/components/Editor/types'
-import type { WodCommand } from '@/components/Editor/overlays/WodCommand'
 import { CalendarCard } from '@/components/ui/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { pendingRuntimes } from '../runtimeStore'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
-import { NotePageActions } from './shared/NotePageActions'
+import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
+import { useWodBlockCommands } from '../hooks/useWodBlockCommands'
+import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
 import {
   INLINE_RUNTIME_CATEGORIES,
   NON_COLLECTION_CATEGORIES,
@@ -36,6 +36,7 @@ export interface WorkoutEditorPageProps {
   theme: string
   onViewCreated?: (view: EditorView) => void
   onScrollToSection?: (id: string) => void
+  onSearch?: () => void
 }
 
 export function WorkoutEditorPage({
@@ -45,6 +46,7 @@ export function WorkoutEditorPage({
   theme,
   onViewCreated,
   onScrollToSection,
+  onSearch,
 }: WorkoutEditorPageProps) {
   const usePopup = INLINE_RUNTIME_CATEGORIES.has(category)
   const isCollection = !NON_COLLECTION_CATEGORIES.has(category)
@@ -133,30 +135,13 @@ export function WorkoutEditorPage({
     [name, category, sourceNote, navigate],
   )
 
-  const collectionCommands = useMemo<WodCommand[]>(() => {
-    if (!isCollection) return []
-    return [
-      {
-        id: 'run',
-        label: 'Now',
-        icon: <PlayIcon className="h-3 w-3 fill-current" />,
-        primary: true,
-        onClick: handleStartWorkout,
-      },
-      {
-        id: 'today',
-        label: 'Today',
-        icon: <CalendarDaysIcon className="h-3 w-3" />,
-        onClick: (block) => handleScheduleBlock(block, new Date()),
-      },
-      {
-        id: 'plan',
-        label: 'Plan',
-        icon: <CalendarDaysIcon className="h-3 w-3" />,
-        onClick: (block) => setPendingScheduleBlock(block),
-      },
-    ]
-  }, [isCollection, handleStartWorkout, handleScheduleBlock])
+  const commands = useWodBlockCommands('collection-readonly', {
+    onPlay: handleStartWorkout,
+    onShare: shareBlock,
+    onAddToToday: (block) => handleScheduleBlock(block, new Date()),
+    onSchedule: setPendingScheduleBlock,
+    onOpenInPlayground: (block) => openBlockInPlayground(block, navigate),
+  })
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
   const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
@@ -175,7 +160,7 @@ export function WorkoutEditorPage({
         title={name}
         index={index}
         onScrollToSection={onScrollToSection}
-        actions={<NotePageActions currentWorkout={{ name: noteId, content }} index={index} />}
+        actions={<PageActions mode="collection-readonly" currentWorkout={{ name: noteId, content }} index={index} onSearch={onSearch ?? (() => {})} />}
         editor={
           <NoteEditor
             value={content}
@@ -183,9 +168,8 @@ export function WorkoutEditorPage({
             onCursorPositionChange={onLineChange}
             onBlur={onBlur}
             noteId={noteId}
-            onStartWorkout={isCollection || usePopup ? undefined : handleStartWorkout}
             enableInlineRuntime={usePopup}
-            commands={collectionCommands.length > 0 ? collectionCommands : undefined}
+            commands={commands}
             onViewCreated={onViewCreated}
             theme={theme}
             showLineNumbers={false}

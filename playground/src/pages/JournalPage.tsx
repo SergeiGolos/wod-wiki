@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import { v4 as uuidv4 } from 'uuid'
@@ -22,8 +22,16 @@ import { indexedDBService } from '@/services/db/IndexedDBService'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pendingRuntimes } from '../runtimeStore'
-import { NotePageActions } from './shared/NotePageActions'
+// NotePageActions replaced by PageActions (see navbar-wodblock-actions-assessment-2026-05-08.md)
+import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
+import { useWodBlockCommands } from '../hooks/useWodBlockCommands'
+import { derivePageMode } from '@/types/content-type'
+import { shareBlock, openBlockInPlayground } from '../services/openInPlayground'
+import { appendWorkoutToJournal } from '../services/journalWorkout'
+import { CalendarCard } from '@/components/ui/CalendarCard'
+import { toast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/ui/toast'
 import { applyTemplate } from './shared/pageUtils'
 import newPlaygroundTemplate from '../templates/new-playground.md?raw'
 
@@ -33,15 +41,19 @@ export interface JournalPageProps {
   theme: string
   onViewCreated?: (view: EditorView) => void
   onScrollToSection?: (id: string) => void
+  onSearch?: () => void
 }
 
 export function JournalPage({
   theme,
   onViewCreated,
   onScrollToSection,
+  onSearch,
 }: JournalPageProps) {
   const { id } = useParams<{ id: string }>()
   const noteId = id!
+  const navigate = useNavigate()
+  const mode = derivePageMode('journal', noteId)
   const [searchParams, setSearchParams] = useSearchParams()
   const [isTimerOpen, setIsTimerOpen] = useState(false)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
@@ -147,6 +159,48 @@ export function JournalPage({
     results,
   })
 
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null)
+
+  const handleScheduleBlock = useCallback(
+    async (block: WodBlock, date: Date) => {
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const dateKey = `${y}-${m}-${d}`
+      try {
+        await appendWorkoutToJournal({
+          workoutName: noteId,
+          category: 'journal',
+          sourceNoteLabel: noteId,
+          sourceNotePath: `/journal/${noteId}`,
+          wodContent: block.content,
+          date: date,
+        })
+        toast({
+          title: 'Scheduled',
+          description: `Added to journal for ${dateKey}`,
+          action: (
+            <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+              Open
+            </ToastAction>
+          ),
+        })
+      } catch {
+        toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' })
+      }
+    },
+    [noteId, navigate],
+  )
+
+  const commands = useWodBlockCommands(mode, {
+    onPlay: mode === 'journal-active' ? handleStartWorkout : undefined,
+    onShare: shareBlock,
+    onOpenInPlayground: mode === 'journal-plan'
+      ? (block) => openBlockInPlayground(block, navigate)
+      : undefined,
+    onSchedule: setPendingScheduleBlock,
+  })
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-400">
@@ -156,50 +210,70 @@ export function JournalPage({
   }
 
   return (
-    <JournalPageShell
-      title={noteId}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={<NotePageActions currentWorkout={{ name: noteId, content }} index={index} />}
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          onCursorPositionChange={onLineChange}
-          onBlur={onBlur}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={handleInternalViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks}
-          extendedResults={results}
-        />
-      }
-      timerOverlay={
-        timerBlock ? (
-          <FullscreenTimer
-            block={timerBlock}
-            onClose={() => setIsTimerOpen(false)}
-            onCompleteWorkout={handleTimerComplete}
-            autoStart
+    <>
+      <JournalPageShell
+        title={noteId}
+        index={index}
+        onScrollToSection={onScrollToSection}
+        actions={
+          <PageActions
+            mode={mode}
+            currentWorkout={{ name: noteId, content }}
+            index={index}
+            onSearch={onSearch ?? (() => {})}
           />
-        ) : undefined
-      }
-      reviewOverlay={
-        reviewSegments.length > 0 ? (
-          <FullscreenReview
-            segments={reviewSegments}
-            onClose={handleCloseReview}
-            title="Workout Review"
+        }
+        editor={
+          <NoteEditor
+            value={content}
+            onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
+            noteId={noteId}
+            commands={commands}
+            enableInlineRuntime={false}
+            onViewCreated={handleInternalViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setWodBlocks}
+            extendedResults={results}
           />
-        ) : undefined
-      }
-      isTimerOpen={isTimerOpen}
-      isReviewOpen={isReviewOpen}
-      onCloseTimer={() => setIsTimerOpen(false)}
-      onCloseReview={handleCloseReview}
-    />
+        }
+        timerOverlay={
+          timerBlock ? (
+            <FullscreenTimer
+              block={timerBlock}
+              onClose={() => setIsTimerOpen(false)}
+              onCompleteWorkout={handleTimerComplete}
+              autoStart
+            />
+          ) : undefined
+        }
+        reviewOverlay={
+          reviewSegments.length > 0 ? (
+            <FullscreenReview
+              segments={reviewSegments}
+              onClose={handleCloseReview}
+              title="Workout Review"
+            />
+          ) : undefined
+        }
+        isTimerOpen={isTimerOpen}
+        isReviewOpen={isReviewOpen}
+        onCloseTimer={() => setIsTimerOpen(false)}
+        onCloseReview={handleCloseReview}
+      />
+      {pendingScheduleBlock && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <CalendarCard
+            selectedDate={null}
+            onDateSelect={(date) => {
+              handleScheduleBlock(pendingScheduleBlock, date)
+              setPendingScheduleBlock(null)
+            }}
+          />
+        </div>
+      )}
+    </>
   )
 }

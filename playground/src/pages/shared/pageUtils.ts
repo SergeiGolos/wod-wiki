@@ -38,6 +38,14 @@ export function extractPageIndex(content: string): PageNavLink[] {
   const lines = content.split('\n')
   const links: PageNavLink[] = []
   let wodCount = 0
+  const seenIds = new Map<string, number>()
+
+  const uniqueId = (base: string): string => {
+    const count = (seenIds.get(base) ?? 0) + 1
+    seenIds.set(base, count)
+    return count === 1 ? base : `${base}-${count}`
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const match = line.match(/^(#{1,6})\s+(.*)$/)
@@ -52,7 +60,8 @@ export function extractPageIndex(content: string): PageNavLink[] {
         if (!label) label = timestamp
       }
 
-      const id = label.toLowerCase().replace(/[^\w]+/g, '-')
+      const base = label.toLowerCase().replace(/[^\w]+/g, '-')
+      const id = uniqueId(base)
       links.push({ id, label, type: 'heading', timestamp })
       continue
     }

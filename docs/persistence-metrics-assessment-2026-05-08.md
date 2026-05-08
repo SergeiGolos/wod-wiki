@@ -1,4 +1,4 @@
-# Persistence & Metrics — Architecture Re-Assessment
+n# Persistence & Metrics — Architecture Re-Assessment
 
 **Date:** 2026-05-08
 **Scope:** Note storage, `WorkoutResults` shape, metrics access and processing

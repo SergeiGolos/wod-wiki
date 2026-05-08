@@ -16,16 +16,18 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { EditorView } from '@codemirror/view';
-import { PlusIcon, PlayIcon } from 'lucide-react';
 import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { JournalPageShell } from '@/panels/page-shells';
 import type { WodBlock } from '@/components/Editor/types';
+import { CalendarCard } from '@/components/ui/CalendarCard';
 import { getWodFeedItem, getWodFeed } from '@/repositories/wod-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
 import { useNotePageNav } from './shared/useNotePageNav';
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { useWodBlockCommands } from '../hooks/useWodBlockCommands';
+import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
+import { PageActions } from './shared/PageActions';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { localDateKey } from '../views/queriable-list/JournalDateScroll';
@@ -37,6 +39,7 @@ export interface FeedItemPageProps {
   theme: string;
   onViewCreated?: (view: EditorView) => void;
   onScrollToSection?: (id: string) => void;
+  onSearch?: () => void;
 }
 
 export function FeedItemPage({
@@ -46,6 +49,7 @@ export function FeedItemPage({
   theme,
   onViewCreated,
   onScrollToSection,
+  onSearch,
 }: FeedItemPageProps) {
   const navigate = useNavigate();
 
@@ -87,23 +91,20 @@ export function FeedItemPage({
     [feed, feedItem, feedSlug, item, navigate, noteId],
   );
 
-  const handleAddToToday = useCallback(async () => {
+  const handleAddToToday = useCallback(async (block: WodBlock) => {
     try {
       const journalNoteId = await appendWorkoutToJournal({
         workoutName: item?.name ?? feedItem,
         category: feedSlug,
         sourceNoteLabel: feed?.name,
         sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
-        wodContent: content,
-        wrapInWod: false,
+        wodContent: block.content,
       });
       const dateKey = journalNoteId.replace('journal/', '');
       const today = localDateKey(new Date());
       toast({
         title: 'Added to journal',
-        description: dateKey === today
-          ? `Added to today's journal`
-          : `Added to ${dateKey}`,
+        description: dateKey === today ? `Added to today's journal` : `Added to ${dateKey}`,
         action: (
           <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
             Open
@@ -113,7 +114,37 @@ export function FeedItemPage({
     } catch {
       toast({ title: 'Error', description: 'Could not add to journal', variant: 'destructive' });
     }
-  }, [content, feed, feedItem, feedSlug, item, navigate]);
+  }, [feed, feedItem, feedSlug, item, navigate]);
+
+  const [pendingScheduleBlock, setPendingScheduleBlock] = useState<WodBlock | null>(null);
+
+  const handleScheduleBlock = useCallback(async (block: WodBlock, date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const dateKey = `${y}-${m}-${d}`;
+    try {
+      await appendWorkoutToJournal({
+        workoutName: item?.name ?? feedItem,
+        category: feedSlug,
+        sourceNoteLabel: feed?.name,
+        sourceNotePath: `/feeds/${encodeURIComponent(feedSlug)}`,
+        wodContent: block.content,
+        date: date,
+      });
+      toast({
+        title: 'Scheduled',
+        description: `Added to journal for ${dateKey}`,
+        action: (
+          <ToastAction altText="Open journal" onClick={() => navigate(`/journal/${dateKey}`)}>
+            Open
+          </ToastAction>
+        ),
+      });
+    } catch {
+      toast({ title: 'Error', description: 'Could not schedule workout', variant: 'destructive' });
+    }
+  }, [feed, feedItem, feedSlug, item, navigate]);
 
   const index = useNotePageNav({
     content,
@@ -121,49 +152,55 @@ export function FeedItemPage({
     onStartWorkout: handleStartWorkout,
   });
 
-  const actions = (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleAddToToday}
-        className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
-      >
-        <PlusIcon className="size-3.5" />
-        Add to Today
-      </button>
-      {wodBlocks.length > 0 && (
-        <button
-          onClick={() => wodBlocks[0] && handleStartWorkout(wodBlocks[0])}
-          className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          <PlayIcon className="size-3.5" />
-          Run Now
-        </button>
-      )}
-      <CastButtonRpc />
-    </div>
-  );
+  const commands = useWodBlockCommands('collection-readonly', {
+    onPlay: handleStartWorkout,
+    onShare: shareBlock,
+    onAddToToday: handleAddToToday,
+    onSchedule: setPendingScheduleBlock,
+    onOpenInPlayground: (block) => openBlockInPlayground(block, navigate),
+  });
 
   return (
-    <JournalPageShell
-      title={item?.name ?? feedItem}
-      index={index}
-      onScrollToSection={onScrollToSection}
-      actions={actions}
-      editor={
-        <NoteEditor
-          value={content}
-          onChange={onChange}
-          onCursorPositionChange={onLineChange}
-          onBlur={onBlur}
-          noteId={noteId}
-          onStartWorkout={handleStartWorkout}
-          enableInlineRuntime={false}
-          onViewCreated={onViewCreated}
-          theme={theme}
-          showLineNumbers={false}
-          onBlocksChange={setWodBlocks}
-        />
-      }
-    />
+    <>
+      <JournalPageShell
+        title={item?.name ?? feedItem}
+        index={index}
+        onScrollToSection={onScrollToSection}
+        actions={
+          <PageActions
+            mode="collection-readonly"
+            currentWorkout={{ name: item?.name ?? feedItem, content }}
+            index={index}
+            onSearch={onSearch ?? (() => {})}
+          />
+        }
+        editor={
+          <NoteEditor
+            value={content}
+            onChange={onChange}
+            onCursorPositionChange={onLineChange}
+            onBlur={onBlur}
+            noteId={noteId}
+            commands={commands}
+            enableInlineRuntime={false}
+            onViewCreated={onViewCreated}
+            theme={theme}
+            showLineNumbers={false}
+            onBlocksChange={setWodBlocks}
+          />
+        }
+      />
+      {pendingScheduleBlock && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <CalendarCard
+            selectedDate={null}
+            onDateSelect={(date) => {
+              handleScheduleBlock(pendingScheduleBlock, date)
+              setPendingScheduleBlock(null)
+            }}
+          />
+        </div>
+      )}
+    </>
   );
 }
