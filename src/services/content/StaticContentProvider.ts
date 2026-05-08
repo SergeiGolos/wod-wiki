@@ -7,7 +7,7 @@
  * without persistent database side-effects.
  */
 
-import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { Attachment } from '../../types/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -121,8 +121,8 @@ export class StaticContentProvider implements IContentProvider {
     return this.attachments.get(noteId) || [];
   }
 
-  async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
-    const id = uuidv4();
+  async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
+    const id = attachment.id ?? uuidv4();
     const now = Date.now();
     const fullAttachment: Attachment = {
       ...attachment,

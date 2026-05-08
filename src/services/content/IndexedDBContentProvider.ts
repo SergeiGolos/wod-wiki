@@ -8,7 +8,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import { toShortId } from '../../lib/idUtils';
-import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
 import { indexedDBService } from '../db/IndexedDBService';
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
@@ -402,8 +402,8 @@ export class IndexedDBContentProvider implements IContentProvider {
         return indexedDBService.getAttachmentsForNote(noteId);
     }
 
-    async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
-        const id = uuidv4();
+    async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
+        const id = attachment.id ?? uuidv4();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,

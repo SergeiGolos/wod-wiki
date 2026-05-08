@@ -46,6 +46,7 @@ export function useWorkbenchEffects(): void {
     completeWorkout,
     currentEntry,
     notePersistence,
+    provider,
     routeResultId,
   } = useWorkbench();
 
@@ -196,9 +197,9 @@ export function useWorkbenchEffects(): void {
       hasPersisted.current = true;
 
       const currentSegments = store.getState().analyticsSegments;
-      const noteId = currentEntry?.id ?? selectedBlock?.id ?? 'unknown';
+      const noteId = currentEntry?.id;
 
-      if (currentSegments.length > 0) {
+      if (currentSegments.length > 0 && noteId && provider.capabilities.canWrite) {
         notePersistence.mutateNote(noteId, {
           analytics: {
             segments: currentSegments,
@@ -209,7 +210,7 @@ export function useWorkbenchEffects(): void {
           .catch((err: unknown) => console.error('[useWorkbenchEffects] Failed to persist analytics:', err));
       }
     }
-  }, [execution.status, currentEntry, selectedBlock, notePersistence, routeResultId]);
+  }, [execution.status, currentEntry, notePersistence, provider, routeResultId]);
 
   // --- Active segment/statement tracking ---
   useEffect(() => {

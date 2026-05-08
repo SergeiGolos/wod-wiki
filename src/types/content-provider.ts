@@ -7,7 +7,9 @@
  */
 
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from './history';
-import { Attachment } from './storage';
+import type { Attachment } from './storage';
+
+export type AttachmentCreateInput = Omit<Attachment, 'id' | 'noteId' | 'createdAt'> & { id?: string };
 
 /**
  * Content provider mode — the highest-level branching point in the system.
@@ -37,6 +39,6 @@ export interface IContentProvider {
 
   // Attachments
   getAttachments(noteId: string): Promise<Attachment[]>;
-  saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment>;
+  saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment>;
   deleteAttachment(id: string): Promise<void>;
 }

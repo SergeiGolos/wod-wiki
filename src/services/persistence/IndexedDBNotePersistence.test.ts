@@ -8,6 +8,9 @@ const indexedDBService = {};
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService,
 }));
+mock.module('../db/IndexedDBService', () => ({
+  indexedDBService,
+}));
 
 const persistenceModule = import('./IndexedDBNotePersistence');
 
@@ -51,6 +54,7 @@ const otherResult: WorkoutResult = {
 
 function createHarness() {
   const results = [olderSectionResult, latestSectionResult, otherResult];
+  const savedAttachments: import('@/types/storage').Attachment[] = [];
   const storage = {
     getNote: async (id: string) => id === note.id ? note : undefined,
     getAllNotes: async () => [note],
@@ -61,7 +65,10 @@ function createHarness() {
       results.filter(result => result.sectionId === sectionId || result.segmentId === sectionId),
     getResultById: async (resultId: string) => results.find(result => result.id === resultId),
     getAttachmentsForNote: async () => [],
-    saveAttachment: async () => '',
+    saveAttachment: async (attachment: import('@/types/storage').Attachment) => {
+      savedAttachments.push(attachment);
+      return attachment.id;
+    },
     deleteAttachment: async () => undefined,
     saveAnalyticsPoints: async () => undefined,
   };
@@ -81,7 +88,7 @@ function createHarness() {
     deleteEntry: async () => undefined,
   };
 
-  return { storage, contentProvider };
+  return { storage, contentProvider, savedAttachments };
 }
 
 describe('IndexedDBNotePersistence', () => {
@@ -101,6 +108,27 @@ describe('IndexedDBNotePersistence', () => {
     expect(points.map(point => point.type)).toEqual(['elapsed', 'reps']);
     expect(points.every(point => point.noteId === note.id)).toBe(true);
     expect(points.every(point => point.resultId === 'result-a')).toBe(true);
+  });
+
+  it('preserves attachment descriptor ids and time spans', async () => {
+    const { IndexedDBNotePersistence } = await persistenceModule;
+    const { storage, contentProvider, savedAttachments } = createHarness();
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+
+    await persistence.mutateNote(note.id, {
+      attachments: {
+        add: [{
+          id: 'attachment-1',
+          label: 'GPS',
+          mimeType: 'application/gpx+xml',
+          data: '<gpx />',
+          timeSpan: { start: 10, end: 20 },
+        }],
+      },
+    });
+
+    expect(savedAttachments[0].id).toBe('attachment-1');
+    expect(savedAttachments[0].timeSpan).toEqual({ start: 10, end: 20 });
   });
 
   it('selects an exact review result by result id', async () => {

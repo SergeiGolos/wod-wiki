@@ -86,12 +86,21 @@ const fileDropHandler = (noteId: string | undefined, notePersistence: INotePersi
 
       reader.onload = async () => {
         const data = reader.result as ArrayBuffer;
-        
-        await notePersistence.mutateNote(noteId || 'current', {
-          attachments: {
-            add: [new File([data], file.name, { type: file.type })],
-          },
-        });
+
+        if (noteId) {
+          try {
+            await notePersistence.mutateNote(noteId, {
+              attachments: {
+                add: [{
+                  id,
+                  file: new File([data], file.name, { type: file.type }),
+                }],
+              },
+            });
+          } catch (err) {
+            console.warn('[NoteEditor] Attachment persist skipped:', err);
+          }
+        }
 
         // Insert markdown link
         const isImage = file.type.startsWith('image/');

@@ -273,7 +273,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               lastSavedContent.current = entry.rawContent; // Sync ref so we don't auto-save immediately
               setSaveState('idle'); // Reset any lingering save state
 
-              setAttachments(entry.attachments ?? []);
+              const entryAttachments = entry.attachments
+                ?? await provider.getAttachments(entry.id).catch(() => []);
+              setAttachments(entryAttachments);
 
               // Ensure visual selection matches the resolved entry.
               // Supports friendly name routes like /note/annie/plan.
@@ -646,7 +648,13 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     console.log(`[WorkbenchContext] Saving attachment to entry ${targetId}`);
     await notePersistence.mutateNote(targetId, {
       attachments: {
-        add: [new File([metadata.data], metadata.label, { type: metadata.mimeType })],
+        add: [{
+          id: uuidv4(),
+          label: metadata.label,
+          mimeType: metadata.mimeType,
+          data: metadata.data,
+          timeSpan: metadata.timeSpan ?? { start: Date.now(), end: Date.now() },
+        }],
       },
     });
     
@@ -656,8 +664,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   }, [currentEntry?.id, routeId, provider, notePersistence, refreshAttachments]);
 
   const deleteAttachment = useCallback(async (id: string) => {
-    if (!provider.capabilities.canWrite) return;
-    await notePersistence.mutateNote(currentEntry?.id || routeId || '', {
+    const targetId = currentEntry?.id || routeId;
+    if (!targetId || !provider.capabilities.canWrite) return;
+    await notePersistence.mutateNote(targetId, {
       attachments: { remove: [id] },
     });
     await refreshAttachments();

@@ -76,6 +76,7 @@ export function useWodBlockResults(
       if (!workbench) {
         if (!cancelled) {
           setResults([]);
+          setLoading(false);
         }
         return;
       }
