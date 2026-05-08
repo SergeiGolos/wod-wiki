@@ -245,8 +245,6 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
   private async getAnalyticsSegmentVersions(segments: AnalyticsSegmentInput[]): Promise<Record<string, number | undefined>> {
     const segmentIds = Array.from(new Set(segments.map(segment => String(segment.id))));
-    if (segmentIds.length === 0) return {};
-
     const latestSegments = await this.storage.getLatestSegments(segmentIds);
     return Object.fromEntries(latestSegments.map(segment => [segment.id, segment.version]));
   }
