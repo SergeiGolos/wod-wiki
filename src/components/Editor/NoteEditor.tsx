@@ -409,7 +409,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       // Default behavior: show inline FullscreenReview overlay if logs exist
       if (result?.data?.logs && result.data.logs.length > 0) {
         const { segments } = getAnalyticsFromLogs(
-          result.data.logs as any,
+          result.data.logs ?? [],
           result.data.startTime,
         );
         handleOpenReview(segments);
@@ -779,7 +779,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           docVersion={props.docVersion}
           commands={effectiveCommands}
           extendedResults={extendedResults}
-          onOpenReview={handleOpenReview}
           hoverLine={props.hoverLine}
           stickyTopOffset={props.stickyTopOffset}
           isPanelHovered={props.isPanelHovered}

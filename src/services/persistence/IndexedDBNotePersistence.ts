@@ -33,6 +33,16 @@ function sameNote(resultNoteId: string, noteId: string): boolean {
 
 /**
  * Convert runtime analytics segment snapshots into persisted analytics rows.
+ *
+ * NOTE: This is a derived denormalization of WorkoutResult.data.logs.
+ * The canonical data for a single workout is WorkoutResult.data.logs;
+ * getAnalyticsFromLogs() is the authoritative derivation path for display.
+ *
+ * These rows exist to support future cross-workout trend queries
+ * (e.g. "average reps over the last 30 sessions"). They are not required
+ * for any current feature. If this write fails or is skipped, the workout
+ * result remains fully functional. Do not add features that depend on reading
+ * from the analytics store without first implementing a read path.
  */
 export function normalizeAnalyticsSegments(
   segments: AnalyticsSegmentInput[],
@@ -176,6 +186,9 @@ export class IndexedDBNotePersistence implements INotePersistence {
         mutation.analytics?.resultId ?? resultId,
         segmentVersions,
       );
+      // Persist derived analytics rows for future cross-workout trend queries.
+      // Non-load-bearing: WorkoutResult.data.logs is the authoritative source.
+      // If this write fails, the workout result remains fully functional.
       await this.storage.saveAnalyticsPoints(points);
     }
 

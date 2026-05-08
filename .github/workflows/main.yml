@@ -1,30 +1,25 @@
-# This is a basic workflow to help you get started with Actions
-name: CI
+name: CI – Main / Release
 
-# Controls when the workflow will run
+# Runs on every push or PR to main, and on version tags.
+# Release job only fires on a tag push.
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: ["main"]
+    tags: ["v*"]
   pull_request:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  calc-variables:    
+  calc-variables:
     uses: ./.github/workflows/_calc-variables.yml
 
-  # This workflow contains a single job called "build"
   qodana:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+    if: ${{ github.ref_type == 'tag' || github.ref_name == 'main' }}
     uses: ./.github/workflows/_code_quality.yml
     secrets: inherit
 
-  build:    
+  build:
     needs: [calc-variables]
     uses: ./.github/workflows/_build-bun.yml
     secrets: inherit
@@ -38,15 +33,16 @@ jobs:
     secrets: inherit
 
   deploy:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+    if: ${{ github.ref_type == 'tag' || github.ref_name == 'main' }}
     needs: [build]
     uses: ./.github/workflows/_deploy.yml
     secrets: inherit
 
+  # Only fires on a tag push (e.g. v1.2.3) — never on a plain main-branch push.
   create-release:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
+    if: github.ref_type == 'tag'
     needs: [calc-variables, qodana, build, deploy]
     uses: ./.github/workflows/_create-release.yml
     with:
-      tag-name: ${{ github.ref_type == 'tag' && github.ref_name || needs.calc-variables.outputs.version }}
+      tag-name: ${{ github.ref_name }}
       version: ${{ needs.calc-variables.outputs.version }}
