@@ -51,7 +51,7 @@ The `README.md` front matter defines `template: canvas` and `category: []`. Coll
 
 ### 1.3 Feed
 
-> **Status: Not yet implemented.** The concept exists as a stub in `journalNoteStrategy.tsx` (falls through to Collection picker). This section defines the target design.
+> **Status: Implemented.** The feed repository, list/detail/item pages, nav panel, and routes are live.
 
 A Feed is similar to a Collection but uses **date sub-directories** as its primary structure. This allows a feed to have a natural temporal organisation — e.g. a programming feed that publishes dated workouts.
 
@@ -309,19 +309,22 @@ The changes below move incrementally toward the clean architecture. Each step is
 - Keep `JournalFeed` as the rendering layer (`renderNoteCard`, `renderResultRow`, `renderEmptyDate` slots).
 - **Test surface**: tests now cover the loaders in isolation; `JournalFeed` tests cover rendering only.
 
-### Step 4: Feed repository + `/feeds` routes
+### Step 4: Feed repository + `/feeds` routes ✅ DONE
 
-- Create `markdown/feeds/` directory and add at least one example feed.
-- Create `src/repositories/wod-feeds.ts`.
-- Add `/feeds` and `/feeds/:slug` routes.
-- Reuse `WorkoutEditorPage` for individual feed items with `mode = 'collection-readonly'`.
-- Update `journalNoteStrategy.tsx` Feed option to use the real feed picker.
-- **Test surface**: `getWodFeeds()` unit tests; `CalendarListTemplate` with feed loaders.
+- Created `markdown/feeds/` directory with two example feeds (`crossfit-programming`, `dan-john-40-day`).
+- Created `src/repositories/wod-feeds.ts` with `getWodFeeds()`, `getWodFeed()`, `getWodFeedItem()`, `getFeedDateKeys()`.
+- Added `/feeds`, `/feeds/:feedSlug`, and `/feeds/:feedSlug/:feedDate/:feedItem` routes.
+- `FeedsPage` — uses `CollectionListTemplate` to list all feeds.
+- `FeedDetailPage` — uses `CalendarListTemplate` with feed items grouped by date.
+- `FeedItemPage` — renders individual feed workout in `JournalPageShell` with Add to Today / Run Now actions.
+- `FeedsNavPanel` — L2 nav panel (feed list → date groups → sibling items).
+- Feeds L1 nav item added to `appNavTree.ts` below Collections.
 
-### Step 5: Feed sub-strategy in `journalNoteStrategy`
+### Step 5: Feed sub-strategy in `journalNoteStrategy` ✅ DONE
 
-- Implement `createFeedPickStrategy` that lists feed items grouped by date.
-- Wire the "Feed" option in `journalNoteStrategy.tsx` to the real strategy.
+- Implemented `createFeedPickStrategy` (choose a feed) and `createFeedItemPickStrategy` (choose an item).
+- Feed items are searchable by name or date key.
+- Selected item is cloned into the journal entry with a source back-link.
 
 ---
 

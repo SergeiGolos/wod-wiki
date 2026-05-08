@@ -86,13 +86,15 @@ export function buildAppNavTree(openSearch: () => void): NavItem[] {
     label: 'Home',
     level: 1,
     icon: HomeIcon,
-    action: { type: 'route', to: '/' },
+    action: { type: 'route', to: '/playground' },
     isActive: (loc) =>
       loc.pathname === '/' ||
       loc.pathname === '' ||
       loc.pathname === '/getting-started' ||
       loc.pathname.startsWith('/syntax') ||
-      loc.pathname.startsWith('/canvas'),
+      loc.pathname.startsWith('/canvas') ||
+      loc.pathname === '/playground' ||
+      loc.pathname.startsWith('/playground/'),
     children: homeChildren,
   },
 

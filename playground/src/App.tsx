@@ -14,7 +14,7 @@ import { AudioProvider } from '@/components/audio/AudioContext'
 import { CommandProvider } from '@/components/command-palette/CommandContext'
 import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { HomeView } from './views/HomeView'
+import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
@@ -25,6 +25,7 @@ import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { indexedDBService } from '@/services/db/IndexedDBService'
+import { playgroundDB } from './services/playgroundDB'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
 import { 
@@ -82,19 +83,29 @@ export interface WorkoutItem {
   /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
   searchHidden?: boolean
 }
+/**
+ * Navigate to the most-recently edited playground page, or create one if none
+ * exist yet.  Used by both the / (home) and /playground routes.
+ */
 function PlaygroundRedirect() {
   const navigate = useNavigate()
 
   useEffect(() => {
     ;(async () => {
-      const id = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
-      navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
+      const pages = await playgroundDB.getPagesByCategory('playground')
+      if (pages.length > 0) {
+        const latest = pages.sort((a, b) => b.updatedAt - a.updatedAt)[0]!
+        navigate(`/playground/${encodeURIComponent(latest.name)}`, { replace: true })
+      } else {
+        const id = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
+        navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
+      }
     })()
   }, [navigate])
 
   return (
     <div className="flex-1 flex items-center justify-center text-zinc-400">
-      Creating…
+      Loading…
     </div>
   )
 }
@@ -325,25 +336,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     setIsCommandPaletteOpen(true)
   }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
 
-  // Open palette in "load into home editor" mode — selection injects content,
-  // does NOT navigate. onContentSelected receives the raw markdown string.
-  const openHomePalette = useCallback((onContentSelected: (content: string) => void) => {
-    const strategy = createGlobalSearchStrategy(
-      workoutItems,
-      (item: any) => {
-        // Resolve raw markdown content from the item
-        const content: string =
-          item.content ?? item.markdown ?? item.source ?? item.description ?? ''
-        onContentSelected(content)
-        setIsCommandPaletteOpen(false)
-      },
-      navigate,
-      canvasRoutes,
-    )
-    setStrategy(strategy)
-    setIsCommandPaletteOpen(true)
-  }, [workoutItems, navigate, canvasRoutes, setStrategy, setIsCommandPaletteOpen])
-
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
   useEffect(() => {
@@ -540,17 +532,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     >
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
-          {location.pathname === '/' || location.pathname === '' ? (
-            <CanvasPage title="Playground" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
-              <HomeView
-                wodFiles={workoutFiles as Record<string, string>}
-                theme={actualTheme}
-                workoutItems={workoutItems}
-                onSelect={handleSelectWorkout}
-                onOpenHomePalette={openHomePalette}
-              />
-            </CanvasPage>
-          ) : location.pathname === '/journal' ? (
+          {location.pathname === '/journal' ? (
             <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
@@ -658,7 +640,7 @@ export function App() {
             <CommandProvider>
               <NavProvider tree={navTree}>
               <Routes>
-                <Route path="/" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/" element={<PlaygroundRedirect />} />
                 <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
