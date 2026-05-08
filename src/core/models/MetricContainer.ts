@@ -40,16 +40,45 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
             this.syncIndexProperties();
             return;
         }
-        this._metrics = metrics ? [...metrics] : [];
+        if (Array.isArray(metrics)) {
+            this._metrics = [...metrics];
+        } else if (metrics != null) {
+            // Defensive: guard against non-iterable truthy values.
+            // This happens when an OutputStatement stored in IndexedDB is
+            // deserialized — the MetricContainer class instance becomes a
+            // plain JSON object (no Symbol.iterator), which would crash
+            // `[...metrics]`. Callers should prefer MetricContainer.from()
+            // which handles this shape explicitly.
+            this._metrics = [];
+        } else {
+            this._metrics = [];
+        }
         this.syncIndexProperties();
     }
 
-    /** Create a container from an existing metric array. */
-    static from(metrics: IMetric[] | MetricContainer | undefined, id: string | number = 'metrics'): MetricContainer {
+    /**
+     * Create a container from an existing metric array, MetricContainer, or
+     * a deserialized plain object (e.g. a MetricContainer that was stored in
+     * IndexedDB as JSON and loaded back as `{ _metrics: [...], ... }`).
+     */
+    static from(metrics: IMetric[] | MetricContainer | undefined | unknown, id: string | number = 'metrics'): MetricContainer {
         if (metrics instanceof MetricContainer) {
             return metrics.clone(id);
         }
-        return new MetricContainer(metrics, id);
+        if (Array.isArray(metrics)) {
+            return new MetricContainer(metrics, id);
+        }
+        // Handle deserialized plain object: a MetricContainer that was
+        // JSON-serialized (e.g. via IndexedDB) loses its prototype and
+        // Symbol.iterator but retains the private `_metrics` array.
+        if (metrics != null && typeof metrics === 'object' && '_metrics' in (metrics as object)) {
+            const raw = (metrics as Record<string, unknown>)._metrics;
+            if (Array.isArray(raw)) {
+                return new MetricContainer(raw as IMetric[], id);
+            }
+        }
+        // null / undefined / unrecognised shape — return empty container
+        return MetricContainer.empty(id);
     }
 
     /** Create an empty container. */
