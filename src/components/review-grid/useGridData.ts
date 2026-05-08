@@ -25,6 +25,7 @@ import type {
 import { FIXED_COLUMN_IDS } from './types';
 import { getPreset, buildAllColumns } from './gridPresets';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
+import { metricPresentation } from '@/core/metrics/presentation';
 
 // ─── Public Hook ───────────────────────────────────────────────
 
@@ -78,13 +79,10 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     const addType = (ft: MetricType) => {
       // Guard: skip undefined/null metricType (defensive against malformed metric)
       if (ft == null) return;
-      
-      // Noise suppression: Sound is hidden
-      if (ft === MetricType.Sound) return;
-      
-      // Elapsed and Total are now combined into a fixed column, suppress as metrics
-      if (ft === MetricType.Elapsed || ft === MetricType.Total) return;
-      
+
+      const surface = isDebugMode ? 'debug' as const : 'review-grid-column' as const;
+      if (metricPresentation.isHidden({ type: ft, origin: 'runtime' }, surface)) return;
+
       types.add(ft);
     };
 
@@ -173,13 +171,10 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
 
       const orphanTypes = Array.from(activeMetricTypes).filter(ft => {
         if (knownTypes.has(ft)) return false;
-        
-        // Strict suppression for system types that shouldn't auto-appear
-        if (ft === MetricType.System && !isDebugMode) return false;
-        
-        // Elapsed and Total are now combined into a fixed column, suppress as metrics
-        if (ft === MetricType.Elapsed || ft === MetricType.Total) return false;
-        
+
+        const surface = isDebugMode ? 'debug' as const : 'review-grid-column' as const;
+        if (metricPresentation.isHidden({ type: ft, origin: 'runtime' }, surface)) return false;
+
         return true;
       });
 

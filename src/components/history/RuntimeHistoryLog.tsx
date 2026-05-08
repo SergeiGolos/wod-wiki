@@ -6,6 +6,7 @@ import { FragmentSourceEntry, FragmentSourceStatus } from '@/components/metrics/
 import { IMetricSource } from '@/core/contracts/IMetricSource';
 import { MetricType } from '@/core/models/Metric';
 import { VisualizerSize } from '@/core/models/DisplayItem';
+import { metricPresentation } from '@/core/metrics/presentation';
 
 export interface RuntimeHistoryLogProps {
   runtime: ScriptRuntime | null;
@@ -92,14 +93,9 @@ export const RuntimeHistoryLog: React.FC<RuntimeHistoryLogProps> = ({
         duration: output.elapsed,
         startTime: output.timeSpan.started,
         endTime: output.timeSpan.ended,
-        label: metrics
-          .filter(f => {
-            const type = (f.type || f.type || '').toLowerCase();
-            const image = f.image || '';
-            if (type === 'group' && (image === '+' || image === '-')) return false;
-            return type !== 'lap';
-          })
-          .map(f => f.image || '')
+        label: metricPresentation.presentGroup(metrics, 'history-label')
+          .filter(t => t.visible)
+          .map(t => t.label)
           .join(' ')
           .trim() || undefined,
       };

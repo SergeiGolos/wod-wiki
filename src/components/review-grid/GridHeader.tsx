@@ -12,6 +12,7 @@ import React, { useCallback, useState, useRef, useEffect } from 'react';
 import type { MetricType } from '@/core/models/Metric';
 import type { GridColumn, GridSortConfig, SortDirection } from './types';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
+import { metricPresentation } from '@/core/metrics/presentation';
 
 interface GridHeaderProps {
   /** Column definitions (only visible columns) */
@@ -194,27 +195,6 @@ export interface AddColumnButtonProps {
   onAddColumn: (type: MetricType) => void;
 }
 
-const METRIC_LABELS: Partial<Record<string, { label: string }>> = {
-  duration:      { label: 'Duration' },
-  rep:           { label: 'Reps' },
-  effort:        { label: 'Effort' },
-  distance:      { label: 'Distance' },
-  rounds:        { label: 'Rounds' },
-  resistance:    { label: 'Resistance' },
-  action:        { label: 'Action' },
-  increment:     { label: 'Increment' },
-  metric:        { label: 'Metric' },
-  label:         { label: 'Label' },
-  text:          { label: 'Text' },
-  'current-round': { label: 'Current Round' },
-  volume:        { label: 'Volume' },
-  intensity:     { label: 'Intensity' },
-  load:          { label: 'Load' },
-  work:          { label: 'Work' },
-  lap:           { label: 'Lap' },
-  group:         { label: 'Group' },
-};
-
 export const AddColumnButton: React.FC<AddColumnButtonProps> = ({ availableToAdd, onAddColumn }) => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -267,9 +247,8 @@ export const AddColumnButton: React.FC<AddColumnButtonProps> = ({ availableToAdd
             Add metric column
           </div>
           {availableToAdd.map((type) => {
-            const cfg = METRIC_LABELS[type as string];
             const icon = getMetricIcon(type) ?? '•';
-            const label = cfg?.label ?? (type.charAt(0).toUpperCase() + type.slice(1));
+            const label = metricPresentation.columnLabel(type);
             return (
               <button
                 key={type}

@@ -6,10 +6,10 @@
  * the origin is 'user'.
  */
 
-import React from 'react';
-import { type IMetric, MetricType } from '@/core/models/Metric';
-import { getMetricColorClasses } from '@/views/runtime/metricColorMap';
-import { formatDurationSmart } from '@/lib/formatTime';
+import React, { useMemo } from 'react';
+import { type IMetric } from '@/core/models/Metric';
+import { metricPresentation } from '@/core/metrics/presentation';
+import { themeToken } from '@/components/metrics/presentation';
 
 interface MetricPillProps {
   /** The metric to display */
@@ -23,79 +23,24 @@ interface MetricPillProps {
  * - Tooltip shows full metadata on hover.
  */
 export const MetricPill: React.FC<MetricPillProps> = ({ metric }) => {
-  const colorClasses = getMetricColorClasses(metric.type);
-  const isUser = metric.origin === 'user';
-  const displayText = metricDisplayText(metric);
-
-  const tooltip = buildTooltip(metric);
+  const token = useMemo(
+    () => themeToken(metricPresentation.present(metric, 'review-grid-cell')),
+    [metric],
+  );
 
   return (
     <span
       className={[
         'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium border',
-        colorClasses,
-        isUser ? 'border-dashed italic ring-1 ring-offset-1 ring-primary/30' : '',
+        token.colorClasses,
+        token.originClasses,
       ].join(' ')}
-      title={tooltip}
+      title={token.tooltip}
     >
-      {displayText}
-      {isUser && (
+      {token.label}
+      {token.userEntered && (
         <span className="text-[10px] opacity-70 ml-0.5">(u)</span>
       )}
     </span>
   );
 };
-
-/**
- * Extract the display text from a metrics.
- */
-function metricDisplayText(frag: IMetric): string {
-  // Specialized formatting for time-based metric (values are in milliseconds)
-  if (
-    (frag.type === MetricType.Duration ||
-      frag.type === MetricType.Time ||
-      frag.type === MetricType.Elapsed ||
-      frag.type === MetricType.Total) &&
-    typeof frag.value === 'number'
-  ) {
-    return formatDurationSmart(frag.value);
-  }
-
-  if (frag.image) {
-    // Round-group metrics (parser sets image = count) render as a bare number
-    // and are indistinguishable from rep badges. Append the "Round"/"Rounds"
-    // label so the pill reads e.g. "3 Rounds" (issue UX-03).
-    if (frag.type === MetricType.Rounds && /^\d+$/.test(frag.image.trim())) {
-      const n = Number(frag.image);
-      return `${frag.image} ${n === 1 ? 'Round' : 'Rounds'}`;
-    }
-    return frag.image;
-  }
-  if (frag.value !== undefined && frag.value !== null) {
-    if (typeof frag.value === 'object') {
-      const val = frag.value as any;
-      // Handle { text, role } objects common in Text metrics
-      if ('text' in val) return val.text;
-      // Handle { current, total? } objects common in CurrentRound metrics
-      if ('current' in val) return `Round ${val.current}`;
-      
-      return JSON.stringify(frag.value);
-    }
-    return String(frag.value);
-  }
-  return frag.type;
-}
-
-/**
- * Build a tooltip string with metadata.
- */
-function buildTooltip(frag: IMetric): string {
-  const parts: string[] = [];
-  parts.push(`Type: ${frag.type}`);
-  if (frag.value !== undefined) parts.push(`Value: ${frag.value}`);
-  if (frag.origin) parts.push(`Origin: ${frag.origin}`);
-  if (frag.sourceBlockKey) parts.push(`Block: ${frag.sourceBlockKey}`);
-  if (frag.timestamp) parts.push(`Time: ${frag.timestamp.toISOString()}`);
-  if (frag.origin) parts.push(`Behavior: ${frag.origin}`);
-  return parts.join('\n');
-}

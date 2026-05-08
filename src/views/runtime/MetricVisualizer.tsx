@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { IMetric } from '../../core/models/Metric';
-import { getMetricColorClasses, getMetricIcon } from './metricColorMap';
+import { presentThemedGroup } from '@/components/metrics/presentation';
 import { cn } from '../../lib/utils';
 import { VisualizerSize, VisualizerFilter } from '../../core/models/DisplayItem';
 import type { ParseError } from './types';
@@ -136,91 +136,44 @@ export const MetricVisualizer = React.memo<MetricVisualizerProps>(({
 
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
-      {visibleFragments
-        // Filter out structural grouping metrics (+ and -)
-        .filter(metric => {
-          const type = (metric.type || '').toLowerCase();
-          const image = metric.image || '';
-          
-          // Hide metrics that are just grouping symbols
-          if (type === 'group' && (image === '+' || image === '-')) {
-            return false;
+      {presentThemedGroup(visibleFragments, 'runtime-badge')
+        .filter(token => token.visible)
+        .map((token, index) => {
+          if (token.renderKind === 'comment') {
+            return (
+              <span
+                key={index}
+                className={cn(
+                  'italic text-muted-foreground select-text',
+                  currentStyle.text
+                )}
+                title={`COMMENT: ${token.label}`}
+                data-metric-type="comment"
+              >
+                {token.label}
+              </span>
+            );
           }
-          
-          return type !== 'lap';
-        })
-        .map((metric, index) => {
-        const type = metric.type || 'unknown';
-        const tokenValue = formatTokenValue(metric, type);
 
-        // Render parser-origin `text` metrics (from `// ...` comment syntax) as
-        // passive coach annotations: muted italic text without emoji badge,
-        // border, or interactive affordances. This visually distinguishes them
-        // from `[action items]` which remain rendered as interactive pills.
-        // Runtime-origin text metrics (labels, subtitles, round indicators
-        // emitted by LabelingBehavior) keep the standard pill rendering.
-        if (type === 'text' && metric.origin === 'parser') {
           return (
             <span
               key={index}
               className={cn(
-                'italic text-muted-foreground select-text',
+                `inline-flex items-center gap-1 rounded font-mono border ${token.colorClasses} bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`,
+                currentStyle.padding,
                 currentStyle.text
               )}
-              title={`COMMENT: ${tokenValue}`}
-              data-metric-type="comment"
+              title={token.tooltip}
             >
-              {tokenValue}
+              {token.icon && <span className={currentStyle.icon}>{token.icon}</span>}
+              <span>{token.label}</span>
             </span>
           );
-        }
-
-        const colorClasses = getMetricColorClasses(type, tokenValue);
-        const icon = getMetricIcon(type, tokenValue);
-
-        return (
-          <span
-            key={index}
-            className={cn(
-              `inline-flex items-center gap-1 rounded font-mono border ${colorClasses} bg-opacity-60 shadow-sm cursor-help transition-colors hover:bg-opacity-80`,
-              currentStyle.padding,
-              currentStyle.text
-            )}
-            title={`${type.toUpperCase()}: ${JSON.stringify(metric.value, null, 2)}`}
-          >
-            {icon && <span className={currentStyle.icon}>{icon}</span>}
-            <span>{tokenValue}</span>
-          </span>
-        );
-      })}
+        })}
     </div>
   );
 });
 
 MetricVisualizer.displayName = 'MetricVisualizer';
 
-/**
- * Compute the badge token text for a metric.
- *
- * For round-group metrics (`type: 'rounds'`), the parser-built image is just
- * the count (e.g. "3"), which renders as a bare number ("🔄 3") and is
- * visually indistinguishable from a rep badge. Append the "Round"/"Rounds"
- * label so the badge reads "🔄 3 Rounds" (issue UX-03).
- */
-function formatTokenValue(metric: IMetric, type: string): string {
-  const base = metric.image || (typeof metric.value === 'object'
-    ? JSON.stringify(metric.value)
-    : String(metric.value));
 
-  if (type.toLowerCase() === 'rounds') {
-    // Only append the label when the base is a numeric count; preserve
-    // string labels (e.g. AMRAP-style identifiers) untouched.
-    const trimmed = base.trim();
-    if (/^\d+$/.test(trimmed)) {
-      const numeric = Number(trimmed);
-      return `${base} ${numeric === 1 ? 'Round' : 'Rounds'}`;
-    }
-  }
-
-  return base;
-}

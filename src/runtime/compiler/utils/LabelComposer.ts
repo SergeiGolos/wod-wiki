@@ -1,6 +1,7 @@
 import { ICodeStatement } from "../../../core/models/CodeStatement";
 import { MetricType } from "../../../core/models/Metric";
 import { MetricContainer } from "../../../core/models/MetricContainer";
+import { metricPresentation } from "../../../core/metrics/presentation";
 
 export interface LabelOptions {
   includeMetric?: boolean;
@@ -67,12 +68,7 @@ export class LabelComposer {
     // Fallback: If no structured parts, join all non-runtime metrics
     if (parts.length === 0) {
       return allFragments
-        .filter(f => {
-            if (!f.image) return false;
-            // Filter out structural symbols from fallback label
-            const type = f.type || f.type;
-            return type !== MetricType.Lap && type !== MetricType.Group && type !== 'lap' && type !== 'group';
-        })
+        .filter(f => !!f.image && !metricPresentation.isStructural(f))
         .map(f => f.image)
         .join(" ") || defaultLabel;
     }

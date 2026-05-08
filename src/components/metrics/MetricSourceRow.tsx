@@ -19,6 +19,7 @@ import { IMetricSource } from '@/core/contracts/IMetricSource';
 import { IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 import { VisualizerSize, VisualizerFilter } from '@/core/models/DisplayItem';
+import { metricPresentation } from '@/core/metrics/presentation';
 
 export type FragmentSourceStatus = 'pending' | 'active' | 'completed' | 'failed' | 'skipped';
 
@@ -244,12 +245,9 @@ export const MetricSourceRow: React.FC<MetricSourceRowProps> = ({
                 {metricGroups && metricGroups.length > 1 ? (
                     <div className="flex flex-col">
                         {metricGroups
-                            .map(group => group.filter(f => {
-                                const type = (f.type || f.type || '').toLowerCase();
-                                const image = f.image || '';
-                                if (type === 'group' && (image === '+' || image === '-')) return false;
-                                return type !== 'lap';
-                            }))
+                            .map(group => metricPresentation.presentGroup([...group], 'runtime-badge')
+                                .filter(t => t.visible)
+                                .map(t => t.metric))
                             .filter(g => g.length > 0).map((group, i, arr) => (
                             <div
                                 key={i}
