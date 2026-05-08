@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 
 import type { HistoryEntry } from '@/types/history';
-import type { Note, WorkoutResult } from '@/types/storage';
+import type { AnalyticsDataPoint, Note, NoteSegment, WorkoutResult } from '@/types/storage';
 
 const indexedDBService = {};
 
@@ -49,14 +49,17 @@ const otherResult: WorkoutResult = {
   completedAt: 700,
 };
 
-function createHarness() {
+function createHarness(latestSegments: NoteSegment[] = []) {
   const results = [olderSectionResult, latestSectionResult, otherResult];
+  const savedAnalyticsPoints: AnalyticsDataPoint[] = [];
   const savedAttachments: import('@/types/storage').Attachment[] = [];
   const storage = {
     getNote: async (id: string) => id === note.id ? note : undefined,
     getAllNotes: async () => [note],
-    getLatestSegments: async () => [],
-    getLatestSegmentVersion: async () => undefined,
+    getLatestSegments: async (segmentIds: string[]) =>
+      latestSegments.filter(segment => segmentIds.includes(segment.id)),
+    getLatestSegmentVersion: async (segmentId: string) =>
+      latestSegments.find(segment => segment.id === segmentId),
     getResultsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
     getResultsForSection: async (_noteId: string, sectionId: string) =>
       results.filter(result => result.sectionId === sectionId || result.segmentId === sectionId),
@@ -67,7 +70,9 @@ function createHarness() {
       return attachment.id;
     },
     deleteAttachment: async () => undefined,
-    saveAnalyticsPoints: async () => undefined,
+    saveAnalyticsPoints: async (points: AnalyticsDataPoint[]) => {
+      savedAnalyticsPoints.push(...points);
+    },
   };
   const contentProvider = {
     getEntry: async (): Promise<HistoryEntry> => ({
@@ -85,7 +90,7 @@ function createHarness() {
     deleteEntry: async () => undefined,
   };
 
-  return { storage, contentProvider, savedAttachments };
+  return { storage, contentProvider, savedAnalyticsPoints, savedAttachments };
 }
 
 describe('IndexedDBNotePersistence', () => {
@@ -105,6 +110,36 @@ describe('IndexedDBNotePersistence', () => {
     expect(points.map(point => point.type)).toEqual(['elapsed', 'reps']);
     expect(points.every(point => point.noteId === note.id)).toBe(true);
     expect(points.every(point => point.resultId === 'result-a')).toBe(true);
+    expect(points.every(point => point.segmentVersion === 0)).toBe(true);
+  });
+
+  it('persists analytics with the latest segment version', async () => {
+    const { IndexedDBNotePersistence } = await persistenceModule;
+    const latestSegment: NoteSegment = {
+      id: 'segment-a',
+      version: 7,
+      noteId: note.id,
+      dataType: 'wod',
+      data: null,
+      rawContent: '21-15-9',
+      createdAt: 456,
+    };
+    const { storage, contentProvider, savedAnalyticsPoints } = createHarness([latestSegment]);
+    const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
+
+    await persistence.mutateNote(note.id, {
+      analytics: {
+        resultId: 'result-a',
+        segments: [{
+          id: 'segment-a',
+          elapsed: 12,
+          metric: { reps: 30 },
+        }],
+      },
+    });
+
+    expect(savedAnalyticsPoints).toHaveLength(2);
+    expect(savedAnalyticsPoints.every(point => point.segmentVersion === 7)).toBe(true);
   });
 
   it('preserves attachment descriptor ids and time spans', async () => {

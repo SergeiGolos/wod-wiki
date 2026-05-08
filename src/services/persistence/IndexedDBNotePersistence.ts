@@ -38,6 +38,7 @@ export function normalizeAnalyticsSegments(
   segments: AnalyticsSegmentInput[],
   noteId: string,
   resultId?: string,
+  segmentVersions: Record<string, number | undefined> = {},
 ): AnalyticsDataPoint[] {
   const now = Date.now();
   const resolvedResultId = resultId ?? '';
@@ -45,12 +46,13 @@ export function normalizeAnalyticsSegments(
 
   for (const segment of segments) {
     const segmentId = String(segment.id);
+    const segmentVersion = segmentVersions[segmentId] ?? 0;
     if (segment.elapsed != null && segment.elapsed > 0) {
       points.push({
         id: `${segmentId}-elapsed-${now}`,
         noteId,
         segmentId,
-        segmentVersion: 0,
+        segmentVersion,
         resultId: resolvedResultId,
         type: 'elapsed',
         value: segment.elapsed,
@@ -67,7 +69,7 @@ export function normalizeAnalyticsSegments(
         id: `${segmentId}-${key}-${now}`,
         noteId,
         segmentId,
-        segmentVersion: 0,
+        segmentVersion,
         resultId: resolvedResultId,
         type: key,
         value,
@@ -167,10 +169,12 @@ export class IndexedDBNotePersistence implements INotePersistence {
 
     const analyticsSegments = mutation.analytics?.segments ?? mutation.workoutResult?.analyticsSegments;
     if (analyticsSegments && analyticsSegments.length > 0) {
+      const segmentVersions = await this.getAnalyticsSegmentVersions(analyticsSegments);
       const points = normalizeAnalyticsSegments(
         analyticsSegments,
         note.id,
         mutation.analytics?.resultId ?? resultId,
+        segmentVersions,
       );
       await this.storage.saveAnalyticsPoints(points);
     }
@@ -237,6 +241,14 @@ export class IndexedDBNotePersistence implements INotePersistence {
     return typeof locator === 'string'
       ? locator
       : locator.id ?? locator.shortId ?? locator.title ?? '<empty locator>';
+  }
+
+  private async getAnalyticsSegmentVersions(segments: AnalyticsSegmentInput[]): Promise<Record<string, number | undefined>> {
+    const segmentIds = Array.from(new Set(segments.map(segment => String(segment.id))));
+    if (segmentIds.length === 0) return {};
+
+    const latestSegments = await this.storage.getLatestSegments(segmentIds);
+    return Object.fromEntries(latestSegments.map(segment => [segment.id, segment.version]));
   }
 
   private async selectResults(note: Note, selection: ResultSelection = { mode: 'latest' }): Promise<Partial<HistoryEntry>> {
