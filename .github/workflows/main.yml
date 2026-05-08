@@ -5,9 +5,9 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: ["main", "prod"]
+    branches: ["main"]
   pull_request:
-    branches: ["main", "prod"]
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
 
   # This workflow contains a single job called "build"
   qodana:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='prod' || github.ref_name=='main' }}
+    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
     uses: ./.github/workflows/_code_quality.yml
     secrets: inherit
 
@@ -38,13 +38,13 @@ jobs:
     secrets: inherit
 
   deploy:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
+    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
     needs: [build]
     uses: ./.github/workflows/_deploy.yml
     secrets: inherit
 
   create-release:
-    if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
+    if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
     needs: [calc-variables, qodana, build, deploy]
     uses: ./.github/workflows/_create-release.yml
     with:

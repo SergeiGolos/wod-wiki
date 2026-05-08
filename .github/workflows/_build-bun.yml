@@ -67,19 +67,19 @@ jobs:
           VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
 
       - name: Build Library
-        if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
         run: bun run build-library
 
       - name: Upload Page Assets
         uses: actions/upload-artifact@v4
-        if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}  
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
         with:
           name: page
           path: playground/dist
 
       - name: Upload Library Assets
         uses: actions/upload-artifact@v4
-        if: ${{ github.ref_type=='tag' || github.ref_name=='prod' }}  
+        if: ${{ github.ref_type=='tag' || github.ref_name=='main' }}
         with:
           name: library
           path: dist
