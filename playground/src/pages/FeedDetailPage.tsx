@@ -19,6 +19,7 @@ import type { JournalEntrySummary } from '../views/queriable-list/JournalDateScr
 import type { FilteredListItem } from '../views/queriable-list/types';
 import { CalendarListTemplate } from '../templates/CalendarListTemplate';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
+import { useFeedsQueryState } from '../hooks/useFeedsQueryState';
 import { toast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 
@@ -78,12 +79,14 @@ export interface FeedDetailPageProps {
 export function FeedDetailPage({ feedSlug }: FeedDetailPageProps) {
   const navigate = useNavigate();
   const feed = useMemo(() => getWodFeed(feedSlug), [feedSlug]);
+  const { selectedDate } = useFeedsQueryState();
 
-  // Most recent feed date as the initial scroll anchor
+  // Most recent feed date as the initial scroll anchor (overridden by URL date param)
   const initialDate = useMemo(() => {
+    if (selectedDate) return selectedDate;
     const dateKeys = getFeedDateKeys(feed ?? { id: '', name: '', categories: [], items: [] });
     return dateKeys.length > 0 ? new Date(dateKeys[0] + 'T00:00:00') : undefined;
-  }, [feed]);
+  }, [feed, selectedDate]);
 
   const query = useMemo<FeedDetailQuery>(() => ({ feedSlug }), [feedSlug]);
 

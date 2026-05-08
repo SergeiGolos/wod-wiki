@@ -19,6 +19,10 @@ import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
 import { PlanPage } from './views/PlanPage'
+import { FeedsPage } from './views/FeedsPage'
+import { FeedDetailPage } from './pages/FeedDetailPage'
+import { FeedItemPage } from './pages/FeedItemPage'
+import { FeedsNavPanel } from './nav/panels/FeedsNavPanel'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
@@ -43,7 +47,7 @@ import { LoadZipPage } from './pages/LoadZipPage'
 import { Toaster } from '@/components/ui/toaster'
 import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 // ── Shared page utilities ────────────────────────────────────────────────────
-import { NewEntryButton, ActionsMenu } from './pages/shared/PageToolbar'
+import { ActionsMenu } from './pages/shared/PageToolbar'
 import { NotePageActions } from './pages/shared/NotePageActions'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { DEFAULT_PLAYGROUND_CONTENT } from './templates/defaultPlaygroundContent'
@@ -129,6 +133,11 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const isJournalEntryRoute = location.pathname.startsWith('/journal/') && (!!urlName || !!playgroundId)
   const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
 
+  // Feed route detection — parsed from pathname since AppContent useParams only
+  // captures generic {category, name, id} and feed routes use different param names.
+  const feedItemMatch   = location.pathname.match(/^\/feeds\/([^/]+)\/([^/]+)\/([^/]+)$/)
+  const feedDetailMatch = !feedItemMatch && location.pathname.match(/^\/feeds\/([^/]+)$/)
+
   const workoutItems = useMemo(() => {
     return Object.entries(workoutFiles).map(([path, fileContent]) => {
       const parts = path.split('/')
@@ -182,6 +191,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       '/': 'Home',
       '/journal': 'Journal',
       '/plan': 'Plan',
+      '/feeds': 'Feeds',
       '/getting-started': 'Zero to Hero',
       '/syntax': 'Syntax',
       '/collections': 'Collections',
@@ -516,7 +526,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           </div>
           <NavbarSpacer />
           <NavbarSection>
-            <NewEntryButton />
             <NavbarItem onClick={openSearchPalette} aria-label="Search" className="flex items-center gap-3">
               <MagnifyingGlassIcon data-slot="icon" />
               <ShortcutBadge tokens={['meta', '/']} />
@@ -533,7 +542,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
@@ -541,11 +550,24 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/plan' ? (
-            <CanvasPage title="Plan" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="Plan" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <PlanPage workoutItems={workoutItems} />
             </CanvasPage>
+          ) : location.pathname === '/feeds' ? (
+            <FeedsPage />
+          ) : feedDetailMatch ? (
+            <FeedDetailPage feedSlug={decodeURIComponent(feedDetailMatch[1]!)} />
+          ) : feedItemMatch ? (
+            <FeedItemPage
+              feedSlug={decodeURIComponent(feedItemMatch[1]!)}
+              feedDate={decodeURIComponent(feedItemMatch[2]!)}
+              feedItem={decodeURIComponent(feedItemMatch[3]!)}
+              theme={actualTheme}
+              onViewCreated={handleViewCreated}
+              onScrollToSection={scrollToSection}
+            />
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
@@ -554,7 +576,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" /> : undefined}
               index={currentNavLinks}
               onScrollToSection={scrollToSection}
-              actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}
+              actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}
             >
               <MarkdownCanvasPage
                 page={canvasPage}
@@ -645,6 +667,9 @@ export function App() {
                 <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/plan" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/feeds" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/feeds/:feedSlug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/feeds/:feedSlug/:feedDate/:feedItem" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />

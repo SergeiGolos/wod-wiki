@@ -1,154 +1,282 @@
 /**
  * FeedsNavPanel — L2 context panel for feed browsing.
  *
+ * Mirrors JournalNavPanel:
+ *   - Mini CalendarCard with feed-content dates highlighted
+ *   - Feed name chips for filtering (replaces tag chips)
+ *   - Active date badge with clear button
+ *
  * Route modes:
- *   /feeds                         → list of all feeds
- *   /feeds/:slug                   → this feed's date groups
- *   /feeds/:slug/:date/:item       → parent feed + sibling items for that date
+ *   /feeds                         → calendar + all feed chips
+ *   /feeds/:slug                   → calendar (this feed's dates) + back link + sibling items
+ *   /feeds/:slug/:date/:item       → calendar + sibling items for that date
  */
 
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useMatch, useNavigate } from 'react-router-dom';
+import { CalendarCard } from '@/components/ui/CalendarCard';
 import { cn } from '@/lib/utils';
+import { useFeedsQueryState } from '../../hooks/useFeedsQueryState';
+import { getWodFeeds, getWodFeed, getFeedDateKeys } from '@/repositories/wod-feeds';
 import type { NavPanelProps } from '../navTypes';
-import { getWodFeed, getWodFeeds, getFeedDateKeys } from '@/repositories/wod-feeds';
+import { useMemo } from 'react';
 
 export function FeedsNavPanel(_props: NavPanelProps) {
-  const location = useLocation();
   const navigate = useNavigate();
 
-  // Parse route
-  const feedDetailMatch = location.pathname.match(/^\/feeds\/([^/]+)$/);
-  const feedItemMatch = location.pathname.match(/^\/feeds\/([^/]+)\/(\d{4}-\d{2}-\d{2})\/([^/]+)$/);
+  // Route matching
+  const listMatch = useMatch('/feeds');
+  const detailMatch = useMatch('/feeds/:feedSlug');
+  const itemMatch = useMatch('/feeds/:feedSlug/:feedDate/:feedItem');
 
-  const feedSlug = feedDetailMatch
-    ? decodeURIComponent(feedDetailMatch[1])
-    : feedItemMatch
-      ? decodeURIComponent(feedItemMatch[1])
-      : null;
-
-  const feedDate = feedItemMatch ? feedItemMatch[2] : null;
-  const feedItemId = feedItemMatch ? decodeURIComponent(feedItemMatch[3]) : null;
-
-  const isListPage = location.pathname === '/feeds';
+  const isListPage = Boolean(listMatch);
+  const feedSlug = detailMatch?.params.feedSlug ?? itemMatch?.params.feedSlug ?? null;
+  const feedDate = itemMatch?.params.feedDate ?? null;
+  const feedItemId = itemMatch?.params.feedItem ?? null;
   const feed = feedSlug ? getWodFeed(feedSlug) : null;
 
-  // ── Feed list page ─────────────────────────────────────────────────────
+  const { dateParam, selectedDate, setSelectedDate, selectedFeeds, toggleFeed } =
+    useFeedsQueryState();
 
-  if (isListPage) {
-    const feeds = getWodFeeds();
+  const allFeeds = useMemo(() => getWodFeeds(), []);
+
+  // Build the set of dates that have content (for CalendarCard dots)
+  const entryDates = useMemo<Set<string>>(() => {
+    if (feed) {
+      // On a specific feed's pages: highlight only that feed's dates
+      return new Set(feed.items.map(i => i.feedDate));
+    }
+    // On the list page: highlight dates from feeds matching the current filter
+    const feeds = selectedFeeds.length > 0
+      ? allFeeds.filter(f => selectedFeeds.includes(f.id))
+      : allFeeds;
+    return new Set(feeds.flatMap(f => f.items.map(i => i.feedDate)));
+  }, [allFeeds, feed, selectedFeeds]);
+
+  const handleDateSelect = (date: Date) => {
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+    if (!isListPage && !feed) return;
+
+    if (isListPage) {
+      // Toggle: click same date → clear filter
+      if (iso === dateParam) {
+        setSelectedDate(null);
+      } else {
+        setSelectedDate(date);
+      }
+    } else if (feed) {
+      // On a feed detail page, navigate to that date's first item if it exists
+      const item = feed.items.find(i => i.feedDate === iso);
+      if (item) {
+        navigate(`/feeds/${encodeURIComponent(feed.id)}/${iso}/${encodeURIComponent(item.id)}`);
+      } else {
+        // No feed item on this date — update the list date filter and go to list
+        setSelectedDate(date);
+        navigate(`/feeds?s=${iso}`);
+      }
+    }
+  };
+
+  // ── Feed item detail: show siblings for the active date ────────────────
+
+  if (feedDate && feedItemId && feed) {
+    const siblings = feed.items.filter(i => i.feedDate === feedDate);
+    const dateKeys = getFeedDateKeys(feed);
+
     return (
-      <div className="flex flex-col gap-2 px-2 py-3">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          Feeds
+      <div className="flex flex-col gap-3 px-1 py-2">
+        <CalendarCard
+          selectedDate={new Date(feedDate + 'T00:00:00')}
+          onDateSelect={handleDateSelect}
+          entryDates={entryDates}
+          className="scale-95 origin-top-left"
+        />
+
+        {/* Back to feed */}
+        <div className="flex flex-col gap-1 px-2">
+          <button
+            onClick={() => navigate(`/feeds/${encodeURIComponent(feed.id)}`)}
+            className="text-xs font-semibold text-primary hover:underline text-left"
+          >
+            ← {feed.name}
+          </button>
         </div>
-        <div className="flex flex-col gap-1">
-          {feeds.map(f => (
-            <button
-              key={f.id}
-              onClick={() => navigate(`/feeds/${encodeURIComponent(f.id)}`)}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-            >
-              <span className="size-2 rounded-full shrink-0 bg-border" />
-              {f.name}
-            </button>
-          ))}
+
+        {/* Date label + siblings */}
+        <div className="flex flex-col gap-1 px-2">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">
+            {new Date(feedDate + 'T00:00:00').toLocaleDateString(undefined, {
+              month: 'short', day: 'numeric', year: 'numeric',
+            })}
+          </div>
+          {siblings.map(item => {
+            const isActive = item.id === feedItemId;
+            return (
+              <button
+                key={item.id}
+                onClick={() =>
+                  navigate(`/feeds/${encodeURIComponent(feed.id)}/${feedDate}/${encodeURIComponent(item.id)}`)
+                }
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <span className={cn('size-2 rounded-full shrink-0', isActive ? 'bg-primary' : 'bg-border')} />
+                {item.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Other sessions */}
+        <div className="flex flex-col gap-1 px-2">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">
+            All sessions
+          </div>
+          <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+            {dateKeys.map(dk => (
+              <button
+                key={dk}
+                onClick={() => {
+                  const first = feed.items.find(i => i.feedDate === dk);
+                  if (first) navigate(`/feeds/${encodeURIComponent(feed.id)}/${dk}/${encodeURIComponent(first.id)}`);
+                }}
+                className={cn(
+                  'flex items-center justify-between rounded-lg px-3 py-1.5 text-xs font-medium text-left transition-colors',
+                  dk === feedDate
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                {new Date(dk + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                <span className="text-[10px] font-bold text-muted-foreground/50">
+                  {feed.items.filter(i => i.feedDate === dk).length}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  // ── Feed detail / item page ────────────────────────────────────────────
+  // ── Feed detail page ───────────────────────────────────────────────────
 
   if (feed) {
     const dateKeys = getFeedDateKeys(feed);
+    return (
+      <div className="flex flex-col gap-3 px-1 py-2">
+        <CalendarCard
+          selectedDate={selectedDate}
+          onDateSelect={handleDateSelect}
+          entryDates={entryDates}
+          className="scale-95 origin-top-left"
+        />
 
-    // When on a specific item, show siblings for that date
-    if (feedDate && feedItemId) {
-      const siblings = feed.items.filter(i => i.feedDate === feedDate);
-      return (
-        <div className="flex flex-col gap-2 px-2 py-3">
-          <button
-            onClick={() => navigate(`/feeds/${encodeURIComponent(feed.id)}`)}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-left text-primary bg-primary/10 hover:bg-primary/15 transition-colors"
-          >
-            <span className="size-2 rounded-full shrink-0 bg-primary" />
-            {feed.name}
-          </button>
-
-          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 pt-2">
-            {new Date(feedDate + 'T00:00:00').toLocaleDateString(undefined, {
-              month: 'short', day: 'numeric', year: 'numeric',
-            })}
+        <div className="flex flex-col gap-1 px-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+              Sessions
+            </div>
+            <button
+              onClick={() => navigate('/feeds')}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              All feeds
+            </button>
           </div>
-
-          <div className="flex flex-col gap-1">
-            {siblings.map(item => {
-              const isActive = item.id === feedItemId;
+          <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto">
+            {dateKeys.map(dk => {
+              const count = feed.items.filter(i => i.feedDate === dk).length;
               return (
                 <button
-                  key={item.id}
-                  onClick={() => navigate(`/feeds/${encodeURIComponent(feed.id)}/${feedDate}/${encodeURIComponent(item.id)}`)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
+                  key={dk}
+                  onClick={() => {
+                    const first = feed.items.find(i => i.feedDate === dk);
+                    if (first) navigate(`/feeds/${encodeURIComponent(feed.id)}/${dk}/${encodeURIComponent(first.id)}`);
+                  }}
+                  className="flex items-center justify-between rounded-lg px-3 py-1.5 text-xs font-medium text-left text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
-                  <span className={cn('size-2 rounded-full shrink-0', isActive ? 'bg-primary' : 'bg-border')} />
-                  {item.name}
+                  <span className="flex items-center gap-2">
+                    <span className="size-2 rounded-full shrink-0 bg-border" />
+                    {new Date(dk + 'T00:00:00').toLocaleDateString(undefined, {
+                      month: 'short', day: 'numeric', year: 'numeric',
+                    })}
+                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground/50">{count}</span>
                 </button>
               );
             })}
           </div>
         </div>
-      );
-    }
-
-    // Feed detail page — show date groups
-    return (
-      <div className="flex flex-col gap-2 px-2 py-3">
-        <button
-          onClick={() => navigate('/feeds')}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-left text-primary bg-primary/10 hover:bg-primary/15 transition-colors"
-        >
-          <span className="size-2 rounded-full shrink-0 bg-primary" />
-          {feed.name}
-        </button>
-
-        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 pt-1">
-          Sessions
-        </div>
-
-        <div className="flex flex-col gap-1 max-h-80 overflow-y-auto">
-          {dateKeys.map(dateKey => {
-            const count = feed.items.filter(i => i.feedDate === dateKey).length;
-            return (
-              <button
-                key={dateKey}
-                onClick={() => {
-                  navigate(`/feeds/${encodeURIComponent(feed.id)}`, {
-                    state: { scrollTo: dateKey },
-                  });
-                }}
-                className="flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-left text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="size-2 rounded-full shrink-0 bg-border" />
-                  {new Date(dateKey + 'T00:00:00').toLocaleDateString(undefined, {
-                    month: 'short', day: 'numeric',
-                  })}
-                </span>
-                <span className="text-[10px] font-bold text-muted-foreground/50">
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
       </div>
     );
   }
 
-  return null;
+  // ── Feeds list page ────────────────────────────────────────────────────
+
+  return (
+    <div className="flex flex-col gap-3 px-1 py-2">
+      {/* Active date filter badge */}
+      {dateParam && (
+        <div className="flex items-center gap-2 px-2">
+          <span className="text-xs text-muted-foreground">Filtered to</span>
+          <button
+            onClick={() => setSelectedDate(null)}
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            {dateParam} ×
+          </button>
+        </div>
+      )}
+
+      {/* Mini calendar — dots on feed publication dates */}
+      <CalendarCard
+        selectedDate={selectedDate}
+        onDateSelect={handleDateSelect}
+        entryDates={entryDates}
+        className="scale-95 origin-top-left"
+      />
+
+      {/* Feed name chips — act as tag filters */}
+      <div className="flex flex-col gap-1 px-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            Feeds
+          </div>
+          {selectedFeeds.length > 0 && (
+            <button
+              onClick={() => allFeeds.forEach(f => selectedFeeds.includes(f.id) && toggleFeed(f.id))}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col gap-1">
+          {allFeeds.map(f => (
+            <button
+              key={f.id}
+              onClick={() => toggleFeed(f.id)}
+              className={cn(
+                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
+                selectedFeeds.includes(f.id)
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <span className={cn(
+                'size-2 rounded-full shrink-0',
+                selectedFeeds.includes(f.id) ? 'bg-primary' : 'bg-border',
+              )} />
+              {f.name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

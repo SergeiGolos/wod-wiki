@@ -13,7 +13,7 @@
 
 // Glob all markdown files inside markdown/feeds/
 const feedModules = import.meta.glob(
-  ['../../../markdown/feeds/**/*.md'],
+  ['../../markdown/feeds/**/*.md'],
   { query: '?raw', eager: true, import: 'default' },
 ) as Record<string, string>;
 
