@@ -196,15 +196,6 @@ class IndexedDBService {
         return (await this.dbPromise).put('segments', segment);
     }
 
-    async getSegment(id: string, version: number): Promise<NoteSegment | undefined> {
-        return (await this.dbPromise).get('segments', [id, version]);
-    }
-
-    async getSegmentHistory(segmentId: string): Promise<NoteSegment[]> {
-        return (await this.dbPromise).getAllFromIndex('segments', 'by-note', segmentId)
-            .then(all => all.filter(s => s.id === segmentId));
-    }
-
     async getLatestSegmentVersion(segmentId: string): Promise<NoteSegment | undefined> {
         const db = await this.dbPromise;
         const tx = db.transaction('segments', 'readonly');
@@ -293,10 +284,6 @@ class IndexedDBService {
         return (await this.dbPromise).getAllFromIndex('attachments', 'by-note', noteId);
     }
 
-    async getAttachment(id: string): Promise<Attachment | undefined> {
-        return (await this.dbPromise).get('attachments', id);
-    }
-
     async deleteAttachment(id: string): Promise<void> {
         return (await this.dbPromise).delete('attachments', id);
     }
@@ -315,48 +302,6 @@ class IndexedDBService {
         await tx.done;
     }
 
-    async getAnalyticsByType(metricType: string): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-type', metricType);
-    }
-
-    async getAnalyticsBySegment(segmentId: string): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-segment', segmentId);
-    }
-
-    async getAnalyticsByResult(resultId: string): Promise<AnalyticsDataPoint[]> {
-        return (await this.dbPromise).getAllFromIndex('analytics', 'by-result', resultId);
-    }
-
-    async deleteAnalyticsForResult(resultId: string): Promise<void> {
-        const db = await this.dbPromise;
-        const tx = db.transaction('analytics', 'readwrite');
-        const idx = tx.objectStore('analytics').index('by-result');
-        let cursor = await idx.openCursor(IDBKeyRange.only(resultId));
-        while (cursor) {
-            await cursor.delete();
-            cursor = await cursor.continue();
-        }
-        await tx.done;
-    }
-
-    // =======================================================================
-    // Legacy compat shims (for callers not yet migrated)
-    // =======================================================================
-
-    /** @deprecated Use saveSegment instead */
-    async saveSectionHistory(history: NoteSegment): Promise<[string, number]> {
-        return this.saveSegment(history);
-    }
-
-    /** @deprecated Use getLatestSegmentVersion instead */
-    async getLatestSectionVersion(sectionId: string): Promise<NoteSegment | undefined> {
-        return this.getLatestSegmentVersion(sectionId);
-    }
-
-    /** @deprecated Use getSegmentHistory instead */
-    async getSectionHistory(sectionId: string): Promise<NoteSegment[]> {
-        return this.getSegmentHistory(sectionId);
-    }
 }
 
 export const indexedDBService = new IndexedDBService();

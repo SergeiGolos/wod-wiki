@@ -8,9 +8,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import { toShortId } from '../../lib/idUtils';
-import type { IContentProvider, ContentProviderMode } from '../../types/content-provider';
+import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
-import { indexedDBService } from '../db/IndexedDBService';
+import { indexedDBService } from '@/services/db/IndexedDBService';
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType } from '../../components/Editor/types/section';
@@ -361,9 +361,13 @@ export class IndexedDBContentProvider implements IContentProvider {
         // Handle Results (linked to latest version state of note)
         if (patch.results) {
             const resultData = patch.results;
+            const latestSegment = patch.sectionId
+                ? await indexedDBService.getLatestSegmentVersion(patch.sectionId)
+                : undefined;
             const newResult: WorkoutResult = {
                 id: patch.resultId || uuidv4(),
                 segmentId: patch.sectionId, // Link to the NoteSegment that was executed
+                segmentVersion: latestSegment?.version,
                 noteId: note.id,   // Use resolved UUID (not raw route param)
                 sectionId: patch.sectionId, // Legacy compat
                 data: resultData,
@@ -398,8 +402,8 @@ export class IndexedDBContentProvider implements IContentProvider {
         return indexedDBService.getAttachmentsForNote(noteId);
     }
 
-    async saveAttachment(noteId: string, attachment: Omit<Attachment, 'id' | 'noteId' | 'createdAt'>): Promise<Attachment> {
-        const id = uuidv4();
+    async saveAttachment(noteId: string, attachment: AttachmentCreateInput): Promise<Attachment> {
+        const id = attachment.id ?? uuidv4();
         const now = Date.now();
         const fullAttachment: Attachment = {
             ...attachment,

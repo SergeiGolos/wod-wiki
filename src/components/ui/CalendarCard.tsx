@@ -14,8 +14,8 @@ import { cn } from '@/lib/utils';
 export interface CalendarCardProps {
   /** Currently selected date (if any) */
   selectedDate?: Date | null;
-  /** Callback when a date is picked */
-  onDateSelect: (date: Date) => void;
+  /** Callback when a date is picked. Second arg is true when Ctrl/Cmd was held. */
+  onDateSelect: (date: Date, isMultiSelect?: boolean) => void;
   /** Dates that have entries (highlighted with dot) */
   entryDates?: Set<string>; // ISO date strings "YYYY-MM-DD"
   /** When true, renders as read-only — no interaction, visually dimmed */
@@ -150,7 +150,7 @@ export const CalendarCard: React.FC<CalendarCardProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                onDateSelect(new Date(year, month, day));
+                onDateSelect(new Date(year, month, day), e.ctrlKey || e.metaKey);
               }}
               className={cn(
                 'w-8 h-8 flex items-center justify-center rounded text-xs transition-colors relative',

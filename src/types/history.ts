@@ -13,7 +13,7 @@
 
 
 import type { WorkoutResults, Section } from '../components/Editor/types';
-import type { WorkoutResult } from './storage';
+import type { Attachment, WorkoutResult } from './storage';
 
 export type { WorkoutResults, Section };
 
@@ -41,6 +41,8 @@ export interface HistoryEntry {
   notes?: string;
   // Pre-parsed segments for instant rendering
   sections?: Section[];
+  // Attachments requested by richer note projections.
+  attachments?: Attachment[];
   schemaVersion: number;               // For future migration
 
   // Note Management

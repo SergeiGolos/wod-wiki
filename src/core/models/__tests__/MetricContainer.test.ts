@@ -353,4 +353,68 @@ describe('MetricContainer', () => {
             expect(c.toString()).toBe('MetricContainer(2)[rep, effort]');
         });
     });
+
+    // ── IndexedDB round-trip (deserialization) ─────────────────
+
+    describe('IndexedDB deserialization', () => {
+        it('MetricContainer.from handles a JSON-serialized MetricContainer (plain object with _metrics)', () => {
+            // Simulate what IndexedDB returns after storing a MetricContainer:
+            // JSON.stringify strips the prototype so Symbol.iterator is gone,
+            // but the private _metrics array is preserved.
+            const original = new MetricContainer([
+                makeMetric(MetricType.Rep, 21),
+                makeMetric(MetricType.Effort, 'Pull-ups'),
+            ]);
+            const serialized = JSON.parse(JSON.stringify(original));
+            // Serialized form must NOT be iterable (proves the bug existed)
+            expect(typeof serialized[Symbol.iterator]).toBe('undefined');
+
+            // from() must recover the metrics without crashing
+            const recovered = MetricContainer.from(serialized);
+            expect(recovered).toBeInstanceOf(MetricContainer);
+            expect(recovered.length).toBe(2);
+            expect(recovered.find(m => m.type === 'rep')?.value).toBe(21);
+            expect(recovered.find(m => m.type === 'effort')?.value).toBe('Pull-ups');
+        });
+
+        it('MetricContainer.from handles undefined gracefully', () => {
+            const c = MetricContainer.from(undefined);
+            expect(c.length).toBe(0);
+        });
+
+        it('MetricContainer.from handles null gracefully', () => {
+            const c = MetricContainer.from(null as any);
+            expect(c.length).toBe(0);
+        });
+
+        it('MetricContainer.from handles an empty plain object gracefully', () => {
+            const c = MetricContainer.from({} as any);
+            expect(c.length).toBe(0);
+        });
+
+        it('constructor does not throw on non-iterable truthy value', () => {
+            // Before the fix, new MetricContainer(plainObject) would throw
+            // "metrics is not iterable" at the [...metrics] spread.
+            expect(() => new MetricContainer({} as any)).not.toThrow();
+            const c = new MetricContainer({} as any);
+            expect(c.length).toBe(0);
+        });
+
+        it('full IDB round-trip: serialize then deserialize preserves all metrics', () => {
+            const metrics = [
+                makeMetric(MetricType.Rep, 21),
+                makeMetric(MetricType.Rep, 15),
+                makeMetric(MetricType.Rep, 9),
+            ];
+            const container = new MetricContainer(metrics);
+
+            // Simulate IDB write + read
+            const asStored = JSON.parse(JSON.stringify(container)) as unknown;
+
+            const restored = MetricContainer.from(asStored);
+            expect(restored.length).toBe(3);
+            const reps = restored.filter(m => m.type === 'rep');
+            expect(reps.map(m => m.value)).toEqual([21, 15, 9]);
+        });
+    });
 });

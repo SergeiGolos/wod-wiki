@@ -22,12 +22,9 @@ import { useWorkbenchRuntime } from '../workbench/useWorkbenchRuntime';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { parseDocumentStructure } from '../Editor/utils/documentStructure';
 import { getAnalyticsFromRuntime, getAnalyticsFromLogs } from '@/hooks/useWorkbenchServices';
-import { indexedDBService } from '@/hooks/useBrowserServices';
-import type { SegmentWithMetadata } from '@/hooks/useWorkbenchServices';
 import { hashCode } from '../../lib/utils';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
 import { WodBlock } from '../Editor/types';
-import type { AnalyticsDataPoint } from '../../types/storage';
 import { useProjectionSync } from '../../components/cast/ProjectionSyncContext';
 
 // Helper to generate a unique key for a block based on its content/statements
@@ -35,58 +32,6 @@ const getBlockKey = (block: WodBlock | null): string => {
   if (!block) return 'null';
   return `${block.id}-v${block.version || 0}-${block.statements?.length || 0}-${hashCode(JSON.stringify(block.statements || []))}`;
 };
-
-/**
- * Convert in-memory SegmentWithMetadata[] to V4 AnalyticsDataPoint records
- * for persistence in IndexedDB. Each segment metric becomes a separate row.
- */
-function segmentsToAnalyticsPoints(
-  segments: SegmentWithMetadata[],
-  noteId: string,
-  resultId?: string,
-): AnalyticsDataPoint[] {
-  const now = Date.now();
-  const points: AnalyticsDataPoint[] = [];
-
-  for (const seg of segments) {
-    const segId = String(seg.id);
-
-    if (seg.elapsed != null && seg.elapsed > 0) {
-      points.push({
-        id: `${segId}-elapsed-${now}`,
-        noteId,
-        segmentId: segId,
-        segmentVersion: 0,
-        resultId: resultId ?? '',
-        type: 'elapsed',
-        value: seg.elapsed,
-        unit: 's',
-        label: `${seg.name ?? 'Segment'} – Elapsed`,
-        timestamp: seg.absoluteStartTime ?? now,
-        createdAt: now,
-      });
-    }
-
-    for (const [key, value] of Object.entries(seg.metric)) {
-      if (typeof value !== 'number') continue;
-      points.push({
-        id: `${segId}-${key}-${now}`,
-        noteId,
-        segmentId: segId,
-        segmentVersion: 0,
-        resultId: resultId ?? '',
-        type: key,
-        value,
-        unit: '',
-        label: `${seg.name ?? 'Segment'} – ${key}`,
-        timestamp: seg.absoluteStartTime ?? now,
-        createdAt: now,
-      });
-    }
-  }
-
-  return points;
-}
 
 export function useWorkbenchEffects(): void {
   const store = useWorkbenchSyncStore;
@@ -100,6 +45,9 @@ export function useWorkbenchEffects(): void {
     startWorkout,
     completeWorkout,
     currentEntry,
+    notePersistence,
+    provider,
+    routeResultId,
   } = useWorkbench();
 
   const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
@@ -249,16 +197,22 @@ export function useWorkbenchEffects(): void {
       hasPersisted.current = true;
 
       const currentSegments = store.getState().analyticsSegments;
-      const noteId = currentEntry?.id ?? selectedBlock?.id ?? 'unknown';
+      const noteId = currentEntry?.id;
 
-      if (currentSegments.length > 0) {
-        const points = segmentsToAnalyticsPoints(currentSegments, noteId);
-        indexedDBService.saveAnalyticsPoints(points)
-          .then(() => console.log(`[useWorkbenchEffects] Persisted ${points.length} analytics points`))
+      if (currentSegments.length > 0 && noteId && provider.capabilities.canWrite) {
+        notePersistence.mutateNote(noteId, {
+          analytics: {
+            segments: currentSegments,
+            resultId: routeResultId,
+          },
+        })
+          .then(() => console.log(`[useWorkbenchEffects] Persisted ${currentSegments.length} analytics segments`))
           .catch((err: unknown) => console.error('[useWorkbenchEffects] Failed to persist analytics:', err));
+      } else if (currentSegments.length > 0) {
+        console.warn('[useWorkbenchEffects] Skipped analytics persistence: no writable note is available');
       }
     }
-  }, [execution.status, currentEntry, selectedBlock]);
+  }, [execution.status, currentEntry, notePersistence, provider, routeResultId]);
 
   // --- Active segment/statement tracking ---
   useEffect(() => {

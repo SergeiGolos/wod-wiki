@@ -49,6 +49,9 @@ export function JournalPage({
   const [activeRuntimeId, setActiveRuntimeId] = useState<string | null>(null)
   const [reviewSegments, setReviewSegments] = useState<Segment[]>([])
   const [results, setResults] = useState<WorkoutResult[]>([])
+  // Playground notes are stored in wodwiki-playground with key 'journal/<id>'.
+  // Result persistence lives in wodwiki-db (indexedDBService) keyed by this full id.
+  const fullNoteId = `journal/${noteId}`
 
   const { content, loading, onChange, onLineChange, onBlur } = usePlaygroundContent({
     category: 'journal',
@@ -57,8 +60,10 @@ export function JournalPage({
   })
 
   const refreshResults = useCallback(() => {
-    indexedDBService.getResultsForNote(noteId).then(setResults).catch(() => {})
-  }, [noteId])
+    indexedDBService.getResultsForNote(fullNoteId)
+      .then(results => setResults(results))
+      .catch(() => {})
+  }, [fullNoteId])
 
   useEffect(() => {
     refreshResults()
@@ -110,11 +115,10 @@ export function JournalPage({
       if (activeRuntimeId) {
         indexedDBService.saveResult({
           id: activeRuntimeId,
-          noteId,
-          segmentId: blockId,
+          noteId: fullNoteId,
           sectionId: blockId,
           data: workoutResults,
-          completedAt: workoutResults?.endTime || Date.now(),
+          completedAt: workoutResults?.endTime ?? Date.now(),
         }).then(() => {
           refreshResults()
         }).catch(() => {})
@@ -127,7 +131,7 @@ export function JournalPage({
         setIsReviewOpen(true)
       }
     },
-    [activeRuntimeId, noteId, refreshResults],
+    [activeRuntimeId, fullNoteId, refreshResults],
   )
 
   const handleCloseReview = useCallback(() => {

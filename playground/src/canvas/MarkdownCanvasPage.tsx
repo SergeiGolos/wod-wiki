@@ -24,7 +24,7 @@ import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import { ReviewGrid } from '@/components/review-grid/ReviewGrid'
 import type { WorkoutResults } from '@/components/Editor/types'
-import { indexedDBService } from '@/services/db/IndexedDBService'
+import { notePersistence } from '@/services/persistence'
 import type { WorkoutResult } from '@/types/storage'
 import { MacOSChrome } from '../components/MacOSChrome'
 import { ButtonGroup } from '@/components/ui/ButtonGroup'
@@ -416,7 +416,8 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   useEffect(() => {
     let cancelled = false
 
-    indexedDBService.getResultsForNote(canvasNoteId).then((results) => {
+    notePersistence.listNotes({ ids: [canvasNoteId], projection: 'history-detail' }).then((entries) => {
+      const results = entries[0]?.extendedResults ?? []
       if (cancelled) return
       setPersistedResults(results.sort((a, b) => b.completedAt - a.completedAt))
     }).catch(() => {
@@ -493,7 +494,14 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         return [nextResult, ...deduped].sort((a, b) => b.completedAt - a.completedAt)
       })
 
-      indexedDBService.saveResult(nextResult).catch(() => {})
+      notePersistence.mutateNote(canvasNoteId, {
+        workoutResult: {
+          id: runtimeId,
+          sectionId: blockId,
+          data: results,
+          completedAt: results.endTime || Date.now(),
+        },
+      }).catch(() => {})
     }
 
     setActiveViewRuntimeId(null)
