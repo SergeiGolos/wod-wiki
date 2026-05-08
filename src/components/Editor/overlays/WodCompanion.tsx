@@ -320,7 +320,7 @@ const ResultLine: React.FC<{
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (result.data?.logs && onOpenReview) {
-      const { segments } = getAnalyticsFromLogs(result.data.logs as any, result.data.startTime);
+      const { segments } = getAnalyticsFromLogs(result.data.logs ?? [], result.data.startTime);
       onOpenReview(segments);
     }
   };

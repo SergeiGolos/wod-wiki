@@ -273,8 +273,23 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
 }
 
 /**
- * Transform raw output statements into analytics-ready data.
- * Used for historical analysis where no runtime instance exists.
+ * Derive analytics segments from a stored workout log.
+ *
+ * This is the **canonical read path** for all analytics derived from a
+ * completed workout. WorkoutResult.data.logs (StoredOutputStatement[]) is
+ * the source of truth; call this function to obtain Segment[] for display,
+ * review grids, or trend summaries.
+ *
+ * Relationship to the analytics IDB store:
+ *   The `analytics` IndexedDB store holds AnalyticsDataPoint[] rows written
+ *   by normalizeAnalyticsSegments(). Those rows are a derived denormalization
+ *   intended for future cross-workout trend queries. They are NOT required for
+ *   any current feature. If they disagree with logs, logs win. Use this
+ *   function — not the analytics store — to obtain segment data for display.
+ *
+ * @param outputs - StoredOutputStatement[] from WorkoutResult.data.logs
+ * @param workoutStartTime - Optional workout start timestamp (ms). Used to
+ *   anchor relative timing in the segment timeline.
  */
 export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutStartTime?: number): AnalyticsResult {
   if (!outputs || outputs.length === 0) return { segments: [], groups: [] };
