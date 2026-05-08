@@ -51,15 +51,17 @@ const otherResult: WorkoutResult = {
 
 function createHarness(latestSegments: NoteSegment[] = []) {
   const results = [olderSectionResult, latestSectionResult, otherResult];
+  const requestedLatestSegmentIds: string[][] = [];
   const savedAnalyticsPoints: AnalyticsDataPoint[] = [];
   const savedAttachments: import('@/types/storage').Attachment[] = [];
   const storage = {
     getNote: async (id: string) => id === note.id ? note : undefined,
     getAllNotes: async () => [note],
-    getLatestSegments: async (segmentIds: string[]) =>
-      latestSegments.filter(segment => segmentIds.includes(segment.id)),
-    getLatestSegmentVersion: async (segmentId: string) =>
-      latestSegments.find(segment => segment.id === segmentId),
+    getLatestSegments: async (segmentIds: string[]) => {
+      requestedLatestSegmentIds.push(segmentIds);
+      return latestSegments.filter(segment => segmentIds.includes(segment.id));
+    },
+    getLatestSegmentVersion: async () => undefined,
     getResultsForNote: async (noteId: string) => results.filter(result => result.noteId === noteId),
     getResultsForSection: async (_noteId: string, sectionId: string) =>
       results.filter(result => result.sectionId === sectionId || result.segmentId === sectionId),
@@ -90,7 +92,7 @@ function createHarness(latestSegments: NoteSegment[] = []) {
     deleteEntry: async () => undefined,
   };
 
-  return { storage, contentProvider, savedAnalyticsPoints, savedAttachments };
+  return { storage, contentProvider, requestedLatestSegmentIds, savedAnalyticsPoints, savedAttachments };
 }
 
 describe('IndexedDBNotePersistence', () => {
@@ -124,7 +126,7 @@ describe('IndexedDBNotePersistence', () => {
       rawContent: '21-15-9',
       createdAt: 456,
     };
-    const { storage, contentProvider, savedAnalyticsPoints } = createHarness([latestSegment]);
+    const { storage, contentProvider, requestedLatestSegmentIds, savedAnalyticsPoints } = createHarness([latestSegment]);
     const persistence = new IndexedDBNotePersistence(storage, contentProvider as any);
 
     await persistence.mutateNote(note.id, {
@@ -134,12 +136,21 @@ describe('IndexedDBNotePersistence', () => {
           id: 'segment-a',
           elapsed: 12,
           metric: { reps: 30 },
+        }, {
+          id: 'segment-a',
+          metric: { calories: 9 },
+        }, {
+          id: 'missing-segment',
+          elapsed: 5,
+          metric: {},
         }],
       },
     });
 
-    expect(savedAnalyticsPoints).toHaveLength(2);
-    expect(savedAnalyticsPoints.every(point => point.segmentVersion === 7)).toBe(true);
+    expect(requestedLatestSegmentIds).toEqual([['segment-a', 'missing-segment']]);
+    expect(savedAnalyticsPoints).toHaveLength(4);
+    expect(savedAnalyticsPoints.filter(point => point.segmentId === 'segment-a').every(point => point.segmentVersion === 7)).toBe(true);
+    expect(savedAnalyticsPoints.find(point => point.segmentId === 'missing-segment')?.segmentVersion).toBe(0);
   });
 
   it('preserves attachment descriptor ids and time spans', async () => {
