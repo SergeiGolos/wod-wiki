@@ -21,8 +21,8 @@ These extensions only activate inside `` ```wod `` / `` ```log `` / `` ```plan `
 
 ### Metric Visualization
 
-| File | Decoration | Target | Behavior |
-|------|-----------|--------|----------|
+| File                    | Decoration        | Target                            | Behavior                                                                                                                                                                                        |
+| ----------------------- | ----------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cursor-focus-panel.ts` | `Decoration.mark` | Metric tokens in ALL WOD sections | Colored underlines per metric type (duration, rep, effort, rounds, distance, resistance, action). **Cursor line** = full opacity; **other lines** = 20% dim. Uses CSS variables from the theme. |
 
 ### Unified Gutter — Runtime Highlighting
