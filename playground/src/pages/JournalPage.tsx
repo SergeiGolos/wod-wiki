@@ -18,7 +18,7 @@ import { JournalPageShell } from '@/panels/page-shells'
 import type { WodBlock } from '@/components/Editor/types'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import type { WorkoutResult } from '@/types/storage'
-import { indexedDBService } from '@/services/db/IndexedDBService'
+import { notePersistence } from '@/services/persistence'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { pendingRuntimes } from '../runtimeStore'
@@ -57,7 +57,9 @@ export function JournalPage({
   })
 
   const refreshResults = useCallback(() => {
-    indexedDBService.getResultsForNote(noteId).then(setResults).catch(() => {})
+    notePersistence.listNotes({ ids: [noteId], projection: 'history-detail' })
+      .then(entries => setResults(entries[0]?.extendedResults ?? []))
+      .catch(() => {})
   }, [noteId])
 
   useEffect(() => {
@@ -108,13 +110,13 @@ export function JournalPage({
       // Persist result when we have a runtimeId.
       // Use noteId (the date key) directly — this is what NoteEditor uses for lookups.
       if (activeRuntimeId) {
-        indexedDBService.saveResult({
-          id: activeRuntimeId,
-          noteId,
-          segmentId: blockId,
-          sectionId: blockId,
-          data: workoutResults,
-          completedAt: workoutResults?.endTime || Date.now(),
+        notePersistence.mutateNote(noteId, {
+          workoutResult: {
+            id: activeRuntimeId,
+            sectionId: blockId,
+            data: workoutResults,
+            completedAt: workoutResults?.endTime || Date.now(),
+          },
         }).then(() => {
           refreshResults()
         }).catch(() => {})

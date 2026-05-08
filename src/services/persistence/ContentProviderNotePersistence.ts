@@ -66,7 +66,7 @@ export class ContentProviderNotePersistence implements INotePersistence {
     const projection = options.projection ?? 'workbench';
     const includeAttachments = options.includeAttachments ?? false;
     const selected = projection === 'summary'
-      ? {}
+      ? { results: undefined, extendedResults: undefined }
       : selectResults(entry, options.resultSelection);
     const attachments = includeAttachments
       ? await this.provider.getAttachments(entry.id)

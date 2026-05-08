@@ -27,13 +27,30 @@ mock.module('nuqs', () => ({
   useQueryState: () => [null, () => {}],
 }))
 
-mock.module('@/services/db/IndexedDBService', () => ({
-  indexedDBService: {
-    getResultsForNote: async (noteId: string) => storedResults.filter((result) => result.noteId === noteId),
-    saveResult: async (result: WorkoutResult) => {
-      saveResultCalls.push(result)
-      storedResults.unshift(result)
-      return result.id
+mock.module('@/services/persistence', () => ({
+  notePersistence: {
+    listNotes: async ({ ids }: { ids?: string[] }) => {
+      if (!ids || ids.length === 0) return []
+      return ids.map(id => ({
+        id,
+        title: id,
+        rawContent: '',
+        tags: [],
+        createdAt: 0,
+        updatedAt: 0,
+        schemaVersion: 1,
+        extendedResults: storedResults.filter(r => r.noteId === id),
+      }))
+    },
+    mutateNote: async (locator: unknown, mutation: { workoutResult?: any }) => {
+      if (mutation.workoutResult) {
+        const result = mutation.workoutResult
+        const noteId = typeof locator === 'string' ? locator : (locator as any)?.id ?? 'canvas:home'
+        const saved = { ...result, noteId, segmentId: result.sectionId }
+        saveResultCalls.push(saved)
+        storedResults.unshift(saved)
+      }
+      return {}
     },
   },
 }))
