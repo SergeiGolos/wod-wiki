@@ -45,9 +45,6 @@ export function useWorkbenchEffects(): void {
     startWorkout,
     completeWorkout,
     currentEntry,
-    notePersistence,
-    provider,
-    routeResultId,
   } = useWorkbench();
 
   const selectedBlockId = useWorkbenchSyncStore(s => s.selectedBlockId);
@@ -184,35 +181,6 @@ export function useWorkbenchEffects(): void {
       store.getState().setAnalytics(segments, groups);
     }
   }, [runtime, execution.stepCount, execution.status, currentEntry]);
-
-  // --- Persist analytics to IndexedDB on workout completion ---
-  const hasPersisted = useRef(false);
-
-  useEffect(() => {
-    if (execution.status === 'running') {
-      hasPersisted.current = false;
-    }
-
-    if (execution.status === 'completed' && !hasPersisted.current) {
-      hasPersisted.current = true;
-
-      const currentSegments = store.getState().analyticsSegments;
-      const noteId = currentEntry?.id;
-
-      if (currentSegments.length > 0 && noteId && provider.capabilities.canWrite) {
-        notePersistence.mutateNote(noteId, {
-          analytics: {
-            segments: currentSegments,
-            resultId: routeResultId,
-          },
-        })
-          .then(() => console.log(`[useWorkbenchEffects] Persisted ${currentSegments.length} analytics segments`))
-          .catch((err: unknown) => console.error('[useWorkbenchEffects] Failed to persist analytics:', err));
-      } else if (currentSegments.length > 0) {
-        console.warn('[useWorkbenchEffects] Skipped analytics persistence: no writable note is available');
-      }
-    }
-  }, [execution.status, currentEntry, notePersistence, provider, routeResultId]);
 
   // --- Active segment/statement tracking ---
   useEffect(() => {

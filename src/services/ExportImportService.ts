@@ -150,25 +150,27 @@ function resultsToCSV(entry: HistoryEntry): string {
     if (entry.results) {
         const result = entry.results;
 
-        // If there are metrics, create a row for each metric
-        if (result.metrics && result.metrics.length > 0) {
-            for (const metric of result.metrics) {
-                rows.push([
-                    result.startTime,
-                    result.endTime,
-                    result.duration,
-                    result.roundsCompleted ?? null,
-                    result.totalRounds ?? null,
-                    result.repsCompleted ?? null,
-                    result.completed,
-                    metrics.metrics.type,
-                    metric.metric.value !== undefined ? JSON.stringify(metric.metric.value) : null,
-                    metric.origin ?? null,
-                    metric.timestamp ?? null,
-                ]);
+        // If there are logs, create a row for each segment output
+        if (result.logs && result.logs.length > 0) {
+            for (const log of result.logs) {
+                for (const metric of log.metrics) {
+                    rows.push([
+                        result.startTime,
+                        result.endTime,
+                        result.duration,
+                        result.roundsCompleted ?? null,
+                        result.totalRounds ?? null,
+                        result.repsCompleted ?? null,
+                        result.completed,
+                        metric.type,
+                        metric.value !== undefined ? JSON.stringify(metric.value) : null,
+                        metric.origin ?? null,
+                        log.timeSpan.started ?? null,
+                    ]);
+                }
             }
         } else {
-            // No metrics, just the result summary
+            // No log data, just the result summary
             rows.push([
                 result.startTime,
                 result.endTime,

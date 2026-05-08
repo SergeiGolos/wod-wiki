@@ -81,7 +81,7 @@ describe('Visual Fragment Colors Test Suite', () => {
 
     it('should return rest color classes for effort metrics whose value is "Rest"', () => {
       const restClasses = getMetricColorClasses('effort', 'Rest');
-      expect(restClasses).toBe(metricColorMap.rest);
+      expect(restClasses).toBe(metricColorMap.rest ?? '');
       expect(restClasses).not.toContain('metric-effort');
     });
 

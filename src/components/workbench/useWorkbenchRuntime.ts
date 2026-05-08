@@ -6,6 +6,7 @@ import type { IEventHandler, IEvent, IScriptRuntime } from '../../hooks/useRunti
 import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
+import { toStoredOutputStatement } from '../Editor/types';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
 import { PaceEnrichmentProcess } from '../../core/analytics/PaceEnrichmentProcess';
 import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
@@ -93,7 +94,6 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
                     startTime: execution.startTime,
                     endTime: Date.now(),
                     duration: execution.elapsedTime,
-                    metrics: [],
                     completed: false // Explicitly marked as partial
                 });
             }
@@ -112,8 +112,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
                 startTime: execution.startTime,
                 endTime: Date.now(),
                 duration: execution.elapsedTime,
-                metrics: [],
-                logs: runtime?.getOutputStatements() || [],
+                logs: (runtime?.getOutputStatements() || []).map(toStoredOutputStatement),
                 completed: true
             });
         }
@@ -136,8 +135,7 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             startTime: execution.startTime || Date.now(),
             endTime: Date.now(),
             duration: execution.elapsedTime,
-            metrics: [],
-            logs: runtime?.getOutputStatements() || [],
+            logs: (runtime?.getOutputStatements() || []).map(toStoredOutputStatement),
             completed: true
         });
     }, []);

@@ -30,6 +30,7 @@ import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncServic
 import type { RpcWorkbenchUpdate } from "@/hooks/useCastSignaling";
 import { useWorkbenchSyncStore } from "@/components/layout/workbenchSyncStore";
 import type { WodBlock, WorkoutResults } from "../types";
+import { toStoredOutputStatement } from "../types";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-unified";
 import { formatTimeMMSS } from "@/lib/formatTime";
@@ -223,22 +224,13 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     // Finalize analytics to get summary outputs
     runtime.finalizeAnalytics();
     const allOutputs = runtime.getOutputStatements();
-    
-    // Extract metrics fragments from all segment outputs
-    const metricFragments = allOutputs
-      .filter((o: IOutputStatement) => o.outputType === 'segment')
-      .flatMap((o: IOutputStatement) => (o.metrics || []).map(m => ({
-        metric: m,
-        timestamp: o.timeSpan.started
-      })));
 
     const results: WorkoutResults = {
       startTime: execution.startTime || Date.now(),
       endTime: Date.now(),
       duration: execution.elapsedTime,
       completed,
-      metrics: metricFragments,
-      logs: allOutputs
+      logs: allOutputs.map(toStoredOutputStatement),
     };
 
     onComplete?.(block.id, results);

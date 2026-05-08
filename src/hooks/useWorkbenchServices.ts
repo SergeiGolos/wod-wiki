@@ -21,11 +21,11 @@ export { exportAllNotes, exportNote, importFromZip, pickFile } from '@/services/
 // ── React hook ────────────────────────────────────────────────────────────
 
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer';
-import type { IOutputStatement } from '@/core/models/OutputStatement';
+import type { StoredOutputStatement } from '@/components/Editor/types';
 
 export interface UseWorkbenchServicesReturn {
-  /** Derive analytics from output statements */
-  deriveAnalytics: (outputs: IOutputStatement[], startTime?: number) => ReturnType<typeof getAnalyticsFromLogs>;
+  /** Derive analytics from stored output statements */
+  deriveAnalytics: (outputs: StoredOutputStatement[], startTime?: number) => ReturnType<typeof getAnalyticsFromLogs>;
 }
 
 /**
@@ -40,7 +40,7 @@ export interface UseWorkbenchServicesReturn {
 export function useWorkbenchServices(): UseWorkbenchServicesReturn {
   return useMemo(
     () => ({
-      deriveAnalytics: (outputs: IOutputStatement[], startTime?: number) =>
+      deriveAnalytics: (outputs: StoredOutputStatement[], startTime?: number) =>
         getAnalyticsFromLogs(outputs, startTime),
     }),
     [],

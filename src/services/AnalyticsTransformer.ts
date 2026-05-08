@@ -5,7 +5,14 @@ import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/An
 import { IMetric } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
 import { IOutputStatement } from '../core/models/OutputStatement';
+import type { StoredOutputStatement } from '../components/Editor/types';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
+
+/**
+ * Union accepted by the transformer — either a live OutputStatement (from a
+ * running runtime) or a plain StoredOutputStatement (loaded from IndexedDB).
+ */
+type OutputLike = IOutputStatement | StoredOutputStatement;
 
 /**
  * Format a metric key into a human-readable label.
@@ -64,7 +71,7 @@ export class AnalyticsTransformer {
    * Transform OutputStatements into UI-ready Segments.
    * This is the primary API for the new runtime architecture.
    */
-  fromOutputStatements(outputs: IOutputStatement[], workoutStartTime?: number): SegmentWithMetadata[] {
+  fromOutputStatements(outputs: OutputLike[], workoutStartTime?: number): SegmentWithMetadata[] {
     if (!outputs || outputs.length === 0) {
       return [];
     }
@@ -269,7 +276,7 @@ export function getAnalyticsFromRuntime(runtime: IScriptRuntime | null): Analyti
  * Transform raw output statements into analytics-ready data.
  * Used for historical analysis where no runtime instance exists.
  */
-export function getAnalyticsFromLogs(outputs: IOutputStatement[], workoutStartTime?: number): AnalyticsResult {
+export function getAnalyticsFromLogs(outputs: StoredOutputStatement[], workoutStartTime?: number): AnalyticsResult {
   if (!outputs || outputs.length === 0) return { segments: [], groups: [] };
 
   const transformer = new AnalyticsTransformer();

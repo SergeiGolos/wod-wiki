@@ -12,6 +12,7 @@
 import { useMemo } from 'react';
 import type { WorkoutResult } from '@/types/storage';
 import type { IOutputStatement } from '@/core/models/OutputStatement';
+import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 
 /** Summary of one result set's contribution for a specific line. */
@@ -40,7 +41,7 @@ export interface LineExecutionSummary {
  * Extract elapsed ms from an output statement.
  * Prefers the Elapsed metric; falls back to the deprecated `.elapsed` property.
  */
-function extractElapsed(output: IOutputStatement): number {
+function extractElapsed(output: IOutputStatement | StoredOutputStatement): number {
   const elapsedMetric = output.metrics?.find(m => m.type === MetricType.Elapsed);
   if (elapsedMetric?.value !== undefined && typeof elapsedMetric.value === 'number') {
     return elapsedMetric.value;
@@ -65,7 +66,7 @@ export function buildLineExecutionSummary(
   let totalHits = 0;
 
   for (const result of results) {
-    const logs = (result.data?.logs ?? []) as IOutputStatement[];
+    const logs = (result.data?.logs ?? []) as StoredOutputStatement[];
     const matching = logs.filter(
       l => l.sourceStatementId === statementId && l.outputType === 'segment',
     );

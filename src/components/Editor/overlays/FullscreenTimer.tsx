@@ -46,7 +46,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
     onCompleteWorkout?.(blockId, results);
 
     if (results.completed && results.logs && results.logs.length > 0) {
-      const { segments } = getAnalyticsFromLogs(results.logs as any, results.startTime);
+      const { segments } = getAnalyticsFromLogs(results.logs, results.startTime);
       setCompletedSegments(segments);
     } else if (results.completed) {
       // Completed but no logs — still switch to results view (will show empty state)

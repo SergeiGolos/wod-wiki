@@ -3,7 +3,8 @@
 export * from '../../views/runtime/MetricVisualizer';
 
 export { metricColorMap, getMetricColorClasses, getMetricIcon } from '../../views/runtime/metricColorMap';
-export type { MetricType, FragmentColorMap } from '../../views/runtime/metricColorMap';
+export { MetricType } from '@/core/models/Metric';
+export type { FragmentColorMap } from '../../views/runtime/metricColorMap';
 
 export type { ParseError } from '../../views/runtime/types';
 

@@ -36,7 +36,7 @@ describe("wod-results-widget", () => {
       sectionId: wodSection!.id,
       segmentId: wodSection!.id,
       completedAt: Date.now(),
-      data: { duration: 60000 },
+      data: { startTime: 0, endTime: 60000, duration: 60000, completed: true },
     };
 
     const tr = state.update({
@@ -63,7 +63,7 @@ describe("wod-results-widget", () => {
       sectionId: wodSection!.id,
       segmentId: wodSection!.id,
       completedAt: Date.now(),
-      data: { duration: 60000 },
+      data: { startTime: 0, endTime: 60000, duration: 60000, completed: true },
     };
 
     const tr = state.update({

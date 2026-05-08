@@ -6,7 +6,7 @@ import { ICodeStatement } from '../../../core/models/CodeStatement';
 import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
-import { IOutputStatement } from '../../../core/models/OutputStatement';
+import { IOutputStatement, OutputStatementType } from '../../../core/models/OutputStatement';
 import type { ParseError } from '@/core';
 export * from './section';
 export type { WodDialect } from './section';
@@ -33,26 +33,60 @@ export type WodBlockState =
 export type { ParseError } from '@/core';
 
 
-import { MetricOrigin } from '../../../core/models/Metric';
+/**
+ * Plain-data snapshot of a runtime OutputStatement safe for JSON / IndexedDB
+ * round-trips. Class methods and non-serialisable fields (Set, Map,
+ * MetricContainer instances) are intentionally excluded.
+ *
+ * Use `toStoredOutputStatement()` to create one from a live IOutputStatement.
+ */
+export interface StoredOutputStatement {
+  readonly id: number;
+  readonly outputType: OutputStatementType;
+  readonly timeSpan: { started: number; ended?: number };
+  readonly spans: ReadonlyArray<{ started: number; ended?: number }>;
+  /** Pause-aware active time in ms (pre-computed so it survives serialisation). */
+  readonly elapsed: number;
+  /** Wall-clock bracket in ms (pre-computed so it survives serialisation). */
+  readonly total: number;
+  /** Flat IMetric array — MetricContainer class not needed after serialisation. */
+  readonly metrics: IMetric[];
+  /** Plain string array — Set<string> does not survive JSON serialisation. */
+  readonly hints?: string[];
+  readonly sourceBlockKey: string;
+  readonly stackLevel: number;
+  readonly parent?: number;
+  readonly sourceStatementId?: number;
+  readonly completionReason?: string;
+}
 
 /**
- * Workout metrics metrics collected during execution.
- * Uses unified IMetric format with MetricOrigin for consistency.
- * 
- * Replaces legacy WorkoutMetric ad-hoc format in Phase 3.
+ * Convert a live IOutputStatement into a StoredOutputStatement.
+ *
+ * Eagerly computes derived values (`elapsed`, `total`) and normalises
+ * non-serialisable types (`Set` → `string[]`, `MetricContainer` → `IMetric[]`)
+ * so the result survives a JSON / IndexedDB round-trip without data loss.
  */
-export interface WorkoutMetricFragment {
-  /** The code metrics representing this metrics */
-  metric: IMetric;
-  /** Origin classification (Collected, Recorded, etc.) */
-  origin?: MetricOrigin;
-  /** Timestamp when collected */
-  timestamp?: number;
+export function toStoredOutputStatement(output: IOutputStatement): StoredOutputStatement {
+  return {
+    id: output.id,
+    outputType: output.outputType,
+    timeSpan: { started: output.timeSpan.started, ended: output.timeSpan.ended },
+    spans: output.spans.map(s => ({ started: s.started, ended: s.ended })),
+    elapsed: output.elapsed,
+    total: output.total,
+    metrics: output.metrics.toArray(),
+    hints: output.hints ? Array.from(output.hints) : undefined,
+    sourceBlockKey: output.sourceBlockKey,
+    stackLevel: output.stackLevel,
+    parent: output.parent,
+    sourceStatementId: output.sourceStatementId,
+    completionReason: output.completionReason,
+  };
 }
 
 /**
  * Results from a completed workout.
- * Uses metric-based metrics for unified representation.
  */
 export interface WorkoutResults {
   /** When workout started */
@@ -73,11 +107,12 @@ export interface WorkoutResults {
   /** Reps completed (for rep-based workouts) */
   repsCompleted?: number;
 
-  /** Metrics collected from runtime (metrics-based format) */
-  metrics: WorkoutMetricFragment[];
-
-  /** The detailed runtime logs (splits, reps) */
-  logs?: IOutputStatement[];
+  /**
+   * Plain-data runtime output log — safe for IndexedDB storage and JSON
+   * round-trips. Populated by serialising live IOutputStatement values via
+   * `toStoredOutputStatement()` at workout completion.
+   */
+  logs?: StoredOutputStatement[];
 
   /** Whether workout was completed or stopped early */
   completed: boolean;

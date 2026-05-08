@@ -551,6 +551,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
         resultId, // Pass the ID we generated
       };
 
+      // Capture analytics segments at the moment of completion so they are
+      // persisted atomically with the workout result in a single mutateNote call.
+      const analyticsSegments = useWorkbenchSyncStore.getState().analyticsSegments;
+
       if (routeId || provider.mode === 'static') {
         const targetId = routeId || 'static';
         console.log(`[WorkbenchContext] Updating provider entry ${targetId}...`);
@@ -561,6 +565,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
             id: payload.resultId,
             sectionId: payload.sectionId,
             data: payload.results,
+            analyticsSegments: analyticsSegments.length > 0 ? analyticsSegments : undefined,
           },
         })
           .then(updated => {

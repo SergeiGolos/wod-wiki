@@ -1,28 +1,21 @@
 // Fragment visual styling utilities for visualization
 // Contains both color mapping and icon mapping for metrics types
 
-export type MetricType = 
-  | 'time' 
-  | 'rep' 
-  | 'effort' 
-  | 'distance' 
-  | 'rounds' 
-  | 'action' 
-  | 'increment' 
-  | 'lap' 
-  | 'text' 
-  | 'resistance'
-  | 'duration'
-  | 'spans'
-  | 'elapsed'
-  | 'total'
-  | 'system-time'
-  | 'metric'
-  | 'rest';
+import { MetricType } from '@/core/models/Metric';
 
-export type FragmentColorMap = {
-  readonly [key in MetricType]: string;
-};
+// Re-export the canonical enum so callers can import MetricType from either location.
+export type { MetricType };
+
+/**
+ * Colour map covering the common metric types rendered in badges.
+ * Keyed by MetricType enum values (from core/models/Metric) plus the
+ * synthetic 'rest' pseudo-type used for rest-interval styling.
+ *
+ * Using Partial allows new MetricType members to be added to the enum
+ * without requiring an immediate colour entry here — they fall back to
+ * the grey default in getMetricColorClasses().
+ */
+export type FragmentColorMap = Partial<Record<MetricType | 'rest', string>>;
 
 /**
  * Color classes for each metrics type.
@@ -71,14 +64,15 @@ function isRestMetric(type: string, value?: string): boolean {
  * @returns Tailwind CSS color classes for the type
  */
 export function getMetricColorClasses(type: string, value?: string): string {
+  const fallback = 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
   if (isRestMetric(type, value)) {
-    return metricColorMap.rest;
+    return metricColorMap.rest ?? fallback;
   }
 
   const normalizedType = type.toLowerCase() as MetricType;
 
   // Return mapped color or fallback for unknown types
-  return metricColorMap[normalizedType] || 'bg-gray-200 border-gray-300 text-gray-800 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100';
+  return metricColorMap[normalizedType] ?? fallback;
 }
 
 /**

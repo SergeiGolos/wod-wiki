@@ -27,7 +27,7 @@ const olderSectionResult: WorkoutResult = {
   noteId: note.id,
   sectionId: 'wod-a',
   segmentId: 'wod-a',
-  data: { startTime: 100, endTime: 200, duration: 100, metrics: [], logs: [], completed: true },
+  data: { startTime: 100, endTime: 200, duration: 100, logs: [], completed: true },
   completedAt: 200,
 };
 
@@ -36,7 +36,7 @@ const latestSectionResult: WorkoutResult = {
   noteId: note.id,
   sectionId: 'wod-a',
   segmentId: 'wod-a',
-  data: { startTime: 300, endTime: 450, duration: 150, metrics: [], logs: [], completed: true },
+  data: { startTime: 300, endTime: 450, duration: 150, logs: [], completed: true },
   completedAt: 450,
 };
 
@@ -45,7 +45,7 @@ const otherResult: WorkoutResult = {
   noteId: note.id,
   sectionId: 'wod-b',
   segmentId: 'wod-b',
-  data: { startTime: 500, endTime: 700, duration: 200, metrics: [], logs: [], completed: true },
+  data: { startTime: 500, endTime: 700, duration: 200, logs: [], completed: true },
   completedAt: 700,
 };
 

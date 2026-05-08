@@ -30,7 +30,7 @@ const WORKOUT_RESULT: WorkoutResult = {
   noteId: BASE_ENTRY.id,
   sectionId: 'wod-a',
   segmentId: 'wod-a',
-  data: { startTime: 1000, endTime: 1430, duration: 430, metrics: [], logs: [], completed: true },
+  data: { startTime: 1000, endTime: 1430, duration: 430, logs: [], completed: true },
   completedAt: 1430,
 };
 
@@ -39,7 +39,7 @@ const OLDER_RESULT: WorkoutResult = {
   noteId: BASE_ENTRY.id,
   sectionId: 'wod-a',
   segmentId: 'wod-a',
-  data: { startTime: 500, endTime: 1000, duration: 500, metrics: [], logs: [], completed: true },
+  data: { startTime: 500, endTime: 1000, duration: 500, logs: [], completed: true },
   completedAt: 1000,
 };
 
@@ -303,7 +303,7 @@ describe('ContentProviderNotePersistence > mutateNote', () => {
       workoutResult: {
         id: 'result-new',
         sectionId: 'wod-a',
-        data: { startTime: 2000, endTime: 2350, duration: 350, metrics: [], logs: [], completed: true },
+        data: { startTime: 2000, endTime: 2350, duration: 350, logs: [], completed: true },
       },
     });
 
