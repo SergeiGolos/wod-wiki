@@ -58,14 +58,23 @@ export interface AnalyticsSegmentInput {
   absoluteStartTime?: number;
 }
 
-export interface AttachmentInput {
+export interface AttachmentFileInput {
   id?: string;
-  file?: File;
+  file: File;
   label?: string;
   mimeType?: string;
-  data?: ArrayBuffer | string;
   timeSpan?: { start: number; end: number };
 }
+
+export interface AttachmentDataInput {
+  id?: string;
+  label: string;
+  mimeType: string;
+  data: ArrayBuffer | string;
+  timeSpan?: { start: number; end: number };
+}
+
+export type AttachmentInput = AttachmentFileInput | AttachmentDataInput;
 
 export interface NoteMutation {
   rawContent?: string;

@@ -234,6 +234,8 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Sync content when ID changes or propInitialContent changes
   useEffect(() => {
+    let cancelled = false;
+
     const loadContent = async () => {
       // Clear current note state while loading to avoid stale comparisons
       setContent('');
@@ -265,6 +267,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               });
               return provider.getEntry(routeId);
             });
+            if (cancelled) return;
             if (entry) {
               console.log(`[WorkbenchProvider] Successfully loaded entry: ${entry.title} (${entry.id})`);
               setCurrentEntry(entry);
@@ -278,6 +281,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
                   console.warn('[WorkbenchContext] Failed to load attachments:', err);
                   return [];
                 });
+              if (cancelled) return;
               setAttachments(entryAttachments);
 
               // Ensure visual selection matches the resolved entry.
@@ -305,6 +309,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
     };
 
     loadContent();
+    return () => { cancelled = true; };
   }, [routeId, propInitialContent, provider, notePersistence, routeView, routeResultId, routeSectionId, historySelectionHook.openEntry, initialActiveEntryId]);
 
   // Refetch attachments on addition or deletion
