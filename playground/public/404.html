@@ -5,11 +5,12 @@
   <title>WOD Wiki</title>
   <script>
     // GitHub Pages SPA routing trick.
-    // When GitHub Pages 404s on a deep route (e.g. /playground/abc), it serves
-    // this page. We store the intended path and redirect to the root so the
-    // React app can boot and BrowserRouter restores the route.
+    // When GitHub Pages 404s on a deep route, it serves this page.
+    // Store the intended path, then redirect to the project root so the app
+    // can boot and BrowserRouter restores the route.
     sessionStorage.setItem('spa-redirect', location.href);
-    location.href = '/';
+    var base = '/' + location.pathname.split('/').filter(Boolean).slice(0, 1).join('/') + '/';
+    location.href = base;
   </script>
 </head>
 <body></body>

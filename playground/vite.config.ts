@@ -47,7 +47,7 @@ const receiverRedirectPlugin: Plugin = {
 export default defineConfig({
     root: __dirname,
     envDir: projectRoot,
-    base: '/',
+    base: process.env.VITE_BASE_PATH || '/',
     define: {
         __APP_VERSION__: JSON.stringify(pkg.version),
     },
@@ -57,7 +57,7 @@ export default defineConfig({
             '@': resolve(__dirname, '../src'),
         },
     },
-    server: { allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true, 
+    server: { allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true, 
         host: '0.0.0.0',
         ...(https ? { https } : {}),
         hmr: hmrHost ? { host: hmrHost } : true,
