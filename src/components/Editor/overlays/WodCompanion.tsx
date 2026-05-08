@@ -26,10 +26,7 @@ import type { WodCommand } from "./WodCommand";
 import { useWodBlockResults } from "../hooks/useWodBlockResults";
 import { useWodLineResults } from "../hooks/useWodLineResults";
 import type { LineExecutionSummary } from "../hooks/useWodLineResults";
-import { History, ExternalLink, Activity } from "lucide-react";
-import type { Segment } from "@/core/models/AnalyticsModels";
-import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
-import { wodResultsField } from "../extensions/wod-results-widget";
+import { History, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import type { INavActivation } from "@/nav/navTypes";
@@ -310,53 +307,6 @@ const CommandButtons: React.FC<{
   );
 };
 
-// ── ResultLine Component ──────────────────────────────────────────────
-
-const ResultLine: React.FC<{
-  result: any;
-  onOpenReview?: (segments: Segment[]) => void;
-  compact?: boolean;
-}> = ({ result, onOpenReview, compact }) => {
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (result.data?.logs && onOpenReview) {
-      const { segments } = getAnalyticsFromLogs(result.data.logs ?? [], result.data.startTime);
-      onOpenReview(segments);
-    }
-  };
-
-  if (compact) {
-    return (
-      <div 
-        onClick={handleClick}
-        className="flex items-center gap-1.5 px-2 py-0.5 cursor-pointer hover:bg-primary/20 transition-colors group bg-primary/10 border border-primary/20 rounded-md shadow-sm"
-        title={`Latest: ${formatDuration(result.data.duration)} (${new Date(result.completedAt).toLocaleDateString()})`}
-      >
-        <History className="h-3 w-3 text-primary" />
-        <span className="text-[10px] font-mono font-bold text-primary">{formatDuration(result.data.duration)}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onClick={handleClick}
-      className="group flex items-center gap-2 px-2.5 py-1.5 hover:bg-primary/10 cursor-pointer transition-colors border-b border-border/30 bg-primary/5"
-    >
-      <History className="h-3.5 w-3.5 text-primary shrink-0" />
-      <div className="flex-1 flex items-center justify-between min-w-0">
-        <span className="text-[10px] text-foreground font-bold truncate">
-          {formatDuration(result.data.duration)}
-        </span>
-        <span className="text-[9px] text-muted-foreground whitespace-nowrap ml-2">
-          {new Date(result.completedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
-      <ExternalLink className="h-2.5 w-2.5 text-muted-foreground/30 group-hover:text-primary shrink-0 transition-colors" />
-    </div>
-  );
-};
-
 // ── Main component ───────────────────────────────────────────────────
 
 export interface WodCompanionProps {
@@ -384,8 +334,6 @@ export interface WodCompanionProps {
   commands: WodCommand[];
   /** In-memory results fallback */
   extendedResults?: any[];
-  /** Callback to open the full-screen review grid for a set of segments. */
-  onOpenReview?: (segments: Segment[]) => void;
 }
 
 export const WodCompanion: React.FC<WodCompanionProps> = ({
@@ -402,7 +350,6 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   docVersion,
   commands,
   extendedResults,
-  onOpenReview,
 }) => {
   const noteId = propNoteId || (view.state as any).noteId || "current";
   const { results } = useWodBlockResults(noteId, sectionId, extendedResults);

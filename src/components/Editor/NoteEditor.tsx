@@ -779,7 +779,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
           docVersion={props.docVersion}
           commands={effectiveCommands}
           extendedResults={extendedResults}
-          onOpenReview={handleOpenReview}
           hoverLine={props.hoverLine}
           stickyTopOffset={props.stickyTopOffset}
           isPanelHovered={props.isPanelHovered}
