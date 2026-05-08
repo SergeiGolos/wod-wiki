@@ -23,7 +23,6 @@ import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
 import type { PageNavLink } from '@/components/playground/PageNavDropdown'
-import { playgroundDB } from './services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
@@ -554,6 +553,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
+                workoutItems={workoutItems}
               />
             </CanvasPage>
           ) : location.pathname === '/collections' ? (

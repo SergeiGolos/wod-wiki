@@ -2,12 +2,11 @@
  * JournalFeed — simple, flat list of date groups.
  *
  * Renders an explicit array of date keys (YYYY-MM-DD) in order.  No infinite
- * scroll, no IO observers, no URL sync.  The parent decides which dates to show
- * (either all dates that have records, or a single filtered date).
+ * scroll, no IO observers, no URL sync.  The parent decides which dates to show.
  */
 
 import { useMemo } from 'react';
-import { CalendarIcon, FileTextIcon, ChevronRightIcon } from 'lucide-react';
+import { CalendarIcon, FileTextIcon, ChevronRightIcon, PlusIcon, CheckIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ResultListItem } from '@/components/results/ResultListItem';
 import type { FilteredListItem } from './queriable-list/types';
@@ -35,7 +34,29 @@ export interface JournalFeedProps {
   onSelect: (item: FilteredListItem) => void;
   onOpenEntry?: (dateKey: string) => void;
   onCreateEntry?: (date: Date) => void;
-  /** When true, show a "No activity" placeholder for empty dates (useful for single-date view). */
+  /**
+   * Called when the user clicks the "Create note" card.
+   * Only shown for dates present in `createNoteDates`.
+   */
+  onCreateNote?: (dateKey: string) => void;
+  /**
+   * Explicit set of date keys that should show the create-note card.
+   * Keeps the feed clean — e.g. only today in feed mode, or the selected
+   * date in filter mode.
+   */
+  createNoteDates?: Set<string>;
+  /**
+   * Date keys currently selected (highlighted with a ring).
+   * Used for multi-select visual feedback.
+   */
+  selectedDateKeys?: Set<string>;
+  /**
+   * Called when the user clicks a date header.
+   * `isMultiSelect` is true when Ctrl or Meta was held — add/remove from
+   * the selection instead of replacing it.
+   */
+  onDateHeaderClick?: (key: string, isMultiSelect: boolean) => void;
+  /** When true, show a "No activity" placeholder for dates with no content. */
   showEmptyDates?: boolean;
   className?: string;
 }
@@ -49,12 +70,15 @@ export function JournalFeed({
   onSelect,
   onOpenEntry,
   onCreateEntry,
+  onCreateNote,
+  createNoteDates,
+  selectedDateKeys,
+  onDateHeaderClick,
   showEmptyDates = false,
   className,
 }: JournalFeedProps) {
   const todayKey = localDateKey(new Date());
 
-  // Group items by date key once
   const itemsByDate = useMemo(() => {
     const map = new Map<string, FilteredListItem[]>();
     items.forEach(item => {
@@ -86,22 +110,79 @@ export function JournalFeed({
         const isToday = key === todayKey;
         const isFuture = date > new Date(todayKey + 'T23:59:59');
         const isEmpty = !noteEntry && dayResults.length === 0;
+        const isSelected = selectedDateKeys?.has(key) ?? false;
+        const showCreateCard = !noteEntry && onCreateNote && (createNoteDates?.has(key) ?? false);
 
-        // In feed mode we only show dates with content; skip silently.
-        if (!showEmptyDates && isEmpty) return null;
+        // Skip empty dates unless pinned (today always shows) or in filter mode
+        if (!showEmptyDates && isEmpty && key !== todayKey) return null;
 
         const workoutResults = dayResults.filter(i => i.group !== 'playground');
         const playgroundResults = dayResults.filter(i => i.group === 'playground');
 
         return (
-          <div key={key} id={key} className="flex flex-col">
-            {/* Date header */}
-            <div className="sticky z-[5] px-6 py-2 bg-muted/80 backdrop-blur-sm border-y border-border flex items-center gap-2 top-0">
-              <CalendarIcon className="size-3 text-muted-foreground" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+          <div
+            key={key}
+            id={key}
+            className={cn(
+              'flex flex-col transition-colors',
+              isSelected && 'ring-2 ring-inset ring-primary/30',
+            )}
+          >
+            {/* Date header — clickable for focus / ctrl+click for multi-select */}
+            <div
+              className={cn(
+                'sticky z-[5] px-6 py-2 backdrop-blur-sm border-y border-border flex items-center gap-2 top-0 transition-colors',
+                onDateHeaderClick
+                  ? 'cursor-pointer select-none'
+                  : '',
+                isSelected
+                  ? 'bg-primary/10 border-primary/20'
+                  : 'bg-muted/80 hover:bg-muted',
+              )}
+              // onMouseDown fires before the browser context-menu on macOS,
+              // so Ctrl+click is caught here rather than in onClick.
+              onMouseDown={onDateHeaderClick
+                ? (e) => {
+                    if (e.button !== 0) return; // left button only
+                    e.preventDefault();          // prevent text-selection on repeated clicks
+                    onDateHeaderClick(key, e.ctrlKey || e.metaKey);
+                  }
+                : undefined
+              }
+              // Suppress the macOS context menu when Ctrl is held so the
+              // multi-select action above is the only thing that happens.
+              onContextMenu={onDateHeaderClick
+                ? (e) => { if (e.ctrlKey) e.preventDefault(); }
+                : undefined
+              }
+              title={onDateHeaderClick ? 'Click to focus · Ctrl+click (⌘+click on Mac) to multi-select' : undefined}
+            >
+              {/* Selection indicator */}
+              {isSelected ? (
+                <div className="size-3.5 rounded-sm bg-primary flex items-center justify-center flex-shrink-0">
+                  <CheckIcon className="size-2.5 text-primary-foreground stroke-[3]" />
+                </div>
+              ) : (
+                <CalendarIcon className="size-3 text-muted-foreground flex-shrink-0" />
+              )}
+
+              <span className={cn(
+                'text-[10px] font-black uppercase tracking-widest',
+                isSelected ? 'text-primary' : 'text-muted-foreground',
+              )}>
                 {formatDateHeader(date)}
-                {isToday && <span className="ml-2 text-primary font-black">— Today</span>}
+                {isToday && (
+                  <span className={cn('ml-2 font-black', isSelected ? 'text-primary' : 'text-primary')}>
+                    — Today
+                  </span>
+                )}
               </span>
+
+              {isSelected && (
+                <span className="ml-auto text-[9px] font-black uppercase tracking-widest text-primary/60">
+                  Selected
+                </span>
+              )}
             </div>
 
             <div className="flex flex-col gap-0 pb-1">
@@ -153,8 +234,29 @@ export function JournalFeed({
                 ) : null,
               )}
 
-              {/* Empty state — only shown when showEmptyDates is true */}
-              {isEmpty && showEmptyDates && (
+              {/* Create note card — only for dates in createNoteDates */}
+              {showCreateCard && (
+                <button
+                  onClick={() => onCreateNote!(key)}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-primary/5 transition-colors text-left group border-b border-dashed border-border/40"
+                >
+                  <div className="flex-shrink-0 size-9 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <PlusIcon className="size-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      {isToday ? "Start today's journal entry" : 'Create journal entry'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/70 font-medium mt-0.5">
+                      Blank · Collection · History · Feed
+                    </p>
+                  </div>
+                  <ChevronRightIcon className="size-4 text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0" />
+                </button>
+              )}
+
+              {/* Empty state — only in filter mode */}
+              {isEmpty && showEmptyDates && !showCreateCard && (
                 isFuture ? (
                   <button
                     data-date={key}
