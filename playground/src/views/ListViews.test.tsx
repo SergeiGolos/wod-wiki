@@ -19,6 +19,10 @@ mock.module('react-router-dom', () => ({
   useNavigate: () => (to: string) => {
     navigateCalls.push(to);
   },
+  useSearchParams: () => [
+    { get: (_key: string) => null },
+    mock(() => {}),
+  ],
 }));
 
 mock.module('@/components/command-palette/CommandContext', () => ({

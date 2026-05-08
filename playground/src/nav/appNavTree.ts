@@ -18,6 +18,7 @@ import {
   FolderIcon,
   MagnifyingGlassIcon,
   CodeBracketIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/20/solid'
 
 import type { NavItem } from './navTypes'
@@ -102,6 +103,16 @@ export function buildAppNavTree(openSearch: () => void): NavItem[] {
     icon: RectangleStackIcon,
     action: { type: 'route', to: '/journal' },
     isActive: isRouteActive('/journal'),
+    panel: JournalNavPanel,
+  },
+
+  {
+    id: 'plan',
+    label: 'Plan',
+    level: 1,
+    icon: CalendarDaysIcon,
+    action: { type: 'route', to: '/plan' },
+    isActive: (loc: Location) => loc.pathname === '/plan',
     panel: JournalNavPanel,
   },
 

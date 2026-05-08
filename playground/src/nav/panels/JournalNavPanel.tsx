@@ -38,14 +38,21 @@ export function JournalNavPanel(_props: NavPanelProps) {
       ? selectedDate
       : null
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = (date: Date, isMultiSelect?: boolean) => {
     const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
     if (isEntryPage) {
-      // On the note page: navigate to the selected date's entry
-      navigate(`/journal/${iso}`)
+      const currentDate = entryMatch!.params.date ?? ''
+      if (isMultiSelect && currentDate) {
+        // Ctrl/⌘+click: go to the journal feed with the clicked date focused
+        // AND the current entry’s date pre-seeded into multi-select.
+        navigate(`/journal?s=${iso}&sel=${currentDate}`)
+      } else {
+        // Plain click: go to the journal feed focused on the clicked date.
+        navigate(`/journal?s=${iso}`)
+      }
     } else {
-      // On the list page: toggle the ?d= filter
+      // On the list page: toggle the ?s= filter
       if (iso === dateParam) {
         setSelectedDate(null)
       } else {

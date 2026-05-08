@@ -18,6 +18,7 @@ import { HomeView } from './views/HomeView'
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
+import { PlanPage } from './views/PlanPage'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
@@ -169,6 +170,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     const named: Record<string, string> = {
       '/': 'Home',
       '/journal': 'Journal',
+      '/plan': 'Plan',
       '/getting-started': 'Zero to Hero',
       '/syntax': 'Syntax',
       '/collections': 'Collections',
@@ -556,6 +558,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                 workoutItems={workoutItems}
               />
             </CanvasPage>
+          ) : location.pathname === '/plan' ? (
+            <CanvasPage title="Plan" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
+              <PlanPage workoutItems={workoutItems} />
+            </CanvasPage>
           ) : location.pathname === '/collections' ? (
             <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} />}>
               <CollectionsPage />
@@ -656,6 +662,7 @@ export function App() {
                 <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/plan" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />

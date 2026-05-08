@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from '../services/playgroundDB';
@@ -42,6 +42,17 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
       return next;
     });
   }, []);
+
+  // Consume ?sel= — set by JournalNavPanel when ctrl+clicking from an entry page.
+  // Seeds multi-select with those dates, then removes the param so it doesn't persist.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const sel = searchParams.get('sel');
+    if (!sel) return;
+    const keys = sel.split(',').filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+    if (keys.length > 0) setMultiSelected(new Set(keys));
+    setSearchParams(prev => { prev.delete('sel'); return prev; }, { replace: true });
+  }, []); // intentionally runs once on mount — consumes and discards the param
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
@@ -124,12 +135,18 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
       // Focused view: a single plain-clicked date, no multi-select active
       return [focusedDate];
     }
-    // Feed: today always at top, plus every date that has records
+    // Feed: today always at top, plus every past date that has records.
+    // Future dates belong to the Plan view — exclude them here.
     const dateSet = new Set<string>();
     dateSet.add(todayKey);
-    journalEntries.forEach((_, key) => dateSet.add(key));
+    journalEntries.forEach((_, key) => {
+      if (key <= todayKey) dateSet.add(key);
+    });
     listItems.forEach(item => {
-      if (item.date) dateSet.add(localDateKey(new Date(item.date)));
+      if (item.date) {
+        const key = localDateKey(new Date(item.date));
+        if (key <= todayKey) dateSet.add(key);
+      }
     });
     return Array.from(dateSet).sort().reverse();
   }, [focusedDate, multiSelected.size, journalEntries, listItems, todayKey]);
