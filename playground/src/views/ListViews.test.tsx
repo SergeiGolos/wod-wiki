@@ -1,19 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
-import { cleanup, render } from '@testing-library/react';
-import type { ComponentProps } from 'react';
+import { cleanup, render, waitFor } from '@testing-library/react';
 
 import { localDateKey } from './queriable-list/JournalDateScroll';
 
 type JournalState = {
   dateParam: string;
-  selectedDate: Date;
   setDateParam: (value: string) => void;
   selectedTags: string[];
 };
 
 let journalState: JournalState;
 let navigateCalls: string[] = [];
-let capturedTemplateProps: ComponentProps<typeof import('../templates/CalendarListTemplate').CalendarListTemplate<any, any, any>> | null = null;
+
+// Captured props passed to JournalFeed so we can inspect what dates are shown
+let capturedFeedProps: { dateKeys: string[]; showEmptyDates: boolean } | null = null;
 
 mock.module('react-router-dom', () => ({
   useNavigate: () => (to: string) => {
@@ -21,15 +21,31 @@ mock.module('react-router-dom', () => ({
   },
 }));
 
+const TODAY = localDateKey(new Date());
+const PAST_DATE = '2026-01-15';
+
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
-    getRecentResults: async () => [],
+    getRecentResults: async () => [
+      {
+        id: 'r1',
+        noteId: `journal/${PAST_DATE}`,
+        completedAt: new Date(PAST_DATE + 'T10:00:00').getTime(),
+        data: { completed: true },
+      },
+    ],
   },
 }));
 
 mock.module('../services/playgroundDB', () => ({
   playgroundDB: {
-    getPagesByCategory: async () => [],
+    getPagesByCategory: async () => [
+      {
+        id: `journal/${TODAY}`,
+        content: '# Today workout',
+        updatedAt: Date.now(),
+      },
+    ],
   },
 }));
 
@@ -37,10 +53,10 @@ mock.module('../hooks/useJournalQueryState', () => ({
   useJournalQueryState: () => journalState,
 }));
 
-mock.module('../templates/CalendarListTemplate', () => ({
-  CalendarListTemplate: (props: any) => {
-    capturedTemplateProps = props;
-    return <div data-testid="calendar-list-template" />;
+mock.module('./JournalFeed', () => ({
+  JournalFeed: (props: any) => {
+    capturedFeedProps = { dateKeys: props.dateKeys, showEmptyDates: props.showEmptyDates };
+    return <div data-testid="journal-feed" />;
   },
 }));
 
@@ -48,15 +64,13 @@ const pageModule = import('./ListViews');
 
 describe('JournalWeeklyPage', () => {
   beforeEach(() => {
-    const today = new Date();
     journalState = {
       dateParam: '',
-      selectedDate: today,
       setDateParam: mock(() => {}),
       selectedTags: [],
     };
     navigateCalls = [];
-    capturedTemplateProps = null;
+    capturedFeedProps = null;
   });
 
   afterEach(() => {
@@ -64,41 +78,58 @@ describe('JournalWeeklyPage', () => {
     document.body.innerHTML = '';
   });
 
-  it('does not pass an initial anchor when the journal URL has no explicit selected date', async () => {
+  it('feed mode: shows all dates that have records when no date is selected', async () => {
     const { JournalWeeklyPage } = await pageModule;
-
     render(<JournalWeeklyPage onSelect={() => {}} />);
 
-    expect(capturedTemplateProps).toBeTruthy();
-    expect(capturedTemplateProps?.initialDate).toBeUndefined();
+    await waitFor(() => expect(capturedFeedProps).toBeTruthy());
+
+    // Should include today (journal entry) and the past date (result)
+    expect(capturedFeedProps?.dateKeys).toContain(TODAY);
+    expect(capturedFeedProps?.dateKeys).toContain(PAST_DATE);
+    // Feed mode: empty dates not shown
+    expect(capturedFeedProps?.showEmptyDates).toBe(false);
+    // Descending order
+    expect(capturedFeedProps!.dateKeys[0]! >= capturedFeedProps!.dateKeys[1]!).toBe(true);
   });
 
-  it('does not write the today query param on first load without an explicit selection', async () => {
+  it('filter mode: shows only the selected date when dateParam is set', async () => {
+    journalState = { ...journalState, dateParam: PAST_DATE };
     const { JournalWeeklyPage } = await pageModule;
-
     render(<JournalWeeklyPage onSelect={() => {}} />);
 
-    const todayKey = localDateKey(journalState.selectedDate);
-    capturedTemplateProps?.onVisibleDateChange?.(todayKey);
+    await waitFor(() => expect(capturedFeedProps).toBeTruthy());
 
+    expect(capturedFeedProps?.dateKeys).toEqual([PAST_DATE]);
+    // Filter mode: show empty dates so the user sees the date even with no activity
+    expect(capturedFeedProps?.showEmptyDates).toBe(true);
+  });
+
+  it('does not update dateParam from scrolling (no scroll tracking)', async () => {
+    const { JournalWeeklyPage } = await pageModule;
+    render(<JournalWeeklyPage onSelect={() => {}} />);
+
+    // No callback that could update dateParam is exposed — verify setDateParam is never called
+    await waitFor(() => expect(capturedFeedProps).toBeTruthy());
     expect(journalState.setDateParam).not.toHaveBeenCalled();
   });
 
-  it('preserves explicit date anchors from the URL and continues syncing visible dates', async () => {
+  it('navigates to the journal entry page when a note is opened', async () => {
     const { JournalWeeklyPage } = await pageModule;
-    const selectedDate = new Date('2026-05-03T00:00:00');
-    journalState = {
-      ...journalState,
-      dateParam: '2026-05-03',
-      selectedDate,
-    };
+    // Re-capture onOpenEntry from JournalFeed props
+    let capturedOnOpenEntry: ((key: string) => void) | null = null;
+    mock.module('./JournalFeed', () => ({
+      JournalFeed: (props: any) => {
+        capturedFeedProps = { dateKeys: props.dateKeys, showEmptyDates: props.showEmptyDates };
+        capturedOnOpenEntry = props.onOpenEntry;
+        return <div data-testid="journal-feed" />;
+      },
+    }));
 
     render(<JournalWeeklyPage onSelect={() => {}} />);
+    await waitFor(() => expect(capturedOnOpenEntry).toBeTruthy());
 
-    expect(capturedTemplateProps?.initialDate).toEqual(selectedDate);
-
-    capturedTemplateProps?.onVisibleDateChange?.('2026-05-01');
-
-    expect(journalState.setDateParam).toHaveBeenCalledWith('2026-05-01');
+    capturedOnOpenEntry!(TODAY);
+    expect(navigateCalls).toContain(`/journal/${TODAY}`);
   });
 });

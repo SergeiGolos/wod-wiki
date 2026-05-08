@@ -282,3 +282,80 @@ test.describe('No scroll pop (anti-regression)', () => {
     await journal.expectDateInViewport(pastKey);
   });
 });
+
+// ── Nav-panel calendar date click ──────────────────────────────────────────
+
+test.describe('Nav-panel calendar date click', () => {
+  /**
+   * Regression: clicking today's date in the nav-panel calendar while scrolled
+   * away from today used to call window.scrollTo(0, 0) (top of page = future
+   * dates section), leaving today's group out of view.
+   *
+   * Fix: initialDate is no longer in the mount-scroll effect deps; post-mount
+   * date selection uses the imperative scrollToDate() handle instead.
+   */
+  test('clicking today in the nav calendar scrolls today into view', async ({ page }) => {
+    const journal = new JournalPage(page);
+    await journal.goto();
+
+    // Scroll well past today so today is no longer visible.
+    const pastKey = dayOffset(-4);
+    await journal.scrollGroupToTop(pastKey);
+    await page.waitForTimeout(300);
+
+    // Confirm today is NOT in the viewport before the click.
+    const todayGroupBefore = journal.dateGroup(todayKey());
+    const rectBefore = await journal.viewportRect(todayGroupBefore);
+    const vh = page.viewportSize()?.height ?? 768;
+    const todayVisibleBefore = rectBefore.bottom > 0 && rectBefore.top < vh;
+    // If today somehow is still in view (very small viewport), skip the assertion
+    // to avoid a flaky failure — the important check is after the click.
+    if (todayVisibleBefore) {
+      // Try scrolling further if today is still visible.
+      await page.evaluate(() => window.scrollBy(0, 600));
+      await page.waitForTimeout(200);
+    }
+
+    // Click today's date in the nav-panel mini calendar.
+    // The calendar is in the left-side nav panel and uses a button with the day number.
+    const today = new Date();
+    const todayDayNum = String(today.getDate());
+    // The CalendarCard renders day buttons; find the one for today.
+    // It is distinguished by being inside a [data-today] or aria-label containing the date.
+    // Fall back to clicking the button labelled with today's day number that is NOT disabled.
+    const calendarNav = page.locator('[data-testid="sidebar"], nav, aside').first();
+    const todayButton = calendarNav
+      .getByRole('button', { name: new RegExp(`^${todayDayNum}$`) })
+      .first();
+    await todayButton.click();
+
+    // Wait for the scroll to settle.
+    await page.waitForTimeout(800);
+
+    // Today's date group must now be visible in the viewport.
+    await journal.expectDateInViewport(todayKey());
+  });
+
+  test('clicking a past date in the nav calendar scrolls that date into view', async ({ page }) => {
+    const targetKey = dayOffset(-3);
+    const journal = new JournalPage(page);
+    await journal.goto();
+
+    // Ensure the target is not currently visible by scrolling to top (future dates).
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page.waitForTimeout(300);
+
+    // Click the target date in the nav calendar.
+    const targetDate = new Date(targetKey + 'T00:00:00');
+    const dayNum = String(targetDate.getDate());
+    const calendarNav = page.locator('[data-testid="sidebar"], nav, aside').first();
+    const targetButton = calendarNav
+      .getByRole('button', { name: new RegExp(`^${dayNum}$`) })
+      .first();
+    await targetButton.click();
+
+    await page.waitForTimeout(800);
+
+    await journal.expectDateInViewport(targetKey);
+  });
+});

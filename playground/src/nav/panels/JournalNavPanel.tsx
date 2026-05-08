@@ -56,14 +56,7 @@ export function JournalNavPanel(_props: NavPanelProps) {
 
   return (
     <div className="flex flex-col gap-3 px-1 py-2">
-      {/* Mini calendar */}
-      <CalendarCard
-        selectedDate={selectedDateObj}
-        onDateSelect={handleDateSelect}
-        className="scale-95 origin-top-left"
-      />
-
-      {/* Active date badge — only meaningful on the list page */}
+      {/* Active date filter badge — sits above the calendar so it's easy to find */}
       {!isEntryPage && dateParam && (
         <div className="flex items-center gap-2 px-2">
           <span className="text-xs text-muted-foreground">Filtered to</span>
@@ -75,6 +68,13 @@ export function JournalNavPanel(_props: NavPanelProps) {
           </button>
         </div>
       )}
+
+      {/* Mini calendar */}
+      <CalendarCard
+        selectedDate={selectedDateObj}
+        onDateSelect={handleDateSelect}
+        className="scale-95 origin-top-left"
+      />
 
       {/* Tag chips — only shown on the journal list page */}
       {!isEntryPage && PLACEHOLDER_TAGS.length > 0 && (
