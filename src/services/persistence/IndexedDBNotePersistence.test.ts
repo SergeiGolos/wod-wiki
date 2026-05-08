@@ -8,9 +8,6 @@ const indexedDBService = {};
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService,
 }));
-mock.module('../db/IndexedDBService', () => ({
-  indexedDBService,
-}));
 
 const persistenceModule = import('./IndexedDBNotePersistence');
 

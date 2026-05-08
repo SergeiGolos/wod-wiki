@@ -274,7 +274,10 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               setSaveState('idle'); // Reset any lingering save state
 
               const entryAttachments = entry.attachments
-                ?? await provider.getAttachments(entry.id).catch(() => []);
+                ?? await provider.getAttachments(entry.id).catch(err => {
+                  console.warn('[WorkbenchContext] Failed to load attachments:', err);
+                  return [];
+                });
               setAttachments(entryAttachments);
 
               // Ensure visual selection matches the resolved entry.

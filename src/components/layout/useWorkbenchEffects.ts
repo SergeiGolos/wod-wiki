@@ -208,6 +208,8 @@ export function useWorkbenchEffects(): void {
         })
           .then(() => console.log(`[useWorkbenchEffects] Persisted ${currentSegments.length} analytics segments`))
           .catch((err: unknown) => console.error('[useWorkbenchEffects] Failed to persist analytics:', err));
+      } else if (currentSegments.length > 0) {
+        console.warn('[useWorkbenchEffects] Skipped analytics persistence: no writable note is available');
       }
     }
   }, [execution.status, currentEntry, notePersistence, provider, routeResultId]);

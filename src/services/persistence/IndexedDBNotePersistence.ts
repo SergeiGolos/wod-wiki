@@ -3,14 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { toShortId } from '@/lib/idUtils';
 import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentProvider';
 import { indexedDBService } from '@/services/db/IndexedDBService';
-import type { AttachmentCreateInput } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import type { AnalyticsDataPoint, Attachment, Note, WorkoutResult } from '@/types/storage';
 
+import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
   NotePersistenceError,
-  type AttachmentInput,
   type AnalyticsSegmentInput,
   type GetNoteOptions,
   type NoteLocator,
@@ -30,35 +29,6 @@ function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[]
 
 function sameNote(resultNoteId: string, noteId: string): boolean {
   return resultNoteId === noteId || resultNoteId.endsWith(`-${noteId}`) || noteId.endsWith(`-${resultNoteId}`);
-}
-
-function isAttachmentInput(input: File | AttachmentInput): input is AttachmentInput {
-  return 'file' in input || 'data' in input || 'id' in input || 'timeSpan' in input || 'label' in input || 'mimeType' in input;
-}
-
-async function resolveAttachmentInput(input: File | AttachmentInput): Promise<AttachmentCreateInput> {
-  const now = Date.now();
-  if (!isAttachmentInput(input)) {
-    return {
-      label: input.name,
-      mimeType: input.type,
-      data: await input.arrayBuffer(),
-      timeSpan: { start: now, end: now },
-    };
-  }
-
-  const file = input.file;
-  if (!file && input.data === undefined) {
-    throw new Error('Attachment input requires either file or data');
-  }
-
-  return {
-    id: input.id,
-    label: input.label ?? file?.name ?? 'Attachment',
-    mimeType: input.mimeType ?? file?.type ?? 'application/octet-stream',
-    data: input.data ?? await file!.arrayBuffer(),
-    timeSpan: input.timeSpan ?? { start: now, end: now },
-  };
 }
 
 /**

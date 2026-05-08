@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import type { AttachmentCreateInput, IContentProvider } from '@/types/content-provider';
+import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import type { WorkoutResult } from '@/types/storage';
 
+import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
 import {
   NotePersistenceError,
-  type AttachmentInput,
   type GetNoteOptions,
   type NoteLocator,
   type NoteMutation,
@@ -22,35 +22,6 @@ function locatorToId(locator: NoteLocator): string {
 
 function sortNewest(results: WorkoutResult[]): WorkoutResult[] {
   return [...results].sort((a, b) => b.completedAt - a.completedAt);
-}
-
-function isAttachmentInput(input: File | AttachmentInput): input is AttachmentInput {
-  return 'file' in input || 'data' in input || 'id' in input || 'timeSpan' in input || 'label' in input || 'mimeType' in input;
-}
-
-async function resolveAttachmentInput(input: File | AttachmentInput): Promise<AttachmentCreateInput> {
-  const now = Date.now();
-  if (!isAttachmentInput(input)) {
-    return {
-      label: input.name,
-      mimeType: input.type,
-      data: await input.arrayBuffer(),
-      timeSpan: { start: now, end: now },
-    };
-  }
-
-  const file = input.file;
-  if (!file && input.data === undefined) {
-    throw new Error('Attachment input requires either file or data');
-  }
-
-  return {
-    id: input.id,
-    label: input.label ?? file?.name ?? 'Attachment',
-    mimeType: input.mimeType ?? file?.type ?? 'application/octet-stream',
-    data: input.data ?? await file!.arrayBuffer(),
-    timeSpan: input.timeSpan ?? { start: now, end: now },
-  };
 }
 
 function selectResults(entry: HistoryEntry, selection?: ResultSelection): Partial<HistoryEntry> {

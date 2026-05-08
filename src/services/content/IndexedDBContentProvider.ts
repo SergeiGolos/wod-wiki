@@ -10,7 +10,7 @@ import { formatPlaygroundTimestampId } from '../../lib/playgroundDisplay';
 import { toShortId } from '../../lib/idUtils';
 import type { AttachmentCreateInput, IContentProvider, ContentProviderMode } from '../../types/content-provider';
 import type { HistoryEntry, EntryQuery, ProviderCapabilities } from '../../types/history';
-import { indexedDBService } from '../db/IndexedDBService';
+import { indexedDBService } from '@/services/db/IndexedDBService';
 import { Note, NoteSegment, WorkoutResult, SegmentDataType, Attachment } from '../../types/storage';
 import { parseDocumentSections } from '../../components/Editor/utils/sectionParser';
 import { Section, SectionType } from '../../components/Editor/types/section';
