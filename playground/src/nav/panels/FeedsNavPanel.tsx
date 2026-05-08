@@ -34,7 +34,7 @@ export function FeedsNavPanel(_props: NavPanelProps) {
   const feedItemId = itemMatch?.params.feedItem ?? null;
   const feed = feedSlug ? getWodFeed(feedSlug) : null;
 
-  const { dateParam, selectedDate, setSelectedDate, selectedFeeds, toggleFeed } =
+  const { dateParam, selectedDate, setSelectedDate, selectedFeed, selectFeed, clearFeed } =
     useFeedsQueryState();
 
   const allFeeds = useMemo(() => getWodFeeds(), []);
@@ -42,37 +42,23 @@ export function FeedsNavPanel(_props: NavPanelProps) {
   // Build the set of dates that have content (for CalendarCard dots)
   const entryDates = useMemo<Set<string>>(() => {
     if (feed) {
-      // On a specific feed's pages: highlight only that feed's dates
       return new Set(feed.items.map(i => i.feedDate));
     }
-    // On the list page: highlight dates from feeds matching the current filter
-    const feeds = selectedFeeds.length > 0
-      ? allFeeds.filter(f => selectedFeeds.includes(f.id))
+    const feeds = selectedFeed
+      ? allFeeds.filter(f => f.id === selectedFeed)
       : allFeeds;
     return new Set(feeds.flatMap(f => f.items.map(i => i.feedDate)));
-  }, [allFeeds, feed, selectedFeeds]);
+  }, [allFeeds, feed, selectedFeed]);
 
   const handleDateSelect = (date: Date) => {
     const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-    if (!isListPage && !feed) return;
-
-    if (isListPage) {
-      // Toggle: click same date → clear filter
+    if (isListPage || feed) {
+      // Toggle: click same date → clear filter, same as JournalNavPanel
       if (iso === dateParam) {
         setSelectedDate(null);
       } else {
         setSelectedDate(date);
-      }
-    } else if (feed) {
-      // On a feed detail page, navigate to that date's first item if it exists
-      const item = feed.items.find(i => i.feedDate === iso);
-      if (item) {
-        navigate(`/feeds/${encodeURIComponent(feed.id)}/${iso}/${encodeURIComponent(item.id)}`);
-      } else {
-        // No feed item on this date — update the list date filter and go to list
-        setSelectedDate(date);
-        navigate(`/feeds?s=${iso}`);
       }
     }
   };
@@ -241,15 +227,15 @@ export function FeedsNavPanel(_props: NavPanelProps) {
         className="scale-95 origin-top-left"
       />
 
-      {/* Feed name chips — act as tag filters */}
+      {/* Feed name chips — single-select radio style */}
       <div className="flex flex-col gap-1 px-2">
         <div className="flex items-center justify-between">
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
             Feeds
           </div>
-          {selectedFeeds.length > 0 && (
+          {selectedFeed && (
             <button
-              onClick={() => allFeeds.forEach(f => selectedFeeds.includes(f.id) && toggleFeed(f.id))}
+              onClick={() => clearFeed()}
               className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
             >
               Clear
@@ -257,24 +243,30 @@ export function FeedsNavPanel(_props: NavPanelProps) {
           )}
         </div>
         <div className="flex flex-col gap-1">
-          {allFeeds.map(f => (
-            <button
-              key={f.id}
-              onClick={() => toggleFeed(f.id)}
-              className={cn(
-                'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
-                selectedFeeds.includes(f.id)
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )}
-            >
-              <span className={cn(
-                'size-2 rounded-full shrink-0',
-                selectedFeeds.includes(f.id) ? 'bg-primary' : 'bg-border',
-              )} />
-              {f.name}
-            </button>
-          ))}
+          {allFeeds.map(f => {
+            const isActive = selectedFeed === f.id;
+            return (
+              <button
+                key={f.id}
+                onClick={() => selectFeed(f.id)}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                {/* Radio indicator */}
+                <span className={cn(
+                  'size-3.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                  isActive ? 'border-primary' : 'border-muted-foreground/40',
+                )}>
+                  {isActive && <span className="size-1.5 rounded-full bg-primary" />}
+                </span>
+                {f.name}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

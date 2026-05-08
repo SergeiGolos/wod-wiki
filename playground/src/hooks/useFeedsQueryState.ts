@@ -2,26 +2,12 @@
  * useFeedsQueryState — nuqs-backed URL state for the Feeds page.
  *
  * Manages two URL parameters:
- *   `s`     — selected date (YYYY-MM-DD), mirrors the journal `s` param convention
- *   `feeds` — active feed-name filters (comma-separated feed IDs)
- *
- * Both the FeedsNavPanel (writer) and FeedsPage (reader) share this hook
- * so the URL is always the source of truth.
+ *   `s`    — selected date (YYYY-MM-DD)
+ *   `feed` — active feed ID (single, empty = show all)
  */
 
 import { useQueryState } from 'nuqs';
 import { useMemo, useCallback } from 'react';
-
-const FEEDS_SEPARATOR = ',';
-
-function parseFeeds(raw: string): string[] {
-  if (!raw) return [];
-  return raw.split(FEEDS_SEPARATOR).filter(Boolean);
-}
-
-function serializeFeeds(feeds: string[]): string {
-  return feeds.filter(Boolean).join(FEEDS_SEPARATOR);
-}
 
 export function useFeedsQueryState() {
   // ── Date parameter ────────────────────────────────────────────────────
@@ -53,40 +39,32 @@ export function useFeedsQueryState() {
     [setDateParam],
   );
 
-  // ── Feed filter parameter ─────────────────────────────────────────────
-  const [feedsParam, setFeedsParam] = useQueryState('feeds', {
+  // ── Feed filter (single select) ───────────────────────────────────────
+  const [feedParam, setFeedParam] = useQueryState('feed', {
     defaultValue: '',
     shallow: true,
     history: 'replace',
   });
 
-  const selectedFeeds = useMemo(() => parseFeeds(feedsParam), [feedsParam]);
-
-  const setSelectedFeeds = useCallback(
-    (feeds: string[]) => setFeedsParam(serializeFeeds(feeds)),
-    [setFeedsParam],
-  );
-
-  const toggleFeed = useCallback(
+  /**
+   * Select a feed — or deselect it if it's already active (toggle → show all).
+   */
+  const selectFeed = useCallback(
     (feedId: string) => {
-      const next = selectedFeeds.includes(feedId)
-        ? selectedFeeds.filter(f => f !== feedId)
-        : [...selectedFeeds, feedId];
-      setSelectedFeeds(next);
+      setFeedParam(prev => (prev === feedId ? '' : feedId));
     },
-    [selectedFeeds, setSelectedFeeds],
+    [setFeedParam],
   );
 
-  const clearFeeds = useCallback(() => setFeedsParam(''), [setFeedsParam]);
+  const clearFeed = useCallback(() => setFeedParam(''), [setFeedParam]);
 
   return {
     dateParam,
     selectedDate,
     setSelectedDate,
     setDateParam,
-    selectedFeeds,
-    setSelectedFeeds,
-    toggleFeed,
-    clearFeeds,
+    selectedFeed: feedParam || null,
+    selectFeed,
+    clearFeed,
   };
 }
