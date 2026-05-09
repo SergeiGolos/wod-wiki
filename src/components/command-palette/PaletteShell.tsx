@@ -33,14 +33,18 @@ export const PaletteShell: React.FC = () => {
   const [results, setResults] = useState<IListItem<PaletteItem>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const searchVersion = useRef(0);
+  // Stable ref to the current request identity — used to detect step transitions.
+  const requestRef = useRef(request);
 
-  // Reset query when a new request arrives
+  // Reset query + results whenever the request changes (new step) or the palette opens.
   useEffect(() => {
     if (isOpen && request) {
+      requestRef.current = request;
       setQuery(request.initialQuery ?? '');
       setResults([]);
+      setIsLoading(false);
     }
-  }, [isOpen, request]);
+  }, [isOpen, request]); // request is a new object on every open() call
 
   // Search all sources whenever query changes
   useEffect(() => {
