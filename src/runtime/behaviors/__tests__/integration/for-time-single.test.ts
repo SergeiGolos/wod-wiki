@@ -177,7 +177,7 @@ describe('For-Time-Single: Exercise Block Behaviors', () => {
 // Tests the full 12-step Grace flow using ExecutionContextTestHarness.
 // SessionRoot(ChildRunner) → WaitingToStart(PopOnNext) → Exercise → session end
 //
-// ChildRunnerBehavior returns CompileChildBlockAction, which needs the real
+// ChildRunnerBehavior returns CompileAndPushBlockAction, which needs the real
 // ScriptRuntime JIT pipeline — hence Layer 3.
 // =============================================================================
 
@@ -218,7 +218,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
         harness = new ExecutionContextTestBuilder()
             .withClock(new Date('2024-01-01T12:00:00Z'))
             .withMaxDepth(30)
-            // Provide mock statements so CompileChildBlockAction can resolve them
+            // Provide mock statements so CompileAndPushBlockAction can resolve them
             .build();
 
         // Override the harness config: we need statements in the script
@@ -253,7 +253,7 @@ describe('For-Time-Single: Session Lifecycle', () => {
     // Steps 1-2: SessionRoot mounts, ChildRunner pushes WaitingToStart
     it('should mount SessionRoot and push WaitingToStart via ChildRunner', () => {
         // SessionRoot mount triggers ChildRunnerBehavior which returns
-        // CompileChildBlockAction for childGroups[0] = [0]
+        // CompileAndPushBlockAction for childGroups[0] = [0]
         // The runtime executes this action, compiling statement 0 → waitingBlock
 
         // Verify JIT was called for statement 0
