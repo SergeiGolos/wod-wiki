@@ -147,7 +147,7 @@ import type { WorkoutResult } from "@/types/storage";
 import { themeCompartment, languageCompartment, modeCompartment } from "./compartments";
 
 import type { WodBlock } from "./types";
-import { useCommandPalette } from "../command-palette/CommandContext";
+import { usePaletteStore } from '../command-palette/palette-store';
 import { Play, Plus, ExternalLink, Copy, Check } from "lucide-react";
 import { buildPlaygroundUrl } from "./md-components/WodPlaygroundButton";
 
@@ -260,7 +260,14 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const defaultNotePersistenceRef = useRef<INotePersistence | null>(null);
-  const { setIsOpen } = useCommandPalette();
+  // Mod-P opens the palette. Sources are empty here — the parent (Workbench)
+  // should call palette.open() via its own onSearch prop for context-aware sources.
+  const openNavigationPalette = useCallback(() => {
+    usePaletteStore.getState().open({
+      placeholder: 'Search…',
+      sources: [],
+    });
+  }, []);
   const isDark = theme === "dark" || theme === "vs-dark";
   if (!defaultNotePersistenceRef.current) {
     defaultNotePersistenceRef.current = new IndexedDBNotePersistence();
@@ -517,23 +524,27 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         {
           key: "Mod-p",
           run: () => {
-            setIsOpen(true);
+            openNavigationPalette();
             return true;
           },
         },
         {
-          // Ctrl+. — open command palette when cursor is on a text metric
-          // (Effort / Action). Falls through for numeric metrics so the OS
-          // or default binding can handle it.
           key: "Ctrl-.",
           run: (view) => {
             const focus = getCursorFocusState(view.state);
             if (!focus?.focusedMetric) return false;
             const type = focus.focusedMetric.type as string;
-            // Only intercept for non-numeric (label) metrics
             const numeric = new Set(["duration", "rep", "rounds", "distance", "resistance"]);
             if (numeric.has(type)) return false;
-            setIsOpen(true);
+
+            // Editor owns the segment loop — palette knows nothing about segments.
+            import('@/components/command-palette/palette-store').then(() => {
+              import('./services/statementBuilderFlow').then(({ runStatementBuilderFlow }) => {
+                runStatementBuilderFlow(focus, view);
+              }).catch(() => {
+                usePaletteStore.getState().open({ placeholder: 'Modify metric…', sources: [] });
+              });
+            });
             return true;
           },
         },
@@ -631,7 +642,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       onBlur,
       onBlocksChange,
       readonly,
-      setIsOpen,
+      openNavigationPalette,
       showLineNums,
       initialLineWrapping,
       enablePreview,

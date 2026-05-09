@@ -8,11 +8,13 @@ import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
 import { NavSearchInput } from './components/NavSearchInput'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
-import { CommandPalette } from '@/components/playground/CommandPalette'
+import { CommandProvider } from '@/components/command-palette/CommandContext'
+import { usePaletteStore } from '@/components/command-palette/palette-store'
+import { PaletteShell } from '@/components/command-palette/PaletteShell'
+import { globalSearchSource } from './services/paletteDataSources'
+import { createJournalEntryFlow } from './services/journalEntryFlow'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
-import { CommandProvider } from '@/components/command-palette/CommandContext'
-import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
@@ -32,10 +34,6 @@ import { indexedDBService } from '@/services/db/IndexedDBService'
 import { playgroundDB } from './services/playgroundDB'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
-import { 
-  createStatementBuilderStrategy,
-  createGlobalSearchStrategy,
-} from './services/commandStrategies'
 // ── Extracted page components ────────────────────────────────────────────────
 import { TrackerPage } from './pages/TrackerPage'
 import { ReviewPage } from './pages/ReviewPage'
@@ -117,9 +115,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
   const location = useLocation()
   
-  const { isOpen: isCommandPaletteOpen, setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette()
   const { theme } = useTheme()
-  const [activeCategory, setActiveCategory] = useQueryState('cat')
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
   // Unified note route: /note/playground/:name behaves like /playground/:name
@@ -326,23 +322,43 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }, [location.pathname, canvasPage, recentResults, workoutItems, handleSelectWorkout])
 
   /**
-   * Navigate to a journal entry for the given date.
-   * If a page already exists for that date, opens it. If not, the JournalPageShell
-   * creates a new entry. No conflict dialog needed from the scroll view.
+  /**
+   * Runs the n-step palette flow then saves the entry and navigates to it.
    */
-  const handleCreateJournalEntry = useCallback((date: Date) => {
+  const handleCreateJournalEntry = useCallback(async (date: Date) => {
     const y = date.getFullYear()
     const m = String(date.getMonth() + 1).padStart(2, '0')
     const d = String(date.getDate()).padStart(2, '0')
-    navigate(`/journal/${y}-${m}-${d}`)
-  }, [navigate])
+    const dateKey = `${y}-${m}-${d}`
 
-  // Open the command palette with the global search strategy
+    await createJournalEntryFlow({
+      dateKey,
+      workoutItems,
+      onCreated: async (content) => {
+        const id = `journal/${dateKey}`
+        await playgroundDB.savePage({ id, name: dateKey, category: 'journal', content, updatedAt: Date.now() })
+        navigate(`/journal/${dateKey}`)
+      },
+    })
+  }, [navigate, workoutItems])
+
+  // Open the palette for global search (Ctrl+/ or search button)
   const openSearchPalette = useCallback(() => {
-    const strategy = createGlobalSearchStrategy(workoutItems, handleSelectWorkout, navigate, canvasRoutes)
-    setStrategy(strategy)
-    setIsCommandPaletteOpen(true)
-  }, [workoutItems, handleSelectWorkout, setStrategy, setIsCommandPaletteOpen])
+    usePaletteStore.getState().open({
+      placeholder: 'Search workouts, results, pages…',
+      sources: [globalSearchSource(workoutItems, canvasRoutes)],
+    }).then(result => {
+      if (result.dismissed) return
+      const item = result.item
+      if (item.type === 'route') {
+        navigate((item.payload as { route: string }).route)
+      } else if (item.type === 'workout') {
+        handleSelectWorkout(item.payload)
+      } else if (item.type === 'journal-entry') {
+        navigate(`/review/${item.id}`)
+      }
+    })
+  }, [workoutItems, handleSelectWorkout, navigate])
 
   // Keep the parent's searchHandlerRef up-to-date so the nav tree CallAction always
   // fires the latest callback (workoutItems may change after initial mount).
@@ -350,47 +366,18 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     searchHandlerRef.current = openSearchPalette
   }, [openSearchPalette, searchHandlerRef])
 
-  // Reset strategy when palette closes
-  useEffect(() => {
-    if (!isCommandPaletteOpen) {
-      // Small delay to avoid visual jump during close animation
-      const t = setTimeout(() => setStrategy(null), 300)
-      return () => clearTimeout(t)
-    }
-  }, [isCommandPaletteOpen, setStrategy])
-
-  // Keyboard shortcut for command palette
+  // Keyboard shortcut: Ctrl/Cmd+/ (also Ctrl/Cmd+P) opens global search
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + /: Global Search
       if ((e.key === '/' || e.key === 'p') && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         e.stopPropagation()
         openSearchPalette()
       }
-      // Ctrl/Cmd + .: Statement Builder (Interactive Segments)
-      if (e.key === '.' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        e.stopPropagation()
-        
-        const line = "10 Kettlebell Swings 24kg"
-        const segments = ["10", "Kettlebell Swings", "24kg"]
-        
-        const strategy = createStatementBuilderStrategy({
-          line,
-          segments,
-          activeSegmentIndex: 0,
-          onModifyLine: (newLine) => console.log('Modify line to:', newLine),
-          updateStrategy: (newStrategy) => setStrategy(newStrategy)
-        })
-        
-        setStrategy(strategy)
-        setIsCommandPaletteOpen(true)
-      }
     }
     window.addEventListener('keydown', down, true)
     return () => window.removeEventListener('keydown', down, true)
-  }, [openSearchPalette, setStrategy, setIsCommandPaletteOpen])
+  }, [openSearchPalette])
 
   const [isSystemDark, setIsSystemDark] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -605,16 +592,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
         </div>
       </div>
 
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => {
-          setIsCommandPaletteOpen(false)
-          setActiveCategory(null)
-        }}
-        items={workoutItems}
-        onSelect={handleSelectWorkout}
-        initialCategory={activeCategory}
-      />
+      <PaletteShell />
     </SidebarLayout>
   )
 }
@@ -634,7 +612,6 @@ function ScrollToTop() {
 }
 
 import { NuqsAdapter } from 'nuqs/adapters/react-router'
-import { useQueryState } from 'nuqs'
 import { useZipProcessor } from './hooks/useZipProcessor'
 
 function GlobalState() {

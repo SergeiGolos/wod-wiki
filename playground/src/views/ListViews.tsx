@@ -4,8 +4,7 @@ import { localDateKey, type JournalEntrySummary } from './queriable-list/Journal
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
-import { useCommandPalette } from '@/components/command-palette/CommandContext';
-import { createJournalNoteStrategy, JOURNAL_BLANK_TEMPLATE } from '../services/journalNoteStrategy';
+import { createJournalEntryFlow } from '../services/journalEntryFlow';
 import type { FilteredListItem } from './queriable-list/types';
 import { JournalFeed } from './JournalFeed';
 
@@ -21,7 +20,6 @@ interface JournalWeeklyPageProps {
 export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }: JournalWeeklyPageProps) {
   const { dateParam, setDateParam } = useJournalQueryState();
   const navigate = useNavigate();
-  const { setIsOpen: setIsCommandPaletteOpen, setStrategy } = useCommandPalette();
 
   // ── Focused date (URL-driven, single date, set by plain click or nav panel) ──
   // Only one date at a time; filters the feed to show just that date.
@@ -185,27 +183,22 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
     }
   }, [toggleMultiSelect, setDateParam]);
 
-  const handleCreateNote = useCallback((dateKey: string) => {
-    const strategy = createJournalNoteStrategy({
+  const handleCreateNote = useCallback(async (dateKey: string) => {
+    await createJournalEntryFlow({
       dateKey,
       workoutItems,
-      updateStrategy: setStrategy,
-      onCreated: async (content: string) => {
-        const noteContent = content || JOURNAL_BLANK_TEMPLATE;
+      onCreated: async (content) => {
         await playgroundDB.savePage({
           id: `journal/${dateKey}`,
           category: 'journal',
           name: dateKey,
-          content: noteContent,
+          content,
           updatedAt: Date.now(),
         });
-        setIsCommandPaletteOpen(false);
         navigate(`/journal/${dateKey}`);
       },
     });
-    setStrategy(strategy);
-    setIsCommandPaletteOpen(true);
-  }, [workoutItems, setStrategy, setIsCommandPaletteOpen, navigate]);
+  }, [workoutItems, navigate]);
 
   const handleSelect = useCallback((item: FilteredListItem) => {
     if (item.type === 'result') {

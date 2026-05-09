@@ -5,9 +5,13 @@ export interface Command {
   shortcut?: string[];
   context?: string; // 'global', 'editor', 'timer', etc.
   group?: string;
-  keywords?: string[]; // For fuzzy search
+  keywords?: string[];
 }
 
+/**
+ * @deprecated Use PaletteDataSource from palette-types.ts instead.
+ * Kept temporarily for call-sites that have not yet been migrated.
+ */
 export interface CommandPaletteResult {
   id: string;
   name: string;
@@ -18,57 +22,18 @@ export interface CommandPaletteResult {
   payload?: any;
 }
 
+/**
+ * @deprecated Use PaletteDataSource + usePaletteStore.open() instead.
+ * Kept temporarily for call-sites that have not yet been migrated.
+ */
 export interface CommandStrategy {
   id: string;
   placeholder?: string;
   initialInputValue?: string;
-  
-  /**
-   * Optional: Custom header element to render below the search bar but before results.
-   * Useful for "Statement Builder" contextual info.
-   */
   renderHeader?: () => React.ReactNode;
-
-  /**
-   * Returns results based on the search query.
-   */
   getResults: (query: string) => CommandPaletteResult[] | Promise<CommandPaletteResult[]>;
-
-  /**
-   * Handles selection of a result.
-   */
   onSelect: (result: CommandPaletteResult) => void;
-
-  /**
-   * Returns standard commands for this strategy.
-   */
   getCommands?: () => Command[];
-  
-  /**
-   * Optional: Handles raw text input (e.g. Enter key).
-   */
   handleInput?: (text: string) => boolean | Promise<boolean>;
-
-  /**
-   * Optional: Global keydown handler when the palette is open.
-   */
   onKeyDown?: (e: React.KeyboardEvent | KeyboardEvent) => void;
-}
-
-export interface CommandContextType {
-  registerCommand: (command: Command) => () => void;
-  commands: Command[];
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  activeContext: string;
-  setActiveContext: (context: string) => void;
-  search: string;
-  setSearch: (search: string) => void;
-  
-  /**
-   * The current active strategy for the command palette.
-   * If set, this overrides the default command list behavior.
-   */
-  activeStrategy: CommandStrategy | null;
-  setStrategy: (strategy: CommandStrategy | null) => void;
 }

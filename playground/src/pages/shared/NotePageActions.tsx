@@ -10,7 +10,6 @@ import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
-import { useCommandPalette } from '@/components/command-palette/CommandContext'
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { ShortcutBadge } from '@/components/list/ShortcutBadge'
 
@@ -21,8 +20,7 @@ export interface NotePageActionsProps {
 }
 
 export function NotePageActions({ currentWorkout, index, onSearch }: NotePageActionsProps) {
-  const { setIsOpen } = useCommandPalette()
-  const handleSearch = onSearch ?? (() => setIsOpen(true))
+  const handleSearch = onSearch ?? (() => {})
 
   return (
     <div className="flex items-center gap-4">
