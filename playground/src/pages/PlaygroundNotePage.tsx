@@ -213,14 +213,25 @@ export function PlaygroundNotePage({
         }
       />
       {pendingScheduleBlock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <CalendarCard
-            selectedDate={null}
-            onDateSelect={(date) => {
-              handleScheduleBlock(pendingScheduleBlock, date)
-              setPendingScheduleBlock(null)
-            }}
-          />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setPendingScheduleBlock(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-xl p-5 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold mb-4 text-foreground">
+              Schedule for&hellip;
+            </p>
+            <CalendarCard
+              selectedDate={null}
+              onDateSelect={(date) => {
+                handleScheduleBlock(pendingScheduleBlock, date)
+                setPendingScheduleBlock(null)
+              }}
+            />
+          </div>
         </div>
       )}
     </>
