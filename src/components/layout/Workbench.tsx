@@ -18,8 +18,8 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { planPath } from '@/lib/routes';
 import { NoteEditorProps } from '../Editor/NoteEditor';
-import { CommandProvider, useCommandPalette } from '../../components/command-palette/CommandContext';
-import { CommandPalette } from '../../components/command-palette/CommandPalette';
+import { CommandProvider } from '../../components/command-palette/CommandContext';
+import { PaletteShell } from '../../components/command-palette/PaletteShell';
 import { Search, Lock, Loader2, Check, AlertCircle, PanelRightOpen, HelpCircle, Upload, Trash2, File } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
 import { NotebookMenu } from '../notebook/NotebookMenu';
@@ -72,7 +72,8 @@ export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' |
   initialViewMode?: ViewMode;
   mode?: ContentProviderMode;
   provider?: IContentProvider;
-  commandStrategy?: any; // CommandStrategy
+  /** Called when the search button / Ctrl+/ is triggered. Caller opens the palette with context-appropriate sources. */
+  onSearch?: () => void;
   hidePlanUnlessDebug?: boolean;
 }
 
@@ -87,15 +88,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   const navigate = useNavigate();
   const { noteId: routeId } = useParams<{ noteId: string }>();
   const { theme, setTheme } = useTheme();
-  const { setIsOpen, setStrategy } = useCommandPalette();
   const { isDebugMode } = useDebugMode();
-
-  // Register initial strategy if provided
-  useEffect(() => {
-    if (editorProps.commandStrategy) {
-      setStrategy(editorProps.commandStrategy);
-    }
-  }, [editorProps.commandStrategy, setStrategy]);
 
   // Consume Workbench Context (document state, view mode, panel layouts)
   const {
@@ -551,16 +544,11 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
                 <Button
                   variant="outline"
                   className="w-full justify-start text-sm text-muted-foreground font-normal px-2 h-8"
-                  onClick={() => {
-                    if (editorProps.commandStrategy) {
-                      setStrategy(editorProps.commandStrategy);
-                    }
-                    setIsOpen(true);
-                  }}
+                  onClick={() => editorProps.onSearch?.()}
                 >
                   <Search className="mr-2 h-4 w-4" />
                   Search...
-                  <span className="ml-auto text-xs opacity-50">⌘K</span>
+                  <span className="ml-auto text-xs opacity-50">Ctrl+/</span>
                 </Button>
               </div>
             )}
@@ -569,10 +557,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => {
-                  setStrategy(null);
-                  setIsOpen(true);
-                }}
+                onClick={() => editorProps.onSearch?.()}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Search className="h-4 w-4" />
@@ -744,7 +729,7 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
           />
         </div>
       </div >
-      <CommandPalette />
+      <PaletteShell />
     </React.Fragment>
   );
 };

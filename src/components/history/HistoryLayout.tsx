@@ -3,10 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { CommitGraph } from '@/components/ui/CommitGraph';
 import { Button } from '@/components/ui/button';
-import { Search, HelpCircle, PanelRightOpen, Calendar, Book, Library, LayoutGrid, ChevronDown } from 'lucide-react';
-import { useCommandPalette } from '@/components/command-palette/CommandContext';
+import { Search, HelpCircle, PanelRightOpen, Book, Library, LayoutGrid, ChevronDown } from 'lucide-react';
 import { useTutorialStore } from '@/hooks/useTutorialStore';
-import { NewPostButton } from '@/components/history/NewPostButton';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { DebugButton } from '@/components/layout/DebugModeContext';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
@@ -24,28 +22,22 @@ interface HistoryLayoutProps {
     children: React.ReactNode;
     onOpenDetails?: () => void;
     isDetailsOpen?: boolean;
-    headerExtras?: React.ReactNode; // For "New Note" buttons etc
+    headerExtras?: React.ReactNode;
+    onSearch?: () => void;
 }
 
 export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
     children,
     onOpenDetails,
     isDetailsOpen,
-    headerExtras
+    headerExtras,
+    onSearch,
 }) => {
     const screenMode = useScreenMode();
     const isMobile = screenMode === 'mobile';
     const isTablet = screenMode === 'tablet';
-    const { setIsOpen } = useCommandPalette();
     const { startTutorial } = useTutorialStore();
     const { activeNotebookId, activeNotebook, notebooks, setActiveNotebook } = useNotebooks();
-
-    // Navigation Items
-    const navItems = [
-        { path: '/notebooks', label: 'Notebooks', icon: Book },
-        { path: '/collections', label: 'Collections', icon: Library },
-        { path: '/feed', label: 'Feed', icon: LayoutGrid },
-    ];
 
     const notebookLabel = activeNotebook ? activeNotebook.name : 'All Workouts';
 
@@ -147,7 +139,7 @@ export const HistoryLayout: React.FC<HistoryLayoutProps> = ({
                 </div>
 
                 <div className="flex gap-2 items-center">
-                    <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} className="text-muted-foreground hover:text-foreground">
+                    <Button variant="ghost" size="icon" onClick={() => onSearch?.()} className="text-muted-foreground hover:text-foreground">
                         <Search className="h-4 w-4" />
                     </Button>
 

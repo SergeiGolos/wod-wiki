@@ -11,8 +11,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { localDateKey, type JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
-import { useCommandPalette } from '@/components/command-palette/CommandContext';
-import { createJournalNoteStrategy, JOURNAL_BLANK_TEMPLATE } from '../services/journalNoteStrategy';
+import { createJournalEntryFlow } from '../services/journalEntryFlow';
 import { JournalFeed } from './JournalFeed';
 
 function addDays(date: Date, n: number): Date {
@@ -28,7 +27,6 @@ interface PlanPageProps {
 export function PlanPage({ workoutItems = [] }: PlanPageProps) {
   const { dateParam, setDateParam } = useJournalQueryState();
   const navigate = useNavigate();
-  const { setIsOpen: setPaletteOpen, setStrategy } = useCommandPalette();
 
   const focusedDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
   const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
@@ -152,26 +150,22 @@ export function PlanPage({ workoutItems = [] }: PlanPageProps) {
     }
   }, [toggleMultiSelect, setDateParam]);
 
-  const handleCreateNote = useCallback((dateKey: string) => {
-    const strategy = createJournalNoteStrategy({
+  const handleCreateNote = useCallback(async (dateKey: string) => {
+    await createJournalEntryFlow({
       dateKey,
       workoutItems,
-      updateStrategy: setStrategy,
-      onCreated: async (content: string) => {
+      onCreated: async (content) => {
         await playgroundDB.savePage({
           id: `journal/${dateKey}`,
           category: 'journal',
           name: dateKey,
-          content: content || JOURNAL_BLANK_TEMPLATE,
+          content,
           updatedAt: Date.now(),
         });
-        setPaletteOpen(false);
         navigate(`/journal/${dateKey}`);
       },
     });
-    setStrategy(strategy);
-    setPaletteOpen(true);
-  }, [workoutItems, setStrategy, setPaletteOpen, navigate]);
+  }, [workoutItems, navigate]);
 
   const handleOpenEntry = useCallback((key: string) => {
     navigate(`/journal/${key}`);

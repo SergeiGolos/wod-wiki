@@ -1,120 +1,90 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { Command, CommandContextType, CommandStrategy } from './types';
-import { useQueryState, parseAsBoolean, parseAsString } from 'nuqs';
+import type { Command } from './types';
+
+interface CommandContextType {
+  registerCommand: (command: Command) => () => void;
+  commands: Command[];
+  activeContext: string;
+  setActiveContext: (context: string) => void;
+}
 
 const CommandContext = createContext<CommandContextType | undefined>(undefined);
 
-export const CommandProvider: React.FC<{ children: React.ReactNode; initialIsOpen?: boolean }> = ({ children, initialIsOpen = false }) => {
+export const CommandProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [commands, setCommands] = useState<Command[]>([]);
-  const [isOpen, setIsOpen] = useQueryState('cmd', parseAsBoolean.withDefault(initialIsOpen).withOptions({ clearOnDefault: true }));
   const [activeContext, setActiveContext] = useState('global');
-  const [search, setSearch] = useQueryState('q', parseAsString.withDefault('').withOptions({ clearOnDefault: true, shallow: true }));
-  const [activeStrategy, setStrategy] = useState<CommandStrategy | null>(null);
 
   const registerCommand = useCallback((command: Command) => {
     setCommands((prev) => {
-      // Avoid duplicates by ID
       if (prev.some(c => c.id === command.id)) return prev;
       return [...prev, command];
     });
-
     return () => {
       setCommands((prev) => prev.filter((c) => c.id !== command.id));
     };
   }, []);
 
-  // Use refs for state accessed in event handlers to avoid re-attaching listeners
-  const stateRef = useRef({ commands, isOpen, activeContext, activeStrategy });
+  // Use a ref so the keyboard handler always sees current state without re-attaching.
+  const stateRef = useRef({ commands, activeContext });
   useEffect(() => {
-    stateRef.current = { commands, isOpen: !!isOpen, activeContext, activeStrategy };
-  }, [commands, isOpen, activeContext, activeStrategy]);
+    stateRef.current = { commands, activeContext };
+  }, [commands, activeContext]);
 
-  // Handle global keyboard shortcut to open palette
+  // Global keyboard shortcut dispatcher for registered Command shortcuts.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // We'll let specific apps/pages handle their own shortcuts
-      // to allow for custom strategies.
+      const { commands, activeContext } = stateRef.current;
+      const modifiers = {
+        meta: e.metaKey,
+        ctrl: e.ctrlKey,
+        alt: e.altKey,
+        shift: e.shiftKey,
+      };
+
+      commands.forEach(cmd => {
+        if (!cmd.shortcut?.length) return;
+        const cmdKey = cmd.shortcut[cmd.shortcut.length - 1].toLowerCase();
+        const cmdMods = cmd.shortcut.slice(0, -1).map(s => s.toLowerCase());
+
+        const match =
+          cmdMods.includes('meta') === modifiers.meta &&
+          cmdMods.includes('ctrl') === modifiers.ctrl &&
+          cmdMods.includes('alt') === modifiers.alt &&
+          cmdMods.includes('shift') === modifiers.shift &&
+          e.key.toLowerCase() === cmdKey;
+
+        if (match) {
+          const inContext =
+            !cmd.context || cmd.context === 'global' || cmd.context === activeContext;
+          if (inContext) {
+            e.preventDefault();
+            cmd.action();
+          }
+        }
+      });
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Handle command shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const { isOpen, commands, activeContext, activeStrategy: _activeStrategy } = stateRef.current;
-      
-      if (!isOpen) { 
-         // Check shortcuts
-         // If a strategy is active, we might want to delegate to it, but for now let's keep global shortcuts working
-         // unless the strategy explicitly consumes them (not implemented yet)
-         
-         commands.forEach(cmd => {
-            if (cmd.shortcut && cmd.shortcut.length > 0) {
-                const modifiers = {
-                    meta: e.metaKey,
-                    ctrl: e.ctrlKey,
-                    alt: e.altKey,
-                    shift: e.shiftKey
-                };
-                
-                // Check if modifiers match
-                const cmdModifiers = cmd.shortcut.slice(0, -1).map(s => s.toLowerCase());
-                const cmdKey = cmd.shortcut[cmd.shortcut.length - 1].toLowerCase();
-                
-                const matchMeta = cmdModifiers.includes('meta') === modifiers.meta;
-                const matchCtrl = cmdModifiers.includes('ctrl') === modifiers.ctrl;
-                const matchAlt = cmdModifiers.includes('alt') === modifiers.alt;
-                const matchShift = cmdModifiers.includes('shift') === modifiers.shift;
-                
-                if (matchMeta && matchCtrl && matchAlt && matchShift && e.key.toLowerCase() === cmdKey) {
-                    // Check context
-                    if (!cmd.context || cmd.context === 'global' || cmd.context === activeContext) {
-                        e.preventDefault();
-                        cmd.action();
-                    }
-                }
-            }
-         });
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []); // Empty dependency array - only attach once
-
-  const contextValue = React.useMemo(() => ({
-    registerCommand,
-    commands,
-    isOpen,
-    setIsOpen,
-    activeContext,
-    setActiveContext,
-    search,
-    setSearch,
-    activeStrategy,
-    setStrategy
-  }), [registerCommand, commands, isOpen, activeContext, search, activeStrategy]);
+  const value = React.useMemo(
+    () => ({ registerCommand, commands, activeContext, setActiveContext }),
+    [registerCommand, commands, activeContext]
+  );
 
   return (
-    <CommandContext.Provider value={contextValue}>
+    <CommandContext.Provider value={value}>
       {children}
     </CommandContext.Provider>
   );
 };
 
-export const useCommandPalette = () => {
-  const context = useContext(CommandContext);
-  if (!context) {
-    throw new Error('useCommandPalette must be used within a CommandProvider');
-  }
-  return context;
+export const useCommandContext = () => {
+  const ctx = useContext(CommandContext);
+  if (!ctx) throw new Error('useCommandContext must be used within a CommandProvider');
+  return ctx;
 };
 
-export const useRegisterCommand = (command: Command) => {
-    const { registerCommand } = useCommandPalette();
-    useEffect(() => {
-        return registerCommand(command);
-    }, [registerCommand, command.id, command.label, command.action, command.context]);
-};
+/** @deprecated Use useCommandContext instead */
+export const useCommandPalette = useCommandContext;

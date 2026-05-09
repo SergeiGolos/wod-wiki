@@ -8,22 +8,20 @@ import { NotePreview } from '@/components/workbench/NotePreview';
 import { AnalyzePanel } from '@/panels/analyze-panel';
 import type { IContentProvider } from '@/types/content-provider';
 import { useHistorySelection } from '@/hooks/useHistorySelection';
-import { useCommandPalette } from '@/components/command-palette/CommandContext';
-import { WodNavigationStrategy } from '@/components/command-palette/strategies/WodNavigationStrategy';
+import { usePaletteStore } from '@/components/command-palette/palette-store';
+import { getAllWodIds } from '@/repositories/wod-loader';
+import { planPath, trackPath } from '@/lib/routes';
 import { useCreateWorkoutEntry } from '@/hooks/useCreateWorkoutEntry';
-import { cn } from '@/lib/utils';
 import type { HistoryEntry } from '@/types/history';
 import { HistoryDetailsPanel } from '@/components/workbench/HistoryDetailsPanel';
-import { useTutorialStore } from '@/hooks/useTutorialStore';
 import type { PanelSpan } from '@/panels/panel-system/types';
 import { useNotebooks } from '@/components/notebook/NotebookContext';
 import { CreateNotebookDialog } from '@/components/notebook/CreateNotebookDialog';
 import { toNotebookTag } from '@/types/notebook';
 import { toShortId } from '@/lib/idUtils';
-import { planPath, trackPath } from '@/lib/routes';
+import { HistoryLayout } from '@/components/history/HistoryLayout';
 import { NewPostButton } from '@/components/history/NewPostButton';
 import { createNoteFromMarkdown } from '@/services/ExportImportService';
-import { HistoryLayout } from '@/components/history/HistoryLayout';
 
 interface NotebooksContentProps {
     provider: IContentProvider;
@@ -45,7 +43,6 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
     const historySelection = useHistorySelection(null, initialCalendarDate);
     const navigate = useNavigate();
     const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
-    const { setStrategy } = useCommandPalette();
     const { activeNotebookId, setActiveNotebook, notebooks, createNotebook } = useNotebooks();
     const [showCreateNotebook, setShowCreateNotebook] = useState(false);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -74,11 +71,39 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
 
     const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
-    const commandStrategy = useMemo(() => new WodNavigationStrategy(navigate), [navigate]);
-
-    useEffect(() => {
-        setStrategy(commandStrategy);
-    }, [commandStrategy, setStrategy]);
+    const openSearch = useCallback(() => {
+        usePaletteStore.getState().open({
+            placeholder: 'Navigate to a workout or page…',
+            sources: [{
+                id: 'wod-navigation',
+                label: 'Workouts',
+                search: async (query: string) => {
+                    const low = query.toLowerCase();
+                    const wodIds = getAllWodIds();
+                    const items = [
+                        { id: 'nav-notes',  label: 'My Notebook',  sublabel: 'History & journal', category: 'Navigation', payload: { route: '/' } },
+                        { id: 'nav-home',   label: 'Playground',   sublabel: 'Editor & workouts', category: 'Navigation', payload: { route: '/playground' } },
+                        ...wodIds.map((id: string) => ({
+                            id: `nav-wod-${id}`,
+                            label: id.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                            sublabel: 'Example workout',
+                            category: 'Example Workouts',
+                            payload: { route: planPath(id) },
+                        })),
+                    ];
+                    if (!query) return items;
+                    return items.filter(item =>
+                        item.label.toLowerCase().includes(low) ||
+                        (item.sublabel ?? '').toLowerCase().includes(low)
+                    );
+                },
+            }],
+        }).then(result => {
+            if (!result.dismissed && result.item.payload) {
+                navigate((result.item.payload as { route: string }).route);
+            }
+        });
+    }, [navigate]);
 
     // Sync Notebook with URL
     useEffect(() => {
@@ -385,6 +410,7 @@ const NotebooksContent: React.FC<NotebooksContentProps> = ({ provider }) => {
         <HistoryLayout
             onOpenDetails={() => setIsDetailsOpen(!isDetailsOpen)}
             isDetailsOpen={isDetailsOpen}
+            onSearch={openSearch}
             headerExtras={
                 <div id="tutorial-new-workout" className="hidden md:flex">
                     <NewPostButton

@@ -18,8 +18,9 @@ import React, { useState, useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { CommandListView } from '@/components/list/CommandListView';
 import type { IListItem } from '@/components/list/types';
-import { CommandPalette } from '@/components/command-palette/CommandPalette';
-import { useCommandPalette } from '@/components/command-palette/CommandContext';
+import { PaletteShell } from '@/components/command-palette/PaletteShell';
+import { usePaletteStore } from '@/components/command-palette/palette-store';
+import { useCommandContext } from '@/components/command-palette/CommandContext';
 import type { Command } from '@/components/command-palette/types';
 import { Search, Dumbbell, Calendar } from 'lucide-react';
 
@@ -242,16 +243,19 @@ const dialogCommands: Command[] = [
 ];
 
 const DialogTriggerDemo: React.FC = () => {
-  const { setIsOpen, registerCommand } = useCommandPalette();
+  const { registerCommand } = useCommandContext();
 
   useEffect(() => {
     const cleanups = dialogCommands.map(cmd => registerCommand(cmd));
     const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === '/') { e.preventDefault(); setIsOpen(true); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        usePaletteStore.getState().open({ placeholder: 'Type a command or search…', sources: [] });
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => { cleanups.forEach(c => c()); window.removeEventListener('keydown', handleKey); };
-  }, [setIsOpen, registerCommand]);
+  }, [registerCommand]);
 
   return (
     <div className="flex flex-col items-center gap-6 py-16">
@@ -259,14 +263,14 @@ const DialogTriggerDemo: React.FC = () => {
         Click the button or press <kbd className="rounded border border-zinc-200 px-1.5 py-0.5 text-xs">⌘/</kbd> to open the palette as a dialog.
       </p>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => usePaletteStore.getState().open({ placeholder: 'Type a command or search…', sources: [] })}
         className="inline-flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm hover:bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-600 dark:text-zinc-100"
       >
         <Search className="h-3.5 w-3.5 text-zinc-400" />
         Open palette
         <kbd className="ml-1 rounded border border-zinc-200 px-1 py-0.5 text-[10px] text-zinc-400 dark:border-zinc-600">⌘/</kbd>
       </button>
-      <CommandPalette />
+      <PaletteShell />
     </div>
   );
 };
