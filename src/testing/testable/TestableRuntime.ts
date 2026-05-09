@@ -341,6 +341,14 @@ export class TestableRuntime implements IScriptRuntime {
     this._wrapped.addOutput(output);
   }
 
+  setAnalyticsEngine(engine: import('@/core/contracts/IAnalyticsEngine').IAnalyticsEngine): void {
+    this._wrapped.setAnalyticsEngine(engine);
+  }
+
+  finalizeAnalytics(): IOutputStatement[] {
+    return this._wrapped.finalizeAnalytics();
+  }
+
   // ========== Stack Observer API (delegated) ==========
 
   subscribeToStack(observer: StackObserver): Unsubscribe {
