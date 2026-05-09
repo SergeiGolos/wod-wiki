@@ -94,8 +94,8 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
     newBlock.mount(runtime);
 
     // Get timer state from the block's typed memory
-    const timerEntry = newBlock.getMemory('time');
-    let currentState = timerEntry?.value;
+    const timerLoc = newBlock.getMemoryByTag('time')[0];
+    let currentState = timerLoc?.metrics[0]?.value as import('@/runtime/memory/MemoryTypes').TimerState | undefined;
 
     console.log('[TimerTestHarness] Initial timer state:', {
       blockKey: newBlock.key.toString(),
@@ -124,13 +124,13 @@ export const TimerTestHarness: React.FC<TimerTestHarnessProps> = ({
       });
 
       // Update timer state with configured spans
-      newBlock.setMemoryValue('time', {
-        ...currentState,
-        spans
-      });
+      const timeLoc = newBlock.getMemoryByTag('time')[0];
+      if (timeLoc) {
+        timeLoc.update([{ ...timeLoc.metrics[0], value: { ...currentState, spans } } as any]);
+      }
 
       // Refresh current state reference
-      currentState = newBlock.getMemory('time')?.value;
+      currentState = newBlock.getMemoryByTag('time')[0]?.metrics[0]?.value as import('@/runtime/memory/MemoryTypes').TimerState | undefined;
 
       console.log('[TimerTestHarness] Timer state configured:', {
         spans: currentState?.spans?.length,

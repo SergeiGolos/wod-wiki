@@ -83,7 +83,7 @@ describe('ProxyBlock', () => {
             expect(block.getMemoryByTag('metric:display')).toHaveLength(1);
         });
 
-        it("getMemory('metrics') returns display metric groups", () => {
+        it("getMemoryByTag('metric:display') returns display metric groups", () => {
             const block = new ProxyBlock(createSerializedBlock({
                 displayFragments: [
                     [{ type: 'text', image: 'Run' } as any],
@@ -91,30 +91,29 @@ describe('ProxyBlock', () => {
                 ],
             }));
 
-            const memory = block.getMemory('metrics');
+            const locs = block.getMemoryByTag('metric:display');
 
-            expect(memory).toBeDefined();
-            expect(memory!.value.groups).toHaveLength(2);
-            expect(memory!.value.groups[0].toArray()[0].image).toBe('Run');
-            expect(memory!.value.groups[1].toArray()[0].image).toBe('10:00');
+            expect(locs).toHaveLength(2);
+            expect(locs[0].metrics.toArray()[0].image).toBe('Run');
+            expect(locs[1].metrics.toArray()[0].image).toBe('10:00');
         });
 
-        it("getMemory('metric:display') returns the display memory location", () => {
+        it("getMemoryByTag('metric:display') returns the display memory location", () => {
             const block = new ProxyBlock(createSerializedBlock({
                 displayFragments: [[{ type: 'text', image: 'Run' } as any]],
             }));
 
-            const memory = block.getMemory('metric:display');
+            const locs = block.getMemoryByTag('metric:display');
 
-            expect(memory).toBeDefined();
-            expect(memory!.value).toBe(block.getMemoryByTag('metric:display')[0]);
+            expect(locs).toHaveLength(1);
+            expect(locs[0]).toBe(block.getMemoryByTag('metric:display')[0]);
         });
     });
 
     describe('timer memory', () => {
         it('should return empty timer when null', () => {
             const block = new ProxyBlock(createSerializedBlock({ timer: null }));
-            expect(block.getMemoryByTag('timer')).toHaveLength(0);
+            expect(block.getMemoryByTag('time')).toHaveLength(0);
         });
 
         it('should return timer memory location when timer present', () => {

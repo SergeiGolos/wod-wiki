@@ -211,9 +211,6 @@ class StubBlock implements IRuntimeBlock {
   getMetricMemoryByVisibility(visibility: MetricVisibility): import("@/runtime/memory/MemoryLocation").IMemoryLocation[] {
     return this._memory.filter(loc => getMetricVisibility(loc.tag) === visibility);
   }
-  hasMemory(): boolean { return false; }
-  getMemory<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T): any { return undefined; }
-  setMemoryValue<T extends import("@/runtime/memory/MemoryTypes").MemoryType>(_type: T, _value: any): void { }
 }
 
 /**

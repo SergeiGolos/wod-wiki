@@ -120,7 +120,7 @@ describe('MetricPromotionBehavior', () => {
         const behavior = new MetricPromotionBehavior({
             promotions: [
                 { metricType: MetricType.CurrentRound, sourceTag: 'round' },
-                { metricType: MetricType.Rep, sourceTag: 'metric' }
+                { metricType: MetricType.Rep, sourceTag: 'metrics' as any }
             ]
         });
         const block = new MockBlock('test-block', [behavior], { label: 'Test Block' });
@@ -128,7 +128,7 @@ describe('MetricPromotionBehavior', () => {
         block.pushMemory(new MemoryLocation('round', [
             new CurrentRoundMetric(1, 2, 'test-block', new Date())
         ]));
-        block.pushMemory(new MemoryLocation('metric', [{
+        block.pushMemory(new MemoryLocation('metrics', [{
             type: MetricType.Rep,
             origin: 'parser',
             value: 10,

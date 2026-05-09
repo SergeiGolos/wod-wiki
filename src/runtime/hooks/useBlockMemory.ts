@@ -33,7 +33,7 @@ export function useBlockMemory<T extends MemoryType>(
     block: IRuntimeBlock | undefined,
     type: T
 ): MemoryValueOf<T> | undefined {
-    const tag = type as unknown as MemoryTag;
+    const tag = type as MemoryTag;
     const getVal = (): MemoryValueOf<T> | undefined => {
         const loc = block?.getMemoryByTag(tag)[0];
         if (!loc) return undefined;

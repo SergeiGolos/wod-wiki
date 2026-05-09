@@ -8,7 +8,6 @@ import { IMetric, MetricType } from '@/core/models/Metric';
 import { IMemoryReference, TypedMemoryReference } from '@/runtime/contracts';
 import { MemoryTypeEnum } from '@/runtime/models/MemoryTypeEnum';
 import { IAnchorValue } from '@/runtime/contracts/IAnchorValue';
-import { MemoryType, MemoryValueOf } from '@/runtime/memory/MemoryTypes';
 import { IBehaviorContext, BehaviorEventType, BehaviorEventListener, SubscribeOptions, Unsubscribe } from '@/runtime/contracts/IBehaviorContext';
 import { IRuntimeClock } from '@/runtime/contracts/IRuntimeClock';
 import { OutputStatementType, OutputStatement } from '@/core/models/OutputStatement';
@@ -205,47 +204,6 @@ class MockBehaviorContext implements IBehaviorContext {
     const runtime = this._mockBlock.runtime;
     if (runtime?.handle) {
       runtime.handle(event as IEvent);
-    }
-  }
-
-  getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
-    // Check list-based memory on the MockBlock first
-    const tag = type as string as MemoryTag;
-    const locations = this._mockBlock.getMemoryByTag(tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      if (loc.metrics.length > 0) {
-        return loc.metrics[0]?.value as MemoryValueOf<T>;
-      }
-      return undefined;
-    }
-    // Fall back to context-based lookup
-    const ref = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
-    return ref?.get?.() ?? undefined;
-  }
-
-  setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-    // Try list-based memory first
-    const tag = type as string as MemoryTag;
-    const locations = this._mockBlock.getMemoryByTag(tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      if (loc.metrics.length > 0) {
-        const updated = loc.metrics.map((f, i) =>
-          i === 0 ? { ...f, value } : f
-        );
-        loc.update(updated);
-      } else {
-        loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-      }
-      return;
-    }
-    // Fall back to context-based storage
-    const existing = this._mockBlock.context?.get<MemoryValueOf<T>>(type);
-    if (existing) {
-      existing.set(value);
-    } else {
-      this._mockBlock.context?.allocate(type, value, 'private');
     }
   }
 
@@ -537,7 +495,6 @@ export class MockBlock implements IRuntimeBlock {
   // ============================================================================
 
   private _memory: IMemoryLocation[] = [];
-  private _memoryEntries: Map<string, MockMemoryEntry<any, any>> = new Map();
 
   /**
    * Push a new memory location onto the block's memory list.
@@ -567,111 +524,4 @@ export class MockBlock implements IRuntimeBlock {
     return this._memory.filter(loc => getMetricVisibility(loc.tag) === visibility);
   }
 
-  // ============================================================================
-  // Backward-Compatible Memory API (shims over list-based memory)
-  // ============================================================================
-
-  /**
-   * Check if this block owns memory of the specified type.
-   * @deprecated Use getMemoryByTag().length > 0
-   */
-  hasMemory(type: MemoryType): boolean {
-    // Check list-based memory first, then fall back to legacy map
-    const tag = type as string as MemoryTag;
-    if (this._memory.some(loc => loc.tag === tag)) return true;
-    return this._memoryEntries.has(type);
-  }
-
-  /**
-   * Get memory entry of the specified type.
-   * @deprecated Use getMemoryByTag() instead.
-   */
-  getMemory<T extends MemoryType>(
-    type: T
-  ): any {
-    // Check list-based memory first
-    const tag = type as string as MemoryTag;
-    const locations = this._memory.filter(loc => loc.tag === tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      return {
-        get value(): MemoryValueOf<T> {
-          if (loc.metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
-          return loc.metrics[0]?.value as MemoryValueOf<T>;
-        },
-        subscribe(listener: (nv: any, ov: any) => void): () => void {
-          return loc.subscribe((newFrags, oldFrags) => {
-            const newVal = newFrags.length > 0 ? newFrags[0]?.value : undefined;
-            const oldVal = oldFrags.length > 0 ? oldFrags[0]?.value : undefined;
-            listener(newVal, oldVal);
-          });
-        }
-      };
-    }
-    // Fall back to legacy map
-    return this._memoryEntries.get(type);
-  }
-
-  /**
-   * Set memory value directly. Creates or updates a memory entry.
-   * @deprecated Use pushMemory() or BehaviorContext APIs.
-   */
-  setMemoryValue<T extends MemoryType>(
-    type: T,
-    value: MemoryValueOf<T>
-  ): void {
-    // Try list-based first
-    const tag = type as string as MemoryTag;
-    const locations = this._memory.filter(loc => loc.tag === tag);
-    if (locations.length > 0) {
-      const loc = locations[0];
-      if (loc.metrics.length > 0) {
-        const updated = loc.metrics.map((f, i) =>
-          i === 0 ? { ...f, value } : f
-        );
-        loc.update(updated);
-      } else {
-        loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-      }
-      return;
-    }
-    // Fall back to legacy map
-    if (this._memoryEntries.has(type)) {
-      const entry = this._memoryEntries.get(type)!;
-      entry.setValue(value);
-    } else {
-      this._memoryEntries.set(type, new MockMemoryEntry(type, value));
-    }
-  }
-}
-
-/**
- * Simple mock memory entry for testing (legacy fallback).
- */
-class MockMemoryEntry<T extends string, V> {
-  readonly type: T;
-  private _value: V;
-  private _subscribers: Set<(newValue: V | undefined, oldValue: V | undefined) => void> = new Set();
-
-  constructor(type: T, initialValue: V) {
-    this.type = type;
-    this._value = initialValue;
-  }
-
-  get value(): V {
-    return this._value;
-  }
-
-  setValue(newValue: V): void {
-    const oldValue = this._value;
-    this._value = newValue;
-    for (const subscriber of this._subscribers) {
-      subscriber(newValue, oldValue);
-    }
-  }
-
-  subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void {
-    this._subscribers.add(listener);
-    return () => this._subscribers.delete(listener);
-  }
 }

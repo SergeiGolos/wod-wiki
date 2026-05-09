@@ -89,17 +89,6 @@ function createMockBlock(options: {
             return mem;
         }),
 
-        hasMemory: vi.fn().mockImplementation((type: string) => {
-            if (type === 'metric:display' && metricGroups) return true;
-            if (type === 'metric:result' && resultFragments.length > 0) return true;
-            return false;
-        }),
-        getMemory: vi.fn().mockImplementation((type: string) => {
-            if (type ===   'metrics' && metricGroups) {
-                return { type:   'metric', value: { groups: metricGroups } };
-            }
-            return undefined;
-        }),
     } as unknown as IRuntimeBlock;
 }
 

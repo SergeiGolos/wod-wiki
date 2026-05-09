@@ -43,7 +43,7 @@ describe('MetricVisibility', () => {
         });
 
         it('should return undefined for non-metric tags', () => {
-            expect(getMetricVisibility('timer')).toBeUndefined();
+            expect(getMetricVisibility('time' as MemoryTag)).toBeUndefined();
             expect(getMetricVisibility('round')).toBeUndefined();
             expect(getMetricVisibility('completion')).toBeUndefined();
             expect(getMetricVisibility('display')).toBeUndefined();
@@ -57,11 +57,11 @@ describe('MetricVisibility', () => {
             expect(isFragmentTag('metric:label')).toBe(true);
             expect(isFragmentTag('metric:tracked')).toBe(true);
             expect(isFragmentTag('metric:rep-target')).toBe(true);
-            expect(isFragmentTag(  'metric')).toBe(true);
+            expect(isFragmentTag('metrics')).toBe(true);
         });
 
         it('should return false for non-metric tags', () => {
-            expect(isFragmentTag('timer')).toBe(false);
+            expect(isFragmentTag('time' as MemoryTag)).toBe(false);
             expect(isFragmentTag('round')).toBe(false);
             expect(isFragmentTag('completion')).toBe(false);
         });
@@ -69,8 +69,8 @@ describe('MetricVisibility', () => {
 
     describe('filterTagsByVisibility', () => {
         const allTags: MemoryTag[] = [
-            'timer', 'round', 'completion', 'display', 'controls',
-              'metric', 'metric:display', 'metric:promote',
+            'time', 'round', 'completion', 'display', 'controls',
+            'metrics', 'metric:display', 'metric:promote',
             'metric:rep-target', 'metric:tracked', 'metric:label',
         ];
 
