@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { MutableRefObject } from 'react'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
-import { Navbar, NavbarItem, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
+import { Navbar, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
 import { NavProvider } from './nav/NavContext'
 import { useNav } from './nav/NavContext'
 import { NavSidebar } from './nav/NavSidebar'
 import { buildAppNavTree } from './nav/appNavTree'
-import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
+import { NavSearchInput } from './components/NavSearchInput'
 import { PLAYGROUND_CONTENT } from '@/constants/defaultContent'
 import { CommandPalette } from '@/components/playground/CommandPalette'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
@@ -45,10 +45,8 @@ import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
 import { LoadZipPage } from './pages/LoadZipPage'
 // ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
-import { ShortcutBadge } from '@/components/list/ShortcutBadge'
-// ── Shared page utilities ────────────────────────────────────────────────────
+import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
-import { NotePageActions } from './pages/shared/NotePageActions'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { DEFAULT_PLAYGROUND_CONTENT } from './templates/defaultPlaygroundContent'
 import { createPlaygroundPage } from './services/createPlaygroundPage'
@@ -526,10 +524,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           </div>
           <NavbarSpacer />
           <NavbarSection>
-            <NavbarItem onClick={openSearchPalette} aria-label="Search" className="flex items-center gap-3">
-              <MagnifyingGlassIcon data-slot="icon" />
-              <ShortcutBadge tokens={['meta', '/']} />
-            </NavbarItem>
+            <NavSearchInput onOpen={openSearchPalette} />
             <div className="flex items-center">
               <CastButtonRpc />
             </div>
@@ -542,7 +537,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
@@ -550,7 +545,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               />
             </CanvasPage>
           ) : location.pathname === '/plan' ? (
-            <CanvasPage title="Plan" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
+            <CanvasPage title="Plan" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <PlanPage workoutItems={workoutItems} />
             </CanvasPage>
           ) : location.pathname === '/feeds' ? (
@@ -565,9 +560,10 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               theme={actualTheme}
               onViewCreated={handleViewCreated}
               onScrollToSection={scrollToSection}
+              onSearch={openSearchPalette}
             />
           ) : location.pathname === '/collections' ? (
-            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
+            <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <CollectionsPage />
             </CanvasPage>
           ) : canvasPage ? (
@@ -576,7 +572,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
               subheader={location.pathname.startsWith('/collections/') ? <TextFilterStrip placeholder="Filter collection workouts… Press / to start filtering" /> : undefined}
               index={currentNavLinks}
               onScrollToSection={scrollToSection}
-              actions={<NotePageActions currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}
+              actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}
             >
               <MarkdownCanvasPage
                 page={canvasPage}
@@ -589,9 +585,9 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
           ) : (
             <>
               {isPlaygroundRoute && effectivePlaygroundId ? (
-                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} />
+                <PlaygroundNotePage key={effectivePlaygroundId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} onSearch={openSearchPalette} />
               ) : isJournalEntryRoute && journalEntryId ? (
-                <JournalPage key={journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} />
+                <JournalPage key={journalEntryId} theme={actualTheme} onViewCreated={handleViewCreated} onScrollToSection={scrollToSection} onSearch={openSearchPalette} />
               ) : (
                 <WorkoutEditorPage
                   key={`${currentWorkout.category}/${currentWorkout.name}`}
@@ -601,6 +597,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
                   theme={actualTheme}
                   onViewCreated={handleViewCreated}
                   onScrollToSection={scrollToSection}
+                  onSearch={openSearchPalette}
                 />
               )}
             </>
