@@ -184,54 +184,6 @@ export function createIntegrationContext(
             return block.getMemoryByTag(tag);
         },
 
-        getMemory<T extends MemoryType>(type: T): MemoryTypeMap[T] | undefined {
-            // Try list-based memory first
-            const locations = block.getMemoryByTag(type as unknown as MemoryTag);
-            if (locations.length > 0 && locations[0].metrics.length > 0) {
-                // Special case: 'round' memory uses CurrentRoundMetric which
-                // stores .current and .total as direct fields. Synthesize RoundState.
-                if (type === 'round') {
-                    const frag = locations[0].metrics[0] as unknown as { current?: number; total?: number };
-                    if (frag?.current !== undefined) {
-                        return { current: frag.current, total: frag.total } as MemoryTypeMap[T];
-                    }
-                    return undefined;
-                }
-                return locations[0].metrics[0].value as MemoryTypeMap[T];
-            }
-            // Fall back to Map
-            return block.memory.get(type) as MemoryTypeMap[T] | undefined;
-        },
-
-        setMemory<T extends MemoryType>(type: T, value: MemoryTypeMap[T]) {
-            // Write to Map for backward compat assertions
-            block.memory.set(type, value);
-            // Also write to list-based memory
-            const tag = type as unknown as MemoryTag;
-            const locations = block.getMemoryByTag(tag);
-            if (locations.length > 0) {
-                const metric: IMetric = {
-                    type: 0 as any,
-                    image: '',
-                    origin: 'runtime',
-                    value,
-                    sourceBlockKey: block.key.toString(),
-                    timestamp: new Date(),
-                } as any;
-                locations[0].update([metric]);
-            } else {
-                const metric: IMetric = {
-                    type: 0 as any,
-                    image: '',
-                    origin: 'runtime',
-                    value,
-                    sourceBlockKey: block.key.toString(),
-                    timestamp: new Date(),
-                } as any;
-                block.pushMemory(new MemoryLocation(tag, [metric]));
-            }
-        },
-
         pushMemory(tag: string, metrics: IMetric[]) {
             const memTag = tag as MemoryTag;
             const location = new MemoryLocation(memTag, metrics);
@@ -269,7 +221,7 @@ export function createIntegrationContext(
                 }
             }
         }
-    } as IBehaviorContext;
+    } as unknown as IBehaviorContext;
 }
 
 /**

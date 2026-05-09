@@ -9,7 +9,6 @@ import { MetricContainer } from '../core/models/MetricContainer';
 import { OutputStatement, OutputStatementType } from '../core/models/OutputStatement';
 import { TimeSpan } from './models/TimeSpan';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import {
     IBehaviorContext,
     BehaviorEventType,
@@ -183,57 +182,6 @@ export class BehaviorContext implements IBehaviorContext {
         const locations = this.block.getMemoryByTag(tag);
         if (locations.length > 0) {
             locations[0].update(metrics);
-        }
-    }
-
-    // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
-    // ============================================================================
-
-    /**
-     * @deprecated Use block.getMemoryByTag() and read metrics values instead.
-     * Returns the typed value from the first matching memory location's first metrics.
-     */
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined {
-        const tag = type as string as MemoryTag;
-        const locations = this.block.getMemoryByTag(tag);
-        if (locations.length === 0) return undefined;
-        const loc = locations[0];
-        if (loc.metrics.length === 0) return undefined;
-        // Special case: 'round' memory uses CurrentRoundMetric which stores
-        // .current and .total as direct fields (value is just the current number).
-        // Synthesize RoundState for backward compat with getMemory('round') callers.
-        if (type === 'round') {
-            const frag = loc.metrics[0] as unknown as { current?: number; total?: number };
-            if (frag?.current !== undefined) {
-                return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
-            }
-            return undefined;
-        }
-        // For typed memory (timer, round, etc.), value is in the first metrics's .value
-        return loc.metrics[0]?.value as MemoryValueOf<T>;
-    }
-
-    /**
-     * @deprecated Use pushMemory() or updateMemory() instead.
-     * Updates the first matching location's metrics value, or creates a new one.
-     */
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-        const tag = type as string as MemoryTag;
-        const locations = this.block.getMemoryByTag(tag);
-        if (locations.length > 0) {
-            const loc = locations[0];
-            if (loc.metrics.length > 0) {
-                const updated = loc.metrics.map((f, i) =>
-                    i === 0 ? { ...f, value } : f
-                );
-                loc.update(updated);
-            } else {
-                loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-            }
-        } else {
-            // Create a new location with the value
-            this.pushMemory(tag, [{ type: 0, image: '', origin: 'runtime', value } as any]);
         }
     }
 
