@@ -166,3 +166,4 @@ wod/*.tcx
 docs/.obsidian/workspace.json
 e2e/screenshots/
 .env.development
+src/graphify-out/

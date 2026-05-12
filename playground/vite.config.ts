@@ -57,7 +57,7 @@ export default defineConfig({
             '@': resolve(__dirname, '../src'),
         },
     },
-    server: { allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true, 
+    server: { allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true,  allowedHosts: true, 
         host: '0.0.0.0',
         ...(https ? { https } : {}),
         hmr: hmrHost ? { host: hmrHost } : true,
