@@ -11,6 +11,7 @@
     "url": "git+https://github.com/SergeiGolos/wod-wiki.git"
   },
   "scripts": {
+    "postinstall": "node scripts/fix-codemirror-deps.cjs",
     "setup": "bun setup-testing.js",
     "test": "bun test src --preload ./tests/unit-setup.ts",
     "test:components": "bun test tests --preload ./tests/setup.ts",
@@ -116,7 +117,7 @@
     "@types/node": "^25.6.0",
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^11.0.0",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^5.2.0",
     "@vitest/browser": "4.1.5",
     "@vitest/coverage-v8": "^4.1.5",
     "autoprefixer": "^10.5.0",
@@ -142,5 +143,12 @@
     "vite": "^6.4.2",
     "vite-plugin-dts": "^5.0.0",
     "vitest": "^4.1.5"
+  },
+  "resolutions": {
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.41.1",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/autocomplete": "^6.20.1",
+    "@codemirror/commands": "^6.10.3"
   }
 }
