@@ -393,7 +393,7 @@ const ReceiverApp = () => {
   // ── Waiting screen ──
   if (!remoteState) {
     return (
-      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/20 font-mono uppercase tracking-[0.5em]">
+      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/60 font-mono uppercase tracking-[0.5em]">
         <div className="animate-pulse">Wod.Wiki // {connectionStatus}</div>
       </div>
     );

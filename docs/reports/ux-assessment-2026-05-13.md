@@ -321,22 +321,22 @@ This is not a criticism of the development team — it reflects a design system 
 
 ## Priority Recommendations Summary
 
-| Priority | Action | Surface | Effort |
-|---|---|---|---|
-| P0 | Raise Chromecast waiting screen text opacity to minimum `text-white/60` | Chromecast | 1 line |
-| P0 | Add D-Pad dismiss to Chromecast Review screen | Chromecast | Small |
-| P0 | Add error state + retry to TV HomeScreen (no stuck-spinner on connection failure) | TV/RN | Small |
-| P0 | Remove or fill `SettingsScreen` in TV app | TV/RN | Small |
-| P1 | Increase D-Pad flash from `bg-primary/10` to `bg-primary/25` or switch to element-level highlight | Chromecast | 1 line |
-| P1 | Add `md` breakpoint (768 px) to `SidebarLayout` for persistent left panel on tablet | Desktop/Mobile | Medium |
-| P1 | Define `--mobile-header-height` token; remove `top-[60px]` magic number | Mobile | Small |
-| P1 | Audit `FullscreenTimer` / `FullscreenReview` overlays for focus trapping and ARIA | Desktop/Mobile | Small |
-| P2 | Gate Chromecast connection badge behind debug flag | Chromecast | Small |
-| P2 | Implement local timer interpolation in TV WorkoutScreen | TV/RN | Medium |
-| P2 | Add design-system `theme.ts` to TV app to reference semantic tokens | TV/RN | Small |
-| P2 | Lower TOC sidebar from `3xl+` to `xl+` (1280 px) | Desktop | 1 line |
-| P2 | Document JournalNote overlay vs. route timer inconsistency as deliberate or create issue to standardize | Desktop/Mobile | Doc |
-| P3 | Sync AppTemplate spec status with SidebarLayout reality; tag all page-route docs with implementation status | Desktop | Doc |
+| Priority | Action                                                                                                      | Surface        | Effort |
+| -------- | ----------------------------------------------------------------------------------------------------------- | -------------- | ------ |
+| P0       | Raise Chromecast waiting screen text opacity to minimum `text-white/60`                                     | Chromecast     | 1 line |
+| P0       | Add D-Pad dismiss to Chromecast Review screen                                                               | Chromecast     | Small  |
+| P0       | Add error state + retry to TV HomeScreen (no stuck-spinner on connection failure)                           | TV/RN          | Small  |
+| P0       | Remove or fill `SettingsScreen` in TV app                                                                   | TV/RN          | Small  |
+| P1       | Increase D-Pad flash from `bg-primary/10` to `bg-primary/25` or switch to element-level highlight           | Chromecast     | 1 line |
+| P1       | Add `md` breakpoint (768 px) to `SidebarLayout` for persistent left panel on tablet                         | Desktop/Mobile | Medium |
+| P1       | Define `--mobile-header-height` token; remove `top-[60px]` magic number                                     | Mobile         | Small  |
+| P1       | Audit `FullscreenTimer` / `FullscreenReview` overlays for focus trapping and ARIA                           | Desktop/Mobile | Small  |
+| P2       | Gate Chromecast connection badge behind debug flag                                                          | Chromecast     | Small  |
+| P2       | Implement local timer interpolation in TV WorkoutScreen                                                     | TV/RN          | Medium |
+| P2       | Add design-system `theme.ts` to TV app to reference semantic tokens                                         | TV/RN          | Small  |
+| P2       | Lower TOC sidebar from `3xl+` to `xl+` (1280 px)                                                            | Desktop        | 1 line |
+| P2       | Document JournalNote overlay vs. route timer inconsistency as deliberate or create issue to standardize     | Desktop/Mobile | Doc    |
+| P3       | Sync AppTemplate spec status with SidebarLayout reality; tag all page-route docs with implementation status | Desktop        | Doc    |
 
 ---
 

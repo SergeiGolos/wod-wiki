@@ -9,17 +9,20 @@
  * Now uses the real `ReceiverReviewPanel` from `@/panels/review-panel-chromecast`.
  *
  * States illustrated:
- *  1. SimpleRows      — reviewData only (no analyticsSummary / no projections)
- *  2. WithProjections — full analyticsSummary: 2-column metric cards + icons
- *  3. FranResults     — realistic Fran workout results
- *  4. AmrapResults    — AMRAP results with rounds + reps
- *  5. EmomResults     — EMOM results with avg timing
- *  6. FiveBySomething — 5-round workout with volume metrics
- *  7. EmptyReview     — reviewData present but zero rows / projections
+ *  1. SimpleRows         — reviewData only (no analyticsSummary / no projections)
+ *  2. WithProjections    — full analyticsSummary: 2-column metric cards + icons
+ *  3. FranResults        — realistic Fran workout results
+ *  4. AmrapResults       — AMRAP results with rounds + reps
+ *  5. EmomResults        — EMOM results with avg timing
+ *  6. FiveBySomething    — 5-round workout with volume metrics
+ *  7. EmptyReview        — reviewData present but zero rows / projections
+ *  8. WithDismissButton  — dismiss button focused (D-Pad Select affordance)
+ *  9. DismissButtonActive — dismiss button in active/pressed state
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from 'storybook/test';
 import { cn } from '@/lib/utils';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 
@@ -61,28 +64,47 @@ interface ReviewChromecastHarnessProps {
   analyticsSummary?: AnalyticsSummary;
   /** Simulate the dark TV background (CastApp applies bg-black globally) */
   darkBackground?: boolean;
+  /** If true, the dismiss button renders in its D-Pad focused state */
+  dismissFocused?: boolean;
+  /** Called when the dismiss button is activated */
+  onDismiss?: () => void;
 }
 
 const ReviewChromecastHarness: React.FC<ReviewChromecastHarnessProps> = ({
   reviewData,
   analyticsSummary,
   darkBackground = true,
-}) => (
-  <div
-    className={cn(
-      'flex items-center justify-center w-full',
-      darkBackground ? 'bg-black' : 'bg-background',
-    )}
-    style={{ minHeight: '600px', aspectRatio: '16/9' }}
-  >
-    <div className="w-full h-full" style={{ minHeight: '600px' }}>
-      <ReceiverReviewPanel
-        reviewData={reviewData}
-        analyticsSummary={analyticsSummary}
-      />
+  dismissFocused = false,
+  onDismiss,
+}) => {
+  // Simulate spatial-nav props so we can show focused/unfocused states
+  // without needing a real useSpatialNavigation instance in Storybook.
+  const mockGetFocusProps = (id: string) => ({
+    'data-nav-id': id,
+    'data-nav-focused': dismissFocused && id === 'btn-dismiss',
+    tabIndex: 0,
+    ref: () => {},
+  });
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center w-full',
+        darkBackground ? 'bg-black' : 'bg-background',
+      )}
+      style={{ minHeight: '600px', aspectRatio: '16/9' }}
+    >
+      <div className="w-full h-full" style={{ minHeight: '600px' }}>
+        <ReceiverReviewPanel
+          reviewData={reviewData}
+          analyticsSummary={analyticsSummary}
+          onDismiss={onDismiss}
+          getFocusProps={mockGetFocusProps}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Meta

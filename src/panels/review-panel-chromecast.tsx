@@ -8,11 +8,13 @@
 
 import React from 'react';
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
+import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import { cn } from '@/lib/utils';
 import {
     Timer,
     CheckCircle2,
     BarChart3,
+    X,
 } from 'lucide-react';
 
 
@@ -20,7 +22,11 @@ import {
 export const ReceiverReviewPanel: React.FC<{
     reviewData: NonNullable<WorkbenchDisplayState['reviewData']>;
     analyticsSummary?: WorkbenchDisplayState['analyticsSummary'];
-}> = ({ reviewData, analyticsSummary }) => {
+    /** Called when user selects the dismiss button (D-Pad Select or click). */
+    onDismiss?: () => void;
+    /** Spatial navigation registration — pass from useSpatialNavigation. */
+    getFocusProps?: (id: string) => FocusProps;
+}> = ({ reviewData, analyticsSummary, onDismiss, getFocusProps }) => {
     // Prefer analytics summary if available, otherwise fall back to simple rows
     const projections = analyticsSummary?.projections ?? [];
     const totalDurationMs = analyticsSummary?.totalDurationMs ?? reviewData?.totalDurationMs ?? 0;
@@ -121,6 +127,33 @@ export const ReceiverReviewPanel: React.FC<{
                 <BarChart3 className="h-4 w-4" />
                 <span className="text-xs font-mono uppercase tracking-widest">
                     {completedSegments} segments completed
+                </span>
+            </div>
+
+            {/* Dismiss button — D-Pad focusable, returns receiver to waiting state */}
+            <div className="flex flex-col items-center gap-2">
+                <button
+                    {...(getFocusProps ? getFocusProps('btn-dismiss') : {})}
+                    onClick={onDismiss}
+                    className={cn(
+                        "flex items-center gap-3 px-8 py-4 rounded-xl",
+                        "border border-primary/30 bg-primary/10 text-primary",
+                        "text-lg font-semibold tracking-wide",
+                        "transition-all duration-150",
+                        "hover:bg-primary/20 hover:border-primary/50",
+                        "focus:outline-none",
+                        // D-Pad focus ring — visible at 10 ft on TV
+                        "data-[nav-focused=true]:bg-primary data-[nav-focused=true]:text-primary-foreground",
+                        "data-[nav-focused=true]:ring-4 data-[nav-focused=true]:ring-primary/60",
+                        "data-[nav-focused=true]:scale-105",
+                    )}
+                >
+                    <X className="h-5 w-5" />
+                    Dismiss
+                </button>
+                {/* D-pad hint — reminds TV viewers how to trigger the button */}
+                <span className="text-xs text-muted-foreground/30 font-mono uppercase tracking-widest">
+                    ⊙ Select
                 </span>
             </div>
         </div>
