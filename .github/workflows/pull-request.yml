@@ -1,0 +1,85 @@
+name: CI – Pull Request
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  verify:
+    uses: ./.github/workflows/_verify.yml
+    secrets: inherit
+
+  pr-summary:
+    runs-on: ubuntu-22.04
+    if: always() && github.event_name == 'pull_request'
+    needs: [verify]
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Post PR summary
+        uses: actions/github-script@v7
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          UNIT_STATUS: ${{ needs.verify.outputs.unit-status }}
+          STORY_STATUS: ${{ needs.verify.outputs.story-status }}
+          COVERAGE_STATUS: ${{ needs.verify.outputs.coverage-status }}
+          BUILD_STATUS: ${{ needs.verify.outputs.build-status }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const statusIcon = (result) => {
+              if (result === 'success') return '✅';
+              if (result === 'skipped') return '⏭️';
+              return '❌';
+            };
+
+            const statuses = {
+              overall: process.env.VERIFY_RESULT,
+              unit: process.env.UNIT_STATUS || 'skipped',
+              story: process.env.STORY_STATUS || 'skipped',
+              coverage: process.env.COVERAGE_STATUS || 'skipped',
+              build: process.env.BUILD_STATUS || 'skipped',
+            };
+
+            const headline = statuses.overall === 'success'
+              ? '## ✅ PR verification passed'
+              : '## ⚠️ PR verification needs attention';
+
+            const marker = '<!-- wod-wiki-pr-verification -->';
+            const body = `${marker}\n${headline}\n\n| Check | Status |\n| --- | --- |\n| Unit tests | ${statusIcon(statuses.unit)} ${statuses.unit} |\n| Story tests | ${statusIcon(statuses.story)} ${statuses.story} |\n| Coverage | ${statusIcon(statuses.coverage)} ${statuses.coverage} |\n| Playground build | ${statusIcon(statuses.build)} ${statuses.build} |\n\n- Actions run: [View run](${runUrl})\n- Coverage artifact: [Artifacts](${runUrl}#artifacts)`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user.type === 'Bot' && comment.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

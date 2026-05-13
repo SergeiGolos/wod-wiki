@@ -1,48 +1,27 @@
-name: CI – Main / Release
+name: Release – Main
 
-# Runs on every push or PR to main, and on version tags.
-# Release job only fires on a tag push.
+# Every push to main attempts a release using the version from package.json.
+# If the tag already exists at this commit SHA, the release is updated in-place (idempotent).
+# If the tag exists at a different SHA, the release job fails — bump package.json before
+# merging another change to main to avoid overwriting an existing release.
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]
-  pull_request:
-    branches: ["main"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  calc-variables:
-    uses: ./.github/workflows/_calc-variables.yml
-
-  qodana:
-    if: ${{ github.ref_type == 'tag' || github.ref_name == 'main' }}
-    uses: ./.github/workflows/_code_quality.yml
+  verify:
+    uses: ./.github/workflows/_verify.yml
     secrets: inherit
 
-  build:
-    needs: [calc-variables]
-    uses: ./.github/workflows/_build-bun.yml
+  release:
+    needs: [verify]
+    if: needs.verify.result == 'success'
+    uses: ./.github/workflows/_release.yml
     secrets: inherit
-    with:
-      version: ${{ needs.calc-variables.outputs.package-version }}
-
-  test-report:
-    needs: [calc-variables]
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/_test-report.yml
-    secrets: inherit
-
-  deploy:
-    if: ${{ github.ref_type == 'tag' || github.ref_name == 'main' }}
-    needs: [build]
-    uses: ./.github/workflows/_deploy.yml
-    secrets: inherit
-
-  # Only fires on a tag push (e.g. v1.2.3) — never on a plain main-branch push.
-  create-release:
-    if: github.ref_type == 'tag'
-    needs: [calc-variables, qodana, build, deploy]
-    uses: ./.github/workflows/_create-release.yml
-    with:
-      tag-name: ${{ github.ref_name }}
-      version: ${{ needs.calc-variables.outputs.version }}

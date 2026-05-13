@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release version is available for this commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            const tag = pkg.version;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            try {
+              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              if (ref.data.object.sha !== sha) {
+                core.setFailed(`Tag ${tag} already exists at ${ref.data.object.sha}. Bump package.json before merging another main release.`);
+                return;
+              }
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Replace GA tag in sources
+        if: ${{ vars.G_TAG != '' }}
+        run: |
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' playground/index.html
+          sed -i 's/G-PROD-ID/${{ vars.G_TAG }}/g' playground/receiver-rpc.html
+
+      - name: Build playground
+        run: bun run build:app
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://wod.wiki/api' }}
+          VITE_CAST_APP_ID: ${{ vars.VITE_CAST_APP_ID }}
+
+      - name: Build library
+        run: bun run build-library
+
+      - name: Upload library artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: library-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playground/dist
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Create or update release tag and GitHub release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            const tag = pkg.version;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            let tagExistsAtSha = false;
+            try {
+              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              tagExistsAtSha = ref.data.object.sha === sha;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            if (!tagExistsAtSha) {
+              await github.rest.git.createRef({
+                owner,
+                repo,
+                ref: `refs/tags/${tag}`,
+                sha,
+              });
+            }
+
+            try {
+              const existing = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+              await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: existing.data.id,
+                target_commitish: sha,
+                name: tag,
+                draft: false,
+                prerelease: false,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+
+              await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                target_commitish: sha,
+                name: tag,
+                generate_release_notes: true,
+                draft: false,
+                prerelease: false,
+              });
+            }
+
+      - name: Write release summary
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Release summary
+
+          - Released version: $VERSION
+          - Pages URL: ${{ steps.deployment.outputs.page_url }}
+          EOF
