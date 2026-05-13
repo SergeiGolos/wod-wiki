@@ -2,115 +2,208 @@
 
 **Date:** 2026-05-12  
 **Area:** View Panels, Chromecast Receiver, Runtime Event Pipeline  
-**Status:** Analysis — Deepening Opportunities  
+**Status:** Analysis — Design Target + Deepening Opportunities  
 **Scope:** Large-screen browser view, Chromecast cast receiver, UI button events, runtime session handshake
 
 ---
 
-## Executive Summary
+## Design Principle
 
-The WOD Wiki UI currently has **two parallel but structurally different pipelines** for connecting a view panel to a runtime session: one for the browser's large-screen track view, and one for the Chromecast receiver. Both pipelines ultimately achieve the same outcome — display runtime state and emit user input back as events — but they do so through incompatible interfaces, duplicated wiring logic, and different event dispatch patterns.
+> **The `ScriptRuntime` is the single source of truth. It runs in the browser. Every UI surface — the large-screen track panel, the Chromecast receiver, and any future second-screen — is an async client. All surfaces connect through the same interface: subscriptions deliver state out; `IEvent` objects carry commands in. The browser's local view is a zero-latency client, not a privileged direct caller.**
 
-The core friction: **button events from the large-screen browser view do not flow through the same seam as button events from the Chromecast receiver**. Adding a new control to either surface requires changes in multiple disconnected places.
-
-This report identifies four deepening opportunities, ordered by impact.
+The Chromecast path already follows this principle. The browser's large-screen path is the exception that needs to be aligned.
 
 ---
 
-## Current Architecture: Two Paths to the Same Runtime
-
-### Path 1 — Browser Large-Screen Track Panel
+## Target Architecture
 
 ```
-TrackPanel (track-panel.tsx)
-  └── TimerScreen (props: onStart, onPause, onStop, onNext)
-        └── TimerDisplay (props: onStart, onPause, onStop, onNext)
-              └── TimerStackView (props: onStart, onPause, onStop, onNext)
-                    └── [Button onClick] → calls prop directly
-                          ↓
-                    useWorkbenchRuntime.handleStart / handleNext / …
-                          ↓
-                    execution.start() / runtime.handle(new NextEvent())
+                    ┌──────────────────────────────────────────┐
+                    │              ScriptRuntime                │
+                    │           (source of truth)              │
+                    │                                          │
+                    │  runtime.handle(IEvent) ◄─── all commands│
+                    │  subscribeToStack()     ─────► all state │
+                    └───────────────┬──────────────────────────┘
+                                    │
+                     SubscriptionManager (fan-out)
+                    ┌───────────────┴──────────────────────┐
+                    │                                      │
+          ┌─────────▼──────────┐              ┌────────────▼────────────────┐
+          │   LocalViewSession │              │   ChromecastViewSession     │
+          │                    │              │                             │
+          │  subscription:     │              │  subscription:              │
+          │  LocalRuntimeSub   │              │  ChromecastRuntimeSub       │
+          │  → workbenchStore  │              │  → IRpcTransport            │
+          │                    │              │        │ (WebRTC)           │
+          │  eventProvider:    │              │  eventProvider:             │
+          │  LocalEventProvider│              │  ChromecastEventProvider    │
+          │  → runtime.handle()│              │  ← IRpcTransport            │
+          └─────────┬──────────┘              └────────────┬────────────────┘
+                    │                                      │
+          Browser Track Panel                   Chromecast Receiver
+          ┌─────────────────┐                  ┌──────────────────────────┐
+          │ScriptRuntime    │                  │ChromecastProxyRuntime    │
+          │  Provider       │                  │ (mirrors IScriptRuntime) │
+          │  (context)      │                  │ ScriptRuntimeProvider    │
+          │                 │                  │   (same context!)        │
+          │  TimerDisplay   │                  │                          │
+          │  VisualState    │                  │  ReceiverTimerPanel      │
+          │  Panel          │                  │  ReceiverStackPanel      │
+          └─────────────────┘                  └──────────────────────────┘
 ```
 
-Button events are **callback props** drilled three levels deep. They call into `useWorkbenchRuntime` closures which invoke `execution.start()` or `runtime.handle()` directly. The `IRuntimeEventProvider` interface exists but is never consulted on the browser side.
+**Key properties of this model:**
 
-### Path 2 — Chromecast Receiver
+- Both surfaces use `ScriptRuntimeProvider` + standard runtime hooks (`useSnapshotBlocks`, `usePrimaryTimer`, `useOutputStatements`) for display state. This already works correctly and is preserved unchanged.
+- Both surfaces dispatch user commands as `IEvent` objects via `IRuntimeEventProvider`. This is the change.
+- `LocalViewSession` is zero-latency: `LocalEventProvider.dispatch(event)` calls `runtime.handle(event)` directly and manages the 20ms tick loop internally as an implementation detail.
+- `ChromecastViewSession` is async: events travel over WebRTC, but the interface is identical to `LocalViewSession`.
+- The runtime has no knowledge of how many clients are connected or what transport they use.
+
+---
+
+## Current Architecture: The Privileged Browser Path
+
+### Path 1 — Browser Large-Screen Track Panel (current)
 
 ```
-ReceiverTimerPanel (timer-panel-chromecast.tsx)
-  └── TimerStackView (props: onStart → () => onEvent('start'), …)
-        └── [Button onClick] → calls onEvent('start')
-              ↓
-        ReceiverApp.sendEvent('start')
-              ↓
-        proxyRuntime.handle({ name: 'start', … })
-              ↓
-        IRpcTransport.send({ type: 'rpc-event', name: 'start', … })
-              ↓ (wire)
-        CastButtonRpc.eventProvider.onEvent(handler)
-              ↓
-        state.handles.handleStart()   ← Zustand store lookup
+TimerStackView buttons
+  │ onStart() / onStop() / onNext()        ← four separate callback props
+  ▼
+useWorkbenchRuntime.handleStart / handleNext / …
+  │
+  ├── execution.start()                    ← starts 20ms tick loop
+  ├── execution.pause()                    ← stops tick loop
+  ├── runtime.handle(new NextEvent())      ← dispatches IEvent (inconsistent!)
+  └── execution.stop() + completeWorkout() ← side-effects mixed in
 ```
 
-Button events are **event names** dispatched through `ChromecastProxyRuntime.handle()` → `IRpcTransport` → `ChromecastEventProvider` → `WorkbenchHandles` in the Zustand store. This path does use `IRuntimeEventProvider` — but only on the cast side.
+`execution.start()` manages the 20ms `TickEvent` loop. It is **infrastructure**, not a user command — but it is called directly by UI button handlers. When the user presses Start on the browser, the tick loop starts. When the Chromecast remote presses Start, the event travels over WebRTC and eventually calls `execution.start()` too — via `WorkbenchHandles` stored in the Zustand store as a bridge.
+
+`next` already dispatches an `IEvent` (`runtime.handle(new NextEvent())`), but `start` and `pause` do not. This inconsistency means button behaviour is split across two different execution models in the same component.
+
+### Path 2 — Chromecast Receiver (current)
+
+```
+ReceiverTimerPanel button
+  │ onEvent('start')                       ← string event name
+  ▼
+ReceiverApp.sendEvent('start')
+  ▼
+proxyRuntime.handle({ name: 'start', … })
+  ▼
+IRpcTransport.send({ type: 'rpc-event', name: 'start', … })
+  │ (WebRTC wire)
+  ▼
+CastButtonRpc.eventProvider.onEvent(handler)
+  ▼
+state.handles.handleStart()               ← Zustand store lookup
+  ▼
+execution.start()                         ← 20ms tick loop starts
+```
+
+The Chromecast path dispatches string event names and delivers them via `IRpcTransport`. This is correct in shape. But it lands in `WorkbenchHandles` — a Zustand store slot whose only purpose is to be a named target for Chromecast events. The handles are the bridge between "event arrived from RPC" and "execution method on a React closure." They are an artifact of the two paths being different, not a real abstraction.
 
 ### The Divergence in One Diagram
 
 ```
-Browser Large-Screen                    Chromecast Receiver
-─────────────────────────────────────────────────────────────
-TimerStackView                          TimerStackView
-  ↓ onStart()                             ↓ onEvent('start')
-  ↓ (prop callback)                       ↓ (string event name)
-  useWorkbenchRuntime                     ChromecastProxyRuntime.handle()
-  ↓ execution.start()                     ↓ IRpcTransport
-  ScriptRuntime (direct)                  ChromecastEventProvider
-                                          ↓ WorkbenchHandles.handleStart()
-                                          ScriptRuntime (indirect via Zustand)
+Browser large-screen                      Chromecast Receiver
+──────────────────────────────────────────────────────────────
+TimerStackView                            TimerStackView
+  ↓ onStart()           (callback prop)     ↓ onEvent('start')   (string)
+  ↓
+useWorkbenchRuntime                       ChromecastProxyRuntime.handle()
+  ↓ execution.start()   (direct)            ↓ IRpcTransport
+  ScriptRuntime tick loop                   ChromecastEventProvider
+                                            ↓ WorkbenchHandles.handleStart()
+                                            execution.start()
 ```
 
-`TimerStackView` is called with two different shapes of the "do something" callback depending on which surface it renders in. The `onEvent` prop on the cast path is a shallow wrapper — it exists precisely because the Chromecast path needs to serialise the event, but the browser path doesn't.
+Both paths end at `execution.start()`, but through completely different routes. `WorkbenchHandles` in the Zustand store exists purely to bridge the gap — it has no value of its own.
+
+---
+
+## What Already Works Correctly
+
+The following seams already follow the design principle and must be preserved:
+
+- **`IRpcTransport`** — transport-agnostic bidirectional channel, independently testable. ✓
+- **`IRuntimeSubscription` / `ChromecastRuntimeSubscription`** — fan-out model for delivering runtime state to multiple sinks. ✓
+- **`ScriptRuntimeProvider` + standard runtime hooks** — both the browser and Chromecast receiver already use the same hooks (`useSnapshotBlocks`, `usePrimaryTimer`, `useOutputStatements`, `useOutputStatements`). The display-data path is correct. ✓
+- **`SerializedBlock` / `RpcMessages`** — well-typed wire protocol. ✓
+- **`ProxyBlock` update-in-place cache** — preserves subscriber connections across RPC updates. ✓
+- **`ChromecastProxyRuntime.handle()` → RPC** — receiver-to-browser event relay is correctly shaped. ✓
+- **`NextEvent` via `runtime.handle()`** — next is already event-driven; start/pause/stop need to follow. ✓
 
 ---
 
 ## Deepening Opportunities
 
-### 1. Unified UI Command Channel via `IRuntimeEventProvider`
+### 1. `LocalEventProvider` — Browser Joins the Async Interface
 
 **Files:**
-- `src/runtime/contracts/IRuntimeEventProvider.ts`
+- `src/runtime/contracts/IRuntimeEventProvider.ts` (interface exists, needs browser adapter)
+- `src/runtime/hooks/useRuntimeExecution.ts` (tick loop — becomes an implementation detail)
 - `src/panels/timer-panel.tsx`
-- `src/panels/timer-panel-chromecast.tsx`
 - `src/components/workout/TimerStackView.tsx`
 - `src/components/workbench/useWorkbenchRuntime.ts`
-- `src/components/cast/CastButtonRpc.tsx`
+- `src/components/layout/workbenchSyncStore.ts` (`WorkbenchHandles` — can be removed)
 
-**Problem (shallow interface, no locality):**
+**Problem:**
 
-`IRuntimeEventProvider` already defines the correct seam:
+`IRuntimeEventProvider` is defined and implemented for Chromecast (`ChromecastEventProvider`). The browser has no implementation — it uses prop callbacks instead. This means:
+
+- `TimerStackView` has four callback props (`onStart`, `onPause`, `onStop`, `onNext`) that exist only because the browser path doesn't use the event interface.
+- `WorkbenchHandles` in the Zustand store exists only because the Chromecast path needs a named bridge to the React closures that manage the tick loop.
+- A new button (e.g., `select-block`, `lap`, `skip`) requires: new prop on `TimerStackViewProps`, prop threaded through `TimerDisplay` → `TrackPanel` → `Workbench.tsx`, new case in `useWorkbenchRuntime`, new case in `CastButtonRpc`'s event handler.
+
+**Solution:**
+
+Implement `LocalEventProvider`:
 
 ```typescript
-interface IRuntimeEventProvider {
-    dispatch(event: IEvent): void;
-    onEvent(handler: (event: IEvent) => void): Unsubscribe;
-    dispose(): void;
+class LocalEventProvider implements IRuntimeEventProvider {
+    constructor(
+        private readonly runtime: IScriptRuntime,
+        private readonly execution: UseRuntimeExecutionReturn,
+    ) {}
+
+    dispatch(event: IEvent): void {
+        switch (event.name) {
+            case 'start':
+                this.execution.start();        // starts 20ms tick loop
+                break;
+            case 'pause':
+                this.execution.pause();
+                break;
+            case 'stop':
+                this.execution.stop();
+                break;
+            default:
+                this.runtime.handle(event);    // all other events go through runtime
+                break;
+        }
+    }
+
+    onEvent(handler: (event: IEvent) => void): Unsubscribe {
+        return this.runtime.eventBus.on('*', (event) => handler(event), 'local-event-provider');
+    }
+
+    dispose(): void {}
 }
 ```
 
-`ChromecastEventProvider` implements it for the cast path. But the browser large-screen path never uses it — buttons call `onStart` / `onStop` / `onNext` props that are closure callbacks wired deep in `useWorkbenchRuntime`. Adding a fifth button (e.g., "lap" or "select-block") requires: updating `TimerStackViewProps`, threading the new prop through `TimerDisplay` → `TrackPanel` → `Workbench.tsx`, adding a case to `useWorkbenchRuntime`, **and** adding a case to `CastButtonRpc`'s `eventProvider.onEvent` handler — four files for one new control.
-
-A `LocalEventProvider` implementation of `IRuntimeEventProvider` would dispatch events directly to `ScriptRuntime.handle()`. Both the browser and cast paths would then share the same `TimerStackView` interface:
+`TimerStackView` drops four callback props in favour of one:
 
 ```typescript
-// TimerStackView — unified
 interface TimerStackViewProps {
-  elapsedMs: number;
-  hasActiveBlock: boolean;
-  isRunning: boolean;
-  eventProvider: IRuntimeEventProvider;   // ← single seam
-  compact?: boolean;
-  // … display props
+    elapsedMs: number;
+    hasActiveBlock: boolean;
+    isRunning: boolean;
+    eventProvider: IRuntimeEventProvider;   // ← the seam
+    compact?: boolean;
+    // display-only props …
 }
 ```
 
@@ -119,219 +212,195 @@ A button press becomes:
 eventProvider.dispatch({ name: 'start', timestamp: new Date() });
 ```
 
-- **Browser path**: `LocalEventProvider.dispatch()` calls `runtime.handle()` directly.  
-- **Cast path**: `ChromecastEventProvider.dispatch()` serialises over WebRTC.
+**`WorkbenchHandles` removal:**
+
+With `LocalEventProvider` handling browser commands and `ChromecastEventProvider` routing cast commands directly to the `LocalEventProvider` (via the runtime), the Zustand store no longer needs `WorkbenchHandles`. Cast events arrive at `ChromecastEventProvider.onEvent()` → `LocalEventProvider.dispatch()` → tick loop + runtime. No Zustand bridge.
 
 **Benefits:**
-- **Locality**: adding a new button event touches `IEvent` definitions + one `LocalEventProvider` case. No prop threading.
-- **Leverage**: `TimerStackView` becomes a pure display component with a single event seam — independently testable with a mock `IRuntimeEventProvider`.
-- **One adapter = hypothetical seam. Two adapters = real seam.** The cast path already proves the seam is real; the browser path just hasn't adopted it yet.
+- Adding a new UI command = define an `IEvent` name + one case in `LocalEventProvider`. No prop threading.
+- `TimerStackView` becomes a pure display component testable with a mock `IRuntimeEventProvider`.
+- `WorkbenchHandles` in the store is deleted — the store becomes pure display state.
+- The 20ms tick loop is hidden behind the interface as an implementation detail.
 
 ---
 
-### 2. Formal `IViewSession` Handshake Interface
+### 2. `IViewSession` — Symmetric Handshake for All Surfaces
 
 **Files:**
-- `src/components/cast/CastButtonRpc.tsx` (476 lines — does connection, subscription wiring, event routing, state sync, cleanup)
+- `src/components/cast/CastButtonRpc.tsx` (476 lines)
 - `src/services/cast/rpc/ChromecastProxyRuntime.ts` (582 lines)
 - `src/receiver-rpc.tsx` (378 lines)
 - `src/services/cast/rpc/WebRtcRpcTransport.ts`
 - `src/services/cast/rpc/ChromecastRuntimeSubscription.ts`
-- `src/services/cast/CastSignaling.ts`
 
-**Problem (shallow module, no locality):**
+**Problem:**
 
-`CastButtonRpc.tsx` is a 476-line component that does six distinct jobs:
+A "view session" is the connected pair: subscription (runtime → surface) + event provider (surface → runtime). This concept has no interface. The connection protocol for Chromecast is implicit in 476 lines of `CastButtonRpc`, covering:
 
-1. Manages Cast SDK state (`sdkState`, `isCasting`, `isConnecting`, `isDisconnecting`)
-2. Establishes / tears down `WebRtcRpcTransport`
-3. Performs clock synchronisation (`ClockSyncService`)
-4. Creates and registers `ChromecastRuntimeSubscription` with `SubscriptionManager`
-5. Creates `ChromecastEventProvider` and routes incoming events to `WorkbenchHandles`
-6. Sends the initial workbench-mode RPC message
+1. Cast SDK state management
+2. `WebRtcRpcTransport` creation and lifecycle
+3. Clock synchronisation (`ClockSyncService`)
+4. `ChromecastRuntimeSubscription` → `SubscriptionManager`
+5. `ChromecastEventProvider` → `WorkbenchHandles` routing
+6. Initial workbench-mode message
 
-Steps 2–6 define a **connection handshake** that has no named interface. The same six steps must be reproduced in a slightly different order for the page-refresh reconnect path (inside `CastButtonRpc`), for the playground variant, and — on the other end — inside `receiver-rpc.tsx`.
+Steps 2–6 must be reproduced (in slightly different order) for the page-refresh reconnect path. The receiver side (`receiver-rpc.tsx`) duplicates the transport + runtime wiring manually on every incoming `webrtc-offer`.
 
-A `IViewSession` interface would name this:
+**Solution:**
 
 ```typescript
 interface IViewSession {
-    /** Connect to a remote runtime view. Returns when the channel is ready. */
-    connect(): Promise<void>;
-
-    /** The event provider for UI-to-runtime commands. */
     readonly eventProvider: IRuntimeEventProvider;
-
-    /** The subscription for runtime-to-UI state updates. */
     readonly subscription: IRuntimeSubscription;
-
-    /** True while the session is connected. */
     readonly connected: boolean;
-
-    /** Subscribe to connection state changes. */
+    connect(): Promise<void>;
     onConnectionChange(handler: (connected: boolean) => void): Unsubscribe;
-
-    /** Tear down the session cleanly. */
     dispose(): void;
 }
 ```
 
-A `ChromecastViewSession` adapter would implement this, encapsulating steps 2–6 from `CastButtonRpc`. `CastButtonRpc` shrinks to: call `ChromecastSdk.requestSession()`, then `new ChromecastViewSession(session).connect()`.
+Implementations:
 
-The receiver side currently lacks a matching "session accepted" handshake. `receiver-rpc.tsx` rebuilds transport + ProxyRuntime manually on every incoming `webrtc-offer`. A `ReceiverViewSession` that accepts an `IRpcTransport` and returns a ready `ChromecastProxyRuntime` would give the receiver an equivalent depth.
+| Class | Transport | Used by |
+|-------|-----------|---------|
+| `LocalViewSession` | Direct reference | Browser track panel |
+| `ChromecastViewSession` | `WebRtcRpcTransport` | `CastButtonRpc` (sender) |
+| `ReceiverViewSession` | `WebRtcRpcTransport` | `receiver-rpc.tsx` (answerer) |
+
+`CastButtonRpc` shrinks to: obtain Cast SDK session, create `ChromecastViewSession`, call `connect()`. All wiring is inside the session.
+
+`ReceiverApp` shrinks to: `ReceiverViewSession.connect()` → `ScriptRuntimeProvider runtime={session.proxyRuntime}`.
+
+The clock sync, subscription registration, and reconnect logic all live inside `ChromecastViewSession.connect()`, testable without React.
 
 **Benefits:**
-- **Deletion test**: deleting `CastButtonRpc`'s manual wiring reveals complexity that is currently hidden in the component. A `IViewSession` seam concentrates it.
-- **Locality**: reconnect logic lives in `ChromecastViewSession.connect()`, not scattered across refs and `useEffect` chains.
-- **Testability**: `ChromecastViewSession` can be exercised with a mock `IRpcTransport` without a browser component.
+- **Deletion test**: deleting `CastButtonRpc`'s manual wiring reveals complexity that belongs in `ChromecastViewSession`. After the move, `CastButtonRpc` is ~50 lines.
+- **Locality**: the reconnect case is handled by `ChromecastViewSession.connect()` — one implementation, one test.
+- `ReceiverViewSession` gives the receiver a symmetric handshake that mirrors the sender's.
 
 ---
 
-### 3. Unified View Panel Handshake — `IViewPanelHost`
+### 3. Unified View Panels — Chromecast Panels Become Thin Adapters
 
 **Files:**
-- `src/panels/track-panel.tsx` (`TimerScreen`)
-- `src/panels/timer-panel-chromecast.tsx` (`ReceiverTimerPanel`)
-- `src/panels/track-panel-chromecast.tsx` (`ReceiverStackPanel`)
-- `src/panels/visual-state-panel.tsx` (`VisualStatePanel`)
-- `src/panels/timer-panel.tsx` (`TimerDisplay` → `StackIntegratedTimer`)
-- `src/receiver-rpc.tsx`
+- `src/panels/timer-panel-chromecast.tsx` (`ReceiverTimerPanel` — ~80 lines, mostly duplicates `TimerDisplay`)
+- `src/panels/track-panel-chromecast.tsx` (`ReceiverStackPanel` — ~120 lines, duplicates `VisualStatePanel`)
+- `src/panels/visual-state-panel.tsx`
+- `src/panels/timer-panel.tsx`
 
-**Problem (two handshakes, no common contract):**
+**Problem:**
 
-The browser's track panel connects to a runtime session via:
-```
-ScriptRuntimeProvider (React Context)
-  └── usePanelSize()
-  └── useRuntimeExecution()
-  └── [callback props for buttons]
-```
+Once Opportunity 1 is in place, `ReceiverTimerPanel` and `TimerDisplay` differ only in how they obtain their `eventProvider`:
 
-The Chromecast receiver's panels connect via:
-```
-ScriptRuntimeProvider (React Context — same!)
-  └── PanelSizeProvider
-  └── useSnapshotBlocks() / usePrimaryTimer() (same hooks!)
-  └── onEvent prop (string) for buttons  ← different
-  └── localNow: number prop for clock    ← browser panels don't have this
-```
+- `TimerDisplay`: constructs a `LocalEventProvider` from the runtime context.
+- `ReceiverTimerPanel`: wraps the `onEvent(name: string)` callback as an event provider.
 
-The `ScriptRuntimeProvider` + standard runtime hooks (`useSnapshotBlocks`, `usePrimaryTimer`, `useStackTimers`, `useOutputStatements`) already form a **correct and shared** handshake for display data. This part works and should be preserved.
+With a unified `IRuntimeEventProvider` interface, both become the same component. `ReceiverTimerPanel` can be deleted; `TimerDisplay` is used on both surfaces.
 
-The friction is in the **input side**: `ReceiverTimerPanel` accepts `onEvent: (name: string) => void`, while `TimerDisplay` accepts four separate callback props. They render the same `TimerStackView` component but pass it through two different adapters. Similarly, `ReceiverStackPanel` duplicates the rendering logic from `VisualStatePanel` rather than calling it.
+Similarly, `ReceiverStackPanel` duplicates `VisualStatePanel` entirely — same hooks (`useSnapshotBlocks`, `useOutputStatements`), same rendering. `ReceiverStackPanel` can be deleted; `VisualStatePanel` is used on both surfaces.
 
-The fix is to make both panel variants adopt `IRuntimeEventProvider` (from Opportunity 1) so both are:
-
-```
-ScriptRuntimeProvider (React Context)
-  └── [runtime hooks for display state]
-  └── IRuntimeEventProvider (for button commands)
-```
-
-`ReceiverTimerPanel` would accept `eventProvider: IRuntimeEventProvider` and pass `eventProvider.dispatch` to `TimerStackView`. `TimerDisplay`'s `StackIntegratedTimer` would construct a `LocalEventProvider` internally (or receive one from context). The `localNow` clock prop — currently Chromecast-only — can be handled inside `LocalEventProvider` since the browser clock is authoritative.
+The `localNow: number` prop currently passed to Chromecast panels for clock interpolation is the only surface-specific concern. This is resolved by the `LocalViewSession.eventProvider` exposing a `now()` method, or by the shared `useLocalNow()` hook that both surfaces use (the receiver already has clock sync via `ProxyClock`).
 
 **Benefits:**
-- `ReceiverTimerPanel` and `TimerDisplay` become **the same component** with different adapters behind the seam.
-- `ReceiverStackPanel` can be deleted in favour of `VisualStatePanel` (same hooks, same contract).
-- **Leverage**: any new view surface (e.g., a second-screen web view) gets the full display + command pipeline by implementing `IRuntimeEventProvider`.
+- ~200 lines of duplicated panel code deleted.
+- Any improvement to `TimerDisplay` or `VisualStatePanel` immediately applies to the Chromecast receiver.
 
 ---
 
-### 4. Explicit `WorkbenchDisplayMode` Sync Contract
+### 4. `WorkbenchModeResolver` — Single Display Mode Decision
 
 **Files:**
 - `src/components/cast/WorkbenchCastBridge.tsx`
 - `src/components/cast/CastButtonRpc.tsx` (duplicate `buildPreviewMessage` / `buildReviewMessage`)
-- `src/services/cast/rpc/ChromecastProxyRuntime.ts` (`WorkbenchDisplayState`, `subscribeToWorkbench`)
-- `src/receiver-rpc.tsx` (mode-driven conditional rendering)
+- `src/services/cast/rpc/ChromecastProxyRuntime.ts` (`WorkbenchDisplayState`)
+- `src/receiver-rpc.tsx` (mode-driven conditional render)
 
-**Problem (duplicated logic, no locality):**
+**Problem:**
 
-`buildPreviewMessage` and `buildReviewMessage` are **defined twice** — once in `WorkbenchCastBridge.tsx` and once in `CastButtonRpc.tsx` — with slightly different trigger conditions. Both maintain their own `lastFingerprintRef` to deduplicate sends. The workbench mode state is determined by four interacting variables (`viewMode`, `execution.status`, `runtime`, `analyticsSegments`) but the decision logic that maps those to `'idle' | 'preview' | 'active' | 'review'` is split between the two files.
+The mapping from workbench state (`viewMode`, `execution.status`, `runtime`, `analyticsSegments`) to display mode (`idle | preview | active | review`) is implemented twice — once in `WorkbenchCastBridge.tsx` and once in `CastButtonRpc.tsx` — with slightly different trigger conditions and independent fingerprinting. A new display mode (e.g., `countdown`, `warmup`) requires changes in at least three files.
 
-On the receiver, `receiver-rpc.tsx` renders the correct panel imperatively:
-
-```typescript
-if (workbenchState.mode === 'preview' && workbenchState.previewData) {
-    return <ReceiverPreviewPanel … />;
-}
-if (workbenchState.mode === 'review' && workbenchState.reviewData) {
-    return <ReceiverReviewPanel … />;
-}
-// else: ScriptRuntimeProvider active/idle
-```
-
-This is not wrong, but when a new display mode is added (e.g., `'countdown'` or `'warmup'`) the sender must update both `WorkbenchCastBridge` and `CastButtonRpc`, and the receiver must add another conditional branch. None of these are co-located.
-
-A deeper module would be a `WorkbenchModeResolver`:
+**Solution:**
 
 ```typescript
-// Single location for all mode-mapping logic
 class WorkbenchModeResolver {
     resolve(state: {
         viewMode: ViewMode;
         executionStatus: ExecutionStatus;
         hasRuntime: boolean;
         hasAnalytics: boolean;
-    }): WorkbenchDisplayMode;
+        selectedBlock: WodBlock | null;
+        documentItems: DocumentItem[];
+    }): RpcWorkbenchUpdate;
 }
 ```
 
-Combined with **one** `WorkbenchCastBridge` that owns the single deduplicating send path, and the `CastButtonRpc` duplicate removed.
+One `WorkbenchCastBridge` owns the single deduplication fingerprint and the single send path. `CastButtonRpc`'s duplicate helpers are deleted.
 
-**Benefits:**
-- **Locality**: mode-mapping logic exists in one place, tested once.
-- **Deletion test**: deleting one of the two `buildPreviewMessage` functions reveals the duplication — complexity doesn't vanish, it moves back to the resolver where it belongs.
+Under `IViewSession`, workbench mode sync becomes a responsibility of `ChromecastViewSession` itself — it subscribes to the workbench store and sends the resolved mode update when state changes. No React component needed.
+
+---
+
+## The `WorkbenchHandles` Artifact
+
+`WorkbenchHandles` in `workbenchSyncStore.ts` is the most visible symptom of the current divergence:
+
+```typescript
+// Currently in workbenchSyncStore.ts
+interface WorkbenchHandles {
+    handleStart: () => void;
+    handlePause: () => void;
+    handleStop: () => void;
+    handleNext: () => void;
+    handleStartWorkoutAction: (block: WodBlock) => void;
+}
+```
+
+This exists because `CastButtonRpc`'s `eventProvider.onEvent()` handler needs to call `execution.start()` (a React closure) when a Chromecast button event arrives. The Zustand store is used as a slot to store the closure so it's accessible from outside the React component tree.
+
+Under the target architecture:
+- Chromecast button events arrive at `ChromecastViewSession.eventProvider.onEvent()`.
+- The handler calls `localEventProvider.dispatch(event)`.
+- `LocalEventProvider.dispatch()` manages the tick loop internally.
+- No closures need to be stored in the Zustand store.
+- `WorkbenchHandles` is deleted.
+
+The Zustand store (`workbenchSyncStore`) becomes pure display state: runtime reference, execution status (read-only), analytics segments, document structure. No callback slots.
 
 ---
 
 ## Summary Table
 
-| # | Opportunity | Files Touched | Primary Gain |
-|---|------------|--------------|-------------|
-| 1 | Unified UI Command Channel (`IRuntimeEventProvider` browser-side) | `timer-panel.tsx`, `TimerStackView.tsx`, `useWorkbenchRuntime.ts`, `CastButtonRpc.tsx` | New button event = 1 file change; `TimerStackView` testable in isolation |
-| 2 | Formal `IViewSession` Handshake | `CastButtonRpc.tsx`, `ChromecastProxyRuntime.ts`, `receiver-rpc.tsx` | Reconnect/handshake logic concentrated; testable without React |
-| 3 | Unified Panel Handshake (`IViewPanelHost`) | All `*-chromecast.tsx` panels, `VisualStatePanel`, `TimerDisplay` | Chromecast panels become thin adapters over standard components |
-| 4 | `WorkbenchModeResolver` — single mode-mapping path | `WorkbenchCastBridge.tsx`, `CastButtonRpc.tsx`, `receiver-rpc.tsx` | Duplicate mode-logic removed; new modes added in one place |
-
----
-
-## Current State: What Already Works Well
-
-Before the deepening opportunities, it is worth noting the **correct seams that already exist and should be preserved**:
-
-- **`IRpcTransport`** — transport-agnostic bidirectional channel. Clean interface, independently testable. ✓
-- **`IRuntimeSubscription` / `ICastSubscription`** — the fan-out subscription model for pushing runtime state to multiple sinks (local + cast). ✓
-- **`ScriptRuntimeProvider` + standard runtime hooks** — the receiver already uses identical hooks (`useSnapshotBlocks`, `usePrimaryTimer`, `useOutputStatements`) as the browser. The display-data handshake is sound. ✓
-- **`SerializedBlock` / `RpcMessages`** — the wire protocol is well-typed and versioned. ✓
-- **`ProxyBlock` update-in-place cache** — preserves subscriber connections across RPC updates. ✓
-
-The deepening work is specifically on the **input side** (button events) and the **connection lifecycle** (session handshake), not the display output path.
+| # | Opportunity | Core Change | Files Deleted / Simplified |
+|---|------------|-------------|---------------------------|
+| 1 | `LocalEventProvider` | Browser buttons → `IEvent` via `IRuntimeEventProvider` | `WorkbenchHandles` from store; 4 callback props from `TimerStackView` |
+| 2 | `IViewSession` | Connection handshake = named interface | `CastButtonRpc` shrinks ~80%; `receiver-rpc.tsx` shrinks ~60% |
+| 3 | Unified panels | Chromecast panels adopt shared components | `timer-panel-chromecast.tsx`, `track-panel-chromecast.tsx` deleted |
+| 4 | `WorkbenchModeResolver` | Single mode-mapping location | Duplicate helpers in `CastButtonRpc` deleted |
 
 ---
 
 ## Recommended Sequencing
 
-The opportunities are not independent — they build on each other:
-
 ```
-Opportunity 1 (Unified Command Channel)
-  └── enables Opportunity 3 (Unified Panel Handshake)
-        └── reduces surface area of Opportunity 2 (IViewSession)
-              └── makes Opportunity 4 (Mode Resolver) a natural cleanup
+1. LocalEventProvider  ← unblocks everything else
+   │
+   └── 3. Unified panels  ← Chromecast panels become thin adapters
+   │
+   └── 2. IViewSession    ← CastButtonRpc / receiver-rpc wiring collapses
+             │
+             └── 4. WorkbenchModeResolver  ← natural cleanup once IViewSession owns the channel
 ```
 
-**Start with Opportunity 1.** Introducing `LocalEventProvider` and wiring `TimerStackView` to `IRuntimeEventProvider` is a self-contained change with no protocol impact. It immediately makes `TimerStackView` independently testable. Opportunity 3 follows naturally because the cast panels can then drop their `onEvent: string` prop in favour of the same interface.
+**Start with Opportunity 1.** It is self-contained, requires no protocol changes, and immediately makes `TimerStackView` and the runtime event system testable in isolation. Everything else follows.
 
 ---
 
 ## Vocabulary Additions for CONTEXT.md
 
-If these opportunities are pursued, the following terms should be added to the project's domain glossary:
-
 | Term | Definition |
 |------|-----------|
-| **View Session** | A connected channel between a UI surface and a runtime session, providing both display subscriptions and an event command path. Implementations: `ChromecastViewSession`, `LocalViewSession`. |
-| **View Panel Host** | A surface that can host a runtime view: large-screen browser track panel, Chromecast receiver, future second-screen web view. All connect via `IViewSession`. |
-| **Workbench Display Mode** | The coarse UI state of the workbench as seen by a remote display: `idle`, `preview`, `active`, `review`. Determined by `WorkbenchModeResolver`; sent via `RpcWorkbenchUpdate`. |
-| **UI Command** | A named runtime event originating from a UI control (button, D-Pad key, gesture). Dispatched through `IRuntimeEventProvider.dispatch()` regardless of which surface generated it. |
+| **View Session** | A connected pair of (subscription, eventProvider) linking a UI surface to the runtime. The browser's local view and the Chromecast receiver are both View Sessions. The runtime has no knowledge of how many sessions are attached. |
+| **Local View Session** | A zero-latency `IViewSession` where `LocalEventProvider` calls `runtime.handle()` directly and manages the tick loop internally. |
+| **Chromecast View Session** | An async `IViewSession` where commands travel over WebRTC via `ChromecastEventProvider` and state travels via `ChromecastRuntimeSubscription`. |
+| **UI Command** | A named `IEvent` originating from a user control (button, D-Pad key, gesture). All surfaces dispatch UI Commands through `IRuntimeEventProvider`. The runtime processes them uniformly. |
+| **Tick Loop** | The 20ms interval that dispatches `TickEvent` to drive the runtime forward. Infrastructure — managed by `LocalEventProvider`, not exposed to UI components. |
