@@ -38,12 +38,28 @@ function currentDisplayMetricContainer(ctx: SessionTestContext): MetricContainer
     const block = ctx.runtime.stack.current;
     if (!block) return MetricContainer.empty('current-display');
 
-    const metrics = MetricContainer.empty(block.key.toString());
+    const memoryMetrics = MetricContainer.empty(block.key.toString());
     for (const loc of block.getMemoryByTag('metric:display')) {
-        metrics.merge(loc.metrics);
+        memoryMetrics.merge(loc.metrics);
     }
 
-    return metrics;
+    const statementMetrics = MetricContainer.empty(block.key.toString());
+    for (const statement of ctx.runtime.script.getIds(block.sourceIds)) {
+        statementMetrics.merge(statement.getDisplayMetrics());
+    }
+
+    if (statementMetrics.isEmpty) {
+        return memoryMetrics;
+    }
+
+    const effectiveMetrics = memoryMetrics.clone(block.key.toString());
+    const overriddenTypes = new Set(statementMetrics.getDisplayMetrics().map(metric => metric.type));
+    for (const metricType of overriddenTypes) {
+        effectiveMetrics.remove(metric => metric.type === metricType);
+    }
+
+    effectiveMetrics.merge(statementMetrics);
+    return effectiveMetrics;
 }
 
 /**
