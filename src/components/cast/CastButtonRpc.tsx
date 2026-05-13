@@ -11,10 +11,9 @@ import { Button } from '@/components/ui/button';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { useSubscriptionManager } from '@/components/layout/SubscriptionManagerContext';
 import { ChromecastSdk, type CastSdkState, CAST_APP_ID, hasCustomCastAppId, ChromecastSenderViewSession } from '@/hooks/useCastSignaling';
-import type { RpcWorkbenchUpdate } from '@/hooks/useCastSignaling';
 import { cn } from '@/lib/utils';
 import { ProjectionSyncProvider } from './ProjectionSyncContext';
-import { buildPreviewProjection, buildReviewProjection } from '@/app/cast/workbenchProjection';
+import { workbenchModeResolver } from '@/app/cast/workbenchModeResolver';
 
 export const CastButtonRpc: React.FC = () => {
     const [sdkState, setSdkState] = useState<CastSdkState>(ChromecastSdk.getState());
@@ -29,15 +28,6 @@ export const CastButtonRpc: React.FC = () => {
 
     const buttonRef = useRef<HTMLButtonElement | null>(null);
     const senderSessionRef = useRef<ChromecastSenderViewSession | null>(null);
-    const lastWorkbenchFingerprintRef = useRef<string>('');
-
-    // --- Workbench Mode Syncing (Playground Bridge) ---
-    const viewMode = useWorkbenchSyncStore(s => s.viewMode);
-    const selectedBlock = useWorkbenchSyncStore(s => s.selectedBlock);
-    const documentItems = useWorkbenchSyncStore(s => s.documentItems);
-    const analyticsSegments = useWorkbenchSyncStore(s => s.analyticsSegments);
-    const runtime = useWorkbenchSyncStore(s => s.runtime);
-    const execution = useWorkbenchSyncStore(s => s.execution);
 
     const cleanupCast = useCallback((notifyRemote: boolean) => {
         const session = senderSessionRef.current;
@@ -90,38 +80,16 @@ export const CastButtonRpc: React.FC = () => {
         });
 
         const workbenchState = useWorkbenchSyncStore.getState();
-        viewSession.transport?.send({
-            type: 'rpc-workbench-update',
-            mode: workbenchState.execution.status === 'running' ? 'active' : 'idle',
+        const message = workbenchModeResolver.resolve({
+            viewMode: workbenchState.viewMode,
+            executionStatus: workbenchState.execution.status,
+            runtime: workbenchState.runtime,
+            analyticsSegments: workbenchState.analyticsSegments,
+            selectedBlock: workbenchState.selectedBlock,
+            documentItems: workbenchState.documentItems,
         });
+        viewSession.transport?.send(message);
     }, [subscriptionManager, setCastTransport, cleanupCast]);
-
-    useEffect(() => {
-        const transport = senderSessionRef.current?.transport;
-        if (!isCasting || !transport?.connected) return;
-
-        let message: RpcWorkbenchUpdate;
-
-        if (runtime && (execution.status === 'running' || execution.status === 'paused' || execution.status === 'completed')) {
-            return;
-        }
-
-        if (viewMode === 'review' && analyticsSegments.length > 0) {
-            message = buildReviewProjection(analyticsSegments);
-        } else {
-            message = buildPreviewProjection(selectedBlock, documentItems);
-        }
-
-        const fingerprint = JSON.stringify(message);
-        if (fingerprint === lastWorkbenchFingerprintRef.current) return;
-        lastWorkbenchFingerprintRef.current = fingerprint;
-
-        try {
-            transport.send(message);
-        } catch (err) {
-            console.warn('[CastButtonRpc] Failed to send workbench update:', err);
-        }
-    }, [isCasting, viewMode, selectedBlock, documentItems, analyticsSegments, runtime, execution.status]);
 
     // Re-adopt or re-establish transport on mount/remount.
     useEffect(() => {
