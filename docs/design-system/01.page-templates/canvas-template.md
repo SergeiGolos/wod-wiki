@@ -2,7 +2,7 @@
 
 **Component:** `CanvasTemplate` (Template)
 **Atomic Level:** Template — scroll-driven editorial lifecycle + markdown content shell
-**Status:** Design Draft
+**Status:** Design Draft — implementation tracked in [WOD-261](/WOD/issues/WOD-261)
 **Parent Template:** [AppTemplate](../00.layout-template/app-template.md)
 **Last Updated:** 2026-04-30
 

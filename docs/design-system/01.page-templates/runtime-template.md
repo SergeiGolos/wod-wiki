@@ -2,7 +2,7 @@
 
 **Component:** `RuntimeTemplate` (Template)
 **Atomic Level:** Template — workout execution lifecycle + result persistence shell
-**Status:** Design Draft
+**Status:** Design Draft — implementation tracked in [WOD-261](/WOD/issues/WOD-261)
 **Parent Template:** [FocusTemplate](../00.layout-template/focus-template.md) *(substitutable with AppTemplate for inline overlay mode)*
 **Last Updated:** 2026-04-30
 

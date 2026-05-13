@@ -3,6 +3,7 @@
 **Mode:** `waiting`
 **Trigger:** No WebRTC connection established / Cast SDK not yet ready
 **Component:** *(inline in `ReceiverApp` — no dedicated component)*
+**Status:** Implemented
 **Common infrastructure:** [chromecast-template.md](../01.page-templates/chromecast-template.md)
 
 ---

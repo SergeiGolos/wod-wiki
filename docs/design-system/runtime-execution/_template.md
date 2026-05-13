@@ -5,6 +5,7 @@
 | **Name**        | Tracker / Review |
 | **Code**        | `TrackerPage` / `ReviewPage` in `playground/src/App.tsx` |
 | **Routes**      | `/tracker/:runtimeId`, `/review/:runtimeId` |
+| **Status**      | Implemented |
 
 ## State Management
 

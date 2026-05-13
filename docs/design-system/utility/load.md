@@ -4,6 +4,7 @@
 |--|--|
 | **Route** | `/load` |
 | **Component** | `LoadZipPage` |
+| **Status** | Implemented |
 
 ## State Management
 

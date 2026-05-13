@@ -3,6 +3,7 @@
 **Mode:** `active` / `idle`
 **Trigger:** Runtime connected and a workout block is running (or paused)
 **Components:** `ReceiverStackPanel`, `MetricTrackerCard`, `ReceiverTimerPanel`
+**Status:** Implemented
 **Common infrastructure:** [chromecast-template.md](../01.page-templates/chromecast-template.md)
 
 ---

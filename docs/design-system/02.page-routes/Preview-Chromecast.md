@@ -3,6 +3,7 @@
 **Mode:** `preview`
 **Trigger:** `previewData` received from the browser sender
 **Component:** `ReceiverPreviewPanel`
+**Status:** Implemented
 **Common infrastructure:** [chromecast-template.md](../01.page-templates/chromecast-template.md)
 
 ---

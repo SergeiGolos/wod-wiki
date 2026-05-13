@@ -2,7 +2,7 @@
 
 **Component:** `FocusTemplate` (Template)
 **Atomic Level:** Template — full-screen single-column layout shell
-**Status:** Design Draft
+**Status:** Design Draft — implementation tracked in [WOD-261](/WOD/issues/WOD-261)
 **Last Updated:** 2026-05-01
 
 ---

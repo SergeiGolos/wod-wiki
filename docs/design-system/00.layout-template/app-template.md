@@ -1,6 +1,6 @@
 **Component:** `AppTemplate` (Template)  
 **Atomic Level:** Template — layout skeleton with slot-based composition  
-**Status:** Design Draft  
+**Status:** Design Draft — implementation tracked in [WOD-261](/WOD/issues/WOD-261)  
 **Last Updated:** 2026-04-30  
   
 ---  
@@ -211,6 +211,8 @@ interface AppTemplateProps {
 ---  
   
 **Relationship to** `**SidebarLayout**`  
+  
+> ⚠️ **Implementation gap** — `AppTemplate` is a **Design Draft**. The currently shipped shell is `SidebarLayout` (`src/components/playground/sidebar-layout.tsx`), which is a 2-panel layout (left nav + content) with a mobile drawer. `AppTemplate` extends that into a 3-panel, 3-breakpoint system. Until [WOD-261](/WOD/issues/WOD-261) ships, `SidebarLayout` is the live reference. Do not build page shells against this spec without confirming which layout is active.  
   
 `AppTemplate` extends `SidebarLayout` with:
 

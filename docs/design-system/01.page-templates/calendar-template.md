@@ -2,7 +2,7 @@
 
 **Component:** `CalendarTemplate` (Template)
 **Atomic Level:** Template — date-navigation lifecycle + journal data shell
-**Status:** Design Draft
+**Status:** Design Draft — implementation tracked in [WOD-261](/WOD/issues/WOD-261)
 **Parent Template:** [AppTemplate](../00.layout-template/app-template.md)
 **Last Updated:** 2026-04-30
 

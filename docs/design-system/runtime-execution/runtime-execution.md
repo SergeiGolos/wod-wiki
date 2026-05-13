@@ -5,6 +5,7 @@
 | **Route Patterns** | `/tracker/:runtimeId`, `/review/:runtimeId`           |
 | **Template**       | [Tracker / Review](design-system/runtime-execution/_template.md) |
 | **Components**     | `TrackerPage`, `ReviewPage`                           |
+| **Status**         | Implemented                                           |
 
 ## State Management
 

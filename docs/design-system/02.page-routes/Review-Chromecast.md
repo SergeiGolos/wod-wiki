@@ -3,6 +3,7 @@
 **Mode:** `review`
 **Trigger:** `reviewData` received from sender on workout completion
 **Component:** `ReceiverReviewPanel`
+**Status:** Implemented
 **Common infrastructure:** [chromecast-template.md](../01.page-templates/chromecast-template.md)
 
 ---
