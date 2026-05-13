@@ -13,6 +13,19 @@ describe('runtimeTimerModel', () => {
     expect(countSegmentOutputs(outputs)).toBe(2);
   });
 
+  it('counts zero when no segment outputs', () => {
+    const outputs = [
+      { outputType: 'system' },
+      { outputType: 'compiler' },
+    ] as any;
+
+    expect(countSegmentOutputs(outputs)).toBe(0);
+  });
+
+  it('counts zero for empty outputs array', () => {
+    expect(countSegmentOutputs([])).toBe(0);
+  });
+
   it('builds persisted workout results from runtime outputs', () => {
     const startTime = 1_700_000_000_000;
     const outputs = [
@@ -53,5 +66,35 @@ describe('runtimeTimerModel', () => {
     expect(results.duration).toBe(60000);
     expect(results.completed).toBe(true);
     expect(results.logs).toHaveLength(1);
+  });
+
+  it('uses Date.now() as startTime fallback when not provided', () => {
+    const before = Date.now();
+
+    const results = buildWorkoutResults([], {
+      elapsedTime: 0,
+      completed: false,
+    });
+
+    const after = Date.now();
+
+    // startTime should be within the current test window
+    expect(results.startTime).toBeGreaterThanOrEqual(before);
+    expect(results.startTime).toBeLessThanOrEqual(after);
+    expect(results.duration).toBe(0);
+    expect(results.completed).toBe(false);
+    expect(results.logs).toHaveLength(0);
+  });
+
+  it('buildWorkoutResults handles zero elapsedTime and incomplete state', () => {
+    const results = buildWorkoutResults([], {
+      startTime: 1_700_000_000_000,
+      elapsedTime: 0,
+      completed: false,
+    });
+
+    expect(results.duration).toBe(0);
+    expect(results.completed).toBe(false);
+    expect(results.logs).toHaveLength(0);
   });
 });
