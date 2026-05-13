@@ -53,7 +53,7 @@ export interface WodFeed {
  *     - crossfit
  *     - conditioning
  */
-function parseFrontmatterCategories(raw: string): string[] {
+export function parseFrontmatterCategories(raw: string): string[] {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return [];
 
@@ -79,7 +79,7 @@ function parseFrontmatterCategories(raw: string): string[] {
   return categories;
 }
 
-function toDisplayName(slug: string): string {
+export function toDisplayName(slug: string): string {
   return slug
     .split(/[-_\s]+/)
     .filter(Boolean)
@@ -87,7 +87,7 @@ function toDisplayName(slug: string): string {
     .join(' ');
 }
 
-function fileToDisplayName(filename: string): string {
+export function fileToDisplayName(filename: string): string {
   const base = filename.replace(/\.md$/, '');
   if (base.toUpperCase() === 'README') return 'Overview';
   // Strip leading "day-01-" prefixes if present, then humanise
