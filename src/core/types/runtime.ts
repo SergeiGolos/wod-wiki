@@ -1,49 +1,38 @@
 /**
- * Runtime types for WOD Wiki
- * 
- * These types define the runtime execution engine interfaces including
- * script runtime, blocks, actions, memory, and compilation strategies.
- * 
- * Note: All types are re-exported from src/runtime/ which is the canonical source.
- * Import from here for convenience, but the definitions live in src/runtime/.
+ * @deprecated Compatibility shim for legacy deep imports.
+ *
+ * `core/types/runtime` is no longer part of the `@/core` or `wod-wiki/types`
+ * barrels. Import from `@/runtime/contracts` (or the concrete runtime modules)
+ * instead. This file forwards to the canonical runtime definitions so old deep
+ * imports keep resolving without carrying duplicate placeholder types.
  */
 
-// NOTE
-// `core/` must not depend on `runtime/`.
-// This file intentionally exports only placeholders so older import sites
-// still type-check, while `runtime` remains the canonical source.
-//
-// If you need these types, import from `@/runtime/contracts` instead.
+export type { IScriptRuntime } from '../../runtime/contracts/IScriptRuntime';
+export type { IRuntimeBlock, BlockLifecycleOptions } from '../../runtime/contracts/IRuntimeBlock';
+export type { IRuntimeAction } from '../../runtime/contracts/IRuntimeAction';
+export type { IRuntimeMemory, MemorySearchCriteria } from '../../runtime/contracts/IRuntimeMemory';
+export type { IMemoryReference } from '../../runtime/contracts/IMemoryReference';
+export type { TypedMemoryReference } from '../../runtime/impl/TypedMemoryReference';
+export type { IRuntimeBlockStrategy } from '../../runtime/contracts/IRuntimeBlockStrategy';
+export type { IRuntimeBehavior } from '../../runtime/contracts/IRuntimeBehavior';
+export type { IBlockContext } from '../../runtime/contracts/IBlockContext';
+export type { IRuntimeStack } from '../../runtime/contracts/IRuntimeStack';
+export type { IRuntimeClock } from '../../runtime/contracts/IRuntimeClock';
+export type { IEvent } from '../../runtime/contracts/events/IEvent';
+export type { IEventBus } from '../../runtime/contracts/events/IEventBus';
+export type { IEventHandler } from '../../runtime/contracts/events/IEventHandler';
 
-export type IScriptRuntime = unknown;
-export type IRuntimeBlock = unknown;
-export type BlockLifecycleOptions = unknown;
-export type IRuntimeAction = unknown;
-export type IRuntimeMemory = unknown;
-export type MemorySearchCriteria = unknown;
-export type IMemoryReference = unknown;
-export type TypedMemoryReference<T = unknown> = unknown;
-export type IRuntimeBlockStrategy = unknown;
-export type IRuntimeBehavior = unknown;
-export type IBlockContext = unknown;
-export type IRuntimeStack = unknown;
-export type IRuntimeClock = unknown;
-export type IEvent = unknown;
-export type IEventBus = unknown;
-export type IEventHandler = unknown;
+export type { RuntimeStack } from '../../runtime/RuntimeStack';
+export type { JitCompiler } from '../../runtime/compiler/JitCompiler';
+export type { ScriptRuntime } from '../../runtime/ScriptRuntime';
+export type { RuntimeBlock } from '../../runtime/RuntimeBlock';
+export type { RuntimeMemory } from '../../runtime/RuntimeMemory';
+export type { BlockContext } from '../../runtime/BlockContext';
 
-export type RuntimeStack = unknown;
-export type JitCompiler = unknown;
-export type ScriptRuntime = unknown;
-export type RuntimeBlock = unknown;
-export type RuntimeMemory = unknown;
-export type BlockContext = unknown;
+export type { IScriptRuntime as ScriptRuntimeInterface } from '../../runtime/contracts/IScriptRuntime';
+export type { IRuntimeBlock as RuntimeBlockInterface } from '../../runtime/contracts/IRuntimeBlock';
+export type { IRuntimeAction as RuntimeActionInterface } from '../../runtime/contracts/IRuntimeAction';
+export type { IRuntimeMemory as RuntimeMemoryInterface } from '../../runtime/contracts/IRuntimeMemory';
+export type { IRuntimeBlockStrategy as RuntimeBlockStrategyInterface } from '../../runtime/contracts/IRuntimeBlockStrategy';
 
-export type ScriptRuntimeInterface = IScriptRuntime;
-export type RuntimeBlockInterface = IRuntimeBlock;
-export type RuntimeActionInterface = IRuntimeAction;
-export type RuntimeMemoryInterface = IRuntimeMemory;
-export type RuntimeBlockStrategyInterface = IRuntimeBlockStrategy;
-
-// Re-export from core for convenience
 export type { ICodeStatement } from './core';
