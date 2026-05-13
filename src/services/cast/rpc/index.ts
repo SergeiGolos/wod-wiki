@@ -22,3 +22,9 @@ export { ChromecastEventProvider } from './ChromecastEventProvider';
 export { ChromecastProxyRuntime } from './ChromecastProxyRuntime';
 export { ProxyBlock } from './ProxyBlock';
 export { ClockSyncService, type ClockSyncOptions, type ClockSyncResult } from './ClockSync';
+export {
+    type IViewSession,
+    ChromecastSenderViewSession,
+    ChromecastReceiverViewSession,
+    LocalViewSession,
+} from './ViewSession';

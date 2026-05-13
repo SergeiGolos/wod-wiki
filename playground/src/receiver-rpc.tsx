@@ -23,7 +23,6 @@ import { ChromecastProxyRuntime } from '@/services/cast/rpc/ChromecastProxyRunti
 import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyRuntime';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
 import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
@@ -40,7 +39,6 @@ const ReceiverApp: React.FC = () => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
     const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
-    const [now, setNow] = useState(Date.now());
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
@@ -108,20 +106,6 @@ const ReceiverApp: React.FC = () => {
         };
         window.addEventListener('click', handleGlobalClick, true);
         return () => window.removeEventListener('click', handleGlobalClick, true);
-    }, []);
-
-    // Local clock for smooth timer interpolation
-    // Uses the proxy runtime's clock sync offset to match sender's elapsed time
-    useEffect(() => {
-        let frameId: number;
-        const tick = () => {
-            // Use the sender's clock time (adjusted for drift) instead of local Date.now()
-            const senderNow = runtimeRef.current?.getSenderClockTimeMs() ?? Date.now();
-            setNow(senderNow);
-            frameId = requestAnimationFrame(tick);
-        };
-        tick();
-        return () => cancelAnimationFrame(frameId);
     }, []);
 
     // Expose the sender's clock time globally for useTimerDisplay hook access
@@ -305,7 +289,7 @@ const ReceiverApp: React.FC = () => {
     // Waiting screen (not yet connected)
     if (!proxyRuntime) {
         return (
-            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/20 font-mono uppercase tracking-[0.5em]">
+            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/60 font-mono uppercase tracking-[0.5em]">
                 <div className="animate-pulse">Wod.Wiki // {connectionStatus}</div>
             </div>
         );
@@ -356,15 +340,19 @@ const ReceiverApp: React.FC = () => {
 
                     {/* Left Column: Stack & Lookahead */}
                     <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">
-                        <ReceiverStackPanel localNow={now} />
+                        <ReceiverStackPanel />
                     </div>
 
                     {/* Right Column: Timer & Controls */}
                     <div className="w-1/2 flex flex-col bg-background transition-all duration-300">
-                        <div className="p-4 pt-6">
-                            <MetricTrackerCard />
-                        </div>
-                        <ReceiverTimerPanel localNow={now} onEvent={sendEvent} getFocusProps={getFocusProps} />
+                        <ReceiverTimerPanel
+                            eventProvider={{
+                                dispatch: (event: { name: string }) => sendEvent(event.name),
+                                onEvent: () => () => { },
+                                dispose: () => { },
+                            } as any}
+                            getFocusProps={getFocusProps}
+                        />
                         <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                             {connectionStatus}
                         </div>

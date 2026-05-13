@@ -14,6 +14,7 @@
  */
 
 import { test, expect, Page } from '@playwright/test';
+import { TEST_IDS } from '../contracts/TestIdContract';
 
 // ─ Story URL helpers ──────────────────────────────────────────────────────────
 
@@ -52,7 +53,7 @@ async function clickRunButton(page: Page) {
   // InlineCommandBar is a hover overlay — must hover the editor to reveal Run
   const editor = page.locator('.cm-note-editor').first();
   if (await editor.count()) await editor.hover();
-  const startBtn = page.locator('[data-testid="editor-start-workout"]').first();
+  const startBtn = page.locator(`[data-testid="${TEST_IDS.EDITOR_START_WORKOUT}"]`).first();
   await startBtn.waitFor({ state: 'visible', timeout: 5000 });
   await startBtn.click();
 }
@@ -60,7 +61,7 @@ async function clickRunButton(page: Page) {
 
 function nextButton(page: Page) {
   return page
-    .locator('[data-testid="tracker-next"]')
+    .locator(`[data-testid="${TEST_IDS.TRACKER_NEXT_BUTTON}"]`)
     .or(page.locator('[title="Next Block"]'))
     .or(page.getByRole('button', { name: /next block/i }))
     .first();
@@ -97,7 +98,7 @@ test.describe('CrossFit Acceptance — Fran (21-15-9)', () => {
     await page.locator('#tutorial-view-mode-plan').click();
 
     // Run button should be present in the Plan panel editor
-    const startBtn = page.locator('[data-testid="editor-start-workout"]').first();
+    const startBtn = page.locator(`[data-testid="${TEST_IDS.EDITOR_START_WORKOUT}"]`).first();
     await expect(startBtn).toBeVisible({ timeout: 5000 });
   });
 
@@ -161,7 +162,7 @@ test.describe('CrossFit Acceptance — Fran (21-15-9)', () => {
 
     // Review panel should show result rows
     const reviewPanel = page
-      .locator('[data-testid="review-panel"]')
+      .locator(`[data-testid="${TEST_IDS.REVIEW_PANEL}"]`)
       .or(page.locator('table:not([aria-hidden])'))
       .first();
     await expect(reviewPanel).toBeVisible({ timeout: 5000 });

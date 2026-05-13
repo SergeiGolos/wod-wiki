@@ -85,8 +85,3 @@ export type { ControlsConfig, ButtonConfig } from './ButtonBehavior';
 // Lifecycle Aspect
 // ============================================================================
 export { WaitingToStartInjectorBehavior } from './WaitingToStartInjectorBehavior';
-
-// ============================================================================
-// Utility Exports (not deprecated)
-// ============================================================================
-export { TimeSpan } from '../models/TimeSpan';

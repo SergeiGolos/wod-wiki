@@ -4,19 +4,9 @@ import { IBlockContext } from './IBlockContext';
 import { IRuntimeBehavior } from './IRuntimeBehavior';
 import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 import { MetricVisibility } from '../memory/MetricVisibility';
-import type { IBlockRef, IMemoryEntryShim as IMemoryEntryShimPrimitive } from './primitives/IBlockRef';
+import type { IBlockRef } from './primitives/IBlockRef';
 import type { BlockLifecycleOptions as BlockLifecycleOptionsPrimitive } from './primitives/IBlockLifecycle';
-
-/**
- * Backward-compatible memory entry shape.
- * Provides a shim over IMemoryLocation for callers still using the old API.
- *
- * Re-exported from the primitives layer (`primitives/IBlockRef.ts`) for
- * backward compatibility with existing import sites.
- */
-export type IMemoryEntryShim<V = unknown> = IMemoryEntryShimPrimitive<V>;
 
 /**
  * Re-export of the primitives `BlockLifecycleOptions` for backward
@@ -247,26 +237,4 @@ export interface IRuntimeBlock extends IBlockRef {
      * @param reason Optional reason for completion (for debugging/history)
      */
     markComplete(reason?: string): void;
-
-    // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
-    // ============================================================================
-
-    /**
-     * @deprecated Use getMemoryByTag() instead. Backward-compatible shim that
-     * reads from the list-based memory and returns a legacy-shaped entry.
-     */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined;
-
-    /**
-     * @deprecated Use getMemoryByTag().length > 0 instead. Backward-compatible shim.
-     */
-    hasMemory(type: MemoryType): boolean;
-
-    /**
-     * @deprecated Use pushMemory() or the BehaviorContext API instead.
-     * Backward-compatible shim that updates the first matching memory location's
-     * metrics value, or creates a new location if none exists.
-     */
-    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

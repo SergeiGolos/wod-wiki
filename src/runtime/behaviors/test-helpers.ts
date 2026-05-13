@@ -221,38 +221,6 @@ export function createIntegrationContext(
             runtime.completionReason = reason;
         },
 
-        getMemory<T extends MemoryType>(type: T): MemoryTypeMap[T] | undefined {
-            // Check list-based memory first
-            const tag = type as string as MemoryTag;
-            const locations = block._memoryList.filter(loc => loc.tag === tag);
-            if (locations.length > 0 && locations[0].metrics.length > 0) {
-                return locations[0].metrics[0]?.value as MemoryTypeMap[T];
-            }
-            return block.memory.get(type) as MemoryTypeMap[T] | undefined;
-        },
-
-        setMemory<T extends MemoryType>(type: T, value: MemoryTypeMap[T]) {
-            // Try list-based first
-            const tag = type as string as MemoryTag;
-            const locations = block._memoryList.filter(loc => loc.tag === tag);
-            if (locations.length > 0) {
-                const loc = locations[0];
-                if (loc.metrics.length > 0) {
-                    loc.update(loc.metrics.map((f, i) => i === 0 ? { ...f, value } : f));
-                } else {
-                    loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-                }
-            } else {
-                block.memory.set(type, value);
-            }
-        },
-
-        pushMemory(tag: string, metrics: IMetric[]): IMemoryLocation {
-            const location = new MemoryLocation(tag as MemoryTag, metric);
-            block.pushMemory(location);
-            return location;
-        },
-
         getMemoryByTag(tag: MemoryTag): IMemoryLocation[] {
             return block.getMemoryByTag(tag);
         },
@@ -263,7 +231,7 @@ export function createIntegrationContext(
                 locations[0].update(metrics);
             }
         }
-    } as IBehaviorContext;
+    } as unknown as IBehaviorContext;
 }
 
 /**

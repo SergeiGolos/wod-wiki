@@ -8,7 +8,7 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
 import { MetricVisualizer } from '../../src/components/metrics';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
-import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
+import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies/IdleBlockStrategy';
 import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
@@ -64,7 +64,7 @@ function RuntimeClockDisplay({ runtime }: { runtime: ScriptRuntime }) {
   // Find the first timer block in the current stack by checking for TimerState memory
   const timerBlock = runtime?.stack?.blocks?.find((block: IRuntimeBlock) => {
     // Check if this block has TimerState memory using the new API
-    return block.hasMemory('time');
+    return block.getMemoryByTag('time').length > 0;
   });
 
   if (!timerBlock) {

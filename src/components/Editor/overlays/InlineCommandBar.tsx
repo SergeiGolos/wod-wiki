@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import type { INavActivation } from "@/nav/navTypes";
+import { TEST_IDS } from "@/testing/contracts/TestIdContract";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ const CommandPill: React.FC<{
           !cmd.primary && "border border-border/50",
         )}
         title={cmd.label}
-        data-testid={cmd.id === 'run' ? 'editor-start-workout' : undefined}
+        data-testid={cmd.id === 'run' ? TEST_IDS.EDITOR_START_WORKOUT : undefined}
         onClick={(e) => {
           stopEvent(e);
           cmd.onClick(block);

@@ -23,6 +23,7 @@ bun run setup            # Install Playwright browsers (may fail - expected)
 ```bash
 bun run storybook        # Start Storybook on http://localhost:6006 (~2s startup)
 bun run build-storybook  # Build static Storybook (~30s - NEVER CANCEL)
+bun run check:storybook-deps  # Verify Storybook packages stay dev-only
 bun run docs:check       # Validate documentation links (<1 second)
 ```
 
@@ -269,8 +270,8 @@ After making changes, always validate:
 
 ### Documentation Files
 - Save new Markdown documentation to `/docs` directory
-- Documentation auto-published to GitHub Wiki when pushed to main branch
-- API documentation in `docs/runtime-api.md` provides detailed runtime stack patterns
+- Documentation is managed in Obsidian and synced to the GitHub Wiki via the CMO agent
+- API documentation in the Obsidian vault (`deep-dives/runtime-session-implementation.md`) provides detailed runtime stack patterns
 
 ## Performance Considerations
 

@@ -25,18 +25,13 @@ import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, SubscriptionManager, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
-import { runtimeFactory, globalParser } from "@/hooks/useRuntimeFactory";
 import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncService } from "@/hooks/useCastSignaling";
-import type { RpcWorkbenchUpdate } from "@/hooks/useCastSignaling";
 import { useWorkbenchSyncStore } from "@/components/layout/workbenchSyncStore";
 import type { WodBlock, WorkoutResults } from "../types";
-import { toStoredOutputStatement } from "../types";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-unified";
-import { formatTimeMMSS } from "@/lib/formatTime";
-
-// Singleton factory — use shared factory from hooks layer to avoid re-constructing the compiler
-const factory = runtimeFactory;
+import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
+import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock } from "@/app/editor/runtimeTimerModel";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -158,10 +153,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   useEffect(() => {
     // Parse content if statements aren't already populated (sectionToWodBlock
     // doesn't run the parser, so statements is typically undefined here).
-    const blockWithStatements = block.statements?.length
-      ? block
-      : { ...block, statements: globalParser.read(block.content).statements };
-    const rt = factory.createRuntime(blockWithStatements);
+    const rt = createRuntimeForBlock(block);
     if (!rt) {
       // Block has no compilable statements — nothing to run
       return;
@@ -225,13 +217,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     runtime.finalizeAnalytics();
     const allOutputs = runtime.getOutputStatements();
 
-    const results: WorkoutResults = {
-      startTime: execution.startTime || Date.now(),
-      endTime: Date.now(),
-      duration: execution.elapsedTime,
+    const results: WorkoutResults = buildWorkoutResults(allOutputs, {
+      startTime: execution.startTime,
+      elapsedTime: execution.elapsedTime,
       completed,
-      logs: allOutputs.map(toStoredOutputStatement),
-    };
+    });
 
     onComplete?.(block.id, results);
   }, [block.id, execution.elapsedTime, execution.startTime, onComplete, runtime]);
@@ -251,19 +241,11 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       const transport = useWorkbenchSyncStore.getState().castTransport;
       if (transport?.connected) {
         const allOutputs = runtime?.getOutputStatements() || [];
-        const segmentCount = allOutputs.filter((o: IOutputStatement) => o.outputType === 'segment').length;
-        const reviewMessage: RpcWorkbenchUpdate = {
-          type: 'rpc-workbench-update',
-          mode: 'review',
-          reviewData: {
-            totalDurationMs: execution.elapsedTime,
-            completedSegments: segmentCount,
-            rows: [
-              { label: 'Total Time', value: formatTimeMMSS(execution.elapsedTime) },
-              { label: 'Segments', value: String(segmentCount) },
-            ],
-          },
-        };
+        const segmentCount = countSegmentOutputs(allOutputs);
+        const reviewMessage = buildCompletedRuntimeProjection({
+          totalDurationMs: execution.elapsedTime,
+          segmentCount,
+        });
         try { transport.send(reviewMessage); } catch { /* ignore */ }
       }
     }

@@ -78,7 +78,7 @@ export function getMetricVisibility(tag: MemoryTag): MetricVisibility | undefine
  * Returns `true` if the tag belongs to a metrics namespace.
  */
 export function isFragmentTag(tag: MemoryTag): boolean {
-    return (tag as string).startsWith('metric:') || tag ===   'metric';
+    return (tag as string).startsWith('metric:') || tag === 'metrics';
 }
 
 /**

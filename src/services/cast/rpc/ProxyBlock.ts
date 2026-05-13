@@ -1,10 +1,10 @@
-import { IRuntimeBlock, BlockLifecycleOptions, IMemoryEntryShim } from '@/runtime/contracts/IRuntimeBlock';
+import { IRuntimeBlock, BlockLifecycleOptions } from '@/runtime/contracts/IRuntimeBlock';
 import { IBlockContext } from '@/runtime/contracts/IBlockContext';
 import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import { IRuntimeAction } from '@/runtime/contracts/IRuntimeAction';
 import { IRuntimeBehavior } from '@/runtime/contracts/IRuntimeBehavior';
 import { IMemoryLocation, MemoryTag } from '@/runtime/memory/MemoryLocation';
-import { MemoryType, MemoryValueOf, TimerState } from '@/runtime/memory/MemoryTypes';
+import { TimerState } from '@/runtime/memory/MemoryTypes';
 import { MetricVisibility } from '@/runtime/memory/MetricVisibility';
 import { BlockKey } from '@/core/models/BlockKey';
 import { IMetric, MetricType } from '@/core/models/Metric';
@@ -258,71 +258,6 @@ export class ProxyBlock implements IRuntimeBlock {
         if (this.timerLocation) all.push(this.timerLocation);
         if (this.nextLocation)  all.push(this.nextLocation);
         return all;
-    }
-
-    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
-        if (type === 'metrics') {
-            const self = this;
-            return {
-                get value(): MemoryValueOf<T> {
-                    return {
-                        groups: self.displayLocations.map(location => location.metrics.clone())
-                    } as unknown as MemoryValueOf<T>;
-                },
-                subscribe: (listener) => {
-                    const unsubscribes = self.displayLocations.map(location =>
-                        location.subscribe(() => {
-                            listener(
-                                { groups: self.displayLocations.map(loc => loc.metrics.clone()) } as unknown as MemoryValueOf<T>,
-                                undefined
-                            );
-                        })
-                    );
-                    return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-                },
-            };
-        }
-
-        const loc = this.getMemoryByTag(type as string as MemoryTag)[0];
-        if (!loc) return undefined;
-
-        const extractValue = (metrics: MetricContainer): MemoryValueOf<T> | undefined => {
-            if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
-
-            if (type === 'metric:display') {
-                return loc as unknown as MemoryValueOf<T>;
-            }
-
-            if (type === 'round') {
-                const metric = metrics[0] as unknown as { current?: number; total?: number; value?: unknown };
-                if (metric?.current !== undefined) {
-                    return { current: metric.current, total: metric.total } as unknown as MemoryValueOf<T>;
-                }
-                return metric?.value as MemoryValueOf<T>;
-            }
-
-            return metrics[0]?.value as MemoryValueOf<T>;
-        };
-
-        return {
-            get value(): MemoryValueOf<T> {
-                return extractValue(loc.metrics) as MemoryValueOf<T>;
-            },
-            subscribe: (listener) => loc.subscribe((newMetrics, oldMetrics) => {
-                listener(
-                    extractValue(newMetrics),
-                    extractValue(oldMetrics)
-                );
-            }),
-        };
-    }
-
-    hasMemory(type: MemoryType): boolean {
-        return this.getMemoryByTag(type as string as MemoryTag).length > 0;
-    }
-
-    setMemoryValue<T extends MemoryType>(_type: T, _value: MemoryValueOf<T>): void {
-        // No-op: proxy blocks are read-only.
     }
 
     pushMemory(_location: IMemoryLocation): void {

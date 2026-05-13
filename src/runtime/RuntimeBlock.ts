@@ -1,14 +1,13 @@
 import { BlockKey } from '../core/models/BlockKey';
 import { IScriptRuntime } from './contracts/IScriptRuntime';
 import { IRuntimeBehavior } from './contracts/IRuntimeBehavior';
-import { BlockLifecycleOptions, IRuntimeBlock, IMemoryEntryShim } from './contracts/IRuntimeBlock';
+import { BlockLifecycleOptions, IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IBlockContext } from './contracts/IBlockContext';
 import { BlockContext } from './BlockContext';
 import { BehaviorContext } from './BehaviorContext';
 import { RuntimeLogger } from './RuntimeLogger';
 import { IMemoryLocation, MemoryLocation, MemoryTag } from './memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from './memory/MemoryTypes';
 import { MetricVisibility, getMetricVisibility } from './memory/MetricVisibility';
 import { IMetric, MetricType } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
@@ -156,101 +155,6 @@ export class RuntimeBlock implements IRuntimeBlock {
     // ============================================================================
     // Backward-Compatible Memory API (shims over list-based memory)
     // ============================================================================
-
-    /**
-     * @deprecated Use getMemoryByTag() instead.
-     * Returns a shim entry that reads value from the first metrics's `.value` field.
-     */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined {
-        const tag = type as string as MemoryTag;
-        const locations = this._memory.filter(loc => loc.tag === tag);
-        if (locations.length === 0) return undefined;
-
-        const loc = locations[0];
-
-        // Helper to extract the value from metrics based on the memory type
-        const extractValue = (metrics: MetricContainer): MemoryValueOf<T> | undefined => {
-            if (metrics.length === 0) return undefined as unknown as MemoryValueOf<T>;
-
-            // For 'metrics' type, return { groups: [...all metric:display groups] }
-            if (type === 'metrics') {
-                return {
-                    groups: this._memory
-                        .filter(memory => memory.tag === 'metric:display')
-                        .map(memory => memory.metrics.clone())
-                } as unknown as MemoryValueOf<T>;
-            }
-
-            // For 'metric:display', return the location itself (it may implement IMetricSource)
-            if (type === 'metric:display') {
-                return loc as unknown as MemoryValueOf<T>;
-            }
-
-            // For typed memory (timer, round, display, controls, completion),
-            // the value is stored in the first metrics's .value field.
-            // Special case: 'round' memory uses CurrentRoundMetric which
-            // stores .current and .total as direct fields (value is just the
-            // current round number). Synthesize RoundState for backward compat.
-            if (type === 'round') {
-                const frag = metrics[0] as unknown as { current?: number; total?: number; value?: any };
-                if (frag?.current !== undefined) {
-                    return { current: frag.current, total: frag.total } as unknown as MemoryValueOf<T>;
-                }
-                return frag?.value as MemoryValueOf<T>;
-            }
-
-            return metrics[0]?.value as MemoryValueOf<T>;
-        };
-
-        return {
-            get value(): MemoryValueOf<T> {
-                return extractValue(loc.metrics) as MemoryValueOf<T>;
-            },
-            subscribe(listener: (nv: MemoryValueOf<T> | undefined, ov: MemoryValueOf<T> | undefined) => void): () => void {
-                return loc.subscribe((newFrags, oldFrags) => {
-                    const newVal = extractValue(newFrags);
-                    const oldVal = extractValue(oldFrags);
-                    listener(newVal, oldVal);
-                });
-            }
-        };
-    }
-
-    /**
-     * @deprecated Use getMemoryByTag().length > 0 instead.
-     */
-    hasMemory(type: MemoryType): boolean {
-        const tag = type as string as MemoryTag;
-        return this._memory.some(loc => loc.tag === tag);
-    }
-
-    /**
-     * @deprecated Use pushMemory() or BehaviorContext.updateMemory() instead.
-     * Updates the first matching location's metrics value, or creates a new one.
-     */
-    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void {
-        const tag = type as string as MemoryTag;
-        const locations = this._memory.filter(loc => loc.tag === tag);
-        if (locations.length > 0) {
-            const loc = locations[0];
-            if (loc.metrics.length > 0) {
-                // Update existing metric's value
-                const updated = loc.metrics.map((f, i) =>
-                    i === 0 ? { ...f, value } : f
-                );
-                loc.update(updated);
-            } else {
-                // Create a new metrics with the value
-                loc.update([{ type: 0, image: '', origin: 'runtime', value } as any]);
-            }
-        } else {
-            // Push a new location with the value
-            const location = new MemoryLocation(tag, [
-                { type: 0, image: '', origin: 'runtime', value } as any
-            ]);
-            this._memory.push(location);
-        }
-    }
 
     // ============================================================================
     // Lifecycle Methods

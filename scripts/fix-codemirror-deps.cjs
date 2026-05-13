@@ -23,9 +23,11 @@ const CODEMIRROR_DIRS = [
 ];
 
 function fixCodeMirrorDependencies() {
-  let fixedCount = 0;
+  let handledCount = 0;
+  let missingCount = 0;
+  let failureCount = 0;
 
-  CODEMIRROR_DIRS.forEach((dir, index) => {
+  CODEMIRROR_DIRS.forEach((dir) => {
     const fullPath = path.join(process.cwd(), dir);
 
     if (fs.existsSync(fullPath)) {
@@ -38,27 +40,33 @@ function fixCodeMirrorDependencies() {
         fs.symlinkSync(targetPath, fullPath, 'dir');
 
         console.log(`✓ Fixed: ${dir}`);
-        fixedCount++;
+        handledCount++;
       } catch (error) {
         console.error(`✗ Failed to fix ${dir}:`, error.message);
+        failureCount++;
       }
-    } else {
-      // Check if symlink already exists
-      try {
-        const targetPath = fs.readlinkSync(fullPath);
-        if (targetPath.includes('node_modules/@codemirror')) {
-          console.log(`○ Already symlinked: ${dir}`);
-          fixedCount++;
-        }
-      } catch (error) {
-        // Doesn't exist or not a symlink
-        console.log(`- Not found: ${dir}`);
-      }
+
+      return;
     }
+
+    // Check if symlink already exists
+    try {
+      const targetPath = fs.readlinkSync(fullPath);
+      if (targetPath.includes('node_modules/@codemirror')) {
+        console.log(`○ Already symlinked: ${dir}`);
+        handledCount++;
+        return;
+      }
+    } catch (error) {
+      // Doesn't exist or not a symlink
+    }
+
+    console.log(`- Not present (skipped): ${dir}`);
+    missingCount++;
   });
 
-  console.log(`\nFixed ${fixedCount}/${CODEMIRROR_DIRS.length} CodeMirror dependency issues`);
-  return fixedCount === CODEMIRROR_DIRS.length;
+  console.log(`\nHandled ${handledCount} CodeMirror dependency dirs; skipped ${missingCount} missing dirs; failures ${failureCount}.`);
+  return failureCount === 0;
 }
 
 // Run the fix

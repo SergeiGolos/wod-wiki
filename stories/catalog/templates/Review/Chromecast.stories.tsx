@@ -9,17 +9,20 @@
  * Now uses the real `ReceiverReviewPanel` from `@/panels/review-panel-chromecast`.
  *
  * States illustrated:
- *  1. SimpleRows      — reviewData only (no analyticsSummary / no projections)
- *  2. WithProjections — full analyticsSummary: 2-column metric cards + icons
- *  3. FranResults     — realistic Fran workout results
- *  4. AmrapResults    — AMRAP results with rounds + reps
- *  5. EmomResults     — EMOM results with avg timing
- *  6. FiveBySomething — 5-round workout with volume metrics
- *  7. EmptyReview     — reviewData present but zero rows / projections
+ *  1. SimpleRows         — reviewData only (no analyticsSummary / no projections)
+ *  2. WithProjections    — full analyticsSummary: 2-column metric cards + icons
+ *  3. FranResults        — realistic Fran workout results
+ *  4. AmrapResults       — AMRAP results with rounds + reps
+ *  5. EmomResults        — EMOM results with avg timing
+ *  6. FiveBySomething    — 5-round workout with volume metrics
+ *  7. EmptyReview        — reviewData present but zero rows / projections
+ *  8. WithDismissButton  — dismiss button focused (D-Pad Select affordance)
+ *  9. DismissButtonActive — dismiss button in active/pressed state
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from 'storybook/test';
 import { cn } from '@/lib/utils';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 
@@ -61,28 +64,65 @@ interface ReviewChromecastHarnessProps {
   analyticsSummary?: AnalyticsSummary;
   /** Simulate the dark TV background (CastApp applies bg-black globally) */
   darkBackground?: boolean;
+  /** If true, the dismiss button renders in its D-Pad focused state */
+  dismissFocused?: boolean;
+  /**
+   * If true, the dismiss button renders in its activation-flash state
+   * (`.tv-activating`). Shows the peak of the element-level confirmation
+   * pulse that fires when the user presses Select on the remote.
+   * AC: WOD-274 — D-Pad activation flash visible at TV distance.
+   */
+  dismissActivating?: boolean;
+  /** Called when the dismiss button is activated */
+  onDismiss?: () => void;
 }
 
 const ReviewChromecastHarness: React.FC<ReviewChromecastHarnessProps> = ({
   reviewData,
   analyticsSummary,
   darkBackground = true,
-}) => (
-  <div
-    className={cn(
-      'flex items-center justify-center w-full',
-      darkBackground ? 'bg-black' : 'bg-background',
-    )}
-    style={{ minHeight: '600px', aspectRatio: '16/9' }}
-  >
-    <div className="w-full h-full" style={{ minHeight: '600px' }}>
-      <ReceiverReviewPanel
-        reviewData={reviewData}
-        analyticsSummary={analyticsSummary}
-      />
+  dismissFocused = false,
+  dismissActivating = false,
+  onDismiss,
+}) => {
+  // Simulate spatial-nav props so we can show focused/unfocused/activating
+  // states without needing a real useSpatialNavigation instance in Storybook.
+  const mockGetFocusProps = (id: string) => ({
+    'data-nav-id': id,
+    'data-nav-focused': (dismissFocused || dismissActivating) && id === 'btn-dismiss',
+    tabIndex: 0,
+    ref: (el: HTMLElement | null) => {
+      // Attach / detach the activation class so Storybook can freeze the
+      // peak visual state of the D-Pad activation flash (WOD-274).
+      if (el && id === 'btn-dismiss') {
+        if (dismissActivating) {
+          el.classList.add('tv-activating');
+        } else {
+          el.classList.remove('tv-activating');
+        }
+      }
+    },
+  });
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-center w-full',
+        darkBackground ? 'bg-black' : 'bg-background',
+      )}
+      style={{ minHeight: '600px', aspectRatio: '16/9' }}
+    >
+      <div className="w-full h-full" style={{ minHeight: '600px' }}>
+        <ReceiverReviewPanel
+          reviewData={reviewData}
+          analyticsSummary={analyticsSummary}
+          onDismiss={onDismiss}
+          getFocusProps={mockGetFocusProps}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Meta
@@ -109,6 +149,14 @@ const meta: Meta<typeof ReviewChromecastHarness> = {
     darkBackground: {
       control: 'boolean',
       description: 'Show the dark TV background',
+    },
+    dismissFocused: {
+      control: 'boolean',
+      description: 'Show the dismiss button in its D-Pad focused state',
+    },
+    dismissActivating: {
+      control: 'boolean',
+      description: 'Show the dismiss button mid activation-flash (WOD-274)',
     },
   },
 };
@@ -367,3 +415,65 @@ export const LightBackground: Story = {
     darkBackground: false,
   },
 };
+
+/**
+ * Dismiss button unfocused — the D-Pad dismiss affordance at rest.
+ * Verifies the button is present, correctly labelled, and spatially
+ * registered for navigation (data-nav-id="btn-dismiss").
+ * AC: Storybook shows focusable dismiss button (WOD-263).
+ */
+export const WithDismissButton: Story = {
+  name: 'Dismiss Button (Unfocused)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: false,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+
+/**
+ * Dismiss button focused — the D-Pad dismiss affordance when selected via
+ * remote.  Tests the `data-[nav-focused=true]` Tailwind variant.
+ * This is the visual state the user sees immediately before pressing Select.
+ * AC: Storybook shows focusable dismiss button in focused state (WOD-263).
+ */
+export const DismissButtonFocused: Story = {
+  name: 'Dismiss Button (D-Pad Focused)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: true,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+
+/**
+ * Dismiss button mid activation-flash (WOD-274).
+ *
+ * Demonstrates the element-level `.tv-activating` pulse that fires when the
+ * user presses Select on the TV remote. This replaces the old full-screen
+ * `bg-primary/10` overlay which was imperceptible at TV (10-foot) distance.
+ *
+ * The `.tv-activating` keyframe scales the element up ~14% and boosts
+ * brightness, creating a sharp localised burst right where the user's
+ * attention is. The animation lasts 250 ms and resolves back to the
+ * normal `tv-focusable` ring.
+ *
+ * AC: Storybook shows D-Pad activation with visible feedback at TV distance
+ * (WOD-274).
+ */
+export const DismissButtonActivating: Story = {
+  name: 'Dismiss Button (D-Pad Activating — WOD-274)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: true,
+    dismissActivating: true,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+

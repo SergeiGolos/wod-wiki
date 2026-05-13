@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'bun:test';
 import { RuntimeBlock } from '../RuntimeBlock';
 import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { MemoryLocation, MemoryTag } from '../memory/MemoryLocation';
+import { MemoryLocation } from '../memory/MemoryLocation';
 import { IMetric, MetricType } from '../../core/models/Metric';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 

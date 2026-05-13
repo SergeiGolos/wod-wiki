@@ -45,9 +45,6 @@ function createMockBlock(key: string, label: string, opts?: { isComplete?: boole
         dispose: () => {},
         markComplete: () => {},
         getBehavior: () => undefined,
-        getMemory: () => undefined,
-        hasMemory: () => false,
-        setMemoryValue: () => {},
     } as any;
 }
 

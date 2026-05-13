@@ -175,17 +175,17 @@ export interface ButtonsState {
 /**
  * Union of all valid memory type keys.
  */
-export type MemoryType = 'timer' | 'round' | 'children:status' |   'metrics' | 'metric:display' | 'completion' | 'display' | 'controls';
+export type MemoryType = 'time' | 'round' | 'children:status' | 'metrics' | 'metric:display' | 'completion' | 'display' | 'controls';
 
 /**
  * Registry mapping memory types to their corresponding data shapes.
  * Enables compile-time type safety when accessing block memory.
  * 
  * @example
- * const timer = block.getMemory('time'); // Returns IMemoryEntry<'timer', TimerState>
+ * const timer = block.getMemoryByTag('time')[0]; // Returns IMemoryLocation with TimerState
  */
 export interface MemoryTypeMap {
-    timer: TimerState;
+    'time': TimerState;
     round: RoundState;
     'children:status': ChildrenStatusState;
     metrics: FragmentState;

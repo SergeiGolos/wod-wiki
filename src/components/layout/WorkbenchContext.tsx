@@ -8,19 +8,16 @@ import type { ContentProviderMode, IContentProvider } from '../../types/content-
 import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
-import { StaticContentProvider, fileProcessor } from '@/hooks/useBrowserServices';
-import { createNotePersistence, type INotePersistence } from '@/services/persistence';
-import { sharedParser } from '@/hooks/useRuntimeParser';
-import { getWodContent } from '@/repositories/wod-loader';
+import { fileProcessor } from '@/hooks/useBrowserServices';
+import type { INotePersistence } from '@/lib/notePersistence';
 import { toNotebookTag } from '../../types/notebook';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRef } from 'react';
-import { parseDocumentSections, matchSectionIds } from '../Editor/utils/sectionParser';
-import { parseWodBlock } from '../Editor/utils/parseWodBlock';
-import type { Section as EditorSection } from '../Editor/types/section';
 import { INavigationProvider } from '@/types/navigation';
 import { useReactRouterNavigation } from '@/hooks/useReactRouterNavigation';
 import { useWorkbenchSyncStore } from './workbenchSyncStore';
+import { deriveWorkbenchDocumentState } from '@/app/workbench/workbenchDocumentModel';
+import { loadStaticWorkbenchContent, resolveWorkbenchProvider } from '@/app/workbench/workbenchProviders';
 
 /**
  * WorkbenchContext - Manages document state and view navigation
@@ -146,9 +143,11 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
   const { pathname, search, hash, state: locationState } = useLocation();
 
   // Resolve provider: use external if given, else auto-create from mode + initialContent
-  const provider = useMemo(() => externalProvider ?? new StaticContentProvider(propInitialContent), [externalProvider, propInitialContent]);
-  const notePersistence = useMemo(() => createNotePersistence(provider), [provider]);
-  const resolvedMode = provider.mode;
+  const resolvedProvider = useMemo(
+    () => resolveWorkbenchProvider(propInitialContent, externalProvider),
+    [externalProvider, propInitialContent],
+  );
+  const { provider, notePersistence, mode: resolvedMode } = resolvedProvider;
 
   // State Declarations
   const [content, setContent] = useState(propInitialContent);
@@ -290,7 +289,7 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
               return;
             } else if (provider.mode === 'static') {
               // Try loading from static WOD files (fallback)
-              const wodContent = getWodContent(routeId);
+              const wodContent = loadStaticWorkbenchContent(routeId);
               if (wodContent) {
                 setContent(wodContent);
                 return;
@@ -373,42 +372,9 @@ export const WorkbenchProvider: React.FC<WorkbenchProviderProps> = ({
 
   // Derived state: Parse content into sections and blocks whenever content changes
   useEffect(() => {
-    if (!content) {
-      setSectionsState([]);
-      setBlocksState([]);
-      return;
-    }
-
-    const newSections = parseDocumentSections(content);
-
-    // Stabilize IDs to avoid losing selection/runtime state
-    const stabilizedSections = sections
-      ? matchSectionIds(sections, newSections)
-      : newSections;
-
-    setSectionsState(stabilizedSections);
-
-    const newBlocks: WodBlock[] = stabilizedSections
-      .filter((s: EditorSection) => s.type === 'wod' && s.wodBlock)
-      .map((s: EditorSection) => {
-        const block = s.wodBlock!;
-        if (!block.statements || block.statements.length === 0) {
-          try {
-            const result = parseWodBlock(block.content, sharedParser);
-            return {
-              ...block,
-              statements: result.statements,
-              errors: result.errors,
-              state: (result.success ? 'parsed' : 'error') as any,
-            };
-          } catch (e) {
-            console.error('[WorkbenchContext] Block parse error:', e);
-          }
-        }
-        return block;
-      });
-
-    setBlocksState(newBlocks);
+    const nextDocument = deriveWorkbenchDocumentState(content, sections);
+    setSectionsState(nextDocument.sections);
+    setBlocksState(nextDocument.blocks);
   }, [content]);
 
   // Execution State (runtime now managed by RuntimeProvider)

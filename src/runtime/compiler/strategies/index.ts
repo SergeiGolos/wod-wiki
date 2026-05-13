@@ -1,26 +1,33 @@
 /**
- * Strategy exports for the JIT compiler
+ * Strategy aggregation barrel.
+ *
+ * Prefer direct source imports for new code:
+ *   import { GenericTimerStrategy } from '@/runtime/compiler/strategies/components/GenericTimerStrategy';
+ *
+ * This file is kept as a convenience aggregation but is NOT the primary
+ * import path — explicit named imports from source files avoid exporting
+ * internal helpers (e.g. buildChildGroupsWithContext) into callers.
  */
 
 // Root / Direct-build strategies
-export * from './IdleBlockStrategy';
-export * from './SessionRootStrategy';
-export * from './WaitingToStartStrategy';
+export { IdleBlockStrategy, IdleBlockConfig, idleBlockStrategy } from './IdleBlockStrategy';
+export { SessionRootStrategy, sessionRootStrategy } from './SessionRootStrategy';
+export { WaitingToStartStrategy } from './WaitingToStartStrategy';
 
 // Logic strategies (Priority 90)
-export * from './logic/AmrapLogicStrategy';
-export * from './logic/IntervalLogicStrategy';
+export { AmrapLogicStrategy } from './logic/AmrapLogicStrategy';
+export { IntervalLogicStrategy } from './logic/IntervalLogicStrategy';
 
 // Component strategies (Priority 50)
-export * from './components/GenericTimerStrategy';
-export * from './components/GenericLoopStrategy';
-export * from './components/GenericGroupStrategy';
-export * from './components/RestBlockStrategy';
+export { GenericTimerStrategy } from './components/GenericTimerStrategy';
+export { GenericLoopStrategy } from './components/GenericLoopStrategy';
+export { GenericGroupStrategy } from './components/GenericGroupStrategy';
+export { RestBlockStrategy } from './components/RestBlockStrategy';
 
 // Enhancement strategies (Priority 20-50)
-export * from './enhancements/ChildrenStrategy';
-export * from './enhancements/SoundStrategy';
-export * from './enhancements/ReportOutputStrategy';
+export { ChildrenStrategy } from './enhancements/ChildrenStrategy';
+export { SoundStrategy } from './enhancements/SoundStrategy';
+export { ReportOutputStrategy } from './enhancements/ReportOutputStrategy';
 
 // Fallback strategies (Priority 0)
-export * from './fallback/EffortFallbackStrategy';
+export { EffortFallbackStrategy } from './fallback/EffortFallbackStrategy';

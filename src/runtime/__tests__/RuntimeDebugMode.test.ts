@@ -54,9 +54,6 @@ function createMockBlock(id: string): IRuntimeBlock {
         pushMemory: vi.fn(),
         getMemoryByTag: vi.fn().mockReturnValue([]),
         getAllMemory: vi.fn().mockReturnValue([]),
-        hasMemory: vi.fn().mockReturnValue(false),
-        getMemory: vi.fn().mockReturnValue(undefined),
-        setMemoryValue: vi.fn(),
         isComplete: false,
         markComplete: vi.fn(),
     };
