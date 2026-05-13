@@ -1,5 +1,33 @@
 import { vi } from 'bun:test';
+import { mock } from 'bun:test';
 import { JSDOM } from 'jsdom';
+
+// ── Pre-mock Vite-specific modules ──────────────────────────────────────────
+// These modules use `import.meta.glob` which is only available in Vite builds.
+// Registering stubs here prevents the "import.meta.glob is not a function"
+// error when these modules are loaded transitively via component imports.
+// Individual tests can override these stubs with their own vi.mock() calls.
+
+mock.module('@/repositories/wod-feeds', () => ({
+  getWodFeeds: () => [],
+  getWodFeed: (_slug: string) => null,
+  getFeedDateKeys: (_feed: any) => [],
+}));
+
+mock.module('@/repositories/wod-collections', () => ({
+  getWodCollections: () => [],
+  getWodCollection: (_slug: string) => null,
+}));
+
+mock.module('@/repositories/wod-loader', () => ({
+  getWodContent: (_id: string) => undefined,
+  getAllWodIds: () => [],
+}));
+
+mock.module('@/repositories/page-examples', () => ({
+  getTabExamples: (_page: string, _section: string) => [],
+  getHomeExample: (_name: string) => '',
+}));
 
 // Some src/ tests import browser-only libraries (e.g. monaco-editor, react-dom)
 // that assume `window` and `document` exist at module-evaluation time.

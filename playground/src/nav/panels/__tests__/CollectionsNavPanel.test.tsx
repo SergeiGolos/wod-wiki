@@ -11,14 +11,16 @@
  * - Edge cases (non-matching routes, empty states)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
+import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { CollectionsNavPanel } from '../CollectionsNavPanel';
 import type { NavPanelProps, NavState } from '../../navTypes';
 
 // Mock dependencies
-vi.mock('../../hooks/useCollectionsQueryState', () => ({
+// NOTE: paths are relative to THIS TEST FILE (in __tests__/ subdirectory),
+// so need one extra '../' compared to the component's imports.
+vi.mock('../../../hooks/useCollectionsQueryState', () => ({
   useCollectionsQueryState: () => ({
     selectedCategories: [],
     toggleCategory: vi.fn(),
@@ -52,7 +54,7 @@ vi.mock('@/repositories/wod-collections', () => ({
   }),
 }));
 
-vi.mock('../../config/collectionGroups', () => ({
+vi.mock('../../../config/collectionGroups', () => ({
   getCategoryGroups: () => ({
     endurance: ['Cardio', 'Running'],
     strength: ['Powerlifting', 'Bodybuilding'],
@@ -60,7 +62,7 @@ vi.mock('../../config/collectionGroups', () => ({
   }),
 }));
 
-vi.mock('../../pages/shared/pageUtils', () => ({
+vi.mock('../../../pages/shared/pageUtils', () => ({
   NON_COLLECTION_CATEGORIES: new Set(['wod', 'benchmark', 'custom']),
 }));
 
@@ -92,7 +94,11 @@ describe('CollectionsNavPanel', () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   describe('List Page Mode', () => {

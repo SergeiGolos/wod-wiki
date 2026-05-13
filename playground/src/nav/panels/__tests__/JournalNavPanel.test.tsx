@@ -11,21 +11,23 @@
  * - Edge cases (invalid dates, empty tags)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
+import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { JournalNavPanel } from '../JournalNavPanel';
 import type { NavPanelProps, NavState } from '../../navTypes';
 
 // Mock dependencies
-vi.mock('../../hooks/useJournalQueryState', () => ({
-  useJournalQueryState: () => ({
+// NOTE: path is relative to THIS TEST FILE (in __tests__/ subdirectory),
+// so needs one extra '../' compared to the component's import.
+vi.mock('../../../hooks/useJournalQueryState', () => ({
+  useJournalQueryState: vi.fn(() => ({
     selectedDate: null,
     setSelectedDate: vi.fn(),
     dateParam: null,
     selectedTags: [],
     toggleTag: vi.fn(),
-  }),
+  })),
 }));
 
 vi.mock('@/components/ui/CalendarCard', () => ({
@@ -71,7 +73,11 @@ describe('JournalNavPanel', () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   describe('List Page Mode', () => {
@@ -111,7 +117,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with selected tags
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: null,
         setSelectedDate: vi.fn(),
@@ -138,7 +144,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with date param
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: new Date('2026-05-12'),
         setSelectedDate: vi.fn(),
@@ -154,7 +160,8 @@ describe('JournalNavPanel', () => {
       );
 
       expect(screen.getByText('Filtered to')).toBeTruthy();
-      expect(screen.getByText(/2026-05-12/)).toBeTruthy();
+      // Use getAllByText since the calendar mock also renders the date
+      expect(screen.getAllByText(/2026-05-12/).length).toBeGreaterThan(0);
     });
   });
 
@@ -190,7 +197,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with date param
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: new Date('2026-05-12'),
         setSelectedDate: vi.fn(),
@@ -216,7 +223,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with selected date
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       const mockSetSelectedDate = vi.fn();
       useJournalQueryState.mockReturnValue({
         selectedDate: new Date('2026-05-12'),
@@ -257,7 +264,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       const mockToggleTag = vi.fn();
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: null,
         setSelectedDate: vi.fn(),
@@ -283,7 +290,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       const mockToggleTag = vi.fn();
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: null,
         setSelectedDate: vi.fn(),
@@ -311,7 +318,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       const mockSetSelectedDate = vi.fn();
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: new Date('2026-05-12'),
         setSelectedDate: mockSetSelectedDate,
@@ -339,7 +346,7 @@ describe('JournalNavPanel', () => {
       const props = createProps(navState);
 
       const mockSetSelectedDate = vi.fn();
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: null,
         setSelectedDate: mockSetSelectedDate,
@@ -410,7 +417,7 @@ describe('JournalNavPanel', () => {
       const navState = createNavState();
       const props = createProps(navState);
 
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: null,
         setSelectedDate: vi.fn(),
@@ -498,7 +505,7 @@ describe('JournalNavPanel', () => {
       const navState = createNavState();
       const props = createProps(navState);
 
-      const { useJournalQueryState } = require('../../hooks/useJournalQueryState');
+      const { useJournalQueryState } = require('../../../hooks/useJournalQueryState');
       useJournalQueryState.mockReturnValue({
         selectedDate: null,
         setSelectedDate: vi.fn(),

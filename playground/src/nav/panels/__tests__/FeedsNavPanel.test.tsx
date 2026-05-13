@@ -12,22 +12,24 @@
  * - Edge cases (empty feeds, invalid dates)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
+import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { FeedsNavPanel } from '../FeedsNavPanel';
 import type { NavPanelProps, NavState } from '../../navTypes';
 
 // Mock dependencies
-vi.mock('../../hooks/useFeedsQueryState', () => ({
-  useFeedsQueryState: () => ({
+// NOTE: path is relative to THIS TEST FILE (in __tests__/ subdirectory),
+// so needs one extra '../' compared to the component's import.
+vi.mock('../../../hooks/useFeedsQueryState', () => ({
+  useFeedsQueryState: vi.fn(() => ({
     dateParam: null,
     selectedDate: null,
     setSelectedDate: vi.fn(),
     selectedFeed: null,
     selectFeed: vi.fn(),
     clearFeed: vi.fn(),
-  }),
+  })),
 }));
 
 vi.mock('@/repositories/wod-feeds', () => ({
@@ -112,7 +114,11 @@ describe('FeedsNavPanel', () => {
   });
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   describe('List Page Mode', () => {
@@ -149,7 +155,7 @@ describe('FeedsNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with selected feed
-      const { useFeedsQueryState } = require('../../hooks/useFeedsQueryState');
+      const { useFeedsQueryState } = require('../../../hooks/useFeedsQueryState');
       useFeedsQueryState.mockReturnValue({
         dateParam: null,
         selectedDate: null,
@@ -284,8 +290,9 @@ describe('FeedsNavPanel', () => {
         </MemoryRouter>
       );
 
-      // Should have radio-style indicators
-      const radioIndicators = container.querySelectorAll('.size-3.5');
+      // Should have radio-style indicators (Tailwind .size-3.5 class)
+      // Note: CSS selector for Tailwind class with dots uses attribute selector
+      const radioIndicators = container.querySelectorAll('[class*="size-3"]');
       expect(radioIndicators.length).toBeGreaterThan(0);
     });
 
@@ -294,7 +301,7 @@ describe('FeedsNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with selected feed
-      const { useFeedsQueryState } = require('../../hooks/useFeedsQueryState');
+      const { useFeedsQueryState } = require('../../../hooks/useFeedsQueryState');
       useFeedsQueryState.mockReturnValue({
         dateParam: null,
         selectedDate: null,
@@ -321,7 +328,7 @@ describe('FeedsNavPanel', () => {
       const props = createProps(navState);
 
       // Mock with date param
-      const { useFeedsQueryState } = require('../../hooks/useFeedsQueryState');
+      const { useFeedsQueryState } = require('../../../hooks/useFeedsQueryState');
       useFeedsQueryState.mockReturnValue({
         dateParam: '2026-05-12',
         selectedDate: new Date('2026-05-12'),
@@ -338,7 +345,8 @@ describe('FeedsNavPanel', () => {
       );
 
       expect(screen.getByText('Filtered to')).toBeTruthy();
-      expect(screen.getByText(/2026-05-12/)).toBeTruthy();
+      // Use getAllByText since the calendar mock also renders the date
+      expect(screen.getAllByText(/2026-05-12/).length).toBeGreaterThan(0);
     });
   });
 
@@ -390,7 +398,7 @@ describe('FeedsNavPanel', () => {
     });
 
     it('should apply active button styles', () => {
-      const { useFeedsQueryState } = require('../../hooks/useFeedsQueryState');
+      const { useFeedsQueryState } = require('../../../hooks/useFeedsQueryState');
       useFeedsQueryState.mockReturnValue({
         dateParam: null,
         selectedDate: null,
