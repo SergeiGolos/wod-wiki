@@ -36,8 +36,8 @@ export type { IRuntimeBlock } from './runtime/contracts/IRuntimeBlock';
 export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
 export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
 export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
-export type { IMemoryReference, ITypedMemoryReference } from './runtime/contracts/IMemoryReference';
-export type { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
+export type { IMemoryReference } from './runtime/contracts/IMemoryReference';
+export { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
 export type { IEvent } from './runtime/contracts/events/IEvent';
 export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
 
@@ -46,7 +46,7 @@ export type { IBlockContext } from './runtime/contracts/IBlockContext';
 // Runtime actions
 export * from './runtime/actions/stack/PushBlockAction';
 export { ErrorAction } from './runtime/actions/ErrorAction';
-export type { RuntimeError } from './runtime/contracts/core/RuntimeError';
+export type { RuntimeError } from './runtime/actions/ErrorAction';
 
 // Runtime behaviors - export new aspect-based behaviors
 export * from './runtime/behaviors';

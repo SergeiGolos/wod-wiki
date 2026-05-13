@@ -2,7 +2,7 @@ import type { IScriptRuntime, OutputListener, TrackerListener } from './contract
 import type { IJitCompiler } from './contracts/IJitCompiler';
 import type { IRuntimeStack, Unsubscribe, StackObserver, StackSnapshot } from './contracts/IRuntimeStack';
 import type { WhiteboardScript } from '../parser/WhiteboardScript';
-import type { RuntimeError } from './contracts/core/RuntimeError';
+import type { RuntimeError } from './actions/ErrorAction';
 import type { IEventBus } from './contracts/events/IEventBus';
 import {
     DEFAULT_RUNTIME_OPTIONS,

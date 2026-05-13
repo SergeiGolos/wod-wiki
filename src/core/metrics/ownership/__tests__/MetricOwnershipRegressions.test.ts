@@ -9,8 +9,7 @@
  *  2. Explain/debug support — `explain()` accurately characterises every
  *     contribution for every type, including multi-type and fully-suppressed cases.
  *  3. Suppress/hide semantics — suppressors affect visibility without mutating
- *     the raw store, and only win when they are at an equal or higher layer than
- *     the suppressed candidate.
+ *     the raw store, and apply regardless of layer.
  *  4. Promotion behaviors — `promotionCandidates()` returns the right shadowed
  *     metric(s) and handles suppressed, single-layer, and no-candidate cases.
  */
