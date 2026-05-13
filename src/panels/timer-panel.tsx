@@ -26,6 +26,7 @@ import { TimerStackView } from '@/components/workout/TimerStackView';
 import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { metricPresentation } from '@/core/metrics/presentation';
+import type { FocusProps } from '@/hooks/useSpatialNavigation';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -62,6 +63,9 @@ export interface TimerDisplayProps {
 
   /** Enable stack-driven display features (requires RuntimeLifecycleProvider) */
   enableDisplayStack?: boolean;
+
+  /** Spatial navigation focus props for TV remote support */
+  getFocusProps?: (id: string) => FocusProps;
 }
 
 
@@ -379,6 +383,7 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
         focusedBlockId={focusedBlockId}
         timerStates={timerStates}
         enableGestures={viewMode === 'track'}
+        getFocusProps={props.getFocusProps}
       />
     </div>
   );
@@ -441,6 +446,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       isRunning={props.isRunning}
       compact={props.compact}
       enableGestures={viewMode === 'track'}
+      getFocusProps={props.getFocusProps}
     />
   );
 };

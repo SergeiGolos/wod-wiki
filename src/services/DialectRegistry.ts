@@ -63,9 +63,10 @@ export class DialectRegistry {
       }
 
       // Apply dialect metrics (action-bearing) onto the statement's metric list.
-      // The precedence system and display resolver handle 'set' / 'suppress' / 'inherit'.
+      // Keep this as a raw append (not precedence merge) so ownership resolution
+      // can reason over parser + dialect + runtime + user-entry contributions.
       if (analysis.metrics?.length) {
-        statement.metrics.merge(analysis.metrics);
+        statement.metrics.add(...analysis.metrics);
       }
 
       // Note: Inheritance rules (analysis.inheritance) are designed for future use

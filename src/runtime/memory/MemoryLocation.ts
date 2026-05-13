@@ -19,7 +19,6 @@ import { MetricContainer } from '../../core/models/MetricContainer';
  */
 export type MemoryTag =
     | 'time'
-    | 'timer'
     | 'round'
     | 'children:status'
     | 'completion'

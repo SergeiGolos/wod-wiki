@@ -416,7 +416,7 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
     return (
       <div
         style={{ height }}
-        className="flex flex-col items-center justify-center bg-black text-white/20 font-mono uppercase tracking-[0.5em] rounded-lg border"
+        className="flex flex-col items-center justify-center bg-black text-white/60 font-mono uppercase tracking-[0.5em] rounded-lg border"
       >
         <div className="animate-pulse">Wod.Wiki // waiting-for-cast</div>
       </div>

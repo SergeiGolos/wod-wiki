@@ -6,7 +6,6 @@ import { IMetric } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { OutputStatementType } from '../../core/models/OutputStatement';
 import { IMemoryLocation, MemoryTag } from '../memory/MemoryLocation';
-import { MemoryType, MemoryValueOf } from '../memory/MemoryTypes';
 
 import { HandlerScope } from './events/IEventBus';
 
@@ -80,7 +79,7 @@ export interface OutputOptions {
  *   onMount(ctx: IBehaviorContext) {
  *     // Subscribe to tick events
  *     ctx.subscribe('tick', (event, ctx) => {
- *       const timer = ctx.getMemory('time');
+ *       const [timerLoc] = ctx.getMemoryByTag('time');
  *       if (timer?.elapsed >= timer?.duration) {
  *         ctx.markComplete('timer:complete');
  *       }
@@ -272,19 +271,5 @@ export interface IBehaviorContext {
      */
     markComplete(reason?: string): void;
 
-    // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
-    // ============================================================================
 
-    /**
-     * @deprecated Use block.getMemoryByTag() and read metrics values instead.
-     * Returns the typed value from the first matching memory location's first metric.
-     */
-    getMemory<T extends MemoryType>(type: T): MemoryValueOf<T> | undefined;
-
-    /**
-     * @deprecated Use pushMemory() or updateMemory() instead.
-     * Updates the first matching memory location's metrics value, or creates a new one.
-     */
-    setMemory<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

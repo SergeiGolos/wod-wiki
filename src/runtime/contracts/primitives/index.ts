@@ -6,6 +6,6 @@
  * core runtime interfaces.
  */
 export type { IRuntimeActionable, IRuntimeActionLike } from './IRuntimeActionable';
-export type { IBlockRef, IMemoryEntryShim } from './IBlockRef';
+export type { IBlockRef } from './IBlockRef';
 export type { BlockLifecycleOptions } from './IBlockLifecycle';
 export type { IEventDispatchContext, IEventDispatchStack } from './IEventDispatchContext';

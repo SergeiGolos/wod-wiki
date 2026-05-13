@@ -4,6 +4,7 @@
  * Source origins:
  * - 'parser': Fragment created by the parser from source text (value fully specified)
  * - 'compiler': Fragment synthesized by a compiler strategy
+ * - 'dialect': Fragment synthesized by a dialect policy before runtime
  * - 'runtime': Fragment generated during execution (e.g., elapsed time)
  * - 'user': Fragment collected from user input (e.g., actual reps completed)
  * 
@@ -25,6 +26,7 @@ export type MetricAction = 'set' | 'suppress' | 'inherit';
 export type MetricOrigin =
   | 'parser'
   | 'compiler'
+  | 'dialect'
   | 'runtime'
   | 'user'
   | 'collected'

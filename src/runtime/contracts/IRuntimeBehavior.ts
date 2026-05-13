@@ -15,7 +15,7 @@ export interface IRuntimeBehavior {
   /**
    * Called when the owning block is mounted.
    * Use ctx.subscribe() to listen for events and ctx.emitOutput() for initial reports.
-   * Use ctx.setMemory() to initialize block state.
+   * Use ctx.pushMemory() to initialize block state.
    */
   onMount(ctx: IBehaviorContext): IRuntimeAction[];
 

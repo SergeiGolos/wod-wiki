@@ -42,7 +42,6 @@ import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirro
 import { lintKeymap } from "@codemirror/lint";
 import { markdown } from "@codemirror/lang-markdown";
 
-import { whiteboardScriptLanguage } from "@/hooks/useRuntimeParser";
 import { editorTheme } from "./extensions/theme";
 import { smartIncrement } from "./extensions/smart-increment";
 
@@ -65,60 +64,7 @@ import { cursorFocusExtension, getCursorFocusState } from "./extensions/cursor-f
 import { lineIdsExtension } from "./extensions/line-ids";
 
 import type { INotePersistence } from "@/services/persistence";
-import { IndexedDBNotePersistence } from "@/services/persistence";
-
-/** File drop handler extension */
-const fileDropHandler = (noteId: string | undefined, notePersistence: INotePersistence) => EditorView.domEventHandlers({
-  drop: (event, view) => {
-    const files = event.dataTransfer?.files;
-    if (!files || files.length === 0) return false;
-
-    // Prevent default drop behavior
-    event.preventDefault();
-
-    // Get drop position
-    const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
-    if (pos === null) return false;
-
-    Array.from(files).forEach(async (file) => {
-      const id = uuidv4();
-      const reader = new FileReader();
-
-      reader.onload = async () => {
-        const data = reader.result as ArrayBuffer;
-
-        if (noteId) {
-          try {
-            await notePersistence.mutateNote(noteId, {
-              attachments: {
-                add: [{
-                  id,
-                  file: new File([data], file.name, { type: file.type }),
-                }],
-              },
-            });
-          } catch (err) {
-            console.warn('[NoteEditor] Attachment persist skipped:', err);
-          }
-        }
-
-        // Insert markdown link
-        const isImage = file.type.startsWith('image/');
-        const prefix = isImage ? '!' : '';
-        const markdown = `\n${prefix}[${file.name}](${id})\n`;
-
-        view.dispatch({
-          changes: { from: pos, insert: markdown },
-          selection: { anchor: pos + markdown.length }
-        });
-      };
-
-      reader.readAsArrayBuffer(file);
-    });
-
-    return true;
-  }
-});
+import { createFileDropHandler, deriveReviewSegments, resolveNotePersistence, resolveWhiteboardCodeLanguage } from "@/app/editor/noteEditorServices";
 
 import {
   wodResultsWidget,
@@ -140,7 +86,6 @@ import { FullscreenReview } from "./overlays/FullscreenReview";
 import { InlineCommandBar } from "./overlays/InlineCommandBar";
 import { EditorCastBridge } from "./overlays/EditorCastBridge";
 import type { Segment } from "@/core/models/AnalyticsModels";
-import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
 import { v4 as uuidv4 } from "uuid";
 import type { WorkoutResult } from "@/types/storage";
 
@@ -269,10 +214,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     });
   }, []);
   const isDark = theme === "dark" || theme === "vs-dark";
-  if (!defaultNotePersistenceRef.current) {
-    defaultNotePersistenceRef.current = new IndexedDBNotePersistence();
-  }
-  const notePersistence = providedNotePersistence ?? defaultNotePersistenceRef.current;
+  const notePersistence = resolveNotePersistence(defaultNotePersistenceRef, providedNotePersistence);
 
   // Overlay track state
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
@@ -415,11 +357,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
       // Default behavior: show inline FullscreenReview overlay if logs exist
       if (result?.data?.logs && result.data.logs.length > 0) {
-        const { segments } = getAnalyticsFromLogs(
-          result.data.logs ?? [],
-          result.data.startTime,
-        );
-        handleOpenReview(segments);
+        handleOpenReview(deriveReviewSegments(result));
       }
     };
 
@@ -487,11 +425,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   // Mixed language: Markdown + embedded Whiteboard Script in code fences
   const languages = useMemo(() => {
     return markdown({
-      codeLanguages: (info) => {
-        if (info === "wod" || info === "log" || info === "plan")
-          return whiteboardScriptLanguage;
-        return null;
-      },
+      codeLanguages: resolveWhiteboardCodeLanguage,
     });
   }, []);
 
@@ -606,7 +540,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ...(onButtonAction ? [inlineButtonDecoration(onButtonAction)] : []),
 
       // File drop handler
-      fileDropHandler(noteId, notePersistence),
+      createFileDropHandler(noteId, notePersistence),
 
       // Blur handler — fires when the editor loses focus
       EditorView.domEventHandlers({

@@ -1,13 +1,12 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { IScriptRuntime } from '../contracts/IScriptRuntime';
-import { PushBlockAction } from '../actions/stack/PushBlockAction';
 import { PopBlockAction } from '../actions/stack/PopBlockAction';
 import { UpdateNextPreviewAction } from '../actions/stack/UpdateNextPreviewAction';
+import { CompileAndPushBlockAction } from '../actions/stack/CompileAndPushBlockAction';
+import { PushRestBlockAction } from '../actions/stack/PushRestBlockAction';
 import { ChildrenStatusState, RoundState, TimerState } from '../memory/MemoryTypes';
 import { calculateElapsed } from '../time/calculateElapsed';
-import { RestBlock } from '../blocks/RestBlock';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 import { TrackRoundAction } from '../actions/tracking/TrackRoundAction';
 
@@ -36,64 +35,6 @@ export interface ChildSelectionConfig {
      * Only used when startRound is also provided.
      */
     totalRounds?: number;
-}
-
-class CompileChildBlockAction implements IRuntimeAction {
-    readonly type = 'compile-child-block';
-    readonly target?: string;
-    readonly payload?: unknown;
-
-    constructor(private readonly statementIds: number[]) {
-        this.payload = { statementIds };
-    }
-
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
-        if (this.statementIds.length === 0) {
-            return [];
-        }
-
-        const script = runtime.script;
-        const compiler = runtime.jit;
-        if (!script || !compiler) {
-            return [];
-        }
-
-        const statements = this.statementIds
-            .map(id => script.getId(id))
-            .filter((statement): statement is NonNullable<typeof statement> => statement !== undefined);
-
-        if (statements.length === 0) {
-            return [];
-        }
-
-        const block = compiler.compile(statements as any, runtime);
-        if (!block) {
-            return [];
-        }
-
-        return [new PushBlockAction(block)];
-    }
-}
-
-class PushRestBlockAction implements IRuntimeAction {
-    readonly type = 'push-rest-block';
-    readonly target?: string;
-    readonly payload?: unknown;
-
-    constructor(
-        private readonly durationMs: number,
-        private readonly label: string = 'Rest'
-    ) {
-        this.payload = { durationMs, label };
-    }
-
-    do(runtime: IScriptRuntime): IRuntimeAction[] {
-        const restBlock = new RestBlock(runtime, {
-            durationMs: this.durationMs,
-            label: this.label,
-        });
-        return [new PushBlockAction(restBlock)];
-    }
 }
 
 export class ChildSelectionBehavior implements IRuntimeBehavior {
@@ -261,7 +202,7 @@ export class ChildSelectionBehavior implements IRuntimeBehavior {
 
         const upcomingGroup = this.config.childGroups[this.childIndex];
         return [
-            new CompileChildBlockAction(nextGroup),
+            new CompileAndPushBlockAction(nextGroup),
             this.createNextPreview(ctx, upcomingGroup),
         ];
     }

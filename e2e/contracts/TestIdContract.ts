@@ -1,9 +1,9 @@
 /**
- * Re-exports the canonical TestIdContract from stories/_shared so that
- * e2e test files import from this path rather than crossing into stories/.
+ * Re-exports the canonical TestIdContract from src/testing/contracts so that
+ * E2E tests can import from a stable local path.
  *
- * Import in e2e tests:
+ * Import in E2E tests:
  *   import { TEST_IDS } from '../contracts/TestIdContract';
  */
-export { TEST_IDS } from '../../stories/_shared/TestIdContract';
-export type { TestId } from '../../stories/_shared/TestIdContract';
+export { TEST_IDS } from '../../src/testing/contracts/TestIdContract';
+export type { TestId } from '../../src/testing/contracts/TestIdContract';

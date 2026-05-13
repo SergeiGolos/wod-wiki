@@ -13,7 +13,7 @@ import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { NextEventHandler } from './events/NextEventHandler';
 import { AbortEventHandler } from './events/AbortEventHandler';
 import { IOutputStatement, OutputStatement } from '../core/models/OutputStatement';
-import { IRuntimeAction } from './contracts';
+import type { IRuntimeAction } from './contracts/IRuntimeAction';
 import { IEvent } from './contracts/events/IEvent';
 import { ExecutionContext } from './ExecutionContext';
 import { PushBlockAction } from './actions/stack/PushBlockAction';
@@ -571,17 +571,17 @@ export class ScriptRuntime implements IScriptRuntime {
 
         // If we have multiple result groups, emit one segment for each
         for (let i = 0; i < resultLocs.length; i++) {
-            const resultFragments = resultLocs[i].metrics ?? MetricContainer.empty();
-            
+            const resultFragments = MetricContainer.from(resultLocs[i].metrics, block.key.toString());
+
             // Match with corresponding display metrics if available
             // (Assumes 1:1 pairing from ReportOutputBehavior)
-            const sourceFragments = displayLocs[i]?.metrics ?? MetricContainer.empty();
+            const sourceFragments = MetricContainer.from(displayLocs[i]?.metrics, block.key.toString());
 
-            // 2. Merge: Runtime results override source definitions (for same type)
-            const resultTypes = new Set(resultFragments.map(f => f.type));
-            const effectiveSourceFragments = sourceFragments.filter(f => !resultTypes.has(f.type));
-
-            const metrics = MetricContainer.from(effectiveSourceFragments, block.key.toString()).merge(resultFragments);
+            // Keep source + result contributions as raw metrics.
+            // Visibility winners are resolved by ownership-aware display reads.
+            const metrics = MetricContainer.empty(block.key.toString())
+                .add(...sourceFragments.toArray())
+                .add(...resultFragments.toArray());
 
             if (metrics.length === 0) {
                 continue;

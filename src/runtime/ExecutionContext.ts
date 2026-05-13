@@ -81,6 +81,10 @@ export class ExecutionContext implements IScriptRuntime {
         this._runtime.setAnalyticsEngine(engine);
     }
 
+    finalizeAnalytics(): IOutputStatement[] {
+        return this._runtime.finalizeAnalytics();
+    }
+
     subscribeToStack(observer: StackObserver): Unsubscribe {
         return this._runtime.subscribeToStack(observer);
     }

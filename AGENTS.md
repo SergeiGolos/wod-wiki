@@ -21,6 +21,7 @@ bun run setup            # Install Playwright browsers (may fail - expected)
 ```bash
 bun run storybook        # Start Storybook on http://localhost:6006 (~2s)
 bun run build-storybook  # Build static Storybook (~30s - NEVER CANCEL)
+bun run check:storybook-deps  # Verify Storybook packages stay dev-only
 bun run docs:check       # Validate documentation links (<1 second)
 ```
 
@@ -28,15 +29,23 @@ bun run docs:check       # Validate documentation links (<1 second)
 
 ### Unit Tests (src/)
 ```bash
-bun run test                          # Run all unit tests (~2-3 seconds)
+bun run test                          # Run all unit tests in src/ only (~3-4 seconds)
 bun run test --watch                  # Watch mode
 bun run test:coverage                 # With coverage report
 ```
+
+> **Note:** `bun run test` targets `./src` (not `src`) to avoid accidentally including
+> `playground/src/` test files. Always use `./src` when running bun test manually.
 
 ### Component/Integration Tests (tests/)
 ```bash
 bun run test:components               # Run tests in tests/ directory
 bun run test:all                      # Run both unit + component tests
+```
+
+### Playground App Tests (playground/src/)
+```bash
+bun run test:playground               # Run tests in playground/src/ directory
 ```
 
 ### Specific Test Execution
@@ -71,7 +80,7 @@ bun x tsc --noEmit                    # Type check only
 
 The project provides a unified test harness under `tests/harness/`. **Use this instead of inline mocks.**
 
-**📚 Full Guide:** [Block Isolation Testing Guide](docs/testing/block_isolation_testing_guide.md)
+**📚 Full Guide:** [Block Isolation Testing Guide](https://github.com/SergeiGolos/wod-wiki/wiki/Block-Isolation-Testing-Guide)
 
 ### Available Classes
 
@@ -346,7 +355,7 @@ e2e/
 ### Documentation Files
 - Save new Markdown documentation to `/docs` directory
 - Documentation auto-published to GitHub Wiki when pushed to main branch
-- API documentation in `docs/runtime-api.md` provides detailed runtime stack patterns
+- API documentation in the Obsidian vault (`deep-dives/runtime-session-implementation.md`) provides detailed runtime stack patterns
 
 ## Performance Considerations
 

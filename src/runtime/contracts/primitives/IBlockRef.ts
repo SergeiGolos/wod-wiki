@@ -1,20 +1,7 @@
 import type { BlockKey } from '../../../core/models/BlockKey';
 import type { IBlockContext } from '../IBlockContext';
 import type { IMemoryLocation, MemoryTag } from '../../memory/MemoryLocation';
-import type { MemoryType, MemoryValueOf } from '../../memory/MemoryTypes';
 import type { MetricVisibility } from '../../memory/MetricVisibility';
-
-/**
- * Backward-compatible memory entry shape exposed by {@link IBlockRef.getMemory}.
- *
- * Mirrors the legacy shim type historically defined on `IRuntimeBlock`. Lives
- * in the primitives layer because both `IBlockRef` (consumer) and
- * `IRuntimeBlock` (producer) reference it.
- */
-export interface IMemoryEntryShim<V = unknown> {
-    readonly value: V;
-    subscribe(listener: (newValue: V | undefined, oldValue: V | undefined) => void): () => void;
-}
 
 /**
  * Minimal block reference primitive consumed by {@link IBehaviorContext}.
@@ -78,17 +65,4 @@ export interface IBlockRef {
 
     /** Mark the block as complete (idempotent). */
     markComplete(reason?: string): void;
-
-    // ============================================================================
-    // Backward-Compatible Memory API (shims over list-based memory)
-    // ============================================================================
-
-    /** @deprecated Use {@link getMemoryByTag} instead. */
-    getMemory<T extends MemoryType>(type: T): IMemoryEntryShim<MemoryValueOf<T>> | undefined;
-
-    /** @deprecated Use `getMemoryByTag(tag).length > 0` instead. */
-    hasMemory(type: MemoryType): boolean;
-
-    /** @deprecated Use {@link pushMemory} or the `BehaviorContext` API instead. */
-    setMemoryValue<T extends MemoryType>(type: T, value: MemoryValueOf<T>): void;
 }

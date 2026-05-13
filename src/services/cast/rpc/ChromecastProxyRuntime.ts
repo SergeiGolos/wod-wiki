@@ -248,6 +248,11 @@ export class ChromecastProxyRuntime implements IScriptRuntime {
         // No-op
     }
 
+    finalizeAnalytics(): import('../../../core/models/OutputStatement').IOutputStatement[] {
+        // No-op on proxy — analytics finalization happens on the browser.
+        return [];
+    }
+
     /**
      * Subscribe to workbench display mode changes.
      * The listener is called immediately with the current state, then on every update.

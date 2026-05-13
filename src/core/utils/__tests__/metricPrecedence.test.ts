@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from '../metricPrecedence';
-import { MetricType, IMetric, MetricOrigin } from '../../models/Metric';
+import { MetricType, IMetric, MetricOrigin, MetricAction } from '../../models/Metric';
+import { getMetricOwnershipLayer } from '../../metrics/ownership';
 
 /**
  * Helper to create a minimal IMetric for testing.
@@ -8,13 +9,15 @@ import { MetricType, IMetric, MetricOrigin } from '../../models/Metric';
 function frag(
     metricType: MetricType,
     origin: MetricOrigin = 'parser',
-    value?: unknown
+    value?: unknown,
+    action?: MetricAction,
 ): IMetric {
     return {
         type: metricType,
         metricType,
         origin,
         value,
+        action,
     };
 }
 
@@ -112,6 +115,65 @@ describe('selectBestTier', () => {
 });
 
 describe('resolveMetricPrecedence', () => {
+    it('characterizes current ownership chain: runtime display beats dialect and parser for the same type', () => {
+        const metrics = [
+            frag(MetricType.Duration, 'parser', 'planned'),
+            frag(MetricType.Duration, 'dialect', 'dialect-default'),
+            frag(MetricType.Duration, 'runtime', 'live'),
+        ];
+
+        const result = resolveMetricPrecedence(metrics);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].origin).toBe('runtime');
+        expect(getMetricOwnershipLayer(result[0].origin)).toBe('runtime');
+    });
+
+    it('characterizes current ownership chain: user-entry display beats runtime, dialect, and parser', () => {
+        const metrics = [
+            frag(MetricType.Rep, 'parser', 10),
+            frag(MetricType.Rep, 'dialect', 12),
+            frag(MetricType.Rep, 'runtime', 11),
+            frag(MetricType.Rep, 'user', 9),
+        ];
+
+        const result = resolveMetricPrecedence(metrics);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].origin).toBe('user');
+        expect(result[0].value).toBe(9);
+        expect(getMetricOwnershipLayer(result[0].origin)).toBe('user-entry');
+    });
+
+    it('uses explicit ownershipLayer when provided for legacy-origin compatibility', () => {
+        const parserUserPlan = {
+            ...frag(MetricType.Distance, 'parser', 1200),
+            ownershipLayer: 'user-plan' as const,
+        } as IMetric & { ownershipLayer: 'user-plan' };
+
+        const dialectDefault = frag(MetricType.Distance, 'dialect', 1000);
+
+        const result = resolveMetricPrecedence([dialectDefault, parserUserPlan]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].value).toBe(1200);
+        expect(getMetricOwnershipLayer(result[0].origin)).toBe('parser');
+    });
+
+    it('characterizes suppress/hide as display-only: the visible winner is removed without deleting raw inputs', () => {
+        const metrics = [
+            frag(MetricType.Action, 'parser', 'EMOM'),
+            frag(MetricType.Action, 'dialect', undefined, 'suppress'),
+        ];
+
+        const result = resolveMetricPrecedence(metrics);
+
+        expect(result).toEqual([]);
+        expect(metrics).toHaveLength(2);
+        expect(metrics.some(m => m.origin === 'parser')).toBe(true);
+        expect(metrics.some(m => m.action === 'suppress')).toBe(true);
+    });
+
     it('resolves per-type independently', () => {
         const metrics = [
             frag(MetricType.Duration, 'runtime', 'elapsed'),

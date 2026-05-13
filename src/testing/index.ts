@@ -9,3 +9,6 @@ export * from './setup';
 
 // Test components
 export * from './components';
+
+// Shared test contracts
+export * from './contracts/TestIdContract';

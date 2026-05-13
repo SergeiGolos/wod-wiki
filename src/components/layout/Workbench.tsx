@@ -47,13 +47,12 @@ import { useWorkbenchEffects } from './useWorkbenchEffects';
 
 import { useWorkbenchSync } from './useWorkbenchSync';
 import { DebugButton, useDebugMode } from '@/components/layout/DebugModeContext';
-import { formatPlaygroundTimestampLabel } from '@/lib/playgroundDisplay';
 import { runtimeFactory } from '@/hooks/useRuntimeFactory';
 import { ContentProviderMode, IContentProvider } from '../../types/content-provider';
 import { HistoryEntry, WorkoutResults } from '../../types/history';
 import { workbenchEventBus } from '@/hooks/useBrowserServices';
-import { getWodContent } from '@/repositories/wod-loader';
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { getWorkbenchDocumentTitle, loadWorkbenchDisplayEntry } from '@/app/workbench/workbenchEntryLoader';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
 
@@ -63,8 +62,6 @@ const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
 import { ReviewGrid } from '../review-grid';
-
-// runtimeFactory is now imported from @/hooks/useRuntimeParser
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
@@ -200,23 +197,6 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
   // Current entry tags (for Add to Notebook button)
   const [currentEntryTags, setCurrentEntryTags] = useState<string[]>([]);
   useEffect(() => {
-    // Helper to synthesize template entry from static content
-    const createTemplateEntry = (id: string, content: string): HistoryEntry => {
-      const titleMatch = content.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1].trim() : id;
-      return {
-        id,
-        title,
-        rawContent: content,
-        type: 'template',
-        tags: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        targetDate: Date.now(),
-        schemaVersion: 1
-      };
-    };
-
     if (!routeId) {
       setCurrentEntry(null);
       // setCurrentEntryTags([]);
@@ -224,26 +204,10 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
     }
 
     const loadEntry = async () => {
-      // 1. Try fetching from provider (if history mode)
-      if (provider.mode === 'history') {
-        try {
-          const entry = await provider.getEntry(routeId);
-          if (entry) {
-            setCurrentEntry(entry);
-            // setCurrentEntryTags(entry.tags);
-            return;
-          }
-        } catch (e) {
-          console.warn('Failed to load entry from provider', e);
-        }
-      }
-
-      // 2. Fallback: Try static WOD content (for static mode OR history mode fallback)
-      const wodContent = getWodContent(routeId);
-      if (wodContent) {
-        const templateEntry = createTemplateEntry(routeId, wodContent);
-        setCurrentEntry(templateEntry);
-        // setCurrentEntryTags([]);
+      const entry = await loadWorkbenchDisplayEntry(routeId, provider);
+      if (entry) {
+        setCurrentEntry(entry);
+        // setCurrentEntryTags(entry.tags);
         return;
       }
 
@@ -280,16 +244,8 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   // Update document title based on current entry or route
   useEffect(() => {
-    if (currentEntry?.title) {
-      document.title = `Wod.Wiki - ${currentEntry.title}`;
-    } else if (currentEntry?.type === 'playground') {
-      document.title = `Wod.Wiki - ${formatPlaygroundTimestampLabel(currentEntry.createdAt)}`;
-    } else if (routeId) {
-      document.title = 'Wod.Wiki - Untitled note';
-    } else {
-      document.title = 'Wod.Wiki';
-    }
-  }, [currentEntry?.createdAt, currentEntry?.title, currentEntry?.type, routeId]);
+    document.title = getWorkbenchDocumentTitle(currentEntry, routeId);
+  }, [currentEntry, routeId]);
 
   // Consume synced state from Zustand store (via useWorkbenchEffects)
   const {

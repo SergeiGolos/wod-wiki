@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { MetricContainer } from '../MetricContainer';
 import { IMetric, MetricType } from '../Metric';
+import { getMetricOwnershipLayer } from '../../metrics/ownership';
 
 // ── Helpers ──────────────────────────────────────────────────
 
 function makeMetric(
     metricType: MetricType,
     value: unknown = undefined,
-    origin: 'parser' | 'compiler' | 'runtime' | 'user' = 'parser',
+    origin: 'parser' | 'compiler' | 'dialect' | 'runtime' | 'user' = 'parser',
     image?: string
 ): IMetric {
     return {
@@ -127,6 +128,31 @@ describe('MetricContainer', () => {
             expect(resolved).toHaveLength(1);
             expect(resolved[0].type).toBe(MetricType.Rep);
         });
+
+        it('getMetric routes visible reads through ownership compatibility', () => {
+            const c = new MetricContainer([
+                makeMetric(MetricType.Distance, 1000, 'dialect'),
+                {
+                    ...makeMetric(MetricType.Distance, 1200, 'parser'),
+                    ownershipLayer: 'user-plan' as const,
+                } as IMetric & { ownershipLayer: 'user-plan' },
+            ]);
+
+            const distance = c.getMetric(MetricType.Distance);
+            expect(distance?.value).toBe(1200);
+        });
+
+        it('getAllMetricsByType only returns the visible tier for display reads', () => {
+            const c = new MetricContainer([
+                makeMetric(MetricType.Rep, 10, 'parser'),
+                makeMetric(MetricType.Rep, 12, 'dialect'),
+                makeMetric(MetricType.Rep, 11, 'runtime'),
+            ]);
+
+            const reps = c.getAllMetricsByType(MetricType.Rep);
+            expect(reps).toHaveLength(1);
+            expect(reps[0].origin).toBe('runtime');
+        });
     });
 
     // ── Write ──────────────────────────────────────────────────
@@ -202,6 +228,30 @@ describe('MetricContainer', () => {
     // ── Merge ──────────────────────────────────────────────────
 
     describe('merge', () => {
+        it('characterizes current behavior: higher-precedence merge deletes lower-layer raw history', () => {
+            const c = new MetricContainer([makeMetric(MetricType.Duration, 600000, 'parser')]);
+
+            c.merge([makeMetric(MetricType.Duration, 540000, 'runtime')]);
+
+            const durationMetrics = c.getAllMetricsByType(MetricType.Duration);
+            expect(durationMetrics).toHaveLength(1);
+            expect(durationMetrics[0].origin).toBe('runtime');
+            expect(getMetricOwnershipLayer(durationMetrics[0].origin)).toBe('runtime');
+        });
+
+        it.failing('future ownership invariant: visible winner does not delete lower-layer raw history', () => {
+            const c = new MetricContainer([makeMetric(MetricType.Duration, 600000, 'parser')]);
+
+            c.merge([makeMetric(MetricType.Duration, 540000, 'runtime')]);
+
+            const durationMetrics = c.getAllMetricsByType(MetricType.Duration);
+            expect(durationMetrics).toHaveLength(2);
+            expect(durationMetrics.map((metric) => getMetricOwnershipLayer(metric.origin))).toEqual([
+                'runtime',
+                'parser',
+            ]);
+        });
+
         it('adds new types not present in container', () => {
             const c = new MetricContainer([makeMetric(MetricType.Rep, 10, 'parser')]);
             c.merge([makeMetric(MetricType.Effort, 'Run', 'parser')]);

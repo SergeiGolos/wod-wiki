@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
 import { CAST_NAMESPACE } from '@/types/cast/messages';
@@ -226,7 +226,7 @@ const ReceiverApp = () => {
   const [remoteState, setRemoteState] = useState<RemoteState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
   const [now, setNow] = useState(Date.now());
-  const [dpadFlash, setDpadFlash] = useState(false);
+  const [dpadFlash, setDpadFlash] = useState(false); // kept for compatibility, activation is now element-level (WOD-274)
   const transportRef = React.useRef<WebRTCTransport | null>(null);
 
   // Local clock for smooth timer interpolation
@@ -315,6 +315,19 @@ const ReceiverApp = () => {
     });
   }, []);
 
+  /**
+   * Element-level D-Pad activation flash (WOD-274).
+   * Targets the focused nav element directly so the confirmation pulse is
+   * visible at TV distance — much more legible than a full-screen overlay.
+   */
+  const dpadElementFlash = useCallback(() => {
+    const focused = document.querySelector<HTMLElement>('[data-nav-focused="true"]');
+    const target = focused ?? document.querySelector<HTMLElement>('.tv-focusable, .tv-focus');
+    if (!target) return;
+    target.classList.add('tv-activating');
+    setTimeout(() => target.classList.remove('tv-activating'), 250);
+  }, []);
+
   // ── D-Pad key handler + focus management for Chromecast remote ──
   useEffect(() => {
     // Ensure body can receive focus
@@ -354,8 +367,7 @@ const ReceiverApp = () => {
         e.preventDefault();
         console.log(`[ReceiverApp] Triggering "next" event from ${e.key || e.keyCode}`);
         sendReceiverEvent('next');
-        setDpadFlash(true);
-        setTimeout(() => setDpadFlash(false), 200);
+        dpadElementFlash();
         return;
       }
 
@@ -363,21 +375,18 @@ const ReceiverApp = () => {
         case 'ArrowUp':
           e.preventDefault();
           sendReceiverEvent('start');
-          setDpadFlash(true);
-          setTimeout(() => setDpadFlash(false), 200);
+          dpadElementFlash();
           break;
         case 'ArrowDown':
           e.preventDefault();
           sendReceiverEvent('pause');
-          setDpadFlash(true);
-          setTimeout(() => setDpadFlash(false), 200);
+          dpadElementFlash();
           break;
         case 'Escape':
         case 'Backspace':
           e.preventDefault();
           sendReceiverEvent('stop');
-          setDpadFlash(true);
-          setTimeout(() => setDpadFlash(false), 200);
+          dpadElementFlash();
           break;
       }
     };
@@ -393,7 +402,7 @@ const ReceiverApp = () => {
   // ── Waiting screen ──
   if (!remoteState) {
     return (
-      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/20 font-mono uppercase tracking-[0.5em]">
+      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/60 font-mono uppercase tracking-[0.5em]">
         <div className="animate-pulse">Wod.Wiki // {connectionStatus}</div>
       </div>
     );
@@ -445,10 +454,6 @@ const ReceiverApp = () => {
   return (
     <PanelSizeProvider>
       <div className="h-screen w-screen bg-background text-foreground flex overflow-hidden">
-        {/* D-Pad flash overlay */}
-        {dpadFlash && (
-          <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
-        )}
 
         {/* Left Column: Visual State Panel (stack + lookahead) */}
         <div className="flex-1 min-w-0 bg-secondary/10 border-r border-border">

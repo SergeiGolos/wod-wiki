@@ -37,7 +37,7 @@ export type { IRuntimeAction } from './runtime/contracts/IRuntimeAction';
 export type { IRuntimeMemory } from './runtime/contracts/IRuntimeMemory';
 export type { IRuntimeBlockStrategy } from './runtime/contracts/IRuntimeBlockStrategy';
 export type { IMemoryReference } from './runtime/contracts/IMemoryReference';
-export type { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
+export { TypedMemoryReference } from './runtime/impl/TypedMemoryReference';
 export type { IEvent } from './runtime/contracts/events/IEvent';
 export type { IEventHandler } from './runtime/contracts/events/IEventHandler';
 
@@ -45,7 +45,8 @@ export type { IBlockContext } from './runtime/contracts/IBlockContext';
 
 // Runtime actions
 export * from './runtime/actions/stack/PushBlockAction';
-export * from './runtime/actions/ErrorAction';
+export { ErrorAction } from './runtime/actions/ErrorAction';
+export type { RuntimeError } from './runtime/actions/ErrorAction';
 
 // Runtime behaviors - export new aspect-based behaviors
 export * from './runtime/behaviors';
@@ -77,4 +78,18 @@ export type { IMetric } from './core/models/Metric';
 
 // Fragment contracts & utilities
 export type { IMetricSource, MetricFilter } from './core/contracts/IMetricSource';
+export type {
+  MetricOwnershipLayer,
+  MetricOwnershipLedger,
+  MetricOwnershipPromotionCandidate,
+  MetricOwnershipQuery,
+  MetricOwnershipResolvedContribution,
+  MetricOwnershipTypeExplanation,
+} from './core/metrics/ownership';
+export {
+  METRIC_OWNERSHIP_LAYER_CHAIN,
+  LEGACY_ORIGIN_TO_OWNERSHIP_LAYER,
+  createMetricOwnershipLedger,
+  getMetricOwnershipLayer,
+} from './core/metrics/ownership';
 export { resolveMetricPrecedence, selectBestTier, ORIGIN_PRECEDENCE } from './core/utils/metricPrecedence';

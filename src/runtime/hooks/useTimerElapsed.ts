@@ -3,6 +3,7 @@ import { useScriptRuntime } from '../context/RuntimeContext';
 import { TimeSpan } from '../models/TimeSpan';
 import { TimerState } from '../memory/MemoryTypes';
 import { calculateDuration } from '../../lib/timeUtils';
+import { getRuntimeNowMs } from './runtimeNow';
 
 
 /**
@@ -11,7 +12,7 @@ import { calculateDuration } from '../../lib/timeUtils';
 export interface UseTimerElapsedResult {
   elapsed: number;          // Total milliseconds across all spans
   isRunning: boolean;       // Current running state
-  timeSpans: TimeSpan[];   // Array of start/stop pairs (number timestamps)
+  timeSpans: readonly TimeSpan[];   // Array of start/stop pairs (number timestamps)
 }
 
 /**
@@ -111,7 +112,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
   // Derive isRunning from spans - last span has no end time
   const isRunning = timeSpans.length > 0 && timeSpans[timeSpans.length - 1].ended === undefined;
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(getRuntimeNowMs());
 
   // Calculate elapsed time using shared utility
   const elapsed = useMemo(() => {
@@ -126,7 +127,7 @@ export function useTimerElapsed(blockKey: string): UseTimerElapsedResult {
     let animationFrameId: number;
 
     const update = () => {
-      setNow(Date.now());
+      setNow(getRuntimeNowMs());
       animationFrameId = requestAnimationFrame(update);
     };
 

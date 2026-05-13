@@ -25,18 +25,48 @@ import {
     type SessionTestContext,
 } from '../jit-compilation/helpers/session-test-utils';
 import { MetricType } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
- * Returns all display metrics for the current top-of-stack block (flat array).
+ * Returns merged display metrics for the current top-of-stack block.
+ */
+function currentDisplayMetricContainer(ctx: SessionTestContext): MetricContainer {
+    const block = ctx.runtime.stack.current;
+    if (!block) return MetricContainer.empty('current-display');
+
+    const memoryMetrics = MetricContainer.empty(block.key.toString());
+    for (const loc of block.getMemoryByTag('metric:display')) {
+        memoryMetrics.merge(loc.metrics);
+    }
+
+    const statementMetrics = MetricContainer.empty(block.key.toString());
+    for (const statement of ctx.runtime.script.getIds(block.sourceIds)) {
+        statementMetrics.merge(statement.getDisplayMetrics());
+    }
+
+    if (statementMetrics.isEmpty) {
+        return memoryMetrics;
+    }
+
+    const effectiveMetrics = memoryMetrics.clone(block.key.toString());
+    const overriddenTypes = new Set(statementMetrics.getDisplayMetrics().map(metric => metric.type));
+    for (const metricType of overriddenTypes) {
+        effectiveMetrics.remove(metric => metric.type === metricType);
+    }
+
+    effectiveMetrics.merge(statementMetrics);
+    return effectiveMetrics;
+}
+
+/**
+ * Returns all resolved display metrics for the current top-of-stack block.
  */
 function currentDisplayMetrics(ctx: SessionTestContext) {
-    const block = ctx.runtime.stack.current;
-    if (!block) return [];
-    return block.getMemoryByTag('metric:display').flatMap(loc => loc.metrics);
+    return currentDisplayMetricContainer(ctx).getDisplayMetrics();
 }
 
 /**
@@ -61,8 +91,7 @@ function currentResistance(ctx: SessionTestContext): { amount: number | undefine
  * Returns the rep count for the current block, or undefined if absent.
  */
 function currentReps(ctx: SessionTestContext): number | undefined {
-    const metrics = currentDisplayMetrics(ctx);
-    const rep = metrics.find(m => m.type === MetricType.Rep);
+    const rep = currentDisplayMetricContainer(ctx).getMetric(MetricType.Rep);
     return rep?.value as number | undefined;
 }
 
@@ -87,14 +116,14 @@ function currentDistance(ctx: SessionTestContext): { amount: number | undefined;
  * Returns true when the current block's display metrics include a Resistance entry.
  */
 function currentHasResistance(ctx: SessionTestContext): boolean {
-    return currentDisplayMetrics(ctx).some(m => m.type === MetricType.Resistance);
+    return currentDisplayMetricContainer(ctx).hasMetric(MetricType.Resistance);
 }
 
 /**
  * Returns true when the current block's display metrics include a Distance entry.
  */
 function currentHasDistance(ctx: SessionTestContext): boolean {
-    return currentDisplayMetrics(ctx).some(m => m.type === MetricType.Distance);
+    return currentDisplayMetricContainer(ctx).hasMetric(MetricType.Distance);
 }
 
 // ===========================================================================

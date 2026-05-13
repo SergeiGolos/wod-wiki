@@ -1,6 +1,10 @@
 import { IMetric, MetricType, MetricOrigin } from './Metric';
 import { IMetricSource, MetricFilter } from '../contracts/IMetricSource';
 import { resolveMetricPrecedence, ORIGIN_PRECEDENCE } from '../utils/metricPrecedence';
+import {
+    resolveVisibleMetricByTypeWithOwnership,
+    resolveVisibleMetricsByTypeWithOwnership,
+} from '../metrics/ownership';
 
 /**
  * MetricContainer — a typed collection for `IMetric` objects.
@@ -144,11 +148,11 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     }
 
     getMetric(type: MetricType): IMetric | undefined {
-        return this.getFirst(type);
+        return resolveVisibleMetricByTypeWithOwnership(this._metrics, type);
     }
 
     getAllMetricsByType(type: MetricType): IMetric[] {
-        return this.getByType(type);
+        return resolveVisibleMetricsByTypeWithOwnership(this._metrics, type);
     }
 
     get rawMetrics(): IMetric[] {
@@ -229,6 +233,13 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
 
     /**
      * Merge another container (or raw array) into this one.
+     *
+     * @deprecated Legacy/destructive compatibility path.
+     * Prefer ownership-ledger visibility reads (`resolve`, `getDisplayMetrics`,
+     * `getMetric`) for canonical ownership behavior. This mutating merge keeps
+     * historical semantics and can delete lower-layer raw metrics when a higher
+     * precedence origin arrives.
+     *
      * The structural `{ metrics: MetricContainer }` shape supports
      * `IMetricContainer` handoff contracts without importing that interface here.
      *
