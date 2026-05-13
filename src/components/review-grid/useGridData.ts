@@ -247,20 +247,6 @@ function segmentsToRows(
     const overrides = blockKey ? userOverrides.get(blockKey) : undefined;
     if (overrides) {
       for (const frag of overrides) {
-        // Remove hinted placeholders (origin === 'hinted') of the same type so
-        // the user value replaces the '?' instead of appearing alongside it.
-        const existing = cells.get(frag.type as MetricType);
-        if (existing) {
-          const withoutHinted = existing.metrics.filter((m) => m.origin !== 'hinted');
-          if (withoutHinted.length === 0) {
-            cells.delete(frag.type as MetricType);
-          } else {
-            cells.set(frag.type as MetricType, {
-              metrics: MetricContainer.from(withoutHinted, frag.type),
-              hasUserOverride: false
-            });
-          }
-        }
         groupFragmentIntoCell(cells, frag);
       }
     }
@@ -441,9 +427,10 @@ function rowMatchesSearch(row: GridRow, needle: string): boolean {
   if (row.outputType.toLowerCase().includes(needle)) return true;
   if (row.completionReason?.toLowerCase().includes(needle)) return true;
 
-  // Check metrics cells
-  for (const [, cell] of row.cells) {
-    for (const frag of cell.metrics) {
+  // Check metrics cells (visible ownership layer only)
+  for (const [metricType, cell] of row.cells) {
+    const visible = cell.metrics.getDisplayMetrics({ types: [metricType] });
+    for (const frag of visible) {
       const text = metricToText(frag);
       if (text.toLowerCase().includes(needle)) return true;
     }
@@ -510,8 +497,10 @@ function getSortValue(row: GridRow, col: GridColumn): string | number {
   // Fragment columns — sort by first metrics's value
   if (col.type) {
     const cell = row.cells.get(col.type);
-    if (!cell || cell.metrics.length === 0) return '';
-    const first = cell.metrics[0];
+    const visible = cell?.metrics.getDisplayMetrics({ types: [col.type] }) ?? [];
+    if (visible.length === 0) return '';
+
+    const first = visible[0];
     if (typeof first.value === 'number') return first.value;
     return metricToText(first);
   }
@@ -556,7 +545,8 @@ function getCellTextForColumn(row: GridRow, col: GridColumn): string {
   if (col.type) {
     const cell = row.cells.get(col.type);
     if (!cell) return '';
-    return cell.metrics.map(metricToText).join(', ');
+    const visible = cell.metrics.getDisplayMetrics({ types: [col.type] });
+    return visible.map(metricToText).join(', ');
   }
 
   return '';

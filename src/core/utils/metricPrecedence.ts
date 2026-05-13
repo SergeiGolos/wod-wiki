@@ -1,5 +1,6 @@
 import { MetricType, IMetric, MetricOrigin } from '../models/Metric';
 import { MetricFilter } from '../contracts/IMetricSource';
+import { resolveVisibleMetricsWithOwnership } from '../metrics/ownership';
 
 /**
  * Maps each MetricOrigin to its precedence tier.
@@ -69,42 +70,5 @@ export function resolveMetricPrecedence(
     metrics: IMetric[],
     filter?: MetricFilter
 ): IMetric[] {
-    // Step 1: Apply filters
-    let filtered = metrics;
-    if (filter) {
-        if (filter.origins) {
-            filtered = filtered.filter(f => filter.origins!.includes(f.origin ?? 'parser'));
-        }
-        if (filter.types) {
-            filtered = filtered.filter(f => filter.types!.includes(f.type));
-        }
-        if (filter.excludeTypes) {
-            filtered = filtered.filter(f => !filter.excludeTypes!.includes(f.type));
-        }
-    }
-
-    // Suppress: collect types marked for suppression, then remove both the
-    // sentinel and all other metrics of that type from the display result.
-    const suppressedTypes = new Set(
-        filtered.filter(m => m.action === 'suppress').map(m => m.type)
-    );
-    filtered = filtered.filter(m =>
-        m.action !== 'suppress' && !suppressedTypes.has(m.type)
-    );
-
-    // Step 2: Group by MetricType
-    const byType = new Map<MetricType, IMetric[]>();
-    for (const f of filtered) {
-        const group = byType.get(f.type) ?? [];
-        group.push(f);
-        byType.set(f.type, group);
-    }
-
-    // Step 3: For each type, take highest-precedence tier
-    const result: IMetric[] = [];
-    for (const [, typeFragments] of byType) {
-        result.push(...selectBestTier(typeFragments));
-    }
-
-    return result;
+    return resolveVisibleMetricsWithOwnership(metrics, filter);
 }
