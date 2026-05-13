@@ -1,5 +1,9 @@
 name: Release – Main
 
+# Every push to main attempts a release using the version from package.json.
+# If the tag already exists at this commit SHA, the release is updated in-place (idempotent).
+# If the tag exists at a different SHA, the release job fails — bump package.json before
+# merging another change to main to avoid overwriting an existing release.
 on:
   push:
     branches: ["main"]

@@ -44,10 +44,19 @@ jobs:
             const workflow_id = 'preview.yml';
             const sourceBranch = '${{ inputs.branch }}';
             const previewUrl = '${{ inputs.preview-url }}';
-            const dispatchedAt = Date.now();
             const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
             core.info(`Dispatching ${owner}/${repo}:${workflow_id} for source branch ${sourceBranch}`);
+            const { data: beforeData } = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id,
+              event: 'workflow_dispatch',
+              per_page: 1,
+            });
+            const latestRunIdBefore = beforeData.workflow_runs[0]?.id ?? 0;
+            const dispatchedAt = Date.now();
+
             await github.rest.actions.createWorkflowDispatch({
               owner,
               repo,
@@ -69,7 +78,7 @@ jobs:
 
               run = data.workflow_runs.find((candidate) => {
                 const createdAt = new Date(candidate.created_at).getTime();
-                return createdAt >= dispatchedAt - 60000;
+                return candidate.id > latestRunIdBefore && createdAt >= dispatchedAt - 5000;
               });
 
               if (run) {
@@ -110,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 20); do
-            status=$(curl -ksSL -o /dev/null -w "%{http_code}" "${{ inputs.preview-url }}/playground")
+            status=$(curl -sSL -o /dev/null -w "%{http_code}" "${{ inputs.preview-url }}/playground")
             if [ "$status" = "200" ]; then
               echo "Preview is serving /playground"
               exit 0

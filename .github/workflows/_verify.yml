@@ -25,6 +25,8 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-22.04
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     outputs:
       unit-status: ${{ steps.unit.outcome }}
       story-status: ${{ steps.story.outcome }}
@@ -71,7 +73,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage to Codecov
-        if: always() && secrets.CODECOV_TOKEN != '' && steps.coverage.outcome == 'success'
+        if: always() && env.CODECOV_TOKEN != '' && steps.coverage.outcome == 'success'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info

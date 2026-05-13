@@ -37,6 +37,7 @@ jobs:
               const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
               if (ref.data.object.sha !== sha) {
                 core.setFailed(`Tag ${tag} already exists at ${ref.data.object.sha}. Bump package.json before merging another main release.`);
+                return;
               }
             } catch (error) {
               if (error.status !== 404) {
