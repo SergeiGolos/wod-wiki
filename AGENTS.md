@@ -21,6 +21,7 @@ bun run setup            # Install Playwright browsers (may fail - expected)
 ```bash
 bun run storybook        # Start Storybook on http://localhost:6006 (~2s)
 bun run build-storybook  # Build static Storybook (~30s - NEVER CANCEL)
+bun run check:storybook-deps  # Verify Storybook packages stay dev-only
 bun run docs:check       # Validate documentation links (<1 second)
 ```
 

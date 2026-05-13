@@ -17,12 +17,13 @@ We have comprehensive documentation available in the `docs/` directory:
 
 ### Features
 - **[Exercise Typeahead](./docs/Exercise_Typeahead.md)**: Details on the intelligent exercise suggestion system.
-- **[Runtime Test Bench](./docs/Runtime_Test_Bench.md)**: How to use the interactive debugging tool.
+- **Runtime execution UI**: Active runtime controls now live in the main editor/workbench surfaces rather than a separate `runtime-test-bench` subsystem.
 
 ### Code Quality
 - **[Code Quality Summary](./docs/CODE_QUALITY_SUMMARY.md)**: Overview of code quality metrics and improvements
 - **[Code Analysis](./docs/CODE_ANALYSIS.md)**: Detailed analysis of anti-patterns and code smells
 - **[Refactoring Plan](./docs/REFACTORING_PLAN.md)**: Prioritized roadmap for code improvements
+- **[Architecture Regression Checks](./docs/ARCHITECTURE_REGRESSION_CHECKS.md)**: CI guardrails for circular dependencies, retired runtime-test-bench imports, and protected barrels
 
 ## 🚀 Quick Start
 
@@ -73,6 +74,7 @@ This will launch the interface at `http://localhost:6006`.
 - **Unit Tests**: `bun run test`
 - **End-to-End Tests**: `bun run test:e2e`
 - **Storybook Tests**: `bun run test:storybook`
+- **Architecture Guardrails**: `bun run check:architecture`
 
 ### Build
 

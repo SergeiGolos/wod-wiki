@@ -12,6 +12,8 @@ import { Unsubscribe } from '../contracts/IRuntimeStack';
  *   all events (using the 'global' callback registration path).
  */
 export class LocalEventProvider implements IRuntimeEventProvider {
+    private static subscriptionCounter = 0;
+
     private unsubscribes: Unsubscribe[] = [];
     private disposed = false;
 
@@ -25,22 +27,28 @@ export class LocalEventProvider implements IRuntimeEventProvider {
     onEvent(handler: (event: IEvent) => void): Unsubscribe {
         if (this.disposed) return () => {};
 
-        // Register on the event bus as a callback listener for all events ('*')
-        // using a synthetic owner ID so it doesn't get scope-filtered.
-        const ownerId = `local-event-provider-${Date.now()}`;
-        const unsub = this.runtime.eventBus.on('*', (event) => {
+        const ownerId = `local-event-provider-${LocalEventProvider.subscriptionCounter++}`;
+        const unsubscribeFromBus = this.runtime.eventBus.on('*', (event) => {
             handler(event);
         }, ownerId);
-        this.unsubscribes.push(unsub);
-        return unsub;
+
+        const unsubscribe: Unsubscribe = () => {
+            unsubscribeFromBus();
+            this.unsubscribes = this.unsubscribes.filter((candidate) => candidate !== unsubscribe);
+        };
+
+        this.unsubscribes.push(unsubscribe);
+        return unsubscribe;
     }
 
     dispose(): void {
         if (this.disposed) return;
         this.disposed = true;
-        for (const unsub of this.unsubscribes) {
-            unsub();
-        }
+
+        const unsubscribes = [...this.unsubscribes];
         this.unsubscribes = [];
+        for (const unsubscribe of unsubscribes) {
+            unsubscribe();
+        }
     }
 }

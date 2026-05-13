@@ -21,6 +21,12 @@ export { WebRtcRpcTransport } from '@/services/cast/rpc/WebRtcRpcTransport';
 export { ChromecastRuntimeSubscription } from '@/services/cast/rpc/ChromecastRuntimeSubscription';
 export { ChromecastEventProvider } from '@/services/cast/rpc/ChromecastEventProvider';
 export { ClockSyncService } from '@/services/cast/rpc/ClockSync';
+export {
+  type IViewSession,
+  ChromecastSenderViewSession,
+  ChromecastReceiverViewSession,
+  LocalViewSession,
+} from '@/services/cast/rpc/ViewSession';
 
 // ── Configuration ─────────────────────────────────────────────────────────
 export { CAST_APP_ID, hasCustomCastAppId, DEFAULT_MEDIA_RECEIVER_APP_ID } from '@/services/cast/config';

@@ -9,6 +9,7 @@ import { UseRuntimeExecutionReturn } from '@/runtime/hooks/useRuntimeExecution';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
 import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel';
+import { TrackViewShell } from '@/components/workout/TrackViewShell';
 import type { SectionType } from '@/components/Editor/types/section';
 import type { WodBlock } from '@/components/Editor/types';
 
@@ -103,30 +104,17 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
 
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>
-      <div className={cn("flex h-full overflow-hidden", isCompact ? "flex-col" : "flex-row")}>
-        {/* Top (mobile) / Left (desktop): Session / Visual State */}
-        <div
-          id="tutorial-track-visual"
-          className={cn(
-            "bg-secondary/10",
-            isCompact
-              ? "flex-1 min-h-0 border-b border-border overflow-hidden"
-              : "flex-1 min-w-0 border-r border-border"
-          )}
-        >
-          <VisualStatePanel />
-        </div>
-
-        {/* Bottom (mobile) / Right (desktop): Timer & Controls (Clock) */}
-        <div id="tutorial-track-clock" className={cn(
-          "flex flex-col bg-background transition-all duration-300",
-          isCompact ? "shrink-0" : "w-1/2"
-        )}>
+      <TrackViewShell
+        isCompact={isCompact}
+        leftPanelId="tutorial-track-visual"
+        rightPanelId="tutorial-track-clock"
+        leftPanel={<VisualStatePanel />}
+        rightPanel={(
           <div className="flex-1 flex flex-col justify-center">
             {timerDisplay}
           </div>
-        </div>
-      </div>
+        )}
+      />
     </ScriptRuntimeProvider>
   ) : (
     // No runtime — show layout for selection or error
