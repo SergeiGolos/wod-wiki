@@ -15,10 +15,10 @@ derives or persists analytics from runtime output
 After a workout completes, the same execution data lives in two separate IndexedDB
 stores with no documented relationship between them:
 
-| Store | IDB Object Store | Written by | Contents |
-|-------|-----------------|------------|----------|
-| **Logs** | `results[].data.logs` | `WorkbenchContext.completeWorkout()` | `StoredOutputStatement[]` — flat, per-block runtime output with metrics, timing, and hierarchy |
-| **Analytics points** | `analytics[]` | `IndexedDBNotePersistence.mutateNote()` via `normalizeAnalyticsSegments()` | `AnalyticsDataPoint[]` — de-normalized numeric rows keyed by segment ID, type, and result ID |
+| Store                | IDB Object Store      | Written by                                                                 | Contents                                                                                       |
+| -------------------- | --------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Logs**             | `results[].data.logs` | `WorkbenchContext.completeWorkout()`                                       | `StoredOutputStatement[]` — flat, per-block runtime output with metrics, timing, and hierarchy |
+| **Analytics points** | `analytics[]`         | `IndexedDBNotePersistence.mutateNote()` via `normalizeAnalyticsSegments()` | `AnalyticsDataPoint[]` — de-normalized numeric rows keyed by segment ID, type, and result ID   |
 
 Neither store references the other in its data model. A reader who wants "all
 repetitions for this workout" must know which store to query — and the answer is

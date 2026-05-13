@@ -2,7 +2,38 @@
   "settingsVersion": "1.14.0",
   "highlightColor": "#ffd700",
   "sidebarPosition": "right",
-  "highlights": {},
+  "highlights": {
+    "docs/design-system/01.page-templates/canvas-template.md": [
+      {
+        "id": "fktzou3ay",
+        "text": "This should account for the reorder on mobile for the position<br>sticky view, when in mobile on the canvas section we should not see the %40 with for the prose seciton.",
+        "tags": [],
+        "line": 153,
+        "startOffset": 6597,
+        "endOffset": 6770,
+        "filePath": "docs/design-system/01.page-templates/canvas-template.md",
+        "footnoteCount": 0,
+        "footnoteContents": [],
+        "createdAt": 1778624589557,
+        "isNativeComment": false,
+        "type": "highlight"
+      },
+      {
+        "id": "g5szznw63",
+        "text": "this needs some work, right now we call this commend instead we need tow version, on scroll in, on scroll out.  (making sure the scroll out of the existing seciton alwasy fires before the scroll in of the next when scrolling down and the previous when scrolling up.)",
+        "tags": [],
+        "line": 171,
+        "startOffset": 8828,
+        "endOffset": 9098,
+        "filePath": "docs/design-system/01.page-templates/canvas-template.md",
+        "footnoteCount": 0,
+        "footnoteContents": [],
+        "createdAt": 1778624589788,
+        "isNativeComment": false,
+        "type": "highlight"
+      }
+    ]
+  },
   "collections": {},
   "groupingMode": "none",
   "taskSecondaryGroupingMode": "none",
