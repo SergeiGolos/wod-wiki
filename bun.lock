@@ -91,9 +91,15 @@
         "@rollup/rollup-win32-x64-msvc": "^4.60.3",
       },
       "peerDependencies": {
+        "@monaco-editor/react": "*",
+        "monaco-editor": "*",
         "react": "^18.0.0",
         "react-dom": "^18.0.0",
       },
+      "optionalPeers": [
+        "@monaco-editor/react",
+        "monaco-editor",
+      ],
     },
   },
   "overrides": {
