@@ -29,15 +29,23 @@ bun run docs:check       # Validate documentation links (<1 second)
 
 ### Unit Tests (src/)
 ```bash
-bun run test                          # Run all unit tests (~2-3 seconds)
+bun run test                          # Run all unit tests in src/ only (~3-4 seconds)
 bun run test --watch                  # Watch mode
 bun run test:coverage                 # With coverage report
 ```
+
+> **Note:** `bun run test` targets `./src` (not `src`) to avoid accidentally including
+> `playground/src/` test files. Always use `./src` when running bun test manually.
 
 ### Component/Integration Tests (tests/)
 ```bash
 bun run test:components               # Run tests in tests/ directory
 bun run test:all                      # Run both unit + component tests
+```
+
+### Playground App Tests (playground/src/)
+```bash
+bun run test:playground               # Run tests in playground/src/ directory
 ```
 
 ### Specific Test Execution
