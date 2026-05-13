@@ -496,6 +496,51 @@ th {
   scrollbar-width: none;  /* Firefox */
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * D-Pad activation flash — element-level confirmation pulse.
+ * Applied briefly (~250 ms) when the user presses Select/Enter on a focused
+ * element. Provides visible feedback at TV distance (10-foot rule) by
+ * scaling up + brightening the element itself rather than washing the whole
+ * screen with a low-opacity overlay.
+ *
+ * Usage: add `.tv-activating` to the focused element on activation;
+ * remove it after 250 ms (the animation duration).
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+@keyframes tv-activate-pulse {
+  0%   {
+    box-shadow:
+      0 0 0 3px hsl(var(--card) / 0.9),
+      0 0 0 6px hsl(var(--primary) / 0.7),
+      0 0 20px 4px hsl(var(--primary) / 0.35);
+    transform: scale(1.05);
+    filter: brightness(1);
+  }
+  35%  {
+    box-shadow:
+      0 0 0 4px hsl(var(--card)),
+      0 0 0 12px hsl(var(--primary)),
+      0 0 40px 14px hsl(var(--primary) / 0.65);
+    transform: scale(1.14);
+    filter: brightness(1.35);
+  }
+  100% {
+    box-shadow:
+      0 0 0 3px hsl(var(--card) / 0.9),
+      0 0 0 6px hsl(var(--primary) / 0.7),
+      0 0 20px 4px hsl(var(--primary) / 0.35);
+    transform: scale(1.05);
+    filter: brightness(1);
+  }
+}
+
+.tv-activating {
+  animation: tv-activate-pulse 250ms ease-out forwards;
+  /* Keep the element above neighbours during the flash */
+  z-index: 20;
+  position: relative;
+}
+
 /* Preview list item focus — lighter card lift + highlight */
 .tv-focusable[data-nav-id^="preview-block-"][data-nav-focused="true"] {
   background-color: hsl(var(--card));

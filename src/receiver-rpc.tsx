@@ -23,7 +23,7 @@ const ReceiverApp: React.FC = () => {
     const [proxyRuntime, setProxyRuntime] = useState<ChromecastProxyRuntime | null>(null);
     const [connectionStatus, setConnectionStatus] = useState('waiting-for-cast');
     const [workbenchState, setWorkbenchState] = useState<WorkbenchDisplayState>({ mode: 'idle' });
-    const [dpadFlash, setDpadFlash] = useState(false);
+    // dpadFlash removed — activation is now element-level (WOD-274)
 
     const sessionRef = useRef<ChromecastReceiverViewSession | null>(null);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
@@ -37,9 +37,17 @@ const ReceiverApp: React.FC = () => {
         });
     }, []);
 
+    /**
+     * Element-level activation flash (WOD-274).
+     * Instead of a full-screen bg-primary/10 overlay that is imperceptible at
+     * TV distance, we briefly add `.tv-activating` to the currently-focused
+     * navigation element so the pulse happens right where the user is looking.
+     */
     const flash = useCallback(() => {
-        setDpadFlash(true);
-        setTimeout(() => setDpadFlash(false), 200);
+        const focused = document.querySelector<HTMLElement>('[data-nav-focused="true"]');
+        if (!focused) return;
+        focused.classList.add('tv-activating');
+        setTimeout(() => focused.classList.remove('tv-activating'), 250);
     }, []);
 
     const workbenchStateRef = useRef(workbenchState);
@@ -186,9 +194,6 @@ const ReceiverApp: React.FC = () => {
     if (workbenchState.mode === 'preview' && workbenchState.previewData) {
         return (
             <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
-                {dpadFlash && (
-                    <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
-                )}
                 <ReceiverPreviewPanel previewData={workbenchState.previewData} getFocusProps={getFocusProps} />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}
@@ -200,9 +205,6 @@ const ReceiverApp: React.FC = () => {
     if (workbenchState.mode === 'review' && workbenchState.reviewData) {
         return (
             <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
-                {dpadFlash && (
-                    <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
-                )}
                 <ReceiverReviewPanel
                     reviewData={workbenchState.reviewData}
                     analyticsSummary={workbenchState.analyticsSummary}
@@ -220,10 +222,6 @@ const ReceiverApp: React.FC = () => {
         <ScriptRuntimeProvider runtime={proxyRuntime}>
             <PanelSizeProvider>
                 <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
-                    {dpadFlash && (
-                        <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
-                    )}
-
                     <TrackViewShell
                         leftPanel={<ReceiverStackPanel />}
                         rightPanelClassName="relative"
