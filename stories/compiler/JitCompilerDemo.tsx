@@ -8,7 +8,7 @@ import { MdTimerRuntime } from '../../src/parser/md-timer';
 import { CodeMetadata } from '../../src/core/models/CodeMetadata';
 import { MetricVisualizer } from '../../src/components/metrics';
 import { NextEvent } from '../../src/runtime/events/NextEvent';
-import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies';
+import { IdleBlockStrategy } from '../../src/runtime/compiler/strategies/IdleBlockStrategy';
 import { GenericTimerStrategy } from '../../src/runtime/compiler/strategies/components/GenericTimerStrategy';
 import { GenericLoopStrategy } from '../../src/runtime/compiler/strategies/components/GenericLoopStrategy';
 import { GenericGroupStrategy } from '../../src/runtime/compiler/strategies/components/GenericGroupStrategy';
