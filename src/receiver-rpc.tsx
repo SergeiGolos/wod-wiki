@@ -45,9 +45,22 @@ const ReceiverApp: React.FC = () => {
     const workbenchStateRef = useRef(workbenchState);
     workbenchStateRef.current = workbenchState;
 
+    const dismissToWaiting = useCallback(() => {
+        // Best effort: notify sender so it can react while still connected.
+        sendEvent('dismiss');
+
+        // Local fallback: always reset to waiting even if sender is gone.
+        setWorkbenchState({ mode: 'idle' });
+        setProxyRuntime(null);
+    }, [sendEvent]);
+
     const { getFocusProps, setFocusedId } = useSpatialNavigation({
         enabled: !!proxyRuntime,
-        initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'btn-next',
+        initialFocusId: workbenchState.mode === 'preview'
+            ? 'preview-block-0'
+            : workbenchState.mode === 'review'
+                ? 'btn-dismiss'
+                : 'btn-next',
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
             flash();
             if (elementId.startsWith('preview-block-')) {
@@ -67,11 +80,14 @@ const ReceiverApp: React.FC = () => {
                 case 'btn-next':
                     sendEvent('next');
                     break;
+                case 'btn-dismiss':
+                    dismissToWaiting();
+                    break;
                 default:
                     element.click();
                     break;
             }
-        }, [sendEvent, flash]),
+        }, [sendEvent, flash, dismissToWaiting]),
     });
 
     useEffect(() => {
@@ -79,6 +95,8 @@ const ReceiverApp: React.FC = () => {
             setFocusedId('preview-block-0');
         } else if (workbenchState.mode === 'active') {
             setFocusedId('btn-next');
+        } else if (workbenchState.mode === 'review') {
+            setFocusedId('btn-dismiss');
         }
     }, [workbenchState.mode, setFocusedId]);
 
@@ -188,6 +206,8 @@ const ReceiverApp: React.FC = () => {
                 <ReceiverReviewPanel
                     reviewData={workbenchState.reviewData}
                     analyticsSummary={workbenchState.analyticsSummary}
+                    onDismiss={dismissToWaiting}
+                    getFocusProps={getFocusProps}
                 />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}

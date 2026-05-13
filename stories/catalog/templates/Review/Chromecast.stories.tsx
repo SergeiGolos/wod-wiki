@@ -393,3 +393,38 @@ export const LightBackground: Story = {
     darkBackground: false,
   },
 };
+
+/**
+ * Dismiss button unfocused — the D-Pad dismiss affordance at rest.
+ * Verifies the button is present, correctly labelled, and spatially
+ * registered for navigation (data-nav-id="btn-dismiss").
+ * AC: Storybook shows focusable dismiss button (WOD-263).
+ */
+export const WithDismissButton: Story = {
+  name: 'Dismiss Button (Unfocused)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: false,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+
+/**
+ * Dismiss button focused — the D-Pad dismiss affordance when selected via
+ * remote.  Tests the `data-[nav-focused=true]` Tailwind variant.
+ * This is the visual state the user sees immediately before pressing Select.
+ * AC: Storybook shows focusable dismiss button in focused state (WOD-263).
+ */
+export const DismissButtonFocused: Story = {
+  name: 'Dismiss Button (D-Pad Focused)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: FRAN_ANALYTICS,
+    darkBackground: true,
+    dismissFocused: true,
+    onDismiss: fn().mockName('onDismiss'),
+  },
+};
+
