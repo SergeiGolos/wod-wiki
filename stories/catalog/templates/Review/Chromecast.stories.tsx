@@ -132,6 +132,10 @@ const meta: Meta<typeof ReviewChromecastHarness> = {
       control: 'boolean',
       description: 'Show the dark TV background',
     },
+    dismissFocused: {
+      control: 'boolean',
+      description: 'Show the dismiss button in its D-Pad focused state',
+    },
   },
 };
 
