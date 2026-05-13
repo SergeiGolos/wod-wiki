@@ -80,7 +80,7 @@ bun x tsc --noEmit                    # Type check only
 
 The project provides a unified test harness under `tests/harness/`. **Use this instead of inline mocks.**
 
-**📚 Full Guide:** [Block Isolation Testing Guide](docs/testing/block_isolation_testing_guide.md)
+**📚 Full Guide:** [Block Isolation Testing Guide](https://github.com/SergeiGolos/wod-wiki/wiki/Block-Isolation-Testing-Guide)
 
 ### Available Classes
 
@@ -355,7 +355,7 @@ e2e/
 ### Documentation Files
 - Save new Markdown documentation to `/docs` directory
 - Documentation auto-published to GitHub Wiki when pushed to main branch
-- API documentation in `docs/runtime-api.md` provides detailed runtime stack patterns
+- API documentation in the Obsidian vault (`deep-dives/runtime-session-implementation.md`) provides detailed runtime stack patterns
 
 ## Performance Considerations
 

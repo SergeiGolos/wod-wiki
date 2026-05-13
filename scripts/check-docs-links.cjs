@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const docsRoot = path.resolve(__dirname, '..', 'docs');
+const docsRoot = path.resolve(__dirname, '..', 'markdown');
 let missing = [];
 
 function* walk(dir) {
