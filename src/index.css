@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../tailwind.config.cjs";
 
 @layer base {
   :root {
@@ -8,9 +9,9 @@
      * ─────────────────────────────────────────────────────────────── */
 
     /* Base surfaces */
-    --background: 215 24% 97%;         /* cool off-white app shell */
+    --background: 40 20% 96%;          /* warm cream app shell */
     --foreground: 30 16% 15%;          /* warm near-black */
-    --card: 38 32% 95%;                /* warm parchment focus surface */
+    --card: 40 38% 98%;                /* warm white focus surface */
     --card-foreground: 30 16% 15%;
     --popover: 38 32% 95%;
     --popover-foreground: 30 16% 15%;
