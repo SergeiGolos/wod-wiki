@@ -33,8 +33,14 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Verify Storybook dependency hygiene
+        run: bun run check:storybook-deps
+
       - name: Verify architecture guardrails
-        run: bun run check:architecture
+        run: bun run check:architecture-regressions
+
+      - name: Verify unused export guardrail
+        run: bun run check:unused-exports
 
       - name: Run tests
         run: bun run test

@@ -1,7 +1,28 @@
 # WOD Wiki Architecture Backlog Walkthrough
 
 **Parent backlog:** [WOD-213](paperclip://issues/WOD-213) — WOD Wiki architecture improvement backlog  
-**Purpose:** Give a practical walkthrough of each ticket in the architecture backlog, including why it matters, what it improves, and what to watch out for during refactoring.
+**Purpose:** Give a practical walkthrough of each ticket in the architecture backlog, including why it matters, what it improves, what to watch out for during refactoring, and where to capture feedback on what was already fixed.
+
+---
+
+## Feedback: what has already been fixed?
+
+Use this section to feed back which items are already addressed in the repo, partially addressed, or still open.
+
+| Ticket | Current impression | Notes |
+|---|---|---|
+| WOD-214 | ☐ already fixed / ☐ partial / ☐ open | runtime-test-bench audit or rewire |
+| WOD-216 | ☐ already fixed / ☐ partial / ☐ open | components fan-out reduction |
+| WOD-219 | ☐ already fixed / ☐ partial / ☐ open | duplicate core/runtime types |
+| WOD-221 | ☐ already fixed / ☐ partial / ☐ open | barrel export cleanup |
+| WOD-222 | ☐ already fixed / ☐ partial / ☐ open | Storybook dependency hygiene |
+| WOD-223 | ☐ already fixed / ☐ partial / ☐ open | architecture regression guardrails |
+
+If you already know a ticket is fixed, add the proof here before doing more refactoring:
+- file(s) changed
+- commit / branch reference if available
+- what behavior or structure is now different
+- whether any follow-up cleanup is still needed
 
 ---
 

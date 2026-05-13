@@ -122,7 +122,7 @@ function ContentPlaceholder({ title }: { title: string }) {
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof SidebarLayout> = {
-  title: 'catalog/organisms/SidebarLayout',
+  title: 'catalog/templates/SidebarLayout',
   component: SidebarLayout,
   parameters: {
     layout: 'fullscreen',

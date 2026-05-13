@@ -9,7 +9,7 @@ import type { HistoryEntry, StripMode } from '../../types/history';
 import { useHistorySelection } from '../../hooks/useHistorySelection';
 import type { UseHistorySelectionReturn } from '../../hooks/useHistorySelection';
 import { fileProcessor } from '@/hooks/useBrowserServices';
-import type { INotePersistence } from '@/services/persistence';
+import type { INotePersistence } from '@/lib/notePersistence';
 import { toNotebookTag } from '../../types/notebook';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useRef } from 'react';

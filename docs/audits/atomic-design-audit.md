@@ -155,3 +155,52 @@ stories/catalog/molecules/MetricPill.stories.tsx      → DELETE
 3. **Audit inline component definitions.** Several story files (CommandInput, CommandPill, VisibilityBadge, ShortcutBadge, GridHeaderCell) inline their component definitions rather than importing from `src/`. These are story-only replicas, not the production component. Consider whether the production component should be the story's subject instead.
 
 4. **Add classification guidelines to AGENTS.md.** To prevent future misclassification, add a section to `AGENTS.md` with the decision tree from the atomic-design skill.
+
+---
+
+## Follow-up Audit — 2026-05-13
+
+A follow-up audit was conducted to verify the implementation of the previous recommendations and to identify further level drift or missing documentation.
+
+### Progress Update
+
+- **Atoms to Molecules**: All 14 components identified (CommandItem, CommandInput, etc.) have been successfully moved to stories/catalog/molecules/.
+- **Atoms to Organisms**: WorkoutActionButton has been moved to stories/catalog/organisms/.
+- **Molecules to Organisms**: CommandPalette and ListView have been moved to stories/catalog/organisms/.
+- **Duplicate Removal**: stories/catalog/molecules/MetricPill.stories.tsx has been deleted.
+- **Classification Guidelines**: Decision tree and sizing heuristics have been added to AGENTS.md.
+
+### New Reclassifications and Level Drift - May 2026
+
+| Component | From | To | Why |
+|-----------|------|----|-----|
+| Navbar / Sidebar | atom | molecule | Composes multiple sub-components. Layout atoms in Catalyst, but molecules in our system. |
+| SidebarLayout | organism | template | Acts as a layout skeleton with slots for navbar, sidebar, and content. |
+
+### Completed Design Elements - New Stories Added
+
+To better complete the atomic design catalog, stories were added for the following components:
+
+| Component | Classification | Location |
+|-----------|----------------|----------|
+| HeroBanner | molecule | molecules/layout/HeroBanner.stories.tsx |
+| ScrollSection | atom | atoms/layout/ScrollSection.stories.tsx |
+| WorkoutContextPanel | organism | organisms/workout/WorkoutContextPanel.stories.tsx |
+| TrackViewShell | template | templates/layout/TrackViewShell.stories.tsx |
+| StatementList | molecule | molecules/workout/StatementList.stories.tsx |
+
+### Final Distribution - 2026-05-13
+
+| Classification | Before April | After May |
+|---------------|----------------|-------------|
+| Atoms | 25 | 11 |
+| Molecules | 6 | 19 |
+| Organisms | 3 | 7 |
+| Templates | 8 | 10 |
+| Pages | 4 | 12 |
+
+### Remaining Recommendations
+
+1. Monitor MetricSourceRow: At 18 props, it remains a candidate for splitting into smaller molecules.
+2. Standardise Layout Folders: Continue grouping layout-specific components into /layout subdirectories within each atomic level.
+3. Audit Primitives: Consider if common primitives in Primitives.stories.tsx should have domain-specific stories in the main atoms/ directory.

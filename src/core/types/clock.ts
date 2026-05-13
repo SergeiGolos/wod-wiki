@@ -5,10 +5,10 @@
  * DigitalClock, ClockAnchor, and TimerHarness.
  */
 
-import type { TypedMemoryReference } from './runtime';
+import type { TypedMemoryReference } from '@/runtime/contracts';
 
-// NOTE: `core/` must not depend on `runtime/`. These runtime-facing types are
-// intentionally declared as `unknown` here for legacy/compatibility.
+// NOTE: `core/` should avoid runtime dependencies. TimerHarness keeps this
+// type-only reference so consumers can keep strongly typed memory handles.
 import type { TimeSpan } from '../models/TimeSpan';
 export type { TimeSpan } from '../models/TimeSpan';
 
