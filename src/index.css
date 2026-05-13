@@ -8,11 +8,11 @@
      * ─────────────────────────────────────────────────────────────── */
 
     /* Base surfaces */
-    --background: 40 20% 96%;          /* #f5f3ef warm parchment */
-    --foreground: 30 16% 15%;          /* #2c2820 warm near-black */
-    --card: 40 38% 98%;                /* #faf8f4 warm white */
+    --background: 215 24% 97%;         /* cool off-white app shell */
+    --foreground: 30 16% 15%;          /* warm near-black */
+    --card: 38 32% 95%;                /* warm parchment focus surface */
     --card-foreground: 30 16% 15%;
-    --popover: 40 38% 98%;
+    --popover: 38 32% 95%;
     --popover-foreground: 30 16% 15%;
 
     /* Primary — slate blue (time/duration hue) */
