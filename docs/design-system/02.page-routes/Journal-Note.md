@@ -41,6 +41,10 @@ Journal notes are editable on any date but the UI can surface edit-lock affordan
 
 The Journal Note is the **only** note page that keeps the timer and review as in-page overlays rather than full-page routes. This allows the editor content to remain visible behind the overlay.
 
+> **Design Decision — Overlay Timer is Intentional (not an inconsistency)**
+>
+> The Journal Note deliberately diverges from Playground, Collection, and Feed notes, which all use `timerMode: 'route'` (navigating to `/tracker/:id`). This divergence is a product decision, not an oversight. See [Design Decision](#design-decision--overlay-timer) below.
+
 ### `?autoStart` Flow
 
 When `WorkoutEditorPage` appends a block to a journal note, it:
@@ -79,3 +83,43 @@ When `WorkoutEditorPage` appends a block to a journal note, it:
 | Timer complete | Opens `FullscreenReview` overlay (stays on `/journal/:id`) |
 | Review close | Dismisses overlay; stays on `/journal/:id` |
 | Back navigation | `/journal` (calendar) |
+
+---
+
+## Design Decision — Overlay Timer
+
+**Status:** Deliberate — do not standardize away from this.
+
+### Context
+
+All other note surfaces (Playground, Collection, Feed) use `timerMode: 'route'`, navigating the user to `/tracker/:id` when a workout starts. The Journal Note instead keeps `FullscreenTimer` and `FullscreenReview` as in-page overlays (`fixed inset-0 z-50`). This was questioned as a potential inconsistency during UI alignment work ([WOD-283](/WOD/issues/WOD-283)).
+
+### Decision
+
+The overlay timer on the Journal Note is **a deliberate product decision** and should be preserved. Standardising to route-based navigation would be a regression for journal users.
+
+### Rationale
+
+| Lens | Reasoning |
+|------|-----------|
+| **Context preservation** | The journal note is the user's daily training log, often containing multiple workout blocks for the same session. An overlay keeps the full note visible behind the timer, so after completing one block the next block is immediately in view — no back-navigation required. Route navigation loses that ambient context. |
+| **Mobile UX (Fitts's Law / thumb zones)** | On mobile, navigating away from the journal requires an explicit back gesture to return. An overlay dismisses with a single close tap and returns the user to exactly where they were in the note. This is strictly fewer steps for the most common post-workout action (log next block or review note). |
+| **Journal as daily anchor (Mental Model)** | The journal note functions as the user's "hub" for the day. The overlay preserves this mental model: the timer is a focused layer *on top of* the journal, not a separate destination. Route navigation would frame the timer as a peer context, fragmenting the day's session across browser history entries. |
+| **autoStart flow continuity** | Collection and Playground notes redirect to `/journal/:dateKey?autoStart=<id>` when sending a workout to the journal. If the journal then routed to `/tracker`, the `?autoStart` handoff would chain two navigations and break the "send to journal" mental model entirely. |
+| **Result linking** | Results generated while the overlay is open are automatically linked to the journal note via `setActiveRuntimeId`. A route-based timer returns to a different origin; result linking would require extra bookkeeping and risks orphaned results. |
+| **Occam's Razor** | The overlay achieves all goals with less indirection. There is no user benefit to the extra route hop for a user already in their journal. |
+
+### Tradeoffs Accepted
+
+- **Visible inconsistency** across note surfaces. Mitigated by the fact that the Journal and Playground are distinct user contexts (daily log vs. ad-hoc authoring) — users are unlikely to compare them side-by-side.
+- **Overlay-specific accessibility work** (focus trap, reduced-motion). This is required regardless of route vs. overlay and is tracked separately.
+- **Deep-linking to a timer state is not possible** in the overlay model. Acceptable because timer sessions are transient and not meant to be bookmarked.
+
+### Alternatives Considered
+
+| Alternative | Verdict |
+|-------------|---------|
+| Standardise Journal to `timerMode: 'route'` like Playground/Feed | **Rejected** — degrades mobile UX and breaks the daily-anchor mental model. |
+| Standardise all notes to `timerMode: 'overlay'` | **Deferred** — Playground/Feed users expect route navigation and back-button to return to editor; overlay adds complexity there without clear benefit. Revisit if mobile becomes the primary platform. |
+| Route navigation with "back to journal" deep link | **Rejected** — two navigations, extra browser history entries, fragile if the user manually navigates away before returning. |
+
