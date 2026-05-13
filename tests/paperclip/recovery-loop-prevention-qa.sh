@@ -45,32 +45,39 @@ echo "Total issues fetched: $ISSUE_COUNT"
 echo ""
 
 # -----------------------------------------------------------------------
-# Test 1: Check key Phase 2 source issues (WOD-80) for recovery blockers
-# Uses full issue detail (list view may omit blockedBy)
+# Test 1: Scan ALL non-done/non-cancelled issues for recovery-as-blocker
+# IMPORTANT: Must use full issue detail (list view omits blockedBy)
+# Checks every active issue to detect the anti-pattern anywhere in the tree
 # -----------------------------------------------------------------------
-echo "--- Test 1: WOD-80 (Phase 2 source) not blocked by recovery issue ---"
-WOD80_DETAILS=$(curl -s -H "$AUTH_HEADER" "$API_URL/api/issues/f3a51889-394a-4571-81dc-0bb0a7d176fa" 2>/dev/null)
-WOD80_STATUS=$(echo "$WOD80_DETAILS" | jq -r '.status')
-WOD80_BLOCKEDBY_COUNT=$(echo "$WOD80_DETAILS" | jq '.blockedBy | length')
+echo "--- Test 1: No active issues blocked by recovery issues (system-wide) ---"
 
-echo "  WOD-80 status: $WOD80_STATUS"
-if [ "$WOD80_BLOCKEDBY_COUNT" -gt 0 ]; then
-  RECOVERY_BLOCKERS=$(echo "$WOD80_DETAILS" | jq -r '.blockedBy[] | select(.title | test("^Recover")) | .identifier + ": " + .title + " [" + .status + "]"')
+# Get all active issue IDs (non-done, non-cancelled)
+ACTIVE_ISSUE_IDS=$(echo "$ALL_ISSUES" | jq -r '.[] | select(.status != "done" and .status != "cancelled") | .id')
+
+RECOVERY_BLOCKER_FOUND=0
+while IFS= read -r issue_id; do
+  if [ -z "$issue_id" ]; then continue; fi
+  DETAIL=$(curl -s -H "$AUTH_HEADER" "$API_URL/api/issues/$issue_id" 2>/dev/null)
+  RECOVERY_BLOCKERS=$(echo "$DETAIL" | jq -r '.blockedBy[]? | select(.title | test("^Recover")) | parent_id + "::" + .identifier + ": " + .title + " [" + .status + "]"' 2>/dev/null || true)
+  SOURCE_ID=$(echo "$DETAIL" | jq -r '.identifier')
+  SOURCE_TITLE=$(echo "$DETAIL" | jq -r '.title')
+  RECOVERY_BLOCKERS=$(echo "$DETAIL" | jq -r '.blockedBy[]? | select(.title | test("^Recover")) | .identifier + ": " + .title + " [" + .status + "]"' 2>/dev/null || true)
   if [ -n "$RECOVERY_BLOCKERS" ]; then
     while IFS= read -r line; do
-      fail "WOD-80 blocked by recovery issue: $line"
+      # Separate active blockers (fail) from stale done/cancelled blockers (warn)
+      STATUS=$(echo "$line" | grep -oP '\[(\w+)\]$' | tr -d '[]')
+      if [ "$STATUS" = "in_progress" ] || [ "$STATUS" = "blocked" ] || [ "$STATUS" = "todo" ]; then
+        fail "$SOURCE_ID ('$SOURCE_TITLE') actively blocked by recovery issue: $line"
+        RECOVERY_BLOCKER_FOUND=$((RECOVERY_BLOCKER_FOUND+1))
+      else
+        warn "$SOURCE_ID stale recovery blocker (${STATUS}, should be cleared): $line"
+      fi
     done <<< "$RECOVERY_BLOCKERS"
-    echo "  ↳ This violates the Phase 2 contract: recovery issues must NOT be auto-wired as blockers"
-  else
-    NON_RECOVERY=$(echo "$WOD80_DETAILS" | jq -r '.blockedBy[] | .identifier + ": " + .title')
-    warn "WOD-80 blocked by non-recovery issue(s): $NON_RECOVERY"
   fi
-else
-  if [ "$WOD80_STATUS" = "done" ]; then
-    pass "WOD-80 is done with no blockers"
-  else
-    pass "WOD-80 has no recovery issues as blockers (status: $WOD80_STATUS)"
-  fi
+done <<< "$ACTIVE_ISSUE_IDS"
+
+if [ "$RECOVERY_BLOCKER_FOUND" -eq 0 ]; then
+  pass "No active issues actively blocked by in-progress recovery issues (system-wide scan)"
 fi
 
 # -----------------------------------------------------------------------
