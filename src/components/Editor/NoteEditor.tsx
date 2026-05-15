@@ -34,8 +34,6 @@ import {
 import {
   bracketMatching,
   indentOnInput,
-  syntaxHighlighting,
-  defaultHighlightStyle,
 } from "@codemirror/language";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
@@ -440,7 +438,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ...(initialLineWrapping ? [EditorView.lineWrapping] : []),
       EditorState.allowMultipleSelections.of(true),
       indentOnInput(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       bracketMatching(),
       closeBrackets(),
       highlightActiveLine(),
