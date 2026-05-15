@@ -52,9 +52,9 @@ jobs:
           set -euo pipefail
           report="test-results/preview-e2e-junit.xml"
           if [ -f "$report" ]; then
-            tests=$(grep -o 'tests="[0-9]\+"' "$report" | head -n1 | cut -d'"' -f2 || true)
-            failures=$(grep -o 'failures="[0-9]\+"' "$report" | head -n1 | cut -d'"' -f2 || true)
-            skipped=$(grep -o 'skipped="[0-9]\+"' "$report" | head -n1 | cut -d'"' -f2 || true)
+            tests=$(sed -n 's/.*tests="\([0-9]\+\)".*/\1/p' "$report" | head -n1)
+            failures=$(sed -n 's/.*failures="\([0-9]\+\)".*/\1/p' "$report" | head -n1)
+            skipped=$(sed -n 's/.*skipped="\([0-9]\+\)".*/\1/p' "$report" | head -n1)
           else
             tests="n/a"
             failures="n/a"
