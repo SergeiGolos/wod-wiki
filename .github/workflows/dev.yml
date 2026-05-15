@@ -43,11 +43,17 @@ jobs:
           github-token: ${{ secrets.PREVIEW_REPO_PAT }}
           script: |
             const sourceBranch = process.env.SOURCE_BRANCH;
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'SergeiGolos',
-              repo: 'wod-wiki-storybook',
-              workflow_id: 'preview.yml',
-              ref: 'main',
-              inputs: { branch: sourceBranch },
-            });
-            core.info(`Dispatched storybook preview for branch ${sourceBranch}`);
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: 'SergeiGolos',
+                repo: 'wod-wiki-storybook',
+                workflow_id: 'preview.yml',
+                ref: 'main',
+                inputs: { branch: sourceBranch },
+              });
+              core.info(`Dispatched storybook preview for branch ${sourceBranch}`);
+            } catch (error) {
+              const details = error?.stack || error?.message || `Failed to dispatch storybook preview workflow: ${String(error)}`;
+              core.warning(`Storybook preview dispatch failed: ${details}`);
+              core.notice('Continuing without blocking dev preview delivery.');
+            }

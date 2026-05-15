@@ -1,0 +1,101 @@
+name: Preview E2E
+
+on:
+  workflow_call:
+    inputs:
+      preview-url:
+        description: Preview base URL to test
+        required: false
+        type: string
+        default: https://preview.wod.wiki
+  workflow_dispatch:
+    inputs:
+      preview-url:
+        description: Preview base URL to test
+        required: false
+        default: https://preview.wod.wiki
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  preview-e2e:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: bun x playwright install --with-deps chromium
+
+      - name: Run preview E2E
+        id: preview_e2e
+        run: bun x playwright test --config playwright.preview.config.ts
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+
+      - name: Collect preview E2E stats
+        id: preview_stats
+        if: always()
+        run: |
+          set -euo pipefail
+          report="test-results/preview-e2e-junit.xml"
+          extract_attr() {
+            local attr="$1"
+            local file="$2"
+            sed -n "s/.*${attr}=\"\\([0-9]\\+\\)\".*/\\1/p" "$file" | head -n1
+          }
+          if [ -f "$report" ]; then
+            tests=$(extract_attr "tests" "$report")
+            failures=$(extract_attr "failures" "$report")
+            skipped=$(extract_attr "skipped" "$report")
+          else
+            tests="n/a"
+            failures="n/a"
+            skipped="n/a"
+          fi
+          echo "tests=${tests:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "failures=${failures:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "skipped=${skipped:-n/a}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload E2E screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-e2e-screenshots
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Write preview summary
+        if: always()
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Preview E2E summary
+
+          - Preview URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+          - Playwright outcome: ${{ steps.preview_e2e.outcome }}
+          - Tests: ${{ steps.preview_stats.outputs.tests }}
+          - Failures: ${{ steps.preview_stats.outputs.failures }}
+          - Skipped: ${{ steps.preview_stats.outputs.skipped }}
+          EOF
