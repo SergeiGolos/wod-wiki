@@ -14,21 +14,9 @@
 import React, { useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField } from "../extensions/section-state";
+import type { WidgetConfig, WidgetProps, WidgetRegistry } from "../widgets/types";
 
-// ── Public contract ──────────────────────────────────────────────────
-
-/** Props passed to every registered widget component */
-export interface WidgetProps {
-  /** Parsed JSON from the block body (or {} on parse error) */
-  config: Record<string, unknown>;
-  /** Raw content string between the fences */
-  rawContent: string;
-  /** The section ID */
-  sectionId: string;
-}
-
-/** Registry: widget name → React component */
-export type WidgetRegistry = Map<string, React.ComponentType<WidgetProps>>;
+export type { WidgetConfig, WidgetProps, WidgetRegistry } from "../widgets/types";
 
 // ── Component ────────────────────────────────────────────────────────
 
@@ -53,7 +41,7 @@ export const WidgetCompanion: React.FC<WidgetCompanionProps> = ({
         ? view.state.doc.sliceString(sec.contentFrom, sec.contentTo).trim()
         : "";
 
-    let parsed: Record<string, unknown> = {};
+    let parsed: WidgetConfig = {};
     if (raw) {
       try {
         parsed = JSON.parse(raw);

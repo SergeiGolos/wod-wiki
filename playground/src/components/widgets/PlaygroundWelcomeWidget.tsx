@@ -7,7 +7,7 @@
  */
 
 import React from 'react'
-import type { WidgetProps } from '@/components/Editor/overlays/WidgetCompanion'
+import type { WidgetProps } from '@/components/Editor/widgets/types'
 
 export const PlaygroundWelcomeWidget: React.FC<WidgetProps> = () => {
   return (

@@ -32,7 +32,7 @@ import React from "react";
 
 import { sectionField } from "./section-state";
 import type { EditorSection } from "./section-state";
-import type { WidgetRegistry, WidgetProps } from "../overlays/WidgetCompanion";
+import type { WidgetRegistry, WidgetProps } from "../widgets/types";
 
 // ── React widget DOM bridge ──────────────────────────────────────────
 

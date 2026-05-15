@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect, useState } from "react";
-import type { WidgetProps } from "../overlays/WidgetCompanion";
+import type { WidgetProps } from "./types";
 
 // ── Types ────────────────────────────────────────────────────────────
 

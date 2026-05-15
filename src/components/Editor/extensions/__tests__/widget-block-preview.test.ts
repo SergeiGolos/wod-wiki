@@ -4,12 +4,13 @@
  */
 
 import { describe, it, expect } from "bun:test";
+import React from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { sectionField } from "../section-state";
 import { previewDecorations } from "../preview-decorations";
 import { widgetBlockPreview } from "../widget-block-preview";
-import type { WidgetRegistry } from "../../overlays/WidgetCompanion";
+import type { WidgetRegistry, WidgetProps } from "../../overlays/WidgetCompanion";
 
 // A minimal no-op registry for testing
 function makeRegistry(): WidgetRegistry {
@@ -69,6 +70,10 @@ function pressArrow(view: EditorView, key: "ArrowDown" | "ArrowUp"): boolean {
   return runScopeHandlers(view, new KeyboardEvent("keydown", { key }), "editor");
 }
 
+async function flushWidgetRender(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe("widgetBlockPreview — decoration building", () => {
   it("should produce a decoration for a widget block", () => {
     const registry = makeRegistry();
@@ -98,6 +103,27 @@ describe("widgetBlockPreview — decoration building", () => {
       selection: { anchor: cursorPos },
     });
     expect(countDecos(state, ext)).toBe(0);
+  });
+
+  it("should pass parsed JSON config to the registered widget component", async () => {
+    const registry: WidgetRegistry = new Map([
+      [
+        "test-widget",
+        (({ config }: WidgetProps) =>
+          React.createElement("div", { "data-testid": "widget-config" }, String(config.title ?? "missing"))) as never,
+      ],
+    ]);
+    const ext = widgetBlockPreview(registry);
+    const doc = "Lead\n\n```widget:test-widget\n{\"title\":\"Config Demo\"}\n```\n\nTail";
+    const view = createView(doc, 1, [sectionField, ext]);
+
+    await flushWidgetRender();
+
+    const mounted = document.querySelector('[data-testid="widget-config"]');
+    expect(mounted?.textContent).toBe("Config Demo");
+
+    view.destroy();
+    document.body.innerHTML = "";
   });
 
   it("should reveal a widget block when ArrowDown moves onto it", () => {

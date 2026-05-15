@@ -14,6 +14,8 @@ Documentation is now managed in a centralized Obsidian vault and published to th
 - **[UI Overview](https://github.com/SergeiGolos/wod-wiki/wiki/UI-Overview)**: Guide to the editor and runtime visualization interface.
 - **[Whiteboard Script](https://github.com/SergeiGolos/wod-wiki/wiki/Whiteboard-Script)**: detailed explanation of the workout definition language.
 - **[Metrics Collection](https://github.com/SergeiGolos/wod-wiki/wiki/Metrics-Collection)**: How performance data is tracked and stored.
+- **[Widget Authoring Guide](./docs/widget-authoring-guide.md)**: Contract, validation pattern, and performance constraints for fenced editor widgets.
+- **[Widget Catalog](./docs/widget-catalog.md)**: Current Phase 1C playground widget inventory and example widget names.
 
 ### Features
 - **[Exercise Typeahead](https://github.com/SergeiGolos/wod-wiki/wiki/Exercise-Typeahead)**: Details on the intelligent exercise suggestion system.

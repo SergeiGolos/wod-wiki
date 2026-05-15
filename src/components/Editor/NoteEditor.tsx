@@ -77,7 +77,7 @@ import type { OverlaySlotProps } from "./overlays/OverlayTrack";
 import { FrontmatterCompanion } from "./overlays/FrontmatterCompanion";
 import { WodCompanion } from "./overlays/WodCompanion";
 import { WidgetCompanion } from "./overlays/WidgetCompanion";
-import type { WidgetRegistry } from "./overlays/WidgetCompanion";
+import type { WidgetRegistry } from "./widgets/types";
 import type { WodCommand } from "./overlays/WodCommand";
 import { FullscreenTimer } from "./overlays/FullscreenTimer";
 import { FullscreenReview } from "./overlays/FullscreenReview";
