@@ -153,6 +153,7 @@ jobs:
             }
 
       - name: Validate npm publication prerequisites
+        if: false  # Temporarily disabled per board decision (WOD-436)
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -181,6 +182,7 @@ jobs:
           fi
 
       - name: Publish package to npm (idempotent)
+        if: false  # Temporarily disabled per board decision (WOD-436)
         id: npm_publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -208,6 +210,6 @@ jobs:
 
           - Released version: $VERSION
           - Pages URL: ${{ steps.deployment.outputs.page_url }}
-          - npm package: ${PACKAGE_NAME}@${{ steps.npm_publish.outputs.published_version }}
-          - npm publish executed: ${{ steps.npm_publish.outputs.published }}
+          - Package name: ${PACKAGE_NAME}
+          - npm publish: temporarily disabled (see WOD-436)
           EOF
