@@ -51,10 +51,15 @@ jobs:
         run: |
           set -euo pipefail
           report="test-results/preview-e2e-junit.xml"
+          extract_attr() {
+            local attr="$1"
+            local file="$2"
+            sed -n "s/.*${attr}=\"\\([0-9]\\+\\)\".*/\\1/p" "$file" | head -n1
+          }
           if [ -f "$report" ]; then
-            tests=$(sed -n 's/.*tests="\([0-9]\+\)".*/\1/p' "$report" | head -n1)
-            failures=$(sed -n 's/.*failures="\([0-9]\+\)".*/\1/p' "$report" | head -n1)
-            skipped=$(sed -n 's/.*skipped="\([0-9]\+\)".*/\1/p' "$report" | head -n1)
+            tests=$(extract_attr "tests" "$report")
+            failures=$(extract_attr "failures" "$report")
+            skipped=$(extract_attr "skipped" "$report")
           else
             tests="n/a"
             failures="n/a"
