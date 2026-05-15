@@ -1,10 +1,11 @@
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { MetricType } from "@/core/models/Metric";
 import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { cursorFocusExtension, getCursorFocusState, renderPanelContent } from "../cursor-focus-panel";
 import { sectionField } from "../section-state";
+import { sharedParser } from "@/hooks/useRuntimeParser";
 
 function createView(doc: string, selectionLine: number): EditorView {
   if (!window.requestAnimationFrame) {
@@ -31,6 +32,10 @@ function createView(doc: string, selectionLine: number): EditorView {
 }
 
 describe("cursorFocusExtension", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders feedback as a widget anchored to the focused WOD closing fence", () => {
     const view = createView("Intro\n```wod\n10 Pushups\n```", 3);
     const panel = view.contentDOM.querySelector(".cm-wod-metric-panel-anchor .cm-wod-metric-panel");
@@ -52,6 +57,26 @@ describe("cursorFocusExtension", () => {
     expect(getCursorFocusState(view.state)).toBeNull();
     expect(view.contentDOM.querySelector(".cm-wod-metric-panel-anchor")).toBeNull();
 
+    view.destroy();
+  });
+
+  it("does not crash when parser returns invalid metric offsets", () => {
+    const metric = { type: MetricType.Rep } as any;
+    const statement = {
+      metrics: [metric],
+      metricMeta: new Map([[metric, { startOffset: Number.NaN, endOffset: Number.NaN }]]),
+      meta: { line: 1 },
+    } as unknown as ICodeStatement;
+
+    vi.spyOn(sharedParser, "read").mockReturnValue({
+      statements: [statement],
+    } as any);
+
+    const create = () => createView("Intro\n```wod\n10 Pushups\n```", 3);
+    expect(create).not.toThrow();
+
+    const view = create();
+    expect(getCursorFocusState(view.state)).not.toBeNull();
     view.destroy();
   });
 

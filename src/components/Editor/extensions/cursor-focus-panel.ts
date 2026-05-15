@@ -249,6 +249,7 @@ function buildDecorations(
         // adding contentFrom converts them to absolute document offsets.
         const from = section.contentFrom + meta.startOffset;
         const to = section.contentFrom + meta.endOffset;
+        if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
         if (from >= to || from < 0 || to > state.doc.length) continue;
 
         const cssClass = isActiveLine ? baseClass : `${baseClass}-dim`;
