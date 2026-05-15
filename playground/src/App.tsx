@@ -17,6 +17,7 @@ import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
+import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
@@ -85,7 +86,7 @@ export interface WorkoutItem {
 }
 /**
  * Navigate to the most-recently edited playground page, or create one if none
- * exist yet.  Used by both the / (home) and /playground routes.
+ * exist yet. Used by the / route.
  */
 function PlaygroundRedirect() {
   const navigate = useNavigate()
@@ -648,7 +649,7 @@ export function App() {
                 <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/load" element={<LoadZipPage />} />
-                <Route path="/playground" element={<PlaygroundRedirect />} />
+                <Route path="/playground" element={<PlaygroundLandingPage />} />
                 <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />

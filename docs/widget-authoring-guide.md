@@ -167,3 +167,5 @@ Before shipping a new widget:
 - `src/components/Editor/widgets/types.ts`
 - `src/components/Editor/widgets/ExampleWidget.template.tsx`
 - `docs/widget-catalog.md`
+- `docs/playground-widget-integration-guide.md`
+- `docs/playground-page-authoring-guide.md`
