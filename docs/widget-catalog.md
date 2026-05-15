@@ -8,9 +8,9 @@ This catalog covers the Phase 1C playground widget surface and the current statu
 | --- | --- | --- | --- |
 | `playground-run-tip` | Implemented | Callout that points the reader to the first runnable workout block. | `playground/src/components/widgets/PlaygroundRunTipWidget.tsx` |
 | `playground-welcome` | Implemented | Introductory explainer for movement, rounds, timers, and rep schemes. | `playground/src/components/widgets/PlaygroundWelcomeWidget.tsx` |
-| `attention` | Design-approved | Hero/banner widget for playground framing and CTA emphasis. | `design-system/playground-widget-layout.md` |
-| `code-example` | Design-approved | Annotated code walkthrough widget for teaching syntax in-context. | `design-system/playground-widget-layout.md` |
-| `syntax-group` | Design-approved | Reference-card widget for grouped syntax examples. | `design-system/playground-widget-layout.md` |
+| `attention` | Implemented | Hero/banner widget for playground framing and CTA emphasis. | `playground/src/components/widgets/AttentionWidget.tsx` |
+| `code-example` | Implemented | Annotated code walkthrough widget for teaching syntax in-context. | `playground/src/components/widgets/CodeExampleWidget.tsx` |
+| `syntax-group` | Implemented | Reference-card widget for grouped syntax examples. | `playground/src/components/widgets/SyntaxGroupWidget.tsx` |
 
 > `hero` exists as a separate generic widget example in `src/components/Editor/widgets/HeroCarousel.tsx`, but it is outside the five-widget Phase 1C playground catalog.
 
@@ -43,8 +43,9 @@ This catalog covers the Phase 1C playground widget surface and the current statu
 ### `attention`
 
 - **Purpose**: hero banner with core value props and one or more calls to action
-- **Status**: design-approved for Phase 1C; not implemented on `dev` in this checkout
-- **Expected config shape**:
+- **Status**: implemented in playground landing page
+- **Integration**: `playground/src/pages/PlaygroundLandingPage.tsx`
+- **Config shape**:
 
 ```json
 {
@@ -70,8 +71,9 @@ This catalog covers the Phase 1C playground widget surface and the current statu
 ### `code-example`
 
 - **Purpose**: show code lines with plain-language annotations beside them
-- **Status**: design-approved for Phase 1C; not implemented on `dev` in this checkout
-- **Expected config shape**:
+- **Status**: implemented in playground landing page
+- **Integration**: `playground/src/pages/PlaygroundLandingPage.tsx`
+- **Config shape**:
 
 ```json
 {
@@ -88,8 +90,9 @@ This catalog covers the Phase 1C playground widget surface and the current statu
 ### `syntax-group`
 
 - **Purpose**: render a compact syntax reference card for a category such as rounds, timers, or rep schemes
-- **Status**: design-approved for Phase 1C; not implemented on `dev` in this checkout
-- **Expected config shape**:
+- **Status**: implemented in playground landing page
+- **Integration**: `playground/src/pages/PlaygroundLandingPage.tsx`
+- **Config shape**:
 
 ```json
 {
