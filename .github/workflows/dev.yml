@@ -53,7 +53,7 @@ jobs:
               });
               core.info(`Dispatched storybook preview for branch ${sourceBranch}`);
             } catch (error) {
-              const details = error?.stack || error?.message || `Unknown error: ${String(error)}`;
+              const details = error?.stack || error?.message || `Failed to dispatch storybook preview workflow: ${String(error)}`;
               core.warning(`Storybook preview dispatch failed: ${details}`);
               core.notice('Continuing without blocking dev preview delivery.');
             }
