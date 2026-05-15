@@ -39,10 +39,30 @@ jobs:
         run: bun x playwright install --with-deps chromium
 
       - name: Run preview E2E
+        id: preview_e2e
         run: bun x playwright test --config playwright.preview.config.ts
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+
+      - name: Collect preview E2E stats
+        id: preview_stats
+        if: always()
+        run: |
+          set -euo pipefail
+          report="test-results/preview-e2e-junit.xml"
+          if [ -f "$report" ]; then
+            tests=$(grep -o 'tests="[0-9]\+"' "$report" | head -n1 | cut -d'"' -f2 || true)
+            failures=$(grep -o 'failures="[0-9]\+"' "$report" | head -n1 | cut -d'"' -f2 || true)
+            skipped=$(grep -o 'skipped="[0-9]\+"' "$report" | head -n1 | cut -d'"' -f2 || true)
+          else
+            tests="n/a"
+            failures="n/a"
+            skipped="n/a"
+          fi
+          echo "tests=${tests:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "failures=${failures:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "skipped=${skipped:-n/a}" >> "$GITHUB_OUTPUT"
 
       - name: Upload Playwright HTML report
         uses: actions/upload-artifact@v4
@@ -69,4 +89,8 @@ jobs:
           ## Preview E2E summary
 
           - Preview URL: ${{ inputs.preview-url || 'https://preview.wod.wiki' }}
+          - Playwright outcome: ${{ steps.preview_e2e.outcome }}
+          - Tests: ${{ steps.preview_stats.outputs.tests }}
+          - Failures: ${{ steps.preview_stats.outputs.failures }}
+          - Skipped: ${{ steps.preview_stats.outputs.skipped }}
           EOF
