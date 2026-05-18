@@ -1,36 +1,56 @@
 ```widget:attention
 {
   "headline": "Wod.Wiki Playground",
-  "subtitle": "An interactive scratchpad for whiteboard-script, a plain-text fitness scripting language. Edit workouts, run them, track results — no account needed.",
+  "subtitle": "An interactive scratchpad for whiteboard-script — a plain-text fitness language.",
   "pillars": [
     {
-      "icon": "⚡",
-      "label": "Edit in Plain Text",
-      "description": "Write workouts in simple, readable syntax. No complex UI — just markup."
+      "icon": "✍️",
+      "label": "Write",
+      "description": "Build any workout in plain text without a complex form builder."
     },
     {
       "icon": "▶",
-      "label": "Run & Track",
-      "description": "Start the timer, execute your workout, and capture results in real-time."
+      "label": "Run",
+      "description": "Launch the timer, track rounds, and capture results from the same page."
     },
     {
-      "icon": "📚",
-      "label": "Learn Syntax",
-      "description": "Explore rounds, timers, rep schemes, movements — everything in the docs."
+      "icon": "📊",
+      "label": "Analyze",
+      "description": "Inspect workout structure, intensity, and completion details as you iterate."
     }
   ],
   "actions": [
     {
-      "label": "Browse Workouts",
+      "label": "Try Example",
       "action": "scroll-to-workout",
       "variant": "primary"
     },
     {
-      "label": "Search",
+      "label": "Find a Workout",
       "action": "open-search",
       "variant": "secondary"
     }
   ]
+}
+```
+
+```widget:code-example
+{
+  "lines": [
+    {
+      "code": "(3)",
+      "annotation": "repeat the indented workout block 3 times"
+    },
+    {
+      "code": "  10 Kettlebell Swings 24kg",
+      "annotation": "reps · movement · load"
+    },
+    {
+      "code": "  *:30 Rest",
+      "annotation": "rest timer between rounds"
+    }
+  ],
+  "cta": "Run this example"
 }
 ```
 
@@ -50,82 +70,60 @@
 
 ---
 
-## How the syntax works
-
-```widget:code-example
-{
-  "lines": [
-    {
-      "code": "(3)",
-      "annotation": "3-round circuit — repeat the indented block 3 times"
-    },
-    {
-      "code": "10 Kettlebell Swings 24kg",
-      "annotation": "10 reps · exercise name · load (optional)"
-    },
-    {
-      "code": "*:30 Rest",
-      "annotation": "30-second rest countdown between rounds"
-    }
-  ],
-  "cta": "Run Example"
-}
-```
-
-### Core Syntax Concepts
+## Syntax Reference
 
 ```widget:syntax-group
 {
-  "category": "Rounds & Repeats",
+  "category": "rounds",
   "icon": "🔄",
   "title": "Rounds",
-  "description": "Repeat the indented block a fixed number of times. Useful for circuits and strength blocks.",
-  "example": "(5)\n  15 Thrusters 65lb\n  10 Pull-ups\n  5 Burpees",
-  "docsPath": "/docs/syntax#rounds"
+  "description": "Repeat a block of movements a fixed number of times for circuits and strength work.",
+  "example": "(3)\n  10 Squats\n  8 Push-ups",
+  "docsPath": "/syntax/structure?h=simple-rounds"
 }
 ```
 
 ```widget:syntax-group
 {
-  "category": "Timed Efforts",
-  "icon": "⏱",
-  "title": "AMRAP (As Many Rounds As Possible)",
-  "description": "Complete as many full rounds as possible within a time window. Track reps for intensity.",
-  "example": "AMRAP 15:00\n  5 Deadlifts 185lb\n  10 Box Jumps 24in\n  15 Calories Row",
-  "docsPath": "/docs/syntax#amrap"
+  "category": "timers",
+  "icon": "⏱️",
+  "title": "Timers & Rest",
+  "description": "Use countdowns, rests, and time caps to control pacing and work-rest structure.",
+  "example": "AMRAP 12:00\n  5 Burpees\n  *:30 Rest",
+  "docsPath": "/syntax/protocols?h=timers-and-rest"
 }
 ```
 
 ```widget:syntax-group
 {
-  "category": "Timed Efforts",
-  "icon": "⏱",
-  "title": "For Time",
-  "description": "Complete all reps as fast as possible and record elapsed time. Good for benchmarking.",
-  "example": "21-15-9\n  Thrusters 95lb\n  Pull-ups",
-  "docsPath": "/docs/syntax#rep-schemes"
-}
-```
-
-```widget:syntax-group
-{
-  "category": "Movement Syntax",
-  "icon": "💪",
+  "category": "movements",
+  "icon": "🏋️",
   "title": "Movements",
-  "description": "Specify exercise name, rep count, and optional load. Load is always optional.",
+  "description": "Combine reps, exercise names, and optional loads on a single readable line.",
   "example": "15 Thrusters 65lb\n20 Push-ups\n25 Air Squats",
-  "docsPath": "/docs/syntax#movements"
+  "docsPath": "/syntax/basics?h=measurements"
 }
 ```
 
 ```widget:syntax-group
 {
-  "category": "Organization",
-  "icon": "📋",
+  "category": "rep-schemes",
+  "icon": "📉",
+  "title": "Rep Schemes",
+  "description": "Model benchmark ladders and descending sets like 21-15-9 with minimal syntax.",
+  "example": "21-15-9\n  Thrusters 95lb\n  Pull-ups",
+  "docsPath": "/syntax/structure?h=rep-schemes"
+}
+```
+
+```widget:syntax-group
+{
+  "category": "section-labels",
+  "icon": "🏷️",
   "title": "Section Labels",
-  "description": "Use headings (##, ###) to organize workouts into named sections. They appear in the navigation panel.",
+  "description": "Name warm-ups, strength blocks, and finishers with headings that show up in navigation.",
   "example": "## Warm-up\n## Strength\n## Conditioning\n## Cool-down",
-  "docsPath": "/docs/syntax#sections"
+  "docsPath": "/syntax/structure?h=named-groups"
 }
 ```
 
@@ -133,6 +131,6 @@
 
 Try editing the Morning Strength workout above — change `(3)` to `(5)` for five rounds, swap `24kg` for `32kg`, or add a new movement on a new line. Then press [▶ Run Workout]{.button action=start-workout} to start the timer.
 
-Full reference → [whiteboard-script syntax docs](https://wod.wiki/syntax)
+Full reference → [/syntax](/syntax)
 
 $CURSOR
