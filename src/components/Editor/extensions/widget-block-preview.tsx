@@ -23,7 +23,7 @@ import {
   WidgetType,
   keymap,
 } from "@codemirror/view";
-import { Extension, StateField, Range, EditorState, Prec } from "@codemirror/state";
+import { Extension, StateField, Range, EditorState, Prec, StateEffect } from "@codemirror/state";
 import type { Line } from "@codemirror/state";
 // @ts-expect-error — react-dom/client subpath types don't resolve under moduleResolution:bundler (baseline issue)
 import { createRoot } from "react-dom/client";
@@ -32,6 +32,25 @@ import { flushSync } from "react-dom";
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 import React from "react";
 
+/** Effect to toggle edit mode for a specific widget block */
+export const toggleWidgetEdit = StateEffect.define<{ sectionId: string; editing: boolean }>();
+
+/** StateField to track which widgets are currently being edited as raw text */
+export const editingWidgetsField = StateField.define<Set<string>>({
+  create: () => new Set(),
+  update(value, tr) {
+    let next = value;
+    for (const effect of tr.effects) {
+      if (effect.is(toggleWidgetEdit)) {
+        next = new Set(next);
+        if (effect.value.editing) next.add(effect.value.sectionId);
+        else next.delete(effect.value.sectionId);
+      }
+    }
+    return next;
+  },
+});
+
 import { cn } from "@/lib/utils";
 
 import { sectionField } from "./section-state";
@@ -39,7 +58,6 @@ import type { EditorSection } from "./section-state";
 import type { WidgetConfig, WidgetRegistry, WidgetProps } from "../widgets/types";
 import { WidgetEditButton } from "./WidgetEditButton";
 import { EditableMarkdown } from "./EditableMarkdown";
-import { ErrorInlay } from "./ErrorInlay";
 
 interface WidgetConfigParseFailure {
   ok: false;
@@ -177,6 +195,8 @@ function WidgetBlockPreviewWrapper({
     hasFocus: false,
   }));
 
+  const isEditingInMain = view.state.field(editingWidgetsField).has(sectionId);
+
   React.useEffect(() => {
     setState((prev) => ({
       ...prev,
@@ -207,51 +227,26 @@ function WidgetBlockPreviewWrapper({
   }, []);
 
   const enterEditMode = React.useCallback(() => {
-    flushSync(() => {
-      setState((prev) => ({
-        ...prev,
-        isEditing: true,
-        error: null,
-        hasFocus: true,
-        currentMarkdown: prev.originalMarkdown,
-        isDirty: false,
-      }));
+    view.dispatch({
+      effects: toggleWidgetEdit.of({ sectionId, editing: true }),
     });
-  }, []);
+  }, [sectionId, view]);
 
   const exitEditMode = React.useCallback((save: boolean) => {
     if (save) {
-      const result = saveWidgetSource(view, sectionId, state.currentMarkdown);
-      if (!result?.ok) {
-        setState((prev) => ({
-          ...prev,
-          isEditing: true,
-          isDirty: prev.currentMarkdown !== prev.originalMarkdown,
-          error: result?.message ?? "Unable to save widget source.",
-        }));
-        return;
-      }
-
-      const savedMarkdown = stripEditorTrailingNewline(normalizeWidgetMarkdown(state.currentMarkdown));
-      setState((prev) => ({
-        ...prev,
-        isEditing: false,
-        isDirty: false,
-        error: null,
-        originalMarkdown: savedMarkdown,
-        currentMarkdown: savedMarkdown,
-      }));
+      // In main editor mode, the changes are already in the document,
+      // so we just need to exit edit mode.
+      view.dispatch({
+        effects: toggleWidgetEdit.of({ sectionId, editing: false }),
+      });
       return;
     }
 
-    setState((prev) => ({
-      ...prev,
-      isEditing: false,
-      isDirty: false,
-      error: null,
-      currentMarkdown: prev.originalMarkdown,
-    }));
-  }, [sectionId, state.currentMarkdown, view]);
+    // Cancel: we'd need to undo the changes. For now, just exit.
+    view.dispatch({
+      effects: toggleWidgetEdit.of({ sectionId, editing: false }),
+    });
+  }, [sectionId, view]);
 
   const onSave = React.useCallback(() => {
     exitEditMode(true);
@@ -343,8 +338,8 @@ function WidgetBlockPreviewWrapper({
     }
   }, [onSave, onUndo]);
 
-  const buttonMode = state.error ? "error" : state.isEditing ? "editing" : "view";
-  const iconVisible = state.hasFocus || state.isEditing || state.error !== null;
+  const buttonMode = state.error ? "error" : isEditingInMain ? "editing" : "view";
+  const iconVisible = state.hasFocus || isEditingInMain || state.error !== null;
 
   let previewNode: React.ReactNode;
   if (!previewComponent) {
@@ -391,25 +386,53 @@ function WidgetBlockPreviewWrapper({
         )}
       />
 
-      {state.isEditing ? (
-        <div>
-          <EditableMarkdown
-            ref={textareaRef}
-            value={state.currentMarkdown}
-            hasError={state.error !== null}
-            aria-label={`Edit widget ${widgetName} markdown`}
-            data-testid="widget-markdown-editor"
-            onChange={handleMarkdownChange}
-            onBlur={handleTextareaBlur}
-            onKeyDown={handleTextareaKeyDown}
-          />
-          {state.error ? <ErrorInlay message={state.error} /> : null}
-        </div>
-      ) : (
-        <div ref={previewSurfaceRef} data-testid="widget-preview-surface" tabIndex={0} onKeyDown={handlePreviewKeyDown as any}>{previewNode}</div>
-      )}
+      <div ref={previewSurfaceRef} data-testid="widget-preview-surface" tabIndex={0} onKeyDown={handlePreviewKeyDown as any}>{previewNode}</div>
     </div>
   );
+}
+
+/** Small widget that only renders the Save/Undo buttons while a widget is in raw edit mode */
+class FloatingEditControls extends WidgetType {
+  constructor(
+    readonly sectionId: string,
+  ) {
+    super();
+  }
+
+  eq(other: FloatingEditControls): boolean {
+    return this.sectionId === other.sectionId;
+  }
+
+  toDOM(view: EditorView): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative h-0 w-full"; // Zero height, button absolute right
+
+    const root = createRoot(wrapper);
+    root.render(
+      <div className="absolute right-0 top-1 z-50">
+        <WidgetEditButton
+          mode="editing"
+          enterEditMode={() => {}}
+          onSave={() => {
+            view.dispatch({
+              effects: toggleWidgetEdit.of({ sectionId: this.sectionId, editing: false }),
+            });
+          }}
+          onUndo={() => {
+            view.dispatch({
+              effects: toggleWidgetEdit.of({ sectionId: this.sectionId, editing: false }),
+            });
+          }}
+        />
+      </div>
+    );
+
+    return wrapper;
+  }
+
+  ignoreEvent(): boolean {
+    return false;
+  }
 }
 
 // ── React widget DOM bridge ──────────────────────────────────────────
@@ -484,6 +507,7 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
     return Decoration.none;
   }
   const { sections } = sectionState;
+  const editingIds = state.field(editingWidgetsField);
   const decos: Range<Decoration>[] = [];
   const cursorHead = state.selection.main.head;
 
@@ -493,8 +517,19 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
     const doc = state.doc;
     if (section.startLine > doc.lines || section.endLine > doc.lines) continue;
 
-    // Don't replace when cursor is inside the widget range (allows source editing)
-    if (cursorHead >= section.from && cursorHead <= section.to) continue;
+    const isEditing = editingIds.has(section.id);
+
+    // If editing, don't replace the block — just add a floating save button
+    if (isEditing) {
+      decos.push(
+        Decoration.widget({
+          widget: new FloatingEditControls(section.id),
+          side: 1,
+          block: false,
+        }).range(section.from)
+      );
+      continue;
+    }
 
     // Extract raw content between the fences
     const rawContent =
@@ -551,43 +586,67 @@ function moveToLinePreservingColumn(view: EditorView, targetLine: Line): void {
   });
 }
 
-function enterWidgetDown(view: EditorView): boolean {
+function skipWidgetDown(view: EditorView): boolean {
   const { head } = view.state.selection.main;
-  const currentLineNumber = view.state.doc.lineAt(head).number;
-  const nextLineNumber = currentLineNumber + 1;
+  const currentLine = view.state.doc.lineAt(head);
+  const nextLineNumber = currentLine.number + 1;
   if (nextLineNumber > view.state.doc.lines) return false;
 
-  const nextLine = view.state.doc.line(nextLineNumber);
   const { sections } = view.state.field(sectionField);
-  const widgetSection = widgetSectionAtLine(sections, nextLine);
+  const editingIds = view.state.field(editingWidgetsField);
 
-  if (!widgetSection) return false;
-  if (isCursorInsideSection(view.state, widgetSection)) return false;
+  let targetLineNumber = nextLineNumber;
+  let targetLine = view.state.doc.line(targetLineNumber);
+  
+  while (targetLineNumber <= view.state.doc.lines) {
+    const widget = widgetSectionAtLine(sections, targetLine);
+    // If it's a widget and NOT in edit mode, skip it
+    if (widget && !editingIds.has(widget.id)) {
+      targetLineNumber = widget.endLine + 1;
+      if (targetLineNumber > view.state.doc.lines) break;
+      targetLine = view.state.doc.line(targetLineNumber);
+    } else {
+      // Found a valid destination (non-widget or editing-widget)
+      moveToLinePreservingColumn(view, targetLine);
+      return true;
+    }
+  }
 
-  moveToLinePreservingColumn(view, nextLine);
-  return true;
+  return false;
 }
 
-function enterWidgetUp(view: EditorView): boolean {
+function skipWidgetUp(view: EditorView): boolean {
   const { head } = view.state.selection.main;
-  const currentLineNumber = view.state.doc.lineAt(head).number;
-  const previousLineNumber = currentLineNumber - 1;
+  const currentLine = view.state.doc.lineAt(head);
+  const previousLineNumber = currentLine.number - 1;
   if (previousLineNumber < 1) return false;
 
-  const previousLine = view.state.doc.line(previousLineNumber);
   const { sections } = view.state.field(sectionField);
-  const widgetSection = widgetSectionAtLine(sections, previousLine);
+  const editingIds = view.state.field(editingWidgetsField);
 
-  if (!widgetSection) return false;
-  if (isCursorInsideSection(view.state, widgetSection)) return false;
+  let targetLineNumber = previousLineNumber;
+  let targetLine = view.state.doc.line(targetLineNumber);
 
-  moveToLinePreservingColumn(view, previousLine);
-  return true;
+  while (targetLineNumber >= 1) {
+    const widget = widgetSectionAtLine(sections, targetLine);
+    // If it's a widget and NOT in edit mode, skip it
+    if (widget && !editingIds.has(widget.id)) {
+      targetLineNumber = widget.startLine - 1;
+      if (targetLineNumber < 1) break;
+      targetLine = view.state.doc.line(targetLineNumber);
+    } else {
+      // Found a valid destination
+      moveToLinePreservingColumn(view, targetLine);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 const widgetNavKeymap = Prec.high(keymap.of([
-  { key: "ArrowDown", run: enterWidgetDown },
-  { key: "ArrowUp", run: enterWidgetUp },
+  { key: "ArrowDown", run: skipWidgetDown },
+  { key: "ArrowUp", run: skipWidgetUp },
 ]));
 
 // ── Factory ──────────────────────────────────────────────────────────
@@ -602,7 +661,12 @@ export function widgetBlockPreview(registry: WidgetRegistry): Extension {
       return buildWidgetDecos(state, registry);
     },
     update(value, tr) {
-      if (tr.docChanged || tr.selection) {
+      // Only rebuild decorations if:
+      // 1. The document changed (content/structure update)
+      // 2. An edit-toggle effect was dispatched
+      const hasToggle = tr.effects.some(e => e.is(toggleWidgetEdit));
+      
+      if (tr.docChanged || hasToggle) {
         return buildWidgetDecos(tr.state, registry);
       }
       return value;
@@ -610,5 +674,5 @@ export function widgetBlockPreview(registry: WidgetRegistry): Extension {
     provide: (f) => EditorView.decorations.from(f),
   });
 
-  return [widgetPreviewField, widgetNavKeymap];
+  return [widgetPreviewField, editingWidgetsField, widgetNavKeymap];
 }
