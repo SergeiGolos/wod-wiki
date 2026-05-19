@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
 import type { MutableRefObject } from 'react'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import { Navbar, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
@@ -36,12 +36,14 @@ import { playgroundDB } from './services/playgroundDB'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
 // ── Extracted page components ────────────────────────────────────────────────
-import { TrackerPage } from './pages/TrackerPage'
-import { ReviewPage } from './pages/ReviewPage'
+// Eagerly loaded: used on the primary editor routes every user hits
 import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
-import { LoadZipPage } from './pages/LoadZipPage'
+// Lazily loaded: dedicated routes that most users never visit on first load
+const TrackerPage = lazy(() => import('./pages/TrackerPage').then(m => ({ default: m.TrackerPage })))
+const ReviewPage  = lazy(() => import('./pages/ReviewPage').then(m => ({ default: m.ReviewPage })))
+const LoadZipPage = lazy(() => import('./pages/LoadZipPage').then(m => ({ default: m.LoadZipPage })))
 // ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
 import { PageActions } from './pages/shared/PageActions'
@@ -633,13 +635,13 @@ export function App() {
                   <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/load" element={<LoadZipPage />} />
+                  <Route path="/load" element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
                   <Route path="/playground" element={<PlaygroundRedirect />} />
                   <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
-                  <Route path="/review/:runtimeId" element={<ReviewPage />} />
+                  <Route path="/tracker/:runtimeId" element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><TrackerPage /></Suspense>} />
+                  <Route path="/review/:runtimeId" element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </NavProvider>
