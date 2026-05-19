@@ -152,7 +152,11 @@ export class MetricContainer implements IMetricSource, Iterable<IMetric> {
     }
 
     getAllMetricsByType(type: MetricType): IMetric[] {
-        return resolveVisibleMetricsByTypeWithOwnership(this._metrics, type);
+        // Return ALL metrics of the given type sorted by origin precedence
+        // (lowest rank = most authoritative = first). Delegates to getByType
+        // so multi-origin scenarios (parser + runtime + user) return every
+        // entry rather than only the winning ownership-layer tier.
+        return this.getByType(type);
     }
 
     get rawMetrics(): IMetric[] {
