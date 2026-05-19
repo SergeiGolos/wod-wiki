@@ -11,9 +11,10 @@ type JournalState = {
 
 let journalState: JournalState;
 let navigateCalls: string[] = [];
+let showPlaygroundsValue = false;
 
 // Captured props passed to JournalFeed so we can inspect what dates are shown
-let capturedFeedProps: { dateKeys: string[]; showEmptyDates: boolean } | null = null;
+let capturedFeedProps: { dateKeys: string[]; showEmptyDates: boolean; items: any[] } | null = null;
 
 mock.module('react-router-dom', () => ({
   useNavigate: () => (to: string) => {
@@ -34,6 +35,7 @@ mock.module('@/components/command-palette/CommandContext', () => ({
 
 const TODAY = localDateKey(new Date());
 const PAST_DATE = '2026-01-15';
+const PLAYGROUND_DATE = '2026-01-14';
 
 mock.module('@/services/db/IndexedDBService', () => ({
   indexedDBService: {
@@ -42,6 +44,12 @@ mock.module('@/services/db/IndexedDBService', () => ({
         id: 'r1',
         noteId: `journal/${PAST_DATE}`,
         completedAt: new Date(PAST_DATE + 'T10:00:00').getTime(),
+        data: { completed: true },
+      },
+      {
+        id: 'r2',
+        noteId: 'playground/abc-123',
+        completedAt: new Date(PLAYGROUND_DATE + 'T10:00:00').getTime(),
         data: { completed: true },
       },
     ],
@@ -64,9 +72,13 @@ mock.module('../hooks/useJournalQueryState', () => ({
   useJournalQueryState: () => journalState,
 }));
 
+mock.module('../hooks/useShowPlaygrounds', () => ({
+  useShowPlaygrounds: () => [showPlaygroundsValue, (_v: boolean) => {}],
+}));
+
 mock.module('./JournalFeed', () => ({
   JournalFeed: (props: any) => {
-    capturedFeedProps = { dateKeys: props.dateKeys, showEmptyDates: props.showEmptyDates };
+    capturedFeedProps = { dateKeys: props.dateKeys, showEmptyDates: props.showEmptyDates, items: props.items };
     return <div data-testid="journal-feed" />;
   },
 }));
@@ -81,6 +93,7 @@ describe('JournalWeeklyPage', () => {
       selectedTags: [],
     };
     navigateCalls = [];
+    showPlaygroundsValue = false;
     capturedFeedProps = null;
   });
 
@@ -131,7 +144,7 @@ describe('JournalWeeklyPage', () => {
     let capturedOnOpenEntry: ((key: string) => void) | null = null;
     mock.module('./JournalFeed', () => ({
       JournalFeed: (props: any) => {
-        capturedFeedProps = { dateKeys: props.dateKeys, showEmptyDates: props.showEmptyDates };
+        capturedFeedProps = { dateKeys: props.dateKeys, showEmptyDates: props.showEmptyDates, items: props.items };
         capturedOnOpenEntry = props.onOpenEntry;
         return <div data-testid="journal-feed" />;
       },
@@ -142,5 +155,31 @@ describe('JournalWeeklyPage', () => {
 
     capturedOnOpenEntry!(TODAY);
     expect(navigateCalls).toContain(`/journal/${TODAY}`);
+  });
+
+  it('filters out playground results when showPlaygrounds is false', async () => {
+    showPlaygroundsValue = false;
+    const { JournalWeeklyPage } = await pageModule;
+    render(<JournalWeeklyPage onSelect={() => {}} />);
+
+    await waitFor(() => expect(capturedFeedProps).toBeTruthy());
+
+    // Playground date should not appear because the only result is filtered out
+    expect(capturedFeedProps?.dateKeys).not.toContain(PLAYGROUND_DATE);
+    // No playground items in the feed
+    expect(capturedFeedProps?.items.some((item: any) => item.group === 'playground')).toBe(false);
+  });
+
+  it('includes playground results when showPlaygrounds is true', async () => {
+    showPlaygroundsValue = true;
+    const { JournalWeeklyPage } = await pageModule;
+    render(<JournalWeeklyPage onSelect={() => {}} />);
+
+    await waitFor(() => expect(capturedFeedProps).toBeTruthy());
+
+    // Playground date should appear
+    expect(capturedFeedProps?.dateKeys).toContain(PLAYGROUND_DATE);
+    // Playground items should be present
+    expect(capturedFeedProps?.items.some((item: any) => item.group === 'playground')).toBe(true);
   });
 });
