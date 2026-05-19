@@ -22,28 +22,62 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate release version is available for this commit
-        uses: actions/github-script@v7
-        with:
-          script: |
+      - name: Compute and set next version
+        run: |
+          # Find the highest semver tag across all refs (not just HEAD-reachable)
+          LATEST_TAG=$(git for-each-ref refs/tags \
+            --sort=-v:refname \
+            --format '%(refname:short)' \
+            | grep -E '^v?[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+            | head -1)
+
+          if [ -n "$LATEST_TAG" ]; then
+            VERSION="${LATEST_TAG#v}"
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            echo "Latest semver tag: $LATEST_TAG  →  MAJOR=$MAJOR  MINOR=$MINOR"
+            # Include both subject (%s) and body (%b) to catch BREAKING CHANGE footers
+            COMMITS=$(git log "${LATEST_TAG}..HEAD" --format="%s%n%b")
+          else
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            MAJOR=$(echo "$PKG_VERSION" | cut -d. -f1)
+            MINOR=$(echo "$PKG_VERSION" | cut -d. -f2)
+            echo "No semver tags found; seeding from package.json $PKG_VERSION  →  MAJOR=$MAJOR  MINOR=$MINOR"
+            COMMITS=$(git log --format="%s%n%b")
+          fi
+
+          # Determine version bump using Conventional Commits conventions:
+          #   breaking: / breaking( / feat! / fix! / <type>!: / BREAKING CHANGE: → major
+          #   feature: / feature( / feat: / feat( → minor
+          #   fix: or anything else → patch only
+          BUMP="patch"
+          if echo "$COMMITS" | grep -qE "^(breaking[:(]|BREAKING CHANGE:)" || \
+             echo "$COMMITS" | grep -qiE "^[a-z]+(\([^)]*\))?!:"; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qiE "^(feature[:(]|feat[:(])"; then
+            BUMP="minor"
+          fi
+          echo "Detected bump: $BUMP"
+
+          # Apply bump; PATCH is always the GitHub Actions run number for uniqueness
+          if [ "$BUMP" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+          elif [ "$BUMP" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}"
+          echo "New version: $NEW_VERSION"
+
+          # Write back to package.json so all downstream steps pick it up
+          node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-            const tag = pkg.version;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const sha = context.sha;
-
-            try {
-              const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
-              if (ref.data.object.sha !== sha) {
-                core.setFailed(`Tag ${tag} already exists at ${ref.data.object.sha}. Bump package.json before merging another main release.`);
-                return;
-              }
-            } catch (error) {
-              if (error.status !== 404) {
-                throw error;
-              }
-            }
+            pkg.version = '${NEW_VERSION}';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "package.json updated to $NEW_VERSION"
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -106,8 +140,10 @@ jobs:
             const sha = context.sha;
 
             let tagExistsAtSha = false;
+            let tagExists = false;
             try {
               const ref = await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              tagExists = true;
               tagExistsAtSha = ref.data.object.sha === sha;
             } catch (error) {
               if (error.status !== 404) {
@@ -116,12 +152,24 @@ jobs:
             }
 
             if (!tagExistsAtSha) {
-              await github.rest.git.createRef({
-                owner,
-                repo,
-                ref: `refs/tags/${tag}`,
-                sha,
-              });
+              if (tagExists) {
+                // Tag exists at a different SHA (e.g., a previous failed run with the
+                // same run_number); move it forward to this commit.
+                await github.rest.git.updateRef({
+                  owner,
+                  repo,
+                  ref: `tags/${tag}`,
+                  sha,
+                  force: true,
+                });
+              } else {
+                await github.rest.git.createRef({
+                  owner,
+                  repo,
+                  ref: `refs/tags/${tag}`,
+                  sha,
+                });
+              }
             }
 
             try {
