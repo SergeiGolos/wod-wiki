@@ -15,7 +15,8 @@ import { globalSearchSource } from './services/paletteDataSources'
 import { createJournalEntryFlow } from './services/journalEntryFlow'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
+import { useQueryState } from 'nuqs'
 import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
@@ -90,11 +91,13 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const { theme } = useTheme()
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
+  const [idParam] = useQueryState('id')
+
   // Unified note route: /note/playground/:name behaves like /playground/:name
   const isNotePlayground = location.pathname.startsWith('/note/playground/')
-  const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground
+  const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground || (location.pathname === '/' && !!idParam)
   // For /note/playground/:name, use urlName as the playground ID
-  const effectivePlaygroundId = playgroundId || (isNotePlayground ? urlName : undefined)
+  const effectivePlaygroundId = playgroundId || idParam || (isNotePlayground ? urlName : undefined)
   // Journal entry route: /journal/:id  — note: the route param is :id → playgroundId
   const isJournalEntryRoute = location.pathname.startsWith('/journal/') && (!!urlName || !!playgroundId)
   const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
@@ -139,7 +142,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }, [workoutFiles])
 
   // Canvas page for the current pathname (null if not a canvas route)
-  const canvasPage = findCanvasPage(location.pathname)
+  // We prioritize playground notes (via idParam) over the home canvas page.
+  const canvasPage = !idParam ? findCanvasPage(location.pathname) : null
 
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
@@ -607,27 +611,27 @@ export function App() {
             <Toaster />
             <CommandProvider>
               <NavProvider tree={navTree}>
-              <Routes>
-                <Route path="/" element={<PlaygroundRedirect />} />
-                <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/plan" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/feeds" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/feeds/:feedSlug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/feeds/:feedSlug/:feedDate/:feedItem" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/load" element={<LoadZipPage />} />
-                <Route path="/playground" element={<PlaygroundRedirect />} />
-                <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
-                <Route path="/review/:runtimeId" element={<ReviewPage />} />
-                <Route path="*" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-              </Routes>
+                <Routes>
+                  <Route path="/" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/plan" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/feeds" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/feeds/:feedSlug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/feeds/:feedSlug/:feedDate/:feedItem" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/load" element={<LoadZipPage />} />
+                  <Route path="/playground" element={<PlaygroundRedirect />} />
+                  <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/tracker/:runtimeId" element={<TrackerPage />} />
+                  <Route path="/review/:runtimeId" element={<ReviewPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
               </NavProvider>
             </CommandProvider>
           </NuqsAdapter>

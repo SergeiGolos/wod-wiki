@@ -25,7 +25,7 @@ export function LoadZipPage() {
     // Only redirect if there's no zip in state AND no zip was present on mount.
     // If a zip WAS present on mount, useZipProcessor (global) is handling it.
     if (!zip && !z && !hasZipOnMount) {
-      navigate('/playground', { replace: true })
+      navigate('/', { replace: true })
     }
   }, [zip, z, navigate, hasZipOnMount])
 

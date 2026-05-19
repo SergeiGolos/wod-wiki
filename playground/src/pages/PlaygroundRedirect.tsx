@@ -21,7 +21,7 @@ export function PlaygroundRedirect() {
       try {
         const id = await createPlaygroundPage(EMPTY_PLAYGROUND_CONTENT.content)
         if (!cancelled) {
-          navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
+          navigate(`/?id=${encodeURIComponent(id)}`, { replace: true })
         }
       } catch {
         if (!cancelled) {
