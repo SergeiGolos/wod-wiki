@@ -72,6 +72,19 @@ export default defineConfig({
                 main: resolve(__dirname, 'index.html'),
                 'receiver-rpc': resolve(__dirname, 'receiver-rpc.html'),
             },
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return undefined;
+                    // CodeMirror + Lezer — large, stable, zero React deps; cache separately
+                    if (id.includes('@codemirror') || id.includes('@lezer') || id.includes('codemirror')) {
+                        return 'vendor-codemirror';
+                    }
+                    // Everything else (React, router, recharts, zustand…) in one
+                    // stable vendor chunk. Keeping them together avoids the circular
+                    // dependency Rollup emits when React's scheduler is split out.
+                    return 'vendor';
+                },
+            },
         },
     },
     css: {
