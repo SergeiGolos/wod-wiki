@@ -125,7 +125,53 @@ Every widget must:
 - avoid hover-only meaning
 - degrade clearly when config is invalid
 
-### 7. Document the widget where authors will look
+### 7. Edit behavior and interaction model
+
+Widgets rendered through `widget-block-preview.tsx` support an inline edit lifecycle. Authors should understand this model when designing widgets that may need config tuning inside the editor.
+
+#### Edit icon
+
+- A pencil icon appears on **hover** or **keyboard focus** of the widget block
+- Clicking the icon enters edit mode (or saves, or undoes, depending on state)
+- The icon is hidden by default and transitions in over `200ms`
+
+#### Edit mode
+
+- Entering edit mode replaces the widget preview with a monospace textarea containing the raw JSON body
+- The textarea auto-focuses and places the cursor at the end of the content
+- The border switches to an emerald tint to indicate active editing
+
+#### Auto-save on blur
+
+- Valid JSON changes are saved automatically when focus leaves the widget block
+- Saved content is normalized back into the fenced body with a trailing newline so section parsing remains stable
+- The widget preview re-renders immediately after save
+
+#### Error inlay and recovery
+
+- Invalid JSON does **not** persist on blur
+- An error inlay appears below the textarea showing the parse error
+- The action button switches to an undo icon
+- Clicking undo discards unsaved edits and restores the last valid preview
+- Typing valid JSON while the error inlay is visible clears the error immediately
+
+#### Keyboard shortcuts
+
+| Shortcut | Context | Action |
+| --- | --- | --- |
+| `ArrowUp` / `ArrowDown` | Editor cursor near widget | Treats widget as a single line; moves to previous/next paragraph without entering edit mode |
+| `Enter` | Widget has keyboard focus | Enters edit mode and focuses the textarea |
+| `Escape` | Inside edit-mode textarea | Discards unsaved changes and exits edit mode |
+| `Ctrl/Cmd + Enter` | Inside edit-mode textarea | Saves valid JSON and exits edit mode |
+
+#### Focus management
+
+- Widget focus is tracked independently of editor selection
+- Moving the editor cursor into the fenced source region reveals raw markdown (existing CM6 behavior)
+- Moving the editor cursor past the widget block via arrow keys does not trigger edit mode
+- Tab navigation moves into the widget block, through the action button, and out to the next focusable element
+
+### 8. Document the widget where authors will look
 
 Before shipping a new widget:
 
@@ -146,6 +192,11 @@ Before shipping a new widget:
    - widget renders when unfocused
    - raw source appears when the cursor enters the block
    - malformed config produces an explicit error state
+   - edit icon appears on hover and focus
+   - entering edit mode shows the raw JSON textarea
+   - valid changes auto-save on blur
+   - invalid JSON shows error inlay with undo recovery
+   - keyboard navigation (ArrowUp/ArrowDown, Enter, Escape) works as documented
 
 ## Example
 
@@ -167,3 +218,5 @@ Before shipping a new widget:
 - `src/components/Editor/widgets/types.ts`
 - `src/components/Editor/widgets/ExampleWidget.template.tsx`
 - `docs/widget-catalog.md`
+- `docs/playground-widget-integration-guide.md`
+- `docs/playground-page-authoring-guide.md`

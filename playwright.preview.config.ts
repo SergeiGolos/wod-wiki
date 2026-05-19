@@ -26,5 +26,13 @@ export default defineConfig({
       name: 'preview-chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'preview-firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'preview-webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
 });

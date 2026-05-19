@@ -96,12 +96,12 @@ Examples:
 
 ```mermaid
 flowchart LR
-  Quantity[quantity] --> At[@ prefix optional]
-  Quantity --> Value[? or number]
+  Quantity[quantity] --> At["@ prefix optional"]
+  Quantity --> Value["? or number"]
   Quantity --> Unit[distance or weight unit optional]
 
-  Unit --> Distance[m | ft | mile | miles | km]
-  Unit --> Weight[kg | lb | bw]
+  Unit --> Distance["m | ft | mile | miles | km"]
+  Unit --> Weight["kg | lb | bw"]
 ```
 
 Examples:

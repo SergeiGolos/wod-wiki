@@ -1,10 +1,65 @@
-Welcome to the **Wod.Wiki Playground** — an interactive scratchpad for [whiteboard-script](https://wod.wiki/syntax), a plain-text fitness scripting language. Edit the workout below, run it, and see your results — no account needed.
+
+```widget:attention
+{
+  "headline": "Wod.Wiki Playground",
+  "subtitle": "An interactive scratchpad for whiteboard-script — a plain-text fitness language.",
+  "pillars": [
+    {
+      "icon": "✍️",
+      "label": "Write",
+      "description": "Build any workout in plain text without a complex form builder."
+    },
+    {
+      "icon": "▶",
+      "label": "Run",
+      "description": "Launch the timer, track rounds, and capture results from the same page."
+    },
+    {
+      "icon": "📊",
+      "label": "Analyze",
+      "description": "Inspect workout structure, intensity, and completion details as you iterate."
+    }
+  ],
+  "actions": [
+    {
+      "label": "Try Example",
+      "action": "scroll-to-workout",
+      "variant": "primary"
+    },
+    {
+      "label": "Find a Workout",
+      "action": "open-search",
+      "variant": "secondary"
+    }
+  ]
+}
+```
+
+```widget:code-example
+{
+  "lines": [
+    {
+      "code": "(3)",
+      "annotation": "repeat the indented workout block 3 times"
+    },
+    {
+      "code": "  10 Kettlebell Swings 24kg",
+      "annotation": "reps · movement · load"
+    },
+    {
+      "code": "  *:30 Rest",
+      "annotation": "rest timer between rounds"
+    }
+  ],
+  "cta": "Run this example"
+}
+```
+
+# Morning Strength
 
 ```widget:playground-run-tip
 {}
 ```
-
-# Morning Strength
 
 ```wod
 (3)
@@ -16,27 +71,67 @@ Welcome to the **Wod.Wiki Playground** — an interactive scratchpad for [whiteb
 
 ---
 
-## How the syntax works
+## Syntax Reference
 
-The example above is a **3-round circuit**. Here's what each line does:
+```widget:syntax-group
+{
+  "category": "rounds",
+  "icon": "🔄",
+  "title": "Rounds",
+  "description": "Repeat a block of movements a fixed number of times for circuits and strength work.",
+  "example": "(3)\n  10 Squats\n  8 Push-ups",
+  "docsPath": "/syntax/structure?h=simple-rounds"
+}
+```
 
-| Line | Concept | What it means |
-|------|---------|---------------|
-| `(3)` | **Rounds** | Repeat the indented block 3 times |
-| `10 Kettlebell Swings 24kg` | **Movement** | 10 reps · exercise name · load |
-| `*:30 Rest` | **Rest timer** | 30-second countdown between rounds |
+```widget:syntax-group
+{
+  "category": "timers",
+  "icon": "⏱️",
+  "title": "Timers & Rest",
+  "description": "Use countdowns, rests, and time caps to control pacing and work-rest structure.",
+  "example": "AMRAP 12:00\n  5 Burpees\n  *:30 Rest",
+  "docsPath": "/syntax/protocols?h=timers-and-rest"
+}
+```
 
-Try editing any line — change `(3)` to `(5)` for five rounds, swap `24kg` for `32kg`, or add a new movement on a new line. Then press [▶ Run]{.button action=start-workout} to start the timer.
+```widget:syntax-group
+{
+  "category": "movements",
+  "icon": "🏋️",
+  "title": "Movements",
+  "description": "Combine reps, exercise names, and optional loads on a single readable line.",
+  "example": "15 Thrusters 65lb\n20 Push-ups\n25 Air Squats",
+  "docsPath": "/syntax/basics?h=measurements"
+}
+```
 
-### More syntax to explore
+```widget:syntax-group
+{
+  "category": "rep-schemes",
+  "icon": "📉",
+  "title": "Rep Schemes",
+  "description": "Model benchmark ladders and descending sets like 21-15-9 with minimal syntax.",
+  "example": "21-15-9\n  Thrusters 95lb\n  Pull-ups",
+  "docsPath": "/syntax/structure?h=rep-schemes"
+}
+```
 
-| Concept | Example | What it does |
-|---------|---------|--------------|
-| **AMRAP** | `AMRAP 20:00` | As many rounds as possible in 20 minutes |
-| **Countdown** | `2:00 Row` | 2-minute timed effort |
-| **Rep schemes** | `21,15,9 Thrusters` | Three descending sets |
-| **Section labels** | `## Warm-up` | Named groups that appear in the index |
+```widget:syntax-group
+{
+  "category": "section-labels",
+  "icon": "🏷️",
+  "title": "Section Labels",
+  "description": "Name warm-ups, strength blocks, and finishers with headings that show up in navigation.",
+  "example": "## Warm-up\n## Strength\n## Conditioning\n## Cool-down",
+  "docsPath": "/syntax/structure?h=named-groups"
+}
+```
 
-Full reference → [whiteboard-script syntax docs](https://wod.wiki/syntax)
+---
+
+Try editing the Morning Strength workout above — change `(3)` to `(5)` for five rounds, swap `24kg` for `32kg`, or add a new movement on a new line. Then press [▶ Run Workout]{.button action=start-workout} to start the timer.
+
+Full reference → [/syntax](/syntax)
 
 $CURSOR

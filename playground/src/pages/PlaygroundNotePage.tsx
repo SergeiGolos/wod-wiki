@@ -14,6 +14,11 @@ import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { JournalPageShell } from '@/panels/page-shells'
 import type { WidgetRegistry } from '@/components/Editor/widgets/types'
 import { PlaygroundRunTipWidget } from '../components/widgets/PlaygroundRunTipWidget'
+import {
+  createAttentionWidgetWrapper,
+  createCodeExampleWidgetWrapper,
+  createSyntaxGroupWidgetWrapper,
+} from '../components/widgets/widgetWrappers'
 import type { WodBlock } from '@/components/Editor/types'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
@@ -145,6 +150,43 @@ export function PlaygroundNotePage({
     onSchedule: setPendingScheduleBlock,
   })
 
+  const handleAttentionAction = useCallback(
+    (action: 'scroll-to-workout' | 'open-search') => {
+      if (action === 'scroll-to-workout') {
+        onScrollToSection?.()
+      } else if (action === 'open-search') {
+        onSearch?.()
+      }
+    },
+    [onScrollToSection, onSearch],
+  )
+
+  const handleCodeExampleRun = useCallback(
+    (script: string) => {
+      // Parse the script as a WOD block and start workout
+      const exampleBlock: WodBlock = {
+        id: 'code-example-block',
+        line: 0,
+        endLine: script.split('\n').length,
+        content: script,
+      }
+      handleStartWorkout(exampleBlock)
+    },
+    [handleStartWorkout],
+  )
+
+  const handleOpenDocs = useCallback(
+    (docsPath: string) => {
+      // Navigate to docs page
+      if (docsPath.startsWith('/')) {
+        window.open(docsPath, '_blank')
+      } else {
+        navigate(docsPath)
+      }
+    },
+    [navigate],
+  )
+
   const handleButtonAction = useCallback(
     (action: string, params: Record<string, string>) => {
       if (action === 'route' && params['route']) {
@@ -163,8 +205,11 @@ export function PlaygroundNotePage({
   const widgetComponents: WidgetRegistry = useMemo(
     () => new Map([
       ['playground-run-tip', PlaygroundRunTipWidget],
+      ['attention', createAttentionWidgetWrapper(handleAttentionAction)],
+      ['code-example', createCodeExampleWidgetWrapper(theme === 'dark', handleCodeExampleRun)],
+      ['syntax-group', createSyntaxGroupWidgetWrapper(handleOpenDocs)],
     ]),
-    [],
+    [handleAttentionAction, handleCodeExampleRun, handleOpenDocs, theme],
   )
 
   useEffect(() => {
