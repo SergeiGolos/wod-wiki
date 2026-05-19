@@ -155,16 +155,19 @@ describe('OutputStatement implements IMetricSource', () => {
     });
 
     describe('getAllMetricsByType', () => {
-        it('returns only the visible ownership tier for display compatibility', () => {
+        it('returns all metrics of the type sorted by origin precedence', () => {
             const output = new OutputStatement(makeOptions([
                 frag(MetricType.Rep, 'parser', 21),
                 frag(MetricType.Rep, 'user', 19),
                 frag(MetricType.Rep, 'compiler', 20),
             ]));
             const result = output.getAllMetricsByType(MetricType.Rep);
-            expect(result).toHaveLength(1);
+            // All three tiers returned, sorted: user(0) < compiler(2) < parser(3)
+            expect(result).toHaveLength(3);
             expect(result[0].origin).toBe('user');
             expect(result[0].value).toBe(19);
+            expect(result[1].origin).toBe('compiler');
+            expect(result[2].origin).toBe('parser');
             expect(output.rawMetrics.filter(m => m.type === MetricType.Rep)).toHaveLength(3);
         });
 

@@ -142,7 +142,7 @@ describe('MetricContainer', () => {
             expect(distance?.value).toBe(1200);
         });
 
-        it('getAllMetricsByType only returns the visible tier for display reads', () => {
+        it('getAllMetricsByType returns all metrics of the type sorted by origin precedence', () => {
             const c = new MetricContainer([
                 makeMetric(MetricType.Rep, 10, 'parser'),
                 makeMetric(MetricType.Rep, 12, 'dialect'),
@@ -150,8 +150,11 @@ describe('MetricContainer', () => {
             ]);
 
             const reps = c.getAllMetricsByType(MetricType.Rep);
-            expect(reps).toHaveLength(1);
+            expect(reps).toHaveLength(3);
+            // Sorted ascending by ORIGIN_PRECEDENCE: runtime(1) < dialect(2) < parser(3)
             expect(reps[0].origin).toBe('runtime');
+            expect(reps[1].origin).toBe('dialect');
+            expect(reps[2].origin).toBe('parser');
         });
     });
 

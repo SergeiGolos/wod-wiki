@@ -27,6 +27,7 @@ import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { FeedsNavPanel } from './nav/panels/FeedsNavPanel'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
+import { ShowPlaygroundsToggle } from './components/ShowPlaygroundsToggle'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
@@ -504,7 +505,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
+            <CanvasPage title="Journal" subheader={<ShowPlaygroundsToggle />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}

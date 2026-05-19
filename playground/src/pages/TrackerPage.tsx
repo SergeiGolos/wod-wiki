@@ -9,7 +9,7 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
-import { notePersistence } from '@/services/persistence'
+import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
 
 export function TrackerPage() {
@@ -27,13 +27,13 @@ export function TrackerPage() {
   const handleComplete = useCallback(
     (blockId: string, results: any) => {
       if (!results || !runtimeId || !pending) return
-      notePersistence.mutateNote(pending.noteId, {
-        workoutResult: {
-          id: runtimeId,
-          sectionId: blockId,
-          data: results,
-          completedAt: results.endTime || Date.now(),
-        },
+      indexedDBService.saveResult({
+        id: runtimeId,
+        noteId: pending.noteId,
+        sectionId: blockId,
+        segmentId: blockId,
+        data: results,
+        completedAt: results.endTime || Date.now(),
       }).then(() => {
         if (results.completed) {
           navigate(`/review/${runtimeId}`, { replace: true })

@@ -196,6 +196,7 @@ function WidgetBlockPreviewWrapper({
   }));
 
   const isEditingInMain = view.state.field(editingWidgetsField).has(sectionId);
+  void isEditingInMain; // retained for potential future use; edit mode is now React-local
 
   React.useEffect(() => {
     setState((prev) => ({
@@ -226,58 +227,45 @@ function WidgetBlockPreviewWrapper({
     setState((prev) => (prev.hasFocus === focused ? prev : { ...prev, hasFocus: focused }));
   }, []);
 
+  // Enter edit mode via React state — no CM6 dispatch needed.
   const enterEditMode = React.useCallback(() => {
-    view.dispatch({
-      effects: toggleWidgetEdit.of({ sectionId, editing: true }),
-    });
-  }, [sectionId, view]);
+    setState((prev) => ({
+      ...prev,
+      isEditing: true,
+      isDirty: false,
+      error: null,
+      currentMarkdown: prev.originalMarkdown,
+    }));
+  }, []);
 
-  const exitEditMode = React.useCallback((save: boolean) => {
-    if (save) {
-      // In main editor mode, the changes are already in the document,
-      // so we just need to exit edit mode.
-      view.dispatch({
-        effects: toggleWidgetEdit.of({ sectionId, editing: false }),
-      });
-      return;
-    }
-
-    // Cancel: we'd need to undo the changes. For now, just exit.
-    view.dispatch({
-      effects: toggleWidgetEdit.of({ sectionId, editing: false }),
-    });
-  }, [sectionId, view]);
-
-  const onSave = React.useCallback(() => {
-    exitEditMode(true);
-  }, [exitEditMode]);
-
-  const onBlur = React.useCallback(() => {
-    const result = saveWidgetSource(view, sectionId, state.currentMarkdown);
+  // Perform a CM6 save and return success/failure.
+  const performSave = React.useCallback((markdown: string): boolean => {
+    const result = saveWidgetSource(view, sectionId, markdown);
     if (!result?.ok) {
-      setState((prev) => ({
-        ...prev,
-        isEditing: true,
-        isDirty: prev.currentMarkdown !== prev.originalMarkdown,
-        error: result?.message ?? "Unable to save widget source.",
-      }));
-      return;
+      setState((prev) => ({ ...prev, error: result?.message ?? "Invalid JSON." }));
+      return false;
     }
+    const saved = stripEditorTrailingNewline(normalizeWidgetMarkdown(markdown));
+    setState({ isEditing: false, isDirty: false, error: null,
+      originalMarkdown: saved, currentMarkdown: saved, hasFocus: false });
+    return true;
+  }, [view, sectionId]);
 
-    const savedMarkdown = stripEditorTrailingNewline(normalizeWidgetMarkdown(state.currentMarkdown));
+  // Save button / Ctrl+Enter — read from DOM to avoid stale closure after onChange.
+  const onSave = React.useCallback(() => {
+    performSave(textareaRef.current?.value ?? state.currentMarkdown);
+  }, [performSave, state.currentMarkdown]);
+
+  // Undo button / Escape — discard changes and return to preview.
+  const onUndo = React.useCallback(() => {
     setState((prev) => ({
       ...prev,
       isEditing: false,
       isDirty: false,
       error: null,
-      originalMarkdown: savedMarkdown,
-      currentMarkdown: savedMarkdown,
+      currentMarkdown: prev.originalMarkdown,
     }));
-  }, [sectionId, state.currentMarkdown, view]);
-
-  const onUndo = React.useCallback(() => {
-    exitEditMode(false);
-  }, [exitEditMode]);
+  }, []);
 
   const handleMarkdownChange = React.useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const nextMarkdown = event.target.value;
@@ -292,29 +280,36 @@ function WidgetBlockPreviewWrapper({
     });
   }, []);
 
+  // Textarea blur: read value directly from DOM to avoid stale-closure issues
+  // when blur fires before React has flushed the preceding onChange state update.
+  const handleTextareaBlur = React.useCallback(() => {
+    setFocus(false);
+    const currentValue = textareaRef.current?.value;
+    if (currentValue === undefined) return; // textarea not mounted — not in edit mode
+    const result = saveWidgetSource(view, sectionId, currentValue);
+    if (!result?.ok) {
+      setState((prev) => ({
+        ...prev,
+        isDirty: currentValue !== prev.originalMarkdown,
+        error: result?.message ?? "Unable to save widget source.",
+      }));
+      return;
+    }
+    const saved = stripEditorTrailingNewline(normalizeWidgetMarkdown(currentValue));
+    setState({ isEditing: false, isDirty: false, error: null,
+      originalMarkdown: saved, currentMarkdown: saved, hasFocus: false });
+  }, [sectionId, view, setFocus]);
+
+  // Container blur: only manages focus state; actual saving is done by handleTextareaBlur.
   const handleBlurCapture = React.useCallback((event: React.FocusEvent<HTMLDivElement>) => {
     const relatedTarget = event.relatedTarget;
     if (relatedTarget instanceof Node && containerRef.current?.contains(relatedTarget)) {
       return;
     }
-
     setFocus(false);
+  }, [setFocus]);
 
-    if (state.isEditing) {
-      onBlur();
-    }
-  }, [onBlur, setFocus, state.isEditing]);
-
-  const handleTextareaBlur = React.useCallback(() => {
-    // Direct blur handler for the textarea so auto-save works reliably
-    // in test environments where capture-phase blur may not propagate.
-    setFocus(false);
-    if (state.isEditing) {
-      onBlur();
-    }
-  }, [onBlur, setFocus, state.isEditing]);
-
-  const handlePreviewKeyDown = React.useCallback((event: KeyboardEvent) => {
+  const handlePreviewKeyDown = React.useCallback((event: KeyboardEvent | React.KeyboardEvent) => {
     if (event.key === "Enter" && !state.isEditing) {
       event.preventDefault();
       enterEditMode();
@@ -324,8 +319,8 @@ function WidgetBlockPreviewWrapper({
   React.useEffect(() => {
     const el = previewSurfaceRef.current;
     if (!el) return;
-    el.addEventListener("keydown", handlePreviewKeyDown);
-    return () => el.removeEventListener("keydown", handlePreviewKeyDown);
+    el.addEventListener("keydown", handlePreviewKeyDown as EventListener);
+    return () => el.removeEventListener("keydown", handlePreviewKeyDown as EventListener);
   }, [handlePreviewKeyDown]);
 
   const handleTextareaKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -338,8 +333,8 @@ function WidgetBlockPreviewWrapper({
     }
   }, [onSave, onUndo]);
 
-  const buttonMode = state.error ? "error" : isEditingInMain ? "editing" : "view";
-  const iconVisible = state.hasFocus || isEditingInMain || state.error !== null;
+  const buttonMode = state.error ? "error" : state.isEditing ? "editing" : "view";
+  const iconVisible = state.hasFocus || state.isEditing || state.error !== null;
 
   let previewNode: React.ReactNode;
   if (!previewComponent) {
@@ -371,7 +366,7 @@ function WidgetBlockPreviewWrapper({
       }}
       onFocusCapture={() => setFocus(true)}
       onBlurCapture={handleBlurCapture}
-      onKeyDownCapture={handlePreviewKeyDown}
+      onKeyDownCapture={handlePreviewKeyDown as React.KeyboardEventHandler<HTMLDivElement>}
     >
       <WidgetEditButton
         mode={buttonMode}
@@ -386,7 +381,36 @@ function WidgetBlockPreviewWrapper({
         )}
       />
 
-      <div ref={previewSurfaceRef} data-testid="widget-preview-surface" tabIndex={0} onKeyDown={handlePreviewKeyDown as any}>{previewNode}</div>
+      {state.isEditing ? (
+        <div className="flex flex-col gap-2">
+          {state.error !== null && (
+            <div
+              data-testid="widget-error-inlay"
+              className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            >
+              Invalid JSON: {state.error}
+            </div>
+          )}
+          <EditableMarkdown
+            ref={textareaRef}
+            data-testid="widget-markdown-editor"
+            value={state.currentMarkdown}
+            onChange={handleMarkdownChange}
+            onBlur={handleTextareaBlur}
+            onKeyDown={handleTextareaKeyDown}
+            hasError={state.error !== null}
+          />
+        </div>
+      ) : (
+        <div
+          ref={previewSurfaceRef}
+          data-testid="widget-preview-surface"
+          tabIndex={0}
+          onKeyDown={handlePreviewKeyDown as React.KeyboardEventHandler<HTMLDivElement>}
+        >
+          {previewNode}
+        </div>
+      )}
     </div>
   );
 }
@@ -481,8 +505,10 @@ class ReactWidgetBlock extends WidgetType {
     if (this.root) {
       const r = this.root;
       this.root = null;
-      // Defer unmount to avoid "Cannot update an unmounting root" warnings
-      setTimeout(() => r.unmount(), 0);
+      // Unmount synchronously so pending unmounts don't bleed into subsequent
+      // tests via the setTimeout queue (deferred approach caused race conditions
+      // in bun:test with React 18 concurrent mode).
+      r.unmount();
     }
   }
 
@@ -530,6 +556,9 @@ function buildWidgetDecos(state: EditorState, registry: WidgetRegistry): Decorat
       );
       continue;
     }
+
+    // Skip replace decoration when cursor is inside widget range (reveals source)
+    if (cursorHead >= section.from && cursorHead <= section.to) continue;
 
     // Extract raw content between the fences
     const rawContent =
@@ -589,59 +618,45 @@ function moveToLinePreservingColumn(view: EditorView, targetLine: Line): void {
 function skipWidgetDown(view: EditorView): boolean {
   const { head } = view.state.selection.main;
   const currentLine = view.state.doc.lineAt(head);
-  const nextLineNumber = currentLine.number + 1;
-  if (nextLineNumber > view.state.doc.lines) return false;
-
   const { sections } = view.state.field(sectionField);
   const editingIds = view.state.field(editingWidgetsField);
 
-  let targetLineNumber = nextLineNumber;
-  let targetLine = view.state.doc.line(targetLineNumber);
-  
-  while (targetLineNumber <= view.state.doc.lines) {
-    const widget = widgetSectionAtLine(sections, targetLine);
-    // If it's a widget and NOT in edit mode, skip it
-    if (widget && !editingIds.has(widget.id)) {
-      targetLineNumber = widget.endLine + 1;
-      if (targetLineNumber > view.state.doc.lines) break;
-      targetLine = view.state.doc.line(targetLineNumber);
-    } else {
-      // Found a valid destination (non-widget or editing-widget)
-      moveToLinePreservingColumn(view, targetLine);
-      return true;
-    }
-  }
+  // If cursor is already inside a non-editing widget, let normal movement handle it
+  const currentWidget = widgetSectionAtLine(sections, currentLine);
+  if (currentWidget && !editingIds.has(currentWidget.id)) return false;
 
-  return false;
+  const nextLineNumber = currentLine.number + 1;
+  if (nextLineNumber > view.state.doc.lines) return false;
+  const nextLine = view.state.doc.line(nextLineNumber);
+
+  // If the next line is inside a non-editing widget, move onto its first line (reveals it)
+  const nextWidget = widgetSectionAtLine(sections, nextLine);
+  if (!nextWidget || editingIds.has(nextWidget.id)) return false;
+
+  moveToLinePreservingColumn(view, view.state.doc.line(nextWidget.startLine));
+  return true;
 }
 
 function skipWidgetUp(view: EditorView): boolean {
   const { head } = view.state.selection.main;
   const currentLine = view.state.doc.lineAt(head);
-  const previousLineNumber = currentLine.number - 1;
-  if (previousLineNumber < 1) return false;
-
   const { sections } = view.state.field(sectionField);
   const editingIds = view.state.field(editingWidgetsField);
 
-  let targetLineNumber = previousLineNumber;
-  let targetLine = view.state.doc.line(targetLineNumber);
+  // If cursor is already inside a non-editing widget, let normal movement handle it
+  const currentWidget = widgetSectionAtLine(sections, currentLine);
+  if (currentWidget && !editingIds.has(currentWidget.id)) return false;
 
-  while (targetLineNumber >= 1) {
-    const widget = widgetSectionAtLine(sections, targetLine);
-    // If it's a widget and NOT in edit mode, skip it
-    if (widget && !editingIds.has(widget.id)) {
-      targetLineNumber = widget.startLine - 1;
-      if (targetLineNumber < 1) break;
-      targetLine = view.state.doc.line(targetLineNumber);
-    } else {
-      // Found a valid destination
-      moveToLinePreservingColumn(view, targetLine);
-      return true;
-    }
-  }
+  const prevLineNumber = currentLine.number - 1;
+  if (prevLineNumber < 1) return false;
+  const prevLine = view.state.doc.line(prevLineNumber);
 
-  return false;
+  // If the previous line is inside a non-editing widget, move onto its last line (reveals it)
+  const prevWidget = widgetSectionAtLine(sections, prevLine);
+  if (!prevWidget || editingIds.has(prevWidget.id)) return false;
+
+  moveToLinePreservingColumn(view, view.state.doc.line(prevWidget.endLine));
+  return true;
 }
 
 const widgetNavKeymap = Prec.high(keymap.of([
@@ -665,8 +680,10 @@ export function widgetBlockPreview(registry: WidgetRegistry): Extension {
       // 1. The document changed (content/structure update)
       // 2. An edit-toggle effect was dispatched
       const hasToggle = tr.effects.some(e => e.is(toggleWidgetEdit));
+      // tr.selectionSet doesn't exist in this CM6 version; compare manually
+      const selectionChanged = !tr.startState.selection.eq(tr.newSelection);
       
-      if (tr.docChanged || hasToggle) {
+      if (tr.docChanged || hasToggle || selectionChanged) {
         return buildWidgetDecos(tr.state, registry);
       }
       return value;

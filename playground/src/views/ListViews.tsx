@@ -4,6 +4,7 @@ import { localDateKey, type JournalEntrySummary } from './queriable-list/Journal
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from '../services/playgroundDB';
 import { useJournalQueryState } from '../hooks/useJournalQueryState';
+import { useShowPlaygrounds } from '../hooks/useShowPlaygrounds';
 import { createJournalEntryFlow } from '../services/journalEntryFlow';
 import type { FilteredListItem } from './queriable-list/types';
 import { JournalFeed } from './JournalFeed';
@@ -98,10 +99,13 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
     return () => { cancelled = true; };
   }, []);
 
+  // ── Show playgrounds toggle ───────────────────────────────────────────────
+  const [showPlaygrounds] = useShowPlaygrounds();
+
   // ── Map results → list items ──────────────────────────────────────────────
 
-  const listItems = useMemo<FilteredListItem[]>(() =>
-    results.map(r => {
+  const listItems = useMemo<FilteredListItem[]>(() => {
+    const allItems = results.map(r => {
       const safeNoteId = r.noteId || '';
       const isPlayground = safeNoteId.startsWith('playground/') || UUID_RE.test(safeNoteId);
       const parts = safeNoteId.split('/');
@@ -121,8 +125,12 @@ export function JournalWeeklyPage({ onSelect, onCreateEntry, workoutItems = [] }
         group: isPlayground ? 'playground' : undefined,
         payload: r,
       };
-    }),
-  [results]);
+    });
+    if (!showPlaygrounds) {
+      return allItems.filter(item => item.group !== 'playground');
+    }
+    return allItems;
+  }, [results, showPlaygrounds]);
 
   // ── Date keys to display ──────────────────────────────────────────────────
 
