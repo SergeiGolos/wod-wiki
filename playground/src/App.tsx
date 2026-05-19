@@ -17,7 +17,6 @@ import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
-import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
@@ -47,8 +46,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
-import { DEFAULT_PLAYGROUND_CONTENT } from './templates/defaultPlaygroundContent'
-import { createPlaygroundPage } from './services/createPlaygroundPage'
+import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -84,33 +82,6 @@ export interface WorkoutItem {
   /** When true, this item is excluded from all search results (front matter: `search: hidden`) */
   searchHidden?: boolean
 }
-/**
- * Navigate to the most-recently edited playground page, or create one if none
- * exist yet. Used by the / route.
- */
-function PlaygroundRedirect() {
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    ;(async () => {
-      const pages = await playgroundDB.getPagesByCategory('playground')
-      if (pages.length > 0) {
-        const latest = pages.sort((a, b) => b.updatedAt - a.updatedAt)[0]!
-        navigate(`/playground/${encodeURIComponent(latest.name)}`, { replace: true })
-      } else {
-        const id = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
-        navigate(`/playground/${encodeURIComponent(id)}`, { replace: true })
-      }
-    })()
-  }, [navigate])
-
-  return (
-    <div className="flex-1 flex items-center justify-center text-zinc-400">
-      Loading…
-    </div>
-  )
-}
-
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
   const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
@@ -649,7 +620,7 @@ export function App() {
                 <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/load" element={<LoadZipPage />} />
-                <Route path="/playground" element={<PlaygroundLandingPage />} />
+                <Route path="/playground" element={<PlaygroundRedirect />} />
                 <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                 <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
