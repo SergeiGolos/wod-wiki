@@ -10,7 +10,8 @@
  */
 
 // Root / Direct-build strategies
-export { IdleBlockStrategy, IdleBlockConfig, idleBlockStrategy } from './IdleBlockStrategy';
+export { IdleBlockStrategy, idleBlockStrategy } from './IdleBlockStrategy';
+export type { IdleBlockConfig } from './IdleBlockStrategy';
 export { SessionRootStrategy, sessionRootStrategy } from './SessionRootStrategy';
 export { WaitingToStartStrategy } from './WaitingToStartStrategy';
 
