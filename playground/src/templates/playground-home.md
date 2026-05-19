@@ -36,7 +36,7 @@
 
 Welcome to your personalized training scratchpad. WOD Wiki combines the simplicity of **plain-text markdown** with the power of a **JIT workout compiler**.
 
-## 🏋️ Your First Workout {sticky dark full-bleed}
+## 🏋️ Your First Workout
 
 ```wod
 (3)
@@ -52,7 +52,7 @@ This `wod` block is live code. The `(3)` creates a 3-round circuit. The movement
 
 ---
 
-## 🗺️ Explore the Knowledge Base {sticky dark full-bleed}
+## 🗺️ Explore the Knowledge Base
 
 WOD Wiki is organized into collections, guides, and your own personal logs.
 

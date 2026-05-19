@@ -24,7 +24,7 @@ export function SyntaxGroupWidget({ config, onOpenDocs }: SyntaxGroupWidgetProps
   }
 
   return (
-    <article className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
+    <article className="p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">

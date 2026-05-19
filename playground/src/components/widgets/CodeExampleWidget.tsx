@@ -88,7 +88,7 @@ export function CodeExampleWidget({ config, isDarkMode, onRun }: CodeExampleWidg
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
+    <section className="p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">Code example</h2>
         <button

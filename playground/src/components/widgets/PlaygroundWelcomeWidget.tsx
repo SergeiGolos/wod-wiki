@@ -11,7 +11,7 @@ import type { WidgetProps } from '@/components/Editor/widgets/types'
 
 export const PlaygroundWelcomeWidget: React.FC<WidgetProps> = () => {
   return (
-    <div className="my-4 rounded-lg border border-border bg-muted/20 p-5 text-sm leading-relaxed">
+    <div className="my-4 py-5 text-sm leading-relaxed">
       <p className="mb-3 font-semibold text-foreground">How the syntax works</p>
 
       <ul className="space-y-3 text-muted-foreground">

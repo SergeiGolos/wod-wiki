@@ -438,7 +438,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
       ...(initialLineWrapping ? [EditorView.lineWrapping] : []),
       EditorState.allowMultipleSelections.of(true),
       indentOnInput(),
-      bracketMatching(),
+      // bracketMatching(),
       closeBrackets(),
       highlightActiveLine(),
       highlightSelectionMatches(),

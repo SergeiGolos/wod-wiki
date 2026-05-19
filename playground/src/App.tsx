@@ -368,6 +368,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }, [])
 
   const scrollToSection = useCallback((id: string) => {
+    if (!id) return
+
     // 1. Try standard DOM element (Canvas/List pages)
     //    Use scrollIntoView so the browser finds the correct scroll container
     //    (works inside nested flex layouts like HomeView > CanvasPage).

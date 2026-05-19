@@ -365,10 +365,9 @@ function WidgetBlockPreviewWrapper({
       data-widget-section-id={sectionId}
       data-widget-mode={buttonMode}
       className={cn(
-        "group relative rounded-2xl border bg-background/95 p-3 shadow-sm transition-colors duration-200 ease-out",
+        "group relative rounded-2xl border border-transparent bg-background/95 p-3 transition-colors duration-200 ease-out hover:border-border",
         state.isEditing && state.error === null && "border-emerald-500/40 ring-1 ring-emerald-500/15",
         state.error !== null && "border-destructive/40 ring-1 ring-destructive/15",
-        !state.isEditing && state.error === null && "border-border/60 hover:border-border",
       )}
       onMouseDownCapture={(event) => {
         if (!state.isEditing) {
