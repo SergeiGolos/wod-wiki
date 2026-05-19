@@ -31,12 +31,12 @@ export function useZipProcessor() {
         });
         
         if (!cancelled) {
-          navigate(`/playground/${id}`, { replace: true });
+          navigate(`/?id=${id}`, { replace: true });
         }
       } catch (err) {
         console.error('Failed to decode zip:', err);
         if (!cancelled) {
-          navigate('/playground', { replace: true });
+          navigate('/', { replace: true });
         }
       }
     })();

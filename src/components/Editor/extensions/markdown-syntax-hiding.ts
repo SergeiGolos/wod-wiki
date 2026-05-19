@@ -56,10 +56,13 @@ function buildDecorations(state: EditorState): DecorationSet {
   const cursorLineNum = state.doc.lineAt(cursor).number;
   const decos: Range<Decoration>[] = [];
   const tree = syntaxTree(state);
+  if (!tree) return Decoration.none;
 
   for (const section of sections) {
     // Only decorate markdown prose — leave wod/code/frontmatter alone.
     if (section.type !== "markdown") continue;
+
+    try {
 
     for (let ln = section.startLine; ln <= section.endLine; ln++) {
       const line = state.doc.line(ln);
@@ -165,6 +168,9 @@ function buildDecorations(state: EditorState): DecorationSet {
         decos.push(Decoration.replace({}).range(from, from + 1));
         decos.push(Decoration.replace({}).range(to - 1, to));
       }
+    }
+  } catch (e) {
+      console.warn("markdown-syntax-hiding: syntax tree iteration failed", e);
     }
   }
 

@@ -34,8 +34,17 @@ function isNavigableUrl(url: string): boolean {
 export function urlAtPos(view: EditorView, pos: number): string | null {
   let url: string | null = null;
 
+  if (pos < 0 || pos > view.state.doc.length) return null;
+
   const tree = syntaxTree(view.state);
-  const node = tree.resolveInner(pos, 1);
+  if (!tree) return null;
+
+  let node;
+  try {
+    node = tree.resolveInner(pos, 1);
+  } catch (e) {
+    return null;
+  }
 
   // Walk up to find a Link or Autolink ancestor, then look for URL child
   let cursor = node;

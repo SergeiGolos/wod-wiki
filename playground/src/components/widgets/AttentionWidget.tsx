@@ -37,7 +37,7 @@ export function AttentionWidget({ config, onAction }: AttentionWidgetProps) {
   }
 
   return (
-    <section className="rounded-3xl border border-zinc-200/70 bg-background p-8 shadow-sm dark:border-zinc-800/80">
+    <section className="p-8">
       <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
         Playground
       </p>
@@ -54,7 +54,7 @@ export function AttentionWidget({ config, onAction }: AttentionWidgetProps) {
             key={pillar.label}
             className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/70"
           >
-            <div className="mb-3 inline-flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+            <div className="mb-3 inline-flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
               {pillar.icon}
             </div>
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{pillar.label}</h3>

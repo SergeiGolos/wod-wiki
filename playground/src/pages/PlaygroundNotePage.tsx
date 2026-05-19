@@ -153,7 +153,10 @@ export function PlaygroundNotePage({
   const handleAttentionAction = useCallback(
     (action: 'scroll-to-workout' | 'open-search') => {
       if (action === 'scroll-to-workout') {
-        onScrollToSection?.()
+        const firstWod = index.find(item => item.type === 'wod')
+        if (firstWod) {
+          onScrollToSection?.(firstWod.id)
+        }
       } else if (action === 'open-search') {
         onSearch?.()
       }
