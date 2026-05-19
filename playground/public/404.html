@@ -8,9 +8,12 @@
     // When GitHub Pages 404s on a deep route, it serves this page.
     // Store the intended path, then redirect to the project root so the app
     // can boot and BrowserRouter restores the route.
+    //
+    // NOTE: wod.wiki is deployed at the root (/), not a subdirectory.
+    // Always redirect to '/' — the first-segment trick would loop on paths
+    // like /playground/ because that segment has no real file and 404s again.
     sessionStorage.setItem('spa-redirect', location.href);
-    var base = '/' + location.pathname.split('/').filter(Boolean).slice(0, 1).join('/') + '/';
-    location.href = base;
+    location.href = '/';
   </script>
 </head>
 <body></body>
