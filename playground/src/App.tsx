@@ -595,6 +595,14 @@ function GlobalState() {
   return null
 }
 
+function HomeRoute({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
+  const [idParam] = useQueryState('id')
+  if (idParam) {
+    return <AppContent searchHandlerRef={searchHandlerRef} />
+  }
+  return <PlaygroundRedirect />
+}
+
 export function App() {
   // Stable ref so AppContent can inject its openSearchPalette callback after mount.
   // The nav tree is built once; the search item calls the ref's current value.
@@ -612,7 +620,7 @@ export function App() {
             <CommandProvider>
               <NavProvider tree={navTree}>
                 <Routes>
-                  <Route path="/" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="/" element={<HomeRoute searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
