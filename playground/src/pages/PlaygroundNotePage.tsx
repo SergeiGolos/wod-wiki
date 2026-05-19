@@ -20,8 +20,10 @@ import {
   createSyntaxGroupWidgetWrapper,
 } from '../components/widgets/widgetWrappers'
 import type { WodBlock } from '@/components/Editor/types'
+import type { WorkoutResult } from '@/types/storage'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
+import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
@@ -59,6 +61,18 @@ export function PlaygroundNotePage({
     name: pageName,
     mdContent: DEFAULT_PLAYGROUND_CONTENT.content,
   })
+
+  const [results, setResults] = useState<WorkoutResult[]>([])
+
+  const refreshResults = useCallback(() => {
+    indexedDBService.getResultsForNote(noteId)
+      .then(results => setResults(results))
+      .catch(() => {})
+  }, [noteId])
+
+  useEffect(() => {
+    refreshResults()
+  }, [refreshResults])
 
   // Place cursor at the $CURSOR token position on first mount
   const cursorPlaced = useRef(false)
@@ -141,7 +155,7 @@ export function PlaygroundNotePage({
   )
 
   const [wodBlocks, setWodBlocks] = useState<WodBlock[]>([])
-  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout })
+  const index = useNotePageNav({ content, wodBlocks, onStartWorkout: handleStartWorkout, results })
 
   const commands = useWodBlockCommands('playground', {
     onPlay: handleStartWorkout,
@@ -257,6 +271,7 @@ export function PlaygroundNotePage({
             onBlocksChange={setWodBlocks}
             onButtonAction={handleButtonAction}
             widgetComponents={widgetComponents}
+            extendedResults={results}
           />
         }
       />
