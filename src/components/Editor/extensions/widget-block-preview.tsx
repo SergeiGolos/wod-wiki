@@ -505,8 +505,10 @@ class ReactWidgetBlock extends WidgetType {
     if (this.root) {
       const r = this.root;
       this.root = null;
-      // Defer unmount to avoid "Cannot update an unmounting root" warnings
-      setTimeout(() => r.unmount(), 0);
+      // Unmount synchronously so pending unmounts don't bleed into subsequent
+      // tests via the setTimeout queue (deferred approach caused race conditions
+      // in bun:test with React 18 concurrent mode).
+      r.unmount();
     }
   }
 
