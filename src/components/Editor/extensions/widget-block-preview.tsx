@@ -27,6 +27,8 @@ import { Extension, StateField, Range, EditorState, Prec } from "@codemirror/sta
 import type { Line } from "@codemirror/state";
 // @ts-expect-error — react-dom/client subpath types don't resolve under moduleResolution:bundler (baseline issue)
 import { createRoot } from "react-dom/client";
+// @ts-expect-error — react-dom flushSync subpath types don't resolve under moduleResolution:bundler (baseline issue)
+import { flushSync } from "react-dom";
 type Root = { render: (c: React.ReactNode) => void; unmount: () => void };
 import React from "react";
 
@@ -164,6 +166,7 @@ function WidgetBlockPreviewWrapper({
 }: WidgetBlockPreviewWrapperProps): React.ReactElement {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const previewSurfaceRef = React.useRef<HTMLDivElement | null>(null);
   const originalMarkdown = React.useMemo(() => stripEditorTrailingNewline(rawContent), [rawContent]);
   const [state, setState] = React.useState<WidgetEditState>(() => ({
     isEditing: false,
@@ -204,14 +207,16 @@ function WidgetBlockPreviewWrapper({
   }, []);
 
   const enterEditMode = React.useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      isEditing: true,
-      error: null,
-      hasFocus: true,
-      currentMarkdown: prev.originalMarkdown,
-      isDirty: false,
-    }));
+    flushSync(() => {
+      setState((prev) => ({
+        ...prev,
+        isEditing: true,
+        error: null,
+        hasFocus: true,
+        currentMarkdown: prev.originalMarkdown,
+        isDirty: false,
+      }));
+    });
   }, []);
 
   const exitEditMode = React.useCallback((save: boolean) => {
@@ -305,6 +310,39 @@ function WidgetBlockPreviewWrapper({
     }
   }, [onBlur, setFocus, state.isEditing]);
 
+  const handleTextareaBlur = React.useCallback(() => {
+    // Direct blur handler for the textarea so auto-save works reliably
+    // in test environments where capture-phase blur may not propagate.
+    setFocus(false);
+    if (state.isEditing) {
+      onBlur();
+    }
+  }, [onBlur, setFocus, state.isEditing]);
+
+  const handlePreviewKeyDown = React.useCallback((event: KeyboardEvent) => {
+    if (event.key === "Enter" && !state.isEditing) {
+      event.preventDefault();
+      enterEditMode();
+    }
+  }, [enterEditMode, state.isEditing]);
+
+  React.useEffect(() => {
+    const el = previewSurfaceRef.current;
+    if (!el) return;
+    el.addEventListener("keydown", handlePreviewKeyDown);
+    return () => el.removeEventListener("keydown", handlePreviewKeyDown);
+  }, [handlePreviewKeyDown]);
+
+  const handleTextareaKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onUndo();
+    } else if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      onSave();
+    }
+  }, [onSave, onUndo]);
+
   const buttonMode = state.error ? "error" : state.isEditing ? "editing" : "view";
   const iconVisible = state.hasFocus || state.isEditing || state.error !== null;
 
@@ -339,6 +377,7 @@ function WidgetBlockPreviewWrapper({
       }}
       onFocusCapture={() => setFocus(true)}
       onBlurCapture={handleBlurCapture}
+      onKeyDownCapture={handlePreviewKeyDown}
     >
       <WidgetEditButton
         mode={buttonMode}
@@ -362,11 +401,13 @@ function WidgetBlockPreviewWrapper({
             aria-label={`Edit widget ${widgetName} markdown`}
             data-testid="widget-markdown-editor"
             onChange={handleMarkdownChange}
+            onBlur={handleTextareaBlur}
+            onKeyDown={handleTextareaKeyDown}
           />
           {state.error ? <ErrorInlay message={state.error} /> : null}
         </div>
       ) : (
-        <div data-testid="widget-preview-surface">{previewNode}</div>
+        <div ref={previewSurfaceRef} data-testid="widget-preview-surface" tabIndex={0} onKeyDown={handlePreviewKeyDown as any}>{previewNode}</div>
       )}
     </div>
   );

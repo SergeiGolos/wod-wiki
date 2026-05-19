@@ -129,4 +129,48 @@ describe('WidgetEditButton', () => {
     fireEvent.click(screen.getByRole('button', { name: /undo changes/i }))
     expect(onUndo).toHaveBeenCalledTimes(1)
   })
+
+  it('includes dark mode color classes for editing and error modes', () => {
+    const { rerender } = render(
+      <WidgetEditButton
+        mode="editing"
+        enterEditMode={() => {}}
+        onSave={() => {}}
+        onUndo={() => {}}
+      />,
+    )
+    let button = screen.getByRole('button', { name: /save widget/i })
+    expect(button.className).toContain('dark:text-emerald-400')
+    expect(button.className).toContain('dark:hover:text-emerald-300')
+
+    rerender(
+      <WidgetEditButton
+        mode="error"
+        enterEditMode={() => {}}
+        onSave={() => {}}
+        onUndo={() => {}}
+      />,
+    )
+    button = screen.getByRole('button', { name: /undo changes/i })
+    expect(button.className).toContain('dark:text-amber-400')
+    expect(button.className).toContain('dark:hover:text-amber-300')
+  })
+
+  it('applies 200ms transition duration to all icon states', () => {
+    const { container } = render(
+      <WidgetEditButton
+        mode="view"
+        enterEditMode={() => {}}
+        onSave={() => {}}
+        onUndo={() => {}}
+      />,
+    )
+
+    const icons = container.querySelectorAll('[data-icon-state]')
+    expect(icons.length).toBe(3)
+    icons.forEach((icon) => {
+      const classAttr = icon.getAttribute('class') ?? ''
+      expect(classAttr).toContain('duration-200')
+    })
+  })
 })
