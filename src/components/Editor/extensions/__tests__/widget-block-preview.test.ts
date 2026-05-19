@@ -337,4 +337,103 @@ describe("widgetBlockPreview — decoration building", () => {
 
     view.destroy();
   });
+
+  it("should enter edit mode when Enter is pressed on a focused preview", async () => {
+    const registry = makeInteractiveRegistry();
+    const ext = widgetBlockPreview(registry);
+    const doc = "Lead\n\n```widget:test-widget\n{\"title\":\"Focus Demo\"}\n```\n\nTail";
+    const view = createView(doc, 1, [sectionField, ext]);
+
+    await flushWidgetRender();
+
+    const previewSurface = document.querySelector('[data-testid="widget-preview-surface"]') as HTMLDivElement;
+    expect(previewSurface).toBeTruthy();
+
+    fireEvent.keyDown(previewSurface, { key: "Enter", bubbles: true });
+    await flushWidgetRender();
+
+    const textarea = document.querySelector('[data-testid="widget-markdown-editor"]');
+    expect(textarea).toBeTruthy();
+
+    view.destroy();
+  });
+
+  it("should discard changes and exit edit mode when Escape is pressed in the textarea", async () => {
+    const registry = makeInteractiveRegistry();
+    const ext = widgetBlockPreview(registry);
+    const doc = "Lead\n\n```widget:test-widget\n{\"title\":\"Original\"}\n```\n\nTail";
+    const view = createView(doc, 1, [sectionField, ext]);
+
+    await flushWidgetRender();
+
+    fireEvent.click(document.querySelector('[aria-label="Edit widget"]') as HTMLButtonElement);
+    await flushWidgetRender();
+
+    const textarea = document.querySelector('[data-testid="widget-markdown-editor"]') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '{\"title\":\"Changed\"}' } });
+    await flushWidgetRender();
+
+    fireEvent.keyDown(textarea, { key: "Escape", bubbles: true });
+    await flushWidgetRender();
+
+    expect(document.querySelector('[data-testid="widget-markdown-editor"]')).toBeNull();
+    expect(document.querySelector('[data-testid="widget-config"]')?.textContent).toBe("Original");
+    expect(view.state.doc.toString()).toContain('{"title":"Original"}');
+
+    view.destroy();
+  });
+
+  it("should save and exit edit mode when Ctrl+Enter is pressed in the textarea", async () => {
+    const registry = makeInteractiveRegistry();
+    const ext = widgetBlockPreview(registry);
+    const doc = "Lead\n\n```widget:test-widget\n{\"title\":\"Original\"}\n```\n\nTail";
+    const view = createView(doc, 1, [sectionField, ext]);
+
+    await flushWidgetRender();
+
+    fireEvent.click(document.querySelector('[aria-label="Edit widget"]') as HTMLButtonElement);
+    await flushWidgetRender();
+
+    const textarea = document.querySelector('[data-testid="widget-markdown-editor"]') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '{\"title\":\"CtrlSaved\"}' } });
+    await flushWidgetRender();
+
+    fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true, bubbles: true });
+    await flushWidgetRender();
+
+    expect(document.querySelector('[data-testid="widget-markdown-editor"]')).toBeNull();
+    expect(document.querySelector('[data-testid="widget-config"]')?.textContent).toBe("CtrlSaved");
+    expect(view.state.doc.toString()).toContain('{"title":"CtrlSaved"}');
+
+    view.destroy();
+  });
+
+  it("should auto-save the first widget when focus moves to edit a second widget", async () => {
+    const registry = makeInteractiveRegistry();
+    const ext = widgetBlockPreview(registry);
+    const doc = "Lead\n\n```widget:test-widget\n{\"title\":\"First\"}\n```\n\n```widget:test-widget\n{\"title\":\"Second\"}\n```\n\nTail";
+    const view = createView(doc, 1, [sectionField, ext]);
+
+    await flushWidgetRender();
+
+    // Enter edit mode on the first widget
+    const firstEditButton = document.querySelectorAll('[aria-label="Edit widget"]')[0] as HTMLButtonElement;
+    fireEvent.click(firstEditButton);
+    await flushWidgetRender();
+
+    const textarea = document.querySelector('[data-testid="widget-markdown-editor"]') as HTMLTextAreaElement;
+    expect(textarea).toBeTruthy();
+    fireEvent.change(textarea, { target: { value: '{\"title\":\"FirstEdited\"}' } });
+    await flushWidgetRender();
+
+    // Blur to an outside element (simulating focus moving to the second widget)
+    const outside = document.body.appendChild(document.createElement("button"));
+    fireEvent.blur(textarea, { relatedTarget: outside });
+    await flushWidgetRender();
+
+    expect(view.state.doc.toString()).toContain('{"title":"FirstEdited"}');
+    expect(document.querySelector('[data-testid="widget-markdown-editor"]')).toBeNull();
+
+    view.destroy();
+  });
 });
