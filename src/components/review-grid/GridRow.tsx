@@ -12,6 +12,7 @@ import type { GridRow as GridRowData, GridColumn } from './types';
 import { FIXED_COLUMN_IDS } from './types';
 import { GridCell } from './GridCell';
 import { formatSecondsMMSS } from '@/lib/formatTime';
+import { cn } from '@/lib/utils';
 
 interface GridRowProps {
   /** The row data to render */
@@ -46,16 +47,19 @@ export const GridRow: React.FC<GridRowProps> = ({
     onSelect(row.id, { ctrlKey: e.ctrlKey || e.metaKey, shiftKey: e.shiftKey });
   };
 
+  const isGroup = row.outputType === 'group';
+
   return (
     <tr
-      className={[
-        'border-b border-border/20 last:border-0 transition-colors cursor-pointer',
+      className={cn(
+        'border-b border-border transition-colors cursor-pointer',
+        isGroup ? 'bg-muted/50 font-bold' : '',
         isSelected
-          ? 'bg-primary/10 dark:bg-primary/20'
+          ? 'bg-accent dark:bg-accent/20'
           : isHovered
             ? 'bg-muted/50 dark:bg-muted/40'
             : 'hover:bg-muted/30 dark:hover:bg-muted/20',
-      ].join(' ')}
+      )}
       onClick={handleClick}
       onMouseEnter={() => onHover(row.sourceBlockKey)}
       onMouseLeave={() => onHover(null)}
@@ -68,7 +72,7 @@ export const GridRow: React.FC<GridRowProps> = ({
               metricType={col.type}
               blockKey={row.sourceBlockKey}
               indent={
-                (col.type === MetricType.System || col.type === MetricType.Effort)
+                (col.type === MetricType.Effort)
                   ? row.stackLevel
                   : 0
               }
