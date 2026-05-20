@@ -22,6 +22,8 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 export class VolumeProjectionEngine implements IAnalyticsStage {
   public readonly id = 'volume-projection';
   public readonly name = "VolumeProjectionEngine";
+  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly requiredMetrics = [MetricType.Rep, MetricType.Resistance] as const;
 
   project(outputs: IOutputStatement[]): ProjectionResult[] {
     const allMetrics = extractMetrics(outputs);

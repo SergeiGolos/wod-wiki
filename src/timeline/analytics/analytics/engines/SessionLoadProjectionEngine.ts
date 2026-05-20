@@ -18,6 +18,7 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 export class SessionLoadProjectionEngine implements IAnalyticsStage {
   public readonly id = 'session-load-projection';
   public readonly name = 'SessionLoadProjectionEngine';
+  public readonly dialects = ['wod', 'log'] as const;
 
   project(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));

@@ -16,6 +16,8 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 export class MetMinuteProjectionEngine implements IAnalyticsStage {
   public readonly id = 'met-minute-projection';
   public readonly name = 'MetMinuteProjectionEngine';
+  public readonly dialects = ['wod', 'log'] as const;
+  public readonly requiredMetrics = [MetricType.Action] as const;
 
   project(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));

@@ -14,6 +14,8 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
 export class RepProjectionEngine implements IAnalyticsStage {
   public readonly id = 'rep-projection';
   public readonly name = 'RepProjectionEngine';
+  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly requiredMetrics = [MetricType.Rep] as const;
 
   project(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));

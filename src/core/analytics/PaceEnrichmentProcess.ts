@@ -15,6 +15,7 @@ import { MetricType } from '../models/Metric';
  */
 export class PaceEnrichmentProcess implements IAnalyticsStage {
     public readonly id = 'pace-enrichment';
+    public readonly dialects = ['wod', 'log'] as const;
 
     enrich(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;

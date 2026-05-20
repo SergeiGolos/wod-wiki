@@ -1,0 +1,23 @@
+import type { MetricType } from '../models/Metric';
+import type { WodDialect } from '@/components/Editor/types';
+import type { IRealtimeProcessor } from './IRealtimeProcessor';
+import type { ISummaryProcessor } from './ISummaryProcessor';
+
+/**
+ * Context used to select processors for a given workout.
+ */
+export interface AnalyticsProfileContext {
+  dialect: WodDialect;
+  scriptMetricTypes: ReadonlySet<MetricType>;
+}
+
+/**
+ * Profile that assembles the realtime and summary processor lists
+ * for a given workout context.
+ */
+export interface IAnalyticsProfile {
+  build(context: AnalyticsProfileContext): {
+    realtime: IRealtimeProcessor[];
+    summary: ISummaryProcessor[];
+  };
+}
