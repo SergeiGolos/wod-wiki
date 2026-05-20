@@ -5,12 +5,13 @@
  * component via useSetNavL3() or AppContent's setL3Items() call.
  *
  * Structure:
- *   L1: Home, Journal, Plan, Feeds, Collections
+ *   L1: Home, Journal, Plan, Feeds, Collections, Efforts
  *   L2 of Home:        Zero to Hero + Syntax/* (canvas pages)
  *   L2 of Journal:     <JournalNavPanel>   — calendar filter + tag chips
  *   L2 of Plan:        <JournalNavPanel>   — same calendar, forward-looking
  *   L2 of Feeds:       <FeedsNavPanel>     — feed selector
  *   L2 of Collections: <CollectionsNavPanel> — category toggles
+ *   L2 of Efforts:     <EffortsNavPanel>   — origin/discipline filters + recent workouts
  *
  *   Search has moved out of the L1 sidebar and into the top app-bar.
  */
@@ -30,6 +31,7 @@ import type { Location } from 'react-router-dom'
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
 import { FeedsNavPanel }       from './panels/FeedsNavPanel'
+import { EffortsNavPanel }     from './panels/EffortsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
 import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
 import { ROUTE_PATTERNS } from '../lib/routes'
@@ -147,6 +149,7 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       icon: Dumbbell,
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
+      panel: EffortsNavPanel,
     },
   ]
 }

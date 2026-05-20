@@ -13,11 +13,13 @@ import {
   DocumentDuplicateIcon,
   PencilIcon,
 } from '@heroicons/react/20/solid';
-import { Dumbbell, Flame, Activity, Tag, Eye, FileText } from 'lucide-react';
+import { Dumbbell, Flame, Activity, Tag, Eye, FileText, BarChart3, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EffortEditorForm } from '../components/efforts/EffortEditorForm';
+import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { useTheme } from '@/components/theme/ThemeProvider';
+import { effortToDocument, documentToEffort } from '../components/efforts/effortYaml';
 import { useEffortRegistry } from '../components/efforts/EffortRegistryContext';
 import { EffortResolver } from '@/effort-registry';
 import type { IEffort, ResolvedEffort } from '@/effort-registry';
@@ -141,7 +143,43 @@ function EffortResolvedView({
         <p>Effort: {resolved.slug}</p>
         <p>Modifiers: {Object.keys(resolved.modifiers).length}</p>
       </div>
+
+      {/* Analytics placeholder */}
+      <AnalyticsPlaceholder />
     </div>
+  );
+}
+
+function AnalyticsPlaceholder() {
+  return (
+    <Card className="hidden md:block border-dashed bg-muted/30">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
+          <BarChart3 className="size-4" />
+          Analytics
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-3">
+          Workout metrics and trend visualizations will appear here once analytics
+          integration is complete.
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground/80">
+            <TrendingUp className="size-3.5 shrink-0" />
+            <span>Workout frequency over time</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground/80">
+            <TrendingUp className="size-3.5 shrink-0" />
+            <span>Average intensity trends</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground/80">
+            <TrendingUp className="size-3.5 shrink-0" />
+            <span>Volume / load progression</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -201,6 +239,8 @@ export function EffortDetailPage() {
   const [isEditing, setIsEditing] = useState(modeParam === 'create');
   const [cloneBase, setCloneBase] = useState<IEffort | null>(null);
   const [activeTab, setActiveTab] = useState<'definition' | 'resolved'>(tabParam as 'definition' | 'resolved');
+  const { theme } = useTheme();
+  const actualTheme = theme === 'dark' ? 'dark' : 'vs';
 
   const effort = useMemo(() => {
     if (!slug || !isReady) return null;
@@ -299,6 +339,32 @@ export function EffortDetailPage() {
     });
   }, [effort]);
 
+  const [document, setDocument] = useState(() => effortToDocument(draftEffort));
+
+  // Sync document when draftEffort changes (entering edit mode, clone, etc.)
+  useEffect(() => {
+    if (isEditing) {
+      setDocument(effortToDocument(draftEffort));
+    }
+  }, [isEditing, draftEffort]);
+
+  const handleSaveFromDocument = useCallback(() => {
+    const { effort, errors } = documentToEffort(document, draftEffort);
+    if (errors.length > 0) {
+      toast({
+        title: 'Invalid YAML',
+        description: errors.join('\n'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Normalize slug
+    effort.slug = effort.slug.trim().toLowerCase().replace(/\s+/g, '-');
+    effort.label = effort.label.trim();
+    effort.updatedAt = new Date().toISOString();
+    handleSave(effort);
+  }, [document, draftEffort, handleSave]);
+
   const handleCancel = useCallback(() => {
     setIsEditing(false);
     setCloneBase(null);
@@ -392,13 +458,30 @@ export function EffortDetailPage() {
       {/* Content */}
       <div className="flex-1 overflow-auto px-6 lg:px-10 py-6">
         {isEditing ? (
-          <div className="max-w-2xl">
-            <EffortEditorForm
-              effort={draftEffort}
-              onSave={handleSave}
-              onDelete={isUser && !isNew ? handleDelete : undefined}
-              onCancel={handleCancel}
+          <div className="max-w-2xl space-y-4">
+            <NoteEditor
+              value={document}
+              onChange={setDocument}
+              theme={actualTheme}
+              showLineNumbers={true}
+              enablePreview={false}
+              enableLinting={false}
+              mode="edit"
+              className="border rounded-md min-h-[320px]"
             />
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Button onClick={handleSaveFromDocument} disabled={!document.trim()}>
+                Save
+              </Button>
+              <Button variant="outline" onClick={handleCancel}>
+                Cancel
+              </Button>
+              {isUser && !isNew && (
+                <Button variant="destructive" onClick={handleDelete}>
+                  Delete
+                </Button>
+              )}
+            </div>
           </div>
         ) : effectiveEffort && activeTab === 'resolved' && resolved ? (
           <EffortResolvedView resolved={resolved} effort={effectiveEffort} navigate={navigate} />
@@ -453,6 +536,23 @@ export function EffortDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Notes / Description card */}
+            {effectiveEffort.body && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="size-4" />
+                    Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm whitespace-pre-wrap text-foreground">
+                    {effectiveEffort.body}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Derivation card */}
             {effectiveEffort.derivation && (
@@ -513,6 +613,9 @@ export function EffortDetailPage() {
                 <p>Updated: {new Date(effectiveEffort.updatedAt).toLocaleString()}</p>
               )}
             </div>
+
+            {/* Analytics placeholder */}
+            <AnalyticsPlaceholder />
           </div>
         ) : null}
       </div>

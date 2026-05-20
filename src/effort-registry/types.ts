@@ -58,6 +58,8 @@ export interface IEffort {
   createdAt?: string;
   /** ISO timestamp */
   updatedAt?: string;
+  /** Free-form markdown description / notes */
+  body?: string;
 }
 
 // ---------------------------------------------------------------------------
