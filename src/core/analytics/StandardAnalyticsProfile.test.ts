@@ -23,7 +23,7 @@ describe('StandardAnalyticsProfile', () => {
       const result = profile.build(context);
 
       expect(result.realtime).toHaveLength(2);
-      expect(result.summary).toHaveLength(5);
+      expect(result.summary).toHaveLength(6);
     });
   });
 
@@ -147,6 +147,26 @@ describe('StandardAnalyticsProfile', () => {
       const ids = result.summary.map(p => p.id);
       expect(ids).not.toContain('met-minute-projection');
     });
+
+    it('should include TISProcessor when Action is present', () => {
+      const profile = new StandardAnalyticsProfile();
+      const context = createContext('wod', [MetricType.Action]);
+
+      const result = profile.build(context);
+
+      const ids = result.summary.map(p => p.id);
+      expect(ids).toContain('tis-projection');
+    });
+
+    it('should exclude TISProcessor when Action is absent', () => {
+      const profile = new StandardAnalyticsProfile();
+      const context = createContext('wod', [MetricType.Elapsed]);
+
+      const result = profile.build(context);
+
+      const ids = result.summary.map(p => p.id);
+      expect(ids).not.toContain('tis-projection');
+    });
   });
 
   describe('build() dialect filtering', () => {
@@ -190,6 +210,30 @@ describe('StandardAnalyticsProfile', () => {
     });
   });
 
+  describe('build() userProfile vo2max passthrough', () => {
+    it('should pass vo2max to TISProcessor when provided in context', () => {
+      const profile = new StandardAnalyticsProfile();
+      const context: AnalyticsProfileContext = {
+        dialect: 'wod',
+        scriptMetricTypes: new Set([MetricType.Action]),
+        userProfile: { vo2max: 49.0 },
+      };
+
+      const result = profile.build(context);
+      const tis = result.summary.find(p => p.id === 'tis-projection');
+      expect(tis).toBeDefined();
+    });
+
+    it('should create TISProcessor without vo2max when userProfile is absent', () => {
+      const profile = new StandardAnalyticsProfile();
+      const context = createContext('wod', [MetricType.Action]);
+
+      const result = profile.build(context);
+      const tis = result.summary.find(p => p.id === 'tis-projection');
+      expect(tis).toBeDefined();
+    });
+  });
+
   describe('build() combined filtering', () => {
     it('should return only applicable processors for a strength workout', () => {
       const profile = new StandardAnalyticsProfile();
@@ -221,6 +265,7 @@ describe('StandardAnalyticsProfile', () => {
         'distance-projection',
         'met-minute-projection',
         'session-load-projection',
+        'tis-projection',
       ]);
     });
   });

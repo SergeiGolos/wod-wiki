@@ -33,6 +33,7 @@ export type MetricOrigin =
   | 'hinted'
   | 'tracked'
   | 'analyzed'
+  | 'analyzed-estimated'
   | 'execution';
 
 export interface IMetric {
@@ -136,4 +137,19 @@ export enum MetricType {
   Intensity = 'intensity',
   Load = 'load',
   Work = 'work',
+
+  /** Per-set Reps in Reserve (real-time, strength) */
+  RIR = 'rir',
+
+  /** Post-session subjective effort rating (0–10) */
+  SessionRPE = 'session-rpe',
+
+  /** Session RPE × total minutes */
+  SessionLoad = 'session-load',
+
+  /** Normalized MET ((Activity METs ÷ METmax) × 100) */
+  METScore = 'met-score',
+
+  /** Training Intensity Score (composite) */
+  TIS = 'tis',
 }

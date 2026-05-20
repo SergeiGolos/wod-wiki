@@ -9,6 +9,15 @@ import type { ISummaryProcessor } from './ISummaryProcessor';
 export interface AnalyticsProfileContext {
   dialect: WodDialect;
   scriptMetricTypes: ReadonlySet<MetricType>;
+
+  /**
+   * Optional user physiological profile. Used by processors that personalize
+   * output (e.g. TISProcessor uses vo2max to compute METmax).
+   */
+  userProfile?: {
+    /** VO2max in mL/kg/min — for personalized MET-Score normalization */
+    vo2max?: number;
+  };
 }
 
 /**

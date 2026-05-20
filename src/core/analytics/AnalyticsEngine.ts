@@ -91,7 +91,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           type: MetricType.Label,
           image: p.name,
           value: p.name,
-          origin: 'analyzed',
+          origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         },
         {
@@ -99,7 +99,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           image: `${p.value} ${p.unit}`,
           value: p.value,
           unit: p.unit,
-          origin: 'analyzed',
+          origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         }
       );

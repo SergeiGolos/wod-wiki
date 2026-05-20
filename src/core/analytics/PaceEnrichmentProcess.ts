@@ -1,4 +1,4 @@
-import { IAnalyticsStage } from './IAnalyticsStage';
+import { IRealtimeProcessor } from './IRealtimeProcessor';
 import { IOutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 
@@ -13,11 +13,11 @@ import { MetricType } from '../models/Metric';
  *
  * Stateless; every computation is local to the segment.
  */
-export class PaceEnrichmentProcess implements IAnalyticsStage {
+export class PaceEnrichmentProcess implements IRealtimeProcessor {
     public readonly id = 'pace-enrichment';
     public readonly dialects = ['wod', 'log'] as const;
 
-    enrich(output: IOutputStatement): IOutputStatement {
+    process(output: IOutputStatement): IOutputStatement {
         if (output.outputType !== 'segment' || !output.isLeaf) return output;
 
         const elapsedMs = output.getMetric(MetricType.Elapsed)?.value as number ?? 0;

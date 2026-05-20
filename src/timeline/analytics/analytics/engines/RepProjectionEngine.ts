@@ -1,4 +1,4 @@
-import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { ISummaryProcessor } from '../../../../core/analytics/ISummaryProcessor';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
@@ -11,13 +11,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Implements calculateFromWorkout so it fires on every call to
  * AnalysisService.runWorkoutProjections() with all metrics so far.
  */
-export class RepProjectionEngine implements IAnalyticsStage {
+export class RepProjectionEngine implements ISummaryProcessor {
   public readonly id = 'rep-projection';
   public readonly name = 'RepProjectionEngine';
   public readonly dialects = ['wod', 'log', 'plan'] as const;
   public readonly requiredMetrics = [MetricType.Rep] as const;
 
-  project(outputs: IOutputStatement[]): ProjectionResult[] {
+  summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));
   }
 

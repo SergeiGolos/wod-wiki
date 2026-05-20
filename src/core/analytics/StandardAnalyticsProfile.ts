@@ -9,6 +9,7 @@ import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/eng
 import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
 import { SessionLoadProjectionEngine } from '../../timeline/analytics/analytics/engines/SessionLoadProjectionEngine';
 import { MetMinuteProjectionEngine } from '../../timeline/analytics/analytics/engines/MetMinuteProjectionEngine';
+import { TISProcessor } from '../../timeline/analytics/analytics/engines/TISProcessor';
 
 /**
  * Standard built-in analytics profile.
@@ -34,9 +35,13 @@ export class StandardAnalyticsProfile implements IAnalyticsProfile {
     realtime: IRealtimeProcessor[];
     summary: ISummaryProcessor[];
   } {
+    const summary = [
+      ...this.allSummary,
+      new TISProcessor(context.userProfile?.vo2max),
+    ];
     return {
       realtime: this.allRealtime.filter(p => this.isApplicable(p, context)),
-      summary: this.allSummary.filter(p => this.isApplicable(p, context)),
+      summary: summary.filter(p => this.isApplicable(p, context)),
     };
   }
 
