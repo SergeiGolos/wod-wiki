@@ -13,16 +13,137 @@ import {
   DocumentDuplicateIcon,
   PencilIcon,
 } from '@heroicons/react/20/solid';
-import { Dumbbell, Flame, Activity, Tag } from 'lucide-react';
+import { Dumbbell, Flame, Activity, Tag, Eye, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EffortEditorForm } from '../components/efforts/EffortEditorForm';
 import { useEffortRegistry } from '../components/efforts/EffortRegistryContext';
 import { EffortResolver } from '@/effort-registry';
-import type { IEffort } from '@/effort-registry';
-import { effortsPath, effortPath } from '../lib/routes';
+import type { IEffort, ResolvedEffort } from '@/effort-registry';
+import { effortsPath, effortPath, parseEffortRouteModifiers, parseEffortRouteOptions } from '../lib/routes';
 import { toast } from '@/hooks/use-toast';
+
+function EffortResolvedView({
+  resolved,
+  effort,
+  navigate,
+}: {
+  resolved: ResolvedEffort;
+  effort: IEffort;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  return (
+    <div className="max-w-2xl space-y-6">
+      {/* Effective values card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Effective Resolution</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Effective MET</p>
+              <div className="flex items-baseline gap-2 mt-1">
+                <p className="text-2xl font-bold">{resolved.met.toFixed(1)}</p>
+                {Math.abs(resolved.met - (effort.baseAttributes.met || 0)) > 0.01 && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400">
+                    (base: {effort.baseAttributes.met.toFixed(1)})
+                  </span>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Discipline Factor</p>
+              <p className="text-2xl font-bold mt-1">{resolved.disciplineFactor.toFixed(2)}×</p>
+            </div>
+          </div>
+          <div className="border-t pt-3">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Resolved From</p>
+            <div className="flex gap-2 items-center">
+              <Badge variant={resolved.resolvedFrom === 'user' ? 'default' : 'secondary'}>
+                {resolved.resolvedFrom}
+              </Badge>
+              {resolved.isEstimated && <Badge variant="outline">Estimated</Badge>}
+            </div>
+          </div>
+          {resolved.discipline && (
+            <div className="border-t pt-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Discipline</p>
+              <p className="text-sm font-medium capitalize">{resolved.discipline}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Applied modifiers card */}
+      {Object.keys(resolved.modifiers).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Applied Modifiers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {Object.entries(resolved.modifiers).map(([key, value]) => (
+                <div key={`${key}-${value}`} className="flex items-center justify-between text-sm">
+                  <span className="font-mono text-muted-foreground">{key}</span>
+                  <span className="font-semibold">{value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Parent chain card */}
+      {resolved.definition.derivation?.parentSlug && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Parent Chain</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <button
+                onClick={() => navigate(effortPath(resolved.definition.derivation!.parentSlug!))}
+                className="text-sm text-primary hover:underline font-mono"
+              >
+                {resolved.definition.derivation.parentSlug}
+              </button>
+              {resolved.definition.derivation.coefficients &&
+                Object.keys(resolved.definition.derivation.coefficients).length > 0 && (
+                  <div className="pl-4 border-l-2 border-muted space-y-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Coefficients</p>
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(resolved.definition.derivation.coefficients).map(([key, val]) => (
+                        <Badge key={key} variant="outline" className="text-xs">
+                          {key}: {val}×
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              {resolved.definition.derivation.hardOverrides &&
+                Object.keys(resolved.definition.derivation.hardOverrides).length > 0 && (
+                  <div className="pl-4 border-l-2 border-muted space-y-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Hard Overrides</p>
+                    <pre className="text-xs bg-muted rounded p-2 overflow-x-auto max-w-xs">
+                      {JSON.stringify(resolved.definition.derivation.hardOverrides, null, 2)}
+                    </pre>
+                  </div>
+                )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Metadata */}
+      <div className="text-xs text-muted-foreground space-y-1 pb-4">
+        <p>Effort: {resolved.slug}</p>
+        <p>Modifiers: {Object.keys(resolved.modifiers).length}</p>
+      </div>
+    </div>
+  );
+}
 
 function OriginBadge({ source }: { source: IEffort['registrySource'] }) {
   switch (source) {
@@ -75,9 +196,11 @@ export function EffortDetailPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get('mode');
+  const tabParam = searchParams.get('tab') ?? (searchParams.size > 0 ? 'resolved' : 'definition');
   const { registry, isReady, refresh } = useEffortRegistry();
   const [isEditing, setIsEditing] = useState(modeParam === 'create');
   const [cloneBase, setCloneBase] = useState<IEffort | null>(null);
+  const [activeTab, setActiveTab] = useState<'definition' | 'resolved'>(tabParam as 'definition' | 'resolved');
 
   const effort = useMemo(() => {
     if (!slug || !isReady) return null;
@@ -86,6 +209,14 @@ export function EffortDetailPage() {
   }, [slug, isReady, registry]);
 
   const resolver = useMemo(() => new EffortResolver(registry), [registry]);
+
+  const modifiers = useMemo(() => parseEffortRouteModifiers(searchParams), [searchParams]);
+  const routeOptions = useMemo(() => parseEffortRouteOptions(searchParams), [searchParams]);
+
+  const resolved = useMemo((): ResolvedEffort | null => {
+    if (!effort || !isReady) return null;
+    return resolver.resolveEffort(effort.slug, { modifiers });
+  }, [effort, isReady, resolver, modifiers]);
 
   // If ?mode=create and no slug, start with a blank template
   const draftEffort = useMemo((): IEffort => {
@@ -230,6 +361,34 @@ export function EffortDetailPage() {
         )}
       </div>
 
+      {/* Tabs for resolved vs definition view */}
+      {!isEditing && effectiveEffort && Object.keys(modifiers).length > 0 && (
+        <div className="flex gap-1 px-6 lg:px-10 py-2 border-b bg-muted/50">
+          <button
+            onClick={() => setActiveTab('resolved')}
+            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
+              activeTab === 'resolved'
+                ? 'bg-background border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Eye className="size-4" />
+            Resolved
+          </button>
+          <button
+            onClick={() => setActiveTab('definition')}
+            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
+              activeTab === 'definition'
+                ? 'bg-background border border-border'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <FileText className="size-4" />
+            Definition
+          </button>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-auto px-6 lg:px-10 py-6">
         {isEditing ? (
@@ -241,6 +400,8 @@ export function EffortDetailPage() {
               onCancel={handleCancel}
             />
           </div>
+        ) : effectiveEffort && activeTab === 'resolved' && resolved ? (
+          <EffortResolvedView resolved={resolved} effort={effectiveEffort} navigate={navigate} />
         ) : effectiveEffort ? (
           <div className="max-w-2xl space-y-6">
             {/* Attributes card */}

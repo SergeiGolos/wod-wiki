@@ -1,4 +1,11 @@
-import type { IEffort, IEffortResolver, EffortResolverOptions } from '@/effort-registry/types';
+import type {
+  IEffort,
+  IEffortResolver,
+  EffortResolverOptions,
+  EffortResolutionOptions,
+  ResolvedEffort,
+  EffortResolvedFrom,
+} from '@/effort-registry/types';
 import { DEFAULT_RESOLVER_OPTIONS } from '@/effort-registry/types';
 
 /**
@@ -97,8 +104,106 @@ export class MockEffortResolver implements IEffortResolver {
     return best?.effort ?? this.createSynthetic(label);
   }
 
+  resolveEffort(label: string, options?: EffortResolutionOptions): ResolvedEffort {
+    const effort = this.resolveBySlug(label)
+      ?? this.resolveByAlias(label)
+      ?? this.resolveFuzzy(label, { threshold: options?.threshold });
+    return this.resolveDefinition(effort, options);
+  }
+
+  resolveDefinition(effort: IEffort, options?: EffortResolutionOptions): ResolvedEffort {
+    return this.materialize(effort, options?.modifiers ?? {}, new Set<string>());
+  }
+
   list(): readonly IEffort[] {
     return Array.from(this.efforts.values());
+  }
+
+  private materialize(
+    definition: IEffort,
+    modifiers: Record<string, string>,
+    seen: Set<string>,
+  ): ResolvedEffort {
+    if (seen.has(definition.slug)) {
+      throw new Error(`MockEffortResolver: circular effort derivation detected at "${definition.slug}"`);
+    }
+    seen.add(definition.slug);
+
+    const parent = definition.derivation?.parentSlug
+      ? this.efforts.get(definition.derivation.parentSlug) ?? null
+      : null;
+    const parentResolved = parent ? this.materialize(parent, modifiers, seen) : null;
+
+    let met = parentResolved?.met ?? definition.baseAttributes.met;
+    for (const [key, coefficient] of Object.entries(definition.derivation?.coefficients ?? {})) {
+      if (this.shouldApplyCoefficient(key, modifiers)) met *= coefficient;
+    }
+
+    const hardMet = definition.derivation?.hardOverrides?.met;
+    if (typeof hardMet === 'number' && Number.isFinite(hardMet)) met = hardMet;
+
+    const discipline = definition.baseAttributes.discipline ?? parentResolved?.discipline;
+    const disciplineFactor = this.resolveDisciplineFactor(definition, parentResolved);
+    const resolvedFrom: EffortResolvedFrom = definition.registrySource === 'user'
+      ? 'user'
+      : definition.registrySource === 'bundled'
+        ? 'bundled'
+        : 'default';
+
+    const effort: IEffort = {
+      ...definition,
+      baseAttributes: {
+        ...definition.baseAttributes,
+        met,
+        discipline,
+        disciplineFactor,
+        intensityTier: definition.baseAttributes.intensityTier ?? parentResolved?.intensityTier,
+      },
+    };
+
+    return {
+      effort,
+      definition,
+      slug: effort.slug,
+      label: effort.label,
+      met,
+      baseAttributes: effort.baseAttributes,
+      discipline,
+      disciplineFactor,
+      intensityTier: effort.baseAttributes.intensityTier,
+      modifiers: { ...modifiers },
+      registrySource: effort.registrySource,
+      resolvedFrom,
+      isEstimated: effort.registrySource === 'synthetic-unresolved',
+    };
+  }
+
+  private shouldApplyCoefficient(key: string, modifiers: Record<string, string>): boolean {
+    if (key === 'met' || key === '*') return true;
+    for (const [modifierKey, modifierValue] of Object.entries(modifiers)) {
+      if (key === modifierKey || key === modifierValue || key === `${modifierKey}:${modifierValue}` || key === `${modifierKey}=${modifierValue}`) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private resolveDisciplineFactor(definition: IEffort, parent?: ResolvedEffort | null): number {
+    const hardOverride = definition.derivation?.hardOverrides?.disciplineFactor;
+    if (typeof hardOverride === 'number' && Number.isFinite(hardOverride)) return hardOverride;
+    const explicit = definition.baseAttributes.disciplineFactor;
+    if (typeof explicit === 'number' && Number.isFinite(explicit)) return explicit;
+    const discipline = definition.baseAttributes.discipline ?? parent?.discipline;
+    if (!discipline && parent) return parent.disciplineFactor;
+    switch (discipline?.toLowerCase()) {
+      case 'strength':
+      case 'resistance':
+        return 1.2;
+      case 'yoga':
+        return 0.9;
+      default:
+        return 1.0;
+    }
   }
 
   /** Create a synthetic effort for unmatched labels */

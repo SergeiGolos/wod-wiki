@@ -2,6 +2,7 @@ import { IRuntimeAction } from '../../contracts/IRuntimeAction';
 import { BlockLifecycleOptions } from '../../contracts/IRuntimeBlock';
 import { IScriptRuntime } from '../../contracts/IScriptRuntime';
 import { PushBlockAction } from './PushBlockAction';
+import { applyEffortEnrichment } from '../../compiler/EffortEnrichmentPass';
 
 /**
  * Action that compiles a set of statement IDs and pushes the resulting block.
@@ -32,6 +33,13 @@ export class CompileAndPushBlockAction implements IRuntimeAction {
 
             if (!compiledBlock) {
                 return [];
+            }
+
+            // Apply compile-time effort enrichment if analytics context is available
+            if (runtime.analyticsContext?.effortResolver) {
+                applyEffortEnrichment(compiledBlock, {
+                    resolver: runtime.analyticsContext.effortResolver,
+                });
             }
 
             // Delegate to PushBlockAction

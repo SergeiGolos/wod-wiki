@@ -59,11 +59,14 @@ export function levenshteinDistance(a: string, b: string): number {
  * Normalise a string for fuzzy comparison:
  * - lower-case
  * - trim whitespace
+ * - strip punctuation
  * - collapse multiple spaces
  */
 export function normalizeForFuzzy(input: string): string {
   return input
     .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/[-_]+/g, ' ')
     .trim()
     .replace(/\s+/g, ' ');
 }

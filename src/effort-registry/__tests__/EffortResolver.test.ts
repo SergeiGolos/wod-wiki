@@ -106,6 +106,79 @@ describe('EffortResolver', () => {
     });
   });
 
+  describe('resolveEffort', () => {
+    it('returns an effective resolved effort instance', () => {
+      const result = resolver.resolveEffort('row');
+      expect(result.slug).toBe('rowing');
+      expect(result.met).toBe(7.0);
+      expect(result.disciplineFactor).toBe(1.0);
+      expect(result.resolvedFrom).toBe('bundled');
+      expect(result.effort.baseAttributes.met).toBe(7.0);
+    });
+
+    it('applies derivation coefficients through the resolver seam', () => {
+      registry.seed([fixtureUserCustom]);
+      const result = resolver.resolveEffort('my-custom-hiit');
+      expect(result.slug).toBe('my-custom-hiit');
+      expect(result.met).toBe(12.0); // parent burpee 10.0 × met coefficient 1.2
+      expect(result.discipline).toBe('strength');
+      expect(result.disciplineFactor).toBe(1.2);
+    });
+
+    it('applies modifier-specific coefficients', () => {
+      registry.seed([
+        {
+          id: 'user-kneeling-push-up',
+          slug: 'kneeling-push-up',
+          label: 'Kneeling Push-Up',
+          aliases: ['kneeling pushup'],
+          baseAttributes: { met: 4.0, discipline: 'gymnastics' },
+          registrySource: 'user',
+          derivation: {
+            parentSlug: 'push-up',
+            coefficients: { 'position=kneeling': 0.75 },
+          },
+        },
+        {
+          id: 'fixture-push-up',
+          slug: 'push-up',
+          label: 'Push-Up',
+          aliases: ['pushup'],
+          baseAttributes: { met: 4.0, discipline: 'gymnastics' },
+          registrySource: 'bundled',
+        },
+      ]);
+
+      const result = resolver.resolveEffort('kneeling-push-up', {
+        modifiers: { position: 'kneeling' },
+      });
+      expect(result.met).toBe(3.0);
+      expect(result.modifiers).toEqual({ position: 'kneeling' });
+    });
+
+    it('hard override wins over parent and coefficients', () => {
+      registry.seed([
+        {
+          id: 'user-override-met',
+          slug: 'override-burpee',
+          label: 'Override Burpee',
+          aliases: [],
+          baseAttributes: { met: 10.0, discipline: 'bodyweight' },
+          registrySource: 'user',
+          derivation: {
+            parentSlug: 'burpee',
+            coefficients: { met: 2.0 },
+            hardOverrides: { met: 7.5, disciplineFactor: 1.2 },
+          },
+        },
+      ]);
+
+      const result = resolver.resolveEffort('override-burpee');
+      expect(result.met).toBe(7.5);
+      expect(result.disciplineFactor).toBe(1.2);
+    });
+  });
+
   describe('list', () => {
     it('returns all efforts from underlying registry', () => {
       expect(resolver.list()).toHaveLength(commonFixtureSet.length);

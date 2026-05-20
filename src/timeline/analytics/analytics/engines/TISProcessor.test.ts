@@ -48,7 +48,8 @@ describe('TISProcessor', () => {
       expect(results).toHaveLength(1);
 
       const tis = results[0];
-      expect(tis.origin).toBe('analyzed');
+      // VO2max is known, but MET is still estimated because no resolved effort-data is present.
+      expect(tis.origin).toBe('analyzed-estimated');
       expect(tis.metadata?.isEstimated).toBe(false);
       expect(tis.metadata?.metMax).toBe(vo2max / TISProcessor.METMAX_DIVISOR);
       expect(tis.metadata?.vo2max).toBe(vo2max);

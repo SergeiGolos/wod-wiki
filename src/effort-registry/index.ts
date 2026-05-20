@@ -25,6 +25,9 @@ export type {
   EffortBaseAttributes,
   EffortDerivation,
   EffortResolverOptions,
+  EffortResolutionOptions,
+  EffortResolvedFrom,
+  ResolvedEffort,
 } from './types';
 export { DEFAULT_RESOLVER_OPTIONS } from './types';
 

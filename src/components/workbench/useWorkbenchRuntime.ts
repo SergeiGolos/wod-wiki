@@ -72,6 +72,9 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
                 effortResolver: new EffortResolver(registry),
             };
 
+            // Make analytics context available to runtime for compile-time enrichment
+            runtime.analyticsContext = analyticsContext;
+
             const context: AnalyticsProfileContext = { dialect, scriptMetricTypes, analyticsContext };
 
             const profile = new StandardAnalyticsProfile();

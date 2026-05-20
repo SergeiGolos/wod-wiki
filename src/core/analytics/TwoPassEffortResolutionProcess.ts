@@ -1,7 +1,7 @@
 import { IRealtimeProcessor } from './IRealtimeProcessor';
 import { IOutputStatement } from '../models/OutputStatement';
 import { MetricType, MetricOrigin } from '../models/Metric';
-import type { IEffortResolver, IEffort } from '@/effort-registry/types';
+import type { IEffortResolver, IEffort, ResolvedEffort } from '@/effort-registry/types';
 import { EFFORT_DATA_METRIC_TYPE } from './effortResolution';
 
 /**
@@ -49,12 +49,12 @@ export class TwoPassEffortResolutionProcess implements IRealtimeProcessor {
 
     if (!label) return output;
 
-    const { effort, finalOrigin } = this.resolve(label, passOrigin);
+    const { resolved, finalOrigin } = this.resolve(label, passOrigin);
 
     const effortDataMetric = {
       type: EFFORT_DATA_METRIC_TYPE,
-      image: effort.label,
-      value: effort,
+      image: resolved.label,
+      value: resolved,
       origin: finalOrigin,
       timestamp: new Date(),
     };
@@ -84,24 +84,23 @@ export class TwoPassEffortResolutionProcess implements IRealtimeProcessor {
   private resolve(
     label: string,
     passOrigin: MetricOrigin,
-  ): { effort: IEffort; finalOrigin: MetricOrigin } {
+  ): { resolved: ResolvedEffort; finalOrigin: MetricOrigin } {
     let effort: IEffort | null;
 
     if (passOrigin === 'compiler') {
       // Pass 1: compiler-resolved — try exact slug/alias first
       effort = this.resolver.resolveBySlug(label) ?? this.resolver.resolveByAlias(label);
       if (effort) {
-        return { effort, finalOrigin: 'compiler' };
+        return { resolved: this.resolver.resolveDefinition(effort), finalOrigin: 'compiler' };
       }
       // Compiler claimed it but we can't find it — fall through to fuzzy
     }
 
     // Pass 2: fuzzy recovery (always returns an effort, never null)
-    effort = this.resolver.resolveFuzzy(label);
+    const resolved = this.resolver.resolveEffort(label);
 
-    const finalOrigin: MetricOrigin =
-      effort.registrySource === 'synthetic-unresolved' ? 'analyzed-estimated' : 'analyzed';
+    const finalOrigin: MetricOrigin = resolved.isEstimated ? 'analyzed-estimated' : 'analyzed';
 
-    return { effort, finalOrigin };
+    return { resolved, finalOrigin };
   }
 }

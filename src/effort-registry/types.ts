@@ -18,6 +18,8 @@ export interface EffortBaseAttributes {
   met: number;
   /** Broad discipline category */
   discipline?: string;
+  /** TIS discipline multiplier. When omitted, resolver derives it from discipline. */
+  disciplineFactor?: number;
   /** Qualitative intensity bucket */
   intensityTier?: IntensityTier;
 }
@@ -80,6 +82,38 @@ export interface IEffortRegistry {
 // Resolver interface (analytics boundary)
 // ---------------------------------------------------------------------------
 
+export interface EffortResolutionOptions {
+  /** Attribute metrics from /effort/:slug query params or logged execution metrics. */
+  modifiers?: Record<string, string>;
+  /** Fuzzy-match threshold override. */
+  threshold?: number;
+}
+
+export type EffortResolvedFrom = 'user' | 'bundled' | 'default';
+
+/**
+ * Effective effort instance after alias lookup, derivation, modifiers,
+ * hard overrides, fallback policy, and discipline-factor calculation.
+ */
+export interface ResolvedEffort {
+  /** Effective effort copy; baseAttributes reflect the resolved values. */
+  effort: IEffort;
+  /** Original registry definition before effective attributes were materialized. */
+  definition: IEffort;
+  slug: string;
+  label: string;
+  met: number;
+  /** Effective attributes mirrored for legacy metric consumers. */
+  baseAttributes: EffortBaseAttributes;
+  discipline?: string;
+  disciplineFactor: number;
+  intensityTier?: IntensityTier;
+  modifiers: Record<string, string>;
+  registrySource: EffortRegistrySource;
+  resolvedFrom: EffortResolvedFrom;
+  isEstimated: boolean;
+}
+
 export interface IEffortResolver {
   /** Exact slug lookup */
   resolveBySlug(slug: string): IEffort | null;
@@ -91,6 +125,10 @@ export interface IEffortResolver {
    * (analytics continuity — never returns null).
    */
   resolveFuzzy(label: string, options?: { threshold?: number }): IEffort;
+  /** Resolve a label/slug into an effective effort instance. */
+  resolveEffort(label: string, options?: EffortResolutionOptions): ResolvedEffort;
+  /** Materialize an already-found effort definition into an effective instance. */
+  resolveDefinition(effort: IEffort, options?: EffortResolutionOptions): ResolvedEffort;
   /** All registered efforts (bundled + user) */
   list(): readonly IEffort[];
 }
