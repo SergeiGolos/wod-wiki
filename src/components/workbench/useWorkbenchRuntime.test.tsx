@@ -4,6 +4,8 @@ import { act, renderHook } from '@testing-library/react';
 
 import { RuntimeLifecycleContext } from '../layout/RuntimeLifecycleContext';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
+import { MetricContainer } from '../../core/models/MetricContainer';
+import { MetricType } from '../../core/models/Metric';
 
 mock.module('@/hooks/useBrowserServices', () => ({
     audioService: {
@@ -72,5 +74,71 @@ describe('useWorkbenchRuntime', () => {
         } finally {
             console.warn = originalWarn;
         }
+    });
+
+    it('assembles analytics engine via StandardAnalyticsProfile based on selected block metrics', async () => {
+        const { useWorkbenchRuntime } = await import('./useWorkbenchRuntime');
+        const setAnalyticsEngine = mock((_engine: unknown) => { });
+        const mockRuntime = {
+            tracker: { recordMetric: mock(() => { }) },
+            setAnalyticsEngine,
+            handle: mock(() => { }),
+            finalizeAnalytics: mock(() => []),
+            getOutputStatements: mock(() => []),
+            subscribeToStack: mock(() => mock(() => { })),
+            eventBus: { register: mock(() => mock(() => { })), dispatch: mock(() => { }), unregisterById: mock(() => { }) }
+        };
+
+        const lifecycle = {
+            runtime: mockRuntime as any,
+            isInitializing: false,
+            error: null,
+            initializeRuntime: mock(() => { }),
+            disposeRuntime: mock(() => { })
+        };
+
+        const completeWorkout = mock((_results: WorkoutResults) => { });
+        const startWorkout = mock((_block: WodBlock) => { });
+        const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+            <RuntimeLifecycleContext.Provider value={lifecycle}>
+                {children}
+            </RuntimeLifecycleContext.Provider>
+        );
+
+        const selectedBlock: WodBlock = {
+            id: 'test-block',
+            dialect: 'wod',
+            startLine: 0,
+            endLine: 2,
+            content: '10 Pushups',
+            statements: [
+                {
+                    id: 1,
+                    metrics: MetricContainer.from([
+                        { type: MetricType.Rep, image: '10', value: '10' },
+                        { type: MetricType.Resistance, image: 'BW', value: 'BW' }
+                    ], 1)
+                } as any
+            ],
+            state: 'parsed',
+            widgetIds: {},
+            version: 1,
+            createdAt: Date.now()
+        };
+
+        renderHook(
+            () => useWorkbenchRuntime('track', selectedBlock, completeWorkout, startWorkout),
+            { wrapper }
+        );
+
+        expect(setAnalyticsEngine).toHaveBeenCalledTimes(1);
+        const engine = setAnalyticsEngine.mock.calls[0][0] as any;
+        expect(engine).toBeDefined();
+        // PowerEnrichmentProcess requires Rep + Resistance — both present in block
+        const realtimeIds = engine.realtimeProcessors.map((p: any) => p.id);
+        expect(realtimeIds).toContain('power-enrichment');
+        // VolumeProjectionEngine requires Rep + Resistance
+        const summaryIds = engine.summaryProcessors.map((p: any) => p.id);
+        expect(summaryIds).toContain('volume-projection');
     });
 });

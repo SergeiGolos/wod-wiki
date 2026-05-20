@@ -8,14 +8,9 @@ import type { WorkoutEvent } from '@/hooks/useBrowserServices';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
 import { toStoredOutputStatement } from '../Editor/types';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
-import { PaceEnrichmentProcess } from '../../core/analytics/PaceEnrichmentProcess';
-import { PowerEnrichmentProcess } from '../../core/analytics/PowerEnrichmentProcess';
-
-import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
-import { RepProjectionEngine } from '../../timeline/analytics/analytics/engines/RepProjectionEngine';
-import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/engines/DistanceProjectionEngine';
-import { SessionLoadProjectionEngine } from '../../timeline/analytics/analytics/engines/SessionLoadProjectionEngine';
-import { MetMinuteProjectionEngine } from '../../timeline/analytics/analytics/engines/MetMinuteProjectionEngine';
+import { StandardAnalyticsProfile } from '../../core/analytics/StandardAnalyticsProfile';
+import type { AnalyticsProfileContext } from '../../core/analytics/IAnalyticsProfile';
+import { MetricType } from '../../core/models/Metric';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -54,21 +49,35 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             const action = new RegisterEventHandlerAction(audioHandler, 'global');
             action.do(runtime);
 
-            // Setup Analytics Engine — unified pipeline via addStage()
+            // Setup Analytics Engine — profile-based assembly
             const engine = new AnalyticsEngine();
-            engine.addStage(new PaceEnrichmentProcess());        // reps/distance + elapsed → pace (multiple units)
-            engine.addStage(new PowerEnrichmentProcess());       // reps + resistance + elapsed → power
+
+            // Build profile context from selected block
+            const dialect = _selectedBlock?.dialect || 'wod';
+            const scriptMetricTypes = new Set<MetricType>();
+            if (_selectedBlock?.statements) {
+                for (const stmt of _selectedBlock.statements) {
+                    for (const metric of stmt.metrics) {
+                        scriptMetricTypes.add(metric.type);
+                    }
+                }
+            }
+            const context: AnalyticsProfileContext = { dialect, scriptMetricTypes };
+
+            const profile = new StandardAnalyticsProfile();
+            const { realtime, summary } = profile.build(context);
+
+            for (const processor of realtime) {
+                engine.addRealtimeProcessor(processor);
+            }
+            for (const processor of summary) {
+                engine.addSummaryProcessor(processor);
+            }
 
             // Wire tracker for live per-segment metric card updates
             if (runtime.tracker) {
                 engine.setTracker(runtime.tracker);
             }
-
-            engine.addStage(new RepProjectionEngine());
-            engine.addStage(new DistanceProjectionEngine());
-            engine.addStage(new VolumeProjectionEngine());
-            engine.addStage(new SessionLoadProjectionEngine());
-            engine.addStage(new MetMinuteProjectionEngine());
 
             runtime.setAnalyticsEngine(engine);
 
