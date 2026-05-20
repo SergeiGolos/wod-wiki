@@ -1,5 +1,7 @@
 import { IAnalyticsEngine } from '../contracts/IAnalyticsEngine';
 import { IAnalyticsStage } from './IAnalyticsStage';
+import type { IRealtimeProcessor } from './IRealtimeProcessor';
+import type { ISummaryProcessor } from './ISummaryProcessor';
 import { IOutputStatement, OutputStatement } from '../models/OutputStatement';
 import { MetricType } from '../models/Metric';
 import { MetricContainer } from '../models/MetricContainer';
@@ -7,7 +9,8 @@ import { IRuntimeStackTracker } from '../contracts/RuntimeStackTracker';
 import { ProjectionResult } from './ProjectionResult';
 
 export class AnalyticsEngine implements IAnalyticsEngine {
-  private stages: IAnalyticsStage[] = [];
+  private realtimeProcessors: IRealtimeProcessor[] = [];
+  private summaryProcessors: ISummaryProcessor[] = [];
   private outputHistory: IOutputStatement[] = [];
   private tracker?: IRuntimeStackTracker;
 
@@ -15,34 +18,60 @@ export class AnalyticsEngine implements IAnalyticsEngine {
     this.tracker = tracker;
   }
 
+  addRealtimeProcessor(processor: IRealtimeProcessor): void {
+    this.realtimeProcessors.push(processor);
+  }
+
+  addSummaryProcessor(processor: ISummaryProcessor): void {
+    this.summaryProcessors.push(processor);
+  }
+
+  /**
+   * @deprecated Use {@link addRealtimeProcessor} and {@link addSummaryProcessor}
+   *   instead. This shim routes legacy stages into the typed lists for backward
+   *   compatibility during migration.
+   */
   addStage(stage: IAnalyticsStage): void {
     if (!stage.enrich && !stage.project) {
       console.warn(`[AnalyticsEngine] Stage '${stage.id}' implements neither enrich nor project — skipping.`);
       return;
     }
-    this.stages.push(stage);
+
+    if (stage.enrich) {
+      const shim: IRealtimeProcessor = {
+        id: stage.id,
+        process: (output: IOutputStatement) => stage.enrich!(output),
+      };
+      this.addRealtimeProcessor(shim);
+    }
+
+    if (stage.project) {
+      const shim: ISummaryProcessor = {
+        id: stage.id,
+        summarize: (outputs: IOutputStatement[]) => stage.project!(outputs),
+      };
+      this.addSummaryProcessor(shim);
+    }
   }
 
   run(output: IOutputStatement): IOutputStatement {
-    // Phase 1: enrich — per-segment metric derivation
+    // Phase 1: realtime enrichment — per-segment metric derivation
     let current = output;
-    for (const stage of this.stages) {
-      if (stage.enrich) {
-        try {
-          current = stage.enrich(current);
-        } catch (err) {
-          console.error(`[AnalyticsEngine] enrich error in '${stage.id}':`, err);
-        }
+    for (const processor of this.realtimeProcessors) {
+      try {
+        current = processor.process(current);
+      } catch (err) {
+        console.error(`[AnalyticsEngine] realtime error in '${processor.id}':`, err);
       }
     }
 
-    // Accumulate segment outputs for projection
+    // Accumulate segment outputs for summary processors
     if (current.outputType === 'segment') {
       this.outputHistory.push(current);
 
-      // Phase 2: live projection update — runs after every new segment
+      // Phase 2: live summary update — runs after every new segment
       if (this.tracker?.recordMetric) {
-        const projections = this._runProjections();
+        const projections = this._runSummaries();
         for (const p of projections) {
           this.tracker.recordMetric('session-totals', p.name, p.value, p.unit);
         }
@@ -53,7 +82,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
   }
 
   finalize(): IOutputStatement[] {
-    const projections = this._runProjections();
+    const projections = this._runSummaries();
     const now = Date.now();
 
     const results: IOutputStatement[] = projections.map(p => {
@@ -62,7 +91,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           type: MetricType.Label,
           image: p.name,
           value: p.name,
-          origin: 'analyzed',
+          origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         },
         {
@@ -70,7 +99,7 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           image: `${p.value} ${p.unit}`,
           value: p.value,
           unit: p.unit,
-          origin: 'analyzed',
+          origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
         }
       );
@@ -86,16 +115,14 @@ export class AnalyticsEngine implements IAnalyticsEngine {
     return results;
   }
 
-  /** Run all project() stages over current output history. */
-  private _runProjections(): ProjectionResult[] {
+  /** Run all summary processors over current output history. */
+  private _runSummaries(): ProjectionResult[] {
     const results: ProjectionResult[] = [];
-    for (const stage of this.stages) {
-      if (stage.project) {
-        try {
-          results.push(...stage.project(this.outputHistory));
-        } catch (err) {
-          console.error(`[AnalyticsEngine] project error in '${stage.id}':`, err);
-        }
+    for (const processor of this.summaryProcessors) {
+      try {
+        results.push(...processor.summarize(this.outputHistory));
+      } catch (err) {
+        console.error(`[AnalyticsEngine] summary error in '${processor.id}':`, err);
       }
     }
     return results;

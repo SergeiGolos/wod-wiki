@@ -1,4 +1,4 @@
-import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { ISummaryProcessor } from '../../../../core/analytics/ISummaryProcessor';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
@@ -13,11 +13,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  *
  * Formula: ∑(METs × timeMs / 60 000) across all timed segments.
  */
-export class MetMinuteProjectionEngine implements IAnalyticsStage {
+export class MetMinuteProjectionEngine implements ISummaryProcessor {
   public readonly id = 'met-minute-projection';
   public readonly name = 'MetMinuteProjectionEngine';
+  public readonly dialects = ['wod', 'log'] as const;
+  public readonly requiredMetrics = [MetricType.Action] as const;
 
-  project(outputs: IOutputStatement[]): ProjectionResult[] {
+  summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));
   }
 

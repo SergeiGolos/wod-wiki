@@ -1,4 +1,4 @@
-import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { ISummaryProcessor } from '../../../../core/analytics/ISummaryProcessor';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
@@ -19,11 +19,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * // Result: Total Volume = 1000kg
  * ```
  */
-export class VolumeProjectionEngine implements IAnalyticsStage {
+export class VolumeProjectionEngine implements ISummaryProcessor {
   public readonly id = 'volume-projection';
   public readonly name = "VolumeProjectionEngine";
+  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly requiredMetrics = [MetricType.Rep, MetricType.Resistance] as const;
 
-  project(outputs: IOutputStatement[]): ProjectionResult[] {
+  summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     const allMetrics = extractMetrics(outputs);
     const workoutResults = this.calculateFromWorkout(allMetrics);
     const exerciseResults = this._runPerExercise(allMetrics);

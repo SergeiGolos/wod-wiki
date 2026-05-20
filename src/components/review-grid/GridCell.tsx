@@ -48,7 +48,7 @@ export const GridCell: React.FC<GridCellProps> = ({ cell, metricType, blockKey, 
       {indent > 0 && (
         <div
           className="flex-shrink-0 mr-1 border-l-2 border-muted h-4"
-          style={{ width: `${indent * 12}px`, marginLeft: '2px' }}
+          style={{ width: `${indent * 1.25}rem`, marginLeft: '2px' }}
         />
       )}
 

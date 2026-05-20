@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
+import { playgroundPath, ROUTE_PATTERNS } from '../lib/routes';
 import { decodeZip } from '../services/decodeZip';
 import { playgroundDB, PlaygroundDBService } from '../services/playgroundDB';
 import { formatPlaygroundTimestampId } from '@/lib/playgroundDisplay';
@@ -31,12 +32,12 @@ export function useZipProcessor() {
         });
         
         if (!cancelled) {
-          navigate(`/?id=${id}`, { replace: true });
+          navigate(playgroundPath(id), { replace: true });
         }
       } catch (err) {
         console.error('Failed to decode zip:', err);
         if (!cancelled) {
-          navigate('/', { replace: true });
+          navigate(ROUTE_PATTERNS.playgroundRoot, { replace: true });
         }
       }
     })();

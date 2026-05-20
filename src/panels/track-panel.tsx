@@ -12,6 +12,9 @@ import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel'
 import { TrackViewShell } from '@/components/workout/TrackViewShell';
 import type { SectionType } from '@/components/Editor/types/section';
 import type { WodBlock } from '@/components/Editor/types';
+import { useUserOverrides } from '@/components/review-grid/useUserOverrides';
+import { useCollectionMetrics } from '@/hooks/useCollectionMetrics';
+import { CollectionWizard } from '@/components/review/CollectionWizard';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;
@@ -85,6 +88,10 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   const { sectionId } = useParams<{ sectionId?: string }>();
   const isNotFound = sectionId === 'notfound';
 
+  const { overrides, setOverride } = useUserOverrides(true);
+  const { collectionItems } = useCollectionMetrics([], overrides, runtime?.script);
+  const showWizard = execution.status === 'idle' && collectionItems.length > 0;
+
   // Timer/Clock component
   const timerDisplay = (
     <TimerDisplay
@@ -101,6 +108,18 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       enableDisplayStack={!!runtime}
     />
   );
+
+  if (showWizard) {
+    return (
+      <CollectionWizard
+        items={collectionItems}
+        onSave={(item, val) => setOverride(item.blockKey, item.metricType, val)}
+        onSkip={() => {}}
+        onClose={onStart} // Closing starts the workout? Or just let them start.
+        mode="pre-run"
+      />
+    );
+  }
 
   const screenContent = runtime ? (
     <ScriptRuntimeProvider runtime={runtime}>

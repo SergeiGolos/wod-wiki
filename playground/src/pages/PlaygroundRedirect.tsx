@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { playgroundPath } from '../lib/routes'
 import { createPlaygroundPage } from '../services/createPlaygroundPage'
-import { DEFAULT_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
+import { EMPTY_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
 
 /**
  * Canonical entry route for both `/` and `/playground`.
@@ -19,9 +20,9 @@ export function PlaygroundRedirect() {
 
     ;(async () => {
       try {
-        const id = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
+        const id = await createPlaygroundPage(EMPTY_PLAYGROUND_CONTENT.content)
         if (!cancelled) {
-          navigate(`/?id=${encodeURIComponent(id)}`, { replace: true })
+          navigate(playgroundPath(id), { replace: true })
         }
       } catch {
         if (!cancelled) {

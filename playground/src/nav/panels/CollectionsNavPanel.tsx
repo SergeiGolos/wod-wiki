@@ -4,7 +4,7 @@
  * Route modes:
  *   - /collections                  → category filter toggles
  *   - /collections/:slug            → this collection's category links
- *   - /workout/:category/:name      → parent collection + sibling workouts
+ *   - /collections/:collection/:workout  → parent collection + sibling workouts
  */
 
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -20,7 +20,7 @@ export function CollectionsNavPanel(_props: NavPanelProps) {
   const navigate = useNavigate()
   const { selectedCategories, toggleCategory, clearCategories } = useCollectionsQueryState()
   const collectionMatch = location.pathname.match(/^\/collections\/([^/]+)$/)
-  const workoutMatch = location.pathname.match(/^\/workout\/([^/]+)\/([^/]+)$/)
+  const workoutMatch = location.pathname.match(/^\/collections\/([^/]+)\/([^/]+)$/)
 
   const collectionSlug = collectionMatch ? decodeURIComponent(collectionMatch[1]) : null
   const workoutCategory = workoutMatch ? decodeURIComponent(workoutMatch[1]) : null
@@ -58,7 +58,7 @@ export function CollectionsNavPanel(_props: NavPanelProps) {
             return (
               <button
                 key={item.id}
-                onClick={() => navigate(`/workout/${encodeURIComponent(workoutCollection.id)}/${encodeURIComponent(item.id)}`)}
+                onClick={() => navigate(`/collections/${encodeURIComponent(workoutCollection.id)}/${encodeURIComponent(item.id)}`)}
                 className={cn(
                   'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
                   isActive
