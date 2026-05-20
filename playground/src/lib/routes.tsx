@@ -35,6 +35,8 @@ export const ROUTE_PATTERNS = {
   run: '/run/:runtimeId',
   review: '/review/:runtimeId',
   load: '/load',
+  efforts: '/efforts',
+  effort: '/effort/:slug',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -99,6 +101,14 @@ export function reviewPath(runtimeId: string): string {
 /** /load */
 export function loadPath(): string {
   return '/load';
+}
+
+export function effortsPath(): string {
+  return '/efforts';
+}
+
+export function effortPath(slug: string): string {
+  return `/effort/${encodeURIComponent(slug)}`;
 }
 
 // ---------------------------------------------------------------------------

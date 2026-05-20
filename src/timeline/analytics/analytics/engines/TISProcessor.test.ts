@@ -1,6 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import { TISProcessor } from './TISProcessor';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
+import { EFFORT_DATA_METRIC_TYPE } from '../../../../core/analytics/effortResolution';
+import type { IEffort } from '@/effort-registry/types';
 
 describe('TISProcessor', () => {
   describe('calculateFromWorkout()', () => {
@@ -128,6 +130,70 @@ describe('TISProcessor', () => {
       expect(typeof meta?.metScore).toBe('number');
       expect(typeof meta?.durationScore).toBe('number');
       expect(typeof meta?.disciplineFactor).toBe('number');
+    });
+
+    test('should use resolved effort MET when effort-data metric is present', () => {
+      const engine = new TISProcessor();
+      const resolvedEffort: IEffort = {
+        id: 'test-1',
+        slug: 'running-fast',
+        label: 'Running Fast',
+        aliases: [],
+        baseAttributes: { met: 12.0, discipline: 'running', intensityTier: 'high' },
+        registrySource: 'bundled',
+      };
+      const metrics: IMetric[] = [
+        { type: EFFORT_DATA_METRIC_TYPE, value: resolvedEffort, origin: 'compiler', image: resolvedEffort.label },
+        { type: MetricType.Elapsed, value: 3_600_000, origin: 'runtime' },
+      ];
+
+      const results = engine.calculateFromWorkout(metrics);
+      expect(results).toHaveLength(1);
+      expect(results[0].metadata?.usedResolvedEffort).toBe(true);
+      expect(results[0].metadata?.effortSlug).toBe('running-fast');
+      expect(results[0].metadata?.effortDiscipline).toBe('running');
+      // MET 12.0 is higher than hardcoded run=9.8, so metScore should be higher
+      expect(results[0].metadata?.metScore).toBeGreaterThan(85);
+    });
+
+    test('should flag origin as analyzed-estimated when synthetic effort is used', () => {
+      const engine = new TISProcessor();
+      const syntheticEffort: IEffort = {
+        id: 'synthetic-1',
+        slug: 'unknown-thing',
+        label: 'Unknown Thing',
+        aliases: [],
+        baseAttributes: { met: 5.0 },
+        registrySource: 'synthetic-unresolved',
+      };
+      const metrics: IMetric[] = [
+        { type: EFFORT_DATA_METRIC_TYPE, value: syntheticEffort, origin: 'analyzed-estimated', image: syntheticEffort.label },
+        { type: MetricType.Elapsed, value: 3_600_000, origin: 'runtime' },
+      ];
+
+      const results = engine.calculateFromWorkout(metrics);
+      expect(results).toHaveLength(1);
+      expect(results[0].origin).toBe('analyzed-estimated');
+    });
+
+    test('should use resolved effort discipline for strength factor', () => {
+      const engine = new TISProcessor();
+      const strengthEffort: IEffort = {
+        id: 'test-2',
+        slug: 'back-squat',
+        label: 'Back Squat',
+        aliases: [],
+        baseAttributes: { met: 6.0, discipline: 'strength', intensityTier: 'high' },
+        registrySource: 'bundled',
+      };
+      const metrics: IMetric[] = [
+        { type: EFFORT_DATA_METRIC_TYPE, value: strengthEffort, origin: 'analyzed', image: strengthEffort.label },
+        { type: MetricType.Elapsed, value: 1_800_000, origin: 'runtime' },
+      ];
+
+      const results = engine.calculateFromWorkout(metrics);
+      expect(results[0].metadata?.disciplineFactor).toBe(1.2);
+      expect(results[0].metadata?.effortDiscipline).toBe('strength');
     });
 
     test('should accumulate elapsed across multiple segments', () => {

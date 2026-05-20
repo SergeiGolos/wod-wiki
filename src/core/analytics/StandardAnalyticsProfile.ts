@@ -4,6 +4,7 @@ import type { ISummaryProcessor } from './ISummaryProcessor';
 import type { IAnalyticsProcessorDescriptor } from './IAnalyticsProcessorDescriptor';
 import { PaceEnrichmentProcess } from './PaceEnrichmentProcess';
 import { PowerEnrichmentProcess } from './PowerEnrichmentProcess';
+import { TwoPassEffortResolutionProcess } from './TwoPassEffortResolutionProcess';
 import { RepProjectionEngine } from '../../timeline/analytics/analytics/engines/RepProjectionEngine';
 import { DistanceProjectionEngine } from '../../timeline/analytics/analytics/engines/DistanceProjectionEngine';
 import { VolumeProjectionEngine } from '../../timeline/analytics/analytics/engines/VolumeProjectionEngine';
@@ -35,12 +36,23 @@ export class StandardAnalyticsProfile implements IAnalyticsProfile {
     realtime: IRealtimeProcessor[];
     summary: ISummaryProcessor[];
   } {
+    const realtime: IRealtimeProcessor[] = [];
+
+    // Two-pass effort resolution MUST run first so downstream processors
+    // see enriched effort-data metrics.
+    if (context.analyticsContext?.effortResolver) {
+      realtime.push(new TwoPassEffortResolutionProcess(context.analyticsContext.effortResolver));
+    }
+
+    realtime.push(...this.allRealtime.filter(p => this.isApplicable(p, context)));
+
     const summary = [
       ...this.allSummary,
       new TISProcessor(context.userProfile?.vo2max),
     ];
+
     return {
-      realtime: this.allRealtime.filter(p => this.isApplicable(p, context)),
+      realtime,
       summary: summary.filter(p => this.isApplicable(p, context)),
     };
   }

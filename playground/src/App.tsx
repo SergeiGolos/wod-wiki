@@ -59,11 +59,14 @@ const ReviewPage  = lazy(() => import('./pages/ReviewPage').then(m => ({ default
 const LoadZipPage = lazy(() => import('./pages/LoadZipPage').then(m => ({ default: m.LoadZipPage })))
 // ── Toast ────────────────────────────────────────────────────────────────────
 import { NotFoundPage } from './pages/NotFoundPage'
+import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
+import { EffortDetailPage } from './pages/EffortDetailPage'
 import { Toaster } from '@/components/ui/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
+import { EffortRegistryProvider } from './components/efforts/EffortRegistryContext'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -541,6 +544,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <CollectionsPage />
             </CanvasPage>
+          ) : location.pathname === '/efforts' || location.pathname.startsWith('/effort/') ? (
+            location.pathname === '/efforts' ? <EffortsCatalogPage /> : <EffortDetailPage />
           ) : canvasPage ? (
             <CanvasPage
               title={currentWorkout.name}
@@ -615,8 +620,9 @@ export function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <AudioProvider>
-        <BrowserRouter>
+      <EffortRegistryProvider>
+        <AudioProvider>
+          <BrowserRouter>
           <NuqsAdapter>
             <GlobalState />
             <ScrollToTop />
@@ -650,6 +656,8 @@ export function App() {
                   {canvasRoutes.map(({ route }) => (
                     <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   ))}
+                  <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </NavProvider>
@@ -657,7 +665,8 @@ export function App() {
           </NuqsAdapter>
         </BrowserRouter>
       </AudioProvider>
-    </ThemeProvider>
+    </EffortRegistryProvider>
+  </ThemeProvider>
   )
 }
 

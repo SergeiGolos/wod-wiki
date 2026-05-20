@@ -10,7 +10,9 @@ import { toStoredOutputStatement } from '../Editor/types';
 import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
 import { StandardAnalyticsProfile } from '../../core/analytics/StandardAnalyticsProfile';
 import type { AnalyticsProfileContext } from '../../core/analytics/IAnalyticsProfile';
+import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext';
 import { MetricType } from '../../core/models/Metric';
+import { CompositeEffortRegistry, EffortResolver } from '@/effort-registry';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -62,7 +64,15 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
                     }
                 }
             }
-            const context: AnalyticsProfileContext = { dialect, scriptMetricTypes };
+
+            // Construct effort resolver from bundled registry
+            const registry = new CompositeEffortRegistry();
+            registry.loadBundled();
+            const analyticsContext: AnalyticsContext = {
+                effortResolver: new EffortResolver(registry),
+            };
+
+            const context: AnalyticsProfileContext = { dialect, scriptMetricTypes, analyticsContext };
 
             const profile = new StandardAnalyticsProfile();
             const { realtime, summary } = profile.build(context);

@@ -4,12 +4,18 @@ import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
 import { IOutputStatement } from '../../../../core/models/OutputStatement';
 import { TimeSpan } from '../../../../runtime/models/TimeSpan';
+import { extractEffortData, resolveDominantOrigin } from '../../../../core/analytics/effortResolution';
+import type { ResolvedEffortData } from '../../../../core/analytics/effortResolution';
 
 /**
  * Training Intensity Score (TIS) Processor.
  *
  * Computes a cross-discipline composite score that lets coaches compare
  * weightlifting, cardio, and HIIT sessions on a common scale.
+ *
+ * Consumes resolved effort data (attached by TwoPassEffortResolutionProcess)
+ * for MET and discipline values. Falls back to built-in lookups when no
+ * resolved effort is available.
  *
  * Formula:
  *   TIS = (MET-Score × 0.30) + (RPE-Score × 0.35) + (Duration-Score × 0.20) + (Discipline-Factor × 0.15)
@@ -74,17 +80,27 @@ export class TISProcessor implements ISummaryProcessor {
   calculateFromWorkout(metrics: IMetric[]): ProjectionResult[] {
     let totalElapsedMs = 0;
     let totalMetMinutes = 0;
+    let lastEffortData: ResolvedEffortData | null = null;
     let lastActionName: string | null = null;
     let maxRpe = 0;
     let hasResistance = false;
+    const origins: import('../../../../core/models/Metric').MetricOrigin[] = [];
 
     for (const m of metrics) {
+      const effortData = extractEffortData([m]);
+      if (effortData) {
+        lastEffortData = effortData;
+        origins.push(effortData.origin);
+        continue;
+      }
+
       if (m.type === MetricType.Action && typeof m.value === 'string') {
         lastActionName = m.value.toLowerCase();
       }
       if (m.type === MetricType.Elapsed && typeof m.value === 'number' && m.value > 0) {
         totalElapsedMs += m.value;
-        const mets = lastActionName ? (this.metLookup[lastActionName] ?? 6.0) : 6.0;
+        const mets = lastEffortData?.effort.baseAttributes.met
+          ?? (lastActionName ? (this.metLookup[lastActionName] ?? 6.0) : 6.0);
         totalMetMinutes += mets * (m.value / 60000);
       }
       if (m.type === MetricType.Effort) {
@@ -122,8 +138,8 @@ export class TISProcessor implements ISummaryProcessor {
     const durationMinutes = totalElapsedMs / 60000;
     const durationScore = (durationMinutes / 60) * metScore;
 
-    // Discipline-Factor
-    const disciplineFactor = hasResistance ? 1.2 : 1.0;
+    // Discipline-Factor: prefer resolved effort discipline, fall back to resistance heuristic
+    const disciplineFactor = this.resolveDisciplineFactor(lastEffortData, hasResistance);
 
     // Composite TIS
     const tis =
@@ -133,6 +149,10 @@ export class TISProcessor implements ISummaryProcessor {
       disciplineFactor * 0.15;
 
     const now = new Date();
+    const origin = origins.length > 0
+      ? resolveDominantOrigin(origins)
+      : (isEstimated ? 'analyzed-estimated' : 'analyzed');
+
     return [
       {
         name: 'Training Intensity Score',
@@ -140,7 +160,7 @@ export class TISProcessor implements ISummaryProcessor {
         unit: 'pts',
         metricType: MetricType.TIS,
         timeSpan: new TimeSpan(now.getTime(), now.getTime()),
-        origin: isEstimated ? 'analyzed-estimated' : 'analyzed',
+        origin,
         metadata: {
           metScore: Math.round(metScore * 10) / 10,
           rpeScore,
@@ -149,8 +169,26 @@ export class TISProcessor implements ISummaryProcessor {
           metMax: Math.round(metMax * 10) / 10,
           isEstimated,
           vo2max: this.vo2max,
+          usedResolvedEffort: lastEffortData !== null,
+          effortOrigin: lastEffortData?.origin,
+          effortSlug: lastEffortData?.effort.slug,
+          effortDiscipline: lastEffortData?.effort.baseAttributes.discipline,
         },
       },
     ];
+  }
+
+  private resolveDisciplineFactor(
+    effortData: ResolvedEffortData | null,
+    hasResistance: boolean,
+  ): number {
+    if (effortData) {
+      const discipline = effortData.effort.baseAttributes.discipline?.toLowerCase();
+      if (discipline === 'strength' || discipline === 'resistance') return 1.2;
+      if (discipline === 'yoga') return 0.9;
+      if (discipline === 'cardio' || discipline === 'hiit') return 1.0;
+    }
+    // Fallback to resistance heuristic
+    return hasResistance ? 1.2 : 1.0;
   }
 }

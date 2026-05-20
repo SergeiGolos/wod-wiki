@@ -22,7 +22,7 @@ import {
   CodeBracketIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/20/solid'
-import { RssIcon } from 'lucide-react'
+import { RssIcon, Dumbbell } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -138,6 +138,15 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       action: { type: 'route', to: ROUTE_PATTERNS.collections },
       isActive: (loc) => isRouteActive(ROUTE_PATTERNS.collections)(loc) || isCollectionWorkoutRoute(loc),
       panel: CollectionsNavPanel,
+    },
+
+    {
+      id: 'efforts',
+      label: 'Efforts',
+      level: 1,
+      icon: Dumbbell,
+      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
+      isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
     },
   ]
 }
