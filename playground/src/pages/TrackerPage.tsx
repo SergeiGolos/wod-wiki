@@ -1,5 +1,5 @@
 /**
- * TrackerPage — /tracker/:runtimeId
+ * TrackerPage — /run/:runtimeId
  *
  * Runs a workout from a pending runtime stored in the in-memory pendingRuntimes
  * map. On completion the result is persisted to IndexedDB and the user is
@@ -8,8 +8,9 @@
 
 import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { reviewPath, playgroundPath, journalEntryPath, workoutPath } from '../lib/routes'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
-import { indexedDBService } from '@/services/db/IndexedDBService'
+import { notePersistence } from '@/services/persistence'
 import { pendingRuntimes } from '../runtimeStore'
 
 export function TrackerPage() {
@@ -27,16 +28,16 @@ export function TrackerPage() {
   const handleComplete = useCallback(
     (blockId: string, results: any) => {
       if (!results || !runtimeId || !pending) return
-      indexedDBService.saveResult({
-        id: runtimeId,
-        noteId: pending.noteId,
-        sectionId: blockId,
-        segmentId: blockId,
-        data: results,
-        completedAt: results.endTime || Date.now(),
+      notePersistence.mutateNote(pending.noteId, {
+        workoutResult: {
+          id: runtimeId,
+          sectionId: blockId,
+          data: results,
+          completedAt: results.endTime || Date.now(),
+        },
       }).then(() => {
         if (results.completed) {
-          navigate(`/review/${runtimeId}`, { replace: true })
+          navigate(reviewPath(runtimeId), { replace: true })
         }
       }).catch(() => {})
     },
@@ -46,13 +47,14 @@ export function TrackerPage() {
   const handleClose = useCallback(() => {
     if (!pending) { navigate('/'); return }
     // Go back to the note
+    // Go back to the note
     const parts = pending.noteId.split('/')
     if (parts.length >= 2 && parts[0] === 'playground') {
-      navigate(`/playground/${encodeURIComponent(parts[1])}`, { replace: true })
+      navigate(playgroundPath(parts[1]!), { replace: true })
     } else if (parts.length >= 2 && parts[0] === 'journal') {
-      navigate(`/journal/${encodeURIComponent(parts[1])}`, { replace: true })
+      navigate(journalEntryPath(parts[1]!), { replace: true })
     } else if (parts.length >= 2) {
-      navigate(`/workout/${encodeURIComponent(parts[0])}/${encodeURIComponent(parts[1])}`, { replace: true })
+      navigate(workoutPath(parts[0]!, parts[1]!), { replace: true })
     } else {
       navigate('/', { replace: true })
     }

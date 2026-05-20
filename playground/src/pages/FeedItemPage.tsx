@@ -24,6 +24,7 @@ import { getWodFeedItem, getWodFeed } from '@/repositories/wod-feeds';
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
 import { pendingRuntimes } from '../runtimeStore';
+import { runPath } from '../lib/routes';
 import { useNotePageNav } from './shared/useNotePageNav';
 import { useWodBlockCommands } from '../hooks/useWodBlockCommands';
 import { shareBlock, openBlockInPlayground } from '../services/openInPlayground';
@@ -85,7 +86,7 @@ export function FeedItemPage({
       } catch {
         const runtimeId = uuidv4();
         pendingRuntimes.set(runtimeId, { block, noteId });
-        navigate(`/tracker/${runtimeId}`);
+        navigate(runPath(runtimeId));
       }
     },
     [feed, feedItem, feedSlug, item, navigate, noteId],

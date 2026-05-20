@@ -65,7 +65,7 @@ export async function appendWorkoutToJournal({
   const collection = getWodCollection(category);
   const siblingLinks = collection?.items
     .filter(item => item.id !== workoutName)
-    .map(item => `[${category}-${item.id}](/workout/${encodeURIComponent(category)}/${encodeURIComponent(item.id)})`) ?? [];
+    .map(item => `[${category}-${item.id}](/collections/${encodeURIComponent(category)}/${encodeURIComponent(item.id)})`) ?? [];
   
   const lines = [
     `\n## ${workoutName}`,

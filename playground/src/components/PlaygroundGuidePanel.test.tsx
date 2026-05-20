@@ -18,7 +18,7 @@ describe('PlaygroundGuidePanel', () => {
     expect(screen.getByText('Playground Flow')).toBeTruthy()
     expect(screen.getByText(/write the workout, then turn the unknown parts into measured output/i)).toBeTruthy()
     expect(collectionsLink.getAttribute('href')).toBe('/collections')
-    expect(syntaxLink.getAttribute('href')).toBe('/getting-started')
+    expect(syntaxLink.getAttribute('href')).toBe('/guide/getting-started')
     expect(screen.getByText(/what maps cleanly here/i)).toBeTruthy()
   })
 })

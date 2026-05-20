@@ -9,6 +9,8 @@ mock.module('react-router-dom', () => ({
   useNavigate: () => (to: string, options?: { replace?: boolean }) => {
     navigateCalls.push({ to, options })
   },
+  useParams: () => ({}),
+  Navigate: ({ to }: { to: string }) => null,
 }))
 
 const createPlaygroundPageMock = mock(async (content: string) => {
