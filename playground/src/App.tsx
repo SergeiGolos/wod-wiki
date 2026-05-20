@@ -15,8 +15,20 @@ import { globalSearchSource } from './services/paletteDataSources'
 import { createJournalEntryFlow } from './services/journalEntryFlow'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
-import { useQueryState } from 'nuqs'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import {
+  ROUTE_PATTERNS,
+  isPlaygroundNotePath,
+  isJournalEntryPath,
+  workoutPath,
+  journalEntryPath,
+  reviewPath,
+  NotePlaygroundRedirect,
+  WorkoutRedirect,
+  GettingStartedRedirect,
+  SyntaxRedirect,
+  TrackerRedirect,
+} from './lib/routes'
 import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
@@ -46,6 +58,7 @@ const TrackerPage = lazy(() => import('./pages/TrackerPage').then(m => ({ defaul
 const ReviewPage  = lazy(() => import('./pages/ReviewPage').then(m => ({ default: m.ReviewPage })))
 const LoadZipPage = lazy(() => import('./pages/LoadZipPage').then(m => ({ default: m.LoadZipPage })))
 // ── Toast ────────────────────────────────────────────────────────────────────
+import { NotFoundPage } from './pages/NotFoundPage'
 import { Toaster } from '@/components/ui/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
@@ -88,21 +101,16 @@ export interface WorkoutItem {
 }
 function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
   const navigate = useNavigate()
-  const { category: urlCategory, name: urlName, id: playgroundId } = useParams<{ category: string; name: string; id: string }>()
+  const { category: urlCategory, name: urlName, collection: urlCollection, workout: urlWorkout, id: playgroundId } = useParams<{ category: string; name: string; collection: string; workout: string; id: string }>()
   const location = useLocation()
   
   const { theme } = useTheme()
   const [recentResults, setRecentResults] = useState<WorkoutResult[]>([])
 
-  const [idParam] = useQueryState('id')
-
-  // Unified note route: /note/playground/:name behaves like /playground/:name
-  const isNotePlayground = location.pathname.startsWith('/note/playground/')
-  const isPlaygroundRoute = location.pathname.startsWith('/playground/') || isNotePlayground || (location.pathname === '/' && !!idParam)
-  // For /note/playground/:name, use urlName as the playground ID
-  const effectivePlaygroundId = playgroundId || idParam || (isNotePlayground ? urlName : undefined)
-  // Journal entry route: /journal/:id  — note: the route param is :id → playgroundId
-  const isJournalEntryRoute = location.pathname.startsWith('/journal/') && (!!urlName || !!playgroundId)
+  // Route-family detection via canonical helpers
+  const isPlaygroundRoute = isPlaygroundNotePath(location.pathname)
+  const effectivePlaygroundId = playgroundId || (location.pathname.startsWith('/note/playground/') ? urlName : undefined)
+  const isJournalEntryRoute = isJournalEntryPath(location.pathname)
   const journalEntryId = isJournalEntryRoute ? decodeURIComponent(urlName ?? playgroundId!) : undefined
 
   // Feed route detection — parsed from pathname since AppContent useParams only
@@ -145,8 +153,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }, [workoutFiles])
 
   // Canvas page for the current pathname (null if not a canvas route)
-  // We prioritize playground notes (via idParam) over the home canvas page.
-  const canvasPage = !idParam ? findCanvasPage(location.pathname) : null
+  const canvasPage = findCanvasPage(location.pathname)
 
   // Find current content based on URL
   const currentWorkout = useMemo(() => {
@@ -165,21 +172,22 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       '/journal': 'Journal',
       '/plan': 'Plan',
       '/feeds': 'Feeds',
-      '/getting-started': 'Zero to Hero',
-      '/syntax': 'Syntax',
+      '/guide/getting-started': 'Zero to Hero',
+      '/guide/syntax': 'Syntax',
       '/collections': 'Collections',
     }
     const namedMatch = named[location.pathname]
     if (namedMatch) {
       return { name: namedMatch, content: PLAYGROUND_CONTENT, category: 'General' }
     }
-    if (!urlName) {
+    const effectiveName = urlWorkout || urlName
+    if (!effectiveName) {
       return { name: 'Home', content: PLAYGROUND_CONTENT, category: 'General' }
     }
-    const name = decodeURIComponent(urlName)
-    const category = urlCategory ? decodeURIComponent(urlCategory) : 'General'
+    const name = decodeURIComponent(effectiveName)
+    const category = (urlCollection || urlCategory) ? decodeURIComponent(urlCollection || urlCategory!) : 'General'
     return workoutItems.find(item => item.name === name && item.category === category) || { name, content: PLAYGROUND_CONTENT, category: 'General' }
-  }, [urlCategory, urlName, workoutItems, location.pathname, isPlaygroundRoute, isJournalEntryRoute, journalEntryId])
+  }, [urlCategory, urlName, urlCollection, urlWorkout, workoutItems, location.pathname, isPlaygroundRoute, isJournalEntryRoute, journalEntryId])
 
   // Load recent workout results from IndexedDB
   const refreshResults = useCallback(() => {
@@ -195,10 +203,9 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   const handleSelectWorkout = useCallback((item: any) => {
     const workout = item as { name: string; category?: string; content?: string }
     if (workout.name === 'Home') {
-      navigate('/')
+      navigate(ROUTE_PATTERNS.home)
     } else {
-      const category = workout.category || 'General'
-      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(workout.name)}`)
+      navigate(workoutPath(workout.category || 'General', workout.name))
     }
   }, [navigate])
 
@@ -272,8 +279,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
 
     // 2. Docs pages
-    if (location.pathname === '/getting-started') return ZERO_TO_HERO_LINKS
-    if (location.pathname === '/syntax') return SYNTAX_LINKS
+    if (location.pathname === ROUTE_PATTERNS.guideGettingStarted) return ZERO_TO_HERO_LINKS
+    if (location.pathname === ROUTE_PATTERNS.guideSyntax) return SYNTAX_LINKS
     
     // 3. Journal list page
     if (location.pathname === '/journal') {
@@ -316,7 +323,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       onCreated: async (content) => {
         const id = `journal/${dateKey}`
         await playgroundDB.savePage({ id, name: dateKey, category: 'journal', content, updatedAt: Date.now() })
-        navigate(`/journal/${dateKey}`)
+        navigate(journalEntryPath(dateKey))
       },
     })
   }, [navigate, workoutItems])
@@ -334,7 +341,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       } else if (item.type === 'workout') {
         handleSelectWorkout(item.payload)
       } else if (item.type === 'journal-entry') {
-        navigate(`/review/${item.id}`)
+        navigate(reviewPath(item.id))
       }
     })
   }, [workoutItems, handleSelectWorkout, navigate])
@@ -600,14 +607,6 @@ function GlobalState() {
   return null
 }
 
-function HomeRoute({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<() => void> }) {
-  const [idParam] = useQueryState('id')
-  if (idParam) {
-    return <AppContent searchHandlerRef={searchHandlerRef} />
-  }
-  return <PlaygroundRedirect />
-}
-
 export function App() {
   // Stable ref so AppContent can inject its openSearchPalette callback after mount.
   // The nav tree is built once; the search item calls the ref's current value.
@@ -625,25 +624,33 @@ export function App() {
             <CommandProvider>
               <NavProvider tree={navTree}>
                 <Routes>
-                  <Route path="/" element={<HomeRoute searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/getting-started" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/syntax" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/journal" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/plan" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/feeds" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/feeds/:feedSlug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/feeds/:feedSlug/:feedDate/:feedItem" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/collections" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/collections/:slug" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/workout/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/load" element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
-                  <Route path="/playground" element={<PlaygroundRedirect />} />
-                  <Route path="/playground/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/note/:category/:name" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/journal/:id" element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path="/tracker/:runtimeId" element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><TrackerPage /></Suspense>} />
-                  <Route path="/review/:runtimeId" element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path={ROUTE_PATTERNS.home} element={<PlaygroundRedirect />} />
+                  <Route path="/getting-started" element={<GettingStartedRedirect />} />
+                  <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                  <Route path="/syntax" element={<SyntaxRedirect />} />
+                  <Route path="/syntax/*" element={<SyntaxRedirect />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
+                  <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
+                  <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><TrackerPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
+                  <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
+                  <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
+                  {canvasRoutes.map(({ route }) => (
+                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  ))}
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </NavProvider>
             </CommandProvider>

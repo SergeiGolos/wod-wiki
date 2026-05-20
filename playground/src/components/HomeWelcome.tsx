@@ -21,31 +21,31 @@ const inlineDocLinkClassName = 'mx-1 inline-flex h-auto items-center gap-1 px-0 
 
 const WRITE_NOTE_DOC_LINKS = {
   movement: {
-    to: '/getting-started?h=statement',
+    to: '/guide/getting-started?h=statement',
     label: 'Movement',
   },
   reps: {
-    to: '/syntax/structure?h=rep-schemes',
+    to: '/guide/syntax/structure?h=rep-schemes',
     label: 'Reps',
   },
   timers: {
-    to: '/syntax/protocols',
+    to: '/guide/syntax/protocols',
     label: 'Timers',
   },
   rounds: {
-    to: '/syntax/structure?h=simple-rounds',
+    to: '/guide/syntax/structure?h=simple-rounds',
     label: 'Rounds',
   },
   load: {
-    to: '/syntax/basics?h=measurements',
+    to: '/guide/syntax/basics?h=measurements',
     label: 'Load',
   },
   rest: {
-    to: '/syntax/protocols?h=timers-and-rest',
+    to: '/guide/syntax/protocols?h=timers-and-rest',
     label: 'Rest',
   },
   sectionLabels: {
-    to: '/syntax/structure?h=named-groups',
+    to: '/guide/syntax/structure?h=named-groups',
     label: 'Section Labels',
   },
 } as const
@@ -148,7 +148,7 @@ export function HomeWelcome({ onOpenSearch, onRun, onResults }: HomeWelcomeProps
               <p className="mt-1 text-sm font-medium leading-relaxed text-muted-foreground">
                 Start with simple whiteboard text in the example. Powered by
                 <ButtonLink
-                  href="https://pluto.forest-adhara.ts.net:5173/syntax"
+                  href="https://pluto.forest-adhara.ts.net:5173/guide/syntax"
                   target="_blank"
                   rel="noreferrer"
                   variant="link"

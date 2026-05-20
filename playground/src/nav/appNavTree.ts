@@ -32,6 +32,7 @@ import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
 import { FeedsNavPanel }       from './panels/FeedsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
 import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
+import { ROUTE_PATTERNS } from '../lib/routes'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -87,14 +88,14 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Home',
       level: 1,
       icon: HomeIcon,
-      action: { type: 'route', to: '/playground' },
+      action: { type: 'route', to: ROUTE_PATTERNS.playgroundRoot },
       isActive: (loc) =>
         loc.pathname === '/' ||
         loc.pathname === '' ||
-        loc.pathname === '/getting-started' ||
-        loc.pathname.startsWith('/syntax') ||
+        loc.pathname === ROUTE_PATTERNS.guideGettingStarted ||
+        loc.pathname.startsWith('/guide/syntax') ||
         loc.pathname.startsWith('/canvas') ||
-        loc.pathname === '/playground' ||
+        loc.pathname === ROUTE_PATTERNS.playgroundRoot ||
         loc.pathname.startsWith('/playground/'),
       children: homeChildren,
     },
@@ -104,8 +105,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Journal',
       level: 1,
       icon: RectangleStackIcon,
-      action: { type: 'route', to: '/journal' },
-      isActive: isRouteActive('/journal'),
+      action: { type: 'route', to: ROUTE_PATTERNS.journal },
+      isActive: isRouteActive(ROUTE_PATTERNS.journal),
       panel: JournalNavPanel,
     },
 
@@ -114,8 +115,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Plan',
       level: 1,
       icon: CalendarDaysIcon,
-      action: { type: 'route', to: '/plan' },
-      isActive: (loc: Location) => loc.pathname === '/plan',
+      action: { type: 'route', to: ROUTE_PATTERNS.plan },
+      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.plan,
       panel: JournalNavPanel,
     },
 
@@ -124,8 +125,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Feeds',
       level: 1,
       icon: RssIcon,
-      action: { type: 'route', to: '/feeds' },
-      isActive: (loc: Location) => loc.pathname.startsWith('/feeds'),
+      action: { type: 'route', to: ROUTE_PATTERNS.feeds },
+      isActive: (loc: Location) => loc.pathname.startsWith(ROUTE_PATTERNS.feeds),
       panel: FeedsNavPanel,
     },
 
@@ -134,8 +135,8 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       label: 'Collections',
       level: 1,
       icon: FolderIcon,
-      action: { type: 'route', to: '/collections' },
-      isActive: (loc) => isRouteActive('/collections')(loc) || isCollectionWorkoutRoute(loc),
+      action: { type: 'route', to: ROUTE_PATTERNS.collections },
+      isActive: (loc) => isRouteActive(ROUTE_PATTERNS.collections)(loc) || isCollectionWorkoutRoute(loc),
       panel: CollectionsNavPanel,
     },
   ]

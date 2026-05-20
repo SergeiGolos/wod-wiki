@@ -25,6 +25,7 @@ import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { pendingRuntimes } from '../runtimeStore'
+import { runPath } from '../lib/routes'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
 import { useWodBlockCommands } from '../hooks/useWodBlockCommands'
@@ -88,7 +89,7 @@ export function PlaygroundNotePage({
     (block: WodBlock) => {
       const runtimeId = uuidv4()
       pendingRuntimes.set(runtimeId, { block, noteId })
-      navigate(`/tracker/${runtimeId}`)
+      navigate(runPath(runtimeId))
     },
     [noteId, navigate],
   )

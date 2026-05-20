@@ -10,6 +10,7 @@ import { createPlaygroundPage } from '../services/createPlaygroundPage'
 import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/widgets/AttentionWidget'
 import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/widgets/CodeExampleWidget'
 import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/widgets/SyntaxGroupWidget'
+import { playgroundPath, reviewPath, workoutPath } from '../lib/routes'
 
 const ATTENTION_CONFIG: AttentionWidgetConfig = {
   headline: 'Build and preview widget-driven workout pages.',
@@ -55,7 +56,7 @@ const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = [
     title: 'Rounds',
     description: 'Use parenthesis to repeat grouped blocks.',
     example: '(3)\n  8 Front Squats 95lb\n  *:45 Rest',
-    docsPath: '/syntax#groups',
+    docsPath: '/guide/syntax?h=groups',
   },
   {
     category: 'Timing',
@@ -63,7 +64,7 @@ const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = [
     title: 'Timers',
     description: 'Countdowns and rest timers can mix in one block.',
     example: '2:00 Row\n*:30 Rest',
-    docsPath: '/syntax#timers',
+    docsPath: '/guide/syntax?h=timers',
   },
   {
     category: 'Loading',
@@ -71,7 +72,7 @@ const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = [
     title: 'Rep schemes',
     description: 'Comma-separated reps compress descending sets.',
     example: '21,15,9 Thrusters 95lb',
-    docsPath: '/syntax#metrics',
+    docsPath: '/guide/syntax?h=metrics',
   },
 ]
 
@@ -115,7 +116,7 @@ export function PlaygroundLandingPage() {
   const handleSelectWorkout = useCallback(
     (item: { name: string; category?: string }) => {
       const category = item.category || 'General'
-      navigate(`/workout/${encodeURIComponent(category)}/${encodeURIComponent(item.name)}`)
+      navigate(workoutPath(category, item.name))
     },
     [navigate],
   )
@@ -140,7 +141,7 @@ export function PlaygroundLandingPage() {
     }
 
     if (item.type === 'journal-entry') {
-      navigate(`/review/${item.id}`)
+      navigate(reviewPath(item.id))
     }
   }, [handleSelectWorkout, navigate, workoutItems])
 
@@ -172,7 +173,7 @@ export function PlaygroundLandingPage() {
       ].join('\n')
 
       const id = await createPlaygroundPage(template)
-      navigate(`/playground/${encodeURIComponent(id)}`)
+      navigate(playgroundPath(id))
     },
     [navigate],
   )

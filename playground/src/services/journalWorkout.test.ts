@@ -29,6 +29,7 @@ mock.module('@/repositories/wod-collections', () => ({
 
     return undefined;
   },
+  getWodCollections: () => [],
 }));
 
 mock.module('./playgroundDB', () => ({
@@ -62,13 +63,13 @@ describe('appendWorkoutToJournal', () => {
       workoutName: 'Event-05',
       category: 'crossfit-games-2021',
       sourceNoteLabel: 'crossfit-games-2021-Event-05',
-      sourceNotePath: '/workout/crossfit-games-2021/Event-05',
+      sourceNotePath: '/collections/crossfit-games-2021/Event-05',
       wodContent: '5 rounds',
       date: new Date('2026-05-05T12:00:00Z'),
     });
 
     expect(savedPages).toHaveLength(1);
-    expect(savedPages[0]?.content).toContain('Source: [crossfit-games-2021-Event-05](/workout/crossfit-games-2021/Event-05)');
+    expect(savedPages[0]?.content).toContain('Source: [crossfit-games-2021-Event-05](/collections/crossfit-games-2021/Event-05)');
     expect(savedPages[0]?.content).toContain('Collection: [crossfit-games-2021](/collections/crossfit-games-2021)');
     expect(savedPages[0]?.content).toContain('## Event-05');
     expect(savedPages[0]?.content).toContain('```wod');

@@ -4,23 +4,23 @@ import { ButtonLink } from '@/components/ui/ButtonLink'
 
 const DOC_LINKS = {
   movement: {
-    to: '/getting-started?h=statement',
+    to: '/guide/getting-started?h=statement',
     label: 'Movement',
   },
   reps: {
-    to: '/syntax/structure?h=rep-schemes',
+    to: '/guide/syntax/structure?h=rep-schemes',
     label: 'Reps',
   },
   timers: {
-    to: '/syntax/protocols',
+    to: '/guide/syntax/protocols',
     label: 'Timers',
   },
   rounds: {
-    to: '/syntax/structure?h=simple-rounds',
+    to: '/guide/syntax/structure?h=simple-rounds',
     label: 'Rounds',
   },
   load: {
-    to: '/syntax/basics?h=measurements',
+    to: '/guide/syntax/basics?h=measurements',
     label: 'Load',
   },
 } as const
@@ -95,7 +95,7 @@ export function PlaygroundGuidePanel() {
               Browse Collections
             </ButtonLink>
             <ButtonLink
-              to="/getting-started"
+              to="/guide/getting-started"
               variant="outline"
               size="sm"
               className="inline-flex items-center gap-2"

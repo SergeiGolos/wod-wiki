@@ -37,6 +37,7 @@ import type { ParsedCanvasPage, CanvasSection, PipelineStep, OpenMode } from './
 import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutItem } from '../App'
 import { pendingRuntimes, activeRuntimes } from '../runtimeStore'
+import { runPath } from '../lib/routes'
 import { CollectionWorkoutsList } from '../views/queriable-list/CollectionWorkoutsList'
 
 // Match the existing parallax constants exactly
@@ -368,7 +369,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         return
       }
 
-      navigate(`/workout/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}`)
+      navigate(`/collections/${encodeURIComponent(item.category)}/${encodeURIComponent(item.name)}`)
     },
     [navigate, onSelect],
   )
@@ -549,7 +550,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         else if (open === 'route') {
           const runtimeId = uuidv4()
           pendingRuntimes.set(runtimeId, { block, noteId: canvasNoteId })
-          navigate(`/tracker/${runtimeId}`)
+          navigate(runPath(runtimeId))
         } else {
           setFullscreenBlock(block)
         }

@@ -181,12 +181,12 @@ describe('CollectionsNavPanel', () => {
   });
 
   describe('Workout Detail Page Mode', () => {
-    it('should render parent collection and sibling workouts on /workout/:category/:name', () => {
+    it('should render parent collection and sibling workouts on /collections/:category/:name', () => {
       const navState = createNavState();
       const props = createProps(navState);
 
       render(
-        <MemoryRouter initialEntries={['/workout/cardio/5k-run']}>
+        <MemoryRouter initialEntries={['/collections/cardio/5k-run']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -201,7 +201,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       const { container } = render(
-        <MemoryRouter initialEntries={['/workout/cardio/5k-run']}>
+        <MemoryRouter initialEntries={['/collections/cardio/5k-run']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -216,7 +216,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       render(
-        <MemoryRouter initialEntries={['/workout/cardio/5k-run']}>
+        <MemoryRouter initialEntries={['/collections/cardio/5k-run']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -230,7 +230,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       render(
-        <MemoryRouter initialEntries={['/workout/cardio/5k-run']}>
+        <MemoryRouter initialEntries={['/collections/cardio/5k-run']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -261,7 +261,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       const { container } = render(
-        <MemoryRouter initialEntries={['/workout/wod/custom-wod']}>
+        <MemoryRouter initialEntries={['/collections/wod/custom-wod']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -307,7 +307,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       const { container } = render(
-        <MemoryRouter initialEntries={['/workout/cardio/5k-run']}>
+        <MemoryRouter initialEntries={['/collections/cardio/5k-run']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -322,7 +322,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       const { container } = render(
-        <MemoryRouter initialEntries={['/workout/cardio/5k-run']}>
+        <MemoryRouter initialEntries={['/collections/cardio/5k-run']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );
@@ -383,7 +383,7 @@ describe('CollectionsNavPanel', () => {
       const props = createProps(navState);
 
       const { container } = render(
-        <MemoryRouter initialEntries={['/workout/empty/workout']}>
+        <MemoryRouter initialEntries={['/collections/empty/workout']}>
           <CollectionsNavPanel {...props} />
         </MemoryRouter>
       );

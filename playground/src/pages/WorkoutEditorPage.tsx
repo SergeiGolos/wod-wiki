@@ -1,5 +1,5 @@
 /**
- * WorkoutEditorPage — /workout/:category/:name
+ * WorkoutEditorPage — /collections/:collection/:workout
  *
  * Wrapper that loads workout content via IndexedDB (or falls back to the
  * bundled MD file). Keeps WodBlock IDs stable across page loads so results
@@ -19,6 +19,7 @@ import { CalendarCard } from '@/components/ui/CalendarCard'
 import { usePlaygroundContent } from '../hooks/usePlaygroundContent'
 import { PlaygroundDBService } from '../services/playgroundDB'
 import { pendingRuntimes } from '../runtimeStore'
+import { runPath } from '../lib/routes'
 import { appendWorkoutToJournal } from '../services/journalWorkout'
 import { PageActions } from './shared/PageActions'
 import { useNotePageNav } from './shared/useNotePageNav'
@@ -58,7 +59,7 @@ export function WorkoutEditorPage({
 
     return {
       label: `${category}-${name}`,
-      path: `/workout/${encodeURIComponent(category)}/${encodeURIComponent(name)}`,
+      path: `/collections/${encodeURIComponent(category)}/${encodeURIComponent(name)}`,
     }
   }, [category, isCollection, name])
 
@@ -70,7 +71,7 @@ export function WorkoutEditorPage({
       // For syntax/inline categories keep the original popup behaviour.
       if (usePopup) {
         pendingRuntimes.set(runtimeId, { block, noteId })
-        navigate(`/tracker/${runtimeId}`)
+        navigate(runPath(runtimeId))
         return
       }
       // Append the wod block to today's journal note and navigate there.
@@ -88,7 +89,7 @@ export function WorkoutEditorPage({
       } catch {
         // IndexedDB unavailable — fall back to the fullscreen tracker route
         pendingRuntimes.set(runtimeId, { block, noteId })
-        navigate(`/tracker/${runtimeId}`)
+        navigate(runPath(runtimeId))
       }
     },
     [usePopup, noteId, name, category, sourceNote, navigate],
