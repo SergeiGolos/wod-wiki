@@ -1,4 +1,4 @@
-import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { ISummaryProcessor } from '../../../../core/analytics/ISummaryProcessor';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
@@ -15,11 +15,12 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * moderate default (5) is used so that duration-only workouts still produce
  * a sensible load score.
  */
-export class SessionLoadProjectionEngine implements IAnalyticsStage {
+export class SessionLoadProjectionEngine implements ISummaryProcessor {
   public readonly id = 'session-load-projection';
   public readonly name = 'SessionLoadProjectionEngine';
+  public readonly dialects = ['wod', 'log'] as const;
 
-  project(outputs: IOutputStatement[]): ProjectionResult[] {
+  summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));
   }
 

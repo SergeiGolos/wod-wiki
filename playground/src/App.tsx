@@ -58,13 +58,12 @@ import { LoadZipPage } from './pages/LoadZipPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
-import { EffortRegistryProvider } from './components/efforts/EffortRegistryContext'
-// ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
 import { mapIndexToL3 } from './pages/shared/pageUtils'
 import { PlaygroundRedirect } from './pages/PlaygroundRedirect'
+import { EffortRegistryProvider } from './components/efforts/EffortRegistryContext'
 
 // ── Constants for Sidebar Navigation ────────────────────────────────
 
@@ -625,38 +624,37 @@ export function App() {
             <Toaster />
             <CommandProvider>
               <NavProvider tree={navTree}>
-              <Routes>
-                <Route path={ROUTE_PATTERNS.home} element={<PlaygroundRedirect />} />
-                <Route path="/getting-started" element={<GettingStartedRedirect />} />
-                <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
-                <Route path="/syntax" element={<SyntaxRedirect />} />
-                <Route path="/syntax/*" element={<SyntaxRedirect />} />
-                <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.load} element={<LoadZipPage />} />
-                <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
-                <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
-                <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.run} element={<TrackerPage />} />
-                <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                <Route path={ROUTE_PATTERNS.review} element={<ReviewPage />} />
-                <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path={ROUTE_PATTERNS.effortDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
-                {/* Explicit generated canvas routes — previously served by wildcard fallback */}
-                {canvasRoutes.map(({ route }) => (
-                  <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                ))}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
+                <Routes>
+                  <Route path={ROUTE_PATTERNS.home} element={<PlaygroundRedirect />} />
+                  <Route path="/getting-started" element={<GettingStartedRedirect />} />
+                  <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                  <Route path="/syntax" element={<SyntaxRedirect />} />
+                  <Route path="/syntax/*" element={<SyntaxRedirect />} />
+                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
+                  <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
+                  <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><TrackerPage /></Suspense>} />
+                  <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
+                  <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
+                  <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
+                  {canvasRoutes.map(({ route }) => (
+                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  ))}
+                  <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path={ROUTE_PATTERNS.effort} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
               </NavProvider>
             </CommandProvider>
           </NuqsAdapter>

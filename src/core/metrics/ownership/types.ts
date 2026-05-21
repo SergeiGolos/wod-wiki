@@ -39,6 +39,7 @@ export const LEGACY_ORIGIN_TO_OWNERSHIP_LAYER: Record<MetricOrigin, MetricOwners
   runtime: 'runtime',
   tracked: 'runtime',
   analyzed: 'runtime',
+  'analyzed-estimated': 'runtime',
   execution: 'runtime',
   user: 'user-entry',
   collected: 'user-entry',

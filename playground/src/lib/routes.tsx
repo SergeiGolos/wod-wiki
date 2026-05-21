@@ -104,7 +104,6 @@ export function loadPath(): string {
   return '/load';
 }
 
-/** /efforts */
 export function effortsPath(): string {
   return '/efforts';
 }
@@ -171,7 +170,6 @@ export function parseEffortRouteOptions(searchParams: URLSearchParams): {
     origin: searchParams.get('origin') ?? undefined,
   };
 }
-
 // ---------------------------------------------------------------------------
 // Legacy-alias redirect components
 // ---------------------------------------------------------------------------
@@ -314,4 +312,10 @@ export function isCollectionWorkoutPath(pathname: string): boolean {
 /** Detect whether a location pathname belongs to the efforts family. */
 export function isEffortsPath(pathname: string): boolean {
   return pathname === '/efforts' || pathname.startsWith('/effort/');
+}
+
+/** Detect whether a location pathname belongs to the effort family. */
+export function isEffortPath(pathname: string): boolean {
+  return pathname.startsWith('/effort/') || pathname === '/efforts';
+}
 }

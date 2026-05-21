@@ -9,7 +9,7 @@ import type { IEffort, IEffortRegistry, EffortRegistrySource } from './types';
  * bundled seed file.
  */
 export class IndexedDBEffortRegistry implements IEffortRegistry {
-  constructor(private readonly db: typeof indexedDBService = indexedDBService) {}
+  constructor(private readonly db = indexedDBService) {}
 
   async loadBundled(): Promise<void> {
     // No-op: bundled efforts are handled by BundledEffortRegistry

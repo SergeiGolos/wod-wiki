@@ -21,6 +21,7 @@ import {
     Attachment,
     AnalyticsDataPoint,
     SegmentDataType,
+    Effort,
 } from '../../types/storage';
 
 // ---------------------------------------------------------------------------
@@ -52,10 +53,15 @@ interface WodWikiDB extends DBSchema {
         value: AnalyticsDataPoint;
         indexes: { 'by-type': string; 'by-segment': string; 'by-result': string };
     };
+    efforts: {
+        key: string;
+        value: Effort;
+        indexes: { 'by-discipline': string; 'by-source': Effort['registrySource'] };
+    };
 }
 
 const DB_NAME = 'wodwiki-db';
-const DB_VERSION = 4; // V4 — Multi-Source Data Lens
+const DB_VERSION = 5; // V5 — Effort Registry store
 
 class IndexedDBService {
     private dbPromise: Promise<IDBPDatabase<WodWikiDB>>;
@@ -109,6 +115,13 @@ class IndexedDBService {
                     store.createIndex('by-type', 'metricType');
                     store.createIndex('by-segment', 'segmentId');
                     store.createIndex('by-result', 'resultId');
+                }
+
+                // ---- Efforts (new in V5) ----
+                if (!db.objectStoreNames.contains('efforts')) {
+                    const store = db.createObjectStore('efforts', { keyPath: 'slug' });
+                    store.createIndex('by-discipline', 'baseAttributes.discipline');
+                    store.createIndex('by-source', 'registrySource');
                 }
             },
         });
@@ -300,6 +313,26 @@ class IndexedDBService {
             await store.put(pt);
         }
         await tx.done;
+    }
+
+    // =======================================================================
+    // Efforts (new in V5)
+    // =======================================================================
+
+    async getEffort(slug: string): Promise<Effort | undefined> {
+        return (await this.dbPromise).get('efforts', slug);
+    }
+
+    async getAllEfforts(): Promise<Effort[]> {
+        return (await this.dbPromise).getAll('efforts');
+    }
+
+    async saveEffort(effort: Effort): Promise<string> {
+        return (await this.dbPromise).put('efforts', effort);
+    }
+
+    async deleteEffort(slug: string): Promise<void> {
+        return (await this.dbPromise).delete('efforts', slug);
     }
 
 }

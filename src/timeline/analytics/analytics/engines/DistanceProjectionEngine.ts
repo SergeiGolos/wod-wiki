@@ -1,4 +1,4 @@
-import { IAnalyticsStage } from '../../../../core/analytics/IAnalyticsStage';
+import { ISummaryProcessor } from '../../../../core/analytics/ISummaryProcessor';
 import { extractMetrics } from '../../../../core/analytics/extractMetrics';
 import { ProjectionResult } from '../ProjectionResult';
 import { IMetric, MetricType } from '../../../../core/models/Metric';
@@ -11,11 +11,13 @@ import { TimeSpan } from '../../../../runtime/models/TimeSpan';
  * Distance values are expected as `{ amount: number; units?: string }` objects
  * (the standard parser representation). Falls back to raw numeric values too.
  */
-export class DistanceProjectionEngine implements IAnalyticsStage {
+export class DistanceProjectionEngine implements ISummaryProcessor {
   public readonly id = 'distance-projection';
   public readonly name = 'DistanceProjectionEngine';
+  public readonly dialects = ['wod', 'log', 'plan'] as const;
+  public readonly requiredMetrics = [MetricType.Distance] as const;
 
-  project(outputs: IOutputStatement[]): ProjectionResult[] {
+  summarize(outputs: IOutputStatement[]): ProjectionResult[] {
     return this.calculateFromWorkout(extractMetrics(outputs));
   }
 

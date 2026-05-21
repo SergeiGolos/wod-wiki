@@ -18,6 +18,7 @@ export const ORIGIN_PRECEDENCE: Record<MetricOrigin, number> = {
     'runtime': 1,
     'tracked': 1,
     'analyzed': 1,
+    'analyzed-estimated': 1,
     'compiler': 2,
     'dialect':  2,
     'hinted':   2,

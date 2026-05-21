@@ -1,4 +1,4 @@
-import type { MetricType } from '../../../core/models/Metric';
+import type { MetricOrigin, MetricType } from '../../../core/models/Metric';
 import type { TimeSpan } from '../../../core/models/CollectionSpan';
 
 /**
@@ -23,6 +23,14 @@ export interface ProjectionResult {
   /** Time span over which this projection was calculated */
   timeSpan: TimeSpan;
   
+  /**
+   * Origin of the projection value.
+   * Defaults to 'analyzed' when not specified.
+   * Use 'analyzed-estimated' when the value was computed with fallback
+   * assumptions (e.g. population-average METmax when VO2max is unknown).
+   */
+  origin?: MetricOrigin;
+
   /** Optional additional metadata for the projection */
   metadata?: Record<string, any>;
 }

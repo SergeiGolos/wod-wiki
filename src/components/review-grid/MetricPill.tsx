@@ -23,6 +23,8 @@ interface MetricPillProps {
  * - Tooltip shows full metadata on hover.
  */
 export const MetricPill: React.FC<MetricPillProps> = ({ metric }) => {
+  const isHinted = metric.origin === 'hinted' || metric.image === '?';
+
   const token = useMemo(
     () => themeToken(metricPresentation.present(metric, 'review-grid-cell')),
     [metric],
@@ -31,15 +33,17 @@ export const MetricPill: React.FC<MetricPillProps> = ({ metric }) => {
   return (
     <span
       className={[
-        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium border',
-        token.colorClasses,
-        token.originClasses,
+        'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium border transition-all',
+        isHinted 
+          ? 'bg-warning/10 border-warning/40 text-warning animate-pulse-opacity' 
+          : `${token.colorClasses} ${token.originClasses}`,
       ].join(' ')}
-      title={token.tooltip}
+      title={isHinted ? 'Missing value - click to fill' : token.tooltip}
     >
+      {isHinted && <span className="mr-0.5 text-[10px]">◉</span>}
       {token.label}
-      {token.userEntered && (
-        <span className="text-[10px] opacity-70 ml-0.5">(u)</span>
+      {token.userEntered && !isHinted && (
+        <span className="text-[10px] opacity-70 ml-0.5">👤</span>
       )}
     </span>
   );

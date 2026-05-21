@@ -119,6 +119,34 @@ export interface AnalyticsDataPoint {
 }
 
 // ---------------------------------------------------------------------------
+// Effort — user-defined or bundled exercise definition
+// ---------------------------------------------------------------------------
+
+export interface EffortBaseAttributes {
+    met: number;
+    discipline?: string;
+    intensityTier?: 'low' | 'moderate' | 'high';
+}
+
+export interface EffortDerivation {
+    parentSlug?: string;
+    coefficients?: Record<string, number>;
+    hardOverrides?: Record<string, unknown>;
+}
+
+export interface Effort {
+    id: string;                    // UUID
+    slug: string;                  // Canonical identifier (keyPath)
+    label: string;                 // Human-readable name
+    aliases: string[];             // Alternative names for fuzzy matching
+    baseAttributes: EffortBaseAttributes;
+    registrySource: 'bundled' | 'user' | 'synthetic-unresolved';
+    derivation?: EffortDerivation;
+    createdAt?: string;            // ISO timestamp
+    updatedAt?: string;            // ISO timestamp
+}
+
+// ---------------------------------------------------------------------------
 // Legacy aliases — keep downstream consumers compiling during transition
 // ---------------------------------------------------------------------------
 
@@ -162,5 +190,10 @@ export interface WodWikiSchema {
         key: string;
         value: AnalyticsDataPoint;
         indexes: { 'by-type': string; 'by-segment': string; 'by-result': string };
+    };
+    efforts: {
+        key: string;
+        value: Effort;
+        indexes: { 'by-discipline': string; 'by-source': 'bundled' | 'user' | 'synthetic-unresolved' };
     };
 }
