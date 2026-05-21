@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react'
 import type { MutableRefObject } from 'react'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import { Navbar, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
