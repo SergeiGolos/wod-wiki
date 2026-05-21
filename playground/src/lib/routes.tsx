@@ -108,11 +108,6 @@ export function effortsPath(): string {
   return '/efforts';
 }
 
-/** /effort/:slug */
-export function effortDetailPath(slug: string): string {
-  return `/effort/${encodeURIComponent(slug)}`;
-}
-
 /** /effort/:slug with optional modifiers and page controls */
 export function effortPath(
   slug: string,
