@@ -76,18 +76,21 @@ test.describe('EffortsCatalogPage — Default', () => {
 
   test('renders bundled effort rows', async ({ page }) => {
     // At least one bundled effort should be visible
-    await expect(page.getByText('Rowing')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Rowing', exact: true })).toBeVisible();
   });
 
   test('shows effort metadata (slug and MET)', async ({ page }) => {
-    await expect(page.getByText('rowing').first()).toBeVisible();
-    await expect(page.getByText(/MET\s+7\.0/)).toBeVisible();
+    // Find the Rowing row and verify its slug and MET are visible
+    const rowingRow = page.locator('button', { has: page.getByRole('heading', { name: 'Rowing', exact: true }) });
+    await expect(rowingRow).toBeVisible();
+    await expect(rowingRow.getByText('rowing', { exact: true }).first()).toBeVisible();
+    await expect(rowingRow.getByText(/MET\s*7\.0/)).toBeVisible();
   });
 
   test('shows origin filter buttons', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'All' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bundled' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Custom' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'All', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bundled', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Custom', exact: true })).toBeVisible();
   });
 
   test('shows search input', async ({ page }) => {
@@ -95,13 +98,13 @@ test.describe('EffortsCatalogPage — Default', () => {
   });
 
   test('filtering to bundled origin keeps efforts visible', async ({ page }) => {
-    await page.getByRole('button', { name: 'Bundled' }).click();
+    await page.getByRole('button', { name: 'Bundled', exact: true }).click();
     await page.waitForTimeout(300);
-    await expect(page.getByText('Rowing')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Rowing', exact: true })).toBeVisible();
   });
 
   test('filtering to custom origin shows empty state', async ({ page }) => {
-    await page.getByRole('button', { name: 'Custom' }).click();
+    await page.getByRole('button', { name: 'Custom', exact: true }).click();
     await page.waitForTimeout(300);
     await expect(page.getByText(/No efforts match your filters/i)).toBeVisible();
   });
@@ -110,7 +113,7 @@ test.describe('EffortsCatalogPage — Default', () => {
     const search = page.getByPlaceholder(/Search by name/i);
     await search.fill('Rowing');
     await page.waitForTimeout(300);
-    await expect(page.getByText('Rowing')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Rowing', exact: true })).toBeVisible();
   });
 
   test('search with no matches shows empty state', async ({ page }) => {
@@ -134,7 +137,7 @@ test.describe('EffortsCatalogPage — Mobile', () => {
   });
 
   test('shows origin filters on mobile', async ({ page }) => {
-    await expect(page.getByRole('button', { name: 'All' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Bundled' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'All', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Bundled', exact: true })).toBeVisible();
   });
 });

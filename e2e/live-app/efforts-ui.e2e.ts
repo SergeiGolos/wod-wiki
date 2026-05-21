@@ -237,7 +237,7 @@ test.describe('Clone Effort', () => {
     await page.getByRole('button', { name: /Save/i }).click();
     await page.waitForURL(new RegExp(`/effort/${cloneSlug}`), { timeout: 5_000 });
 
-    await expect(page.getByText('Rowing Clone')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Rowing Clone' })).toBeVisible();
     await expect(page.getByText('Custom', { exact: true })).toBeVisible();
     await expect(page.getByRole('main').getByText('7.5')).toBeVisible();
 
