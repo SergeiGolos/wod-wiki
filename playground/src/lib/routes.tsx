@@ -318,4 +318,3 @@ export function isEffortsPath(pathname: string): boolean {
 export function isEffortPath(pathname: string): boolean {
   return pathname.startsWith('/effort/') || pathname === '/efforts';
 }
-}
