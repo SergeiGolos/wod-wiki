@@ -1,0 +1,131 @@
+/**
+ * Effort Markdown Repository — Reads the markdown/efforts/ directory structure
+ * to build bundled effort definitions from markdown files.
+ *
+ * Each markdown file contains YAML front matter with effort metadata:
+ *   id, slug, label, aliases[], met, discipline, intensityTier
+ *
+ * Uses Vite's import.meta.glob feature to discover files at build time.
+ */
+
+import type { IEffort, IntensityTier } from '@/effort-registry/types';
+
+// Glob all markdown files inside markdown/efforts/ subdirectories
+// NOTE: import.meta.glob must be called directly (not conditionally) for Vite's
+// static transform to work. Unit tests mock this module in tests/unit-setup.ts.
+const effortModules = import.meta.glob('../../markdown/efforts/**/*.md', {
+  query: '?raw',
+  eager: true,
+  import: 'default',
+});
+
+/** Extract front matter block from raw markdown */
+function extractFrontmatter(raw: string): string {
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return match ? match[1] : '';
+}
+
+/** Extract body content after front matter */
+function extractBody(raw: string): string {
+  const match = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
+  return match ? match[1].trim() : '';
+}
+
+/** Parse scalar value from front matter line */
+function parseScalar(lines: string[], key: string): string | undefined {
+  const line = lines.find((l) => l.trim().startsWith(`${key}:`));
+  if (!line) return undefined;
+  const value = line.slice(line.indexOf(':') + 1).trim();
+  return value || undefined;
+}
+
+/** Parse string array from front matter (YAML list syntax) */
+function parseStringArray(lines: string[], key: string): string[] {
+  const result: string[] = [];
+  let inArray = false;
+
+  for (const line of lines) {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith(`${key}:`)) {
+      inArray = true;
+      continue;
+    }
+    if (inArray) {
+      const item = trimmed.match(/^-\s+(.+)$/);
+      if (item) {
+        result.push(item[1].trim());
+      } else if (/^\S/.test(trimmed)) {
+        // New top-level key — end of array block
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Parse a single markdown file into an IEffort */
+function parseEffortFile(raw: string): IEffort | null {
+  const fm = extractFrontmatter(raw);
+  if (!fm) return null;
+
+  const lines = fm.split('\n');
+  const id = parseScalar(lines, 'id');
+  const slug = parseScalar(lines, 'slug');
+  const label = parseScalar(lines, 'label');
+  const metStr = parseScalar(lines, 'met');
+  const discipline = parseScalar(lines, 'discipline');
+  const intensityTier = parseScalar(lines, 'intensityTier') as IntensityTier | undefined;
+  const aliases = parseStringArray(lines, 'aliases');
+
+  if (!id || !slug || !label || !metStr) return null;
+
+  const met = parseFloat(metStr);
+  if (Number.isNaN(met)) return null;
+
+  const body = extractBody(raw);
+
+  return {
+    id,
+    slug,
+    label,
+    aliases,
+    baseAttributes: {
+      met,
+      ...(discipline ? { discipline } : {}),
+      ...(intensityTier ? { intensityTier } : {}),
+    },
+    registrySource: 'bundled',
+    ...(body ? { body } : {}),
+  };
+}
+
+/** Cached result */
+let _bundledEfforts: readonly IEffort[] | null = null;
+
+/**
+ * Get all bundled efforts derived from markdown/efforts/ markdown files.
+ * Results are cached after first call.
+ */
+export function getBundledEfforts(): readonly IEffort[] {
+  if (_bundledEfforts) return _bundledEfforts;
+
+  const efforts: IEffort[] = [];
+
+  for (const [path, content] of Object.entries(effortModules)) {
+    const effort = parseEffortFile(content as string);
+    if (effort) {
+      efforts.push(effort);
+    } else {
+      console.warn(`[effort-markdown] Failed to parse effort file: ${path}`);
+    }
+  }
+
+  _bundledEfforts = efforts.sort((a, b) => a.slug.localeCompare(b.slug));
+  return _bundledEfforts;
+}
+
+/** Number of bundled efforts shipped with the app */
+export function getBundledEffortCount(): number {
+  return getBundledEfforts().length;
+}

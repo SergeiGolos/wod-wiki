@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { MutableRefObject } from 'react'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import { Navbar, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
@@ -15,11 +15,12 @@ import { globalSearchSource } from './services/paletteDataSources'
 import { createJournalEntryFlow } from './services/journalEntryFlow'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import {
   ROUTE_PATTERNS,
   isPlaygroundNotePath,
   isJournalEntryPath,
+  playgroundPath,
   workoutPath,
   journalEntryPath,
   reviewPath,
@@ -39,7 +40,6 @@ import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { FeedsNavPanel } from './nav/panels/FeedsNavPanel'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
-import { ShowPlaygroundsToggle } from './components/ShowPlaygroundsToggle'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
@@ -49,16 +49,17 @@ import { playgroundDB } from './services/playgroundDB'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
 // ── Extracted page components ────────────────────────────────────────────────
-// Eagerly loaded: used on the primary editor routes every user hits
+import { TrackerPage } from './pages/TrackerPage'
+import { ReviewPage } from './pages/ReviewPage'
 import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
-// Lazily loaded: dedicated routes that most users never visit on first load
-const TrackerPage = lazy(() => import('./pages/TrackerPage').then(m => ({ default: m.TrackerPage })))
-const ReviewPage  = lazy(() => import('./pages/ReviewPage').then(m => ({ default: m.ReviewPage })))
-const LoadZipPage = lazy(() => import('./pages/LoadZipPage').then(m => ({ default: m.LoadZipPage })))
-// ── Toast ────────────────────────────────────────────────────────────────────
+import { LoadZipPage } from './pages/LoadZipPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
+import { EffortDetailPage } from './pages/EffortDetailPage'
+import { EffortRegistryProvider } from './components/efforts/EffortRegistryContext'
+// ── Toast ────────────────────────────────────────────────────────────────────
 import { Toaster } from '@/components/ui/toaster'
 import { PageActions } from './pages/shared/PageActions'
 import { ActionsMenu } from './pages/shared/PageToolbar'
@@ -279,8 +280,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
 
     // 2. Docs pages
-    if (location.pathname === ROUTE_PATTERNS.guideGettingStarted) return ZERO_TO_HERO_LINKS
-    if (location.pathname === ROUTE_PATTERNS.guideSyntax) return SYNTAX_LINKS
+    if (location.pathname === '/guide/getting-started') return ZERO_TO_HERO_LINKS
+    if (location.pathname === '/guide/syntax') return SYNTAX_LINKS
     
     // 3. Journal list page
     if (location.pathname === '/journal') {
@@ -378,8 +379,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }, [])
 
   const scrollToSection = useCallback((id: string) => {
-    if (!id) return
-
     // 1. Try standard DOM element (Canvas/List pages)
     //    Use scrollIntoView so the browser finds the correct scroll container
     //    (works inside nested flex layouts like HomeView > CanvasPage).
@@ -512,7 +511,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" subheader={<ShowPlaygroundsToggle />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
@@ -541,6 +540,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
             <CanvasPage title="Collections" subheader={<TextFilterStrip placeholder="Filter collections… Press / to start filtering" />} actions={<PageActions mode="collection-readonly" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <CollectionsPage />
             </CanvasPage>
+          ) : location.pathname === '/efforts' || location.pathname.startsWith('/effort/') ? (
+            location.pathname === '/efforts' ? <EffortsCatalogPage /> : <EffortDetailPage />
           ) : canvasPage ? (
             <CanvasPage
               title={currentWorkout.name}
@@ -615,48 +616,53 @@ export function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="wod-wiki-playground-theme">
-      <AudioProvider>
-        <BrowserRouter>
-          <NuqsAdapter>
+      <EffortRegistryProvider>
+        <AudioProvider>
+          <BrowserRouter>
+            <NuqsAdapter>
             <GlobalState />
             <ScrollToTop />
             <Toaster />
             <CommandProvider>
               <NavProvider tree={navTree}>
-                <Routes>
-                  <Route path={ROUTE_PATTERNS.home} element={<PlaygroundRedirect />} />
-                  <Route path="/getting-started" element={<GettingStartedRedirect />} />
-                  <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
-                  <Route path="/syntax" element={<SyntaxRedirect />} />
-                  <Route path="/syntax/*" element={<SyntaxRedirect />} />
-                  <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.load} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><LoadZipPage /></Suspense>} />
-                  <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
-                  <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
-                  <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  <Route path={ROUTE_PATTERNS.run} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><TrackerPage /></Suspense>} />
-                  <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
-                  <Route path={ROUTE_PATTERNS.review} element={<Suspense fallback={<div className="flex-1 flex items-center justify-center text-zinc-400">Loading…</div>}><ReviewPage /></Suspense>} />
-                  <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
-                  {canvasRoutes.map(({ route }) => (
-                    <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
-                  ))}
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
+              <Routes>
+                <Route path={ROUTE_PATTERNS.home} element={<PlaygroundRedirect />} />
+                <Route path="/getting-started" element={<GettingStartedRedirect />} />
+                <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
+                <Route path="/syntax" element={<SyntaxRedirect />} />
+                <Route path="/syntax/*" element={<SyntaxRedirect />} />
+                <Route path={ROUTE_PATTERNS.journal} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.plan} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.feeds} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.feedDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.feedItem} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.collections} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.collectionDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.collectionWorkout} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.load} element={<LoadZipPage />} />
+                <Route path={ROUTE_PATTERNS.playgroundRoot} element={<PlaygroundRedirect />} />
+                <Route path={ROUTE_PATTERNS.playground} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.notePlaygroundAlias} element={<NotePlaygroundRedirect />} />
+                <Route path={ROUTE_PATTERNS.note} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.journalEntry} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.run} element={<TrackerPage />} />
+                <Route path={ROUTE_PATTERNS.tracker} element={<TrackerRedirect />} />
+                <Route path={ROUTE_PATTERNS.review} element={<ReviewPage />} />
+                <Route path={ROUTE_PATTERNS.efforts} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path={ROUTE_PATTERNS.effortDetail} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                <Route path="/workout/:category/:name" element={<WorkoutRedirect />} />
+                {/* Explicit generated canvas routes — previously served by wildcard fallback */}
+                {canvasRoutes.map(({ route }) => (
+                  <Route key={route} path={route} element={<AppContent searchHandlerRef={searchHandlerRef} />} />
+                ))}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
               </NavProvider>
             </CommandProvider>
           </NuqsAdapter>
         </BrowserRouter>
       </AudioProvider>
+    </EffortRegistryProvider>
     </ThemeProvider>
   )
 }

@@ -22,7 +22,7 @@ import {
   CodeBracketIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/20/solid'
-import { RssIcon } from 'lucide-react'
+import { RssIcon, DumbbellIcon } from 'lucide-react'
 
 import type { NavItem } from './navTypes'
 import type { Location } from 'react-router-dom'
@@ -30,6 +30,7 @@ import type { Location } from 'react-router-dom'
 import { JournalNavPanel }     from './panels/JournalNavPanel'
 import { CollectionsNavPanel } from './panels/CollectionsNavPanel'
 import { FeedsNavPanel }       from './panels/FeedsNavPanel'
+import { EffortsNavPanel }     from './panels/EffortsNavPanel'
 import { canvasRoutes }        from '../canvas/canvasRoutes'
 import { NON_COLLECTION_CATEGORIES } from '../pages/shared/pageUtils'
 import { ROUTE_PATTERNS } from '../lib/routes'
@@ -138,6 +139,16 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       action: { type: 'route', to: ROUTE_PATTERNS.collections },
       isActive: (loc) => isRouteActive(ROUTE_PATTERNS.collections)(loc) || isCollectionWorkoutRoute(loc),
       panel: CollectionsNavPanel,
+    },
+
+    {
+      id: 'efforts',
+      label: 'Efforts',
+      level: 1,
+      icon: DumbbellIcon,
+      action: { type: 'route', to: ROUTE_PATTERNS.efforts },
+      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.efforts || loc.pathname.startsWith('/effort/'),
+      panel: EffortsNavPanel,
     },
   ]
 }
