@@ -249,14 +249,7 @@ export function EffortsCatalogPage() {
         mapRecordToItem={effort => effort}
         getItemKey={effort => effort.slug}
         prependedCanvas={<EffortsHeaderCanvas />}
-        searchSlot={
-          <TextFilterStrip
-            paramName="q"
-            placeholder="Search by name, alias, or slug…"
-            inputTestId={TEST_IDS.EFFORTS_CATALOG_SEARCH}
-            navigationScope="q"
-          />
-        }
+        searchSlot={<TextFilterStrip paramName="q" placeholder="Search by name, alias, or slug…" inputTestId={TEST_IDS.EFFORTS_CATALOG_SEARCH} navigationScope="q" />}
         filterSlot={context => <EffortsFilterSlot context={context} />}
         renderPrimaryContent={effort => <EffortRow effort={effort} />}
         getItemActions={effort => [
@@ -271,11 +264,9 @@ export function EffortsCatalogPage() {
             Loading efforts…
           </div>
         }
-        emptyState={
-          <div data-testid={TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE} className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-            <p className="text-sm font-medium">No efforts match your filters.</p>
-          </div>
-        }
+        emptyState={<div data-testid={TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE} className="flex flex-col items-center justify-center p-20 text-muted-foreground">
+          <p className="text-sm font-medium">No efforts match your filters.</p>
+        </div>}
       />
     </div>
   );

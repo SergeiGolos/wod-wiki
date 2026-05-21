@@ -14,7 +14,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { EffortCard } from '@/playground/components/efforts/EffortCard';
+import { EffortCard } from '../../../playground/src/components/efforts/EffortCard';
 import type { IEffort } from '@/effort-registry';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

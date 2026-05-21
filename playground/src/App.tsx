@@ -90,6 +90,7 @@ const SYNTAX_LINKS = [
 
 // Load all markdown files from the markdown directory
 const workoutFiles = import.meta.glob('../../markdown/**/*.md', { eager: true, query: '?raw', import: 'default' })
+console.log('[App] workoutFiles keys:', Object.keys(workoutFiles).length);
 
 export interface WorkoutItem {
   id: string

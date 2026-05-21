@@ -135,29 +135,29 @@ export function EffortsNavPanel(_props: NavPanelProps) {
             Origin
           </div>
           <div className="flex flex-col gap-1">
-          {ORIGIN_OPTIONS.map(opt => {
-            const active = origin === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => setOrigin(opt.value)}
-                className={cn(
-                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
-                  active
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <span
+            {ORIGIN_OPTIONS.map(opt => {
+              const active = origin === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setOrigin(opt.value)}
                   className={cn(
-                    'size-2 rounded-full shrink-0',
-                    active ? 'bg-primary' : 'bg-border',
+                    'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
+                    active
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
-                />
-                {opt.label}
-              </button>
-            );
-          })}
+                >
+                  <span
+                    className={cn(
+                      'size-2 rounded-full shrink-0',
+                      active ? 'bg-primary' : 'bg-border',
+                    )}
+                  />
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
