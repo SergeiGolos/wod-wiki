@@ -152,4 +152,8 @@ export interface RuntimeStackOptions extends IRuntimeOptions {
     wrapper?: RuntimeStackWrapper;
     logger?: RuntimeStackLogger;
     hooks?: RuntimeStackHooks;
+    analyticsOptions?: {
+        effortResolver?: import('@/effort-registry/types').IEffortResolver;
+        userProfile?: { vo2max?: number };
+    };
 }

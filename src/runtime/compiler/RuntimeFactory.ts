@@ -28,6 +28,7 @@ import type { WodBlock } from '../../components/Editor/types';
 import { RuntimeStackOptions } from '../contracts/IRuntimeOptions';
 import type { IScriptRuntime } from '../contracts/IScriptRuntime';
 import { StartSessionAction } from '../actions/stack/StartSessionAction';
+import { createAnalyticsEngineForBlock } from '../../core/analytics/createAnalyticsEngineForBlock';
 
 /**
  * Interface for runtime factory implementations
@@ -89,6 +90,14 @@ export class RuntimeFactory implements IRuntimeFactory {
 
     // Create runtime with JIT compiler and optional debug options
     const runtime = new ScriptRuntime(script, this.compiler, dependencies, options);
+
+    // Wire analytics engine automatically for all runtimes
+    const { engine, analyticsContext } = createAnalyticsEngineForBlock(block, options?.analyticsOptions);
+    runtime.analyticsContext = analyticsContext;
+    if (options?.tracker) {
+      engine.setTracker(options.tracker);
+    }
+    runtime.setAnalyticsEngine(engine);
 
     // Start the workout by dispatching StartSessionAction
     // This wraps the script in a SessionRootBlock (with WaitingToStart gate)
