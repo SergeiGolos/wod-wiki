@@ -19,6 +19,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NoteEditor } from '@/components/Editor/NoteEditor';
 import { useTheme } from '@/components/theme/ThemeProvider';
+import { JournalPageShell } from '@/panels/page-shells';
+import type { PageNavLink } from '@/components/playground/PageNavDropdown';
 import { effortToDocument, documentToEffort } from '../components/efforts/effortYaml';
 import { useEffortRegistry } from '../components/efforts/EffortRegistryContext';
 import { EffortResolver } from '@/effort-registry';
@@ -38,7 +40,7 @@ function EffortResolvedView({
   return (
     <div className="max-w-2xl space-y-6">
       {/* Effective values card */}
-      <Card>
+      <Card id="effective-resolution">
         <CardHeader>
           <CardTitle className="text-base">Effective Resolution</CardTitle>
         </CardHeader>
@@ -80,7 +82,7 @@ function EffortResolvedView({
 
       {/* Applied modifiers card */}
       {Object.keys(resolved.modifiers).length > 0 && (
-        <Card>
+        <Card id="applied-modifiers">
           <CardHeader>
             <CardTitle className="text-base">Applied Modifiers</CardTitle>
           </CardHeader>
@@ -99,7 +101,7 @@ function EffortResolvedView({
 
       {/* Parent chain card */}
       {resolved.definition.derivation?.parentSlug && (
-        <Card>
+        <Card id="parent-chain">
           <CardHeader>
             <CardTitle className="text-base">Parent Chain</CardTitle>
           </CardHeader>
@@ -152,7 +154,7 @@ function EffortResolvedView({
 
 function AnalyticsPlaceholder() {
   return (
-    <Card className="hidden md:block border-dashed bg-muted/30">
+    <Card id="analytics" className="hidden md:block border-dashed bg-muted/30">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
           <BarChart3 className="size-4" />
@@ -293,11 +295,16 @@ export function EffortDetailPage() {
   const handleSave = useCallback(
     async (updated: IEffort) => {
       try {
+        console.log('[handleSave] upserting effort:', updated.label, updated.slug);
         await registry.upsert(updated);
+        console.log('[handleSave] upsert done');
         toast({ title: 'Saved', description: `"${updated.label}" has been saved.` });
         setIsEditing(false);
         setCloneBase(null);
         await refresh();
+        console.log('[handleSave] refresh done');
+        const resolvedAfter = registry.resolve(updated.slug);
+        console.log('[handleSave] resolved after refresh:', resolvedAfter?.label);
         // Navigate to the canonical slug if it changed
         if (updated.slug !== slug) {
           navigate(effortPath(updated.slug), { replace: true });
@@ -339,17 +346,58 @@ export function EffortDetailPage() {
     });
   }, [effort]);
 
-  const [document, setDocument] = useState(() => effortToDocument(draftEffort));
+  const index: PageNavLink[] = useMemo(() => {
+    if (isEditing || !effectiveEffort) return [];
+    const links: PageNavLink[] = [];
+    if (activeTab === 'resolved' && resolved) {
+      links.push({ id: 'effective-resolution', label: 'Effective Resolution', type: 'heading' });
+      if (Object.keys(resolved.modifiers).length > 0) {
+        links.push({ id: 'applied-modifiers', label: 'Applied Modifiers', type: 'heading' });
+      }
+      if (resolved.definition.derivation?.parentSlug) {
+        links.push({ id: 'parent-chain', label: 'Parent Chain', type: 'heading' });
+      }
+    } else {
+      links.push({ id: 'attributes', label: 'Attributes', type: 'heading' });
+      if (effectiveEffort.aliases.length > 0) {
+        links.push({ id: 'aliases', label: 'Aliases', type: 'heading' });
+      }
+      if (effectiveEffort.body) {
+        links.push({ id: 'notes', label: 'Notes', type: 'heading' });
+      }
+      if (effectiveEffort.derivation) {
+        links.push({ id: 'derivation', label: 'Derivation', type: 'heading' });
+      }
+    }
+    links.push({ id: 'analytics', label: 'Analytics', type: 'heading' });
+    return links;
+  }, [isEditing, effectiveEffort, activeTab, resolved]);
 
-  // Sync document when draftEffort changes (entering edit mode, clone, etc.)
+  const [document, setDocument] = useState(() =>
+    draftEffort ? effortToDocument(draftEffort) : ''
+  );
+
+  // Sync document when entering edit mode or switching to a new draftEffort.
+  // Guard against resetting document on stale draftEffort reference changes
+  // (e.g. registry re-renders) while the user is actively editing.
+  const lastDraftEffortIdRef = React.useRef<string | null>(null);
   useEffect(() => {
-    if (isEditing) {
-      setDocument(effortToDocument(draftEffort));
+    if (isEditing && draftEffort) {
+      const draftId = draftEffort.id;
+      if (lastDraftEffortIdRef.current !== draftId) {
+        lastDraftEffortIdRef.current = draftId;
+        setDocument(effortToDocument(draftEffort));
+      }
+    }
+    if (!isEditing) {
+      lastDraftEffortIdRef.current = null;
     }
   }, [isEditing, draftEffort]);
 
   const handleSaveFromDocument = useCallback(() => {
+    console.log('[handleSaveFromDocument] document:', document);
     const { effort, errors } = documentToEffort(document, draftEffort);
+    console.log('[handleSaveFromDocument] parsed effort:', effort, 'errors:', errors);
     if (errors.length > 0) {
       toast({
         title: 'Invalid YAML',
@@ -392,233 +440,237 @@ export function EffortDetailPage() {
     );
   }
 
+  console.log('[EffortDetailPage render] effort:', effort?.label, 'isEditing:', isEditing, 'isReady:', isReady);
   const effectiveEffort = cloneBase || effort;
   const isUser = effectiveEffort?.registrySource === 'user';
   const isNew = slug === 'new';
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Sticky header */}
-      <div className="flex items-center gap-3 px-6 lg:px-10 py-4 border-b">
-        <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())}>
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold truncate">
-            {effectiveEffort?.label ?? 'New Custom Effort'}
-          </h1>
-        </div>
-        {!isEditing && effectiveEffort && (
-          <div className="flex items-center gap-2">
-            <OriginBadge source={effectiveEffort.registrySource} />
-            {(isUser || effectiveEffort.registrySource === 'bundled') && (
-              <Button variant="outline" size="sm" onClick={handleClone}>
-                <DocumentDuplicateIcon className="size-4 mr-1.5" />
-                Clone
-              </Button>
-            )}
-            {isUser && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                <PencilIcon className="size-4 mr-1.5" />
-                Edit
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Tabs for resolved vs definition view */}
-      {!isEditing && effectiveEffort && Object.keys(modifiers).length > 0 && (
-        <div className="flex gap-1 px-6 lg:px-10 py-2 border-b bg-muted/50">
-          <button
-            onClick={() => setActiveTab('resolved')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
-              activeTab === 'resolved'
-                ? 'bg-background border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Eye className="size-4" />
-            Resolved
-          </button>
-          <button
-            onClick={() => setActiveTab('definition')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
-              activeTab === 'definition'
-                ? 'bg-background border border-border'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <FileText className="size-4" />
-            Definition
-          </button>
-        </div>
+  const actions = (
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="icon" onClick={() => navigate(effortsPath())} title="Back to catalog">
+        <ArrowLeftIcon className="size-4" />
+      </Button>
+      {!isEditing && effectiveEffort && (
+        <>
+          <OriginBadge source={effectiveEffort.registrySource} />
+          {(isUser || effectiveEffort.registrySource === 'bundled') && (
+            <Button variant="outline" size="sm" onClick={handleClone}>
+              <DocumentDuplicateIcon className="size-4 mr-1.5" />
+              Clone
+            </Button>
+          )}
+          {isUser && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              <PencilIcon className="size-4 mr-1.5" />
+              Edit
+            </Button>
+          )}
+        </>
       )}
+    </div>
+  );
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto px-6 lg:px-10 py-6">
-        {isEditing ? (
-          <div className="max-w-2xl space-y-4">
-            <NoteEditor
-              value={document}
-              onChange={setDocument}
-              theme={actualTheme}
-              showLineNumbers={true}
-              enablePreview={false}
-              enableLinting={false}
-              mode="edit"
-              className="border rounded-md min-h-[320px]"
-            />
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Button onClick={handleSaveFromDocument} disabled={!document.trim()}>
-                Save
-              </Button>
-              <Button variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
-              {isUser && !isNew && (
-                <Button variant="destructive" onClick={handleDelete}>
-                  Delete
-                </Button>
-              )}
+  return (
+    <JournalPageShell
+      title={effectiveEffort?.label ?? 'New Custom Effort'}
+      actions={actions}
+      index={index}
+      editor={
+        <>
+          {/* Tabs for resolved vs definition view */}
+          {!isEditing && effectiveEffort && Object.keys(modifiers).length > 0 && (
+            <div className="flex gap-1 px-6 lg:px-10 py-2 border-b bg-muted/50">
+              <button
+                onClick={() => setActiveTab('resolved')}
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
+                  activeTab === 'resolved'
+                    ? 'bg-background border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Eye className="size-4" />
+                Resolved
+              </button>
+              <button
+                onClick={() => setActiveTab('definition')}
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
+                  activeTab === 'definition'
+                    ? 'bg-background border border-border'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <FileText className="size-4" />
+                Definition
+              </button>
             </div>
-          </div>
-        ) : effectiveEffort && activeTab === 'resolved' && resolved ? (
-          <EffortResolvedView resolved={resolved} effort={effectiveEffort} navigate={navigate} />
-        ) : effectiveEffort ? (
-          <div className="max-w-2xl space-y-6">
-            {/* Attributes card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Attributes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">MET</p>
-                    <p className="text-2xl font-bold">{effectiveEffort.baseAttributes.met.toFixed(1)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Intensity</p>
-                    <div className="mt-1">
-                      <IntensityBadge tier={effectiveEffort.baseAttributes.intensityTier} />
-                    </div>
-                  </div>
-                </div>
-                {effectiveEffort.baseAttributes.discipline && (
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Discipline</p>
-                    <p className="text-sm font-medium capitalize">{effectiveEffort.baseAttributes.discipline}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          )}
 
-            {/* Aliases card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Tag className="size-4" />
-                  Aliases
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {effectiveEffort.aliases.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {effectiveEffort.aliases.map(alias => (
-                      <Badge key={alias} variant="secondary">
-                        {alias}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No aliases defined.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Notes / Description card */}
-            {effectiveEffort.body && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <FileText className="size-4" />
-                    Notes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm whitespace-pre-wrap text-foreground">
-                    {effectiveEffort.body}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Derivation card */}
-            {effectiveEffort.derivation && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Derivation</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {effectiveEffort.derivation.parentSlug && (
-                    <p className="text-sm">
-                      Parent:{' '}
-                      <button
-                        onClick={() => navigate(effortPath(effectiveEffort.derivation!.parentSlug!))}
-                        className="font-mono text-primary hover:underline"
-                      >
-                        {effectiveEffort.derivation.parentSlug}
-                      </button>
-                    </p>
+          {/* Content */}
+          <div className="px-6 lg:px-10 py-6">
+            {isEditing ? (
+              <div className="max-w-2xl space-y-4">
+                <NoteEditor
+                  value={document}
+                  onChange={setDocument}
+                  theme={actualTheme}
+                  showLineNumbers={true}
+                  enablePreview={false}
+                  enableLinting={false}
+                  mode="edit"
+                  className="border rounded-md min-h-[320px]"
+                />
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Button onClick={handleSaveFromDocument} disabled={!document.trim()}>
+                    Save
+                  </Button>
+                  <Button variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  {isUser && !isNew && (
+                    <Button variant="destructive" onClick={handleDelete}>
+                      Delete
+                    </Button>
                   )}
-                  {effectiveEffort.derivation.coefficients &&
-                    Object.keys(effectiveEffort.derivation.coefficients).length > 0 && (
+                </div>
+              </div>
+            ) : effectiveEffort && activeTab === 'resolved' && resolved ? (
+              <EffortResolvedView resolved={resolved} effort={effectiveEffort} navigate={navigate} />
+            ) : effectiveEffort ? (
+              <div className="max-w-2xl space-y-6">
+                {/* Attributes card */}
+                <Card id="attributes">
+                  <CardHeader>
+                    <CardTitle className="text-base">Attributes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Coefficients</p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(effectiveEffort.derivation.coefficients).map(([key, val]) => (
-                            <Badge key={key} variant="outline">
-                              {key}: {val}×
-                            </Badge>
-                          ))}
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">MET</p>
+                        <p className="text-2xl font-bold">{effectiveEffort.baseAttributes.met.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Intensity</p>
+                        <div className="mt-1">
+                          <IntensityBadge tier={effectiveEffort.baseAttributes.intensityTier} />
                         </div>
                       </div>
-                    )}
-                  {effectiveEffort.derivation.hardOverrides &&
-                    Object.keys(effectiveEffort.derivation.hardOverrides).length > 0 && (
+                    </div>
+                    {effectiveEffort.baseAttributes.discipline && (
                       <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Hard Overrides</p>
-                        <pre className="text-xs bg-muted rounded p-2 overflow-x-auto">
-                          {JSON.stringify(effectiveEffort.derivation.hardOverrides, null, 2)}
-                        </pre>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Discipline</p>
+                        <p className="text-sm font-medium capitalize">{effectiveEffort.baseAttributes.discipline}</p>
                       </div>
                     )}
-                </CardContent>
-              </Card>
-            )}
+                  </CardContent>
+                </Card>
 
-            {/* Metadata */}
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>
-                <span className="font-mono">ID:</span> {effectiveEffort.id}
-              </p>
-              <p>
-                <span className="font-mono">Slug:</span> {effectiveEffort.slug}
-              </p>
-              {effectiveEffort.createdAt && (
-                <p>Created: {new Date(effectiveEffort.createdAt).toLocaleString()}</p>
-              )}
-              {effectiveEffort.updatedAt && (
-                <p>Updated: {new Date(effectiveEffort.updatedAt).toLocaleString()}</p>
-              )}
-            </div>
+                {/* Aliases card */}
+                <Card id="aliases">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Tag className="size-4" />
+                      Aliases
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {effectiveEffort.aliases.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {effectiveEffort.aliases.map(alias => (
+                          <Badge key={alias} variant="secondary">
+                            {alias}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No aliases defined.</p>
+                    )}
+                  </CardContent>
+                </Card>
 
-            {/* Analytics placeholder */}
-            <AnalyticsPlaceholder />
+                {/* Notes / Description card */}
+                {effectiveEffort.body && (
+                  <Card id="notes">
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="size-4" />
+                        Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm whitespace-pre-wrap text-foreground">
+                        {effectiveEffort.body}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Derivation card */}
+                {effectiveEffort.derivation && (
+                  <Card id="derivation">
+                    <CardHeader>
+                      <CardTitle className="text-base">Derivation</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {effectiveEffort.derivation.parentSlug && (
+                        <p className="text-sm">
+                          Parent:{' '}
+                          <button
+                            onClick={() => navigate(effortPath(effectiveEffort.derivation!.parentSlug!))}
+                            className="font-mono text-primary hover:underline"
+                          >
+                            {effectiveEffort.derivation.parentSlug}
+                          </button>
+                        </p>
+                      )}
+                      {effectiveEffort.derivation.coefficients &&
+                        Object.keys(effectiveEffort.derivation.coefficients).length > 0 && (
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Coefficients</p>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(effectiveEffort.derivation.coefficients).map(([key, val]) => (
+                                <Badge key={key} variant="outline">
+                                  {key}: {val}×
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      {effectiveEffort.derivation.hardOverrides &&
+                        Object.keys(effectiveEffort.derivation.hardOverrides).length > 0 && (
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Hard Overrides</p>
+                            <pre className="text-xs bg-muted rounded p-2 overflow-x-auto">
+                              {JSON.stringify(effectiveEffort.derivation.hardOverrides, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Metadata */}
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>
+                    <span className="font-mono">ID:</span> {effectiveEffort.id}
+                  </p>
+                  <p>
+                    <span className="font-mono">Slug:</span> {effectiveEffort.slug}
+                  </p>
+                  {effectiveEffort.createdAt && (
+                    <p>Created: {new Date(effectiveEffort.createdAt).toLocaleString()}</p>
+                  )}
+                  {effectiveEffort.updatedAt && (
+                    <p>Updated: {new Date(effectiveEffort.updatedAt).toLocaleString()}</p>
+                  )}
+                </div>
+
+                {/* Analytics placeholder */}
+                <AnalyticsPlaceholder />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }
