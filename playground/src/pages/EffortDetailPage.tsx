@@ -346,6 +346,11 @@ export function EffortDetailPage() {
     });
   }, [effort]);
 
+  // These must be declared before any hook that references them (e.g. index useMemo)
+  const effectiveEffort = cloneBase || effort;
+  const isUser = effectiveEffort?.registrySource === 'user';
+  const isNew = slug === 'new';
+
   const index: PageNavLink[] = useMemo(() => {
     if (isEditing || !effectiveEffort) return [];
     const links: PageNavLink[] = [];
@@ -439,11 +444,6 @@ export function EffortDetailPage() {
       </div>
     );
   }
-
-  console.log('[EffortDetailPage render] effort:', effort?.label, 'isEditing:', isEditing, 'isReady:', isReady);
-  const effectiveEffort = cloneBase || effort;
-  const isUser = effectiveEffort?.registrySource === 'user';
-  const isNew = slug === 'new';
 
   const actions = (
     <div className="flex items-center gap-2">

@@ -7,23 +7,17 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { EffortDetailPage } from '../../../playground/src/pages/EffortDetailPage';
 import { EffortRegistryProvider } from '../../../playground/src/components/efforts/EffortRegistryContext';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-interface EffortDetailShellProps {
-  initialEntry: string;
-}
-
-const EffortDetailShell: React.FC<EffortDetailShellProps> = ({ initialEntry }) => (
+const EffortDetailShell: React.FC = () => (
   <EffortRegistryProvider>
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <Routes>
-        <Route path="/effort/:slug" element={<EffortDetailPage />} />
-      </Routes>
-    </MemoryRouter>
+    <Routes>
+      <Route path="/effort/:slug" element={<EffortDetailPage />} />
+    </Routes>
   </EffortRegistryProvider>
 );
 
@@ -52,21 +46,28 @@ type Story = StoryObj<typeof EffortDetailPage>;
 /** Default bundled effort with analytics placeholder. */
 export const BundledEffort: Story = {
   name: 'Bundled effort',
-  render: () => <EffortDetailShell initialEntry="/effort/rowing" />,
+  parameters: {
+    router: { initialEntries: ['/effort/rowing'] },
+  },
+  render: () => <EffortDetailShell />,
 };
 
 /** High-intensity effort with many aliases. */
 export const HighIntensityEffort: Story = {
   name: 'High-intensity effort',
-  render: () => <EffortDetailShell initialEntry="/effort/kettlebell-snatch" />,
+  parameters: {
+    router: { initialEntries: ['/effort/kettlebell-snatch'] },
+  },
+  render: () => <EffortDetailShell />,
 };
 
 /** Effort with URL modifiers — shows resolved tab and analytics placeholder. */
 export const WithModifiers: Story = {
   name: 'With modifiers (resolved tab)',
-  render: () => (
-    <EffortDetailShell initialEntry="/effort/rowing?met=1.2&discipline=running" />
-  ),
+  parameters: {
+    router: { initialEntries: ['/effort/rowing?met=1.2&discipline=running'] },
+  },
+  render: () => <EffortDetailShell />,
 };
 
 /** Mobile viewport — analytics section is hidden to reduce clutter. */
@@ -74,6 +75,7 @@ export const Mobile: Story = {
   name: 'Mobile viewport',
   parameters: {
     viewport: { defaultViewport: 'mobile1' },
+    router: { initialEntries: ['/effort/rowing'] },
   },
-  render: () => <EffortDetailShell initialEntry="/effort/rowing" />,
+  render: () => <EffortDetailShell />,
 };

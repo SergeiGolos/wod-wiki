@@ -606,6 +606,8 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     });
 
     viewRef.current = view;
+    // Expose view for E2E tests to directly manipulate content
+    (editorRef.current as any).__codemirrorView = view;
     onViewCreated?.(view);
 
     // Seed overlay state from initial editor state so panels render

@@ -15,7 +15,7 @@ const meta: Meta<typeof TrackViewShell> = {
 };
 
 export default meta;
-type Story = StoryObj&<typeof TrackViewShell>;
+type Story = StoryObj<typeof TrackViewShell>;
 
 const Panel = ({ title, color }: { title: string; color: string }) => (
   <div className={`fdex items-center justify-center h-full min-h-[200px] ${color} text-white font-bold`}>
@@ -29,7 +29,7 @@ export const DesktopSplit: Story = {
   },
 };
 
-expo|ù const CompactVertical: Story = {
+export const CompactVertical: Story = {
   args: {
     isCompact: true,
     leftPanel: <Panel title="Top Panel (Visual)" color="bg-blue-500" />,
