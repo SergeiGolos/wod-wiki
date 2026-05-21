@@ -7,12 +7,6 @@ import { audioService } from '@/hooks/useBrowserServices';
 import type { WorkoutEvent } from '@/hooks/useBrowserServices';
 import type { WorkoutResults, WodBlock } from '../Editor/types';
 import { toStoredOutputStatement } from '../Editor/types';
-import { AnalyticsEngine } from '../../core/analytics/AnalyticsEngine';
-import { StandardAnalyticsProfile } from '../../core/analytics/StandardAnalyticsProfile';
-import type { AnalyticsProfileContext } from '../../core/analytics/IAnalyticsProfile';
-import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext';
-import { MetricType } from '../../core/models/Metric';
-import { CompositeEffortRegistry, EffortResolver } from '@/effort-registry';
 
 /**
  * Hook to encapsulate Workbench runtime logic.
@@ -50,49 +44,6 @@ export const useWorkbenchRuntime = <T extends WodBlock | null = WodBlock | null>
             // Register the handler
             const action = new RegisterEventHandlerAction(audioHandler, 'global');
             action.do(runtime);
-
-            // Setup Analytics Engine — profile-based assembly
-            const engine = new AnalyticsEngine();
-
-            // Build profile context from selected block
-            const dialect = _selectedBlock?.dialect || 'wod';
-            const scriptMetricTypes = new Set<MetricType>();
-            if (_selectedBlock?.statements) {
-                for (const stmt of _selectedBlock.statements) {
-                    for (const metric of stmt.metrics) {
-                        scriptMetricTypes.add(metric.type);
-                    }
-                }
-            }
-
-            // Construct effort resolver from bundled registry
-            const registry = new CompositeEffortRegistry();
-            registry.loadBundled();
-            const analyticsContext: AnalyticsContext = {
-                effortResolver: new EffortResolver(registry),
-            };
-
-            // Make analytics context available to runtime for compile-time enrichment
-            runtime.analyticsContext = analyticsContext;
-
-            const context: AnalyticsProfileContext = { dialect, scriptMetricTypes, analyticsContext };
-
-            const profile = new StandardAnalyticsProfile();
-            const { realtime, summary } = profile.build(context);
-
-            for (const processor of realtime) {
-                engine.addRealtimeProcessor(processor);
-            }
-            for (const processor of summary) {
-                engine.addSummaryProcessor(processor);
-            }
-
-            // Wire tracker for live per-segment metric card updates
-            if (runtime.tracker) {
-                engine.setTracker(runtime.tracker);
-            }
-
-            runtime.setAnalyticsEngine(engine);
 
             // Cleanup on unmount or runtime change
             return () => {

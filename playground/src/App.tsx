@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import type { MutableRefObject } from 'react'
 import { SidebarLayout } from '@/components/playground/sidebar-layout'
 import { Navbar, NavbarSection, NavbarSpacer } from '@/components/playground/navbar'
@@ -15,11 +15,12 @@ import { globalSearchSource } from './services/paletteDataSources'
 import { createJournalEntryFlow } from './services/journalEntryFlow'
 import { ThemeProvider, useTheme } from '@/components/theme/ThemeProvider'
 import { AudioProvider } from '@/components/audio/AudioContext'
-import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import {
   ROUTE_PATTERNS,
   isPlaygroundNotePath,
   isJournalEntryPath,
+  playgroundPath,
   workoutPath,
   journalEntryPath,
   reviewPath,
@@ -39,7 +40,6 @@ import { FeedDetailPage } from './pages/FeedDetailPage'
 import { FeedItemPage } from './pages/FeedItemPage'
 import { FeedsNavPanel } from './nav/panels/FeedsNavPanel'
 import { TextFilterStrip } from './views/queriable-list/TextFilterStrip'
-import { ShowPlaygroundsToggle } from './components/ShowPlaygroundsToggle'
 import { CollectionsPage } from './views/CollectionsPage'
 import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
 import { CanvasPage } from '@/panels/page-shells'
@@ -49,15 +49,12 @@ import { playgroundDB } from './services/playgroundDB'
 import type { WorkoutResult } from '@/types/storage'
 import { EditorView } from '@codemirror/view'
 // ── Extracted page components ────────────────────────────────────────────────
-// Eagerly loaded: used on the primary editor routes every user hits
+import { TrackerPage } from './pages/TrackerPage'
+import { ReviewPage } from './pages/ReviewPage'
 import { JournalPage } from './pages/JournalPage'
 import { PlaygroundNotePage } from './pages/PlaygroundNotePage'
 import { WorkoutEditorPage } from './pages/WorkoutEditorPage'
-// Lazily loaded: dedicated routes that most users never visit on first load
-const TrackerPage = lazy(() => import('./pages/TrackerPage').then(m => ({ default: m.TrackerPage })))
-const ReviewPage  = lazy(() => import('./pages/ReviewPage').then(m => ({ default: m.ReviewPage })))
-const LoadZipPage = lazy(() => import('./pages/LoadZipPage').then(m => ({ default: m.LoadZipPage })))
-// ── Toast ────────────────────────────────────────────────────────────────────
+import { LoadZipPage } from './pages/LoadZipPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { EffortsCatalogPage } from './pages/EffortsCatalogPage'
 import { EffortDetailPage } from './pages/EffortDetailPage'
@@ -283,8 +280,8 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
     }
 
     // 2. Docs pages
-    if (location.pathname === ROUTE_PATTERNS.guideGettingStarted) return ZERO_TO_HERO_LINKS
-    if (location.pathname === ROUTE_PATTERNS.guideSyntax) return SYNTAX_LINKS
+    if (location.pathname === '/guide/getting-started') return ZERO_TO_HERO_LINKS
+    if (location.pathname === '/guide/syntax') return SYNTAX_LINKS
     
     // 3. Journal list page
     if (location.pathname === '/journal') {
@@ -382,8 +379,6 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
   }, [])
 
   const scrollToSection = useCallback((id: string) => {
-    if (!id) return
-
     // 1. Try standard DOM element (Canvas/List pages)
     //    Use scrollIntoView so the browser finds the correct scroll container
     //    (works inside nested flex layouts like HomeView > CanvasPage).
@@ -516,7 +511,7 @@ function AppContent({ searchHandlerRef }: { searchHandlerRef: MutableRefObject<(
       <div className="flex flex-col h-full min-h-[calc(100vh-theme(spacing.20))]">
         <div className="flex-1 flex flex-col min-h-0">
           {location.pathname === '/journal' ? (
-            <CanvasPage title="Journal" subheader={<ShowPlaygroundsToggle />} index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
+            <CanvasPage title="Journal" index={currentNavLinks} onScrollToSection={scrollToSection} actions={<PageActions mode="journal-active" currentWorkout={currentWorkout} index={currentNavLinks} onSearch={openSearchPalette} />}>
               <JournalWeeklyPage 
                 onSelect={handleSelectWorkout}
                 onCreateEntry={handleCreateJournalEntry}
@@ -624,7 +619,7 @@ export function App() {
       <EffortRegistryProvider>
         <AudioProvider>
           <BrowserRouter>
-          <NuqsAdapter>
+            <NuqsAdapter>
             <GlobalState />
             <ScrollToTop />
             <Toaster />
@@ -667,7 +662,7 @@ export function App() {
         </BrowserRouter>
       </AudioProvider>
     </EffortRegistryProvider>
-  </ThemeProvider>
+    </ThemeProvider>
   )
 }
 

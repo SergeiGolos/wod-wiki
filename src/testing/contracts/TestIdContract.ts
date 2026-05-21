@@ -49,6 +49,34 @@ export const TEST_IDS = {
   TESTBENCH_MEMORY: 'testbench-memory',
   TESTBENCH_SCRIPT_EDITOR: 'testbench-script-editor',
 
+  // ── Efforts catalog ───────────────────────────────────────────────────────
+  EFFORTS_CATALOG_ROOT: 'efforts-catalog-root',
+  EFFORTS_CATALOG_SEARCH: 'efforts-catalog-search',
+  EFFORTS_CATALOG_CREATE_BTN: 'efforts-catalog-create-btn',
+  EFFORTS_CATALOG_EMPTY_STATE: 'efforts-catalog-empty-state',
+  EFFORTS_LOADING: 'efforts-loading',
+
+  // ── Effort detail ─────────────────────────────────────────────────────────
+  EFFORT_DETAIL_ROOT: 'effort-detail-root',
+  EFFORT_DETAIL_LABEL: 'effort-detail-label',
+  EFFORT_DETAIL_ALIASES: 'effort-detail-aliases',
+  EFFORT_DETAIL_ATTRIBUTES: 'effort-detail-attributes',
+  EFFORT_DETAIL_SOURCE: 'effort-detail-source',
+  EFFORT_DETAIL_EDIT_BTN: 'effort-detail-edit-btn',
+  EFFORT_DETAIL_CLONE_BTN: 'effort-detail-clone-btn',
+  EFFORT_DETAIL_SAVE_BTN: 'effort-detail-save-btn',
+  EFFORT_DETAIL_CANCEL_BTN: 'effort-detail-cancel-btn',
+  EFFORT_DETAIL_DELETE_BTN: 'effort-detail-delete-btn',
+  EFFORT_DETAIL_NOTEBOOK_EDITOR: 'effort-detail-notebook-editor',
+  EFFORT_DETAIL_ANALYTICS_PLACEHOLDER: 'effort-detail-analytics-placeholder',
+  EFFORT_NOT_FOUND: 'effort-not-found',
+
+  // ── Efforts nav panel ─────────────────────────────────────────────────────
+  EFFORTS_NAV_ORIGIN_FILTER: 'efforts-nav-origin-filter',
+  EFFORTS_NAV_DISCIPLINE_FILTER: 'efforts-nav-discipline-filter',
+  EFFORTS_NAV_RECENT_WORKOUTS: 'efforts-nav-recent-workouts',
+  EFFORTS_NAV_RECENT_WORKOUT_ITEM: 'efforts-nav-recent-workout-item',
+
   // ── Command palette ────────────────────────────────────────────────────────
   COMMAND_PALETTE_TRIGGER: 'command-palette-trigger',
   COMMAND_PALETTE_INPUT: 'command-palette-input',

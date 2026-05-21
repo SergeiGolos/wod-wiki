@@ -6,7 +6,7 @@
  *   `origin`   — origin filter: 'all', 'bundled', 'user' (default: 'all')
  *   `discipline` — discipline filter (default: '')
  *
- * Both the EffortsPage (writer) and filter components (readers) share
+ * Both the catalog page (writer) and filter components (readers) share
  * this hook so the URL is always the source of truth.
  */
 

@@ -18,6 +18,7 @@ import type { WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';
 import { MetricType } from '@/core/models/Metric';
 import { journalEntryPath } from '../../lib/routes';
+import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
 const ORIGIN_OPTIONS = [
   { value: 'all' as const, label: 'All' },
@@ -129,33 +130,35 @@ export function EffortsNavPanel(_props: NavPanelProps) {
   if (isListPage) {
     return (
       <div className="flex flex-col gap-2 px-2 py-3">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          Origin
-        </div>
-        <div className="flex flex-col gap-1">
-          {ORIGIN_OPTIONS.map(opt => {
-            const active = origin === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => setOrigin(opt.value)}
-                className={cn(
-                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
-                  active
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <span
+        <div data-testid={TEST_IDS.EFFORTS_NAV_ORIGIN_FILTER} className="flex flex-col gap-2">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            Origin
+          </div>
+          <div className="flex flex-col gap-1">
+            {ORIGIN_OPTIONS.map(opt => {
+              const active = origin === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setOrigin(opt.value)}
                   className={cn(
-                    'size-2 rounded-full shrink-0',
-                    active ? 'bg-primary' : 'bg-border',
+                    'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left transition-colors',
+                    active
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
-                />
-                {opt.label}
-              </button>
-            );
-          })}
+                >
+                  <span
+                    className={cn(
+                      'size-2 rounded-full shrink-0',
+                      active ? 'bg-primary' : 'bg-border',
+                    )}
+                  />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {disciplines.length > 0 && (
@@ -163,7 +166,7 @@ export function EffortsNavPanel(_props: NavPanelProps) {
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mt-2">
               Discipline
             </div>
-            <div className="flex flex-col gap-1">
+            <div data-testid={TEST_IDS.EFFORTS_NAV_DISCIPLINE_FILTER} className="flex flex-col gap-1">
               <button
                 onClick={() => setDiscipline('')}
                 className={cn(
@@ -215,7 +218,7 @@ export function EffortsNavPanel(_props: NavPanelProps) {
 
   if (effortSlug && effort) {
     return (
-      <div className="flex flex-col gap-3 px-2 py-3">
+      <div data-testid={TEST_IDS.EFFORTS_NAV_RECENT_WORKOUTS} className="flex flex-col gap-3 px-2 py-3">
         <div className="flex items-center justify-between">
           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
             Recent Workouts
@@ -265,6 +268,7 @@ export function EffortsNavPanel(_props: NavPanelProps) {
                 <button
                   key={result.id}
                   onClick={handleClick}
+                  data-testid={TEST_IDS.EFFORTS_NAV_RECENT_WORKOUT_ITEM}
                   className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-left text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                   <ClockIcon className="size-3.5 shrink-0 text-muted-foreground/50" />

@@ -19,6 +19,7 @@ import { CollectionListTemplate, type CollectionListTemplateContext } from '../t
 import { TextFilterStrip } from '../views/queriable-list/TextFilterStrip';
 import { Flame, Activity, Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
 const ORIGIN_OPTIONS: { value: EffortRegistrySource | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -69,7 +70,7 @@ function EffortRow({ effort }: { effort: IEffort }) {
   const { met, discipline, intensityTier } = baseAttributes;
 
   return (
-    <div className="w-full flex items-center gap-4 px-6 py-4 text-left group">
+    <div data-testid={`effort-row-${slug}`} className="w-full flex items-center gap-4 px-6 py-4 text-left group">
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-3">
           <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
@@ -175,7 +176,7 @@ function EffortsHeaderCanvas() {
             Catalog of all registered efforts (bundled + custom)
           </p>
         </div>
-        <Button onClick={handleCreateCustom}>
+        <Button data-testid={TEST_IDS.EFFORTS_CATALOG_CREATE_BTN} onClick={handleCreateCustom}>
           <PlusIcon className="size-4 mr-2" />
           Create Custom
         </Button>
@@ -231,7 +232,7 @@ export function EffortsCatalogPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 p-12 text-center h-full">
+      <div data-testid={TEST_IDS.EFFORTS_CATALOG_ROOT} className="flex flex-col items-center justify-center gap-4 p-12 text-center h-full">
         <p className="text-destructive font-medium">Failed to load effort registry.</p>
         <Button variant="outline" onClick={() => refresh()}>
           Retry
@@ -241,30 +242,32 @@ export function EffortsCatalogPage() {
   }
 
   return (
-    <CollectionListTemplate
-      query={query}
-      loadRecords={loadEfforts}
-      mapRecordToItem={effort => effort}
-      getItemKey={effort => effort.slug}
-      prependedCanvas={<EffortsHeaderCanvas />}
-      searchSlot={<TextFilterStrip paramName="q" placeholder="Search by name, alias, or slug…" navigationScope="q" />}
-      filterSlot={context => <EffortsFilterSlot context={context} />}
-      renderPrimaryContent={effort => <EffortRow effort={effort} />}
-      getItemActions={effort => [
-        {
-          id: 'open',
-          label: 'Open',
-          onSelect: handleSelectEffort,
-        },
-      ]}
-      loadingState={
-        <div className="flex flex-1 items-center justify-center p-20 text-sm font-medium text-muted-foreground">
-          Loading efforts…
-        </div>
-      }
-      emptyState={<div className="flex flex-col items-center justify-center p-20 text-muted-foreground">
-        <p className="text-sm font-medium">No efforts match your filters.</p>
-      </div>}
-    />
+    <div data-testid={TEST_IDS.EFFORTS_CATALOG_ROOT} className="flex flex-col h-full">
+      <CollectionListTemplate
+        query={query}
+        loadRecords={loadEfforts}
+        mapRecordToItem={effort => effort}
+        getItemKey={effort => effort.slug}
+        prependedCanvas={<EffortsHeaderCanvas />}
+        searchSlot={<TextFilterStrip paramName="q" placeholder="Search by name, alias, or slug…" inputTestId={TEST_IDS.EFFORTS_CATALOG_SEARCH} navigationScope="q" />}
+        filterSlot={context => <EffortsFilterSlot context={context} />}
+        renderPrimaryContent={effort => <EffortRow effort={effort} />}
+        getItemActions={effort => [
+          {
+            id: 'open',
+            label: 'Open',
+            onSelect: handleSelectEffort,
+          },
+        ]}
+        loadingState={
+          <div data-testid={TEST_IDS.EFFORTS_LOADING} className="flex flex-1 items-center justify-center p-20 text-sm font-medium text-muted-foreground">
+            Loading efforts…
+          </div>
+        }
+        emptyState={<div data-testid={TEST_IDS.EFFORTS_CATALOG_EMPTY_STATE} className="flex flex-col items-center justify-center p-20 text-muted-foreground">
+          <p className="text-sm font-medium">No efforts match your filters.</p>
+        </div>}
+      />
+    </div>
   );
 }

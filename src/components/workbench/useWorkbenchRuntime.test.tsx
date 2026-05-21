@@ -76,7 +76,7 @@ describe('useWorkbenchRuntime', () => {
         }
     });
 
-    it('assembles analytics engine via StandardAnalyticsProfile based on selected block metrics', async () => {
+    it('does not duplicate analytics assembly — engine is wired by RuntimeFactory', async () => {
         const { useWorkbenchRuntime } = await import('./useWorkbenchRuntime');
         const setAnalyticsEngine = mock((_engine: unknown) => { });
         const mockRuntime = {
@@ -131,14 +131,8 @@ describe('useWorkbenchRuntime', () => {
             { wrapper }
         );
 
-        expect(setAnalyticsEngine).toHaveBeenCalledTimes(1);
-        const engine = setAnalyticsEngine.mock.calls[0][0] as any;
-        expect(engine).toBeDefined();
-        // PowerEnrichmentProcess requires Rep + Resistance — both present in block
-        const realtimeIds = engine.realtimeProcessors.map((p: any) => p.id);
-        expect(realtimeIds).toContain('power-enrichment');
-        // VolumeProjectionEngine requires Rep + Resistance
-        const summaryIds = engine.summaryProcessors.map((p: any) => p.id);
-        expect(summaryIds).toContain('volume-projection');
+        // Analytics engine assembly is now handled by RuntimeFactory.createRuntime().
+        // useWorkbenchRuntime must NOT call setAnalyticsEngine again.
+        expect(setAnalyticsEngine).not.toHaveBeenCalled();
     });
 });

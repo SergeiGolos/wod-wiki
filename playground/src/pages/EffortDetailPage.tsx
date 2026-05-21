@@ -27,6 +27,7 @@ import { EffortResolver } from '@/effort-registry';
 import type { IEffort, ResolvedEffort } from '@/effort-registry';
 import { effortsPath, effortPath, parseEffortRouteModifiers, parseEffortRouteOptions } from '../lib/routes';
 import { toast } from '@/hooks/use-toast';
+import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 
 function EffortResolvedView({
   resolved,
@@ -154,7 +155,7 @@ function EffortResolvedView({
 
 function AnalyticsPlaceholder() {
   return (
-    <Card id="analytics" className="hidden md:block border-dashed bg-muted/30">
+    <Card id="analytics" data-testid={TEST_IDS.EFFORT_DETAIL_ANALYTICS_PLACEHOLDER} className="hidden md:block border-dashed bg-muted/30">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2 text-muted-foreground">
           <BarChart3 className="size-4" />
@@ -436,7 +437,7 @@ export function EffortDetailPage() {
 
   if (!effort && slug !== 'new') {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+      <div data-testid={TEST_IDS.EFFORT_NOT_FOUND} className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-muted-foreground">Effort "{slug}" not found.</p>
         <Button variant="outline" onClick={() => navigate(effortsPath())}>
           Back to Catalog
@@ -452,17 +453,34 @@ export function EffortDetailPage() {
       </Button>
       {!isEditing && effectiveEffort && (
         <>
-          <OriginBadge source={effectiveEffort.registrySource} />
+          <span data-testid={TEST_IDS.EFFORT_DETAIL_SOURCE}>
+            <OriginBadge source={effectiveEffort.registrySource} />
+          </span>
           {(isUser || effectiveEffort.registrySource === 'bundled') && (
-            <Button variant="outline" size="sm" onClick={handleClone}>
+            <Button data-testid={TEST_IDS.EFFORT_DETAIL_CLONE_BTN} variant="outline" size="sm" onClick={handleClone}>
               <DocumentDuplicateIcon className="size-4 mr-1.5" />
               Clone
             </Button>
           )}
           {isUser && (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Button data-testid={TEST_IDS.EFFORT_DETAIL_EDIT_BTN} variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               <PencilIcon className="size-4 mr-1.5" />
               Edit
+            </Button>
+          )}
+        </>
+      )}
+      {isEditing && (
+        <>
+          <Button data-testid={TEST_IDS.EFFORT_DETAIL_SAVE_BTN} size="sm" onClick={handleSaveFromDocument} disabled={!document.trim()}>
+            Save
+          </Button>
+          <Button data-testid={TEST_IDS.EFFORT_DETAIL_CANCEL_BTN} variant="outline" size="sm" onClick={handleCancel}>
+            Cancel
+          </Button>
+          {isUser && !isNew && (
+            <Button data-testid={TEST_IDS.EFFORT_DETAIL_DELETE_BTN} variant="destructive" size="sm" onClick={handleDelete}>
+              Delete
             </Button>
           )}
         </>
@@ -471,206 +489,211 @@ export function EffortDetailPage() {
   );
 
   return (
-    <JournalPageShell
-      title={effectiveEffort?.label ?? 'New Custom Effort'}
-      actions={actions}
-      index={index}
-      editor={
-        <>
-          {/* Tabs for resolved vs definition view */}
-          {!isEditing && effectiveEffort && Object.keys(modifiers).length > 0 && (
-            <div className="flex gap-1 px-6 lg:px-10 py-2 border-b bg-muted/50">
-              <button
-                onClick={() => setActiveTab('resolved')}
-                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
-                  activeTab === 'resolved'
-                    ? 'bg-background border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Eye className="size-4" />
-                Resolved
-              </button>
-              <button
-                onClick={() => setActiveTab('definition')}
-                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
-                  activeTab === 'definition'
-                    ? 'bg-background border border-border'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileText className="size-4" />
-                Definition
-              </button>
-            </div>
-          )}
-
-          {/* Content */}
-          <div className="px-6 lg:px-10 py-6">
-            {isEditing ? (
-              <div className="max-w-2xl space-y-4">
-                <NoteEditor
-                  value={document}
-                  onChange={setDocument}
-                  theme={actualTheme}
-                  showLineNumbers={true}
-                  enablePreview={false}
-                  enableLinting={false}
-                  mode="edit"
-                  className="border rounded-md min-h-[320px]"
-                />
-                <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <Button onClick={handleSaveFromDocument} disabled={!document.trim()}>
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                  {isUser && !isNew && (
-                    <Button variant="destructive" onClick={handleDelete}>
-                      Delete
-                    </Button>
-                  )}
-                </div>
+    <div data-testid={TEST_IDS.EFFORT_DETAIL_ROOT} className="flex flex-col h-full">
+      <span data-testid={TEST_IDS.EFFORT_DETAIL_LABEL} className="sr-only">
+        {effectiveEffort?.label ?? 'New Custom Effort'}
+      </span>
+      <JournalPageShell
+        title={effectiveEffort?.label ?? 'New Custom Effort'}
+        actions={actions}
+        index={index}
+        editor={
+          <>
+            {/* Tabs for resolved vs definition view */}
+            {!isEditing && effectiveEffort && Object.keys(modifiers).length > 0 && (
+              <div className="flex gap-1 px-6 lg:px-10 py-2 border-b bg-muted/50">
+                <button
+                  onClick={() => setActiveTab('resolved')}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
+                    activeTab === 'resolved'
+                      ? 'bg-background border border-border'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <Eye className="size-4" />
+                  Resolved
+                </button>
+                <button
+                  onClick={() => setActiveTab('definition')}
+                  className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition ${
+                    activeTab === 'definition'
+                      ? 'bg-background border border-border'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <FileText className="size-4" />
+                  Definition
+                </button>
               </div>
-            ) : effectiveEffort && activeTab === 'resolved' && resolved ? (
-              <EffortResolvedView resolved={resolved} effort={effectiveEffort} navigate={navigate} />
-            ) : effectiveEffort ? (
-              <div className="max-w-2xl space-y-6">
-                {/* Attributes card */}
-                <Card id="attributes">
-                  <CardHeader>
-                    <CardTitle className="text-base">Attributes</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">MET</p>
-                        <p className="text-2xl font-bold">{effectiveEffort.baseAttributes.met.toFixed(1)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Intensity</p>
-                        <div className="mt-1">
-                          <IntensityBadge tier={effectiveEffort.baseAttributes.intensityTier} />
+            )}
+
+            {/* Content */}
+            <div className="px-6 lg:px-10 py-6">
+              {isEditing ? (
+                <div data-testid={TEST_IDS.EFFORT_DETAIL_NOTEBOOK_EDITOR} className="max-w-2xl space-y-4">
+                  <NoteEditor
+                    value={document}
+                    onChange={setDocument}
+                    theme={actualTheme}
+                    showLineNumbers={true}
+                    enablePreview={false}
+                    enableLinting={false}
+                    mode="edit"
+                    className="border rounded-md min-h-[320px]"
+                  />
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <Button onClick={handleSaveFromDocument} disabled={!document.trim()}>
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                    {isUser && !isNew && (
+                      <Button variant="destructive" onClick={handleDelete}>
+                        Delete
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : effectiveEffort && activeTab === 'resolved' && resolved ? (
+                <EffortResolvedView resolved={resolved} effort={effectiveEffort} navigate={navigate} />
+              ) : effectiveEffort ? (
+                <div className="max-w-2xl space-y-6">
+                  {/* Attributes card */}
+                  <Card id="attributes" data-testid={TEST_IDS.EFFORT_DETAIL_ATTRIBUTES}>
+                    <CardHeader>
+                      <CardTitle className="text-base">Attributes</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">MET</p>
+                          <p className="text-2xl font-bold">{effectiveEffort.baseAttributes.met.toFixed(1)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Intensity</p>
+                          <div className="mt-1">
+                            <IntensityBadge tier={effectiveEffort.baseAttributes.intensityTier} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    {effectiveEffort.baseAttributes.discipline && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">Discipline</p>
-                        <p className="text-sm font-medium capitalize">{effectiveEffort.baseAttributes.discipline}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {effectiveEffort.baseAttributes.discipline && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Discipline</p>
+                          <p className="text-sm font-medium capitalize">{effectiveEffort.baseAttributes.discipline}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
 
-                {/* Aliases card */}
-                <Card id="aliases">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Tag className="size-4" />
-                      Aliases
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {effectiveEffort.aliases.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {effectiveEffort.aliases.map(alias => (
-                          <Badge key={alias} variant="secondary">
-                            {alias}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No aliases defined.</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Notes / Description card */}
-                {effectiveEffort.body && (
-                  <Card id="notes">
+                  {/* Aliases card */}
+                  <Card id="aliases" data-testid={TEST_IDS.EFFORT_DETAIL_ALIASES}>
                     <CardHeader>
                       <CardTitle className="text-base flex items-center gap-2">
-                        <FileText className="size-4" />
-                        Notes
+                        <Tag className="size-4" />
+                        Aliases
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm whitespace-pre-wrap text-foreground">
-                        {effectiveEffort.body}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Derivation card */}
-                {effectiveEffort.derivation && (
-                  <Card id="derivation">
-                    <CardHeader>
-                      <CardTitle className="text-base">Derivation</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {effectiveEffort.derivation.parentSlug && (
-                        <p className="text-sm">
-                          Parent:{' '}
-                          <button
-                            onClick={() => navigate(effortPath(effectiveEffort.derivation!.parentSlug!))}
-                            className="font-mono text-primary hover:underline"
-                          >
-                            {effectiveEffort.derivation.parentSlug}
-                          </button>
-                        </p>
+                      {effectiveEffort.aliases.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {effectiveEffort.aliases.map(alias => (
+                            <Badge key={alias} variant="secondary">
+                              {alias}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No aliases defined.</p>
                       )}
-                      {effectiveEffort.derivation.coefficients &&
-                        Object.keys(effectiveEffort.derivation.coefficients).length > 0 && (
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Coefficients</p>
-                            <div className="flex flex-wrap gap-2">
-                              {Object.entries(effectiveEffort.derivation.coefficients).map(([key, val]) => (
-                                <Badge key={key} variant="outline">
-                                  {key}: {val}×
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      {effectiveEffort.derivation.hardOverrides &&
-                        Object.keys(effectiveEffort.derivation.hardOverrides).length > 0 && (
-                          <div>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Hard Overrides</p>
-                            <pre className="text-xs bg-muted rounded p-2 overflow-x-auto">
-                              {JSON.stringify(effectiveEffort.derivation.hardOverrides, null, 2)}
-                            </pre>
-                          </div>
-                        )}
                     </CardContent>
                   </Card>
-                )}
 
-                {/* Metadata */}
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>
-                    <span className="font-mono">ID:</span> {effectiveEffort.id}
-                  </p>
-                  <p>
-                    <span className="font-mono">Slug:</span> {effectiveEffort.slug}
-                  </p>
-                  {effectiveEffort.createdAt && (
-                    <p>Created: {new Date(effectiveEffort.createdAt).toLocaleString()}</p>
+                  {/* Notes / Description card */}
+                  {effectiveEffort.body && (
+                    <Card id="notes">
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="size-4" />
+                          Notes
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-sm whitespace-pre-wrap text-foreground">
+                          {effectiveEffort.body}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
-                  {effectiveEffort.updatedAt && (
-                    <p>Updated: {new Date(effectiveEffort.updatedAt).toLocaleString()}</p>
+
+                  {/* Derivation card */}
+                  {effectiveEffort.derivation && (
+                    <Card id="derivation">
+                      <CardHeader>
+                        <CardTitle className="text-base">Derivation</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {effectiveEffort.derivation.parentSlug && (
+                          <p className="text-sm">
+                            Parent:{' '}
+                            <button
+                              onClick={() => navigate(effortPath(effectiveEffort.derivation!.parentSlug!))}
+                              className="font-mono text-primary hover:underline"
+                            >
+                              {effectiveEffort.derivation.parentSlug}
+                            </button>
+                          </p>
+                        )}
+                        {effectiveEffort.derivation.coefficients &&
+                          Object.keys(effectiveEffort.derivation.coefficients).length > 0 && (
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Coefficients</p>
+                              <div className="flex flex-wrap gap-2">
+                                {Object.entries(effectiveEffort.derivation.coefficients).map(([key, val]) => (
+                                  <Badge key={key} variant="outline">
+                                    {key}: {val}×
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        {effectiveEffort.derivation.hardOverrides &&
+                          Object.keys(effectiveEffort.derivation.hardOverrides).length > 0 && (
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Hard Overrides</p>
+                              <pre className="text-xs bg-muted rounded p-2 overflow-x-auto">
+                                {JSON.stringify(effectiveEffort.derivation.hardOverrides, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                      </CardContent>
+                    </Card>
                   )}
+
+                  {/* Metadata */}
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>
+                      <span className="font-mono">ID:</span> {effectiveEffort.id}
+                    </p>
+                    <p>
+                      <span className="font-mono">Slug:</span> {effectiveEffort.slug}
+                    </p>
+                    {effectiveEffort.createdAt && (
+                      <p>Created: {new Date(effectiveEffort.createdAt).toLocaleString()}</p>
+                    )}
+                    {effectiveEffort.updatedAt && (
+                      <p>Updated: {new Date(effectiveEffort.updatedAt).toLocaleString()}</p>
+                    )}
+                  </div>
+
+                  {/* Analytics placeholder */}
+                  <AnalyticsPlaceholder />
                 </div>
-
-                {/* Analytics placeholder */}
-                <AnalyticsPlaceholder />
-              </div>
-            ) : null}
-          </div>
-        </>
-      }
-    />
+              ) : null}
+            </div>
+          </>
+        }
+      />
+    </div>
   );
 }

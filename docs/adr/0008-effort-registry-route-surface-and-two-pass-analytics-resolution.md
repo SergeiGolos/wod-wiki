@@ -1,150 +1,398 @@
-# ADR-0008: Effort Registry, Route Surface, and Two-Pass Analytics Resolution
+# ADR-0008: Effort Registry Route Surface and Two-Pass Analytics Resolution
 
-**Status**: proposed  
-**Area**: Effort Definitions / Analytics / Routing  
-**Related PRD**: `docs/prd-effort-registry.md`  
-**Related ADRs**: ADR-0002 (MET-Score), ADR-0003 (Discipline-Factor), ADR-0005 (Analytics Profile), ADR-0006 (METmax fallback), playground-route-governance
+**Date:** 2026-05-20
+**Status:** Accepted
+**Issue:** [WOD-524](/WOD/issues/WOD-524)
+**References:** [WOD-522](/WOD/issues/WOD-522), [WOD-517](/WOD/issues/WOD-517), [[Metrics Processor Architecture]], `src/core/analytics/`
 
 ---
 
 ## Context
 
-The analytics math defined in ADR-0002 through ADR-0007 requires **Activity METs** and a **Discipline-Factor** per effort performed in a workout. These values are not derivable from the workout script alone — `EffortMetric` currently stores only a raw string (e.g. `"Push-ups"`, `"run"`, `"hard fast"`). No resolution layer exists to map that string to physiological properties.
+The product needs a canonical way to represent exercise efforts such as rowing, running, assault bike, or coach-defined compound efforts.
 
-Without resolved effort data:
-- `MET-Score` (ADR-0002) cannot be computed
-- `Discipline-Factor` (ADR-0003) defaults to `1.0` for everything, losing the strength/yoga differentiation
-- `MetMinuteProjectionEngine` produces estimates against a hard-coded assumed MET
-- `TISProcessor` cannot be implemented at all
-- `StandardAnalyticsProfile` (ADR-0005) cannot selectively activate processors based on which effort types are present
+Today, effort semantics are fragmented across:
 
-A resolution layer is required before any of ADR-0002 through ADR-0007 can be fully implemented.
+- authored labels in workout scripts
+- analytics processor assumptions
+- hardcoded MET and activity mappings
+- UI labels and ad hoc aliases
 
----
+That fragmentation creates four architecture problems.
+
+### 1. There is no stable effort identity
+
+A coach may author `row`, `rowing`, `erg`, or `concept2 row`, but the system has no first-class entity that says those names refer to the same effort definition.
+
+Without a canonical identity, routes, analytics joins, user customization, and future reporting all depend on brittle strings.
+
+### 2. Customization has no durable seam
+
+If users need to refine MET, discipline, or modality assumptions for their own training context, there is no registry boundary where those overrides can live.
+
+That pushes customization either into code changes or into UI-only hacks that analytics cannot trust.
+
+### 3. Resolution happens too late and too inconsistently
+
+Some effort references are knowable at compile time because the author provides an explicit canonical slug.
+
+Other references only exist as free-form coach text and must be resolved later during analytics.
+
+Treating those cases as one undifferentiated path would blur provenance and make downstream confidence handling difficult.
+
+### 4. Analytics processors need a boundary, not a global registry import
+
+Processors should consume effort resolution through a stable interface inside analytics context.
+
+If processors import registry implementations directly, the analytics layer becomes coupled to persistence, routing, and registry internals.
 
 ## Decision
 
-### 1. Effort Definitions Are First-Class Entities
+### 1. Efforts are first-class entities with canonical slugs
 
-Each effort is a named, versioned definition with a canonical slug (`push-up`, `run`, `kettlebell-swing`). Definitions carry:
+#### Decision statement
 
-- `met` — base MET value for the unmodified effort
-- `disciplineFactor` — TIS discipline multiplier (strength `1.2`, cardio/HIIT `1.0`, yoga `0.9`)
-- `parentSlug` — optional slug of the effort this definition was cloned from
-- `modifierSchema` — declared modifier keys, accepted values, and the MET coefficient each value applies
-- `metOverride` — optional hard MET value that unconditionally wins over coefficient computation
-- `aliases` — strings the fuzzy resolver will match against script effort text
-- `tier` — `'bundled'` (seeded at build time) or `'user'` (persisted in IndexedDB)
+The system will model efforts as first-class domain entities with stable canonical slugs.
 
-### 2. Two-Tier Registry: Bundled Seed + User-Defined
+Each effort record must have, at minimum:
 
-The registry holds two tiers. The bundled tier is a data file (not logic) checked into the repository containing common movements with research-backed MET values. The user tier is persisted in IndexedDB and checked first during all resolution operations. User definitions can override bundled efforts by sharing a slug, or extend the registry with entirely new efforts.
+- `slug` — canonical identifier used for routes, references, and joins
+- `label` — primary human-readable name
+- `aliases` — additional searchable and fuzzy-matchable names
+- `baseAttributes` — canonical effort attributes such as MET, discipline, and other analytics-relevant metadata
+- `registrySource` — where the effort record came from: bundled, user, or synthetic-unresolved
 
-**Chosen over single-tier** because seeded data covers the 80% case without requiring user setup, while user extensibility handles specialty movements. User priority ensures customizations are always respected.
+The canonical slug is the durable identity boundary. Display labels and aliases may vary, but references should point at the slug.
 
-### 3. Clone-Based Derivation
+#### Rationale
 
-New efforts can be created by cloning an existing effort. The clone sets `parentSlug` and inherits the parent's `met`, `disciplineFactor`, and `modifierSchema` as starting values. The user modifies only what differs.
+A first-class effort entity gives the architecture one place to attach semantics that are currently scattered across labels, processors, and lookups.
 
-**MET resolution order for a derived effort** (first match wins):
-1. `metOverride` — set explicitly by the user, unconditional
-2. `parentMet × ∏(active modifier coefficients)` — auto-computed from the parent's resolved MET and the modifier keys present in the effort URL's query params
-3. Parent's resolved MET — inherited unchanged when no active modifiers have defined coefficients
+Canonical slugs make these workflows stable:
 
-**Chosen over manual-only MET entry** because coefficient-based computation lets a rich seeded dataset propagate intelligently through derivation chains. The hard override exists for cases where research provides a specific value that coefficient math would not reach.
+- routing to an effort detail screen
+- deriving user-specific variants from a known parent
+- grouping analytics across alias variants
+- reusing the same effort definition in compile-time and analytics-time paths
 
-### 4. Fuzzy Alias Resolution With Unresolved Fallback
+This also separates entity identity from runtime provenance. The effort entity owns `registrySource`; runtime metrics can still use existing metric `origin` values such as `compiler`, `analyzed`, or `analyzed-estimated`.
 
-The resolver normalizes both the script effort string and each alias: lowercase, strip punctuation, collapse whitespace, then compare. Users define aliases on any effort's detail page.
+#### Rejected alternatives
 
-When no alias matches, the effort is marked **unresolved**. Resolution falls back to a configurable default MET (same pattern as ADR-0006's population-average METmax). The resolved metrics are tagged `origin: 'analyzed-estimated'` to signal reduced precision to downstream display and TIS output (consistent with the `analyzed-estimated` addition required by ADR-0006).
+- **Plain strings only** — rejected because string equality is too weak for joins, routing, and user overrides.
+- **Processor-owned activity definitions** — rejected because it would keep effort semantics fragmented across analytics implementations.
+- **Route-only identifiers without domain entities** — rejected because routes are consumers of identity, not the owner of it.
 
-**Chosen over exact-match-only** because workout scripts are authored text, not code — `"Push-Ups"`, `"pushup"`, `"push ups"` should all resolve to `push-up`. The graceful-degradation fallback means analytics never hard-fail on an unresolved effort, preserving the same defensive posture established by ADR-0006.
+#### Consequences
 
-### 5. Route Surface: `/efforts` Catalog + `/effort/:slug?{attribute-metrics}`
+- all durable effort references become slug-based rather than label-based
+- effort records can be reused by routing, analytics, and customization paths
+- alias management becomes part of the registry contract instead of scattered heuristics
+- the system must define slug normalization rules and migration policy carefully
 
-Two new canonical routes are added to `ROUTE_PATTERNS` in `playground/src/lib/routes.tsx`:
+### 2. The registry is two-tier: bundled seed plus user IndexedDB, with user definitions winning
 
+#### Decision statement
+
+The effort registry will have two storage tiers:
+
+1. **Bundled seed registry** — shipped with the app as the default catalog
+2. **User registry in IndexedDB** — local user-defined or user-derived effort records
+
+Lookup order is user tier first, bundled tier second.
+
+A user effort with the same slug as a bundled effort overrides the bundled definition for that user's runtime and analytics context.
+
+#### Rationale
+
+This preserves a stable default catalog while allowing local customization without forking the shipped dataset.
+
+The architecture remains offline-friendly because effort lookup does not require a backend call.
+
+The user-wins rule is the most predictable override policy for athlete- and coach-specific calibration. If a user explicitly customizes an effort, that customization should be authoritative inside that user's environment.
+
+#### Rejected alternatives
+
+- **Single bundled registry only** — rejected because it cannot support durable user customization.
+- **Single mutable user registry copied from seed** — rejected because it collapses default and override semantics, making upgrades and provenance harder to reason about.
+- **Server-only registry resolution** — rejected because analytics and route resolution must still work offline and locally.
+
+#### Consequences
+
+- the product gains a clean override seam for local customization
+- bundled catalog updates remain possible without erasing local user intent
+- registry merge rules and slug-collision policy must be explicit
+- future sync can be added as a transport concern without changing the runtime lookup contract
+
+### 3. User customization uses clone-based derivation with coefficient chains and hard overrides
+
+#### Decision statement
+
+User-defined effort variants will be created by cloning an existing effort and applying one or both of these mutation styles:
+
+- **coefficient chain** — multiplicative modifiers applied to numeric base attributes
+- **hard override** — explicit replacement of an attribute value
+
+Recommended shape:
+
+```ts
+interface EffortDerivation {
+  parentSlug: string;
+  coefficients?: Record<string, number>;
+  hardOverrides?: Record<string, unknown>;
+}
 ```
-/efforts                              — catalog index
-/effort/:slug                         — effort detail page (inline edit mode)
-```
 
-Modifier attribute metrics are passed as standard URL query params:
+Numeric attributes that scale naturally, such as MET-like intensity values, should prefer coefficients. Attributes that do not scale meaningfully should use hard overrides.
 
-```
-/effort/run?speed=6mph&surface=treadmill
-/effort/push-up?position=kneeling
-/effort/kettlebell-swing?equipment=kettlebell&count=double
-```
+#### Rationale
 
-Query params are **attribute metrics** — typed key-value pairs in the existing `IMetric` sense. They are serialized from `Record<string, string>` via `URLSearchParams`. The effort slug names the base effort; the query params identify the specific instance of that effort with its modifier attributes applied.
+Clone-based derivation preserves lineage.
 
-Path builders `effortsPath()` and `effortPath(slug, modifiers?)` are added to `routes.tsx`. These routes are governed by the playground-route-governance ADR — they are canonical, not compatibility aliases.
+That matters because the system needs to answer questions such as:
 
-**Chosen key-value query params over path segments or a tag list** because modifier attributes are typed key-value data that integrates naturally with the existing `IMetric` system and allows open-ended attribute sets without a fixed schema per effort type.
+- which custom effort came from which base effort
+- whether bundled updates should be re-applied or reviewed
+- how a user-specific effort differs from the shipped default
 
-### 6. Two-Pass Analytics Resolution
+Coefficient chains are expressive enough for most calibration use cases without forcing coaches into a formula authoring system. Hard overrides preserve determinism where multiplication is the wrong model.
 
-Effort resolution feeds the analytics pipeline at two points:
+#### Rejected alternatives
 
-**Pass 1 — Compile-time (`EffortEnrichmentPass`)**  
-Runs after JIT compilation. For each `CodeStatement` containing an `EffortMetric`, the enrichment pass calls the effort resolver and injects `met` and `disciplineFactor` metrics with `origin: 'compiler'`. These represent **planned intensity** — what the script specifies. Unresolved efforts inject default values with `origin: 'analyzed-estimated'`.
+- **Full detached copies only** — rejected because lineage and upgrade reasoning disappear immediately.
+- **Arbitrary formula language** — rejected because it increases complexity, validation cost, and UX burden for little near-term leverage.
+- **Only hard overrides, no derivation metadata** — rejected because the system would lose explainability around how custom values were produced.
 
-**Pass 2 — Analytics-time (per-segment re-resolution)**  
-`AnalyticsContext` (ADR-0005) gains an `effortResolver: IEffortResolver` field. `IRealtimeProcessor` implementations call `context.effortResolver.resolve(slug, modifiers)` per segment, where `modifiers` reflects any modifier attribute metrics logged during execution (e.g., actual weight used). Results carry `origin: 'analyzed'`, which wins over the compile-time `'compiler'` value in the metric precedence chain.
+#### Consequences
 
-```
-IEffortResolver {
-  resolve(slug: string, modifiers?: Record<string, string>): ResolvedEffort
+- custom efforts stay explainable and traceable to a parent
+- future migration or rebase tools become possible because lineage is preserved
+- the system must define which attributes are coefficient-eligible versus override-only
+- UX must expose derivation in a way that is understandable to non-technical users
+
+### 4. Free-form effort labels resolve through fuzzy alias matching, then fall back to unresolved synthetic efforts
+
+#### Decision statement
+
+When analytics encounters a free-form effort label that is not already canonically resolved, the resolver will:
+
+1. try exact alias or slug matching
+2. try fuzzy alias matching
+3. if still unresolved, create a synthetic unresolved effort for analytics continuity
+
+When fuzzy matching succeeds, the runtime metric origin is `analyzed`.
+
+When no match succeeds, the system creates a synthetic unresolved effort with:
+
+- a normalized synthetic slug derived from the authored label
+- `registrySource: synthetic-unresolved`
+- runtime metric origin `analyzed-estimated`
+- fallback analytics attributes, including a default MET value to be finalized by open question
+
+Synthetic unresolved efforts are analyzable placeholders, not automatically persisted into the user registry.
+
+#### Rationale
+
+This keeps analytics resilient to typos, abbreviations, and coach-local naming without forcing perfect author discipline.
+
+It also preserves continuity: an unresolved effort still becomes an explicit analyzable entity instead of collapsing into null.
+
+Using `analyzed` versus `analyzed-estimated` preserves confidence information for downstream processors and future UI.
+
+#### Rejected alternatives
+
+- **Strict exact matching only** — rejected because real authored data is messy and would produce unnecessary null resolution failures.
+- **Drop unresolved efforts entirely** — rejected because losing the effort signal is worse than carrying an estimated placeholder with provenance.
+- **Auto-persist every unresolved label into the user registry** — rejected because transient typos should not silently mutate durable user data.
+
+#### Consequences
+
+- analytics remains robust against imperfect authored labels
+- downstream consumers can distinguish matched efforts from estimated unresolved placeholders
+- the system needs clear similarity-threshold governance to avoid bad fuzzy matches
+- unresolved fallback defaults must be documented so estimated outputs remain explainable
+
+### 5. The route surface is `/efforts` for the catalog and `/effort/:slug?key=value` for detail-state metrics
+
+#### Decision statement
+
+The product will expose the effort registry through this route surface:
+
+- `/efforts` — effort catalog, search, filtering, and create-entry entrypoint
+- `/effort/:slug` — effort detail and editing surface
+- query params on `/effort/:slug` — attribute-metric state such as `?met=5.5&discipline=rowing`
+
+The route slug is the identity boundary. Query params are view/edit state for effort attributes, not alternate identities.
+
+#### Rationale
+
+This gives the product a stable plural catalog route and a stable singular detail route while keeping attribute experimentation in the query string.
+
+Using query params for attribute metrics avoids exploding the route tree for every editable or inspectable attribute combination.
+
+It also keeps the URL legible and copyable for review flows such as “show me the running effort with this MET override applied.”
+
+#### Rejected alternatives
+
+- **Only one generic route with nested UI state** — rejected because it weakens shareability and makes route semantics less clear.
+- **Path segments for every attribute dimension** — rejected because attribute combinations are open-ended and would create brittle route expansion.
+- **No dedicated effort routes** — rejected because first-class effort entities should have first-class navigable surfaces.
+
+#### Consequences
+
+- effort routes become stable external and internal references
+- catalog and detail responsibilities stay distinct
+- query parsing and validation become part of the route contract
+- effort attribute URLs can be shared without introducing additional route definitions
+
+### 6. Resolution is two-pass: compile-time canonical resolution first, analytics-time recovery second
+
+#### Decision statement
+
+Effort resolution will happen in two explicit passes.
+
+**Pass 1 — compile time**
+
+When authored input already carries a canonical effort slug or a compiler-resolvable effort reference, the compiler attaches that resolved effort reference with runtime metric origin `compiler`.
+
+**Pass 2 — analytics time**
+
+When compiled output still has only free-form effort text or no canonical effort reference, analytics resolves it through `IEffortResolver` using exact or fuzzy alias resolution, or produces an unresolved synthetic effort. Successful analytics-time resolution uses runtime metric origin `analyzed`; unresolved fallback uses `analyzed-estimated`.
+
+Analytics-time resolution should not re-resolve already canonical compiler-attached effort references unless an explicit future override mode is introduced.
+
+#### Rationale
+
+Compile time and analytics time have different evidence quality.
+
+Compile-time resolution is based on explicit authored canonical intent. Analytics-time resolution is a recovery step over less-structured data.
+
+Separating the passes makes provenance explicit and lets downstream processors decide whether to trust compiler-resolved, analyzed-resolved, and analyzed-estimated efforts equally or differently.
+
+This also aligns with the broader analytics architecture direction that assembly and policy should happen at explicit boundaries rather than through hidden global logic.
+
+#### Rejected alternatives
+
+- **Single unified late-resolution pass only** — rejected because it throws away the stronger provenance available at compile time.
+- **Compile-time resolution only** — rejected because real-world coach-authored free text still needs analytics-time recovery.
+- **Always rerun analytics resolution over compiler-resolved efforts** — rejected because it risks downgrading already-canonical references and creates unnecessary churn.
+
+#### Consequences
+
+- provenance becomes explicit instead of implicit
+- processors can branch on confidence level when appropriate
+- compiler output contracts must leave enough structured information for analytics recovery when canonical resolution is missing
+- tests need to cover compile-resolved, analyzed-resolved, and analyzed-estimated paths separately
+
+### 7. Analytics processors depend on `IEffortResolver` through `AnalyticsContext`; they do not import registry implementations directly
+
+#### Decision statement
+
+The analytics layer will consume effort resolution through an injected interface on analytics context.
+
+Recommended shape:
+
+```ts
+interface IEffortResolver {
+  resolveBySlug(slug: string): IEffort | null;
+  resolveByAlias(label: string): IEffort | null;
+  resolveFuzzy(label: string, options?: { threshold?: number }): IEffort | null;
+  list(): readonly IEffort[];
 }
 
-ResolvedEffort {
-  slug:             string
-  met:              number
-  disciplineFactor: number
-  origin:           'analyzed' | 'analyzed-estimated'
-  resolvedFrom:     'user' | 'bundled' | 'default'
+interface AnalyticsContext {
+  effortResolver: IEffortResolver;
 }
 ```
 
-**Chosen two-pass over single-pass** because compile-time resolution gives the runtime display planned-intensity values immediately (no async wait), while analytics-time re-resolution with logged modifier context produces accurate post-session MET values. Planned vs. actual intensity is already a meaningful distinction in the metric origin vocabulary (`'compiler'` vs. `'analyzed'`) and requires no new origin types.
+No analytics processor should import IndexedDB storage, bundled registry modules, or route-layer code directly.
 
-### 7. No Processor Imports the Registry Directly
+#### Rationale
 
-All analytics processor access to effort data goes through `IEffortResolver` injected via `AnalyticsContext`. This preserves the testability goal of ADR-0005 — processors can be unit tested with a mock resolver without a real registry. `StandardAnalyticsProfile` is responsible for constructing the registry-backed resolver and injecting it into `AnalyticsContext` at session start.
+This preserves the analytics boundary.
 
----
+Processors need effort resolution capability, not knowledge of where effort records came from or how they are stored.
 
-## Considered Alternatives
+Injection makes the contract testable, keeps the registry swappable, and prevents the analytics layer from becoming coupled to persistence or UI concerns.
 
-**Single-tier user-only registry** — rejected. Requires every user to define every effort before analytics work. The seeded bundled tier eliminates the cold-start problem.
+#### Rejected alternatives
 
-**Effort resolution as a separate microservice/API** — rejected. The playground is a local-first application. The registry lives in IndexedDB and a static data file; the resolver is a synchronous in-process call.
+- **Global registry singleton** — rejected because it makes tests and runtime composition harder and hides dependencies.
+- **Direct imports from registry implementation modules** — rejected because it couples processors to storage and module layout.
+- **Passing raw effort arrays into every processor separately** — rejected because it duplicates resolution policy and weakens a single analytics context contract.
 
-**Path-segment modifiers (`/effort/push-up/kneeling`)** — rejected. Path segments imply named first-class child efforts and break for open-ended attribute combinations. Query params allow unbounded attribute sets and integrate with the `IMetric` system without a fixed per-effort schema.
+#### Consequences
 
-**Single analytics pass (compile-time only)** — rejected. Compile-time resolution uses script-specified modifier attributes. Post-session logged modifier attributes (actual weight, actual speed) may differ from what was planned. Two passes allow planned → actual refinement with no new mechanism — the existing `origin` precedence chain handles resolution order automatically.
+- analytics processors stay shallow and focused on domain transforms
+- test fixtures can inject tiny deterministic resolver implementations
+- registry storage can evolve without rewriting processor imports
+- `AnalyticsContext` becomes the contract boundary that must be kept stable and documented
 
-**Fuzzy matching with no fallback** — rejected. An unresolvable effort that blocks analytics output is worse than an estimated output with a visible disclosure. The pattern is established by ADR-0006.
+## Open questions to resolve before implementation
 
----
+### 1. Default MET for unresolved efforts
 
-## Consequences
+When analytics creates a synthetic unresolved effort, what MET should it assign by default?
 
-- `EffortMetric` gains an optional `resolvedSlug` field populated after the `EffortEnrichmentPass` runs, so the analytics pipeline always has a canonical slug to resolve against even when the script text is an alias.
-- `AnalyticsContext` gains `effortResolver: IEffortResolver` (breaking change to the interface; callers must supply a resolver — `StandardAnalyticsProfile` provides the default).
-- `MetMinuteProjectionEngine` and `TISProcessor` are unblocked: they call `context.effortResolver.resolve()` rather than assuming a hard-coded MET.
-- `StandardAnalyticsProfile` gains `requiredMetrics: [MetricType.Effort]` on MET-dependent processors, ensuring they only activate for workouts that contain effort statements (consistent with ADR-0005 activation logic).
-- The `/efforts` and `/effort/:slug` routes must be added to the playground route inventory doc (`docs/design-system/02.page-routes/Playground-Route-Inventory.md`) per the playground-route-governance ADR validation path.
-- Bundled effort data file must be reviewed and updated when new research provides more accurate MET values — this is data maintenance, not a code change.
+**Recommendation:** `5.0`
 
----
+Rationale for the recommendation:
 
-## Open Questions — Resolve Before Implementing
+- it is a moderate generic fallback rather than an extremely low or extremely high assumption
+- it avoids making unresolved labels look sedentary by default
+- it is easier to explain as a placeholder pending explicit calibration
 
-1. **Default MET for unresolved efforts**: What value should the unresolved-effort fallback MET be? Candidates: `3.5` (sedentary baseline), `5.0` (light activity average), `8.0` (moderate CrossFit average). The team should align on this before `EffortEnrichmentPass` is implemented. Recommended: `5.0` with a disclosure — errs toward underestimation, which is safer for load calculation than overestimation.
+Important note: this recommendation is specific to synthetic unresolved effort-registry entities. It does **not** automatically rewrite the existing `MetMinuteProjectionEngine` fallback documented in [WOD-514](/WOD/issues/WOD-514).
 
-2. **Modifier coefficient schema authoring UX**: The effort detail page needs a UI for defining modifier keys, accepted values, and their coefficients. The data shape is clear but the editing UX has not been designed. This does not block the resolver or analytics integration but must be resolved before the detail page is considered complete.
+### 2. Modifier coefficient schema editing UX
 
-3. **Fuzzy match threshold**: What similarity score constitutes a match? A normalized edit-distance of ≤ 2 characters is a reasonable starting point but should be validated against real script corpora before hardening.
+How should users edit coefficient chains and hard overrides?
+
+**Recommendation:** expose a structured form for common modifiers and an advanced raw-editor fallback for uncommon fields.
+
+Rationale for the recommendation:
+
+- common use cases should not require JSON editing
+- advanced users still need an escape hatch for less common attributes
+- keeping coefficient and override semantics visible will improve explainability
+
+### 3. Fuzzy-match similarity threshold
+
+What similarity threshold should count as a fuzzy alias match?
+
+**Recommendation:** edit distance `<= 2` as the default threshold
+
+Rationale for the recommendation:
+
+- it catches common typos and short alias mistakes
+- it is less likely than broader thresholds to create accidental wrong matches
+- it can be tightened or widened later if real-world registry data demands it
+
+## Non-goals
+
+This ADR does **not** define:
+
+- the final UI design of the effort catalog or editor
+- the full bundled seed dataset
+- server-side sync for user effort records
+- a universal formula language for effort derivation
+- downstream analytics weighting rules for `compiler` vs `analyzed` vs `analyzed-estimated`
+
+It establishes the domain boundary, route surface, and analytics resolution model.
+
+## Validation path
+
+- inspect `docs/adr/0008-effort-registry-route-surface-and-two-pass-analytics-resolution.md`
+- verify all seven decisions include decision statement, rationale, rejected alternatives, and consequences
+- verify the route surface is documented as `/efforts` and `/effort/:slug?key=value`
+- verify two-pass resolution distinguishes `compiler`, `analyzed`, and `analyzed-estimated`
+- verify `IEffortResolver` is described as an injected analytics-context dependency rather than a direct processor import
+- verify all three open questions are explicitly listed with recommendations
+
+## Related
+
+- [WOD-524](/WOD/issues/WOD-524)
+- [WOD-522](/WOD/issues/WOD-522)
+- [WOD-517](/WOD/issues/WOD-517)
+- [[Metrics Processor Architecture]]
+- `repo/docs/adr/0005-analytics-profile-drives-processor-assembly.md`
