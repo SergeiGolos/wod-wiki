@@ -128,6 +128,57 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      - name: Install Playwright browsers
+        run: bun x playwright install --with-deps chromium
+
+      - name: Run production smoke tests
+        id: smoke_e2e
+        run: bun x playwright test --config playwright.smoke.config.ts
+        env:
+          CI: true
+
+      - name: Collect smoke test stats
+        id: smoke_stats
+        if: always()
+        run: |
+          set -euo pipefail
+          report="test-results/smoke-e2e-junit.xml"
+          extract_attr() {
+            local attr="$1"
+            local file="$2"
+            sed -n "s/.*${attr}=\"\\([0-9]\\+\\)\".*/\\1/p" "$file" | head -n1
+          }
+          if [ -f "$report" ]; then
+            tests=$(extract_attr "tests" "$report")
+            failures=$(extract_attr "failures" "$report")
+            skipped=$(extract_attr "skipped" "$report")
+          else
+            tests="n/a"
+            failures="n/a"
+            skipped="n/a"
+          fi
+          echo "tests=${tests:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "failures=${failures:-n/a}" >> "$GITHUB_OUTPUT"
+          echo "skipped=${skipped:-n/a}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload smoke test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-playwright-report
+          path: playwright-report/smoke/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload smoke test screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-e2e-screenshots
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Create or update release tag and GitHub release
         uses: actions/github-script@v7
         with:
@@ -260,4 +311,11 @@ jobs:
           - Pages URL: ${{ steps.deployment.outputs.page_url }}
           - Package name: ${PACKAGE_NAME}
           - npm publish: temporarily disabled (see WOD-436)
+
+          ### Smoke tests
+
+          - Outcome: ${{ steps.smoke_e2e.outcome }}
+          - Tests: ${{ steps.smoke_stats.outputs.tests }}
+          - Failures: ${{ steps.smoke_stats.outputs.failures }}
+          - Skipped: ${{ steps.smoke_stats.outputs.skipped }}
           EOF
