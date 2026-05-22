@@ -3,24 +3,34 @@ import { useNavigate } from 'react-router-dom'
 
 import { playgroundPath } from '../lib/routes'
 import { createPlaygroundPage } from '../services/createPlaygroundPage'
-import { EMPTY_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
+import { DEFAULT_PLAYGROUND_CONTENT, EMPTY_PLAYGROUND_CONTENT } from '../templates/defaultPlaygroundContent'
+
+export interface PlaygroundRedirectProps {
+  template?: 'empty' | 'home'
+}
 
 /**
- * Canonical entry route for both `/` and `/playground`.
+ * Canonical entry route for `/` and `/playground`.
  *
  * Always creates a fresh playground note, then redirects to `/playground/:id`.
  */
-export function PlaygroundRedirect() {
+export function PlaygroundRedirect({
+  template = 'empty',
+}: PlaygroundRedirectProps) {
   const navigate = useNavigate()
   const [error, setError] = useState(false)
   const [attempt, setAttempt] = useState(0)
+
+  const templateContent = template === 'home'
+    ? DEFAULT_PLAYGROUND_CONTENT.content
+    : EMPTY_PLAYGROUND_CONTENT.content
 
   useEffect(() => {
     let cancelled = false
 
     ;(async () => {
       try {
-        const id = await createPlaygroundPage(EMPTY_PLAYGROUND_CONTENT.content)
+        const id = await createPlaygroundPage(templateContent)
         if (!cancelled) {
           navigate(playgroundPath(id), { replace: true })
         }
@@ -34,7 +44,7 @@ export function PlaygroundRedirect() {
     return () => {
       cancelled = true
     }
-  }, [navigate, attempt])
+  }, [navigate, attempt, templateContent])
 
   if (error) {
     return (

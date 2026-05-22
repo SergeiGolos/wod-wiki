@@ -87,10 +87,17 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
   const { isCompact } = usePanelSize();
   const { sectionId } = useParams<{ sectionId?: string }>();
   const isNotFound = sectionId === 'notfound';
+  const [wizardDismissed, setWizardDismissed] = React.useState(false);
 
   const { overrides, setOverride } = useUserOverrides(true);
   const { collectionItems } = useCollectionMetrics([], overrides, runtime?.script);
-  const showWizard = execution.status === 'idle' && collectionItems.length > 0;
+  const showWizard = execution.status === 'idle' && collectionItems.length > 0 && !wizardDismissed;
+
+  React.useEffect(() => {
+    if (execution.status !== 'idle' || collectionItems.length === 0) {
+      setWizardDismissed(false);
+    }
+  }, [execution.status, collectionItems.length]);
 
   // Timer/Clock component
   const timerDisplay = (
@@ -114,8 +121,9 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       <CollectionWizard
         items={collectionItems}
         onSave={(item, val) => setOverride(item.blockKey, item.metricType, val)}
-        onSkip={() => {}}
-        onClose={onStart} // Closing starts the workout? Or just let them start.
+        onSkip={(item) => setOverride(item.blockKey, item.metricType, undefined)}
+        onStart={onStart}
+        onClose={() => setWizardDismissed(true)}
         mode="pre-run"
       />
     );

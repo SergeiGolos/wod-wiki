@@ -1,11 +1,20 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { BaseNotePage } from './BaseNotePage';
 
 const DB_NAME = 'wodwiki-playground';
 
-export class JournalEntryPage {
+/**
+ * JournalEntryPage — Page Object for /journal/:date
+ *
+ * Extends BaseNotePage for the shared note editor surface.
+ * Adds journal-specific navigation (gotoJournalList) and
+ * IndexedDB helpers for persistence testing.
+ */
+export class JournalEntryPage extends BaseNotePage {
   readonly page: Page;
 
   constructor(page: Page) {
+    super(page);
     this.page = page;
   }
 
@@ -17,7 +26,7 @@ export class JournalEntryPage {
 
   async goto(date: string) {
     await this.page.goto(this.url(date), { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    await this.waitForEditor();
+    await this.waitForLoad();
   }
 
   async gotoJournalList() {
@@ -40,43 +49,6 @@ export class JournalEntryPage {
       // Fallback to hard navigation if nav link not found
       await this.page.goto('/journal', { waitUntil: 'domcontentloaded', timeout: 20_000 });
     }
-  }
-
-  // ── Editor ────────────────────────────────────────────────────────────────
-
-  editor(): Locator {
-    return this.page.locator('.cm-content[contenteditable="true"]').first();
-  }
-
-  async waitForEditor() {
-    await this.page.waitForSelector('.cm-content[contenteditable="true"]', { timeout: 15_000 });
-    // Give React time to finish loading content from IndexedDB
-    await this.page.waitForTimeout(600);
-  }
-
-  async editorText(): Promise<string> {
-    return this.editor().innerText();
-  }
-
-  async typeInEditor(text: string) {
-    // Click end of editor then type
-    const ed = this.editor();
-    await ed.click();
-    await this.page.keyboard.press('End');
-    await this.page.keyboard.type(text);
-  }
-
-  async replaceEditorContent(text: string) {
-    const ed = this.editor();
-    await ed.click();
-    await this.page.keyboard.press('Control+a');
-    await this.page.keyboard.type(text);
-  }
-
-  // ── Page title ────────────────────────────────────────────────────────────
-
-  title(): Locator {
-    return this.page.locator('h1').first();
   }
 
   // ── IndexedDB helpers ─────────────────────────────────────────────────────
@@ -113,15 +85,5 @@ export class JournalEntryPage {
         req.onerror = () => reject(req.error);
       });
     }, { dbName: DB_NAME, pageId: `journal/${date}` });
-  }
-
-  // ── Assertions ────────────────────────────────────────────────────────────
-
-  async expectEditorContains(text: string) {
-    await expect(this.editor()).toContainText(text, { timeout: 5_000 });
-  }
-
-  async expectTitleContains(text: string) {
-    await expect(this.title()).toContainText(text, { timeout: 5_000 });
   }
 }

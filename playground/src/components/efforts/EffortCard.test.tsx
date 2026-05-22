@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { EffortCard } from './EffortCard'
 import type { IEffort } from '@/effort-registry'
 
@@ -35,6 +35,9 @@ describe('EffortCard', () => {
 
     const card = screen.getByText('Test Effort').closest('div[class*="cursor-pointer"]')
     expect(card).toBeTruthy()
+    if (!card) throw new Error('Card not found')
+    fireEvent.click(card)
+    expect(clicked).toBe(true)
   })
 
   it('truncates aliases to 4 with overflow indicator', () => {

@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /
+route: /tour
 hidden: true
 ---
 

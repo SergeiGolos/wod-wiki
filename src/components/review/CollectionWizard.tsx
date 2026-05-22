@@ -8,6 +8,7 @@ interface CollectionWizardProps {
   items: CollectionItem[];
   onSave: (item: CollectionItem, value: any) => void;
   onSkip: (item: CollectionItem) => void;
+  onStart?: () => void;
   onClose?: () => void;
   mode: 'pre-run' | 'post-run';
   className?: string;
@@ -31,6 +32,7 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
   items,
   onSave,
   onSkip,
+  onStart,
   onClose,
   mode,
   className,
@@ -51,6 +53,22 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
     if (currentIndex < items.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
+  };
+
+  const handleSkip = () => {
+    onSkip(currentItem);
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setInputValue('');
+    }
+  };
+
+  const handleStart = () => {
+    if (inputValue) {
+      onSave(currentItem, inputValue);
+      setInputValue('');
+    }
+    onStart?.();
   };
 
   const handleNext = () => {
@@ -174,7 +192,7 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => onSkip(currentItem)}
+            onClick={handleSkip}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Skip
@@ -192,7 +210,7 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
       {mode === 'pre-run' && (
         <div className="p-4 bg-background border-t border-border mt-auto">
           <button
-            onClick={handleSave}
+            onClick={handleStart}
             className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold text-lg shadow-lg hover:brightness-110 transition-all flex items-center justify-center gap-2"
           >
             Start Workout
