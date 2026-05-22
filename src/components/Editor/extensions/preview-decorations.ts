@@ -158,6 +158,13 @@ const wodBlockBaseTheme = EditorView.baseTheme({
   "&dark .cm-wod-inner": {
     backgroundColor: "rgba(96, 165, 250, 0.06)",
   },
+
+  "@media (max-width: 639px)": {
+    ".cm-wod-fence-open": {
+      lineHeight: "30px",
+      paddingTop: "6px",
+    },
+  },
 });
 
 // ── Public export ────────────────────────────────────────────────────

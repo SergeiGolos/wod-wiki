@@ -118,10 +118,11 @@ const CommandPill: React.FC<{
       <Button
         variant={cmd.primary ? "default" : "secondary"}
         className={cn(
-          "h-auto px-2 py-0.5 text-[10px] font-medium rounded-sm shadow-sm gap-1",
+          "h-11 w-11 rounded-full p-0 text-[10px] font-medium shadow-sm gap-0 sm:h-auto sm:w-auto sm:gap-1 sm:rounded-sm sm:px-2 sm:py-0.5",
           !cmd.primary && "border border-border/50",
         )}
         title={cmd.label}
+        aria-label={cmd.label}
         data-testid={cmd.id === 'run' ? TEST_IDS.EDITOR_START_WORKOUT : undefined}
         onClick={(e) => {
           stopEvent(e);
@@ -130,8 +131,8 @@ const CommandPill: React.FC<{
         onMouseDown={stopEvent}
         onPointerDown={stopEvent}
       >
-        <span className="flex items-center size-3">{cmd.icon}</span>
-        <span className="hidden sm:inline">{cmd.label}</span>
+        <span className="flex items-center justify-center size-4 sm:size-3">{cmd.icon}</span>
+        <span className="sr-only sm:not-sr-only sm:inline">{cmd.label}</span>
       </Button>
     );
   }
@@ -148,8 +149,8 @@ const CommandPill: React.FC<{
         secondary={secondaryActivation}
         size="xs"
         variant={cmd.primary ? "primary" : "default"}
-        className="rounded-sm"
-        labelClassName="hidden sm:inline"
+        className="rounded-full sm:rounded-sm"
+        labelClassName="sr-only sm:not-sr-only sm:inline"
       />
     </div>
   );
@@ -236,7 +237,7 @@ export const InlineCommandBar: React.FC<InlineCommandBarProps> = ({
         return (
           <div
             key={rect.sectionId}
-            className="absolute right-1 z-10 flex items-center gap-1 pointer-events-auto"
+            className="absolute right-1 z-10 flex items-center gap-1 pointer-events-auto -translate-y-1 sm:translate-y-0"
             style={{
               // rect.top is document-space; subtract scrollTop to get the correct
               // position relative to .cm-note-editor as the editor scrolls.
