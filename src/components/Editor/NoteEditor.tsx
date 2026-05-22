@@ -606,6 +606,12 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     });
 
     viewRef.current = view;
+    const shouldExposeCodemirrorView = import.meta.env.MODE === 'test'
+      || (import.meta.env.DEV && window.navigator.webdriver);
+    if (shouldExposeCodemirrorView) {
+      // Expose view for test automation to directly manipulate content
+      (editorRef.current as any).__codemirrorView = view;
+    }
     onViewCreated?.(view);
 
     // Seed overlay state from initial editor state so panels render
@@ -623,6 +629,9 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     notifyBlockChanges(view.state, onBlocksChange);
 
     return () => {
+      if (editorRef.current) {
+        delete (editorRef.current as any).__codemirrorView;
+      }
       view.destroy();
     };
   }, []); // Mount only

@@ -30,3 +30,6 @@ export { RuntimeTestBuilder, RuntimeTestHarness } from './RuntimeTestBuilder';
 export { WorkoutTestHarness, WorkoutTestBuilder } from './WorkoutTestHarness';
 export type { RuntimeSnapshot, MemoryEntry } from './RuntimeTestBuilder';
 export type { WorkoutReport } from './WorkoutTestHarness';
+
+// Effort Registry mocks
+export { MockEffortResolver } from './MockEffortResolver';

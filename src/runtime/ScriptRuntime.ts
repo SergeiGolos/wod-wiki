@@ -23,6 +23,7 @@ import { MetricContainer } from '../core/models/MetricContainer';
 import { TimeSpan } from './models/TimeSpan';
 import { IRuntimeBlock } from './contracts/IRuntimeBlock';
 import { IAnalyticsEngine } from '../core/contracts/IAnalyticsEngine';
+import type { AnalyticsContext } from '../core/analytics/AnalyticsContext';
 
 export type RuntimeState = 'idle' | 'running' | 'compiling' | 'completed';
 
@@ -41,6 +42,7 @@ export class ScriptRuntime implements IScriptRuntime {
 
     public readonly errors: RuntimeError[] = [];
     public readonly options: RuntimeStackOptions;
+    public analyticsContext?: AnalyticsContext;
 
     // Output statement tracking
     private _outputStatements: IOutputStatement[] = [];

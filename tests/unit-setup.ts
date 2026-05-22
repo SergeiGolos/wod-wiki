@@ -29,6 +29,36 @@ mock.module('@/repositories/page-examples', () => ({
   getHomeExample: (_name: string) => '',
 }));
 
+mock.module('@/repositories/effort-markdown', () => ({
+  getBundledEfforts: () => [
+    {
+      id: 'effort-bundled-rowing',
+      slug: 'rowing',
+      label: 'Rowing',
+      aliases: ['row', 'rower', 'erg'],
+      baseAttributes: { met: 7.0, discipline: 'rowing', intensityTier: 'high' },
+      registrySource: 'bundled',
+    },
+    {
+      id: 'effort-bundled-burpee',
+      slug: 'burpee',
+      label: 'Burpee',
+      aliases: ['burpees'],
+      baseAttributes: { met: 10.0, discipline: 'bodyweight', intensityTier: 'high' },
+      registrySource: 'bundled',
+    },
+    {
+      id: 'effort-bundled-running-6mph',
+      slug: 'running-6-mph',
+      label: 'Running (6 mph)',
+      aliases: ['run', 'jogging', 'treadmill'],
+      baseAttributes: { met: 9.8, discipline: 'running', intensityTier: 'moderate' },
+      registrySource: 'bundled',
+    },
+  ],
+  getBundledEffortCount: () => 3,
+}));
+
 // Some src/ tests import browser-only libraries (e.g. monaco-editor, react-dom)
 // that assume `window` and `document` exist at module-evaluation time.
 if (!(globalThis as any).window || !globalThis.document) {

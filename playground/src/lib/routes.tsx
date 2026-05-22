@@ -35,6 +35,9 @@ export const ROUTE_PATTERNS = {
   run: '/run/:runtimeId',
   review: '/review/:runtimeId',
   load: '/load',
+  efforts: '/efforts',
+  effort: '/effort/:slug',
+  effortDetail: '/effort/:slug',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -101,6 +104,67 @@ export function loadPath(): string {
   return '/load';
 }
 
+export function effortsPath(): string {
+  return '/efforts';
+}
+
+/** /effort/:slug with optional modifiers and page controls */
+export function effortPath(
+  slug: string,
+  modifiers?: Record<string, string>,
+  options?: { mode?: string; tab?: string },
+): string {
+  const params = new URLSearchParams();
+  if (modifiers) {
+    for (const [k, v] of Object.entries(modifiers)) {
+      params.set(k, v);
+    }
+  }
+  if (options?.mode) params.set('mode', options.mode);
+  if (options?.tab) params.set('tab', options.tab);
+  const query = params.toString();
+  return query ? `/effort/${encodeURIComponent(slug)}?${query}` : `/effort/${encodeURIComponent(slug)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Effort route utilities
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse effort route query params into resolver modifiers.
+ *
+ * Reserved params (not fed to resolver): mode, tab, q, origin
+ * All other params are treated as attribute metric modifiers.
+ */
+export function parseEffortRouteModifiers(searchParams: URLSearchParams): Record<string, string> {
+  const reserved = new Set(['mode', 'tab', 'q', 'origin']);
+  const modifiers: Record<string, string> = {};
+  for (const [key, value] of searchParams.entries()) {
+    if (!reserved.has(key)) {
+      modifiers[key] = value;
+    }
+  }
+  return modifiers;
+}
+
+/**
+ * Parse page-control params from effort route query string.
+ *
+ * Returns reserved params: mode, tab, q, origin
+ */
+export function parseEffortRouteOptions(searchParams: URLSearchParams): {
+  mode?: string;
+  tab?: string;
+  q?: string;
+  origin?: string;
+} {
+  return {
+    mode: searchParams.get('mode') ?? undefined,
+    tab: searchParams.get('tab') ?? undefined,
+    q: searchParams.get('q') ?? undefined,
+    origin: searchParams.get('origin') ?? undefined,
+  };
+}
 // ---------------------------------------------------------------------------
 // Legacy-alias redirect components
 // ---------------------------------------------------------------------------
@@ -238,4 +302,14 @@ export function isReviewPath(pathname: string): boolean {
 /** Detect whether a location pathname belongs to the collection workout family. */
 export function isCollectionWorkoutPath(pathname: string): boolean {
   return pathname.startsWith('/collections/') && pathname.split('/').length >= 4 && pathname.split('/')[3] !== '';
+}
+
+/** Detect whether a location pathname belongs to the efforts family. */
+export function isEffortsPath(pathname: string): boolean {
+  return pathname === '/efforts' || pathname.startsWith('/effort/');
+}
+
+/** Detect whether a location pathname belongs to the effort family. */
+export function isEffortPath(pathname: string): boolean {
+  return pathname.startsWith('/effort/') || pathname === '/efforts';
 }

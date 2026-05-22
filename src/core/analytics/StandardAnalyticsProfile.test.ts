@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { StandardAnalyticsProfile } from './StandardAnalyticsProfile';
 import { MetricType } from '../models/Metric';
 import type { AnalyticsProfileContext } from './IAnalyticsProfile';
+import { MockEffortResolver } from '@/testing/harness/MockEffortResolver';
 
 describe('StandardAnalyticsProfile', () => {
   const createContext = (dialect: AnalyticsProfileContext['dialect'], metricTypes: MetricType[]): AnalyticsProfileContext => ({
@@ -24,6 +25,32 @@ describe('StandardAnalyticsProfile', () => {
 
       expect(result.realtime).toHaveLength(2);
       expect(result.summary).toHaveLength(6);
+    });
+
+    it('should inject TwoPassEffortResolutionProcess when analyticsContext is provided', () => {
+      const profile = new StandardAnalyticsProfile();
+      const resolver = new MockEffortResolver();
+      const context: AnalyticsProfileContext = {
+        dialect: 'wod',
+        scriptMetricTypes: new Set([MetricType.Action, MetricType.Rep, MetricType.Resistance]),
+        analyticsContext: { effortResolver: resolver },
+      };
+
+      const result = profile.build(context);
+
+      expect(result.realtime.map(p => p.id)).toContain('two-pass-effort-resolution');
+      // Resolution process is first, then the 2 standard realtime processors
+      expect(result.realtime[0].id).toBe('two-pass-effort-resolution');
+      expect(result.realtime).toHaveLength(3);
+    });
+
+    it('should not inject TwoPassEffortResolutionProcess when analyticsContext is absent', () => {
+      const profile = new StandardAnalyticsProfile();
+      const context = createContext('wod', [MetricType.Action]);
+
+      const result = profile.build(context);
+
+      expect(result.realtime.map(p => p.id)).not.toContain('two-pass-effort-resolution');
     });
   });
 
@@ -266,6 +293,25 @@ describe('StandardAnalyticsProfile', () => {
         'met-minute-projection',
         'session-load-projection',
         'tis-projection',
+      ]);
+    });
+
+    it('should include resolution process first for cardio with analyticsContext', () => {
+      const profile = new StandardAnalyticsProfile();
+      const resolver = new MockEffortResolver();
+      const context: AnalyticsProfileContext = {
+        dialect: 'wod',
+        scriptMetricTypes: new Set([MetricType.Elapsed, MetricType.Distance, MetricType.Action]),
+        analyticsContext: { effortResolver: resolver },
+      };
+
+      const result = profile.build(context);
+
+      expect(result.realtime[0].id).toBe('two-pass-effort-resolution');
+      // Power-enrichment requires Rep + Resistance, not present in cardio context
+      expect(result.realtime.map(p => p.id).sort()).toEqual([
+        'pace-enrichment',
+        'two-pass-effort-resolution',
       ]);
     });
   });

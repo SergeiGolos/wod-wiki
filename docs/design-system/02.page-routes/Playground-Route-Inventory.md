@@ -32,6 +32,8 @@ This document is the live browser-route contract for the playground app. It is s
 | `/run/:runtimeId` | `TrackerPage` | Canonical transient runtime execution route. |
 | `/review/:runtimeId` | `ReviewPage` | Canonical persisted review route. |
 | `/load` | `LoadZipPage` | Import / shared-content utility route. |
+| `/efforts` | `AppContent` → `EffortsCatalogPage` | Effort registry index and search catalog. |
+| `/effort/:slug` | `AppContent` → `EffortDetailPage` | Single effort definition + resolved instance inspector. |
 | `*` | `NotFoundPage` | Dedicated 404 surface. |
 
 ### Compatibility routes and redirects
@@ -112,9 +114,65 @@ The live router does **not** define `/p/:id` or `/j/:date`. Current canonical no
 | Journal | `/journal`, `/journal/:id`, `/plan` | `playground/src/views/ListViews.tsx`, `playground/src/pages/JournalPage.tsx`, `playground/src/views/PlanPage.tsx` |
 | Feeds | `/feeds`, `/feeds/:feedSlug`, `/feeds/:feedSlug/:feedDate/:feedItem` | `playground/src/views/FeedsPage.tsx`, `playground/src/pages/FeedDetailPage.tsx`, `playground/src/pages/FeedItemPage.tsx` |
 | Collections | `/collections`, `/collections/:slug`, `/collections/:collection/:workout` | `playground/src/views/CollectionsPage.tsx`, `playground/src/canvas/canvasRoutes.ts`, `playground/src/pages/WorkoutEditorPage.tsx` |
+| Efforts | `/efforts`, `/effort/:slug` | `playground/src/pages/EffortsCatalogPage.tsx`, `playground/src/pages/EffortDetailPage.tsx` |
 | Guide docs | `/guide/getting-started`, `/guide/syntax*` | `markdown/canvas/**`, `playground/src/canvas/canvasRoutes.ts` |
 | Runtime / review | `/run/:runtimeId`, `/review/:runtimeId` | `playground/src/pages/TrackerPage.tsx`, `playground/src/pages/ReviewPage.tsx` |
 | Import utility | `/load` | `playground/src/pages/LoadZipPage.tsx` |
+
+## Effort route contract (attribute metrics & resolved instance inspection)
+
+### `/efforts` — Effort registry catalog
+
+**Purpose**: Browse and search all efforts (bundled + user-defined).
+
+**Query params** (page controls only):
+- `q`: search/filter text
+- `tab`: filter by category (optional)
+
+### `/effort/:slug` — Effort definition + resolved instance
+
+**Purpose**: View effort definition, inspect resolved instances with modifiers, edit custom efforts.
+
+**URL params**:
+- `:slug` — effort identifier (e.g., `run`, `bench-press`, `sprint`)
+
+**Query params** (split into modifiers vs. page controls):
+
+#### Modifier params (fed to `EffortResolver`)
+
+Any query param **not** in the reserved set below is treated as an attribute metric modifier and passed to `resolver.resolveEffort(slug, { modifiers })`.
+
+Examples:
+- `?speed=6mph` — resolve effort with speed modifier
+- `?speed=6mph&surface=treadmill&incline=5%` — multiple modifiers
+- `?speed=6mph&weight=135lb&mode=view&tab=resolved` — mixed modifiers and controls; only `speed` and `weight` feed the resolver
+
+#### Reserved page-control params
+
+| Param | Values | Default | Purpose |
+|---|---|---|---|
+| `mode` | `view`, `edit` | `view` | Read-only inspection vs. edit form. Ignored for bundled efforts. |
+| `tab` | `definition`, `resolved` | `definition` if no modifiers; `resolved` if modifiers present | Display view. When modifiers are present, default switches to `resolved` to show effective instance. |
+| `q` | search text | (none) | Search within effort metadata (labels, aliases). |
+| `origin` | `user`, `bundled`, `default` | (none) | Filter by registry source. |
+
+**View behavior**:
+
+1. **Definition view** (default, no modifiers): Shows stored effort attributes, aliases, derivation chain, metadata.
+2. **Resolved view** (when `?speed=6mph` etc. present): Shows effective MET, discipline factor, applied modifiers, parent chain with coefficient impact, resolved source, estimated badge.
+
+**Tab switching**:
+
+When modifiers are present, two tabs appear: **Resolved** (primary) and **Definition** (reference). User can toggle between views. Without modifiers, only **Definition** view is shown.
+
+## Effort route validation checklist
+
+- `/efforts` catalog shows all bundled + user efforts
+- `/effort/:slug` without query params shows definition view
+- `/effort/:slug?speed=6mph` resolves effort and defaults to resolved view
+- `/effort/:slug?speed=6mph&tab=definition` allows switching back to definition
+- Reserved params (`mode`, `tab`, `q`, `origin`) do not feed the resolver
+- Modifier extraction via `parseEffortRouteModifiers(searchParams)` in `playground/src/lib/routes.tsx`
 
 ## Validation checklist
 

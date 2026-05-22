@@ -12,6 +12,7 @@ import type { IRuntimeActionable } from './primitives/IRuntimeActionable';
 import type { BlockLifecycleOptions } from './primitives/IBlockLifecycle';
 import type { IRuntimeBlock } from './IRuntimeBlock';
 import type { ICodeStatement } from '../../core/models/CodeStatement';
+import type { AnalyticsContext } from '../../core/analytics/AnalyticsContext';
 
 /**
  * Interface for the Just-In-Time compiler that converts parsed statements
@@ -45,6 +46,9 @@ export interface IScriptRuntime extends IRuntimeActionable {
 
     /** Errors collected during runtime execution */
     errors?: RuntimeError[];
+
+    /** Optional analytics context for compile-time effort enrichment. */
+    analyticsContext?: AnalyticsContext;
 
     /**
      * Executes an action at the next available opportunity.
