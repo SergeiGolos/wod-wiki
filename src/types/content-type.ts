@@ -18,6 +18,7 @@ export type PageMode =
   | 'journal-history'
   | 'journal-active'
   | 'journal-plan'
+  | 'effort'
 
 /**
  * Derive the page mode from the content source and, for journal entries, the
