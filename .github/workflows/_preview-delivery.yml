@@ -96,17 +96,5 @@ jobs:
             core.setOutput('preview-run-url', runUrl);
             core.setOutput('preview-url', previewUrl);
 
-      - name: Wait for published preview route
-        run: |
-          set -euo pipefail
-          for attempt in $(seq 1 20); do
-            status=$(curl -sSL -o /dev/null -w "%{http_code}" "${{ inputs.preview-url }}/playground")
-            if [ "$status" = "200" ]; then
-              echo "Preview is serving /playground"
-              exit 0
-            fi
-            echo "Preview not ready yet (HTTP $status); retrying..."
-            sleep 15
-          done
-          echo "Preview never became ready at ${{ inputs.preview-url }}/playground"
-          exit 1
+      # Preview deployment is async — the companion repo (wod-wiki-preview) runs
+      # its own build, deploy, and E2E smoke tests. We only dispatch here.
