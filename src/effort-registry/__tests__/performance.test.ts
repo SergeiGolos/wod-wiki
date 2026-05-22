@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { beforeAll, describe, expect, it } from 'bun:test';
 import { InMemoryEffortRegistry } from '../InMemoryEffortRegistry';
 import { EffortResolver } from '../EffortResolver';
 import { bundledEfforts } from '../data/bundled-efforts';
@@ -33,7 +33,9 @@ const largeCatalog = generateLargeCatalog(LARGE_CATALOG_SIZE);
 
 const registry = new InMemoryEffortRegistry();
 registry.seed(largeCatalog);
-registry.loadBundled();
+beforeAll(async () => {
+  await registry.loadBundled();
+});
 
 const resolver = new EffortResolver(registry);
 

@@ -58,7 +58,8 @@ function tryEnrichBlock(
   debug: boolean,
 ): void {
   // Only enrich exercise blocks and effort blocks
-  if (block.blockType !== 'effort' && block.blockType !== 'Exercise') {
+  const normalizedBlockType = block.blockType?.toLowerCase();
+  if (normalizedBlockType !== 'effort' && normalizedBlockType !== 'exercise') {
     return;
   }
 
@@ -98,15 +99,19 @@ function tryEnrichBlock(
 
     // Create or update a private metrics memory location
     const privateMetrics = block.getMetricMemoryByVisibility('private');
-    if (privateMetrics.length > 0 && overwrite) {
-      // Update existing private metrics: remove old effort-data and add new one
-      const existingMetrics = privateMetrics[0].metrics.toArray();
+    const existingEffortDataLocation = privateMetrics.find(loc =>
+      loc.metrics.toArray().some(m => m.type === EFFORT_DATA_METRIC_TYPE),
+    );
+
+    if (existingEffortDataLocation && overwrite) {
+      // Update existing effort-data location: remove old effort-data and add new one
+      const existingMetrics = existingEffortDataLocation.metrics.toArray();
       const filtered = existingMetrics.filter(m => m.type !== EFFORT_DATA_METRIC_TYPE);
       filtered.push(effortDataMetric);
-      privateMetrics[0].update(filtered);
-    } else if (privateMetrics.length === 0) {
-      // Create new private metrics location with correct tag
-      const location = new MemoryLocation('metric:effort-data', [effortDataMetric]);
+      existingEffortDataLocation.update(filtered);
+    } else if (!existingEffortDataLocation) {
+      // Create new private metrics location
+      const location = new MemoryLocation('metric:tracked', [effortDataMetric]);
       block.pushMemory(location);
     }
   } catch (err) {
