@@ -135,10 +135,10 @@ export const WodIndexPanel: React.FC<WodIndexPanelProps> = ({
                                 e.stopPropagation();
                                 onRun(item);
                               }}
-                              className="size-6 rounded flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                              className="h-11 w-11 rounded-md flex items-center justify-center text-primary hover:bg-primary/10 transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                               title="Start workout"
                             >
-                              <Play className="size-3.5 fill-current" />
+                              <Play className="h-4 w-4 fill-current" />
                             </button>
                           )}
                         </div>

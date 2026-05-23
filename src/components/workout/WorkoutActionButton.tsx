@@ -107,7 +107,7 @@ export const WorkoutActionButton: React.FC<WorkoutActionButtonProps> = ({
                 size="sm"
                 onClick={handleMainAction}
                 className={cn(
-                    "rounded-r-none gap-2 px-3 h-9 font-semibold whitespace-nowrap z-10",
+                    "rounded-r-none gap-2 px-3 h-11 font-semibold whitespace-nowrap z-10",
                     variant === 'default' ? "border-r border-primary-foreground/20" : "border-r-0"
                 )}
                 title={effectiveTitle}
@@ -122,7 +122,7 @@ export const WorkoutActionButton: React.FC<WorkoutActionButtonProps> = ({
                         variant={variant}
                         size="sm"
                         className={cn(
-                            "rounded-l-none px-2 h-9 transition-all",
+                            "rounded-l-none px-2 h-11 transition-all",
                             variant === 'ghost' ? "border-l hover:bg-accent" : "border-l"
                         )}
                         title="Pick a date"

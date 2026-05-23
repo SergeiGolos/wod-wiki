@@ -49,8 +49,8 @@ export const ButtonGroupDropdown: React.FC<ButtonGroupDropdownProps> = ({
   onAction,
 }) => {
   const PrimaryIcon = primary.icon;
-  const padding = size === 'sm' ? 'px-2.5 py-1.5' : 'px-3 py-2';
-  const iconPadding = size === 'sm' ? 'px-2 py-1.5' : 'px-2.5 py-2';
+  const padding = size === 'sm' ? 'min-h-[44px] px-2.5 py-1.5' : 'min-h-[44px] px-3 py-2';
+  const iconPadding = size === 'sm' ? 'min-h-[44px] min-w-[44px] px-2 py-1.5' : 'min-h-[44px] min-w-[44px] px-2.5 py-2';
   const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs';
 
   return (

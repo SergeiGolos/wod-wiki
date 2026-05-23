@@ -388,7 +388,7 @@ export const RuntimeDebugPanel: React.FC<RuntimeDebugPanelProps> = ({
             <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
             <h3 className="font-semibold text-sm">Runtime Debugger</h3>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close debugger" title="Close debugger">
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close debugger" title="Close debugger" className="h-11 w-11">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -449,7 +449,7 @@ export const DebugButton: React.FC<DebugButtonProps> = ({
       size="icon"
       onClick={onClick}
       disabled={disabled}
-      className="h-9 w-9 relative"
+      className="h-11 w-11 relative"
       title={isDebugMode ? "Close debugger (console logging enabled)" : "Open debugger"}
     >
       <Bug className="h-[1.2rem] w-[1.2rem]" />

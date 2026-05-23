@@ -203,7 +203,7 @@ const StackBlockItem: React.FC<{
                     {debug && (
                         <button
                             onClick={() => setDebugDialogOpen(true)}
-                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                            className="h-9 w-9 rounded-md flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
                             title="Inspect block"
                         >
                             <Table2 className="h-4 w-4" />

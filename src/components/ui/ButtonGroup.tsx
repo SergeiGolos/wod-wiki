@@ -60,21 +60,21 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   const isPrimary = variant === 'primary';
 
   const padding = size === 'xs'
-    ? 'h-11 min-w-11 justify-center px-0 sm:h-auto sm:min-w-0 sm:px-2 sm:py-0.5 sm:justify-start'
+    ? 'h-11 min-w-11 justify-center px-0 sm:h-auto sm:min-h-[44px] sm:min-w-0 sm:px-2 sm:py-0.5 sm:justify-start'
     : size === 'sm'
-      ? 'px-2.5 py-1.5'
-      : 'px-3 py-2';
+      ? 'min-h-[44px] px-2.5 py-1.5'
+      : 'min-h-[44px] px-3 py-2';
   const iconPadding = size === 'xs'
-    ? 'h-11 w-11 px-0 sm:h-auto sm:w-auto sm:px-1.5 sm:py-0.5'
+    ? 'h-11 w-11 px-0 sm:h-auto sm:min-h-[44px] sm:min-w-[44px] sm:w-auto sm:px-1.5 sm:py-0.5'
     : size === 'sm'
-      ? 'px-2 py-1.5'
-      : 'px-2.5 py-2';
+      ? 'min-h-[44px] min-w-[44px] px-2 py-1.5'
+      : 'min-h-[44px] min-w-[44px] px-2.5 py-2';
   const primaryPadding = size === 'xs'
-    ? 'h-11 min-w-11 justify-center px-0 sm:h-auto sm:min-w-0 sm:pl-5 sm:pr-4 sm:py-2 sm:justify-start'
-    : 'pl-5 pr-4 py-2';
+    ? 'h-11 min-w-11 justify-center px-0 sm:h-auto sm:min-h-[44px] sm:min-w-0 sm:pl-5 sm:pr-4 sm:py-2 sm:justify-start'
+    : 'min-h-[44px] pl-5 pr-4 py-2';
   const primaryIconPadding = size === 'xs'
-    ? 'h-11 w-11 px-0 sm:h-auto sm:w-auto sm:px-3 sm:py-2'
-    : 'px-3 py-2';
+    ? 'h-11 w-11 px-0 sm:h-auto sm:min-h-[44px] sm:min-w-[44px] sm:w-auto sm:px-3 sm:py-2'
+    : 'min-h-[44px] min-w-[44px] px-3 py-2';
   const textSize = size === 'xs' ? 'text-[10px]' : size === 'sm' ? 'text-[11px]' : 'text-xs';
 
   return (

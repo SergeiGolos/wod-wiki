@@ -245,7 +245,7 @@ const CommandPill: React.FC<{
       <Button
         variant={cmd.primary ? "default" : "secondary"}
         className={cn(
-          "h-11 w-11 rounded-full p-0 text-[10px] font-medium shadow-sm gap-0 sm:h-auto sm:w-auto sm:gap-1 sm:rounded-sm sm:px-2 sm:py-0.5",
+          "h-11 w-11 rounded-full p-0 text-[10px] font-medium shadow-sm gap-0 sm:h-auto sm:min-h-[44px] sm:w-auto sm:gap-1 sm:rounded-sm sm:px-2 sm:py-0.5",
           !cmd.primary && "border border-border/50",
         )}
         title={cmd.label}
