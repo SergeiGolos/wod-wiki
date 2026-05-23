@@ -129,3 +129,28 @@ export function getBundledEfforts(): readonly IEffort[] {
 export function getBundledEffortCount(): number {
   return getBundledEfforts().length;
 }
+
+/**
+ * Get raw markdown content for a specific effort by slug.
+ * Returns null if not found.
+ */
+export function getEffortMarkdown(slug: string): string | null {
+  const effort = getBundledEfforts().find(e => e.slug === slug);
+  if (!effort) return null;
+  // Reconstruct full document from parsed effort + body
+  const lines = [
+    '---',
+    `id: ${effort.id}`,
+    `slug: ${effort.slug}`,
+    `label: ${effort.label}`,
+    ...(effort.aliases?.length ? [`aliases:`, ...effort.aliases.map(a => `  - ${a}`)] : []),
+    `met: ${effort.baseAttributes.met}`,
+    ...(effort.baseAttributes.discipline ? [`discipline: ${effort.baseAttributes.discipline}`] : []),
+    ...(effort.baseAttributes.intensityTier ? [`intensityTier: ${effort.baseAttributes.intensityTier}`] : []),
+    '---',
+  ];
+  if (effort.body) {
+    lines.push('', effort.body);
+  }
+  return lines.join('\n');
+}

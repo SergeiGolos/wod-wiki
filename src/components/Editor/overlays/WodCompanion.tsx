@@ -245,16 +245,17 @@ const CommandPill: React.FC<{
       <Button
         variant={cmd.primary ? "default" : "secondary"}
         className={cn(
-          "h-auto px-2 py-0.5 text-[10px] font-medium rounded-sm shadow-sm gap-1",
+          "h-11 w-11 rounded-full p-0 text-[10px] font-medium shadow-sm gap-0 sm:h-auto sm:min-h-[44px] sm:w-auto sm:gap-1 sm:rounded-sm sm:px-2 sm:py-0.5",
           !cmd.primary && "border border-border/50",
         )}
         title={cmd.label}
+        aria-label={cmd.label}
         onClick={(e) => { stopEvent(e); cmd.onClick(block); }}
         onMouseDown={stopEvent}
         onPointerDown={stopEvent}
       >
-        <span className="flex items-center size-3">{cmd.icon}</span>
-        <span className="hidden sm:inline">{cmd.label}</span>
+        <span className="flex items-center justify-center size-4 sm:size-3">{cmd.icon}</span>
+        <span className="sr-only sm:not-sr-only sm:inline">{cmd.label}</span>
       </Button>
     );
   }
@@ -266,8 +267,8 @@ const CommandPill: React.FC<{
         secondary={secondaryActivation}
         size="xs"
         variant={cmd.primary ? "primary" : "default"}
-        className="rounded-sm"
-        labelClassName="hidden sm:inline"
+        className="rounded-full sm:rounded-sm"
+        labelClassName="sr-only sm:not-sr-only sm:inline"
       />
     </div>
   );
@@ -290,7 +291,7 @@ const CommandButtons: React.FC<{
 
   if (compact) {
     return (
-      <div className="flex flex-row items-center gap-1 p-1.5">
+      <div className="flex flex-row items-center gap-1 p-0 sm:p-1.5">
         {commands.map((cmd) => (
           <CommandPill key={cmd.id} cmd={cmd} block={block} />
         ))}
@@ -411,7 +412,8 @@ export const WodCompanion: React.FC<WodCompanionProps> = ({
   //  1. STRIP — always visible, sticky to top of viewport within section bounds
   //  2. CARD  — compact metric panel, shown on hover/active, positioned below strip
 
-  const STRIP_H = 28;
+  const isMobileViewport = typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches;
+  const STRIP_H = isMobileViewport ? 44 : 28;
   const CARD_H  = 200;
 
   // Card top: centered on the active line, but clamped to stay within the slot
