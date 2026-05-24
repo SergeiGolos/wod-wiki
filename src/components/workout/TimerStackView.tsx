@@ -225,9 +225,9 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         <button
                             onClick={isRunning ? handlePause : handleStart}
                             {...(getFocusProps ? getFocusProps('timer-main') : {})}
-                            className={`tv-focusable relative z-10 flex flex-col items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group ${compact ? 'py-2' : 'py-8'}`}
+                            className={`tv-focusable relative z-10 flex flex-col items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group min-h-[48px] min-w-[48px] ${compact ? 'py-2' : 'py-8'}`}
                         >
-                            <span className={`font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none ${compact ? 'text-[5rem] sm:text-[6rem]' : 'text-[8rem] lg:text-[12rem]'}`}>
+                            <span className={`font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none ${compact ? 'text-[3.5rem]' : 'text-[8rem] lg:text-[12rem]'}`}>
                                 {formatTime(displayTimeMs)}
                             </span>
                             <div className={`text-primary group-hover:opacity-80 transition-opacity ${compact ? 'mt-2' : 'mt-4'}`}>
@@ -242,16 +242,16 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
             </div>
 
             {/* Controls Row — adapts between mobile (bottom bar) and desktop (centered buttons) */}
-            <div className={`flex items-center justify-center ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : 'gap-8 sm:gap-12 px-2 pb-8'} flex-wrap`}>
+            <div className={`flex items-center justify-center ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : 'gap-8 px-2 pb-8'} flex-wrap`}>
                 {/* Stop Button */}
                 <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
                     <button
                         onClick={handleStop}
                         {...(getFocusProps ? getFocusProps('btn-stop') : {})}
-                        className={`tv-focusable group flex items-center justify-center rounded-full border transition-all active:scale-95 ${compact ? 'w-12 h-12 bg-muted border-border' : 'w-16 h-16 sm:w-20 sm:h-20 bg-surface-container-low border-outline-variant hover:bg-surface-variant shadow-sm'}`}
+                        className={`tv-focusable group flex items-center justify-center rounded-full border transition-all active:scale-95 ${compact ? 'w-12 h-12 bg-muted border-border' : 'w-16 h-16 bg-surface-container-low border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title="Stop Session"
                     >
-                        <Square className={`${compact ? 'w-5 h-5' : 'w-7 h-7 sm:w-8 sm:h-8'} text-muted-foreground group-hover:text-destructive transition-colors`} />
+                        <Square className={`${compact ? 'w-5 h-5' : 'w-7 h-7'} text-muted-foreground group-hover:text-destructive transition-colors`} />
                     </button>
                     {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">Stop</span>}
                 </div>
@@ -261,12 +261,12 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     <button
                         onClick={isRunning ? handlePause : handleStart}
                         {...(getFocusProps ? getFocusProps('btn-pause') : {})}
-                        className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 sm:w-24 sm:h-24 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
+                        className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
                         title={isRunning ? 'Pause' : 'Resume'}
                     >
                         {isRunning 
-                            ? <Pause className={`${compact ? 'w-6 h-6 text-white' : 'w-8 h-8 sm:w-10 sm:h-10 text-on-surface-variant'}`} />
-                            : <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 sm:w-10 sm:h-10 text-on-surface-variant ml-1'}`} />
+                            ? <Pause className={`${compact ? 'w-6 h-6 text-white' : 'w-8 h-8 text-on-surface-variant'}`} />
+                            : <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
                         }
                     </button>
                     {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">{isRunning ? 'Pause' : 'Resume'}</span>}
@@ -290,10 +290,10 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         <button
                             onClick={handleNext}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                            className="tv-focusable flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white transition-all active:scale-90 shadow-xl w-24 h-24 sm:w-28 sm:h-28"
+                            className="tv-focusable flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white transition-all active:scale-90 shadow-xl w-24 h-24"
                             title="Next Block"
                         >
-                            <SkipForward className="font-bold w-10 h-10 sm:w-12 sm:h-12" />
+                            <SkipForward className="font-bold w-10 h-10" />
                         </button>
                         <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-on-primary-container">Next</span>
                     </div>

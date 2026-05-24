@@ -67,3 +67,47 @@ export const RealWorldSimulation: Story = {
     </div>
   ),
 };
+
+// ── Mobile width variants ───────────────────────────────────────────────────
+
+const MobileShellStory: React.FC<{ width: number; height?: number }> = ({ width, height = 667 }) => (
+  <div style={{ width, height }} className="border border-border rounded-lg overflow-hidden bg-background mx-auto">
+    <TrackViewShell
+      isCompact
+      leftPanel={
+        <div className="p-4 space-y-3 overflow-y-auto">
+          <div className="text-sm font-bold">Round 1 — 21 Thrusters</div>
+          <div className="space-y-2">
+            <div className="h-3 w-3/4 bg-blue-500/20 rounded" />
+            <div className="h-3 w-1/2 bg-blue-500/20 rounded" />
+          </div>
+        </div>
+      }
+      rightPanel={
+        <div className="flex flex-col h-full items-center justify-center gap-4 px-4">
+          <span className="text-5xl font-black tabular-nums">02:15</span>
+          <div className="flex gap-3">
+            <div className="h-12 w-12 bg-muted rounded-full" />
+            <div className="h-14 w-14 bg-primary rounded-full" />
+            <div className="h-14 flex-1 bg-foreground rounded-2xl" />
+          </div>
+        </div>
+      }
+    />
+  </div>
+);
+
+export const Compact320px: Story = {
+  name: 'Compact — 320px width',
+  render: () => <MobileShellStory width={320} />,
+};
+
+export const Compact375px: Story = {
+  name: 'Compact — 375px width',
+  render: () => <MobileShellStory width={375} />,
+};
+
+export const Compact480px: Story = {
+  name: 'Compact — 480px width',
+  render: () => <MobileShellStory width={480} />,
+};
