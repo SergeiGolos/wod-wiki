@@ -22,6 +22,7 @@ import {
   FolderIcon,
   CodeBracketIcon,
   CalendarDaysIcon,
+  BookOpenIcon,
 } from '@heroicons/react/20/solid'
 import { RssIcon, Dumbbell } from 'lucide-react'
 
@@ -68,12 +69,39 @@ const syntaxChildren: NavItem[] = canvasRoutes
 
 const homeChildren: NavItem[] = [
   {
+    id: 'zero-to-hero',
+    label: 'Zero to Hero',
+    level: 2,
+    icon: BookOpenIcon,
+    action: { type: 'route' as const, to: '/guide/getting-started' },
+    isActive: (loc: Location) => loc.pathname === '/guide/getting-started',
+  },
+  {
     id: 'syntax-group',
     label: 'Syntax',
     level: 2,
     icon: CodeBracketIcon,
     action: { type: 'none' },
-    children: syntaxChildren,
+    children: [
+      ...syntaxChildren,
+      // Guide pages linked from the home playground surface
+      {
+        id: 'syntax-guide-overview',
+        label: 'Syntax overview',
+        level: 2,
+        icon: CodeBracketIcon,
+        action: { type: 'route' as const, to: '/guide/syntax' },
+        isActive: (loc: Location) => loc.pathname === '/guide/syntax',
+      },
+      {
+        id: 'syntax-guide-getting-started',
+        label: 'Getting started',
+        level: 2,
+        icon: BookOpenIcon,
+        action: { type: 'route' as const, to: '/guide/getting-started' },
+        isActive: (loc: Location) => loc.pathname === '/guide/getting-started',
+      },
+    ],
   },
 ]
 
