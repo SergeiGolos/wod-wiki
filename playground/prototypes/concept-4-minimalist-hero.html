@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WOD-Wiki · Concept 4: Minimalist Hero + Expandable Sandbox</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { font-family: 'Inter', sans-serif; }
+    body { background: #f5f2ed; color: #1a1a1a; }
+    .dark body { background: #2e3440; color: #eceff4; }
+
+    /* Atmospheric green wash */
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 90% 80% at 50% 0%, rgba(24,226,153,0.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* Typography */
+    .wod-keyword { color: #5980a8; font-weight: 600; }
+    .dark .wod-keyword { color: #81a1c1; }
+    .wod-number { color: #d08770; }
+    .wod-unit { color: #a3be8c; }
+    .wod-movement { color: #4c566a; }
+    .dark .wod-movement { color: #d8dee9; }
+    .code-line { font-family: 'Geist Mono', monospace; font-size: 13.5px; line-height: 1.85; }
+
+    /* CTA styles */
+    .btn-primary {
+      background: #1a1a1a; color: white;
+      border-radius: 9999px; font-weight: 600; font-size: 15px;
+      padding: 13px 28px; border: none; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: opacity 0.15s; text-decoration: none;
+    }
+    .dark .btn-primary { background: #eceff4; color: #2e3440; }
+    .btn-primary:hover { opacity: 0.88; }
+
+    .btn-secondary {
+      border: 1.5px solid rgba(0,0,0,0.12); background: transparent;
+      border-radius: 9999px; font-weight: 500; font-size: 15px;
+      padding: 12px 26px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      color: #374151; transition: background 0.15s; text-decoration: none;
+    }
+    .dark .btn-secondary { border-color: rgba(255,255,255,0.15); color: #d8dee9; }
+    .btn-secondary:hover { background: rgba(0,0,0,0.04); }
+    .dark .btn-secondary:hover { background: rgba(255,255,255,0.06); }
+
+    /* Below-fold sandbox card */
+    .sandbox-card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .dark .sandbox-card { background: #3b4252; box-shadow: 0 4px 40px rgba(0,0,0,0.4); }
+
+    /* Sandbox header */
+    .sandbox-header {
+      background: #f7f6f3;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .dark .sandbox-header { background: #434c5e; border-bottom-color: rgba(255,255,255,0.06); }
+
+    .traffic-light { width: 11px; height: 11px; border-radius: 50%; }
+    .tl-red { background: #ff5f57; }
+    .tl-yellow { background: #ffbd2e; }
+    .tl-green { background: #28c840; }
+
+    /* Split columns inside sandbox */
+    .sandbox-split {
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 768px) {
+      .sandbox-split {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* HUD styles */
+    .round-indicator {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: conic-gradient(#5980a8 0% 38%, #ede9e2 38% 100%);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .dark .round-indicator { background: conic-gradient(#81a1c1 0% 38%, #4c566a 38% 100%); }
+    .round-inner {
+      width: 54px; height: 54px; border-radius: 50%;
+      background: white; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .dark .round-inner { background: #3b4252; }
+
+    .movement-card {
+      background: linear-gradient(135deg, rgba(89,128,168,0.1) 0%, rgba(24,226,153,0.07) 100%);
+      border: 1px solid rgba(89,128,168,0.18);
+      border-radius: 14px; padding: 14px;
+    }
+    .dark .movement-card {
+      background: linear-gradient(135deg, rgba(129,161,193,0.12) 0%, rgba(24,226,153,0.08) 100%);
+      border-color: rgba(129,161,193,0.2);
+    }
+
+    .annotation {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      background: rgba(89,128,168,0.1); color: #5980a8;
+      border: 1px solid rgba(89,128,168,0.18); border-radius: 4px;
+      padding: 1px 6px; white-space: nowrap;
+    }
+    .dark .annotation { background: rgba(129,161,193,0.12); color: #81a1c1; border-color: rgba(129,161,193,0.22); }
+
+    .run-btn {
+      background: #5980a8; color: white; border-radius: 9999px;
+      font-weight: 600; font-size: 14px; padding: 12px 24px;
+      border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      justify-content: center; transition: opacity 0.15s; width: 100%;
+    }
+    .run-btn:hover { opacity: 0.88; }
+    .dark .run-btn { background: #81a1c1; color: #2e3440; }
+
+    /* Pillar cards */
+    .pillar-card {
+      background: white; border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.06);
+      padding: 20px; flex: 1;
+    }
+    .dark .pillar-card { background: #3b4252; border-color: rgba(255,255,255,0.06); }
+
+    /* Scroll hint arrow */
+    @keyframes bounce-down {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+    .bounce-down { animation: bounce-down 2s ease-in-out infinite; }
+
+    /* Timer state overlay */
+    .hud-timer {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; padding: 24px;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Theme toggle -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-4 py-2.5 shadow-sm">
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <button onclick="toggleDark()" class="relative w-10 h-5 rounded-full bg-zinc-200 dark:bg-zinc-600 transition-colors">
+      <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform dark:translate-x-5"></span>
+    </button>
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+    <span class="ml-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 font-mono">Concept 4</span>
+  </div>
+
+  <!-- Annotation bar -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-10 flex items-center gap-3 mb-4">
+    <span class="annotation">CONCEPT 4</span>
+    <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Minimalist Hero + Expandable Sandbox</span>
+    <span class="text-xs text-zinc-400 dark:text-zinc-500">Clean focused hero · Below-fold app-like sandbox · Equal split panes</span>
+  </div>
+
+  <!-- HERO (above fold) — minimalist, focused -->
+  <section class="hero-section max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-16 sm:pb-20">
+    <div class="max-w-2xl">
+      <p class="text-xs font-semibold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500 mb-4">wod-wiki · playground</p>
+      <h1 class="text-5xl sm:text-6xl font-bold text-zinc-950 dark:text-zinc-50 mb-5 leading-none" style="letter-spacing: -0.07em;">
+        Write a workout.<br/>
+        <span style="color: #5980a8;" class="dark:text-blue-300">Run it instantly.</span>
+      </h1>
+      <p class="text-lg leading-8 text-zinc-600 dark:text-zinc-400 mb-8 max-w-xl">
+        A plain-text DSL that parses into a live timer, round tracker, and movement HUD. No app required.
+      </p>
+
+      <div class="flex flex-wrap gap-3 mb-10">
+        <a href="#sandbox" class="btn-primary">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          Open sandbox
+        </a>
+        <a href="#" class="btn-secondary">Browse workouts →</a>
+      </div>
+
+      <!-- 3 pillars, compact row -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="pillar-card">
+          <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-base mb-2 border border-zinc-200 dark:border-zinc-600">✨</div>
+          <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Attention widget</div>
+          <div class="text-xs text-zinc-500 dark:text-zinc-400 leading-5">High-signal hero block with actionable CTAs.</div>
+        </div>
+        <div class="pillar-card">
+          <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-base mb-2 border border-zinc-200 dark:border-zinc-600">⌨️</div>
+          <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Code example</div>
+          <div class="text-xs text-zinc-500 dark:text-zinc-400 leading-5">Editable CodeMirror sample with runnable output.</div>
+        </div>
+        <div class="pillar-card">
+          <div class="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-base mb-2 border border-zinc-200 dark:border-zinc-600">📐</div>
+          <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Syntax groups</div>
+          <div class="text-xs text-zinc-500 dark:text-zinc-400 leading-5">Grouped syntax cards linked to docs.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll hint -->
+    <div class="mt-12 flex flex-col items-start gap-2">
+      <div class="text-xs text-zinc-400 dark:text-zinc-500 flex items-center gap-2">
+        <span class="bounce-down">↓</span>
+        <span>Try the sandbox below</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- BELOW FOLD: Full-width sandbox card -->
+  <section id="sandbox" class="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+    <div class="sandbox-card">
+      <!-- Card header -->
+      <div class="sandbox-header">
+        <div class="traffic-light tl-red"></div>
+        <div class="traffic-light tl-yellow"></div>
+        <div class="traffic-light tl-green"></div>
+        <span class="font-mono text-xs text-zinc-400 dark:text-zinc-500 ml-2">Interactive Sandbox</span>
+        <div class="ml-auto flex items-center gap-2">
+          <span class="annotation">CodeMirror 6</span>
+          <span class="annotation">RuntimeTimerPanel</span>
+        </div>
+      </div>
+
+      <!-- Equal split: editor left, HUD right -->
+      <div class="sandbox-split">
+        <!-- Editor column -->
+        <div class="p-6 border-b md:border-b-0 md:border-r border-zinc-100 dark:border-zinc-700/40">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Editor</span>
+            <span class="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+              <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+              live
+            </span>
+          </div>
+          <div class="space-y-0.5 mb-6">
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">1</span>
+              <span><span class="wod-keyword">AMRAP</span> <span class="wod-number">12:00</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">2</span>
+              <span>&nbsp;&nbsp;<span class="wod-number">10</span> <span class="wod-movement">Kettlebell Swings</span> <span class="wod-unit">24kg</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">3</span>
+              <span>&nbsp;&nbsp;<span class="wod-number">8</span> <span class="wod-movement">Burpees</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">4</span>
+              <span>&nbsp;&nbsp;<span class="wod-keyword">*:30</span> <span class="wod-movement">Rest</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line text-zinc-300 dark:text-zinc-600">
+              <span class="w-5 text-right text-xs flex-shrink-0">5</span>
+              <span class="border-l-2 border-zinc-800 dark:border-zinc-300 animate-pulse" style="height: 22px; width: 0;"></span>
+            </div>
+          </div>
+
+          <!-- Quick syntax hints -->
+          <div class="bg-zinc-50 dark:bg-zinc-800/40 rounded-xl p-4 mb-5">
+            <div class="text-xs font-semibold text-zinc-400 uppercase mb-2">Try editing</div>
+            <div class="space-y-1">
+              <div class="text-xs font-mono text-zinc-500 dark:text-zinc-400">EMOM 10:00 → 10-minute every minute</div>
+              <div class="text-xs font-mono text-zinc-500 dark:text-zinc-400">(5) → repeat 5 rounds</div>
+              <div class="text-xs font-mono text-zinc-500 dark:text-zinc-400">21,15,9 → descending ladder</div>
+            </div>
+          </div>
+
+          <button class="run-btn" onclick="showTimer()">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Run Workout Timer
+          </button>
+        </div>
+
+        <!-- HUD column — app-like -->
+        <div class="p-6 bg-zinc-50/40 dark:bg-zinc-800/20" id="hud-panel">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">Live HUD</span>
+            <button onclick="showEditor()" class="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition hidden" id="back-btn">← Edit</button>
+          </div>
+
+          <!-- Round indicator row -->
+          <div id="hud-static">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="round-indicator flex-shrink-0">
+                <div class="round-inner">
+                  <div class="text-lg font-bold font-mono text-zinc-900 dark:text-zinc-100 leading-none">2</div>
+                  <div class="text-xs text-zinc-400 leading-none">of 5</div>
+                </div>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-0.5">AMRAP · 12:00</div>
+                <div class="text-3xl font-bold font-mono text-zinc-900 dark:text-zinc-100" style="letter-spacing: -0.05em;">10:24</div>
+                <div class="text-xs text-zinc-400 dark:text-zinc-500">remaining</div>
+              </div>
+            </div>
+
+            <!-- Active movement -->
+            <div class="movement-card mb-3">
+              <div class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1.5">NOW</div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-0.5">Kettlebell Swings</div>
+                  <div class="text-sm font-mono text-zinc-500 dark:text-zinc-400">10 reps · 24kg</div>
+                </div>
+                <div class="text-2xl">🏋️</div>
+              </div>
+            </div>
+
+            <!-- Next up list -->
+            <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-4 mb-4">
+              <div class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">NEXT UP</div>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600"></div>
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Burpees</span>
+                  </div>
+                  <span class="text-xs font-mono text-zinc-400">8 reps</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div class="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600"></div>
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">Rest</span>
+                  </div>
+                  <span class="text-xs font-mono text-zinc-400">:30</span>
+                </div>
+                <div class="flex items-center justify-between opacity-50">
+                  <div class="flex items-center gap-2">
+                    <div class="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700"></div>
+                    <span class="text-sm text-zinc-700 dark:text-zinc-300">↩ Round 3</span>
+                  </div>
+                  <span class="text-xs font-mono text-zinc-400">+:30s</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timer controls (app-like) -->
+            <div class="grid grid-cols-3 gap-2">
+              <button class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 py-2.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex flex-col items-center gap-1">
+                <span>⏸</span><span>Pause</span>
+              </button>
+              <button class="rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-2.5 text-xs font-semibold flex flex-col items-center gap-1">
+                <span>⏭</span><span>Next</span>
+              </button>
+              <button class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 py-2.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex flex-col items-center gap-1">
+                <span>⏹</span><span>Stop</span>
+              </button>
+            </div>
+
+            <!-- Fullscreen hint -->
+            <button class="mt-3 w-full text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition flex items-center justify-center gap-1">
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+              Go fullscreen
+            </button>
+          </div>
+
+          <!-- Annotation map -->
+          <div class="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-700/40 space-y-1.5">
+            <div class="flex items-center gap-2 text-xs text-zinc-400">
+              <span class="annotation">RuntimeTimerPanel</span> VisualStatePanel + TimerDisplay
+            </div>
+            <div class="flex items-center gap-2 text-xs text-zinc-400">
+              <span class="annotation">FullscreenTimer</span> On "Go fullscreen"
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile note -->
+    <div class="mt-5 flex items-start gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+      <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      <span>Mobile: columns stack vertically (editor → HUD). Sandbox is full viewport width. Run button triggers HUD slide-up. Hero headline scales to 40px.</span>
+    </div>
+
+    <!-- Component map footer -->
+    <div class="mt-8 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-600 p-6 bg-zinc-50/60 dark:bg-zinc-800/20">
+      <div class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-3">Component Map</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+        <div class="flex items-center gap-2"><span class="annotation">AttentionWidget</span> Hero section with pillars + CTAs</div>
+        <div class="flex items-center gap-2"><span class="annotation">CodeExampleWidget</span> Editor panel (left column)</div>
+        <div class="flex items-center gap-2"><span class="annotation">RuntimeTimerPanel</span> HUD panel (right column)</div>
+        <div class="flex items-center gap-2"><span class="annotation">FullscreenTimer</span> Triggered from fullscreen hint button</div>
+        <div class="flex items-center gap-2"><span class="annotation">MacOSChrome</span> Sandbox card header frame</div>
+        <div class="flex items-center gap-2"><span class="annotation">SyntaxGroupWidget</span> Syntax hint box inside editor panel</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function toggleDark() { document.documentElement.classList.toggle('dark'); }
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+
+    function showTimer() {
+      // In this static prototype we just scroll to hud and highlight it
+      document.getElementById('hud-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('back-btn').classList.remove('hidden');
+    }
+    function showEditor() {
+      document.getElementById('back-btn').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

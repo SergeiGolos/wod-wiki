@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WOD-Wiki · Concept 3: Canvas Two-Column Scroll-Driven</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Geist Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { font-family: 'Inter', sans-serif; }
+    body { background: #f5f2ed; color: #1a1a1a; }
+    .dark body { background: #2e3440; color: #eceff4; }
+
+    .hero-glow { background: radial-gradient(ellipse 100% 80% at 50% 0%, rgba(24,226,153,0.15) 0%, transparent 60%); }
+
+    /* Two-column layout: 40% prose / 60% sticky editor */
+    .canvas-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    @media (min-width: 900px) {
+      .canvas-layout {
+        grid-template-columns: 2fr 3fr;
+        align-items: start;
+        gap: 0;
+      }
+      .sticky-col {
+        position: sticky;
+        top: 80px;
+      }
+    }
+
+    .wod-keyword { color: #5980a8; font-weight: 600; }
+    .dark .wod-keyword { color: #81a1c1; }
+    .wod-number { color: #d08770; }
+    .wod-unit { color: #a3be8c; }
+    .wod-movement { color: #4c566a; }
+    .dark .wod-movement { color: #d8dee9; }
+    .code-line { font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 1.85; }
+
+    .editor-frame {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .dark .editor-frame { background: #3b4252; box-shadow: 0 4px 32px rgba(0,0,0,0.4); }
+
+    .chrome-bar {
+      background: #f4f4f4; border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .dark .chrome-bar { background: #434c5e; border-bottom-color: rgba(255,255,255,0.05); }
+
+    .traffic-light { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+    .tl-red { background: #ff5f57; }
+    .tl-yellow { background: #ffbd2e; }
+    .tl-green { background: #28c840; }
+
+    /* State: editor vs timer */
+    .state-tab {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 8px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .state-tab.active {
+      background: rgba(89,128,168,0.12); color: #5980a8;
+    }
+    .dark .state-tab.active { background: rgba(129,161,193,0.15); color: #81a1c1; }
+    .state-tab.inactive { color: #8b9ab5; }
+    .dark .state-tab.inactive { color: #616e88; }
+
+    /* Timer panel */
+    .timer-panel {
+      padding: 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .timer-circle {
+      width: 128px; height: 128px; border-radius: 50%;
+      background: conic-gradient(#5980a8 0% 35%, #ede9e2 35% 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dark .timer-circle { background: conic-gradient(#81a1c1 0% 35%, #4c566a 35% 100%); }
+    .timer-inner {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: white; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .dark .timer-inner { background: #3b4252; }
+
+    .run-btn {
+      background: #5980a8; color: white; border-radius: 9999px;
+      font-weight: 600; font-size: 14px; padding: 11px 28px;
+      border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: opacity 0.15s;
+    }
+    .run-btn:hover { opacity: 0.88; }
+    .dark .run-btn { background: #81a1c1; color: #2e3440; }
+
+    .annotation {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+      background: rgba(89,128,168,0.12); color: #5980a8;
+      border: 1px solid rgba(89,128,168,0.2); border-radius: 4px;
+      padding: 1px 6px; white-space: nowrap;
+    }
+    .dark .annotation { background: rgba(129,161,193,0.15); color: #81a1c1; border-color: rgba(129,161,193,0.25); }
+
+    /* Prose scroll section styles */
+    .section-tag {
+      display: inline-block;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #5980a8; margin-bottom: 8px;
+    }
+    .dark .section-tag { color: #81a1c1; }
+
+    .feature-bullet {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .dark .feature-bullet { border-bottom-color: rgba(255,255,255,0.06); }
+
+    .feature-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(89,128,168,0.1); border: 1px solid rgba(89,128,168,0.15);
+      font-size: 16px;
+    }
+    .dark .feature-icon { background: rgba(129,161,193,0.12); border-color: rgba(129,161,193,0.2); }
+
+    /* Scroll progress indicator */
+    .scroll-indicator {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, #5980a8, rgba(24,226,153,0.8));
+      z-index: 100; width: 0%;
+      transition: width 0.1s;
+    }
+    .dark .scroll-indicator { background: linear-gradient(90deg, #81a1c1, rgba(24,226,153,0.7)); }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Scroll progress bar -->
+  <div class="scroll-indicator" id="scroll-bar"></div>
+
+  <!-- Theme toggle -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-4 py-2.5 shadow-sm">
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <button onclick="toggleDark()" class="relative w-10 h-5 rounded-full bg-zinc-200 dark:bg-zinc-600 transition-colors">
+      <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform dark:translate-x-5"></span>
+    </button>
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+    <span class="ml-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 font-mono">Concept 3</span>
+  </div>
+
+  <!-- Fullscreen hero (above canvas) -->
+  <div class="hero-glow w-full px-6 sm:px-12 pt-12 pb-10 text-center max-w-4xl mx-auto">
+    <div class="mb-4 flex items-center gap-3 justify-center">
+      <span class="annotation">CONCEPT 3</span>
+      <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Canvas Two-Column Scroll-Driven</span>
+    </div>
+    <p class="section-tag">wod-wiki playground</p>
+    <h1 class="text-4xl sm:text-5xl font-bold text-zinc-950 dark:text-zinc-100 mb-4" style="letter-spacing: -0.05em; line-height: 1.1;">
+      Workouts that explain<br/>themselves.
+    </h1>
+    <p class="text-base text-zinc-600 dark:text-zinc-300 max-w-lg mx-auto leading-7 mb-8">
+      Scroll through the guide. The editor stays with you. Edit the workout, run the timer — without losing your place.
+    </p>
+    <div class="flex gap-3 flex-wrap justify-center">
+      <button class="run-btn text-base" style="padding: 13px 32px;">▶ Open Playground</button>
+      <button class="inline-flex items-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-600 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">Explore syntax →</button>
+    </div>
+  </div>
+
+  <!-- Two-column canvas area -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div class="canvas-layout">
+
+      <!-- LEFT: Scrolling prose (40%) -->
+      <div class="pr-0 sm:pr-8 pb-24">
+
+        <!-- Section 1 -->
+        <div class="mb-10">
+          <div class="section-tag">↓ Scroll to explore</div>
+          <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3" style="letter-spacing: -0.03em;">
+            One syntax. Any workout.
+          </h2>
+          <p class="text-sm leading-7 text-zinc-600 dark:text-zinc-400 mb-4">
+            WOD syntax is designed to be written like a coach would describe a workout — naturally, with explicit timing and structure.
+          </p>
+          <div class="space-y-0">
+            <div class="feature-bullet">
+              <div class="feature-icon">🔁</div>
+              <div>
+                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-0.5">Rounds &amp; Sets</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 leading-5">Parentheses create repeating blocks. Nesting is supported.</div>
+              </div>
+            </div>
+            <div class="feature-bullet">
+              <div class="feature-icon">⏱️</div>
+              <div>
+                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-0.5">Built-in timers</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 leading-5">AMRAP, EMOM, countdown, and rest timers in a single expression.</div>
+              </div>
+            </div>
+            <div class="feature-bullet">
+              <div class="feature-icon">🏋️</div>
+              <div>
+                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-0.5">Smart loading</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 leading-5">Weight, reps, and scaling are first-class citizens.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2 -->
+        <div class="mb-10">
+          <div class="section-tag">The HUD</div>
+          <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3" style="letter-spacing: -0.03em;">
+            Parser → structure → timer.
+          </h2>
+          <p class="text-sm leading-7 text-zinc-600 dark:text-zinc-400 mb-4">
+            When you press <strong>Run</strong>, the playground parses your WOD and drives a live timer panel — round tracker, active movement, next-up queue.
+          </p>
+          <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-4 text-xs font-mono text-zinc-500 dark:text-zinc-400 space-y-1">
+            <div class="text-zinc-400 dark:text-zinc-500"># Parser output (simplified)</div>
+            <div><span class="text-zinc-800 dark:text-zinc-200">block</span>: AMRAP, 12:00</div>
+            <div>&nbsp;&nbsp;<span class="text-zinc-800 dark:text-zinc-200">step[0]</span>: KB Swings, 10 reps, 24kg</div>
+            <div>&nbsp;&nbsp;<span class="text-zinc-800 dark:text-zinc-200">step[1]</span>: Burpees, 8 reps</div>
+            <div>&nbsp;&nbsp;<span class="text-zinc-800 dark:text-zinc-200">step[2]</span>: Rest, :30</div>
+          </div>
+        </div>
+
+        <!-- Section 3 -->
+        <div class="mb-10">
+          <div class="section-tag">Fullscreen mode</div>
+          <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3" style="letter-spacing: -0.03em;">
+            Take it to the floor.
+          </h2>
+          <p class="text-sm leading-7 text-zinc-600 dark:text-zinc-400 mb-4">
+            Switch to fullscreen timer for an immersive, distraction-free workout experience. Large timer, bold movement names, responsive across all devices.
+          </p>
+          <div class="flex items-center gap-2">
+            <span class="annotation">FullscreenTimer</span>
+            <span class="text-xs text-zinc-500 dark:text-zinc-400">Dialog-based immersive timer experience</span>
+          </div>
+        </div>
+
+        <!-- Section 4 -->
+        <div class="mb-10">
+          <div class="section-tag">Syntax reference</div>
+          <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3" style="letter-spacing: -0.03em;">
+            Everything you need.
+          </h2>
+          <div class="space-y-3">
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-4">
+              <div class="text-xs font-semibold text-zinc-500 uppercase mb-2">AMRAP</div>
+              <pre class="text-xs font-mono text-zinc-700 dark:text-zinc-300">AMRAP 12:00
+  10 KB Swings 24kg
+  8 Burpees</pre>
+            </div>
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-4">
+              <div class="text-xs font-semibold text-zinc-500 uppercase mb-2">Rounds</div>
+              <pre class="text-xs font-mono text-zinc-700 dark:text-zinc-300">(5)
+  10 Pull-ups
+  15 Push-ups
+  20 Squats</pre>
+            </div>
+            <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-4">
+              <div class="text-xs font-semibold text-zinc-500 uppercase mb-2">Descending Ladder</div>
+              <pre class="text-xs font-mono text-zinc-700 dark:text-zinc-300">21,15,9 Thrusters 95lb
+21,15,9 Pull-ups</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile note -->
+        <div class="rounded-2xl bg-zinc-100 dark:bg-zinc-800/60 px-4 py-3 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span>Mobile: single column — prose first, editor appears after scroll or via "Open Editor" CTA</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: Sticky editor/timer (60%) -->
+      <div class="sticky-col">
+        <!-- State tabs -->
+        <div class="flex items-center gap-1 mb-3">
+          <button class="state-tab active" id="tab-editor" onclick="switchTab('editor')">✏️ Editor</button>
+          <button class="state-tab inactive" id="tab-timer" onclick="switchTab('timer')">▶ Timer</button>
+          <span class="ml-auto annotation">MarkdownCanvasPage</span>
+        </div>
+
+        <!-- Editor state -->
+        <div id="panel-editor" class="editor-frame">
+          <div class="chrome-bar">
+            <div class="traffic-light tl-red"></div>
+            <div class="traffic-light tl-yellow"></div>
+            <div class="traffic-light tl-green"></div>
+            <span class="ml-3 text-xs font-mono text-zinc-400 dark:text-zinc-500">amrap-12.wod</span>
+          </div>
+          <div class="p-5 space-y-0.5">
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">1</span>
+              <span><span class="wod-keyword">AMRAP</span> <span class="wod-number">12:00</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">2</span>
+              <span>&nbsp;&nbsp;<span class="wod-number">10</span> <span class="wod-movement">Kettlebell Swings</span> <span class="wod-unit">24kg</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">3</span>
+              <span>&nbsp;&nbsp;<span class="wod-number">8</span> <span class="wod-movement">Burpees</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line">
+              <span class="text-zinc-300 dark:text-zinc-600 w-5 text-right text-xs flex-shrink-0">4</span>
+              <span>&nbsp;&nbsp;<span class="wod-keyword">*:30</span> <span class="wod-movement">Rest</span></span>
+            </div>
+            <div class="flex items-start gap-4 code-line text-zinc-300 dark:text-zinc-600">
+              <span class="w-5 text-right text-xs flex-shrink-0">5</span>
+              <span class="border-l-2 border-zinc-800 dark:border-zinc-300 animate-pulse" style="height: 20px; width: 0;"></span>
+            </div>
+          </div>
+          <div class="px-5 py-4 border-t border-zinc-100 dark:border-zinc-700/40 bg-zinc-50/60 dark:bg-zinc-800/40 flex items-center justify-between rounded-b-2xl">
+            <span class="text-xs text-zinc-400 font-mono">4 movements parsed</span>
+            <button onclick="switchTab('timer')" class="run-btn text-sm" style="padding: 8px 20px; font-size: 12px;">
+              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              Run Workout Timer
+            </button>
+          </div>
+        </div>
+
+        <!-- Timer state (hidden by default) -->
+        <div id="panel-timer" class="editor-frame hidden">
+          <div class="chrome-bar">
+            <div class="traffic-light tl-red"></div>
+            <div class="traffic-light tl-yellow"></div>
+            <div class="traffic-light tl-green"></div>
+            <span class="ml-3 text-xs font-mono text-zinc-400 dark:text-zinc-500">AMRAP 12:00 · Round 2/5</span>
+          </div>
+          <div class="timer-panel">
+            <!-- Round timer circle -->
+            <div class="timer-circle">
+              <div class="timer-inner">
+                <div class="text-2xl font-bold font-mono text-zinc-900 dark:text-zinc-100" style="letter-spacing: -0.04em;">10:24</div>
+                <div class="text-xs text-zinc-400 dark:text-zinc-500">AMRAP</div>
+              </div>
+            </div>
+
+            <!-- Active movement -->
+            <div class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/40 p-4 text-center">
+              <div class="text-xs font-semibold text-zinc-400 uppercase mb-1">NOW</div>
+              <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-1">Kettlebell Swings</div>
+              <div class="text-sm font-mono text-zinc-500 dark:text-zinc-400">10 reps · 24kg</div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex gap-3 w-full">
+              <button class="flex-1 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 py-3 text-sm font-semibold text-zinc-600 dark:text-zinc-300">⏸ Pause</button>
+              <button class="flex-1 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 py-3 text-sm font-semibold">Next →</button>
+            </div>
+
+            <!-- Upcoming -->
+            <div class="w-full">
+              <div class="text-xs font-semibold text-zinc-400 uppercase mb-2">Coming up</div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between text-sm py-1.5 border-b border-zinc-100 dark:border-zinc-700">
+                  <span class="text-zinc-700 dark:text-zinc-300">Burpees</span>
+                  <span class="font-mono text-xs text-zinc-400">8 reps</span>
+                </div>
+                <div class="flex justify-between text-sm py-1.5">
+                  <span class="text-zinc-700 dark:text-zinc-300">Rest</span>
+                  <span class="font-mono text-xs text-zinc-400">:30</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Back to editor -->
+            <button onclick="switchTab('editor')" class="w-full text-xs text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition">← Back to editor</button>
+          </div>
+        </div>
+
+        <!-- Annotation map -->
+        <div class="mt-4 space-y-1.5">
+          <div class="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+            <span class="annotation">MarkdownCanvasPage</span> 40/60 scroll-driven layout
+          </div>
+          <div class="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+            <span class="annotation">RuntimeTimerPanel</span> VisualStatePanel + TimerDisplay (timer state)
+          </div>
+          <div class="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+            <span class="annotation">CodeMirror 6</span> Editor state with WOD highlighting
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleDark() { document.documentElement.classList.toggle('dark'); }
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+
+    function switchTab(tab) {
+      const editorPanel = document.getElementById('panel-editor');
+      const timerPanel = document.getElementById('panel-timer');
+      const editorTab = document.getElementById('tab-editor');
+      const timerTab = document.getElementById('tab-timer');
+
+      if (tab === 'editor') {
+        editorPanel.classList.remove('hidden');
+        timerPanel.classList.add('hidden');
+        editorTab.className = 'state-tab active';
+        timerTab.className = 'state-tab inactive';
+      } else {
+        editorPanel.classList.add('hidden');
+        timerPanel.classList.remove('hidden');
+        editorTab.className = 'state-tab inactive';
+        timerTab.className = 'state-tab active';
+      }
+    }
+
+    // Scroll progress bar
+    window.addEventListener('scroll', () => {
+      const scrolled = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+      document.getElementById('scroll-bar').style.width = scrolled + '%';
+    });
+  </script>
+</body>
+</html>

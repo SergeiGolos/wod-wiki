@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WOD-Wiki · Landing Page Prototypes — WOD-635</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter'], mono: ['Geist Mono'] } } } }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f5f2ed; }
+    .dark body { background: #2e3440; color: #eceff4; }
+
+    .hero-glow { background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(24,226,153,0.15) 0%, transparent 65%); }
+
+    .concept-card {
+      background: white; border-radius: 20px;
+      border: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      overflow: hidden;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .dark .concept-card { background: #3b4252; border-color: rgba(255,255,255,0.07); box-shadow: 0 2px 20px rgba(0,0,0,0.35); }
+    .concept-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+    .dark .concept-card:hover { box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+
+    .concept-preview {
+      width: 100%; aspect-ratio: 16/9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; position: relative; overflow: hidden;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 4px;
+    }
+    .badge-blue { background: rgba(89,128,168,0.12); color: #5980a8; border: 1px solid rgba(89,128,168,0.2); }
+    .dark .badge-blue { background: rgba(129,161,193,0.15); color: #81a1c1; border-color: rgba(129,161,193,0.25); }
+
+    .open-btn {
+      background: #1a1a1a; color: white; border-radius: 9999px;
+      padding: 10px 22px; font-size: 13px; font-weight: 600; border: none;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .dark .open-btn { background: #eceff4; color: #2e3440; }
+    .open-btn:hover { opacity: 0.85; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Theme toggle -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-4 py-2.5 shadow-sm">
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <button onclick="document.documentElement.classList.toggle('dark')" class="relative w-10 h-5 rounded-full bg-zinc-200 dark:bg-zinc-600 transition-colors">
+      <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform dark:translate-x-5"></span>
+    </button>
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+  </div>
+
+  <div class="hero-glow max-w-5xl mx-auto px-6 pt-14 pb-10">
+    <!-- Header -->
+    <div class="mb-2 flex items-center gap-2">
+      <span class="badge badge-blue">WOD-635</span>
+      <span class="text-xs text-zinc-400 dark:text-zinc-500">Designer · Prototype Review</span>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold text-zinc-950 dark:text-zinc-50 mb-3" style="letter-spacing: -0.05em;">
+      Landing Page Prototypes
+    </h1>
+    <p class="text-base text-zinc-600 dark:text-zinc-400 max-w-xl mb-8 leading-7">
+      Four design directions for the playground landing page interactive sandbox. All use the WOD design system: mineral earth tones (light) / Arctic Frost Nord (dark), Inter + Geist Mono, and map to existing components.
+    </p>
+
+    <!-- Design tokens reference -->
+    <div class="flex flex-wrap gap-3 mb-10">
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full border border-zinc-300" style="background: #f5f2ed;"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">#f5f2ed light</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full" style="background: #2e3440;"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">#2e3440 dark</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full" style="background: #5980a8;"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">#5980a8 primary</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full" style="background: rgba(24,226,153,0.8);"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">rgba(24,226,153) accent</span>
+      </div>
+    </div>
+
+    <!-- Concept cards grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+      <!-- Concept 1 -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: linear-gradient(135deg, #f5f2ed 0%, #ede9e2 100%);">
+          <!-- Mini preview mockup -->
+          <div class="w-full h-full p-4 flex flex-col gap-2">
+            <div class="flex gap-1.5 items-center h-4">
+              <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+              <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+              <div class="flex-1 h-2.5 bg-zinc-200 rounded ml-2"></div>
+            </div>
+            <div class="flex gap-2 flex-1">
+              <div class="flex-1 bg-white rounded-lg p-2 flex flex-col gap-1">
+                <div class="h-2 bg-blue-200 rounded w-16"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-24"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-20"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-16"></div>
+              </div>
+              <div class="w-1 bg-zinc-200 rounded"></div>
+              <div class="flex-1 bg-white/80 rounded-lg p-2 flex flex-col gap-1.5">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-8 h-8 rounded-full bg-blue-200 flex-shrink-0"></div>
+                  <div class="flex-1">
+                    <div class="h-2 bg-zinc-200 rounded w-12 mb-1"></div>
+                    <div class="h-3 bg-zinc-300 rounded w-10 font-bold"></div>
+                  </div>
+                </div>
+                <div class="h-10 bg-blue-50 rounded-lg border border-blue-100"></div>
+                <div class="h-5 bg-blue-400 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <div class="badge badge-blue mb-2">Concept 1</div>
+              <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100" style="letter-spacing: -0.02em;">Editor + Live HUD Split-Pane</h2>
+            </div>
+          </div>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            True split sandbox. Editor left, live HUD right. Equal visual weight. Drag handle between panes.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ Most direct sandbox feel</span>
+            <span>✓ HUD always visible</span>
+            <span>✓ CodeMirror + RuntimeTimerPanel</span>
+          </div>
+          <a href="concept-1-split-pane.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+      <!-- Concept 2 -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: linear-gradient(135deg, #f5f2ed 0%, #e8f4f8 100%);">
+          <div class="w-full h-full p-4 flex flex-col items-center gap-3">
+            <div class="text-center">
+              <div class="h-5 bg-zinc-800 rounded-full w-32 mx-auto mb-1.5"></div>
+              <div class="h-2.5 bg-zinc-300 rounded w-24 mx-auto"></div>
+            </div>
+            <div class="relative w-full max-w-xs">
+              <div class="bg-white rounded-xl p-3 flex flex-col gap-1.5">
+                <div class="flex gap-1.5 items-center">
+                  <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                  <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                  <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                  <div class="flex-1 h-2 bg-zinc-100 rounded ml-1"></div>
+                </div>
+                <div class="h-1.5 bg-blue-200 rounded w-20"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-28"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-24"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-20"></div>
+              </div>
+              <!-- Floating overlay -->
+              <div class="absolute -right-2 top-2 bg-white rounded-xl p-2 shadow-lg border border-blue-100 w-20">
+                <div class="h-1.5 bg-blue-300 rounded w-12 mb-1"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-14 mb-1"></div>
+                <div class="h-4 bg-blue-400 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="badge badge-blue mb-2">Concept 2</div>
+          <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2" style="letter-spacing: -0.02em;">Inline Editor with Overlay Preview</h2>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Reuses WodCompanion overlay system. Mini-HUD floats beside the editor. Centered, focused layout.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ Cleanest visual hierarchy</span>
+            <span>✓ WodCompanion reuse</span>
+            <span>✓ Metric chips + overlay track</span>
+          </div>
+          <a href="concept-2-inline-overlay.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+      <!-- Concept 3 -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: linear-gradient(135deg, #f5f2ed 0%, #f0ede8 100%);">
+          <div class="w-full h-full p-4 flex gap-3">
+            <!-- Left prose -->
+            <div class="flex-1 flex flex-col gap-1.5">
+              <div class="h-3 bg-zinc-700 rounded w-20"></div>
+              <div class="h-2 bg-zinc-300 rounded w-full"></div>
+              <div class="h-2 bg-zinc-200 rounded w-4/5"></div>
+              <div class="h-2 bg-zinc-200 rounded w-3/5 mb-2"></div>
+              <div class="h-2 bg-zinc-300 rounded w-full"></div>
+              <div class="h-2 bg-zinc-200 rounded w-4/5"></div>
+              <div class="h-8 bg-zinc-100 rounded-lg mt-2 border border-zinc-200"></div>
+              <div class="h-8 bg-zinc-100 rounded-lg border border-zinc-200"></div>
+            </div>
+            <!-- Right sticky editor -->
+            <div class="flex-1">
+              <div class="bg-white rounded-xl h-full p-2 flex flex-col gap-1.5">
+                <div class="flex gap-1 items-center mb-1">
+                  <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                  <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                  <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                </div>
+                <div class="h-1.5 bg-blue-200 rounded w-16"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-full"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-4/5"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-3/5"></div>
+                <div class="flex-1 bg-zinc-50 rounded-lg"></div>
+                <div class="h-5 bg-blue-400 rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="badge badge-blue mb-2">Concept 3</div>
+          <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2" style="letter-spacing: -0.02em;">Canvas Two-Column Scroll-Driven</h2>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Reuses MarkdownCanvasPage pattern. 40% prose scrolls, 60% editor stays sticky. Run transitions to timer state.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ Best for docs + guide pages</span>
+            <span>✓ MarkdownCanvasPage reuse</span>
+            <span>✓ Editor/timer tab switch</span>
+          </div>
+          <a href="concept-3-canvas-scroll.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+      <!-- Concept 4 -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: linear-gradient(135deg, #f5f2ed 0%, rgba(24,226,153,0.08) 100%);">
+          <div class="w-full h-full p-4 flex flex-col gap-3">
+            <!-- Hero -->
+            <div class="text-center">
+              <div class="h-6 bg-zinc-900 rounded w-40 mx-auto mb-1.5"></div>
+              <div class="h-3 bg-zinc-800 rounded w-28 mx-auto mb-3" style="background: #5980a8; opacity: 0.5;"></div>
+              <div class="h-2 bg-zinc-300 rounded w-36 mx-auto mb-1"></div>
+              <div class="flex gap-2 justify-center mt-2">
+                <div class="h-5 bg-zinc-800 rounded-full w-16"></div>
+                <div class="h-5 bg-zinc-200 rounded-full w-16 border border-zinc-300"></div>
+              </div>
+            </div>
+            <!-- Sandbox card below fold -->
+            <div class="bg-white rounded-xl p-2 flex gap-2">
+              <div class="flex-1 flex flex-col gap-1">
+                <div class="h-1.5 bg-blue-200 rounded w-12"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-full"></div>
+                <div class="h-1.5 bg-zinc-100 rounded w-4/5"></div>
+                <div class="h-4 bg-blue-400 rounded-full mt-1"></div>
+              </div>
+              <div class="flex-1 bg-zinc-50 rounded-lg flex flex-col gap-1.5 p-1.5">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-5 h-5 rounded-full bg-blue-200 flex-shrink-0"></div>
+                  <div class="h-3 bg-zinc-300 rounded flex-1"></div>
+                </div>
+                <div class="h-6 bg-blue-50 rounded border border-blue-100"></div>
+                <div class="grid grid-cols-3 gap-1">
+                  <div class="h-3 bg-zinc-200 rounded"></div>
+                  <div class="h-3 bg-zinc-800 rounded"></div>
+                  <div class="h-3 bg-zinc-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="badge badge-blue mb-2">Concept 4</div>
+          <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2" style="letter-spacing: -0.02em;">Minimalist Hero + Expandable Sandbox</h2>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Clean hero above fold (green gradient, large type). Full-width equal split sandbox below. App-like HUD with controls.
+          </p>
+          <div class="flex flex-wrap gap-2 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ Strongest first impression</span>
+            <span>✓ Closest to AttentionWidget pattern</span>
+            <span>✓ HUD feels native &amp; app-like</span>
+          </div>
+          <a href="concept-4-minimalist-hero.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Design notes -->
+    <div class="mt-10 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800/30 p-6">
+      <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-3">Designer Notes</h3>
+      <div class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <p><strong>All 4 concepts</strong> use the WOD design system verbatim: <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">#f5f2ed</code> light, <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">#2e3440</code> dark, Inter + Geist Mono, pill CTAs, <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">rounded-2xl</code> cards, and the green radial gradient wash.</p>
+        <p><strong>Component coverage:</strong> Every concept maps to existing components (AttentionWidget, CodeExampleWidget, SyntaxGroupWidget, WodCompanion, MacOSChrome, RuntimeTimerPanel, FullscreenTimer, MarkdownCanvasPage). Implementation should reuse rather than rebuild.</p>
+        <p><strong>Mobile:</strong> Each prototype includes a responsive note. Default behavior is single-column stacking.</p>
+        <p><strong>Recommendation:</strong> Concept 4 (Minimalist Hero + Expandable Sandbox) has the strongest first impression and most app-like HUD — best alignment with the storytelling flow in <strong>WOD-634</strong>. Concept 1 (Split-Pane) is the most direct sandbox feel and easiest to implement. Consider CEO/Serge preference as tiebreaker.</p>
+      </div>
+    </div>
+
+    <div class="mt-4 text-xs text-zinc-400 dark:text-zinc-500 pb-8">
+      Generated by Designer Agent · <a href="/WOD/issues/WOD-635" class="hover:underline">WOD-635</a> · All prototypes are static HTML — no JavaScript interactivity required for review.
+    </div>
+  </div>
+
+  <script>
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
+  </script>
+</body>
+</html>
