@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useCallback } from 'react';
-import { Play, Pause, SkipForward, StopCircle } from 'lucide-react';
+import { Play, Pause, SkipForward, Square } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
@@ -152,25 +152,6 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         };
     }, [effectivePrimaryTimer, timerStates, primaryTimer, elapsedMs]);
 
-    const progress = useMemo(() => {
-        if (!effectiveTimerState) return 100;
-        if (effectiveTimerState.format === 'down' && effectiveTimerState.duration) {
-            const remaining = Math.max(0, effectiveTimerState.duration - effectiveTimerState.elapsed);
-            return Math.min((remaining / effectiveTimerState.duration) * 100, 100);
-        }
-        return 100;
-    }, [effectiveTimerState]);
-
-    const strokeDasharray = 628;
-
-    const strokeDashoffset = strokeDasharray - (progress / 100) * strokeDasharray;
-
-    // Pulse animation for non-countdown timers (up or undefined/infinite)
-    const isPulsing = isRunning && (
-        !effectiveTimerState?.duration ||
-        effectiveTimerState?.format === 'up'
-    );
-
     const displayTimeMs = useMemo(() => {
         if (!effectiveTimerState) return 0;
         if (effectiveTimerState.format === 'down' && effectiveTimerState.duration) {
@@ -179,22 +160,18 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         return effectiveTimerState.elapsed;
     }, [effectiveTimerState]);
 
+    // --- Responsive layout classes ---
+    // compact = mobile/narrow container (from PanelSizeContext)
+    // We use different layouts for compact vs wide
 
     return (
         <div 
-            className={`flex flex-col h-full w-full max-w-6xl mx-auto ${compact ? 'p-2' : 'p-4 gap-4'}`}
+            className={`flex flex-col h-full w-full ${compact ? '' : 'gap-4'}`}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
         >
             <style>{`
-                @keyframes pulse-border {
-                    0%, 100% { opacity: 1; stroke-width: 8px; }
-                    50% { opacity: 0.6; stroke-width: 6px; }
-                }
-                .animate-pulse-border {
-                    animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-                }
                 @keyframes skip-flash-fade {
                     0%   { opacity: 1; transform: translateY(0); }
                     70%  { opacity: 1; transform: translateY(-4px); }
@@ -206,11 +183,11 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
             `}</style>
 
             {/* Main Content Area */}
-            <div className={`flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden`}>
+            <div className={`flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden ${compact ? 'px-4 py-2' : 'p-4'}`}>
 
-                {/* Right Panel - Timer & Controls */}
-                <div className="flex flex-col items-center justify-center h-full relative">
-                    {/* Skip-attempt flash message — appears above the timer circle */}
+                {/* Timer & Controls Container */}
+                <div className="flex flex-col items-center justify-center h-full relative w-full">
+                    {/* Skip-attempt flash message — appears above the timer */}
                     {skipFlash && (
                         <div
                             key={skipFlashKey}
@@ -219,67 +196,108 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             Timer can&#39;t be skipped!
                         </div>
                     )}
-                    <div className="relative flex items-center justify-center">
-                        {/* Main Timer Circle — sizes driven by compact prop (container-aware) */}
-                        <div className={`relative flex items-center justify-center z-10 transition-all ${compact ? 'w-[min(12rem,75vw)] h-[min(12rem,75vw)]' : 'w-48 h-48 lg:w-80 lg:h-80'}`}>
-                            {/* SVG Background Ring */}
-                            <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 220 220">
-                                <circle
-                                    className="stroke-border"
-                                    cx="110" cy="110" fill="none" r="100" strokeWidth="8"
-                                ></circle>
-                                <circle
-                                    className={`transition-all duration-300 ease-in-out ${isPulsing ? 'animate-pulse-border' : ''}`}
-                                    stroke="#18E299"
-                                    cx="110" cy="110" fill="none" r="100" strokeLinecap="round" strokeWidth="8"
-                                    style={{
-                                        strokeDasharray: strokeDasharray,
-                                        strokeDashoffset: strokeDashoffset
-                                    }}
-                                ></circle>
-                            </svg>
 
-                            {/* Inner Circle / Content */}
-                            <button
-                                onClick={isRunning ? handlePause : handleStart}
-                                {...(getFocusProps ? getFocusProps('timer-main') : {})}
-                                className={`tv-focusable relative z-10 bg-background rounded-full flex flex-col items-center justify-center shadow-[rgba(0,0,0,0.06)_0px_4px_12px] hover:shadow-[rgba(0,0,0,0.10)_0px_6px_16px] hover:scale-[1.02] transition-all focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group border border-border ${compact ? 'w-[min(10rem,65vw)] h-[min(10rem,65vw)]' : 'w-40 h-40 lg:w-[17rem] lg:h-[17rem]'}`}
-                            >
-                                <span className={`font-mono font-semibold tracking-tighter text-foreground tabular-nums ${compact ? 'text-4xl' : 'text-5xl lg:text-6xl'}`}>
-                                    {formatTime(displayTimeMs)}
-                                </span>
-                                <div className="mt-2 text-primary group-hover:opacity-80 transition-opacity">
-                                    {isRunning ? <Pause className={`title-pause ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-12 lg:h-12'}`} /> : <Play className={`ml-2 title-play ${compact ? 'w-10 h-10' : 'w-10 h-10 lg:w-12 lg:h-12'}`} />}
-                                </div>
-                            </button>
-                        </div>
-
+                    {/* Labels above timer */}
+                    <div className={`text-center ${compact ? 'mb-2' : 'mb-6'}`}>
+                        {primaryTimer?.label && (
+                            <h2 className={`font-semibold text-foreground tracking-tight ${compact ? 'text-lg' : 'text-3xl lg:text-4xl'}`}>
+                                {primaryTimer.label}
+                            </h2>
+                        )}
+                        {subLabels && subLabels.length > 0 && (
+                            <div className={`${compact ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
+                                {subLabels.map((line, i) => (
+                                    <p key={i} className={`text-muted-foreground ${compact ? 'text-xs' : 'text-lg lg:text-xl'}`}>
+                                        {line}
+                                    </p>
+                                ))}
+                            </div>
+                        )}
+                        {subLabels === undefined && subLabel && (
+                            <p className={`text-muted-foreground ${compact ? 'mt-1 text-xs' : 'mt-2 text-lg lg:text-xl'}`}>
+                                {subLabel}
+                            </p>
+                        )}
                     </div>
 
-                    {/* Controls Row (Below Timer) */}
-                    <div className={`flex items-center ${compact ? 'gap-3 mt-4' : 'gap-3 sm:gap-6 mt-4 sm:mt-8'} flex-wrap justify-center px-2`}>
+                    {/* Very Large Timer Number (no circle) */}
+                    <div className="relative flex items-center justify-center w-full">
                         <button
-                            onClick={handleStop}
-                            {...(getFocusProps ? getFocusProps('btn-stop') : {})}
-                            className="tv-focusable group flex flex-col items-center gap-1 sm:gap-2 text-muted-foreground hover:text-destructive transition-colors p-2"
-                            title="Stop Session"
+                            onClick={isRunning ? handlePause : handleStart}
+                            {...(getFocusProps ? getFocusProps('timer-main') : {})}
+                            className={`tv-focusable relative z-10 flex flex-col items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group ${compact ? 'py-2' : 'py-8'}`}
                         >
-                            <div className={`flex items-center justify-center rounded-pill bg-muted group-hover:bg-destructive/10 dark:group-hover:bg-destructive/20 transition-colors ${compact ? 'w-12 h-12' : 'w-12 h-12 sm:w-14 sm:h-14'}`}>
-                                <StopCircle className="w-6 h-6" />
+                            <span className={`font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none ${compact ? 'text-[5rem] sm:text-[6rem]' : 'text-[8rem] lg:text-[12rem]'}`}>
+                                {formatTime(displayTimeMs)}
+                            </span>
+                            <div className={`text-primary group-hover:opacity-80 transition-opacity ${compact ? 'mt-2' : 'mt-4'}`}>
+                                {isRunning 
+                                    ? <Pause className={`title-pause ${compact ? 'w-8 h-8' : 'w-14 h-14 lg:w-16 lg:h-16'}`} /> 
+                                    : <Play className={`ml-1 title-play ${compact ? 'w-8 h-8' : 'w-14 h-14 lg:w-16 lg:h-16'}`} />
+                                }
                             </div>
-                            <span className="font-mono text-[10px] font-medium uppercase tracking-mono">Stop</span>
-                        </button>
-
-                        <button
-                            onClick={handleNext}
-                            {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                            className={`tv-focusable flex items-center justify-center rounded-pill bg-foreground text-background shadow-[rgba(0,0,0,0.06)_0px_1px_2px] hover:opacity-90 hover:-translate-y-0.5 transition-all ${compact ? 'w-16 h-16' : 'w-16 h-16 sm:w-20 sm:h-20'}`}
-                            title="Next Block"
-                        >
-                            <SkipForward className={compact ? 'w-6 h-6' : 'w-6 h-6 sm:w-8 sm:h-8'} />
                         </button>
                     </div>
                 </div>
+            </div>
+
+            {/* Controls Row — adapts between mobile (bottom bar) and desktop (centered buttons) */}
+            <div className={`flex items-center justify-center ${compact ? 'px-4 py-3 bg-background border-t border-border gap-3' : 'gap-8 sm:gap-12 px-2 pb-8'} flex-wrap`}>
+                {/* Stop Button */}
+                <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+                    <button
+                        onClick={handleStop}
+                        {...(getFocusProps ? getFocusProps('btn-stop') : {})}
+                        className={`tv-focusable group flex items-center justify-center rounded-full border transition-all active:scale-95 ${compact ? 'w-12 h-12 bg-muted border-border' : 'w-16 h-16 sm:w-20 sm:h-20 bg-surface-container-low border-outline-variant hover:bg-surface-variant shadow-sm'}`}
+                        title="Stop Session"
+                    >
+                        <Square className={`${compact ? 'w-5 h-5' : 'w-7 h-7 sm:w-8 sm:h-8'} text-muted-foreground group-hover:text-destructive transition-colors`} />
+                    </button>
+                    {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">Stop</span>}
+                </div>
+
+                {/* Pause/Resume Button */}
+                <div className={`flex flex-col items-center ${compact ? 'gap-1' : 'gap-2'}`}>
+                    <button
+                        onClick={isRunning ? handlePause : handleStart}
+                        {...(getFocusProps ? getFocusProps('btn-pause') : {})}
+                        className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 sm:w-24 sm:h-24 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
+                        title={isRunning ? 'Pause' : 'Resume'}
+                    >
+                        {isRunning 
+                            ? <Pause className={`${compact ? 'w-6 h-6 text-white' : 'w-8 h-8 sm:w-10 sm:h-10 text-on-surface-variant'}`} />
+                            : <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 sm:w-10 sm:h-10 text-on-surface-variant ml-1'}`} />
+                        }
+                    </button>
+                    {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">{isRunning ? 'Pause' : 'Resume'}</span>}
+                </div>
+
+                {/* Next Button */}
+                {compact ? (
+                    /* Mobile: wide pill button */
+                    <button
+                        onClick={handleNext}
+                        {...(getFocusProps ? getFocusProps('btn-next') : {})}
+                        className="tv-focusable flex-1 h-14 bg-foreground text-background rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg"
+                        title="Next Block"
+                    >
+                        <span className="text-base font-bold tracking-widest uppercase">Next</span>
+                        <SkipForward className="w-5 h-5" />
+                    </button>
+                ) : (
+                    /* Desktop: large circular button */
+                    <div className="flex flex-col items-center gap-2">
+                        <button
+                            onClick={handleNext}
+                            {...(getFocusProps ? getFocusProps('btn-next') : {})}
+                            className="tv-focusable flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white transition-all active:scale-90 shadow-xl w-24 h-24 sm:w-28 sm:h-28"
+                            title="Next Block"
+                        >
+                            <SkipForward className="font-bold w-10 h-10 sm:w-12 sm:h-12" />
+                        </button>
+                        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-on-primary-container">Next</span>
+                    </div>
+                )}
             </div>
         </div >
     );

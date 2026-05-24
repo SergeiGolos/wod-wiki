@@ -33,7 +33,7 @@ export const TrackViewShell: React.FC<TrackViewShellProps> = ({
           'bg-secondary/10',
           isCompact
             ? 'flex-1 min-h-0 border-b border-border overflow-hidden'
-            : 'flex-1 min-w-0 border-r border-border',
+            : 'w-1/3 min-w-0 border-r border-border',
         )}
       >
         {leftPanel}
@@ -43,7 +43,7 @@ export const TrackViewShell: React.FC<TrackViewShellProps> = ({
         id={rightPanelId}
         className={cn(
           'flex flex-col bg-background transition-all duration-300',
-          isCompact ? 'shrink-0' : 'w-1/2',
+          isCompact ? 'shrink-0' : 'w-2/3',
           rightPanelClassName,
         )}
       >

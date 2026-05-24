@@ -149,7 +149,7 @@ export const TimerScreen: React.FC<TrackPanelProps> = ({
       {/* Left Column: Workout Preview (formerly Right) */}
       <div className={cn(
         "flex flex-col bg-background transition-all duration-300 overflow-hidden",
-        isCompact ? "w-full" : "w-1/2"
+        isCompact ? "w-full" : "w-2/3"
       )}>
         <WorkoutPreviewPanel
           content={content || ''}
