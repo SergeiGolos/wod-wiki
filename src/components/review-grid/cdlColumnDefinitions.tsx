@@ -9,7 +9,7 @@
  */
 
 import { MetricType } from '@/core/models/Metric';
-import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
+import { formatSecondsMMSS } from '@/lib/formatTime';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
 import { computeColumnLabel } from '@/core/metrics/presentation';
 import type { ColumnDef, ColumnSetConfig, ColumnSetPreset } from './column-definition-language';
@@ -46,6 +46,16 @@ function extractMetricGraphValue(cell: unknown): number | undefined {
 function extractMetricFilterText(cell: unknown): string {
   const arr = getMetricArray(cell);
   return arr.map((m: any) => m.image ?? String(m.value ?? '')).join(', ');
+}
+
+function extractResolvedText(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  if (Array.isArray(value)) {
+    return value.map((entry) => extractResolvedText(entry)).filter(Boolean).join(' — ');
+  }
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  return extractMetricFilterText(value);
 }
 
 function isNumericMetricType(ft: MetricType): boolean {
@@ -108,10 +118,18 @@ function makeMetricColumn(
       type: 'custom',
       render: (value) => renderMetricCell(value, 0),
     },
-    sort: {
-      type: isNumericMetricType(metricType) ? 'numeric' : 'text',
-      extractor: (cell) => extractMetricSortValue(cell),
-    },
+    sort: isNumericMetricType(metricType)
+      ? {
+          type: 'numeric',
+          extractor: (cell) => extractMetricGraphValue(cell),
+        }
+      : {
+          type: 'text',
+          extractor: (cell) => {
+            const value = extractMetricSortValue(cell);
+            return value === undefined ? undefined : String(value);
+          },
+        },
     graph: graphable
       ? {
           extractor: (cell) => extractMetricGraphValue(cell),
@@ -455,6 +473,137 @@ export const intensityColumn = makeMetricColumn(MetricType.Intensity);
 export const loadColumn = makeMetricColumn(MetricType.Load);
 export const workColumn = makeMetricColumn(MetricType.Work);
 
+/** Composite exercise column: effort + text when both exist, otherwise best available label. */
+export const exerciseColumn: ColumnDef = {
+  id: 'exercise',
+  label: 'Exercise',
+  icon: getMetricIcon(MetricType.Effort) ?? undefined,
+  source: {
+    type: 'fallback',
+    semantics: 'first-present',
+    sources: [
+      {
+        type: 'fallback',
+        semantics: 'all-present-combined',
+        sources: [
+          { type: 'metric-type', metricType: MetricType.Effort },
+          { type: 'metric-type', metricType: MetricType.Text },
+        ],
+      },
+      { type: 'metric-type', metricType: MetricType.Text },
+      { type: 'metric-type', metricType: MetricType.Label },
+      { type: 'metric-type', metricType: MetricType.Effort },
+    ],
+  },
+  format: {
+    type: 'combined',
+    layout: 'vertical',
+    primaryFormat: { type: 'text', className: 'font-medium text-foreground' },
+    secondaryFormat: { type: 'text', className: 'text-muted-foreground text-xs' },
+    containerClassName: 'items-start',
+  },
+  sort: {
+    type: 'text',
+    extractor: (value) => extractResolvedText(value),
+  },
+  filter: {
+    extractor: (value) => extractResolvedText(value),
+    caseInsensitive: true,
+  },
+  meta: {
+    defaultVisible: false,
+    tags: ['grouping', 'fallback', 'descriptor'],
+  },
+};
+
+/** Strength-focused load column: prefer Load, then Resistance. */
+export const loadFocusColumn: ColumnDef = {
+  id: 'loadFocus',
+  label: 'Load',
+  icon: getMetricIcon(MetricType.Load) ?? getMetricIcon(MetricType.Resistance) ?? undefined,
+  source: {
+    type: 'fallback',
+    semantics: 'first-present',
+    sources: [
+      { type: 'metric-type', metricType: MetricType.Load },
+      { type: 'metric-type', metricType: MetricType.Resistance },
+    ],
+  },
+  format: {
+    type: 'custom',
+    render: (value) => renderMetricCell(value, 0),
+  },
+  sort: {
+    type: 'numeric',
+    extractor: (value) => extractMetricGraphValue(value),
+  },
+  graph: {
+    extractor: (value) => extractMetricGraphValue(value),
+    axisLabel: 'Load',
+    unit: 'kg',
+  },
+  filter: {
+    extractor: (value) => extractMetricFilterText(value),
+    caseInsensitive: true,
+  },
+  meta: {
+    defaultVisible: false,
+    tags: ['strength', 'fallback'],
+  },
+};
+
+/** Endurance pace derived from distance ÷ duration. */
+export const paceColumn: ColumnDef = {
+  id: 'pace',
+  label: 'Pace',
+  icon: '⏱️',
+  source: {
+    type: 'derived',
+    dependencies: ['distance', 'duration'],
+    compute: (_row, ctx) => {
+      const distance = extractMetricGraphValue(ctx.dependencies.get('distance'));
+      const duration = extractMetricGraphValue(ctx.dependencies.get('duration'));
+      if (!distance || !duration) return undefined;
+      return distance / duration;
+    },
+  },
+  format: {
+    type: 'custom',
+    render: (value) => {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+        return <span className="text-muted-foreground opacity-40">—</span>;
+      }
+      const secondsPerKm = 1000 / value;
+      return (
+        <span className="font-mono text-xs whitespace-nowrap">
+          {formatSecondsMMSS(secondsPerKm)}/km
+        </span>
+      );
+    },
+  },
+  sort: {
+    type: 'numeric',
+    extractor: (value) => (typeof value === 'number' ? value : undefined),
+  },
+  graph: {
+    extractor: (value) => (typeof value === 'number' ? value : undefined),
+    axisLabel: 'Pace',
+    unit: 'm/s',
+  },
+  filter: {
+    extractor: (value) => {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return '';
+      const secondsPerKm = 1000 / value;
+      return `${formatSecondsMMSS(secondsPerKm)}/km`;
+    },
+    caseInsensitive: true,
+  },
+  meta: {
+    defaultVisible: false,
+    tags: ['endurance', 'derived'],
+  },
+};
+
 // ═══════════════════════════════════════════════════════════════
 // Column Set Config
 // ═══════════════════════════════════════════════════════════════
@@ -471,11 +620,13 @@ export const ALL_COLUMN_DEFINITIONS: ColumnDef[] = [
   elapsedTotalColumn,
   completionReasonColumn,
   // Primary descriptors
+  exerciseColumn,
   effortColumn,
   textColumn,
   labelColumn,
   // Data metrics
   durationColumn,
+  paceColumn,
   repColumn,
   roundsColumn,
   distanceColumn,
@@ -486,6 +637,7 @@ export const ALL_COLUMN_DEFINITIONS: ColumnDef[] = [
   currentRoundColumn,
   volumeColumn,
   intensityColumn,
+  loadFocusColumn,
   loadColumn,
   workColumn,
   // System / meta
@@ -493,9 +645,14 @@ export const ALL_COLUMN_DEFINITIONS: ColumnDef[] = [
   systemColumn,
 ];
 
+const DEFAULT_PRESET_FILTERS: NonNullable<ColumnSetPreset['filters']> = {
+  outputTypes: ['segment', 'milestone', 'group', 'analytics'],
+};
+
 /** Default preset — normal user view. */
 export const CDL_PRESET_DEFAULT: ColumnSetPreset = {
   label: 'Default',
+  filters: DEFAULT_PRESET_FILTERS,
   visibleColumnIds: [
     '#',
     'timestamp',
@@ -523,6 +680,7 @@ export const CDL_PRESET_DEFAULT: ColumnSetPreset = {
 /** Debug preset — shows everything including system events. */
 export const CDL_PRESET_DEBUG: ColumnSetPreset = {
   label: 'Debug',
+  filters: {},
   visibleColumnIds: [
     '#',
     'timestamp',
@@ -553,12 +711,52 @@ export const CDL_PRESET_DEBUG: ColumnSetPreset = {
   ],
 };
 
+/** Strength preset — grouped descriptors plus strength-centric output. */
+export const CDL_PRESET_STRENGTH: ColumnSetPreset = {
+  label: 'Strength',
+  filters: DEFAULT_PRESET_FILTERS,
+  visibleColumnIds: [
+    '#',
+    'timestamp',
+    'spans',
+    'exercise',
+    'rep',
+    'loadFocus',
+    'volume',
+    'intensity',
+    'load',
+    'work',
+    'elapsedTotal',
+  ],
+};
+
+/** Endurance preset — grouped descriptors plus endurance-specific pace. */
+export const CDL_PRESET_ENDURANCE: ColumnSetPreset = {
+  label: 'Endurance',
+  filters: DEFAULT_PRESET_FILTERS,
+  visibleColumnIds: [
+    '#',
+    'timestamp',
+    'spans',
+    'exercise',
+    'distance',
+    'duration',
+    'pace',
+    'rounds',
+    'increment',
+    'work',
+    'elapsedTotal',
+  ],
+};
+
 /** The canonical ColumnSetConfig used by useGridData. */
 export const GRID_COLUMN_SET_CONFIG: ColumnSetConfig = {
   definitions: ALL_COLUMN_DEFINITIONS,
   presets: {
     default: CDL_PRESET_DEFAULT,
     debug: CDL_PRESET_DEBUG,
+    strength: CDL_PRESET_STRENGTH,
+    endurance: CDL_PRESET_ENDURANCE,
   },
   defaultPreset: 'default',
 };

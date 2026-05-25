@@ -25,13 +25,13 @@ import type {
 import { GRID_COLUMN_SET_CONFIG } from './cdlColumnDefinitions';
 import { ColumnSet } from './ColumnSet';
 import type { ColumnSetContext } from './ColumnSet';
-import type { ColumnDef } from './column-definition-language';
+import type { ColumnDef, ComputeContext } from './column-definition-language';
 import {
-  compareRowsByColumn,
+  extractSortValue,
+  compareSortValues,
+  extractFilterText,
   matchColumnFilter,
-  matchGlobalSearch,
 } from './interpreters';
-import { metricPresentation } from '@/core/metrics/presentation';
 
 // ─── Public Hook ───────────────────────────────────────────────
 
@@ -86,41 +86,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     addedColumnIds,
   } = options;
 
-  // 1. Identify which metrics types actually exist in the data
-  const activeMetricTypes = useMemo(() => {
-    const types = new Set<MetricType>();
-
-    const addType = (ft: MetricType) => {
-      if (ft == null) return;
-      const surface = isDebugMode ? 'debug' as const : 'review-grid-column' as const;
-      if (metricPresentation.isHidden({ type: ft, origin: 'runtime' }, surface)) return;
-      types.add(ft);
-    };
-
-    for (const seg of segments) {
-      if (seg.metrics) {
-        for (const f of seg.metrics) {
-          addType(f.type as MetricType);
-        }
-      }
-    }
-
-    for (const metrics of userOutputOverrides.values()) {
-      for (const f of metrics) {
-        addType(f.type as MetricType);
-      }
-    }
-
-    if (extraMetricTypes) {
-      for (const ft of extraMetricTypes) {
-        addType(ft);
-      }
-    }
-
-    return types;
-  }, [segments, userOutputOverrides, extraMetricTypes, isDebugMode]);
-
-  // 2. Build rows from segments + overrides
+  // 1. Build rows from segments + overrides
   const rows = useMemo(() => {
     const rawRows = segmentsToRows(segments, userOutputOverrides);
     // Derive Volume (reps × weight) when both Rep and Resistance are known.
@@ -130,7 +96,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     return rawRows;
   }, [segments, userOutputOverrides]);
 
-  // 3. Build ColumnSetContext
+  // 2. Build ColumnSetContext
   const columnSetContext = useMemo<ColumnSetContext>(
     () => ({
       rows,
@@ -143,7 +109,7 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     [rows, presetId, isDebugMode, graphTaggedColumns, columnVisibilityOverrides, addedColumnIds],
   );
 
-  // 4. Compute visible and available columns via ColumnSet
+  // 3. Compute visible and available columns via ColumnSet
   const visibleColumns = useMemo(
     () => globalColumnSet.getVisibleColumns(columnSetContext),
     [columnSetContext],
@@ -154,19 +120,19 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     [columnSetContext],
   );
 
-  // 5. Merge filter: preset filters + user overrides
+  // 4. Merge filter: preset filters + user overrides
   const mergedFilter = useMemo<GridFilterConfig>(
     () => ({
-      ...GRID_COLUMN_SET_CONFIG.presets[presetId]?.filters,
+      ...(globalColumnSet.getPreset(presetId).filters ?? {}),
       ...filterOverrides,
     }),
     [presetId, filterOverrides],
   );
 
-  // 6. Apply filters and sorting
+  // 5. Apply filters and sorting
   const filteredSortedRows = useMemo(() => {
-    const filtered = applyFilters(rows, mergedFilter, visibleColumns);
-    return applySorting(filtered, sortConfigs, visibleColumns);
+    const filtered = applyFilters(rows, mergedFilter, visibleColumns, globalColumnSet.definitions);
+    return applySorting(filtered, sortConfigs, visibleColumns, globalColumnSet.definitions);
   }, [rows, mergedFilter, sortConfigs, visibleColumns]);
 
   const graphTaggedColumnIds = useMemo(
@@ -317,6 +283,7 @@ function applyFilters(
   rows: GridRow[],
   filter: GridFilterConfig,
   columns: ColumnDef[],
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
 ): GridRow[] {
   let result = rows;
 
@@ -339,9 +306,20 @@ function applyFilters(
 
   if (filter.searchText && filter.searchText.trim().length > 0) {
     const needle = filter.searchText.trim().toLowerCase();
-    result = result.filter((r) =>
-      matchGlobalSearch(r, columns, needle),
-    );
+    result = result.filter((r) => {
+      for (const col of columns) {
+        if (!col.filter) continue;
+        const ctx: ComputeContext = {
+          allRows: rows,
+          rowIndex: rows.indexOf(r),
+          columnDef: col,
+          dependencies: new Map(),
+        };
+        const cellText = extractFilterText(r, col, ctx, definitionMap).toLowerCase();
+        if (cellText.includes(needle)) return true;
+      }
+      return false;
+    });
   }
 
   if (filter.columnFilters) {
@@ -349,9 +327,15 @@ function applyFilters(
       if (!filterText || filterText.trim().length === 0) continue;
       const col = columns.find((c) => c.id === colId);
       if (!col) continue;
-      result = result.filter((r) =>
-        matchColumnFilter(r, col, filterText),
-      );
+      result = result.filter((r) => {
+        const ctx: ComputeContext = {
+          allRows: rows,
+          rowIndex: rows.indexOf(r),
+          columnDef: col,
+          dependencies: new Map(),
+        };
+        return matchColumnFilter(r, col, filterText, ctx, definitionMap);
+      });
     }
   }
 
@@ -364,6 +348,7 @@ function applySorting(
   rows: GridRow[],
   sortConfigs: GridSortConfig[],
   columns: ColumnDef[],
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
 ): GridRow[] {
   if (sortConfigs.length === 0) return rows;
 
@@ -373,8 +358,22 @@ function applySorting(
       const col = columns.find((c) => c.id === config.columnId);
       if (!col || !col.sort) continue;
 
-      const cmp = compareRowsByColumn(a, b, col, config.direction);
-      if (cmp !== 0) return cmp;
+      const ctxA: ComputeContext = {
+        allRows: rows,
+        rowIndex: rows.indexOf(a),
+        columnDef: col,
+        dependencies: new Map(),
+      };
+      const ctxB: ComputeContext = {
+        allRows: rows,
+        rowIndex: rows.indexOf(b),
+        columnDef: col,
+        dependencies: new Map(),
+      };
+      const valA = extractSortValue(a, col, ctxA, definitionMap);
+      const valB = extractSortValue(b, col, ctxB, definitionMap);
+      const cmp = compareSortValues(valA, valB);
+      if (cmp !== 0) return config.direction === 'asc' ? cmp : -cmp;
     }
     return a.index - b.index;
   });

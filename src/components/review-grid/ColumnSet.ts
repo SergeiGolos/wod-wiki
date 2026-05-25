@@ -19,7 +19,9 @@ import type {
   ColumnSetConfig,
   ColumnSetPreset,
   ColumnSource,
+  ComputeContext,
 } from './column-definition-language';
+import { resolveColumnSource } from './interpreters/cdlSourceResolver';
 
 // ─── Public Context ────────────────────────────────────────────
 
@@ -137,6 +139,42 @@ export class ColumnSet {
    */
   getAllDefinitions(): readonly ColumnDef[] {
     return this.config.definitions;
+  }
+
+  /**
+   * Map of column id → ColumnDef for fast lookups.
+   */
+  get definitions(): ReadonlyMap<string, ColumnDef> {
+    return this.definitionMap;
+  }
+
+  /**
+   * Resolve a column's value for a given row, including derived columns
+   * with full compute context and dependency resolution.
+   *
+   * @param row       The grid row
+   * @param colId     Column identifier
+   * @param allRows   All rows in the current dataset
+   * @param rowIndex  Index of the current row within allRows
+   * @returns         Resolved value, or undefined if absent
+   */
+  resolveColumnValue(
+    row: GridRow,
+    colId: string,
+    allRows: GridRow[],
+    rowIndex?: number,
+  ): unknown {
+    const def = this.getDefinition(colId);
+    if (!def) return undefined;
+
+    const context: ComputeContext = {
+      allRows,
+      rowIndex: rowIndex ?? allRows.findIndex((r) => r.id === row.id),
+      columnDef: def,
+      dependencies: new Map(),
+    };
+
+    return resolveColumnSource(row, def.source, context, this.definitionMap);
   }
 
   // ─── Private: Ordering ─────────────────────────────────────
@@ -262,15 +300,17 @@ export class ColumnSet {
     switch (def.source.type) {
       case 'fixed-field':
         return true;
-      case 'metric-type':
-        return rows.some((r) => r.cells.has(def.source.metricType));
+      case 'metric-type': {
+        const { metricType } = def.source;
+        return rows.some((r) => r.cells.has(metricType));
+      }
       case 'derived':
         // Derived columns: assume they have data (compute handles missing inputs)
         return true;
-      case 'fallback':
-        return rows.some((r) =>
-          def.source.sources.some((src) => this.sourceHasDataInRow(src, r)),
-        );
+      case 'fallback': {
+        const { sources } = def.source;
+        return rows.some((r) => sources.some((src) => this.sourceHasDataInRow(src, r)));
+      }
       default:
         return true;
     }

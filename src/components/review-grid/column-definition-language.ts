@@ -8,7 +8,7 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
-import type { MetricType, MetricOrigin } from '@/core/models/Metric';
+import type { MetricType } from '@/core/models/Metric';
 import type { GridRow, GridCell } from './types';
 
 // ─── Column Source ─────────────────────────────────────────────
@@ -49,27 +49,45 @@ export interface MetricTypeSource {
 }
 
 /**
+ * Compute context passed to derived column compute functions.
+ *
+ * Provides full row context for statistics, aggregations, relative
+ * calculations, and dependency access.
+ */
+export interface ComputeContext {
+  /** All rows in the dataset (for statistics, aggregations) */
+  readonly allRows: GridRow[];
+  /** Current row index within allRows (0-based, for relative calculations) */
+  readonly rowIndex: number;
+  /** The column definition being computed */
+  readonly columnDef: ColumnDef;
+  /** Values of dependent columns already computed for this row */
+  readonly dependencies: ReadonlyMap<string, unknown>;
+  /** Additional custom context from the source definition */
+  readonly [key: string]: any;
+}
+
+/**
  * Derived source: computes a value from row data using a custom function.
  *
  * Examples:
  * - Pace = distance / duration
  * - Effort + Text combination
  * - Custom aggregate of multiple metrics
+ * - Column that depends on other derived columns
  */
 export interface DerivedSource {
   readonly type: 'derived';
-  /** Compute function: (row, context?) => unknown value */
-  readonly compute: (row: GridRow, context?: DerivedSourceContext) => unknown;
-  /** Optional context data passed to compute */
-  readonly context?: DerivedSourceContext;
+  /** Compute function: (row, context) => unknown value */
+  readonly compute: (row: GridRow, context: ComputeContext) => unknown;
+  /** Column IDs this derived column depends on (resolved in dependency order) */
+  readonly dependencies?: readonly string[];
+  /** Optional static context merged into ComputeContext */
+  readonly context?: Record<string, any>;
 }
 
-export interface DerivedSourceContext {
-  /** Presentation policy for labels and formatting */
-  readonly metricPolicy?: any;
-  /** Other contextual data */
-  readonly [key: string]: any;
-}
+/** @deprecated Use ComputeContext instead */
+export type DerivedSourceContext = ComputeContext;
 
 /**
  * Fallback chain source: tries sources in order, returns first non-null result.
@@ -374,28 +392,11 @@ export interface ColumnSetPreset {
   readonly label: string;
   /** Column IDs visible in this preset */
   readonly visibleColumnIds: string[];
+  /** Optional row-level filters applied with this preset */
+  readonly filters?: import('./types').GridFilterConfig;
   /** Whether this preset is read-only */
   readonly readOnly?: boolean;
   /** Description */
   readonly description?: string;
 }
 
-// ─── Export Index ──────────────────────────────────────────────
-
-export type {
-  FixedFieldSource,
-  MetricTypeSource,
-  DerivedSource,
-  FallbackSource,
-  TextFormat,
-  TimeFormat,
-  NumberFormat,
-  BadgeFormat,
-  PillFormat,
-  CombinedFormat,
-  CustomFormat,
-  NumericSort,
-  TextSort,
-  TimeSort,
-  CustomSort,
-};

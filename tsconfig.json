@@ -27,6 +27,7 @@
     "noFallthroughCasesInSwitch": true,
     /* Module Resolution */
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "types": [
       "bun-types"
     ],

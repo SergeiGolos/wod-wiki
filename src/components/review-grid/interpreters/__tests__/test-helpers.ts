@@ -22,8 +22,14 @@ export function makeGridCell(metrics: { type: MetricType; value: unknown; image?
   };
 }
 
-export function makeGridRow(partial: Partial<GridRow> & { cells?: [MetricType, GridCell][] }): GridRow {
-  const cells = new Map<MetricType, GridCell>(partial.cells ?? []);
+export function makeGridRow(
+  partial: Omit<Partial<GridRow>, 'cells'> & {
+    cells?: ReadonlyArray<readonly [MetricType, GridCell]> | Map<MetricType, GridCell>;
+  },
+): GridRow {
+  const cells = partial.cells instanceof Map
+    ? new Map<MetricType, GridCell>(partial.cells)
+    : new Map<MetricType, GridCell>(partial.cells ?? []);
   return {
     id: partial.id ?? 1,
     index: partial.index ?? 1,

@@ -23,7 +23,6 @@ import { GridGraphPanel } from './GridGraphPanel';
 import { UserOverrideDialog } from './UserOverrideDialog';
 import { useUserOverrides } from './useUserOverrides';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
-import type { ColumnDef } from './column-definition-language';
 
 // ─── Props ─────────────────────────────────────────────────────
 
@@ -339,10 +338,12 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              rows.map((row, idx) => (
                 <GridRow
                   key={row.id}
                   row={row}
+                  allRows={rows}
+                  rowIndex={idx}
                   columns={displayColumns}
                   isSelected={selectedSegmentIds.has(row.id)}
                   onSelect={handleSelectRow}

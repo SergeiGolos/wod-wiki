@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 import { MetricType } from '@/core/models/Metric';
 import type { AnalyticsGraphConfig } from '@/core/models/AnalyticsModels';
 import type { GridRow } from './types';
-import type { ColumnDef } from './column-definition-language';
+import type { ColumnDef, ComputeContext } from './column-definition-language';
 import { extractGraphValue } from './interpreters';
 
 // ─── Public Interface ──────────────────────────────────────────
@@ -36,6 +36,8 @@ export interface UseGraphDataOptions {
   graphTaggedColumnIds: string[];
   /** Currently selected row/segment IDs (for highlight) */
   selectedIds: Set<number>;
+  /** Optional definition map for dependency resolution on derived columns */
+  definitionMap?: ReadonlyMap<string, ColumnDef>;
 }
 
 export interface UseGraphDataReturn {
@@ -48,7 +50,7 @@ export interface UseGraphDataReturn {
 }
 
 export function useGraphData(options: UseGraphDataOptions): UseGraphDataReturn {
-  const { rows, columns, graphTaggedColumnIds } = options;
+  const { rows, columns, graphTaggedColumnIds, definitionMap } = options;
 
   const graphConfigs = useMemo(
     () => buildGraphConfigs(graphTaggedColumnIds, columns),
@@ -56,8 +58,8 @@ export function useGraphData(options: UseGraphDataOptions): UseGraphDataReturn {
   );
 
   const data = useMemo(
-    () => buildDataPoints(rows, graphTaggedColumnIds, columns),
-    [rows, graphTaggedColumnIds, columns],
+    () => buildDataPoints(rows, graphTaggedColumnIds, columns, definitionMap),
+    [rows, graphTaggedColumnIds, columns, definitionMap],
   );
 
   const hasData = graphConfigs.length > 0 && data.length > 0;
@@ -93,10 +95,11 @@ function buildDataPoints(
   rows: GridRow[],
   taggedIds: string[],
   columns: ColumnDef[],
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
 ): GraphDataPoint[] {
   if (taggedIds.length === 0) return [];
 
-  return rows.map((row) => {
+  return rows.map((row, rowIndex) => {
     const point: GraphDataPoint = {
       index: row.index,
       label: row.sourceBlockKey,
@@ -108,7 +111,13 @@ function buildDataPoints(
         point[colId] = 0;
         continue;
       }
-      point[colId] = extractGraphValue(row, col) ?? 0;
+      const ctx: ComputeContext = {
+        allRows: rows,
+        rowIndex,
+        columnDef: col,
+        dependencies: new Map(),
+      };
+      point[colId] = extractGraphValue(row, col, ctx, definitionMap) ?? 0;
     }
 
     return point;

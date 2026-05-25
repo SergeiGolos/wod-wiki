@@ -15,6 +15,10 @@ import { cn } from '@/lib/utils';
 interface GridRowProps {
   /** The row data to render */
   row: GridRowData;
+  /** All rows in the grid (for derived column context) */
+  allRows: GridRowData[];
+  /** Index of this row within allRows (for derived column context) */
+  rowIndex: number;
   /** Visible column definitions (already filtered) */
   columns: ColumnDef[];
   /** Whether this row is currently selected */
@@ -34,6 +38,8 @@ interface GridRowProps {
  */
 export const GridRow: React.FC<GridRowProps> = ({
   row,
+  allRows,
+  rowIndex,
   columns,
   isSelected,
   onSelect,
@@ -71,6 +77,8 @@ export const GridRow: React.FC<GridRowProps> = ({
             key={colDef.id}
             columnDef={colDef}
             row={row}
+            allRows={allRows}
+            rowIndex={rowIndex}
             indent={isEffort ? row.stackLevel : 0}
             onDoubleClick={onCellDoubleClick}
           />

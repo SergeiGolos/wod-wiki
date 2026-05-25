@@ -29,6 +29,8 @@ export { UserOverrideDialog } from './UserOverrideDialog';
 export {
   DEFAULT_PRESET,
   DEBUG_PRESET,
+  STRENGTH_PRESET,
+  ENDURANCE_PRESET,
   GRID_PRESETS,
   getPreset,
   buildAllColumns,
@@ -60,6 +62,7 @@ export type {
   MetricTypeSource,
   DerivedSource,
   FallbackSource,
+  ComputeContext,
   DerivedSourceContext,
 } from './column-definition-language';
 
@@ -112,6 +115,8 @@ export {
   GRID_COLUMN_SET_CONFIG,
   CDL_PRESET_DEFAULT,
   CDL_PRESET_DEBUG,
+  CDL_PRESET_STRENGTH,
+  CDL_PRESET_ENDURANCE,
   indexColumn,
   timestampColumn,
   spansColumn,
@@ -120,8 +125,10 @@ export {
   stackLevelColumn,
   elapsedTotalColumn,
   completionReasonColumn,
+  exerciseColumn,
   effortColumn,
   durationColumn,
+  paceColumn,
   repColumn,
   roundsColumn,
   distanceColumn,
@@ -136,6 +143,7 @@ export {
   currentRoundColumn,
   volumeColumn,
   intensityColumn,
+  loadFocusColumn,
   loadColumn,
   workColumn,
 } from './cdlColumnDefinitions';

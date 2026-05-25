@@ -74,7 +74,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   onHoverBlockKey,
   className,
 }) => {
-  const { isDebugMode } = useDebugMode();
+  useDebugMode();
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [workoutFilter, setWorkoutFilter] = useState<WorkoutFilter>('all');
 

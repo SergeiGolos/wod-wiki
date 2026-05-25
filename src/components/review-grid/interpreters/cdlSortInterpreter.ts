@@ -49,7 +49,9 @@ export function extractSortValue(
   }
 
   const raw = resolveColumnSource(row, colDef.source, context, definitionMap);
-  const value = colDef.sort.extractor(raw);
+  const value = colDef.sort.type === 'custom'
+    ? (typeof raw === 'number' || typeof raw === 'string' ? raw : String(raw ?? ''))
+    : colDef.sort.extractor(raw);
 
   if (value === undefined || value === null) {
     return '';

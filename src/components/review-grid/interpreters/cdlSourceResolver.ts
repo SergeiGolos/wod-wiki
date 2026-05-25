@@ -43,7 +43,7 @@ export function resolveColumnSource(
     case 'metric-type':
       return resolveMetricType(row, source);
     case 'derived':
-      return resolveDerived(row, source, context);
+      return resolveDerived(row, source, context, definitionMap, dependencyStack);
     case 'fallback':
       return resolveFallback(row, source, context, definitionMap, dependencyStack);
     default:
@@ -54,7 +54,7 @@ export function resolveColumnSource(
 // ─── Source Resolvers ──────────────────────────────────────────
 
 function resolveFixedField(row: GridRow, source: FixedFieldSource): unknown {
-  return (row as Record<string, unknown>)[source.field];
+  return (row as unknown as Record<string, unknown>)[source.field];
 }
 
 function resolveMetricType(row: GridRow, source: MetricTypeSource): unknown {
