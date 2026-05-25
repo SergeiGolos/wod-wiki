@@ -1,8 +1,9 @@
 import React from 'react';
 import { ChevronRight, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseFrontmatter } from '@/lib/frontmatter';
+import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
+import { LinkChip } from './LinkChip';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -52,6 +53,7 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
   const description = extractDescription(item.content);
   const difficulty = meta['Difficulty']?.toLowerCase() ?? meta['difficulty']?.toLowerCase() ?? '';
   const difficultyColor = DIFFICULTY_COLOR[difficulty] ?? 'bg-muted text-muted-foreground';
+  const linkWidgets = extractLinkWidgets(meta);
 
   return (
     <button
@@ -96,6 +98,15 @@ export const CollectionCard: React.FC<CollectionCardProps> = ({
               {meta['Difficulty'] ?? meta['difficulty']}
             </span>
           )}
+        </div>
+      )}
+
+      {/* Link chips */}
+      {linkWidgets.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {linkWidgets.map((widget, i) => (
+            <LinkChip key={`${widget.kind}-${i}`} widget={widget} />
+          ))}
         </div>
       )}
 

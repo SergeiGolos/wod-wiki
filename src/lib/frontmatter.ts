@@ -181,6 +181,23 @@ function detectWidgetSubtype(props: Record<string, string>): LinkWidget['kind'] 
 export function extractLinkWidgets(props: Record<string, string>): LinkWidget[] {
   const widgets: LinkWidget[] = [];
 
+  if (props.youtube) {
+    widgets.push({
+      kind: 'youtube',
+      url: props.youtube,
+      label: 'Video',
+      videoId: extractYouTubeVideoId(props.youtube) || undefined,
+    });
+  }
+
+  if (props.amazon) {
+    widgets.push({
+      kind: 'amazon',
+      url: props.amazon,
+      label: 'Amazon',
+    });
+  }
+
   const subtype = detectWidgetSubtype(props);
   const url = props.url || props.link || '';
   const label = props.title || props.label || '';
