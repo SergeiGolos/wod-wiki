@@ -23,6 +23,7 @@ import {
   CodeBracketIcon,
   CalendarDaysIcon,
   BookOpenIcon,
+  SparklesIcon,
 } from '@heroicons/react/20/solid'
 import { RssIcon, Dumbbell } from 'lucide-react'
 
@@ -104,6 +105,15 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
 
     {
+      id: 'ai-first',
+      label: 'AI First',
+      level: 1,
+      icon: SparklesIcon,
+      action: { type: 'route', to: ROUTE_PATTERNS.aiFirst },
+      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.aiFirst || loc.pathname.startsWith('/ai-first/'),
+    },
+
+    {
       id: 'journal',
       label: 'Journal',
       level: 1,
@@ -151,6 +161,15 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
       action: { type: 'route', to: ROUTE_PATTERNS.efforts },
       isActive: (loc: Location) => loc.pathname.startsWith('/effort'),
       panel: EffortsNavPanel,
+    },
+
+    {
+      id: 'ai-first',
+      label: 'AI First',
+      level: 1,
+      icon: SparklesIcon,
+      action: { type: 'route', to: ROUTE_PATTERNS.aiFirst },
+      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.aiFirst || loc.pathname.startsWith('/ai-first/'),
     },
   ]
 }
