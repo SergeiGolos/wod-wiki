@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /syntax
+route: /guide/syntax
 type: syntax
 ---
 
@@ -34,7 +34,7 @@ pipeline:
 label:  Open Core Concepts →
 target: preview
 pipeline:
-  - navigate: /syntax/basics
+  - navigate: /guide/syntax/basics
 ```
 
 ## Structure & Rep Schemes {sticky}
@@ -51,7 +51,7 @@ pipeline:
 label:  Open Structure & Reps →
 target: preview
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```
 
 ## Timers & Protocols {sticky}
@@ -68,7 +68,7 @@ pipeline:
 label:  Open Timers & Protocols →
 target: preview
 pipeline:
-  - navigate: /syntax/protocols
+  - navigate: /guide/syntax/protocols
 ```
 
 ## Advanced
@@ -87,7 +87,7 @@ pipeline:
 label:  Open Complex Examples →
 target: preview
 pipeline:
-  - navigate: /syntax/complex
+  - navigate: /guide/syntax/complex
 ```
 
 ## Start Writing {sticky full-bleed dark}
