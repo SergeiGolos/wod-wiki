@@ -628,8 +628,8 @@ export function App() {
             <CommandProvider>
               <NavProvider tree={navTree}>
                 <Routes>
-                  <Route path={ROUTE_PATTERNS.home} element={<Concept3LandingPage />} />
                   <Route path="/legacy" element={<PlaygroundLandingPage />} />
+                  <Route path="/concept3" element={<Concept3LandingPage />} />
                   <Route path="/getting-started" element={<GettingStartedRedirect />} />
                   <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
                   <Route path="/syntax" element={<SyntaxRedirect />} />
