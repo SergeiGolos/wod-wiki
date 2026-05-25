@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 
 import type { NoteEditorProps } from '@/components/Editor/NoteEditor'
@@ -11,6 +11,7 @@ import type { ParsedCanvasPage } from './parseCanvasMarkdown'
 const editorSnapshots: Array<{ noteId?: string; resultCount: number }> = []
 const storedResults: WorkoutResult[] = []
 const saveResultCalls: WorkoutResult[] = []
+const editorFocusCalls: string[] = []
 
 const sampleWorkoutResults = {
   completed: true,
@@ -20,7 +21,9 @@ const sampleWorkoutResults = {
 }
 
 mock.module('react-router-dom', () => ({
+  Navigate: () => null,
   useNavigate: () => () => {},
+  useParams: () => ({}),
 }))
 
 mock.module('nuqs', () => ({
@@ -58,6 +61,9 @@ mock.module('@/services/persistence', () => ({
 mock.module('@/components/Editor/NoteEditor', () => ({
   NoteEditor: (props: NoteEditorProps) => {
     useEffect(() => {
+      props.onViewCreated?.({
+        focus: () => editorFocusCalls.push(props.value),
+      } as any)
       props.onBlocksChange?.([
         {
           id: 'block-1',
@@ -72,10 +78,12 @@ mock.module('@/components/Editor/NoteEditor', () => ({
     })
 
     return (
-      <div
+      <textarea
         data-testid="note-editor"
         data-note-id={props.noteId}
         data-result-count={String(props.extendedResults?.length ?? 0)}
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
       />
     )
   },
@@ -165,6 +173,10 @@ function getRenderedRuntimeButtons() {
   return screen.getAllByTestId('complete-runtime')
 }
 
+function getEditorValue() {
+  return (getRenderedEditors()[0] as HTMLTextAreaElement).value
+}
+
 describe('MarkdownCanvasPage result persistence', () => {
   beforeEach(() => {
     class MockIntersectionObserver {
@@ -187,6 +199,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     editorSnapshots.length = 0
     storedResults.length = 0
     saveResultCalls.length = 0
+    editorFocusCalls.length = 0
   })
 
   afterEach(() => {
@@ -262,5 +275,70 @@ describe('MarkdownCanvasPage result persistence', () => {
 
     await waitFor(() => expect(getRenderedEditors().every((editor) => editor.getAttribute('data-result-count') === '1')).toBe(true))
     expect(editorSnapshots.some((snapshot) => snapshot.noteId === 'canvas:home' && snapshot.resultCount === 1)).toBe(true)
+  })
+
+  it('keeps edits per example and can reset the active example', async () => {
+    const editablePage: ParsedCanvasPage = {
+      ...page,
+      sections: [
+        page.sections[0],
+        {
+          ...page.sections[1],
+          buttons: [
+            {
+              label: 'Load Alt',
+              target: 'home',
+              pipeline: [{ action: 'set-source', value: 'alt-source.md' }],
+            },
+            {
+              label: 'Load Initial',
+              target: 'home',
+              pipeline: [{ action: 'set-source', value: 'home-source.md' }],
+            },
+          ],
+        },
+      ],
+    }
+    const { MarkdownCanvasPage } = await markdownCanvasPageModule
+
+    render(
+      <MarkdownCanvasPage
+        page={editablePage}
+        wodFiles={{
+          '../../markdown/home-source.md': 'initial source',
+          '../../markdown/alt-source.md': 'alt source',
+        }}
+        theme="light"
+      />,
+    )
+
+    await waitFor(() => expect(getRenderedEditors()).toHaveLength(2))
+    expect(screen.getAllByText('Try editing this example ↓')).toHaveLength(2)
+
+    fireEvent.change(getRenderedEditors()[0], { target: { value: 'edited initial' } })
+    expect(screen.getAllByRole('button', { name: 'Reset to example' })).toHaveLength(2)
+
+    act(() => {
+      screen.getByRole('button', { name: 'Load Alt' }).click()
+    })
+    await waitFor(() => expect(getEditorValue()).toBe('alt source'))
+    await waitFor(() => expect(editorFocusCalls.length).toBeGreaterThan(0))
+
+    fireEvent.change(getRenderedEditors()[0], { target: { value: 'edited alt' } })
+
+    act(() => {
+      screen.getByRole('button', { name: 'Load Initial' }).click()
+    })
+    await waitFor(() => expect(getEditorValue()).toBe('edited initial'))
+
+    act(() => {
+      screen.getByRole('button', { name: 'Load Alt' }).click()
+    })
+    await waitFor(() => expect(getEditorValue()).toBe('edited alt'))
+
+    act(() => {
+      screen.getAllByRole('button', { name: 'Reset to example' })[0].click()
+    })
+    await waitFor(() => expect(getEditorValue()).toBe('alt source'))
   })
 })
