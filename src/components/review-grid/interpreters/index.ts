@@ -1,7 +1,7 @@
 /**
  * CDL Core Interpreters
  *
- * Sort, Graph, Filter, and Cell Render interpreters for the Column Definition Language.
+ * Sort, Graph, Filter, Fallback Chain, and Cell Render interpreters for the Column Definition Language.
  * These replace the scattered switch statements across useGridData.ts and useGraphData.ts
  * and the renderFixedCell/GridCell components in GridRow.tsx.
  */
@@ -9,6 +9,14 @@
 export {
   resolveColumnSource,
 } from './cdlSourceResolver';
+
+export {
+  interpretFallbackChain,
+} from './cdlFallbackInterpreter';
+
+export type {
+  // No additional types exported from fallback interpreter
+} from './cdlFallbackInterpreter';
 
 export type {
   // No additional types exported from resolver
