@@ -10,13 +10,14 @@
 
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import type { MetricType } from '@/core/models/Metric';
-import type { GridColumn, GridSortConfig, SortDirection } from './types';
+import type { GridSortConfig, SortDirection } from './types';
+import type { ColumnDef } from './column-definition-language';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
 import { metricPresentation } from '@/core/metrics/presentation';
 
 interface GridHeaderProps {
   /** Column definitions (only visible columns) */
-  columns: GridColumn[];
+  columns: ColumnDef[];
   /** Current sort configuration */
   sortConfigs: GridSortConfig[];
   /** Callback to update sort */
@@ -33,6 +34,8 @@ interface GridHeaderProps {
   availableToAdd?: MetricType[];
   /** Called when the user selects a metric type to add */
   onAddColumn?: (type: MetricType) => void;
+  /** Column ids currently tagged for graphing */
+  graphTaggedColumnIds?: Set<string>;
 }
 
 export const GridHeader: React.FC<GridHeaderProps> = ({
@@ -45,6 +48,7 @@ export const GridHeader: React.FC<GridHeaderProps> = ({
   onColumnFilterChange,
   availableToAdd,
   onAddColumn,
+  graphTaggedColumnIds,
 }) => {
   return (
     <thead className="bg-muted/50 dark:bg-muted/30 sticky top-0 z-10">
@@ -57,6 +61,7 @@ export const GridHeader: React.FC<GridHeaderProps> = ({
             sortConfig={sortConfigs.find((s) => s.columnId === col.id)}
             onSort={onSort}
             onToggleGraph={onToggleGraph}
+            isGraphed={graphTaggedColumnIds?.has(col.id) ?? false}
           />
         ))}
         {/* ＋ Add column button */}
@@ -89,10 +94,11 @@ export const GridHeader: React.FC<GridHeaderProps> = ({
 // ─── Header Cell ───────────────────────────────────────────────
 
 export interface HeaderCellProps {
-  column: GridColumn;
+  column: ColumnDef;
   sortConfig?: GridSortConfig;
   onSort: (columnId: string, shiftKey: boolean) => void;
   onToggleGraph: (columnId: string) => void;
+  isGraphed: boolean;
 }
 
 export const HeaderCell: React.FC<HeaderCellProps> = ({
@@ -100,14 +106,18 @@ export const HeaderCell: React.FC<HeaderCellProps> = ({
   sortConfig,
   onSort,
   onToggleGraph,
+  isGraphed,
 }) => {
+  const sortable = column.sort !== undefined;
+  const graphable = column.graph !== undefined;
+
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      if (column.sortable) {
+      if (sortable) {
         onSort(column.id, e.shiftKey);
       }
     },
-    [column.id, column.sortable, onSort],
+    [column.id, sortable, onSort],
   );
 
   const handleGraphClick = useCallback(
@@ -122,7 +132,7 @@ export const HeaderCell: React.FC<HeaderCellProps> = ({
     <th
       className={[
         'py-1.5 px-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap select-none',
-        column.sortable ? 'cursor-pointer hover:text-foreground transition-colors' : '',
+        sortable ? 'cursor-pointer hover:text-foreground transition-colors' : '',
       ].join(' ')}
       onClick={handleClick}
     >
@@ -137,14 +147,14 @@ export const HeaderCell: React.FC<HeaderCellProps> = ({
         {sortConfig && <SortIndicator direction={sortConfig.direction} />}
 
         {/* Graph toggle */}
-        {column.graphable && (
+        {graphable && (
           <button
             className={[
               'ml-auto text-sm opacity-40 hover:opacity-100 transition-opacity',
-              column.isGraphed ? 'opacity-100 text-primary' : '',
+              isGraphed ? 'opacity-100 text-primary' : '',
             ].join(' ')}
             onClick={handleGraphClick}
-            title={column.isGraphed ? 'Remove from graph' : 'Add to graph'}
+            title={isGraphed ? 'Remove from graph' : 'Add to graph'}
           >
             📊
           </button>
@@ -165,13 +175,13 @@ const SortIndicator: React.FC<{ direction: SortDirection }> = ({ direction }) =>
 // ─── Filter Cell ───────────────────────────────────────────────
 
 export interface FilterCellProps {
-  column: GridColumn;
+  column: ColumnDef;
   value: string;
   onChange: (columnId: string, value: string) => void;
 }
 
 export const FilterCell: React.FC<FilterCellProps> = ({ column, value, onChange }) => {
-  if (!column.filterable) {
+  if (!column.filter) {
     return <th className="py-1 px-2" />;
   }
 

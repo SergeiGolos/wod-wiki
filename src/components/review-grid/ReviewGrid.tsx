@@ -10,7 +10,6 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { ALL_FRAGMENT_COLUMNS } from './gridPresets';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { MetricType, type IMetric } from '@/core/models/Metric';
@@ -24,6 +23,7 @@ import { GridGraphPanel } from './GridGraphPanel';
 import { UserOverrideDialog } from './UserOverrideDialog';
 import { useUserOverrides } from './useUserOverrides';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
+import type { ColumnDef } from './column-definition-language';
 
 // ─── Props ─────────────────────────────────────────────────────
 
@@ -121,7 +121,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
   // ── Grid data ────────────────────────────────────────────────
 
-  const { rows, columns, graphTaggedColumnIds } = useGridData({
+  const { rows, visibleColumns, availableColumns, graphTaggedColumnIds } = useGridData({
     segments,
     userOutputOverrides: mergedOverrides,
     presetId: effectivePresetId,
@@ -130,24 +130,12 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
     filterOverrides,
     graphTaggedColumns,
     extraMetricTypes: userAddedColumns,
+    columnVisibilityOverrides,
+    addedColumnIds: userAddedColumns as Set<string>,
   });
 
-  // Apply local visibility overrides on top of preset defaults
-  const visibleColumns = useMemo(
-    () =>
-      columns.map((col) => {
-        if (col.id in columnVisibilityOverrides) {
-          return { ...col, visible: columnVisibilityOverrides[col.id] };
-        }
-        return col;
-      }),
-    [columns, columnVisibilityOverrides],
-  );
-
-  const displayColumns = useMemo(
-    () => visibleColumns.filter((c) => c.visible),
-    [visibleColumns],
-  );
+  // Display columns are the visible ones from ColumnSet (already filtered)
+  const displayColumns = visibleColumns;
 
   // Unfiltered row count (for the toolbar counter)
   const totalRows = segments.length;
@@ -229,11 +217,12 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
     });
   }, []);
 
-  // Metric types available to add: all known types minus those already shown as columns
+  // Metric types available to add: derived from ColumnSet available columns
   const availableToAdd = useMemo(() => {
-    const shownTypes = new Set(columns.map((c) => c.type).filter(Boolean));
-    return ALL_FRAGMENT_COLUMNS.filter((ft) => !shownTypes.has(ft));
-  }, [columns]);
+    return availableColumns
+      .filter((c) => c.source.type === 'metric-type')
+      .map((c) => (c.source as { metricType: MetricType }).metricType);
+  }, [availableColumns]);
 
   const handleSelectRow = useCallback(
     (id: number, modifiers: { ctrlKey: boolean; shiftKey: boolean }) => {
@@ -334,6 +323,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
             onColumnFilterChange={handleColumnFilterChange}
             availableToAdd={availableToAdd}
             onAddColumn={handleAddColumn}
+            graphTaggedColumnIds={graphTaggedColumns}
           />
 
           <tbody className="divide-y divide-border">

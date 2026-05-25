@@ -24,7 +24,15 @@ export type { UseGraphDataOptions, UseGraphDataReturn, GraphDataPoint } from './
 export { useUserOverrides } from './useUserOverrides';
 export { UserOverrideDialog } from './UserOverrideDialog';
 
-export { DEFAULT_PRESET, DEBUG_PRESET, GRID_PRESETS, getPreset, buildAllColumns } from './gridPresets';
+// ─── Legacy Presets (deprecated — use GRID_COLUMN_SET_CONFIG instead) ─
+
+export {
+  DEFAULT_PRESET,
+  DEBUG_PRESET,
+  GRID_PRESETS,
+  getPreset,
+  buildAllColumns,
+} from './gridPresets';
 
 export type {
   GridRow as GridRowData,
@@ -79,8 +87,55 @@ export {
 export {
   UnifiedCellRenderer,
   inferColumnDefFromGridColumn,
+  renderMetricCell,
+  renderIndent,
 } from './interpreters';
 
 export type {
   UnifiedCellRendererProps,
 } from './interpreters';
+
+// ─── ColumnSet Module ────────────────────────────────────────────
+
+export {
+  ColumnSet,
+} from './ColumnSet';
+
+export type {
+  ColumnSetContext,
+} from './ColumnSet';
+
+// ─── CDL Column Definitions (Phase 2.4) ─────────────────────────
+
+export {
+  ALL_COLUMN_DEFINITIONS,
+  GRID_COLUMN_SET_CONFIG,
+  CDL_PRESET_DEFAULT,
+  CDL_PRESET_DEBUG,
+  indexColumn,
+  timestampColumn,
+  spansColumn,
+  blockKeyColumn,
+  outputTypeColumn,
+  stackLevelColumn,
+  elapsedTotalColumn,
+  completionReasonColumn,
+  effortColumn,
+  durationColumn,
+  repColumn,
+  roundsColumn,
+  distanceColumn,
+  resistanceColumn,
+  actionColumn,
+  incrementColumn,
+  metricColumn,
+  groupColumn,
+  systemColumn,
+  labelColumn,
+  textColumn,
+  currentRoundColumn,
+  volumeColumn,
+  intensityColumn,
+  loadColumn,
+  workColumn,
+} from './cdlColumnDefinitions';

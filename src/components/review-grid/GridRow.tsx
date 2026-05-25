@@ -5,17 +5,18 @@
  * All cells are rendered through the unified CDL cell renderer.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { MetricType } from '@/core/models/Metric';
-import type { GridRow as GridRowData, GridColumn } from './types';
-import { UnifiedCellRenderer, inferColumnDefFromGridColumn } from './interpreters/cdlCellRenderer';
+import type { GridRow as GridRowData } from './types';
+import type { ColumnDef } from './column-definition-language';
+import { UnifiedCellRenderer } from './interpreters/cdlCellRenderer';
 import { cn } from '@/lib/utils';
 
 interface GridRowProps {
   /** The row data to render */
   row: GridRowData;
-  /** Visible columns (already filtered) */
-  columns: GridColumn[];
+  /** Visible column definitions (already filtered) */
+  columns: ColumnDef[];
   /** Whether this row is currently selected */
   isSelected: boolean;
   /** Callback when the row is clicked */
@@ -46,12 +47,6 @@ export const GridRow: React.FC<GridRowProps> = ({
 
   const isGroup = row.outputType === 'group';
 
-  // Pre-compute ColumnDefs to avoid re-inferring on every render
-  const columnDefs = useMemo(
-    () => columns.map((col) => inferColumnDefFromGridColumn(col)),
-    [columns],
-  );
-
   return (
     <tr
       className={cn(
@@ -67,15 +62,20 @@ export const GridRow: React.FC<GridRowProps> = ({
       onMouseEnter={() => onHover(row.sourceBlockKey)}
       onMouseLeave={() => onHover(null)}
     >
-      {columns.map((col, idx) => (
-        <UnifiedCellRenderer
-          key={col.id}
-          columnDef={columnDefs[idx]}
-          row={row}
-          indent={col.type === MetricType.Effort ? row.stackLevel : 0}
-          onDoubleClick={onCellDoubleClick}
-        />
-      ))}
+      {columns.map((colDef) => {
+        const isEffort =
+          colDef.source.type === 'metric-type' &&
+          colDef.source.metricType === MetricType.Effort;
+        return (
+          <UnifiedCellRenderer
+            key={colDef.id}
+            columnDef={colDef}
+            row={row}
+            indent={isEffort ? row.stackLevel : 0}
+            onDoubleClick={onCellDoubleClick}
+          />
+        );
+      })}
     </tr>
   );
 };

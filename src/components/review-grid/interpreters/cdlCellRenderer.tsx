@@ -349,7 +349,7 @@ function renderFallback(value: unknown, indent: number): React.ReactNode {
  * Render a GridCell value as a stack of MetricPill components.
  * This replaces the old GridCell component.
  */
-function renderMetricCell(cell: any, indent: number): React.ReactNode {
+export function renderMetricCell(cell: any, indent: number): React.ReactNode {
   const metrics = cell.metrics;
 
   // Handle both MetricContainer and plain arrays
@@ -378,7 +378,7 @@ function renderMetricCell(cell: any, indent: number): React.ReactNode {
 
 // ─── Indentation Spacer ────────────────────────────────────────
 
-function renderIndent(indent: number): React.ReactNode {
+export function renderIndent(indent: number): React.ReactNode {
   if (indent <= 0) return null;
   return (
     <div
