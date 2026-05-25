@@ -46,31 +46,26 @@ describe('grid presets', () => {
       'group',
       'analytics',
     ]);
-    expect(DEBUG_PRESET.filters).toEqual({});
     expect(DEFAULT_PRESET.visibleColumns).toEqual([
       '#',
-      'timestamp',
-      'spans',
-      'effort',
-      'text',
-      'label',
+      'timeSpan',
+      'descriptor',
       'duration',
       'rep',
-      'rounds',
       'distance',
       'resistance',
       'action',
       'increment',
       'metric',
-      'current-round',
       'volume',
       'intensity',
       'load',
       'work',
       'elapsedTotal',
     ]);
-    expect(DEBUG_PRESET.visibleColumns.slice(0, 6)).toEqual([
+    expect(DEBUG_PRESET.visibleColumns.slice(0, 7)).toEqual([
       '#',
+      'timeSpan',
       'timestamp',
       'spans',
       'blockKey',
