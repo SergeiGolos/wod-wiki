@@ -477,6 +477,8 @@ const ReceiverApp = () => {
               onStop={() => sendReceiverEvent('stop')}
               onNext={() => sendReceiverEvent('next')}
               isRunning={isRunning}
+              isPaused={remoteState.workoutState === 'paused'}
+              disableNext={remoteState.workoutState === 'paused'}
               primaryTimer={primaryTimerEntry}
               subLabel={remoteState.subLabel}
               subLabels={remoteState.subLabels}

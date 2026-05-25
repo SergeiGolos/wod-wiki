@@ -123,12 +123,28 @@ export function resolveFrontMatterSubtype(props: Record<string, string>): FrontM
   if (typeValue === 'strava') return 'strava';
   if (typeValue === 'amazon') return 'amazon';
   if (typeValue === 'file') return 'file';
+  if (typeValue === 'effort') return 'effort';
 
   // Auto-detect from url patterns
   const url = props['url'] || props['link'] || '';
   if (/youtube\.com|youtu\.be/i.test(url)) return 'youtube';
   if (/strava\.com/i.test(url)) return 'strava';
   if (/amazon\.com|amzn\.to/i.test(url)) return 'amazon';
+
+  // Effort pages expose either a nested baseAttributes block or flat effort
+  // metadata at the root. The flat parser captures nested keys as empty-string
+  // placeholders, so checking for the known root fields is enough here.
+  if (
+    props['baseAttributes'] !== undefined ||
+    props['registrySource'] !== undefined ||
+    props['met'] !== undefined ||
+    props['discipline'] !== undefined ||
+    props['intensityTier'] !== undefined ||
+    props['aliases'] !== undefined ||
+    props['derivation'] !== undefined
+  ) {
+    return 'effort';
+  }
 
   return 'default';
 }

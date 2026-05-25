@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Effort Widget — Variant A: Smart Chip | WOD-694</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens (mirrored from index.css) ──────────────────── */
+    :root {
+      --bg: #f5f2ed;
+      --bg2: #faf8f4;
+      --fg: #2a221a;
+      --fg2: #6a5f52;
+      --card: #fff;
+      --border: #cdc5b8;
+      --border2: #e8e2d8;
+      --primary: #5980a8;
+      --primary-fg: #fff;
+      --muted: #ede9e2;
+      --effort-color: #508860;
+      --effort-bg: rgba(80,136,96,0.10);
+      --effort-border: rgba(80,136,96,0.28);
+      --time-color: #5980a8;
+      --time-bg: rgba(89,128,168,0.10);
+      --rep-color: #a87040;
+      --rep-bg: rgba(168,112,64,0.10);
+      --gutter: #e8e2d8;
+      --gutter-fg: #aaa09a;
+      --popover: #f8f5f0;
+      --accent: #8c7040;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.09);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .dark {
+      --bg: #2e3440;
+      --bg2: #353c4a;
+      --fg: #d8dee9;
+      --fg2: #9099ab;
+      --card: #3b4252;
+      --border: #3f4859;
+      --border2: #353d4e;
+      --primary: #81a1c1;
+      --primary-fg: #2e3440;
+      --muted: #262c38;
+      --effort-color: #a3be8c;
+      --effort-bg: rgba(163,190,140,0.12);
+      --effort-border: rgba(163,190,140,0.28);
+      --time-color: #81a1c1;
+      --time-bg: rgba(129,161,193,0.12);
+      --rep-color: #d08770;
+      --rep-bg: rgba(208,135,112,0.12);
+      --gutter: #2b3140;
+      --gutter-fg: #5a6478;
+      --popover: #3d4560;
+      --accent: #ebcb8b;
+      --radius: 10px;
+      --shadow: 0 2px 20px rgba(0,0,0,0.35);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── App Shell ────────────────────────────────────────────────── */
+    .topbar {
+      height: 44px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .topbar-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--primary);
+      letter-spacing: -0.01em;
+    }
+    .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--fg);
+      opacity: 0.7;
+    }
+    .topbar-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--fg2);
+      font-size: 14px;
+      transition: background 0.12s;
+    }
+    .icon-btn:hover { background: var(--muted); }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    .sidebar {
+      width: 220px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 12px 0;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar-section {
+      padding: 4px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--fg2);
+      margin-top: 12px;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      font-size: 12.5px;
+      color: var(--fg2);
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 0.1s;
+    }
+    .sidebar-item:hover { background: var(--muted); }
+    .sidebar-item.active {
+      background: var(--effort-bg);
+      color: var(--effort-color);
+      font-weight: 500;
+    }
+    .sidebar-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .sidebar-item.active .sidebar-dot { background: var(--effort-color); }
+
+    /* ── Editor Area ──────────────────────────────────────────────── */
+    .editor-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .editor-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    .editor-content {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 48px;
+      position: relative;
+    }
+
+    /* ── CodeMirror-like Editor ───────────────────────────────────── */
+    .cm-editor {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13.5px;
+      line-height: 22px;
+      color: var(--fg);
+      position: relative;
+    }
+    .cm-line {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      padding: 0;
+      position: relative;
+    }
+    .cm-line:hover .cm-gutter { opacity: 1; }
+    .cm-gutter {
+      width: 32px;
+      flex-shrink: 0;
+      text-align: right;
+      padding-right: 8px;
+      font-size: 11px;
+      color: var(--gutter-fg);
+      opacity: 0.6;
+      transition: opacity 0.1s;
+      user-select: none;
+    }
+    .cm-text {
+      flex: 1;
+      white-space: pre;
+    }
+
+    /* Frontmatter fence */
+    .cm-fm-fence { color: var(--fg2); }
+    /* YAML keys */
+    .cm-yaml-key { color: var(--primary); }
+    /* YAML values */
+    .cm-yaml-val { color: var(--fg); }
+    /* YAML string values (quoted or plain strings) */
+    .cm-yaml-str { color: var(--effort-color); }
+    /* YAML number */
+    .cm-yaml-num { color: var(--rep-color); }
+    /* YAML list item */
+    .cm-yaml-list { color: var(--fg2); }
+    /* Active line highlight */
+    .cm-active-line {
+      background: rgba(129,161,193,0.07);
+    }
+    /* Cursor blink on active line */
+    .cm-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 15px;
+      background: var(--primary);
+      vertical-align: middle;
+      margin-left: 1px;
+      animation: blink 1.1s step-end infinite;
+      border-radius: 1px;
+    }
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+
+    /* Heading styles */
+    .cm-h1 { font-size: 17px; font-weight: 700; color: var(--fg); }
+    .cm-h2 { font-size: 15px; font-weight: 600; color: var(--fg); }
+    .cm-h3 { font-size: 13.5px; font-weight: 600; color: var(--fg2); }
+    .cm-wod-fence { color: var(--accent); }
+    .cm-wod-effort { color: var(--effort-color); font-weight: 500; }
+    .cm-wod-num { color: var(--rep-color); }
+    .cm-wod-unit { color: var(--fg2); }
+
+    /* ── Smart Chip Widget ────────────────────────────────────────── */
+    /*
+     * DESIGN CONCEPT:
+     * When the cursor lands on a frontmatter field, a compact "Smart Chip"
+     * panel appears directly below that line (like a CodeMirror tooltip).
+     * The chip shows the field name and provides contextual editing:
+     * - For `slug`: shows an effort picker with search
+     * - For `met`: shows a numeric stepper
+     * - For `intensityTier`: shows radio chips
+     * - For `discipline`: shows a category picker
+     * 
+     * TRIGGER: Auto-appears when cursor is on a frontmatter line.
+     * DISMISS: Escape key, or cursor moves off the line.
+     */
+    .smart-chip-anchor {
+      position: relative;
+    }
+    .smart-chip {
+      position: absolute;
+      left: 32px; /* align with text (gutter width) */
+      top: calc(100% + 4px);
+      z-index: 200;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      min-width: 340px;
+      max-width: 420px;
+      overflow: hidden;
+      animation: chip-in 0.15s cubic-bezier(0.2,0,0,1);
+    }
+    @keyframes chip-in {
+      from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chip-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border2);
+      background: var(--muted);
+    }
+    .chip-field-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--effort-bg);
+      color: var(--effort-color);
+      border: 1px solid var(--effort-border);
+      letter-spacing: 0.02em;
+    }
+    .chip-header-label {
+      font-size: 11.5px;
+      color: var(--fg2);
+      font-weight: 500;
+    }
+    .chip-close {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--fg2);
+      cursor: pointer;
+      opacity: 0.6;
+      padding: 2px 5px;
+      border-radius: 4px;
+      transition: background 0.1s, opacity 0.1s;
+    }
+    .chip-close:hover { background: var(--muted); opacity: 1; }
+
+    /* Search / input area */
+    .chip-search-wrap {
+      padding: 10px 14px 8px;
+      position: relative;
+    }
+    .chip-search {
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      padding: 6px 32px 6px 10px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--fg);
+      outline: none;
+      caret-color: var(--primary);
+    }
+    .chip-search:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(129,161,193,0.18); }
+    .chip-search-icon {
+      position: absolute;
+      right: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      color: var(--fg2);
+      pointer-events: none;
+    }
+
+    /* Effort results list */
+    .chip-results {
+      max-height: 180px;
+      overflow-y: auto;
+      padding: 2px 0 6px;
+    }
+    .chip-result-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      cursor: pointer;
+      transition: background 0.08s;
+      font-size: 12.5px;
+    }
+    .chip-result-item:hover, .chip-result-item.selected {
+      background: var(--effort-bg);
+    }
+    .chip-result-item.active {
+      background: var(--effort-bg);
+      color: var(--effort-color);
+    }
+    .chip-result-slug {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--effort-color);
+      min-width: 100px;
+    }
+    .chip-result-label {
+      flex: 1;
+      color: var(--fg);
+    }
+    .chip-result-meta {
+      font-size: 10.5px;
+      color: var(--fg2);
+      display: flex;
+      gap: 6px;
+    }
+    .chip-result-met {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--rep-bg);
+      color: var(--rep-color);
+    }
+    .chip-result-tier {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    .tier-high { background: rgba(191,97,106,0.12); color: #bf616a; }
+    .tier-moderate { background: rgba(235,203,139,0.15); color: #c5a040; }
+    .dark .tier-moderate { color: #ebcb8b; }
+    .tier-low { background: var(--effort-bg); color: var(--effort-color); }
+
+    /* Footer with keyboard hints */
+    .chip-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 14px;
+      border-top: 1px solid var(--border2);
+      background: var(--muted);
+      font-size: 10.5px;
+      color: var(--fg2);
+    }
+    .chip-key {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--fg);
+    }
+    .chip-footer-sep { width: 1px; height: 10px; background: var(--border); }
+
+    /* ── Hover trigger button ─────────────────────────────────────── */
+    .line-edit-btn {
+      position: absolute;
+      right: -48px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: var(--effort-bg);
+      color: var(--effort-color);
+      border: 1px solid var(--effort-border);
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .cm-line:hover .line-edit-btn { opacity: 1; }
+
+    /* ── Demo annotation ─────────────────────────────────────────── */
+    .annotation {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      max-width: 280px;
+      box-shadow: var(--shadow);
+    }
+    .annotation-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .annotation-body {
+      font-size: 11.5px;
+      color: var(--fg2);
+      line-height: 1.5;
+    }
+    .annotation-body strong { color: var(--fg); }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 52px;
+      right: 12px;
+      z-index: 999;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--fg2);
+      font-family: inherit;
+    }
+    .theme-toggle:hover { background: var(--muted); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')">☀/☾ theme</button>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-logo">wod-wiki</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-title">efforts / bodyweight / box-jump.md</span>
+    <div class="topbar-actions">
+      <button class="icon-btn" title="Save">💾</button>
+      <button class="icon-btn" title="History">🕐</button>
+      <button class="icon-btn" title="Preview">👁</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">Efforts</div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>bodyweight
+      </div>
+      <div class="sidebar-item active">
+        <div class="sidebar-dot"></div>box-jump.md
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>sit-up.md
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>lunge.md
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>plank.md
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>wall-ball.md
+      </div>
+      <div class="sidebar-section" style="margin-top:16px">Categories</div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>cycling
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>kettlebell
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>rowing
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>running
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>strength
+      </div>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="editor-area">
+      <div class="editor-scroll">
+        <div class="editor-content">
+          <div class="cm-editor" id="cm">
+
+            <!-- Line 1: --- (frontmatter open) -->
+            <div class="cm-line" data-line="1">
+              <div class="cm-gutter">1</div>
+              <div class="cm-text cm-fm-fence">---</div>
+            </div>
+
+            <!-- Line 2: id -->
+            <div class="cm-line" data-line="2" style="position:relative">
+              <div class="cm-gutter">2</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">id</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str">effort-bundled-box-jump</span>
+              </div>
+              <div class="line-edit-btn">edit</div>
+            </div>
+
+            <!-- Line 3: slug — ACTIVE LINE with widget open -->
+            <div class="cm-line cm-active-line smart-chip-anchor" data-line="3" id="active-slug-line">
+              <div class="cm-gutter">3</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">slug</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str">box-jump<span class="cm-cursor"></span></span>
+              </div>
+
+              <!-- ── SMART CHIP WIDGET ─────────────────────────── -->
+              <div class="smart-chip" id="smart-chip">
+                <div class="chip-header">
+                  <span class="chip-field-badge">slug</span>
+                  <span class="chip-header-label">Effort Picker — matches against effort catalog</span>
+                  <span class="chip-close" onclick="document.getElementById('smart-chip').style.display='none'">✕</span>
+                </div>
+                <div class="chip-search-wrap">
+                  <input class="chip-search" value="box-jump" id="chip-input" placeholder="Search efforts…" />
+                  <span class="chip-search-icon">🔍</span>
+                </div>
+                <div class="chip-results">
+                  <div class="chip-result-item active" onclick="selectEffort(this,'box-jump','Box Jump')">
+                    <span class="chip-result-slug">box-jump</span>
+                    <span class="chip-result-label">Box Jump</span>
+                    <span class="chip-result-meta">
+                      <span class="chip-result-met">8.0 MET</span>
+                      <span class="chip-result-tier tier-high">high</span>
+                    </span>
+                  </div>
+                  <div class="chip-result-item" onclick="selectEffort(this,'box-step-up','Box Step-Up')">
+                    <span class="chip-result-slug">box-step-up</span>
+                    <span class="chip-result-label">Box Step-Up</span>
+                    <span class="chip-result-meta">
+                      <span class="chip-result-met">5.0 MET</span>
+                      <span class="chip-result-tier tier-moderate">moderate</span>
+                    </span>
+                  </div>
+                  <div class="chip-result-item" onclick="selectEffort(this,'broad-jump','Broad Jump')">
+                    <span class="chip-result-slug">broad-jump</span>
+                    <span class="chip-result-label">Broad Jump</span>
+                    <span class="chip-result-meta">
+                      <span class="chip-result-met">7.5 MET</span>
+                      <span class="chip-result-tier tier-high">high</span>
+                    </span>
+                  </div>
+                  <div class="chip-result-item" onclick="selectEffort(this,'burpee-box-jump','Burpee Box Jump')">
+                    <span class="chip-result-slug">burpee-box-jump</span>
+                    <span class="chip-result-label">Burpee Box Jump</span>
+                    <span class="chip-result-meta">
+                      <span class="chip-result-met">10.0 MET</span>
+                      <span class="chip-result-tier tier-high">high</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="chip-footer">
+                  <span><span class="chip-key">↑↓</span> navigate</span>
+                  <span class="chip-footer-sep"></span>
+                  <span><span class="chip-key">↵</span> apply</span>
+                  <span class="chip-footer-sep"></span>
+                  <span><span class="chip-key">Esc</span> dismiss</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Line 4: label -->
+            <div class="cm-line" data-line="4" style="position:relative">
+              <div class="cm-gutter">4</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">label</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str">Box Jump</span>
+              </div>
+              <div class="line-edit-btn">edit</div>
+            </div>
+
+            <!-- Lines 5-8: aliases array -->
+            <div class="cm-line" data-line="5" style="position:relative">
+              <div class="cm-gutter">5</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">aliases</span><span class="cm-yaml-val">:</span>
+              </div>
+              <div class="line-edit-btn">edit</div>
+            </div>
+            <div class="cm-line" data-line="6">
+              <div class="cm-gutter">6</div>
+              <div class="cm-text">
+                <span class="cm-yaml-list">  - </span><span class="cm-yaml-str">box jumps</span>
+              </div>
+            </div>
+            <div class="cm-line" data-line="7">
+              <div class="cm-gutter">7</div>
+              <div class="cm-text">
+                <span class="cm-yaml-list">  - </span><span class="cm-yaml-str">jump to box</span>
+              </div>
+            </div>
+            <div class="cm-line" data-line="8">
+              <div class="cm-gutter">8</div>
+              <div class="cm-text">
+                <span class="cm-yaml-list">  - </span><span class="cm-yaml-str">box</span>
+              </div>
+            </div>
+
+            <!-- Line 9: met -->
+            <div class="cm-line" data-line="9" style="position:relative">
+              <div class="cm-gutter">9</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">met</span><span class="cm-yaml-val">: </span><span class="cm-yaml-num">8.0</span>
+              </div>
+              <div class="line-edit-btn">edit</div>
+            </div>
+
+            <!-- Line 10: discipline -->
+            <div class="cm-line" data-line="10" style="position:relative">
+              <div class="cm-gutter">10</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">discipline</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str">bodyweight</span>
+              </div>
+              <div class="line-edit-btn">edit</div>
+            </div>
+
+            <!-- Line 11: intensityTier -->
+            <div class="cm-line" data-line="11" style="position:relative">
+              <div class="cm-gutter">11</div>
+              <div class="cm-text">
+                <span class="cm-yaml-key">intensityTier</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str">high</span>
+              </div>
+              <div class="line-edit-btn">edit</div>
+            </div>
+
+            <!-- Line 12: --- (frontmatter close) -->
+            <div class="cm-line" data-line="12">
+              <div class="cm-gutter">12</div>
+              <div class="cm-text cm-fm-fence">---</div>
+            </div>
+
+            <!-- Body lines -->
+            <div class="cm-line" data-line="13"><div class="cm-gutter">13</div><div class="cm-text">&nbsp;</div></div>
+
+            <div class="cm-line" data-line="14">
+              <div class="cm-gutter">14</div>
+              <div class="cm-text cm-h1"># Box Jump</div>
+            </div>
+
+            <div class="cm-line" data-line="15"><div class="cm-gutter">15</div><div class="cm-text">&nbsp;</div></div>
+
+            <div class="cm-line" data-line="16">
+              <div class="cm-gutter">16</div>
+              <div class="cm-text">An explosive plyometric movement. Jump onto an elevated box and step down.</div>
+            </div>
+
+            <div class="cm-line" data-line="17"><div class="cm-gutter">17</div><div class="cm-text">&nbsp;</div></div>
+
+            <div class="cm-line" data-line="18">
+              <div class="cm-gutter">18</div>
+              <div class="cm-text cm-h2">## Example workout</div>
+            </div>
+
+            <div class="cm-line" data-line="19"><div class="cm-gutter">19</div><div class="cm-text">&nbsp;</div></div>
+
+            <!-- WOD code fence -->
+            <div class="cm-line" data-line="20">
+              <div class="cm-gutter">20</div>
+              <div class="cm-text cm-wod-fence">```wod</div>
+            </div>
+            <div class="cm-line" data-line="21">
+              <div class="cm-gutter">21</div>
+              <div class="cm-text">
+                <span class="cm-wod-num">3</span><span class="cm-wod-unit">x</span><span class="cm-wod-num">10</span> <span class="cm-wod-effort">box-jump</span>
+              </div>
+            </div>
+            <div class="cm-line" data-line="22">
+              <div class="cm-gutter">22</div>
+              <div class="cm-text cm-wod-fence">```</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Annotation -->
+  <div class="annotation">
+    <div class="annotation-title">Variant A — Smart Chip</div>
+    <div class="annotation-body">
+      <strong>Trigger:</strong> cursor moves to a frontmatter line (auto-detects field type).<br><br>
+      <strong>Pattern:</strong> inline tooltip below the active line — like a CodeMirror autocomplete dropdown but field-aware.<br><br>
+      <strong>For <code>slug</code>:</strong> effort search with MET + tier badges. Arrow keys + Enter to apply.
+    </div>
+  </div>
+
+  <script>
+    function selectEffort(el, slug, label) {
+      // visually update active state
+      document.querySelectorAll('.chip-result-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('chip-input').value = slug;
+      // update the editor line to reflect the new value
+      const slugLine = document.querySelector('#active-slug-line .cm-yaml-str');
+      if (slugLine) {
+        slugLine.innerHTML = slug + '<span class="cm-cursor"></span>';
+      }
+    }
+
+    // Click on other lines to show alternate chips
+    document.querySelectorAll('.cm-line[data-line]').forEach(line => {
+      line.addEventListener('click', function(e) {
+        if (e.target.closest('.smart-chip')) return;
+        const num = parseInt(this.dataset.line);
+        const chip = document.getElementById('smart-chip');
+        if (num === 3) {
+          chip.style.display = '';
+          document.querySelector('#active-slug-line').classList.add('cm-active-line');
+        } else {
+          chip.style.display = 'none';
+          document.querySelector('#active-slug-line').classList.remove('cm-active-line');
+        }
+        // highlight clicked line
+        document.querySelectorAll('.cm-line').forEach(l => l.classList.remove('cm-active-line'));
+        this.classList.add('cm-active-line');
+      });
+    });
+  </script>
+</body>
+</html>

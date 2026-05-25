@@ -220,6 +220,13 @@ describe('parseDocumentSections — frontmatter', () => {
     expect(fm!.frontmatterType).toBe('amazon');
   });
 
+  it('detects effort frontmatterType from effort metadata', () => {
+    const content = '---\nid: effort-1\nslug: rowing-intervals\nlabel: Rowing Intervals\nbaseAttributes:\n  met: 7.0\n  discipline: rowing\nregistrySource: bundled\n---';
+    const sections = parseDocumentSections(content);
+    const fm = sections.find(s => s.type === 'frontmatter');
+    expect(fm!.frontmatterType).toBe('effort');
+  });
+
   it('auto-detects amazon from url pattern', () => {
     const content = '---\nurl: https://www.amazon.com/Kettlebell-Workout-Weights/dp/B08P2C6J7B\n---';
     const sections = parseDocumentSections(content);

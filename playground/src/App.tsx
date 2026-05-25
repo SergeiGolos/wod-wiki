@@ -31,6 +31,8 @@ import {
   TrackerRedirect,
 } from './lib/routes'
 import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
+import { Concept3LandingPage } from './pages/Concept3LandingPage'
+import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
 import { MarkdownCanvasPage } from './canvas/MarkdownCanvasPage'
 import { JournalWeeklyPage } from './views/ListViews'
@@ -626,7 +628,8 @@ export function App() {
             <CommandProvider>
               <NavProvider tree={navTree}>
                 <Routes>
-                  <Route path={ROUTE_PATTERNS.home} element={<PlaygroundRedirect template="home" />} />
+                  <Route path={ROUTE_PATTERNS.home} element={<Concept3LandingPage />} />
+                  <Route path="/legacy" element={<PlaygroundLandingPage />} />
                   <Route path="/getting-started" element={<GettingStartedRedirect />} />
                   <Route path="/getting-started/*" element={<GettingStartedRedirect />} />
                   <Route path="/syntax" element={<SyntaxRedirect />} />

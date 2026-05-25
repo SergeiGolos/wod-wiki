@@ -25,7 +25,7 @@ export const VALID_WOD_DIALECTS: WodDialect[] = ['wod', 'log', 'plan'];
 export type SectionType = 'title' | 'markdown' | 'wod' | 'frontmatter' | 'embed';
 
 /** Typed front matter subtypes — determines embed renderer */
-export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | 'file';
+export type FrontMatterSubtype = 'default' | 'youtube' | 'strava' | 'amazon' | 'file' | 'effort';
 
 /**
  * A single section in the document — the atomic unit of display and editing.

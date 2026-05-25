@@ -52,6 +52,12 @@ export interface TimerDisplayProps {
   /** Whether the timer is currently running */
   isRunning: boolean;
 
+  /** Whether the workout is paused with resumable state */
+  isPaused?: boolean;
+
+  /** Disable next/skip controls */
+  disableNext?: boolean;
+
   /** Enable compact mode for mobile */
   compact?: boolean;
 
@@ -373,6 +379,8 @@ const StackIntegratedTimer: React.FC<TimerDisplayProps> = (props) => {
         // (and never the silently-failing Play) whenever the runtime is
         // active, even between blocks where no timer span is open.
         isRunning={isAnyTimerRunning || executionStatus === 'running'}
+        isPaused={executionStatus === 'paused'}
+        disableNext={executionStatus === 'paused'}
 
         primaryTimer={displayTimerEntry}
         subLabel={subLabel}
@@ -417,7 +425,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
           (activeEl as HTMLElement).isContentEditable
         );
         
-        if (!isTyping) {
+        if (!isTyping && !props.disableNext && !props.isPaused) {
           // Prevent default browser behavior (like scrolling on space/enter)
           e.preventDefault();
           props.onNext();
@@ -444,6 +452,8 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = (props) => {
       onStop={props.onStop}
       onNext={props.onNext}
       isRunning={props.isRunning}
+      isPaused={props.isPaused}
+      disableNext={props.disableNext}
       compact={props.compact}
       enableGestures={viewMode === 'track'}
       getFocusProps={props.getFocusProps}
