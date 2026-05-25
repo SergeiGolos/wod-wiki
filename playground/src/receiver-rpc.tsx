@@ -29,6 +29,11 @@ import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { audioService } from '@/services/AudioService';
+import {
+    armReceiverBootFallback,
+    RECEIVER_BOOT_DEGRADED_STATUS,
+    RECEIVER_BOOT_READY_TIMEOUT_MS,
+} from './receiverBootLoader';
 import '@/index.css';
 
 // ============================================================================
@@ -42,6 +47,8 @@ const ReceiverApp: React.FC = () => {
     const [dpadFlash, setDpadFlash] = useState(false);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const transportRef = useRef<WebRtcRpcTransport | null>(null);
+    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const bootFadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Persistent signaling instance (lives for the life of the Receiver app)
     const signalingRef = useRef<ReceiverCastSignaling | null>(null);
@@ -60,6 +67,24 @@ const ReceiverApp: React.FC = () => {
     const flash = useCallback(() => {
         setDpadFlash(true);
         setTimeout(() => setDpadFlash(false), 200);
+    }, []);
+
+    const dismissBootLoader = useCallback((reason: 'ready' | 'timeout') => {
+        const loader = document.getElementById('initial-loader');
+        if (!loader || loader.dataset.bootDismissed === 'true') {
+            return;
+        }
+
+        loader.dataset.bootDismissed = reason;
+        loader.style.opacity = '0';
+
+        if (bootFadeTimerRef.current) {
+            clearTimeout(bootFadeTimerRef.current);
+        }
+        bootFadeTimerRef.current = setTimeout(() => {
+            loader.style.display = 'none';
+            bootFadeTimerRef.current = null;
+        }, 500);
     }, []);
 
     const workbenchStateRef = useRef(workbenchState);
@@ -276,14 +301,18 @@ const ReceiverApp: React.FC = () => {
 
         castContext.addEventListener((window as any).cast.framework.system.EventType.READY, () => {
             console.log('[ReceiverApp] Cast Receiver READY');
-            const loader = document.getElementById('initial-loader');
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => {
-                    loader.style.display = 'none';
-                }, 500); // Wait for fade-out transition
+            dismissBootLoader('ready');
+            if (bootTimeoutRef.current) {
+                clearTimeout(bootTimeoutRef.current);
+                bootTimeoutRef.current = null;
             }
         });
+
+        bootTimeoutRef.current = armReceiverBootFallback(() => {
+            console.warn('[ReceiverApp] CAF READY did not arrive before the boot timeout; showing degraded waiting shell');
+            setConnectionStatus(RECEIVER_BOOT_DEGRADED_STATUS);
+            dismissBootLoader('timeout');
+        }, RECEIVER_BOOT_READY_TIMEOUT_MS);
 
         // Create signaling AFTER start(). 
         // We keep this signaling instance alive for the duration of the app.
@@ -303,6 +332,14 @@ const ReceiverApp: React.FC = () => {
         });
 
         return () => {
+            if (bootTimeoutRef.current) {
+                clearTimeout(bootTimeoutRef.current);
+                bootTimeoutRef.current = null;
+            }
+            if (bootFadeTimerRef.current) {
+                clearTimeout(bootFadeTimerRef.current);
+                bootFadeTimerRef.current = null;
+            }
             runtimeRef.current?.dispose();
             transportRef.current?.dispose();
             signaling.dispose();

@@ -18,6 +18,16 @@ import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
 import { audioService } from '@/services/AudioService';
+import {
+    RECEIVER_BOOT_DEGRADED_STATUS,
+    RECEIVER_BOOT_READY_TIMEOUT_MS,
+    RECEIVER_BOOT_STANDALONE_STATUS,
+    RECEIVER_BOOT_START_FAILURE_STATUS,
+    armReceiverBootFallback,
+    dismissReceiverBootLoader,
+    getReceiverWaitingScreenCopy,
+    receiverStandaloneModeEnabled,
+} from '@/services/cast/receiverBootLoader';
 import '@/index.css';
 
 const ReceiverApp: React.FC = () => {
@@ -29,6 +39,8 @@ const ReceiverApp: React.FC = () => {
     const sessionRef = useRef<ChromecastReceiverViewSession | null>(null);
     const runtimeRef = useRef<ChromecastProxyRuntime | null>(null);
     const eventProviderRef = useRef<IRuntimeEventProvider | null>(null);
+    const bootTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const readyReceivedRef = useRef(false);
 
     const sendEvent = useCallback((eventName: string, data?: unknown) => {
         eventProviderRef.current?.dispatch({
@@ -148,21 +160,70 @@ const ReceiverApp: React.FC = () => {
     }, [proxyRuntime]);
 
     useEffect(() => {
-        const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
-        if (!castContext) {
-            console.error('[ReceiverApp] Cast Receiver SDK not loaded');
-            setConnectionStatus('error: no Cast SDK');
+        if (receiverStandaloneModeEnabled()) {
+            console.info('[ReceiverApp] Standalone browser mode enabled — skipping CAF bootstrap');
+            setConnectionStatus(RECEIVER_BOOT_STANDALONE_STATUS);
+            dismissReceiverBootLoader('standalone');
             return;
         }
 
-        castContext.start({
-            customNamespaces: {
-                [CAST_NAMESPACE]: 'JSON',
-            },
-            disableIdleTimeout: true,
-        });
+        const castContext = (window as any).cast?.framework?.CastReceiverContext?.getInstance();
+        const readyEventType = (window as any).cast?.framework?.system?.EventType?.READY;
+        const clearBootTimeout = () => {
+            if (bootTimeoutRef.current) {
+                clearTimeout(bootTimeoutRef.current);
+                bootTimeoutRef.current = null;
+            }
+        };
+        const markCastReady = () => {
+            readyReceivedRef.current = true;
+            clearBootTimeout();
+            dismissReceiverBootLoader('ready');
+            setConnectionStatus((current) => current === 'connected' ? current : 'cast-ready');
+        };
 
-        setConnectionStatus('cast-ready');
+        if (!castContext) {
+            console.warn('[ReceiverApp] Cast Receiver SDK unavailable — using fallback waiting shell');
+            setConnectionStatus(RECEIVER_BOOT_DEGRADED_STATUS);
+            dismissReceiverBootLoader('no-caf');
+            return;
+        }
+
+        const handleReady = () => {
+            console.log('[ReceiverApp] Cast Receiver READY');
+            markCastReady();
+        };
+
+        if (readyEventType) {
+            castContext.addEventListener(readyEventType, handleReady);
+        }
+
+        bootTimeoutRef.current = armReceiverBootFallback(() => {
+            if (readyReceivedRef.current || runtimeRef.current) {
+                return;
+            }
+
+            console.warn(
+                `[ReceiverApp] CAF READY did not arrive within ${RECEIVER_BOOT_READY_TIMEOUT_MS}ms; showing fallback waiting shell`,
+            );
+            setConnectionStatus(RECEIVER_BOOT_DEGRADED_STATUS);
+            dismissReceiverBootLoader('timeout');
+        }, RECEIVER_BOOT_READY_TIMEOUT_MS);
+
+        try {
+            castContext.start({
+                customNamespaces: {
+                    [CAST_NAMESPACE]: 'JSON',
+                },
+                disableIdleTimeout: true,
+            });
+        } catch (error) {
+            console.error('[ReceiverApp] Cast Receiver start failed', error);
+            clearBootTimeout();
+            setConnectionStatus(RECEIVER_BOOT_START_FAILURE_STATUS);
+            dismissReceiverBootLoader('start-failure');
+            return;
+        }
 
         const session = new ChromecastReceiverViewSession(castContext);
         sessionRef.current = session;
@@ -171,6 +232,7 @@ const ReceiverApp: React.FC = () => {
             const runtime = session.runtime;
             if (!runtime) return;
 
+            markCastReady();
             runtimeRef.current = runtime;
             eventProviderRef.current = session.eventProvider;
             setProxyRuntime(runtime);
@@ -190,16 +252,21 @@ const ReceiverApp: React.FC = () => {
 
         session.connect().catch((err) => {
             console.error('[ReceiverApp] Failed to initialize receiver view session', err);
-            setConnectionStatus('error');
+            clearBootTimeout();
+            setConnectionStatus(RECEIVER_BOOT_START_FAILURE_STATUS);
+            dismissReceiverBootLoader('start-failure');
         });
 
         return () => {
+            clearBootTimeout();
+            castContext.removeEventListener?.(readyEventType, handleReady);
             unsubConnected();
             unsubDisconnected();
             session.dispose();
             sessionRef.current = null;
             runtimeRef.current = null;
             eventProviderRef.current = null;
+            readyReceivedRef.current = false;
         };
     }, []);
 
@@ -219,9 +286,20 @@ const ReceiverApp: React.FC = () => {
     }, [sendEvent, flash]);
 
     if (!proxyRuntime) {
+        const waitingCopy = getReceiverWaitingScreenCopy(connectionStatus);
+
         return (
-            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white/60 font-mono uppercase tracking-[0.5em]">
-                <div className="animate-pulse">Wod.Wiki // {connectionStatus}</div>
+            <div className="h-screen w-screen bg-black flex flex-col items-center justify-center px-8 text-center text-white">
+                <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.5em] text-white/40">Wod.Wiki</div>
+                <div className={waitingCopy.isError ? 'text-2xl font-semibold text-red-200' : 'text-2xl font-semibold text-white/90'}>
+                    {waitingCopy.title}
+                </div>
+                <div className={waitingCopy.isError ? 'mt-3 max-w-xl text-sm text-red-100/90' : 'mt-3 max-w-xl text-sm text-white/60'}>
+                    {waitingCopy.description}
+                </div>
+                <div className="mt-6 font-mono text-[10px] uppercase tracking-[0.4em] text-white/35">
+                    {connectionStatus}
+                </div>
             </div>
         );
     }

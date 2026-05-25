@@ -16,6 +16,7 @@ Documentation is now managed in a centralized Obsidian vault and published to th
 - **[Metrics Collection](https://github.com/SergeiGolos/wod-wiki/wiki/Metrics-Collection)**: How performance data is tracked and stored.
 - **[Widget Authoring Guide](./docs/widget-authoring-guide.md)**: Contract, validation pattern, and performance constraints for fenced editor widgets.
 - **[Widget Catalog](./docs/widget-catalog.md)**: Current Phase 1C playground widget inventory and example widget names.
+- **[Chromecast Receiver Browser Testing](./docs/chromecast-receiver-browser-testing.md)**: How to run the receiver waiting shell without Chromecast hardware and validate offline/no-CAF fallback behaviour.
 
 ### Features
 - **[Exercise Typeahead](https://github.com/SergeiGolos/wod-wiki/wiki/Exercise-Typeahead)**: Details on the intelligent exercise suggestion system.
