@@ -2,7 +2,7 @@
  * CDL Unified Cell Renderer
  *
  * Renders a single table cell from a ColumnDef + GridRow.
- * Replaces both renderFixedCell() and the GridCell component.
+ * Replaces the old fixed-cell and metric-cell renderers.
  *
  * Responsibilities:
  * - Resolve the column source via cdlSourceResolver
@@ -382,7 +382,7 @@ function renderFallback(value: unknown, indent: number): React.ReactNode {
 
 /**
  * Render a GridCell value as a stack of MetricPill components.
- * This replaces the old GridCell component.
+ * This replaces the old metric-cell component.
  */
 export function renderMetricCell(cell: any, indent: number): React.ReactNode {
   const metrics = cell.metrics;
@@ -479,8 +479,8 @@ import { FIXED_COLUMN_IDS } from '../types';
  * Infer a CDL ColumnDef from the legacy GridColumn interface.
  * This is a compatibility bridge during Phase 2 migration.
  *
- * Fixed columns get custom renderers that replicate the existing
- * renderFixedCell() behavior. Metric columns get metric-type sources
+ * Fixed columns get custom renderers that replicate the legacy
+ * fixed-cell behavior. Metric columns get metric-type sources
  * with custom format (MetricPill rendering).
  */
 export function inferColumnDefFromGridColumn(col: GridColumn): ColumnDef {

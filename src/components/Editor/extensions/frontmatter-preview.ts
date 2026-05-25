@@ -41,7 +41,7 @@ const LINE_HEIGHT_ESTIMATE = 20;
 
 // ── Frontmatter parsing helpers ─────────────────────────────────────
 
-type FrontmatterSubtype = "youtube" | "amazon" | "strava" | "default";
+type FrontmatterSubtype = "youtube" | "amazon" | "strava" | "link" | "default";
 
 function parseFrontmatterProps(
   state: EditorState,
@@ -66,7 +66,81 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (/amazon\.com|amzn\.to/i.test(url)) return "amazon";
   if (/strava\.com/i.test(url)) return "strava";
 
+  if (props["source_url"] || props["website"]) return "link";
+
   return "default";
+}
+
+// ── Link Preview Widget ─────────────────────────────────────────────
+
+class LinkPreviewWidget extends WidgetType {
+  constructor(
+    readonly props: Record<string, string>,
+    readonly sectionFrom: number,
+  ) {
+    super();
+  }
+
+  eq(other: LinkPreviewWidget): boolean {
+    return (
+      this.props["source_url"] === other.props["source_url"] &&
+      this.props["website"] === other.props["website"] &&
+      this.props["title"] === other.props["title"] &&
+      this.sectionFrom === other.sectionFrom
+    );
+  }
+
+  toDOM(_view: EditorView): HTMLElement {
+    const url = this.props["source_url"] || this.props["website"] || "";
+    const title = this.props["title"] || "Link";
+    const description = this.props["description"] || "";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "cm-link-preview";
+
+    if (!url) {
+      const empty = document.createElement("div");
+      empty.className = "cm-link-empty";
+      empty.textContent = "No link URL provided";
+      wrapper.appendChild(empty);
+      return wrapper;
+    }
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "cm-link-card";
+
+    const info = document.createElement("div");
+    info.className = "cm-link-info";
+
+    const titleEl = document.createElement("span");
+    titleEl.className = "cm-link-title";
+    titleEl.textContent = title;
+    info.appendChild(titleEl);
+
+    if (description) {
+      const desc = document.createElement("p");
+      desc.className = "cm-link-desc";
+      desc.textContent = description;
+      info.appendChild(desc);
+    }
+
+    const urlEl = document.createElement("span");
+    urlEl.className = "cm-link-url";
+    urlEl.textContent = url;
+    info.appendChild(urlEl);
+
+    link.appendChild(info);
+    wrapper.appendChild(link);
+
+    return wrapper;
+  }
+
+  ignoreEvent(): boolean {
+    return true;
+  }
 }
 
 // ── Amazon Product Widget ───────────────────────────────────────────
@@ -299,6 +373,16 @@ function buildFrontmatterDecos(state: EditorState): DecorationSet {
         }).range(section.from, section.to)
       );
     }
+
+    // ── Link replacement (cursor outside only) ───────────────────────
+    if (subtype === "link" && !cursorInside) {
+      decos.push(
+        Decoration.replace({
+          widget: new LinkPreviewWidget(props, section.from),
+          block: true,
+        }).range(section.from, section.to)
+      );
+    }
     // strava and default: no preview widget (could be added later)
   }
 
@@ -477,6 +561,85 @@ const frontmatterPreviewTheme = EditorView.baseTheme({
   },
   "&dark .cm-amazon-buy": {
     color: "#FF9900",
+  },
+
+  // ── Link ────────────────────────────────────────────────────────
+  ".cm-link-preview": {
+    padding: "8px 0",
+    maxWidth: "560px",
+  },
+  ".cm-link-empty": {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "13px",
+    fontStyle: "italic",
+    color: "var(--cm-muted-foreground, #888)",
+    padding: "16px",
+    backgroundColor: "rgba(128,128,128,0.05)",
+    borderRadius: "8px",
+  },
+  ".cm-link-card": {
+    display: "flex",
+    borderRadius: "8px",
+    border: "1px solid rgba(128,128,128,0.2)",
+    overflow: "hidden",
+    backgroundColor: "var(--cm-card-bg, #fff)",
+    transition: "border-color 0.2s, box-shadow 0.2s",
+    textDecoration: "none",
+    color: "inherit",
+  },
+  ".cm-link-card:hover": {
+    borderColor: "rgba(59, 130, 246, 0.5)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+  },
+  ".cm-link-info": {
+    flex: "1",
+    padding: "12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    minWidth: "0",
+  },
+  ".cm-link-title": {
+    fontSize: "14px",
+    fontWeight: "700",
+    lineHeight: "1.3",
+    display: "-webkit-box",
+    WebkitLineClamp: "2",
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+    transition: "color 0.2s",
+  },
+  ".cm-link-card:hover .cm-link-title": {
+    color: "#2563eb",
+  },
+  ".cm-link-desc": {
+    fontSize: "12px",
+    color: "var(--cm-muted-foreground, #888)",
+    lineHeight: "1.4",
+    display: "-webkit-box",
+    WebkitLineClamp: "2",
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+    margin: "0",
+  },
+  ".cm-link-url": {
+    fontSize: "11px",
+    color: "var(--cm-muted-foreground, #888)",
+    wordBreak: "break-all",
+    marginTop: "4px",
+  },
+
+  // ── Dark mode (Link) ────────────────────────────────────────────
+  "&dark .cm-link-card": {
+    backgroundColor: "var(--cm-card-bg, #1e1e1e)",
+  },
+  "&dark .cm-link-title": {
+    color: "var(--cm-foreground, #e0e0e0)",
+  },
+  "&dark .cm-link-card:hover .cm-link-title": {
+    color: "#60a5fa",
   },
 });
 

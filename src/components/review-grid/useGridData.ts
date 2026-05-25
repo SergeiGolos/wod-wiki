@@ -87,14 +87,10 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
   } = options;
 
   // 1. Build rows from segments + overrides
-  const rows = useMemo(() => {
-    const rawRows = segmentsToRows(segments, userOutputOverrides);
-    // Derive Volume (reps × weight) when both Rep and Resistance are known.
-    for (const row of rawRows) {
-      deriveVolumeCell(row.cells);
-    }
-    return rawRows;
-  }, [segments, userOutputOverrides]);
+  const rows = useMemo(
+    () => segmentsToRows(segments, userOutputOverrides),
+    [segments, userOutputOverrides],
+  );
 
   // 2. Build ColumnSetContext
   const columnSetContext = useMemo<ColumnSetContext>(
@@ -209,48 +205,6 @@ function extractBlockKey(seg: Segment): string | undefined {
   const ctx = (seg as SegmentWithContext).context;
   if (ctx?.sourceBlockKey) return ctx.sourceBlockKey as string;
   return seg.name;
-}
-
-/**
- * Derive a Volume cell (reps × weight kg) when both Rep and Resistance cells
- * are present with numeric values.
- */
-function deriveVolumeCell(cells: Map<MetricType, GridCell>): void {
-  if (cells.has(MetricType.Volume)) return;
-
-  const repCell = cells.get(MetricType.Rep);
-  const resistanceCell = cells.get(MetricType.Resistance);
-  if (!repCell || !resistanceCell) return;
-
-  let reps = 0;
-  for (const m of repCell.metrics) {
-    if (typeof m.value === 'number') reps += m.value;
-  }
-
-  let weightKg = 0;
-  let unit = 'kg';
-  for (const m of resistanceCell.metrics) {
-    const val = m.value as any;
-    if (typeof val?.amount === 'number') {
-      weightKg += val.amount;
-      if (val.unit) unit = val.unit;
-    } else if (typeof m.value === 'number') {
-      weightKg += m.value;
-    }
-  }
-
-  if (reps <= 0 || weightKg <= 0) return;
-
-  const volume = reps * weightKg;
-  cells.set(MetricType.Volume, {
-    metrics: MetricContainer.empty('volume').add({
-      type: MetricType.Volume,
-      value: volume,
-      image: `${volume} ${unit}`,
-      origin: 'analyzed',
-    }),
-    hasUserOverride: false,
-  });
 }
 
 function groupFragmentIntoCell(

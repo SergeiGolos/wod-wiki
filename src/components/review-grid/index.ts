@@ -9,7 +9,6 @@ export { ResultsView } from './ResultsView';
 export type { ResultsViewProps } from './ResultsView';
 
 export { MetricPill } from './MetricPill';
-export { GridCell } from './GridCell';
 export { GridRow } from './GridRow';
 export { GridHeader } from './GridHeader';
 export { GridToolbar } from './GridToolbar';

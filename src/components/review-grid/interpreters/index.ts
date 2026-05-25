@@ -3,7 +3,7 @@
  *
  * Sort, Graph, Filter, Fallback Chain, and Cell Render interpreters for the Column Definition Language.
  * These replace the scattered switch statements across useGridData.ts and useGraphData.ts
- * and the renderFixedCell/GridCell components in GridRow.tsx.
+ * and the legacy fixed-cell and metric-cell renderers in the old grid implementation.
  */
 
 export {

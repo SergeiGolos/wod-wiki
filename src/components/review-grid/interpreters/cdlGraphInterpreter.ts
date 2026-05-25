@@ -2,7 +2,7 @@
  * CDL Graph Interpreter
  *
  * Extracts a numeric value from a GridRow using a ColumnDef's graph config.
- * Replaces the scattered switch statements in useGraphData.ts (getNumericValue).
+ * Replaces the scattered numeric-extraction logic in the old graph pipeline.
  */
 
 import type { GridRow } from '../types';
