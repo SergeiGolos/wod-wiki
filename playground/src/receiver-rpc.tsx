@@ -62,14 +62,30 @@ const ReceiverApp: React.FC = () => {
         setTimeout(() => setDpadFlash(false), 200);
     }, []);
 
+    const dismissToWaiting = useCallback(() => {
+        // Best effort: notify sender so it can react while still connected.
+        sendEvent('dismiss');
+
+        // Local fallback: always reset to waiting even if sender is gone.
+        setWorkbenchState({ mode: 'idle' });
+        setProxyRuntime(null);
+    }, [sendEvent]);
+
     // D-Pad navigation activation
-    const { getFocusProps } = useSpatialNavigation({
+    const { getFocusProps, setFocusedId } = useSpatialNavigation({
         enabled: !!proxyRuntime,
-        initialFocusId: workbenchState.mode === 'preview' ? 'preview-block-0' : 'btn-next',
+        initialFocusId: workbenchState.mode === 'preview'
+            ? 'preview-block-0'
+            : workbenchState.mode === 'review'
+                ? 'btn-dismiss'
+                : 'btn-next',
+        onFocusChanged: useCallback((_elementId: string | null, _element: HTMLElement | null) => {
+            audioService.playSound('click', 0.3);
+        }, []),
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
             flash();
             // Local audible feedback for remote button press
-            audioService.playSound('click', 0.5);
+            audioService.playSound('select', 0.5);
 
             // Preview screen items → start the workout
             if (elementId.startsWith('preview-block-')) {
@@ -88,13 +104,27 @@ const ReceiverApp: React.FC = () => {
                 case 'btn-next':
                     sendEvent('next');
                     break;
+                case 'btn-dismiss':
+                    dismissToWaiting();
+                    break;
                 default:
                     // Fallback: click the element
                     element.click();
                     break;
             }
-        }, [sendEvent, flash]),
+        }, [sendEvent, flash, dismissToWaiting]),
     });
+
+    // Programmatically focus the correct element when the workbench mode changes
+    useEffect(() => {
+        if (workbenchState.mode === 'preview') {
+            setFocusedId('preview-block-0');
+        } else if (workbenchState.mode === 'active') {
+            setFocusedId('btn-next');
+        } else if (workbenchState.mode === 'review') {
+            setFocusedId('btn-dismiss');
+        }
+    }, [workbenchState.mode, setFocusedId]);
 
     // Global click listener for on-screen interactions on receiver
     useEffect(() => {
@@ -320,6 +350,8 @@ const ReceiverApp: React.FC = () => {
                 <ReceiverReviewPanel
                     reviewData={workbenchState.reviewData}
                     analyticsSummary={workbenchState.analyticsSummary}
+                    onDismiss={dismissToWaiting}
+                    getFocusProps={getFocusProps}
                 />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}
