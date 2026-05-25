@@ -256,12 +256,6 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             <span className={`font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none ${compact ? 'text-[3.5rem]' : 'text-[8rem] lg:text-[12rem]'}`}>
                                 {formatTime(displayTimeMs)}
                             </span>
-                            <div className={`text-primary group-hover:opacity-80 transition-opacity ${compact ? 'mt-2' : 'mt-4'}`}>
-                                {isRunning 
-                                    ? <Pause className={`title-pause ${compact ? 'w-8 h-8' : 'w-14 h-14 lg:w-16 lg:h-16'}`} /> 
-                                    : <Play className={`ml-1 title-play ${compact ? 'w-8 h-8' : 'w-14 h-14 lg:w-16 lg:h-16'}`} />
-                                }
-                            </div>
                         </button>
                     </div>
 

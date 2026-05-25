@@ -23,6 +23,7 @@ import type { EditorView } from "@codemirror/view";
 import { TimerDisplay } from "@/panels/timer-panel";
 import { VisualStatePanel } from "@/panels/visual-state-panel";
 import { PanelSizeProvider, usePanelSize } from "@/panels/panel-system/PanelSizeContext";
+import { useScreenMode } from "@/panels/panel-system/useScreenMode";
 import { ScriptRuntimeProvider, useRuntimeExecution, type UseRuntimeExecutionReturn, SubscriptionManager, NextEvent, ScriptRuntime } from "@/hooks/useRuntimeTimer";
 import type { IScriptRuntime, StackSnapshot } from "@/hooks/useRuntimeTimer";
 import { ChromecastRuntimeSubscription, ChromecastEventProvider, ClockSyncService } from "@/hooks/useCastSignaling";
@@ -78,15 +79,17 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
   handleNext,
 }) => {
   const { isCompact } = usePanelSize();
+  const screenMode = useScreenMode();
+  const isMobile = screenMode === 'mobile' || isCompact;
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
       {/* ── Body: stacked on mobile, side-by-side on desktop ── */}
-      <div className={`min-h-0 flex-1 overflow-hidden flex ${isCompact ? "flex-col" : "flex-row"}`}>
+      <div className={`min-h-0 flex-1 overflow-hidden flex ${isMobile ? "flex-col" : "flex-row"}`}>
         {/* Visual State — top on mobile, left on desktop */}
         <div className={`overflow-hidden bg-secondary/10 ${
-          isCompact
-            ? "flex-1 min-h-0 border-b border-border"
+          isMobile
+            ? "flex-1 min-h-0 border-b border-border pt-14"
             : "min-w-0 w-1/3 border-r border-border"
         }`}>
           <VisualStatePanel />
@@ -94,7 +97,7 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
 
         {/* Timer — bottom on mobile, right on desktop */}
         <div className={`flex flex-col justify-center overflow-hidden bg-background ${
-          isCompact ? "shrink-0" : "w-2/3"
+          isMobile ? "shrink-0" : "w-2/3"
         }`}>
           <TimerDisplay
             elapsedMs={execution.elapsedTime}
@@ -104,7 +107,7 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
             onStop={handleStop}
             onNext={handleNext}
             isRunning={execution.status === "running"}
-            compact={isCompact}
+            compact={isMobile}
             enableDisplayStack={true}
           />
         </div>
