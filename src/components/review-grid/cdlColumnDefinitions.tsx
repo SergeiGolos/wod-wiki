@@ -654,14 +654,14 @@ export const exerciseColumn: ColumnDef = {
   },
 };
 
-/** Composed descriptor column: effort + label + rounds + current-round as a single cell. */
+/** Composed descriptor column: effort | label | rounds | current-round — first present wins. */
 export const descriptorColumn: ColumnDef = {
   id: 'descriptor',
   label: 'Descriptor',
   icon: getMetricIcon(MetricType.Effort) ?? undefined,
   source: {
     type: 'fallback',
-    semantics: 'all-present-combined',
+    semantics: 'first-present',
     sources: [
       { type: 'metric-type', metricType: MetricType.Effort },
       { type: 'metric-type', metricType: MetricType.Label },
@@ -670,12 +670,8 @@ export const descriptorColumn: ColumnDef = {
     ],
   },
   format: {
-    type: 'combined',
-    layout: 'vertical',
-    primaryFormat: { type: 'text', className: 'font-medium text-foreground' },
-    secondaryFormat: { type: 'text', className: 'text-muted-foreground text-xs' },
-    tertiaryFormat: { type: 'text', className: 'text-muted-foreground text-[11px] opacity-80' },
-    containerClassName: 'items-start',
+    type: 'custom',
+    render: (value) => renderMetricCell(value, 0),
   },
   sort: {
     type: 'text',
