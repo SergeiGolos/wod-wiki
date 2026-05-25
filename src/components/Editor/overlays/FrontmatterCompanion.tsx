@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 
 // ── Types ────────────────────────────────────────────────────────────
 
-type FrontmatterSubtype = "youtube" | "amazon" | "strava" | "effort" | "default";
+type FrontmatterSubtype = "link" | "youtube" | "amazon" | "strava" | "effort" | "default";
 
 interface EffortFrontmatterData {
   id?: string;
@@ -70,6 +70,8 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   if (typeValue === "amazon") return "amazon";
   if (typeValue === "strava") return "strava";
   if (typeValue === "effort") return "effort";
+
+  if (props.source_url || props.website) return "link";
 
   const url = props.url || props.link || "";
   if (/youtube\.com|youtu\.be/i.test(url)) return "youtube";
@@ -476,6 +478,42 @@ const Field: React.FC<{
   </label>
 );
 
+// ── Link sub-component ───────────────────────────────────────────────
+
+const LinkFrontmatterCompanion: React.FC<{
+  props: Record<string, string>;
+  isActive: boolean;
+}> = ({ props, isActive }) => {
+  const url = props.source_url || props.website || "";
+  const title = props.title || props.label || "Link";
+  const compact = !isActive;
+
+  return (
+    <div className={cn("h-full w-full flex flex-col bg-popover/90 backdrop-blur-sm border-l border-border overflow-auto", compact ? "p-2" : "p-3")}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-500">
+          Link
+        </span>
+        <span className="truncate text-xs font-medium">{title}</span>
+      </div>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mb-2 truncate text-[10px] text-blue-400 hover:underline"
+        title={url}
+      >
+        {url}
+      </a>
+      {!compact && (
+        <div className="rounded-md border border-border/70 bg-background/70 p-2 text-[11px] text-muted-foreground">
+          External link preview. Click the URL above to open in a new tab.
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Main component ──────────────────────────────────────────────────
 
 export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
@@ -542,6 +580,10 @@ export const FrontmatterCompanion: React.FC<FrontmatterCompanionProps> = ({
   }
 
   // 2. Frontmatter YAML parsing for other content (legacy)
+  if (subtype === "link") {
+    return <LinkFrontmatterCompanion props={props} isActive={isActive} />;
+  }
+
   if (subtype === "youtube") {
     const url = props.url || props.link || "";
     const title = props.title || "YouTube Video";
