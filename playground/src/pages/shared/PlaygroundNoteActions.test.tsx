@@ -41,7 +41,7 @@ describe('PlaygroundNoteActions', () => {
   it('creates an empty playground on new and resets to the default content on reset', async () => {
     const onReset = mock(async () => {})
     const { PlaygroundNoteActions } = await componentModule
-    const { EMPTY_PLAYGROUND_CONTENT } = await templateModule
+    const { DEFAULT_PLAYGROUND_CONTENT } = await templateModule
 
     render(
       <PlaygroundNoteActions
@@ -54,7 +54,7 @@ describe('PlaygroundNoteActions', () => {
     fireEvent.click(screen.getByRole('button', { name: /new/i }))
 
     await waitFor(() => {
-      expect(createPlaygroundPageCalls).toEqual([EMPTY_PLAYGROUND_CONTENT.content])
+      expect(createPlaygroundPageCalls).toEqual([DEFAULT_PLAYGROUND_CONTENT.content])
       expect(navigateCalls).toEqual(['/playground/fresh-page'])
     })
 

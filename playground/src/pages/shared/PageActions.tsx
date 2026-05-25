@@ -21,7 +21,7 @@ import type { PageMode } from '@/types/content-type'
 import { NavSearchInput } from '../../components/NavSearchInput'
 import { ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
-import { EMPTY_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'
+import { DEFAULT_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'
 import { createPlaygroundPage } from '../../services/createPlaygroundPage'
 
 export interface PageActionsProps {
@@ -55,7 +55,7 @@ export function PageActions({
     if (isCreating) return
     setIsCreating(true)
     try {
-      const pageId = await createPlaygroundPage(EMPTY_PLAYGROUND_CONTENT.content)
+      const pageId = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
       navigate(`/playground/${encodeURIComponent(pageId)}`)
     } finally {
       setIsCreating(false)

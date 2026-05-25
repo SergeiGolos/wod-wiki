@@ -9,7 +9,7 @@ import type { PageNavLink } from '@/components/playground/PageNavDropdown'
 
 import { ActionsMenu } from './PageToolbar'
 import { mapIndexToL3 } from './pageUtils'
-import { EMPTY_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'
+import { DEFAULT_PLAYGROUND_CONTENT } from '../../templates/defaultPlaygroundContent'
 import { createPlaygroundPage } from '../../services/createPlaygroundPage'
 
 export interface PlaygroundNoteActionsProps {
@@ -27,7 +27,7 @@ export function PlaygroundNoteActions({ currentWorkout, index, onReset }: Playgr
     if (isCreating) return
     setIsCreating(true)
     try {
-      const pageId = await createPlaygroundPage(EMPTY_PLAYGROUND_CONTENT.content)
+      const pageId = await createPlaygroundPage(DEFAULT_PLAYGROUND_CONTENT.content)
       navigate(`/playground/${encodeURIComponent(pageId)}`)
     } finally {
       setIsCreating(false)

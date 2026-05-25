@@ -1,17 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Layers3,
-  Moon,
-  Play,
-  Sparkles,
-  Sun,
-  Timer,
-  TerminalSquare,
-} from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Moon, Play, Sun } from 'lucide-react'
 
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import type { WodBlock } from '@/components/Editor/types'
@@ -22,42 +11,48 @@ import { cn } from '@/lib/utils'
 import { MacOSChrome } from '../components/MacOSChrome'
 
 const SAMPLE_SOURCE = `\`\`\`wod
-AMRAP 12:00
+(3 Rounds)
   10 Kettlebell Swings 24kg
-  8 Burpees
+  15 Goblet Squats 24kg
   *:30 Rest
 \`\`\``
 
-const FEATURES = [
+const DIALECT_PILLARS = [
   {
-    icon: <Layers3 className="size-4" aria-hidden="true" />,
-    title: 'Rounds, timers, loading',
-    description: 'One syntax describes the full workout structure without switching modes.',
+    code: 'wod',
+    title: 'Compile and execute',
+    description:
+      'Type the workout once, launch the runtime, and keep the full movement order visible while the timer is running.',
   },
   {
-    icon: <Timer className="size-4" aria-hidden="true" />,
-    title: 'Sticky live HUD',
-    description: 'The editor stays anchored while the timer takes over on Run.',
+    code: 'log',
+    title: 'Log sessions automatically',
+    description:
+      'Finished sessions flow back into the journal so the workout history does not become a second capture system.',
   },
   {
-    icon: <TerminalSquare className="size-4" aria-hidden="true" />,
-    title: 'Parser-first workflow',
-    description: 'The output panel explains how the workout is parsed into executable structure.',
+    code: 'wiki',
+    title: 'Map the fitness graph',
+    description:
+      'Every workout, note, and movement stays linked so the training library reads like a local knowledge graph.',
   },
 ] as const
 
-const SYNTAX_REFERENCE = [
+const POWER_USER_CALLOUTS = [
   {
-    label: 'AMRAP',
-    snippet: 'AMRAP 12:00\n  10 Kettlebell Swings 24kg\n  8 Burpees\n  *:30 Rest',
+    title: 'Chromecast and big-screen casting',
+    description:
+      'Keep the coach view on the wall while the keyboard stays in your hands.',
   },
   {
-    label: 'Rounds',
-    snippet: '(3)\n  10 Front Squats 95lb\n  12 Push-ups\n  *:45 Rest',
+    title: 'Bring your own markdown storage',
+    description:
+      'Own the files locally instead of pushing workout history into a separate hosted editor silo.',
   },
   {
-    label: 'Ladder',
-    snippet: '21,15,9 Thrusters 95lb\n21,15,9 Pull-ups',
+    title: 'Dialect switching stays explicit',
+    description:
+      'Move between `wod`, `log`, and `plan` without changing the mental model or the editing surface.',
   },
 ] as const
 
@@ -89,6 +84,23 @@ function estimateMovementCount(source: string): number {
     .filter(Boolean)
 
   return Math.max(0, lines.length - 1)
+}
+
+function buildWorkoutPreview(source: string) {
+  const lines = extractWodContent(source)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const roundLabel = lines[0]?.replace(/^\((.*)\)$/, '$1') ?? '3 Rounds'
+  const activeMovement = lines[1] ?? '10 Kettlebell Swings 24kg'
+  const nextUp = lines[2] ?? '15 Goblet Squats 24kg'
+
+  return {
+    roundLabel,
+    activeMovement,
+    nextUp,
+  }
 }
 
 function useScrollProgressBar() {
@@ -136,8 +148,9 @@ export function Concept3LandingPage() {
   const movementCount = useMemo(() => {
     return parsedBlock?.statements?.length ?? estimateMovementCount(source)
   }, [parsedBlock, source])
+  const preview = useMemo(() => buildWorkoutPreview(source), [source])
 
-  const handleEditorScroll = useCallback(() => {
+  const handleOpenSandbox = useCallback(() => {
     editorAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
@@ -148,9 +161,13 @@ export function Concept3LandingPage() {
     })
   }, [])
 
-  const handleRunWorkout = useCallback(() => {
+  const handleLaunchWorkout = useCallback(() => {
     setPanelMode('timer')
   }, [])
+
+  const handleOpenSyntaxDocs = useCallback(() => {
+    navigate('/guide/syntax')
+  }, [navigate])
 
   const editorTabs = (
     <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.22em]">
@@ -176,7 +193,7 @@ export function Concept3LandingPage() {
         )}
         onClick={() => setPanelMode('timer')}
       >
-        ▶ Timer
+        ▶ Live HUD
       </button>
     </div>
   )
@@ -209,12 +226,12 @@ export function Concept3LandingPage() {
       </div>
 
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        <section className="mx-auto w-full max-w-4xl rounded-3xl border border-border/60 bg-card/70 px-6 py-10 text-center shadow-sm backdrop-blur sm:px-10 lg:px-14">
-          <div className="mb-4 flex items-center justify-center gap-3">
+        <section className="mx-auto w-full max-w-5xl rounded-3xl border border-border/60 bg-card/70 px-6 py-10 shadow-sm backdrop-blur sm:px-10 lg:px-14">
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-3 text-center">
             <span className="rounded-full border border-border/70 bg-background px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-primary">
-              Concept 3
+              WOD Wiki playground
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">Canvas Two-Column Scroll-Driven</span>
+            <span className="text-sm font-semibold text-muted-foreground">Markdown-native training dashboard</span>
           </div>
 
           <div className="mx-auto mb-4 max-w-3xl rounded-full bg-[radial-gradient(ellipse_90%_80%_at_50%_0%,rgba(24,226,153,0.18)_0%,transparent_65%)] px-3 pb-8 pt-1" />
@@ -224,102 +241,64 @@ export function Concept3LandingPage() {
             className="mt-3 text-4xl font-black tracking-[-0.08em] text-foreground sm:text-5xl lg:text-6xl"
             style={{ lineHeight: 1.02 }}
           >
-            Workouts that explain themselves.
+            Stop tap-dancing with fitness apps. Just type.
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-            Scroll the guide, keep the editor pinned, and flip to the timer without losing your place.
-            The page is a working prototype of the new home canvas.
+          <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">
+            WOD Wiki is the markdown-native training dashboard. Write workouts in WhiteboardScript plain text—our live JIT engine instantly compiles your text into interactive garage-gym timers, progression graphs, and offline journals.
           </p>
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <button
               type="button"
-              onClick={handleEditorScroll}
+              onClick={handleOpenSandbox}
               className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
             >
-              Open editor
+              Open Sandbox Editor
               <ArrowRight className="size-4" />
             </button>
             <button
               type="button"
-              onClick={() => navigate('/legacy')}
+              onClick={handleOpenSyntaxDocs}
               className="inline-flex items-center gap-2 rounded-full border border-black/8 bg-background px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
             >
-              Legacy playground
+              Read Syntax Docs
               <ChevronRight className="size-4" />
             </button>
           </div>
         </section>
 
-        <section className="grid gap-8 [@media(min-width:900px)]:grid-cols-[2fr_3fr] [@media(min-width:900px)]:items-start">
+        <section className="grid gap-8 [@media(min-width:1024px)]:grid-cols-[1.1fr_0.9fr] [@media(min-width:1024px)]:items-start">
           <div className="space-y-6 pb-24">
-            <div className="rounded-2xl border border-black/5 bg-background p-6 shadow-sm">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">↓ Scroll to explore</p>
-              <h2 className="text-xl font-black tracking-[-0.06em] text-foreground sm:text-2xl">One syntax. Any workout.</h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
-                WOD syntax is written like a coach would describe the session: clear, structured, and ready to become a runtime.
+            <div className="rounded-3xl border border-black/5 bg-background p-6 shadow-sm">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Three dialects, one model</p>
+              <h2 className="text-xl font-black tracking-[-0.06em] text-foreground sm:text-2xl">One page, three ways to talk about training.</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+                The landing page keeps the workout, the journal, and the knowledge graph in one loop so users do not have to switch products to finish the job.
               </p>
 
               <div className="mt-6 space-y-4">
-                {FEATURES.map((feature) => (
-                  <div key={feature.title} className="flex gap-4 rounded-2xl border border-border/50 bg-background/80 p-4">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                      {feature.icon}
+                {DIALECT_PILLARS.map((pillar) => (
+                  <div key={pillar.code} className="rounded-2xl border border-border/50 bg-background/80 p-4">
+                    <div className="mb-3 flex items-center gap-3">
+                      <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                        {pillar.code}
+                      </span>
+                      <h3 className="text-sm font-semibold text-foreground">{pillar.title}</h3>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground">{feature.title}</h3>
-                      <p className="mt-1 text-xs leading-6 text-muted-foreground">{feature.description}</p>
-                    </div>
+                    <p className="text-xs leading-6 text-muted-foreground">{pillar.description}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-black/5 bg-background p-6 shadow-sm">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">The HUD</p>
-              <h2 className="text-xl font-black tracking-[-0.06em] text-foreground sm:text-2xl">Parser → structure → timer.</h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
-                Press Run and the parser output becomes the live timer panel: round tracker, active movement, and next-up queue.
-              </p>
-
-              <div className="mt-5 overflow-hidden rounded-2xl border border-border/70 bg-muted/20 p-4 font-mono text-xs leading-6 text-muted-foreground">
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80"># Parser output (simplified)</div>
-                <div><span className="text-foreground">block</span>: AMRAP, 12:00</div>
-                <div className="pl-4"><span className="text-foreground">step[0]</span>: KB Swings, 10 reps, 24kg</div>
-                <div className="pl-4"><span className="text-foreground">step[1]</span>: Burpees, 8 reps</div>
-                <div className="pl-4"><span className="text-foreground">step[2]</span>: Rest, :30</div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-black/5 bg-background p-6 shadow-sm">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Fullscreen mode</p>
-              <h2 className="text-xl font-black tracking-[-0.06em] text-foreground sm:text-2xl">Take it to the floor.</h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
-                The fullscreen timer is the distraction-free version: bigger timer, stronger contrast, and a simple next step.
-              </p>
-              <div className="mt-4 flex items-center gap-2">
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                  FullscreenTimer
-                </span>
-                <span className="text-xs text-muted-foreground">Dialog-based immersive timer experience</span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-black/5 bg-background p-6 shadow-sm">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Syntax reference</p>
-              <h2 className="text-xl font-black tracking-[-0.06em] text-foreground sm:text-2xl">Three compact examples.</h2>
-              <div className="mt-5 grid gap-3">
-                {SYNTAX_REFERENCE.map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="text-sm font-semibold text-foreground">{item.label}</span>
-                      <span className="rounded-full border border-border/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                        Example
-                      </span>
-                    </div>
-                    <pre className="overflow-x-auto font-mono text-xs leading-6 text-muted-foreground">
-                      {item.snippet}
-                    </pre>
+            <div className="rounded-3xl border border-black/5 bg-background p-6 shadow-sm">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary">Power-user defaults</p>
+              <h2 className="text-xl font-black tracking-[-0.06em] text-foreground sm:text-2xl">Built for coaches, developers, and big screens.</h2>
+              <div className="mt-6 space-y-4">
+                {POWER_USER_CALLOUTS.map((callout) => (
+                  <div key={callout.title} className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+                    <h3 className="text-sm font-semibold text-foreground">{callout.title}</h3>
+                    <p className="mt-1 text-xs leading-6 text-muted-foreground">{callout.description}</p>
                   </div>
                 ))}
               </div>
@@ -327,13 +306,28 @@ export function Concept3LandingPage() {
           </div>
 
           <div ref={editorAnchorRef} className="scroll-mt-24" data-testid="concept3-editor-panel">
-            <div className="[@media(min-width:900px)]:sticky [@media(min-width:900px)]:top-20">
+            <div className="[@media(min-width:1024px)]:sticky [@media(min-width:1024px)]:top-20">
+              <div className="mb-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Round</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{preview.roundLabel}</p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Active movement</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{preview.activeMovement}</p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-card/70 p-4 shadow-sm backdrop-blur">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Next up</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{preview.nextUp}</p>
+                </div>
+              </div>
+
               <MacOSChrome
-                title="concept-3-home.wod"
+                title="sandbox.wod"
                 headerActions={editorTabs}
                 onReset={panelMode === 'editor' ? undefined : handleReturnToEditor}
               >
-                <div className="flex h-[calc(100vh-8rem)] min-h-[620px] flex-col overflow-hidden bg-background sm:h-[720px] [@media(max-width:899px)]:h-auto [@media(max-width:899px)]:min-h-[560px]">
+                <div className="flex h-[calc(100vh-8rem)] min-h-[620px] flex-col overflow-hidden bg-background sm:h-[720px] [@media(max-width:1023px)]:h-auto [@media(max-width:1023px)]:min-h-[560px]">
                   {panelMode === 'editor' ? (
                     <>
                       <div className="min-h-0 flex-1 overflow-hidden">
@@ -356,15 +350,15 @@ export function Concept3LandingPage() {
                       <div className="shrink-0 border-t border-border/70 bg-muted/20 px-4 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="text-xs text-muted-foreground">
-                            {movementCount} movement{movementCount === 1 ? '' : 's'} ready to run
+                            {movementCount} movement{movementCount === 1 ? '' : 's'} ready to launch
                           </div>
                           <button
                             type="button"
-                            onClick={handleRunWorkout}
+                            onClick={handleLaunchWorkout}
                             className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-colors hover:bg-foreground/90"
                           >
                             <Play className="size-4" />
-                            Run Workout Timer
+                            Start workout
                           </button>
                         </div>
                       </div>
@@ -378,7 +372,7 @@ export function Concept3LandingPage() {
                           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <ChevronLeft className="size-4" />
-                          Back to editor
+                          Return to editor
                         </button>
                         <span className="text-xs font-black uppercase tracking-[0.18em] text-primary">
                           {movementCount} movement{movementCount === 1 ? '' : 's'}
@@ -400,14 +394,14 @@ export function Concept3LandingPage() {
         </section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 [@media(min-width:900px)]:hidden">
+      <div className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 [@media(min-width:1024px)]:hidden">
         <button
           type="button"
           data-testid="concept3-mobile-editor-cta"
-          onClick={handleEditorScroll}
+          onClick={handleOpenSandbox}
           className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/95 px-4 py-3 text-sm font-semibold text-foreground shadow-lg backdrop-blur"
         >
-          Open editor
+          Open Sandbox Editor
           <ArrowRight className="size-4" />
         </button>
       </div>

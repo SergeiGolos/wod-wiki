@@ -26,11 +26,8 @@ mock.module('../services/createPlaygroundPage', () => ({
 }))
 
 mock.module('../templates/defaultPlaygroundContent', () => ({
-  EMPTY_PLAYGROUND_CONTENT: {
-    content: '# New playground\n',
-  },
   DEFAULT_PLAYGROUND_CONTENT: {
-    content: '# Playground home\n',
+    content: '# New playground\n',
   },
 }))
 
@@ -44,29 +41,13 @@ beforeEach(() => {
 })
 
 describe('PlaygroundRedirect', () => {
-  it('creates an empty playground note for the /playground entry route by default', async () => {
+  it('creates an empty playground note for the /playground entry route', async () => {
     const { PlaygroundRedirect } = await componentModule
 
     render(<PlaygroundRedirect />)
 
     await waitFor(() => {
       expect(createPlaygroundPageCalls).toEqual(['# New playground\n'])
-      expect(navigateCalls).toEqual([
-        {
-          to: '/playground/2026-05-19%2015.30',
-          options: { replace: true },
-        },
-      ])
-    })
-  })
-
-  it('creates the rich home playground note when template="home"', async () => {
-    const { PlaygroundRedirect } = await componentModule
-
-    render(<PlaygroundRedirect template="home" />)
-
-    await waitFor(() => {
-      expect(createPlaygroundPageCalls).toEqual(['# Playground home\n'])
       expect(navigateCalls).toEqual([
         {
           to: '/playground/2026-05-19%2015.30',
