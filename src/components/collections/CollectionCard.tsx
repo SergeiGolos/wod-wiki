@@ -1,25 +1,12 @@
 import React from 'react';
 import { ChevronRight, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseFrontmatter } from '@/lib/frontmatter';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-function parseFrontmatter(raw: string): Record<string, string> {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return {};
-  const meta: Record<string, string> = {};
-  for (const line of match[1].split('\n')) {
-    const colonIdx = line.indexOf(':');
-    if (colonIdx === -1) continue;
-    const key = line.slice(0, colonIdx).trim();
-    const val = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
-    if (key && val) meta[key] = val;
-  }
-  return meta;
-}
 
 /** Pull the first sentence / phrase from ## Description, or the first non-header line. */
 function extractDescription(content: string): string {

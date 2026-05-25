@@ -45,32 +45,7 @@ export interface WodCollection {
  *     - kettlebell
  *     - strength
  */
-function parseFrontmatterCategories(raw: string): string[] {
-    const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    if (!match) return [];
-
-    const lines = match[1].split('\n');
-    let inCategory = false;
-    const categories: string[] = [];
-
-    for (const line of lines) {
-        if (/^category\s*:/.test(line)) {
-            inCategory = true;
-            continue;
-        }
-        if (inCategory) {
-            const item = line.match(/^\s+-\s+(.+)$/);
-            if (item) {
-                categories.push(item[1].trim().toLowerCase());
-            } else if (/^\S/.test(line)) {
-                // New top-level key — end of category block
-                break;
-            }
-        }
-    }
-
-    return categories;
-}
+import { parseFrontmatterCategories } from '@/lib/frontmatter';
 
 /**
  * Parse a directory name into a display name.

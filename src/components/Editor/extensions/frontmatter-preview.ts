@@ -25,6 +25,7 @@ import {
 } from "@codemirror/view";
 import { EditorState, Range, StateField, Extension, Prec } from "@codemirror/state";
 import { sectionField, EditorSection } from "./section-state";
+import { parseFrontmatterProps as parseFrontmatterPropsFromLib } from "@/lib/frontmatter";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -46,16 +47,12 @@ function parseFrontmatterProps(
   state: EditorState,
   section: EditorSection
 ): Record<string, string> {
-  const props: Record<string, string> = {};
+  const lines: string[] = [];
   const doc = state.doc;
   for (let ln = section.startLine + 1; ln < section.endLine; ln++) {
-    const line = doc.line(ln).text;
-    const match = line.match(/^([^:]+):\s*(.*)$/);
-    if (match) {
-      props[match[1].trim()] = match[2].trim();
-    }
+    lines.push(doc.line(ln).text);
   }
-  return props;
+  return parseFrontmatterPropsFromLib(lines);
 }
 
 function detectSubtype(props: Record<string, string>): FrontmatterSubtype {

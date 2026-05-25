@@ -10,6 +10,7 @@
 import React, { useCallback, useMemo } from "react";
 import type { EditorView } from "@codemirror/view";
 import { sectionField, type EditorSection } from "../extensions/section-state";
+import { parseFlatProperties, extractYouTubeVideoId } from "@/lib/frontmatter";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
@@ -45,17 +46,6 @@ function getSection(view: EditorView, sectionId: string): EditorSection | undefi
 function getSectionInnerContent(view: EditorView, section: EditorSection): string {
   if (section.contentFrom === undefined || section.contentTo === undefined) return "";
   return view.state.doc.sliceString(section.contentFrom, section.contentTo);
-}
-
-function parseFlatProperties(innerContent: string): Record<string, string> {
-  const props: Record<string, string> = {};
-  for (const line of innerContent.split(/\r?\n/)) {
-    const match = line.match(/^([^:]+):\s*(.*)$/);
-    if (match) {
-      props[match[1].trim()] = match[2].trim();
-    }
-  }
-  return props;
 }
 
 function parseYamlScalar(val: string): string {
@@ -100,16 +90,6 @@ function detectSubtype(props: Record<string, string>): FrontmatterSubtype {
   }
 
   return "default";
-}
-
-function extractYouTubeVideoId(url: string): string | null {
-  const standard = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
-  if (standard) return standard[1];
-  const short = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
-  if (short) return short[1];
-  const embed = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
-  if (embed) return embed[1];
-  return null;
 }
 
 function parseAliases(raw: string): string[] {
