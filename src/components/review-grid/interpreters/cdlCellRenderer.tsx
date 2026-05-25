@@ -20,7 +20,7 @@ import type { GridRow, GridColumn } from '../types';
 import type {
   ColumnDef,
   ColumnFormat,
-  DerivedSourceContext,
+  ComputeContext,
   TextFormat,
   TimeFormat,
   NumberFormat,
@@ -39,14 +39,18 @@ export interface UnifiedCellRendererProps {
   columnDef: ColumnDef;
   /** Row data */
   row: GridRow;
+  /** All rows in the grid (for derived column context) */
+  allRows?: GridRow[];
+  /** Index of this row within allRows (for derived column context) */
+  rowIndex?: number;
   /** Indentation level (0-based) for visual hierarchy */
   indent?: number;
   /** Callback when a metric cell is double-clicked for override editing */
   onDoubleClick?: (blockKey: string, metricType: MetricType, anchorRect: DOMRect) => void;
   /** Optional additional CSS classes for the <td> */
   className?: string;
-  /** Optional context for derived sources */
-  context?: DerivedSourceContext;
+  /** Optional definition map for dependency resolution */
+  definitionMap?: ReadonlyMap<string, ColumnDef>;
 }
 
 // ─── Component ─────────────────────────────────────────────────
@@ -57,16 +61,28 @@ export interface UnifiedCellRendererProps {
 export const UnifiedCellRenderer: React.FC<UnifiedCellRendererProps> = ({
   columnDef,
   row,
+  allRows,
+  rowIndex,
   indent = 0,
   onDoubleClick,
   className,
-  context,
+  definitionMap,
 }) => {
   const tdRef = useRef<HTMLTableCellElement>(null);
 
+  const computeContext = useMemo<ComputeContext | undefined>(() => {
+    if (!allRows || rowIndex === undefined) return undefined;
+    return {
+      allRows,
+      rowIndex,
+      columnDef,
+      dependencies: new Map(),
+    };
+  }, [allRows, rowIndex, columnDef]);
+
   const rawValue = useMemo(
-    () => resolveColumnSource(row, columnDef.source, context),
-    [row, columnDef.source, context],
+    () => resolveColumnSource(row, columnDef.source, computeContext, definitionMap),
+    [row, columnDef.source, computeContext, definitionMap],
   );
 
   const isMetricColumn = columnDef.source.type === 'metric-type';
@@ -249,6 +265,15 @@ function renderPill(value: unknown, format: PillFormat): React.ReactNode {
 
 // ─── Combined Format ───────────────────────────────────────────
 
+// ─── Combined Format ───────────────────────────────────────────
+
+/** Level-specific visual styling for grouped cells. */
+const LEVEL_STYLES = {
+  primary: 'text-sm font-semibold text-foreground',
+  secondary: 'text-xs text-muted-foreground',
+  tertiary: 'text-[11px] text-muted-foreground opacity-80',
+} as const;
+
 function renderCombined(
   value: unknown,
   format: CombinedFormat,
@@ -261,13 +286,13 @@ function renderCombined(
   const [primary, secondary, tertiary] = values;
 
   const primaryNode = primary !== undefined
-    ? renderSubFormat(primary, format.primaryFormat ?? { type: 'text' }, row)
+    ? renderSubFormat(primary, format.primaryFormat ?? { type: 'text' }, row, 'primary')
     : null;
   const secondaryNode = secondary !== undefined
-    ? renderSubFormat(secondary, format.secondaryFormat ?? { type: 'text' }, row)
+    ? renderSubFormat(secondary, format.secondaryFormat ?? { type: 'text' }, row, 'secondary')
     : null;
   const tertiaryNode = tertiary !== undefined
-    ? renderSubFormat(tertiary, format.tertiaryFormat ?? { type: 'text' }, row)
+    ? renderSubFormat(tertiary, format.tertiaryFormat ?? { type: 'text' }, row, 'tertiary')
     : null;
 
   const isHorizontal = format.layout === 'horizontal';
@@ -276,7 +301,7 @@ function renderCombined(
     <div
       className={cn(
         'inline-flex',
-        isHorizontal ? 'flex-row items-center gap-1' : 'flex-col',
+        isHorizontal ? 'flex-row items-center gap-1' : 'flex-col items-start gap-0.5',
         format.containerClassName,
       )}
     >
@@ -287,9 +312,7 @@ function renderCombined(
           {isHorizontal && format.separator && (
             <span className="text-muted-foreground">{format.separator}</span>
           )}
-          <span className={isHorizontal ? '' : 'text-muted-foreground text-[11px]'}>
-            {secondaryNode}
-          </span>
+          {secondaryNode}
         </>
       )}
       {tertiaryNode && (
@@ -297,17 +320,29 @@ function renderCombined(
           {isHorizontal && format.separator && (
             <span className="text-muted-foreground">{format.separator}</span>
           )}
-          <span className={isHorizontal ? '' : 'text-muted-foreground text-[11px]'}>
-            {tertiaryNode}
-          </span>
+          {tertiaryNode}
         </>
       )}
     </div>
   );
 }
 
-function renderSubFormat(value: unknown, format: ColumnFormat, row?: GridRow): React.ReactNode {
-  return renderFormattedValue(value, format, 0, row);
+function renderSubFormat(
+  value: unknown,
+  format: ColumnFormat,
+  row?: GridRow,
+  level?: 'primary' | 'secondary' | 'tertiary',
+): React.ReactNode {
+  const node = renderFormattedValue(value, format, 0, row);
+  if (!level) return node;
+
+  // Wrap in a span with level-specific styling so primary/secondary/tertiary
+  // get their visual weight regardless of the inner format type.
+  return (
+    <span className={cn('inline-flex items-center', LEVEL_STYLES[level])}>
+      {node}
+    </span>
+  );
 }
 
 // ─── Custom Format ─────────────────────────────────────────────

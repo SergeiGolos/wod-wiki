@@ -13,7 +13,8 @@ import type {
   MetricTypeSource,
   DerivedSource,
   FallbackSource,
-  DerivedSourceContext,
+  ComputeContext,
+  ColumnDef,
 } from '../column-definition-language';
 import { interpretFallbackChain } from './cdlFallbackInterpreter';
 
@@ -22,15 +23,19 @@ import { interpretFallbackChain } from './cdlFallbackInterpreter';
 /**
  * Resolve a ColumnSource against a GridRow, returning the raw value.
  *
- * @param row      The grid row to read from
- * @param source   The column source definition
- * @param context  Optional context for derived sources (e.g. allRows)
- * @returns        The resolved value, or undefined if absent
+ * @param row             The grid row to read from
+ * @param source          The column source definition
+ * @param context         Optional context for derived sources (e.g. allRows)
+ * @param definitionMap   Map of column definitions for dependency resolution
+ * @param dependencyStack Stack tracking current dependency resolution path (for cycle detection)
+ * @returns               The resolved value, or undefined if absent
  */
 export function resolveColumnSource(
   row: GridRow,
   source: ColumnSource,
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
   switch (source.type) {
     case 'fixed-field':
@@ -40,7 +45,7 @@ export function resolveColumnSource(
     case 'derived':
       return resolveDerived(row, source, context);
     case 'fallback':
-      return resolveFallback(row, source, context);
+      return resolveFallback(row, source, context, definitionMap, dependencyStack);
     default:
       return undefined;
   }
@@ -59,15 +64,51 @@ function resolveMetricType(row: GridRow, source: MetricTypeSource): unknown {
 function resolveDerived(
   row: GridRow,
   source: DerivedSource,
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
-  return source.compute(row, context);
+  const dependencies = new Map<string, unknown>();
+
+  if (source.dependencies && definitionMap) {
+    for (const depId of source.dependencies) {
+      if (dependencyStack?.includes(depId)) {
+        throw new Error(
+          `Circular dependency detected in column '${depId}': ${(dependencyStack ?? []).join(' -> ')} -> ${depId}`,
+        );
+      }
+      const depDef = definitionMap.get(depId);
+      if (depDef) {
+        const depValue = resolveColumnSource(
+          row,
+          depDef.source,
+          context,
+          definitionMap,
+          [...(dependencyStack ?? []), depId],
+        );
+        dependencies.set(depId, depValue);
+      }
+    }
+  }
+
+  const mergedContext: ComputeContext = {
+    ...context,
+    allRows: context?.allRows ?? [row],
+    rowIndex: context?.rowIndex ?? 0,
+    columnDef: context?.columnDef ?? { id: 'unknown', label: '', source, format: { type: 'text' } },
+    dependencies,
+    ...source.context,
+  };
+
+  return source.compute(row, mergedContext);
 }
 
 function resolveFallback(
   row: GridRow,
   source: FallbackSource,
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
-  return interpretFallbackChain(row, source, context);
+  return interpretFallbackChain(row, source, context, definitionMap, dependencyStack);
 }

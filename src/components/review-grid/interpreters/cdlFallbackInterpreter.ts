@@ -20,7 +20,8 @@ import type { GridRow } from '../types';
 import type {
   FallbackSource,
   ColumnSource,
-  DerivedSourceContext,
+  ComputeContext,
+  ColumnDef,
 } from '../column-definition-language';
 import { resolveColumnSource } from './cdlSourceResolver';
 
@@ -31,15 +32,19 @@ import { resolveColumnSource } from './cdlSourceResolver';
 /**
  * Interpret a fallback chain source against a GridRow.
  *
- * @param row      The grid row to read from
- * @param source   The fallback source definition
- * @param context  Optional context for derived sources
- * @returns        Resolved value, or undefined if chain cannot be satisfied
+ * @param row             The grid row to read from
+ * @param source          The fallback source definition
+ * @param context         Optional context for derived sources
+ * @param definitionMap   Map of column definitions for dependency resolution
+ * @param dependencyStack Stack tracking current dependency resolution path
+ * @returns               Resolved value, or undefined if chain cannot be satisfied
  */
 export function interpretFallbackChain(
   row: GridRow,
   source: FallbackSource,
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
   if (!source.sources || source.sources.length === 0) {
     return undefined;
@@ -47,11 +52,11 @@ export function interpretFallbackChain(
 
   switch (source.semantics) {
     case 'first-present':
-      return resolveFirstPresent(row, source.sources, context);
+      return resolveFirstPresent(row, source.sources, context, definitionMap, dependencyStack);
     case 'all-present-joined':
-      return resolveAllPresentJoined(row, source.sources, source.joinString, context);
+      return resolveAllPresentJoined(row, source.sources, source.joinString, context, definitionMap, dependencyStack);
     case 'all-present-combined':
-      return resolveAllPresentCombined(row, source.sources, context);
+      return resolveAllPresentCombined(row, source.sources, context, definitionMap, dependencyStack);
     default:
       return undefined;
   }
@@ -64,10 +69,12 @@ export function interpretFallbackChain(
 function resolveFirstPresent(
   row: GridRow,
   sources: ColumnSource[],
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
   for (const src of sources) {
-    const value = resolveColumnSource(row, src, context);
+    const value = resolveColumnSource(row, src, context, definitionMap, dependencyStack);
     if (value !== undefined && value !== null) {
       return value;
     }
@@ -79,12 +86,14 @@ function resolveAllPresentJoined(
   row: GridRow,
   sources: ColumnSource[],
   joinString: string | undefined,
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
   const values: unknown[] = [];
 
   for (const src of sources) {
-    const value = resolveColumnSource(row, src, context);
+    const value = resolveColumnSource(row, src, context, definitionMap, dependencyStack);
     if (value === undefined || value === null) {
       return undefined;
     }
@@ -98,12 +107,14 @@ function resolveAllPresentJoined(
 function resolveAllPresentCombined(
   row: GridRow,
   sources: ColumnSource[],
-  context?: DerivedSourceContext,
+  context?: ComputeContext,
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
+  dependencyStack?: string[],
 ): unknown {
   const values: unknown[] = [];
 
   for (const src of sources) {
-    const value = resolveColumnSource(row, src, context);
+    const value = resolveColumnSource(row, src, context, definitionMap, dependencyStack);
     if (value === undefined || value === null) {
       return undefined;
     }

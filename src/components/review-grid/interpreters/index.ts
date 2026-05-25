@@ -26,6 +26,7 @@ export {
   extractSortValue,
   compareSortValues,
   compareRowsByColumn,
+  extractCombinedSortValue,
 } from './cdlSortInterpreter';
 
 export {
@@ -37,6 +38,7 @@ export {
   extractFilterText,
   matchColumnFilter,
   matchGlobalSearch,
+  extractCombinedFilterText,
 } from './cdlFilterInterpreter';
 
 export {

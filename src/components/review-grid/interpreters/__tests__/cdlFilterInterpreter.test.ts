@@ -3,6 +3,7 @@ import {
   extractFilterText,
   matchColumnFilter,
   matchGlobalSearch,
+  extractCombinedFilterText,
 } from '../cdlFilterInterpreter';
 import { makeGridRow, makeGridCell } from './test-helpers';
 import { MetricType } from '@/core/models/Metric';
@@ -196,6 +197,64 @@ describe('cdlFilterInterpreter', () => {
         },
       ];
       expect(matchGlobalSearch(row, colDefs, 'squat')).toBe(false);
+    });
+  });
+
+  describe('extractCombinedFilterText', () => {
+    it('should join array values with default separator', () => {
+      expect(extractCombinedFilterText(['Heavy', 'squat'])).toBe('Heavy squat');
+    });
+
+    it('should join array values with custom separator', () => {
+      expect(extractCombinedFilterText(['Heavy', 'squat'], ' — ')).toBe('Heavy — squat');
+    });
+
+    it('should handle non-array value', () => {
+      expect(extractCombinedFilterText('single')).toBe('single');
+    });
+
+    it('should handle null/undefined in array', () => {
+      expect(extractCombinedFilterText(['Heavy', null, 'squat'])).toBe('Heavy squat');
+    });
+
+    it('should extract display text from GridCell-like values', () => {
+      const cell = makeGridCell([{ type: MetricType.Rep, value: 10 }]);
+      expect(extractCombinedFilterText([cell, 'reps'])).toBe('10 reps');
+    });
+
+    it('should handle numbers and booleans', () => {
+      expect(extractCombinedFilterText([5, true, 'ok'])).toBe('5 true ok');
+    });
+
+    it('should work with combined fallback source for filter', () => {
+      const effortCell = makeGridCell([{ type: MetricType.Effort, value: 'Heavy' }]);
+      const textCell = makeGridCell([{ type: MetricType.Text, value: 'squat' }]);
+      const row = makeGridRow({
+        cells: [
+          [MetricType.Effort, effortCell],
+          [MetricType.Text, textCell],
+        ],
+      });
+      const colDef: ColumnDef = {
+        id: 'exercise',
+        label: 'Exercise',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'metric-type', metricType: MetricType.Effort },
+            { type: 'metric-type', metricType: MetricType.Text },
+          ],
+        },
+        format: { type: 'combined', layout: 'vertical' },
+        filter: {
+          extractor: (val) => extractCombinedFilterText(val as unknown[], ' '),
+        },
+      };
+      expect(extractFilterText(row, colDef)).toBe('Heavy squat');
+      expect(matchColumnFilter(row, colDef, 'heavy')).toBe(true);
+      expect(matchColumnFilter(row, colDef, 'squat')).toBe(true);
+      expect(matchColumnFilter(row, colDef, 'bench')).toBe(false);
     });
   });
 });

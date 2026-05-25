@@ -228,6 +228,192 @@ describe('UnifiedCellRenderer', () => {
       expect(html).toContain('test-block');
       expect(html).toContain('segment');
     });
+
+    it('should apply primary level styling (large, emphasized)', () => {
+      const row = makeGridRow({});
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [{ type: 'fixed-field', field: 'sourceBlockKey' }],
+        },
+        format: {
+          type: 'combined',
+          layout: 'vertical',
+          primaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      expect(html).toContain('font-semibold');
+      expect(html).toContain('text-sm');
+      expect(html).toContain('test-block');
+    });
+
+    it('should apply secondary level styling (medium, supporting)', () => {
+      const row = makeGridRow({});
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'fixed-field', field: 'sourceBlockKey' },
+            { type: 'fixed-field', field: 'outputType' },
+          ],
+        },
+        format: {
+          type: 'combined',
+          layout: 'vertical',
+          primaryFormat: { type: 'text' },
+          secondaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      // Secondary should have text-xs and text-muted-foreground classes
+      expect(html).toContain('text-xs');
+      expect(html).toContain('text-muted-foreground');
+    });
+
+    it('should apply tertiary level styling (small, supplementary)', () => {
+      const row = makeGridRow({ elapsed: 60 });
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'fixed-field', field: 'sourceBlockKey' },
+            { type: 'fixed-field', field: 'outputType' },
+            { type: 'fixed-field', field: 'elapsed' },
+          ],
+        },
+        format: {
+          type: 'combined',
+          layout: 'vertical',
+          primaryFormat: { type: 'text' },
+          secondaryFormat: { type: 'text' },
+          tertiaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      // Tertiary should have text-[11px] and opacity-80 classes
+      expect(html).toContain('text-[11px]');
+      expect(html).toContain('opacity-80');
+    });
+
+    it('should render only primary when secondary/tertiary are undefined', () => {
+      const row = makeGridRow({});
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'fixed-field', field: 'sourceBlockKey' },
+            { type: 'fixed-field', field: 'duration' }, // undefined
+          ],
+        },
+        format: {
+          type: 'combined',
+          layout: 'vertical',
+          primaryFormat: { type: 'text' },
+          secondaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      // Fallback returns undefined when any source missing, so combined gets undefined
+      expect(html).toContain('—');
+    });
+
+    it('should render all three levels in horizontal layout with separators', () => {
+      const row = makeGridRow({ elapsed: 60 });
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'fixed-field', field: 'sourceBlockKey' },
+            { type: 'fixed-field', field: 'outputType' },
+            { type: 'fixed-field', field: 'elapsed' },
+          ],
+        },
+        format: {
+          type: 'combined',
+          layout: 'horizontal',
+          separator: ' • ',
+          primaryFormat: { type: 'text' },
+          secondaryFormat: { type: 'text' },
+          tertiaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      expect(html).toContain('test-block');
+      expect(html).toContain('segment');
+      expect(html).toContain('60');
+      expect(html).toContain(' • ');
+    });
+
+    it('should render metric pills inside combined format', () => {
+      const repCell = makeGridCell([{ type: MetricType.Rep, value: 10 }]);
+      const textCell = makeGridCell([{ type: MetricType.Text, value: 'squat' }]);
+      const row = makeGridRow({
+        cells: [
+          [MetricType.Rep, repCell],
+          [MetricType.Text, textCell],
+        ],
+      });
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'metric-type', metricType: MetricType.Rep },
+            { type: 'metric-type', metricType: MetricType.Text },
+          ],
+        },
+        format: {
+          type: 'combined',
+          layout: 'vertical',
+          primaryFormat: { type: 'text' },
+          secondaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      expect(html).toContain('10');
+      expect(html).toContain('squat');
+    });
+
+    it('should use custom container class name', () => {
+      const row = makeGridRow({});
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'fixed-field', field: 'sourceBlockKey' },
+          ],
+        },
+        format: {
+          type: 'combined',
+          layout: 'vertical',
+          containerClassName: 'custom-container-class',
+          primaryFormat: { type: 'text' },
+        },
+      };
+      const html = renderCell(colDef, row);
+      expect(html).toContain('custom-container-class');
+    });
   });
 
   describe('custom format', () => {

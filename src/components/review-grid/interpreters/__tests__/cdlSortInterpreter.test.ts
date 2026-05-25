@@ -3,6 +3,7 @@ import {
   extractSortValue,
   compareSortValues,
   compareRowsByColumn,
+  extractCombinedSortValue,
 } from '../cdlSortInterpreter';
 import { makeGridRow, makeGridCell } from './test-helpers';
 import { MetricType } from '@/core/models/Metric';
@@ -167,6 +168,64 @@ describe('cdlSortInterpreter', () => {
       };
       expect(compareRowsByColumn(rowA, rowB, colDef, 'desc')).toBeGreaterThan(0);
       expect(compareRowsByColumn(rowB, rowA, colDef, 'desc')).toBeLessThan(0);
+    });
+  });
+
+  describe('extractCombinedSortValue', () => {
+    it('should return primary element by default', () => {
+      expect(extractCombinedSortValue(['a', 'b', 'c'])).toBe('a');
+    });
+
+    it('should return secondary element when index is 1', () => {
+      expect(extractCombinedSortValue(['a', 'b', 'c'], 1)).toBe('b');
+    });
+
+    it('should return tertiary element when index is 2', () => {
+      expect(extractCombinedSortValue(['a', 'b', 'c'], 2)).toBe('c');
+    });
+
+    it('should return undefined for out-of-range index', () => {
+      expect(extractCombinedSortValue(['a'], 1)).toBeUndefined();
+    });
+
+    it('should return non-array value as-is for index 0', () => {
+      expect(extractCombinedSortValue(42)).toBe(42);
+    });
+
+    it('should return undefined for non-array value with non-zero index', () => {
+      expect(extractCombinedSortValue(42, 1)).toBeUndefined();
+    });
+
+    it('should work with combined fallback source for sort', () => {
+      const repCell = makeGridCell([{ type: MetricType.Rep, value: 10 }]);
+      const weightCell = makeGridCell([{ type: MetricType.Resistance, value: 100 }]);
+      const row = makeGridRow({
+        cells: [
+          [MetricType.Rep, repCell],
+          [MetricType.Resistance, weightCell],
+        ],
+      });
+      const colDef: ColumnDef = {
+        id: 'combined',
+        label: 'Combined',
+        source: {
+          type: 'fallback',
+          semantics: 'all-present-combined',
+          sources: [
+            { type: 'metric-type', metricType: MetricType.Rep },
+            { type: 'metric-type', metricType: MetricType.Resistance },
+          ],
+        },
+        format: { type: 'combined', layout: 'vertical' },
+        sort: {
+          type: 'numeric',
+          extractor: (val) => {
+            const primary = extractCombinedSortValue(val, 0);
+            return (primary as any)?.metrics?.[0]?.value ?? 0;
+          },
+        },
+      };
+      expect(extractSortValue(row, colDef)).toBe(10);
     });
   });
 });
