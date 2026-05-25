@@ -24,6 +24,7 @@ import { RuntimeTimerPanel } from '@/components/Editor/overlays/RuntimeTimerPane
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'
 import { ReviewGrid } from '@/components/review-grid/ReviewGrid'
+import { useDebugMode } from '@/components/layout/DebugModeContext'
 import type { WorkoutResults } from '@/components/Editor/types'
 import { notePersistence } from '@/services/persistence'
 import type { WorkoutResult } from '@/types/storage'
@@ -444,6 +445,7 @@ export interface PanelActions {
 
 export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSelect, contentOverride, panelHeaderActions, onPanelActionsReady, heroSlot }: MarkdownCanvasPageProps) {
   const navigate = useNavigate()
+  const { isDebugMode } = useDebugMode()
   const { sections, route } = page
   const canvasNoteId = useMemo(() => getCanvasNoteId(route), [route])
 
@@ -984,6 +986,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
               runtime={null}
               segments={reviewSegments}
               selectedSegmentIds={selectedSegmentIds}
+              gridViewPreset={isDebugMode ? 'debug' : 'default'}
               onSelectSegment={(id, modifiers, visibleIds) => {
                 setSelectedSegmentIds(prev => {
                   const next = new Set(prev)
