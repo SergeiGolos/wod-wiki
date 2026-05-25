@@ -17,7 +17,7 @@ align:   right
 width:   45%
 ```
 
-## The Whiteboard Script {sticky #statement}
+## The Whiteboard Script {sticky #statement theme:violet}
 
 The script on the right is part of this wiki, not a screenshot. Click into it,
 change the reps, movements, weights, or rest, and use the examples as a safe
@@ -41,15 +41,23 @@ pipeline:
   - set-state: track
 ```
 
-## Metrics {sticky #metrics}
+## Metrics {sticky #metrics density:compact theme:emerald}
 
 Add reps, load, and distance. The parser understands all three.
 
-```command
-target: home-demo
-pipeline:
-  - set-source: wods/examples/getting-started/metrics-1.md
-  - set-state: note
+```example
+label: Reps only
+source: wods/examples/getting-started/metrics-1.md
+```
+
+```example
+label: With weight
+source: wods/examples/getting-started/metrics-2.md
+```
+
+```example
+label: With distance
+source: wods/examples/getting-started/metrics-3.md
 ```
 
 `10 Pushups`, `5 Deadlift 225lb`, `Run 400m` — all valid.
@@ -61,7 +69,7 @@ pipeline:
   - set-state: track
 ```
 
-## Timers {sticky #timer}
+## Timers {sticky #timer theme:amber}
 
 Prefix a movement with a time to run it as a countdown.
 
@@ -81,7 +89,7 @@ pipeline:
   - set-state: track
 ```
 
-## Groups {sticky #groups}
+## Groups {sticky #groups theme:sky}
 
 Wrap movements in `(N Rounds)` to repeat them. Indent everything inside the group.
 
@@ -101,7 +109,7 @@ pipeline:
   - set-state: track
 ```
 
-## Protocols {sticky #protocols}
+## Protocols {sticky #protocols theme:rose}
 
 AMRAP — As Many Rounds As Possible. Set a time cap and race the clock.
 

@@ -1,10 +1,11 @@
 import { type ReactNode } from 'react'
 import { RotateCcw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 /** MacOS-style chrome wrapper for sticky panels */
-export function MacOSChrome({ title, children, onReset, headerActions }: { title: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode }) {
+export function MacOSChrome({ title, children, onReset, headerActions, className }: { title: string; children: ReactNode; onReset?: () => void; headerActions?: ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background">
+    <div className={cn('flex flex-col w-full h-full rounded-2xl lg:rounded-3xl overflow-hidden border border-border shadow-2xl bg-background', className)}>
       <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border/60 shrink-0">
         {/* Traffic lights — red is a clickable reset when onReset is provided */}
         <div className="flex gap-1.5">

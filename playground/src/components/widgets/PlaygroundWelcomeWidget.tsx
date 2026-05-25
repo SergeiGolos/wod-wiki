@@ -35,8 +35,8 @@ export const PlaygroundWelcomeWidget: React.FC<WidgetProps> = () => {
           <span className="mt-0.5 w-24 shrink-0 font-semibold text-foreground">Timers</span>
           <span>
             Use <code className="rounded bg-muted px-1 font-mono text-xs">2:00</code> for a countdown,{' '}
-            <code className="rounded bg-muted px-1 font-mono text-xs">*:30</code> for a rest interval, or{' '}
-            <code className="rounded bg-muted px-1 font-mono text-xs">AMRAP 20:00</code> for an AMRAP block.
+            <code className="rounded bg-muted px-1 font-mono text-xs">*:30 Rest</code> for a rest interval, or{' '}
+            <code className="rounded bg-muted px-1 font-mono text-xs">20:00 AMRAP</code> for an AMRAP block.
           </span>
         </li>
 

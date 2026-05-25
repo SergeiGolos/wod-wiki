@@ -12,7 +12,7 @@ Put it all together. Nested groups, mixed protocols, and chained timers let you 
 ```view
 name:    ex
 state:   note
-source:  wods/syntax/complex.md
+source:  wods/examples/syntax/complex-nested-protocols.md
 runtime: in-memory
 launch:  host
 align:   right
@@ -21,12 +21,12 @@ width:   48%
 
 ## Nested Protocols {sticky}
 
-An outer rounds group containing a named AMRAP, followed by a strength block with rest. Each group runs sequentially — the runtime handles the transitions.
+An outer rounds group containing a timed conditioning block, followed by a named strength block with rest. Each group runs sequentially — the runtime handles the transitions.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/syntax/complex.md
+  - set-source: wods/examples/syntax/complex-nested-protocols.md
 ```
 
 ```button
@@ -43,7 +43,7 @@ Warmup → Strength → Conditioning → Cool-down. Four named groups in one not
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/document-1.md
+  - set-source: wods/examples/syntax/complex-full-session.md
 ```
 
 ```button
@@ -60,7 +60,7 @@ Multiple EMOM windows back-to-back with changing loads. Supplemental cues prompt
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/document-2.md
+  - set-source: wods/examples/syntax/complex-barbell-cycling.md
 ```
 
 ```button
@@ -72,12 +72,12 @@ pipeline:
 
 ## Partner Workout {sticky}
 
-Two alternating AMRAP windows with a shared time budget. Each partner's work is logged separately in the Review grid.
+Separate named AMRAP windows keep each partner's work in its own section while sharing the same document.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/document-3.md
+  - set-source: wods/examples/syntax/complex-partner-workout.md
 ```
 
 ```button

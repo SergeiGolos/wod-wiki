@@ -56,8 +56,8 @@ import { CodeExampleWidget, type CodeExampleWidgetConfig } from './CodeExampleWi
 
 const validConfig: CodeExampleWidgetConfig = {
   lines: [
-    { code: 'AMRAP 12:00', annotation: 'Run this block for 12 minutes.' },
-    { code: '10 Pushups', annotation: 'Upper-body volume.' },
+    { code: '20:00 AMRAP', annotation: 'Classic AMRAP from the guide.' },
+    { code: '  5 Pullups', annotation: 'Start each round with pullups.' },
   ],
   cta: 'Run this example',
 }
@@ -73,12 +73,12 @@ describe('CodeExampleWidget', () => {
     render(<CodeExampleWidget config={validConfig} isDarkMode={false} onRun={(script) => calls.push(script)} />)
 
     expect(screen.getByRole('heading', { name: /code example/i })).toBeTruthy()
-    expect(screen.getByText(/run this block for 12 minutes/i)).toBeTruthy()
-    expect(screen.getByText(/upper-body volume/i)).toBeTruthy()
+    expect(screen.getByText(/classic amrap from the guide/i)).toBeTruthy()
+    expect(screen.getByText(/start each round with pullups/i)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /run this example/i }))
 
-    expect(calls).toEqual(['AMRAP 12:00\n10 Pushups'])
+    expect(calls).toEqual(['20:00 AMRAP\n  5 Pullups'])
   })
 
   it('renders an invalid-config warning when no lines are provided', () => {

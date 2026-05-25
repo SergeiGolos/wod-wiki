@@ -1,18 +1,26 @@
-import React from 'react';
-import { StorybookWorkbench as Workbench } from '../../_shared/StorybookWorkbench';
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react'
 
-const meta: Meta = {
+import { syntaxGuideReference } from '../../../src/content/syntaxGuideReference'
+import { StorybookWorkbench as Workbench } from '../../_shared/StorybookWorkbench'
+
+const meta: Meta<typeof Workbench> = {
   title: 'catalog/pages/Syntax',
+  component: Workbench,
   parameters: {
     layout: 'fullscreen',
-  }
-};
+    docs: {
+      description: {
+        component: 'Guide-backed syntax examples that mirror the canonical `/guide/syntax*` pages.',
+      },
+    },
+  },
+}
 
-export default meta;
+export default meta
 
-// 1. Syntax Reference Stories (using the StorybookWorkbench)
-const WorkbenchTemplate: StoryObj<typeof Workbench> = {
+type Story = StoryObj<typeof Workbench>
+
+const WorkbenchTemplate: Story = {
   render: (args) => <Workbench {...args} />,
   args: {
     showToolbar: true,
@@ -20,7 +28,7 @@ const WorkbenchTemplate: StoryObj<typeof Workbench> = {
     theme: 'wod-light',
     initialShowPlan: true,
     initialShowTrack: true,
-    initialShowReview: true
+    initialShowReview: true,
   },
   argTypes: {
     initialContent: { control: 'text' },
@@ -30,225 +38,36 @@ const WorkbenchTemplate: StoryObj<typeof Workbench> = {
       description: 'Editor theme',
     },
     showToolbar: { control: 'boolean' },
-    readonly: { control: 'boolean' }
-  }
-};
-
-export const BasicStructure: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Basic Structure
-
-A WOD block is defined by \`\`\`wod ... \`\`\`.
-Inside, you list exercises and instructions.
-
-\`\`\`wod
-Pushups
-Situps
-Squats
-\`\`\`
-`
-  }
-};
-
-export const RoundsAndGrouping: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Rounds and Grouping
-
-Use parentheses \`()\` to group exercises into rounds.
-
-## Simple Rounds
-\`\`\`wod
-(3 Rounds)
-  10 Pushups
-  10 Situps
-\`\`\`
-
-## Rep Schemes
-You can define varying rep counts for each round.
-\`\`\`wod
-(21-15-9)
-  Thrusters
-  Pullups
-\`\`\`
-This creates 3 rounds:
-1. 21 reps of each
-2. 15 reps of each
-3. 9 reps of each
-
-## Named Groups
-You can name your groups for clarity.
-\`\`\`wod
-(Warmup)
-  Run 400m
-  Stretch
-\`\`\`
-`
-  }
-};
-
-export const TimersAndIntervals: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Timers and Intervals
-
-Time components are crucial for workouts.
-
-## Duration (For Time)
-Just list the exercises. The timer counts up.
-\`\`\`wod
-  100 Burpees
-\`\`\`
-
-## Fixed Time (AMRAP)
-Set a time cap.
-\`\`\`wod
-20:00
-  (AMRAP)
-    5 Pullups
-    10 Pushups
-    15 Squats
-\`\`\`
-
-## EMOM (Every Minute on the Minute)
-\`\`\`wod
-10:00
-  (EMOM)
-    3 Clean & Jerk
-\`\`\`
-
-## Tabata / Intervals
-Combine rounds with work/rest timers.
-\`\`\`wod
-(8 Rounds)
-  :20 Work
-  :10 Rest
-  Air Squats
-\`\`\`
-`
-  }
-};
-
-export const WeightsAndResistance: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Weights and Resistance
-
-Specify weights using \`lb\`, \`kg\`, or \`bw\` (bodyweight).
-
-## Examples
-\`\`\`wod
-Back Squat 225lb
-Deadlift 100kg
-Weighted Pullup 20lb
-Air Squat bw
-\`\`\`
-
-## Percentages
-You can indicate percentages (context dependent).
-\`\`\`wod
-Bench Press @75%
-\`\`\`
-`
-  }
-};
-
-export const DistanceAndCardio: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Distance and Cardio
-
-Supported units: \`m\`, \`km\`, \`ft\`, \`miles\`.
-
-## Examples
-\`\`\`wod
-Run 400m
-Row 2000m
-Bike 10 miles
-Swim 500m
-\`\`\`
-`
-  }
-};
-
-export const EffortAndTrend: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Effort and Trends
-
-## Trends
-Use \`^\` to indicate increasing weight or intensity.
-\`\`\`wod
-Deadlift 1-1-1-1-1 ^
-\`\`\`
-
-## Effort / RPE
-You can log effort levels or notes.
-\`\`\`wod
-Run 5km @ Easy Pace
-Row 500m @ Max Effort
-\`\`\`
-`
-  }
-};
-
-export const ActionsAndRest: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Actions and Rest
-
-Special actions are enclosed in brackets \`[]\`.
-
-## Rest
-Explicit rest periods.
-\`\`\`wod
-5 Rounds
-  Run 400m
-  [Rest] 2:00
-\`\`\`
-
-## Transitions / Other
-\`\`\`wod
-[Walk] 200m
-[Setup] 5:00
-\`\`\`
-`
-  }
-};
-
-export const InvalidSyntax: StoryObj<typeof Workbench> = {
-  ...WorkbenchTemplate,
-  args: {
-    ...WorkbenchTemplate.args,
-    initialContent: `# Invalid syntax examples
-
-\`\`\`wod
-20:00 AMRAP
-  5 Pullups
-  @@@ invalid token
-\`\`\`
-
-\`\`\`wod
-(21-15-9
-  Thrusters
-  Pullups
-\`\`\`
-`,
+    readonly: { control: 'boolean' },
   },
-};
+}
 
-export const MobileViewport: StoryObj<typeof Workbench> = {
-  ...BasicStructure,
-  name: 'Basic structure — mobile viewport',
+function guideStory(initialContent: string): Story {
+  return {
+    ...WorkbenchTemplate,
+    args: {
+      ...WorkbenchTemplate.args,
+      initialContent,
+    },
+  }
+}
+
+export const CoreRules = guideStory(syntaxGuideReference.coreRules.storyContent)
+export const Measurements = guideStory(syntaxGuideReference.measurements.storyContent)
+export const TimerModifiers = guideStory(syntaxGuideReference.timerModifiers.storyContent)
+export const SimpleRounds = guideStory(syntaxGuideReference.simpleRounds.storyContent)
+export const RepSchemes = guideStory(syntaxGuideReference.repSchemes.storyContent)
+export const TimersAndRest = guideStory(syntaxGuideReference.timersAndRest.storyContent)
+export const ClassicAmrap = guideStory(syntaxGuideReference.classicAmrap.storyContent)
+export const BasicEmom = guideStory(syntaxGuideReference.basicEmom.storyContent)
+export const StandardTabata = guideStory(syntaxGuideReference.standardTabata.storyContent)
+export const MixedSections = guideStory(syntaxGuideReference.mixedSections.storyContent)
+export const ComplexNestedProtocols = guideStory(syntaxGuideReference.complexNestedProtocols.storyContent)
+
+export const ClassicAmrapMobileViewport: Story = {
+  ...ClassicAmrap,
+  name: 'Classic AMRAP — mobile viewport',
   parameters: {
     viewport: { defaultViewport: 'mobile1' },
   },
-};
+}

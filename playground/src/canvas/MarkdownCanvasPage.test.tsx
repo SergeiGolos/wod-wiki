@@ -8,7 +8,7 @@ import type { WorkoutResult } from '@/types/storage'
 import type { PanelActions } from './MarkdownCanvasPage'
 import type { ParsedCanvasPage } from './parseCanvasMarkdown'
 
-const editorSnapshots: Array<{ noteId?: string; resultCount: number }> = []
+const editorSnapshots: Array<{ noteId?: string; resultCount: number; source?: string }> = []
 const storedResults: WorkoutResult[] = []
 const saveResultCalls: WorkoutResult[] = []
 const editorFocusCalls: string[] = []
@@ -21,9 +21,21 @@ const sampleWorkoutResults = {
 }
 
 mock.module('react-router-dom', () => ({
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => children,
+  MemoryRouter: ({ children }: { children: React.ReactNode }) => children,
+  Routes: ({ children }: { children: React.ReactNode }) => children,
+  Route: () => null,
+  Link: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a>,
+  NavLink: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a>,
   Navigate: () => null,
+  Outlet: () => null,
   useNavigate: () => () => {},
   useParams: () => ({}),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'test' }),
+  useSearchParams: () => [new URLSearchParams(), () => {}],
+  useMatch: () => null,
+  useResolvedPath: () => ({ pathname: '/' }),
+  generatePath: (path: string) => path,
 }))
 
 mock.module('nuqs', () => ({
@@ -75,6 +87,7 @@ mock.module('@/components/Editor/NoteEditor', () => ({
     editorSnapshots.push({
       noteId: props.noteId,
       resultCount: props.extendedResults?.length ?? 0,
+      source: typeof props.value === 'string' ? props.value : undefined,
     })
 
     return (
@@ -82,6 +95,7 @@ mock.module('@/components/Editor/NoteEditor', () => ({
         data-testid="note-editor"
         data-note-id={props.noteId}
         data-result-count={String(props.extendedResults?.length ?? 0)}
+        data-editor-source={typeof props.value === 'string' ? props.value : ''}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
       />
@@ -112,7 +126,12 @@ mock.module('@/services/AnalyticsTransformer', () => ({
 }))
 
 mock.module('../components/MacOSChrome', () => ({
-  MacOSChrome: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  MacOSChrome: ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div data-testid="chrome">
+      <div data-testid="chrome-title">{title}</div>
+      {children}
+    </div>
+  ),
 }))
 
 mock.module('@/components/ui/ButtonGroup', () => ({
@@ -163,6 +182,44 @@ const page: ParsedCanvasPage = {
   ],
 }
 
+const examplePage: ParsedCanvasPage = {
+  frontmatter: {},
+  template: 'canvas',
+  route: '/',
+  sections: [
+    {
+      id: 'hero',
+      heading: 'Hero',
+      level: 1,
+      attrs: [],
+      prose: '',
+      view: {
+        name: 'examples',
+        state: 'note',
+        source: 'initial.md',
+        align: 'right',
+        width: '48%',
+        buttons: [],
+      },
+      commands: [],
+      buttons: [],
+    },
+    {
+      id: 'examples',
+      heading: 'Examples',
+      level: 2,
+      attrs: ['density:compact', 'theme:emerald'],
+      prose: 'Try different source variants.',
+      commands: [],
+      buttons: [],
+      examples: [
+        { label: 'Reps only', source: 'example-1.md' },
+        { label: 'With weight', source: 'example-2.md' },
+      ],
+    },
+  ],
+}
+
 const markdownCanvasPageModule = import('./MarkdownCanvasPage')
 
 function getRenderedEditors() {
@@ -200,6 +257,11 @@ describe('MarkdownCanvasPage result persistence', () => {
     storedResults.length = 0
     saveResultCalls.length = 0
     editorFocusCalls.length = 0
+    Object.defineProperty(window, 'scrollY', {
+      value: 0,
+      writable: true,
+      configurable: true,
+    })
   })
 
   afterEach(() => {
@@ -340,5 +402,31 @@ describe('MarkdownCanvasPage result persistence', () => {
       screen.getAllByRole('button', { name: 'Reset to example' })[0].click()
     })
     await waitFor(() => expect(getEditorValue()).toBe('alt source'))
+  })
+
+  it('shows the active section title and swaps inline examples without scrolling', async () => {
+    const { MarkdownCanvasPage } = await markdownCanvasPageModule
+
+    render(
+      <MarkdownCanvasPage
+        page={examplePage}
+        wodFiles={{
+          '../../markdown/initial.md': 'Initial source',
+          '../../markdown/example-1.md': '10 pushups',
+          '../../markdown/example-2.md': '5 deadlift 225lb',
+        }}
+        theme="light"
+      />,
+    )
+
+    await waitFor(() => expect(screen.getAllByTestId('chrome-title')[0]?.textContent).toBe('Examples'))
+
+    act(() => {
+      screen.getByRole('button', { name: 'With weight' }).click()
+    })
+
+    await waitFor(() => {
+      expect(getRenderedEditors().every((editor) => editor.getAttribute('data-editor-source') === '5 deadlift 225lb')).toBe(true)
+    })
   })
 })

@@ -6,10 +6,10 @@ import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from './SyntaxGroupWi
 const validConfig: SyntaxGroupWidgetConfig = {
   category: 'Timing',
   icon: '⏱️',
-  title: 'Timers',
-  description: 'Mix countdowns with interval rest blocks.',
-  example: '2:00 Row\n*:30 Rest',
-  docsPath: '/syntax#timers',
+  title: 'Timers and Rest',
+  description: 'Countdowns, movement lines, and forced rest.',
+  example: '5:00 Run\n*:30 Rest\n10 Burpees',
+  docsPath: '/guide/syntax/protocols?h=timers-and-rest',
 }
 
 afterEach(() => {
@@ -23,11 +23,11 @@ describe('SyntaxGroupWidget', () => {
     render(<SyntaxGroupWidget config={validConfig} onOpenDocs={(path) => opened.push(path)} />)
 
     expect(screen.getByText('Timing')).toBeTruthy()
-    expect(screen.getByRole('heading', { name: /timers/i })).toBeTruthy()
-    expect(screen.getByText(/mix countdowns with interval rest blocks/i)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /timers and rest/i })).toBeTruthy()
+    expect(screen.getByText(/countdowns, movement lines, and forced rest/i)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /docs/i }))
-    expect(opened).toEqual(['/syntax#timers'])
+    expect(opened).toEqual(['/guide/syntax/protocols?h=timers-and-rest'])
   })
 
   it('renders invalid-config feedback when required fields are missing', () => {

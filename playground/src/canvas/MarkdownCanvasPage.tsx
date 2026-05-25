@@ -108,9 +108,47 @@ function resolveSource(dslPath: string, wodFiles: Record<string, string>): strin
 
 // ── Section attribute helpers ─────────────────────────────────────────────────
 
-const hasAttr  = (s: CanvasSection, a: string) => s.attrs.includes(a)
+const SECTION_THEME_STYLES: Record<string, { panel: string; accent: string; progress: string }> = {
+  slate: {
+    panel: 'border-slate-500/35 shadow-slate-500/12',
+    accent: 'from-slate-500/70 via-slate-400/25 to-transparent',
+    progress: 'from-slate-500 to-slate-400',
+  },
+  amber: {
+    panel: 'border-amber-500/35 shadow-amber-500/12',
+    accent: 'from-amber-500/75 via-amber-400/25 to-transparent',
+    progress: 'from-amber-500 to-orange-400',
+  },
+  emerald: {
+    panel: 'border-emerald-500/35 shadow-emerald-500/12',
+    accent: 'from-emerald-500/75 via-emerald-400/25 to-transparent',
+    progress: 'from-emerald-500 to-teal-400',
+  },
+  sky: {
+    panel: 'border-sky-500/35 shadow-sky-500/12',
+    accent: 'from-sky-500/75 via-sky-400/25 to-transparent',
+    progress: 'from-sky-500 to-cyan-400',
+  },
+  violet: {
+    panel: 'border-violet-500/35 shadow-violet-500/12',
+    accent: 'from-violet-500/75 via-fuchsia-400/25 to-transparent',
+    progress: 'from-violet-500 to-fuchsia-400',
+  },
+  rose: {
+    panel: 'border-rose-500/35 shadow-rose-500/12',
+    accent: 'from-rose-500/75 via-pink-400/25 to-transparent',
+    progress: 'from-rose-500 to-pink-400',
+  },
+}
+
+const hasAttr = (s: CanvasSection, a: string) => s.attrs.includes(a)
+const getAttrValue = (s: CanvasSection, key: string) =>
+  s.attrs.find(attr => attr.startsWith(`${key}:`))?.slice(key.length + 1)
 const isFullBleed = (s: CanvasSection) => hasAttr(s, 'full-bleed')
-const isDark      = (s: CanvasSection) => hasAttr(s, 'dark')
+const isDark = (s: CanvasSection) => hasAttr(s, 'dark')
+const getSectionDensity = (s: CanvasSection) => getAttrValue(s, 'density') ?? 'default'
+const getSectionTheme = (s: CanvasSection) => getAttrValue(s, 'theme') ?? 'slate'
+const getSectionThemeStyles = (s: CanvasSection) => SECTION_THEME_STYLES[getSectionTheme(s)] ?? SECTION_THEME_STYLES.slate
 
 // ── Pipeline → INavAction converter ──────────────────────────────────────────
 
@@ -319,6 +357,43 @@ function ViewPanelButtons({
   )
 }
 
+function ExampleTabs({
+  examples,
+  activeIndex,
+  onSelect,
+}: {
+  examples: Array<{ label: string }>
+  activeIndex: number
+  onSelect: (index: number) => void
+}) {
+  if (examples.length === 0) return null
+
+  return (
+    <div className="mt-6 rounded-2xl border border-border/70 bg-card/80 backdrop-blur-sm">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-3">
+        {examples.map((example, index) => {
+          const selected = index === activeIndex
+          return (
+            <button
+              key={`${example.label}-${index}`}
+              type="button"
+              onClick={() => onSelect(index)}
+              className={cn(
+                'rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition-all active:scale-95',
+                selected
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                  : 'border border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              {example.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export interface MarkdownCanvasPageProps {
@@ -389,8 +464,8 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   // View definition — carries the initial source and alignment
   const viewDef = sections.find(s => s.view)?.view ?? null
-  const chromeTitle  = 'Whiteboard Script'
-  const stickyAlign  = viewDef?.align ?? 'right'
+  const stickyAlign = viewDef?.align ?? 'right'
+  const initialActiveSection = contentSections[0] ?? sections[0] ?? null
 
   // Keep editor source in both state (for the NoteEditor value prop) and a ref
   // (so the observer callback never closes over a stale string).
@@ -398,6 +473,19 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const initialSourceKey = viewDef?.source || INITIAL_SOURCE_KEY
   const [editorSource, setEditorSource] = useState(initialSource)
   const [editorOpacity, setEditorOpacity] = useState(1)
+  const [isEditorLoading, setIsEditorLoading] = useState(false)
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(initialActiveSection?.id ?? null)
+  const [activeSectionTitle, setActiveSectionTitle] = useState(initialActiveSection?.heading ?? 'Whiteboard Script')
+  const [activeSectionTheme, setActiveSectionTheme] = useState(() => getSectionTheme(initialActiveSection ?? sections[0] ?? {
+    id: 'default',
+    heading: 'Whiteboard Script',
+    level: 1,
+    attrs: [],
+    prose: '',
+    commands: [],
+    buttons: [],
+  }))
+  const [selectedExamples, setSelectedExamples] = useState<Record<string, number>>({})
   const [activeSourceKey, setActiveSourceKey] = useState(initialSourceKey)
   const [activeOriginalSource, setActiveOriginalSource] = useState(initialSource)
   const editorSourceRef = useRef(initialSource)
@@ -405,7 +493,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const sourceEditsRef = useRef<Map<string, EditableSourceState>>(new Map([
     [initialSourceKey, { original: initialSource, current: initialSource }],
   ]))
-  const swapTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Panel state machine ────────────────────────────────────────────────────
   // 'editor'    — NoteEditor shown (default)
@@ -467,13 +555,19 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     setActiveOriginalSource(originalSource)
     focusEditor()
 
-    if (nextSource === editorSourceRef.current) return
+    if (nextSource === editorSourceRef.current) {
+      setIsEditorLoading(false)
+      return
+    }
+
     if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
+    setIsEditorLoading(true)
     setEditorOpacity(0)
     swapTimerRef.current = setTimeout(() => {
       editorSourceRef.current = nextSource
       setEditorSource(nextSource)
       setEditorOpacity(1)
+      setIsEditorLoading(false)
       swapTimerRef.current = null
       focusEditor()
     }, 180)
@@ -625,6 +719,51 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const depsRef = useRef(deps)
   depsRef.current = deps
 
+  const activateSection = useCallback((section: CanvasSection) => {
+    setActiveSectionId(section.id)
+    setActiveSectionTitle(section.heading)
+    setActiveSectionTheme(getSectionTheme(section))
+
+    const sectionExamples = section.examples ?? []
+    if (sectionExamples.length > 0) {
+      const selectedIndex = selectedExamples[section.id] ?? 0
+      const example = sectionExamples[selectedIndex] ?? sectionExamples[0]
+      if (example?.source) {
+        swapSource(resolveSource(example.source, wodFilesRef.current), example.source)
+      }
+    }
+
+    for (const cmd of section.commands) {
+      const steps = cmd.pipeline
+        .filter(step => !(sectionExamples.length > 0 && step.action === 'set-source'))
+        .map(step => pipelineStepToNavAction(step, cmd.open ?? 'view'))
+
+      if (steps.length === 0) continue
+
+      executeNavAction(
+        steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
+        depsRef.current,
+      )
+    }
+  }, [selectedExamples, swapSource])
+
+  const handleExampleSelect = useCallback((section: CanvasSection, index: number) => {
+    setSelectedExamples((previous) => ({ ...previous, [section.id]: index }))
+    setPanelMode('editor')
+    setActiveSectionId(section.id)
+    setActiveSectionTitle(section.heading)
+    setActiveSectionTheme(getSectionTheme(section))
+
+    const example = section.examples?.[index]
+    if (example?.source) {
+      swapSource(resolveSource(example.source, wodFilesRef.current), example.source)
+    }
+  }, [swapSource])
+
+  useEffect(() => () => {
+    if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
+  }, [])
+
   // Expose imperative panel actions to parent (e.g. HomeWelcome action bar).
   // We use mutable refs for all handlers so the panel actions object is stable
   // but always calls the *current* function — avoids stale-closure bugs.
@@ -667,10 +806,11 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // ── IntersectionObserver — ratio-map so only the most-visible section wins ──
   // This prevents the flicker of multiple sections firing simultaneously on load.
 
-  const stepRefs            = useRef<Map<string, Element>>(new Map())
+  const stepRefs = useRef<Map<string, Element>>(new Map())
   const lastActiveSectionId = useRef<string | null>(null)
-  const ratioMap            = useRef(new Map<string, number>())
-  const scrollDirRef        = useRef<1 | -1>(1)
+  const ratioMap = useRef(new Map<string, number>())
+  const scrollDirRef = useRef<1 | -1>(1)
+  const activationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // True once the user (or a programmatic scroll-to) has actually moved the page.
   // Prevents the observer from writing ?h= or firing scroll-commands on the
   // initial layout pass before any scrolling has occurred.
@@ -732,25 +872,22 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
         if (bestId && bestId !== lastActiveSectionId.current) {
           lastActiveSectionId.current = bestId
-          // Guard: only update URL and fire scroll-commands after the user (or a
-          // programmatic restore-scroll) has actually moved the page.  This
-          // prevents the initial layout pass from immediately writing ?h= and
-          // triggering view-source swaps before any interaction.
-          if (hasUserScrolledRef.current) {
-            // Update ?h= via RouteQueryAction (replaceState — no history flood)
-            executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
+
+          if (activationTimerRef.current) clearTimeout(activationTimerRef.current)
+          activationTimerRef.current = setTimeout(() => {
+            // Guard: only update URL and fire scroll-commands after the user (or a
+            // programmatic restore-scroll) has actually moved the page. This
+            // prevents the initial layout pass from immediately writing ?h= and
+            // triggering view-source swaps before any interaction.
+            if (!hasUserScrolledRef.current) return
+
             const section = contentSections.find(s => s.id === bestId)
-            if (section) {
-              for (const cmd of section.commands) {
-                // Scroll-triggered commands default to 'view' (inline panel).
-                const steps = cmd.pipeline.map(s => pipelineStepToNavAction(s, cmd.open ?? 'view'))
-                executeNavAction(
-                  steps.length === 1 ? steps[0] : { type: 'pipeline', steps },
-                  depsRef.current,
-                )
-              }
-            }
-          }
+            if (!section) return
+
+            executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
+            activateSection(section)
+            activationTimerRef.current = null
+          }, 200)
         }
       },
       { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] },
@@ -759,10 +896,11 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     stepRefs.current.forEach(el => observer.observe(el))
     return () => {
       observer.disconnect()
+      if (activationTimerRef.current) clearTimeout(activationTimerRef.current)
       window.removeEventListener('scroll', trackScroll)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contentSections])
+  }, [activateSection, contentSections])
 
   // ── Initial scroll-to from ?h= query param ────────────────────────────────
   // Runs once after refs are populated (next frame after first render).
@@ -804,11 +942,13 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   // ── Panel node — shared between desktop and mobile ────────────────────────
 
+  const activePanelTheme = SECTION_THEME_STYLES[activeSectionTheme] ?? SECTION_THEME_STYLES.slate
+
   // ── Panel content: editor → running → review ─────────────────────────────
   const panelTitle =
     panelMode === 'running' ? 'Running…' :
-    panelMode === 'review'  ? 'Review'   :
-    chromeTitle
+    panelMode === 'review' ? 'Review' :
+    isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle
 
   const panelContent = (() => {
     if (panelMode === 'running' && viewTimerBlock) {
@@ -910,7 +1050,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
       <div className="flex-1 min-h-0">
-        <MacOSChrome title={panelTitle} headerActions={panelHeaderActions}>
+        <MacOSChrome title={panelTitle} headerActions={panelHeaderActions} className={cn('transition-colors duration-300', activePanelTheme.panel)}>
           {panelContent}
         </MacOSChrome>
       </div>
@@ -931,7 +1071,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     >
       <div className="flex flex-col gap-2" style={{ height: '100%' }}>
         <div className="flex-1 min-h-0">
-          <MacOSChrome title={panelTitle} headerActions={panelHeaderActions}>
+          <MacOSChrome title={panelTitle} headerActions={panelHeaderActions} className={cn('transition-colors duration-300', activePanelTheme.panel)}>
             {panelContent}
           </MacOSChrome>
         </div>
@@ -969,7 +1109,12 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   }) => {
     const fullBleed = isFullBleed(section)
     const dark = isDark(section)
+    const density = getSectionDensity(section)
+    const sectionTheme = getSectionThemeStyles(section)
+    const isActiveSection = activeSectionId === section.id
     const trimmedProse = prose?.trim() ?? ''
+    const examples = section.examples ?? []
+    const activeExampleIndex = selectedExamples[section.id] ?? 0
 
     return (
       <div
@@ -978,16 +1123,34 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         ref={registerForObserver ? setStepRef(section.id) : undefined}
         data-section-id={registerForObserver ? section.id : undefined}
         className={cn(
-          'border-b border-border/50',
+          'group relative border-b border-border/50 transition-colors duration-300',
           viewDef
             ? fullBleed
               ? 'min-h-[35vh] flex items-center justify-center py-12 lg:py-16 px-6 lg:px-10'
-              : 'min-h-[70vh] lg:min-h-screen flex items-center py-16 lg:py-24 px-6 lg:px-10'
-            : 'py-16 lg:py-24 px-6 lg:px-12',
-          dark && 'bg-muted/20 relative overflow-hidden',
+              : density === 'compact'
+                ? 'py-10 lg:py-12 px-6 lg:px-10'
+                : 'py-14 lg:py-20 px-6 lg:px-10'
+            : density === 'compact'
+              ? 'py-10 lg:py-12 px-6 lg:px-12'
+              : 'py-16 lg:py-20 px-6 lg:px-12',
+          dark && 'bg-muted/20 overflow-hidden',
           !dark && !fullBleed && (idx % 2 === 0 ? 'bg-background' : 'bg-muted/[0.18]'),
         )}
       >
+        <div
+          className={cn(
+            'pointer-events-none absolute inset-y-0 left-0 w-px bg-gradient-to-b opacity-0 transition-opacity duration-300',
+            sectionTheme.accent,
+            isActiveSection && 'opacity-100',
+          )}
+        />
+        <div
+          className={cn(
+            'pointer-events-none absolute left-0 top-0 h-full w-1 origin-top rounded-r-full bg-gradient-to-b transition-all duration-300',
+            sectionTheme.progress,
+            isActiveSection ? 'scale-y-100 opacity-100' : 'scale-y-[0.18] opacity-25',
+          )}
+        />
         {dark && (
           <div className="pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
         )}
@@ -1011,6 +1174,14 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
           ) : null}
 
           {trimmedProse ? <CanvasProse prose={trimmedProse} className="mb-6" /> : null}
+
+          {examples.length > 0 ? (
+            <ExampleTabs
+              examples={examples}
+              activeIndex={Math.min(activeExampleIndex, examples.length - 1)}
+              onSelect={(index) => handleExampleSelect(section, index)}
+            />
+          ) : null}
 
           {renderButtons ? (
             <SectionButtons

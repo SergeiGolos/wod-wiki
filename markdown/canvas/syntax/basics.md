@@ -13,7 +13,7 @@ Inside, you list your workout line by line. The rules are simple and consistent.
 ```view
 name:    ex
 state:   note
-source:  wods/syntax/basics.md
+source:  wods/examples/syntax/core-rules.md
 runtime: in-memory
 launch:  host
 align:   right
@@ -27,7 +27,7 @@ The simplest workout is one exercise on one line. No reps, no timer — just a m
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/getting-started/statement-1.md
+  - set-source: wods/examples/syntax/single-movement.md
 ```
 
 ```button
@@ -50,17 +50,17 @@ Every file follows the same three rules.
 ```command
 target: ex
 pipeline:
-  - set-source: wods/syntax/basics.md
+  - set-source: wods/examples/syntax/core-rules.md
 ```
 
 ## Measurements {sticky}
 
-Add weights (`225lb`, `100kg`), distances (`400m`, `2000m`, `10 miles`), and percentages (`@75%`) directly to movement lines. The runtime tracks all of it and surfaces it in the Review grid.
+Add weights (`225lb`, `100kg`) and distances (`400m`, `2000m`, `10 miles`) directly to movement lines. The runtime tracks them and surfaces them in the Review grid.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/metrics-1.md
+  - set-source: wods/examples/syntax/measurements.md
 ```
 
 ```button
@@ -77,7 +77,7 @@ Use `?lb` to indicate the load is to be determined. The runtime prompts you to e
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/metrics-4.md
+  - set-source: wods/examples/syntax/metrics-5.md
 ```
 
 ```button
@@ -89,14 +89,12 @@ pipeline:
 
 ## Supplemental Data {sticky}
 
-Beyond movements and metrics, you can capture intent, effort, and auxiliary context. Supplemental lines don't affect the timer — they enrich the log.
-
-Use `@easy`, `@hard`, or a numeric RPE like `@7` after a movement to log your perceived effort.
+Beyond movements and measurements, you can add plain-language effort text such as `easy` or `hard`. These words enrich the log without changing the structural shape of the workout.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/supplemental-1.md
+  - set-source: wods/examples/syntax/effort-notes.md
 ```
 
 ```button
@@ -115,7 +113,7 @@ Prefix a line with `//` to add a passive coach annotation. Comments are notes to
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/supplemental-2.md
+  - set-source: wods/examples/syntax/actions-comments.md
 ```
 
 ```button
@@ -125,14 +123,18 @@ pipeline:
   - set-state: track
 ```
 
-## Progressive Load {sticky}
+## Timer Modifiers {sticky}
 
-Use `^` to flag a set as a warm-up ramp. Combine with `?lb` to let the runtime prompt for each weight as you build to your working load.
+Use `^` to force a timer to count up instead of down.
+
+Use `*` to mark a timer as required or non-skippable. `*:30 Rest` is a common pattern, but the rest behavior comes from the word `Rest`, not from `*` alone.
+
+Use `:?` when you want the runtime to record the actual time taken.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/supplemental-3.md
+  - set-source: wods/examples/syntax/timer-modifiers.md
 ```
 
 ```button
