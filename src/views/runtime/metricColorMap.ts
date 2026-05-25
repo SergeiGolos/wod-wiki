@@ -42,6 +42,25 @@ export const metricColorMap: FragmentColorMap = {
   metric:      'bg-metric-effort/10 border-metric-effort/30 text-metric-effort',
   // Rest blocks use a muted treatment to distinguish them from active work sets (UX-04)
   rest:        'bg-muted/70 border-muted-foreground/30 text-muted-foreground',
+  // Volume & load map to rep/resistance families (work output)
+  volume:      'bg-metric-rep/12 border-metric-rep/35 text-metric-rep',
+  load:        'bg-metric-resistance/12 border-metric-resistance/35 text-metric-resistance',
+  'session-load': 'bg-metric-resistance/12 border-metric-resistance/35 text-metric-resistance',
+  // Intensity & effort-derived metrics map to effort family
+  intensity:   'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  work:        'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  rir:         'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  'session-rpe': 'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
+  // Cardio/endurance scores map to distance family
+  'met-score': 'bg-metric-distance/12 border-metric-distance/35 text-metric-distance',
+  // Composite scores map to action family
+  tis:         'bg-metric-action/12 border-metric-action/35 text-metric-action',
+  // Structural / meta types
+  'current-round': 'bg-metric-rounds/10 border-metric-rounds/30 text-metric-rounds',
+  label:       'bg-muted border-border text-muted-foreground',
+  system:      'bg-muted/60 border-border/60 text-muted-foreground',
+  sound:       'bg-muted/50 border-border/50 text-muted-foreground',
+  group:       'bg-muted/50 border-border/50 text-muted-foreground',
 };
 
 /**
@@ -95,6 +114,21 @@ const metricIconMap: Record<string, string> = {
   'total': '🕐',
   'system-time': '🖥️',
   'metric': '📈',
+  'volume': '🏋️',
+  'intensity': '⚡',
+  'load': '⚖️',
+  'work': '🔥',
+  'rir': '🔋',
+  'session-rpe': '😓',
+  'session-load': '📊',
+  'met-score': '🫀',
+  'tis': '📈',
+  'current-round': '🔄',
+  'label': '🏷️',
+  'system': '⚙️',
+  'sound': '🔊',
+  'group': '🔀',
+  'lap': '🏁',
 };
 
 /**

@@ -404,3 +404,202 @@
   </script>
 </body>
 </html>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- 📱 MOBILE VIEWS (Concept 2 — Inline Overlay, stacked)   -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-14">
+    <div class="mb-8">
+      <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        📱 Mobile Views — Concept 2
+      </span>
+      <h2 class="mt-2 text-xl font-bold text-zinc-900 dark:text-zinc-100" style="letter-spacing:-0.03em;">Inline Overlay → Bottom Sheet</h2>
+      <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">The floating overlay panel moves from a right-side popout (desktop) to a bottom sheet that slides up after pressing Run (mobile). Metric chips beside lines are hidden; the bottom bar shows parsed count.</p>
+    </div>
+
+    <div class="flex flex-wrap gap-8 justify-center">
+
+      <!-- LIGHT PHONE -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Light Mode · 375px</span>
+        <div style="width:375px; border-radius:40px; background:#e5e7eb; padding:12px; box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+          <div style="background:#1a1a1a; border-radius:30px 30px 0 0; height:28px; display:flex; align-items:center; justify-content:center; margin-bottom:2px;">
+            <div style="width:80px; height:6px; background:#333; border-radius:3px;"></div>
+          </div>
+          <div style="background:#f5f2ed; border-radius:4px 4px 28px 28px; overflow:hidden; max-height:700px; overflow-y:auto; font-family:'Inter',sans-serif;">
+            <!-- Hero (centered) -->
+            <div style="background:linear-gradient(180deg,rgba(24,226,153,0.14) 0%,transparent 60%); padding:20px 16px 16px; text-align:center;">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:#8b949e;margin-bottom:6px;">WOD-WIKI</div>
+              <div style="font-size:22px;font-weight:700;color:#111;line-height:1.15;letter-spacing:-0.04em;margin-bottom:8px;">Your workout,<br/>structured.</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;margin-bottom:12px;">Write plain-text workouts. Get a live timer automatically.</div>
+              <button style="background:#1a1a1a;color:white;border-radius:999px;padding:10px 20px;font-size:12px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center;">▶ Try it live</button>
+            </div>
+
+            <!-- Editor (full width, no side overlay) -->
+            <div style="margin:0 8px 0; background:white; border-radius:12px 12px 0 0; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.08);">
+              <div style="background:#f4f4f4;padding:8px 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(0,0,0,0.06);">
+                <div style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#ffbd2e;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#28c840;"></div>
+                <span style="font-family:'Courier New',monospace;font-size:9px;color:#9ca3af;margin-left:4px;">AMRAP 12 min.wod</span>
+              </div>
+              <div style="padding:12px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.85;">
+                <div style="background:rgba(89,128,168,0.06);border-radius:4px;padding:1px 4px;">
+                  <span style="color:#5980a8;font-weight:600;">AMRAP</span> <span style="color:#d08770;">12:00</span>
+                </div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">10</span> <span style="color:#4c566a;">Kettlebell Swings</span> <span style="color:#a3be8c;">24kg</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">8</span> <span style="color:#4c566a;">Burpees</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#5980a8;font-weight:600;">*:30</span> <span style="color:#4c566a;">Rest</span></div>
+              </div>
+              <!-- Bottom bar -->
+              <div style="padding:10px 12px;background:#f9f8f6;border-top:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-family:'Courier New',monospace;font-size:9px;color:#9ca3af;">4 movements parsed</span>
+                <button style="background:#5980a8;color:white;border-radius:999px;padding:7px 14px;font-size:11px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:4px;">▶ Run</button>
+              </div>
+            </div>
+
+            <!-- Bottom sheet (shown after Run tap) -->
+            <div style="margin:0 8px 8px;background:white;border-radius:0 0 12px 12px;border-top:2px solid rgba(89,128,168,0.2);padding:12px;">
+              <div style="width:32px;height:3px;background:#d1d5db;border-radius:2px;margin:0 auto 10px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">LIVE PREVIEW <span style="color:#22c55e;">●</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(#5980a8 0% 38%,#ede9e2 38% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div style="width:27px;height:27px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;">
+                    <span style="font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:#111;">2/5</span>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;">NOW</div>
+                  <div style="font-size:13px;font-weight:600;color:#111;">Kettlebell Swings</div>
+                  <div style="font-size:10px;color:#9ca3af;font-family:'Courier New',monospace;">10 reps · 24kg</div>
+                </div>
+              </div>
+              <!-- Mini progress bar -->
+              <div style="height:3px;background:#ede9e2;border-radius:2px;margin-bottom:8px;overflow:hidden;">
+                <div style="width:38%;height:100%;background:linear-gradient(90deg,#5980a8,rgba(24,226,153,0.8));border-radius:2px;"></div>
+              </div>
+              <button style="background:#5980a8;color:white;border-radius:999px;padding:9px;font-size:12px;font-weight:600;border:none;width:100%;display:flex;align-items:center;justify-content:center;gap:5px;">▶ Run Workout Timer</button>
+            </div>
+
+            <!-- Syntax cards (1 col) -->
+            <div style="padding:0 8px 16px;display:flex;flex-direction:column;gap:6px;">
+              <div style="background:white;border-radius:10px;padding:10px;border:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">🔁</span>
+                <div>
+                  <div style="font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;">Structure · Rounds</div>
+                  <div style="font-size:10px;color:#374151;">Use (n) to repeat blocks</div>
+                </div>
+                <span style="margin-left:auto;font-size:10px;color:#5980a8;font-weight:600;">Docs →</span>
+              </div>
+              <div style="background:white;border-radius:10px;padding:10px;border:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">⏱️</span>
+                <div>
+                  <div style="font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;">Timing · Timers</div>
+                  <div style="font-size:10px;color:#374151;">Mix countdown + rest</div>
+                </div>
+                <span style="margin-left:auto;font-size:10px;color:#5980a8;font-weight:600;">Docs →</span>
+              </div>
+              <div style="background:white;border-radius:10px;padding:10px;border:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">🏋️</span>
+                <div>
+                  <div style="font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;">Loading · Rep Schemes</div>
+                  <div style="font-size:10px;color:#374151;">Comma-separated ladders</div>
+                </div>
+                <span style="margin-left:auto;font-size:10px;color:#5980a8;font-weight:600;">Docs →</span>
+              </div>
+            </div>
+          </div>
+          <div style="height:20px;display:flex;align-items:center;justify-content:center;margin-top:4px;">
+            <div style="width:100px;height:4px;background:#333;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DARK PHONE -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Dark Mode · 375px</span>
+        <div style="width:375px; border-radius:40px; background:#1a1a1a; padding:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+          <div style="background:#111; border-radius:30px 30px 0 0; height:28px; display:flex; align-items:center; justify-content:center; margin-bottom:2px;">
+            <div style="width:80px; height:6px; background:#333; border-radius:3px;"></div>
+          </div>
+          <div style="background:#2e3440; border-radius:4px 4px 28px 28px; overflow:hidden; max-height:700px; overflow-y:auto; font-family:'Inter',sans-serif;">
+            <!-- Dark hero -->
+            <div style="background:linear-gradient(180deg,rgba(24,226,153,0.12) 0%,transparent 60%);padding:20px 16px 16px;text-align:center;">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:#616e88;margin-bottom:6px;">WOD-WIKI</div>
+              <div style="font-size:22px;font-weight:700;color:#eceff4;line-height:1.15;letter-spacing:-0.04em;margin-bottom:8px;">Your workout,<br/>structured.</div>
+              <div style="font-size:11px;color:#8b949e;line-height:1.6;margin-bottom:12px;">Write plain-text workouts. Get a live timer automatically.</div>
+              <button style="background:#eceff4;color:#2e3440;border-radius:999px;padding:10px 20px;font-size:12px;font-weight:600;border:none;width:100%;display:flex;justify-content:center;align-items:center;gap:6px;">▶ Try it live</button>
+            </div>
+            <!-- Dark editor -->
+            <div style="margin:0 8px 0;background:#3b4252;border-radius:12px 12px 0 0;overflow:hidden;">
+              <div style="background:#434c5e;padding:8px 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#ffbd2e;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#28c840;"></div>
+              </div>
+              <div style="padding:12px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.85;">
+                <div style="background:rgba(129,161,193,0.08);border-radius:4px;padding:1px 4px;"><span style="color:#81a1c1;font-weight:600;">AMRAP</span> <span style="color:#d08770;">12:00</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">10</span> <span style="color:#d8dee9;">Kettlebell Swings</span> <span style="color:#a3be8c;">24kg</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">8</span> <span style="color:#d8dee9;">Burpees</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#81a1c1;font-weight:600;">*:30</span> <span style="color:#d8dee9;">Rest</span></div>
+              </div>
+              <div style="padding:10px 12px;background:#434c5e;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-family:'Courier New',monospace;font-size:9px;color:#616e88;">4 movements parsed</span>
+                <button style="background:#81a1c1;color:#2e3440;border-radius:999px;padding:7px 14px;font-size:11px;font-weight:600;border:none;">▶ Run</button>
+              </div>
+            </div>
+            <!-- Dark bottom sheet -->
+            <div style="margin:0 8px 8px;background:#3b4252;border-radius:0 0 12px 12px;border-top:2px solid rgba(129,161,193,0.2);padding:12px;">
+              <div style="width:32px;height:3px;background:#4c566a;border-radius:2px;margin:0 auto 10px;"></div>
+              <div style="font-size:9px;font-weight:700;color:#616e88;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">LIVE PREVIEW <span style="color:#22c55e;">●</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(#81a1c1 0% 38%,#4c566a 38% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div style="width:27px;height:27px;border-radius:50%;background:#3b4252;display:flex;align-items:center;justify-content:center;">
+                    <span style="font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:#eceff4;">2/5</span>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:9px;color:#616e88;font-weight:600;text-transform:uppercase;">NOW</div>
+                  <div style="font-size:13px;font-weight:600;color:#eceff4;">Kettlebell Swings</div>
+                  <div style="font-size:10px;color:#8b949e;font-family:'Courier New',monospace;">10 reps · 24kg</div>
+                </div>
+              </div>
+              <div style="height:3px;background:#4c566a;border-radius:2px;margin-bottom:8px;overflow:hidden;">
+                <div style="width:38%;height:100%;background:linear-gradient(90deg,#81a1c1,rgba(24,226,153,0.7));border-radius:2px;"></div>
+              </div>
+              <button style="background:#81a1c1;color:#2e3440;border-radius:999px;padding:9px;font-size:12px;font-weight:600;border:none;width:100%;display:flex;align-items:center;justify-content:center;gap:5px;">▶ Run Workout Timer</button>
+            </div>
+            <!-- Dark syntax cards (compact list style) -->
+            <div style="padding:0 8px 16px;display:flex;flex-direction:column;gap:6px;">
+              <div style="background:#3b4252;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">🔁</span>
+                <div><div style="font-size:9px;color:#616e88;font-weight:600;text-transform:uppercase;">Structure · Rounds</div><div style="font-size:10px;color:#d8dee9;">Use (n) to repeat blocks</div></div>
+                <span style="margin-left:auto;font-size:10px;color:#81a1c1;font-weight:600;">→</span>
+              </div>
+              <div style="background:#3b4252;border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">⏱️</span>
+                <div><div style="font-size:9px;color:#616e88;font-weight:600;text-transform:uppercase;">Timing · Timers</div><div style="font-size:10px;color:#d8dee9;">Mix countdown + rest</div></div>
+                <span style="margin-left:auto;font-size:10px;color:#81a1c1;font-weight:600;">→</span>
+              </div>
+            </div>
+          </div>
+          <div style="height:20px;display:flex;align-items:center;justify-content:center;margin-top:4px;">
+            <div style="width:100px;height:4px;background:#555;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-6 max-w-2xl">
+      <div class="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-3">📱 Mobile Behavior — Concept 2</div>
+      <ul class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
+        <li>• <strong>Overlay → bottom sheet</strong>: The floating right-side HUD panel becomes a bottom sheet that slides up after "Run" is tapped. Dismissible by swipe-down.</li>
+        <li>• <strong>Metric chips hidden</strong>: Per-line chips are hidden on mobile to preserve reading width. Only the bottom bar (movement count) is shown.</li>
+        <li>• <strong>Full-width editor</strong>: Editor fills 375px viewport. MacOS chrome retained for visual consistency.</li>
+        <li>• <strong>Syntax cards → compact list</strong>: 3-column grid collapses to horizontal list rows (icon + label + docs link).</li>
+        <li>• <strong>Run CTA</strong>: Prominent full-width button in bottom sheet, 48px tap target.</li>
+      </ul>
+    </div>
+  </section>
+

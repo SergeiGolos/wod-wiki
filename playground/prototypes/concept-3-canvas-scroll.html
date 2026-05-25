@@ -439,3 +439,183 @@
   </script>
 </body>
 </html>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- 📱 MOBILE VIEWS (Concept 3 — Canvas Scroll, single col)   -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-14">
+    <div class="mb-8">
+      <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        📱 Mobile Views — Concept 3
+      </span>
+      <h2 class="mt-2 text-xl font-bold text-zinc-900 dark:text-zinc-100" style="letter-spacing:-0.03em;">Canvas Two-Column → Single Column + "Open Editor" CTA</h2>
+      <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">On mobile the two-column layout collapses to prose first. A sticky "Open Editor" button appears at the bottom of the screen, tapping it reveals the editor panel inline. The sticky right column is scrolled to when tapped.</p>
+    </div>
+
+    <div class="flex flex-wrap gap-8 justify-center">
+
+      <!-- LIGHT PHONE — Prose view -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Light Mode · Prose scroll</span>
+        <div style="width:375px; border-radius:40px; background:#e5e7eb; padding:12px; box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+          <div style="background:#1a1a1a; border-radius:30px 30px 0 0; height:28px; display:flex; align-items:center; justify-content:center; margin-bottom:2px;">
+            <div style="width:80px; height:6px; background:#333; border-radius:3px;"></div>
+          </div>
+          <div style="background:#f5f2ed; border-radius:4px 4px 28px 28px; overflow:hidden; max-height:700px; overflow-y:auto; font-family:'Inter',sans-serif; position:relative;">
+            <!-- Scroll progress bar -->
+            <div style="height:2px;background:linear-gradient(90deg,#5980a8 40%,#ede9e2 40%);"></div>
+
+            <!-- Hero -->
+            <div style="background:linear-gradient(180deg,rgba(24,226,153,0.14) 0%,transparent 55%);padding:20px 16px 16px;text-align:center;">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:#8b949e;margin-bottom:6px;">WOD-WIKI PLAYGROUND</div>
+              <div style="font-size:22px;font-weight:700;color:#111;line-height:1.15;letter-spacing:-0.05em;margin-bottom:6px;">Workouts that explain themselves.</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;margin-bottom:12px;">Scroll through the guide. Tap to open the editor.</div>
+              <div style="display:flex;gap:8px;">
+                <button style="background:#1a1a1a;color:white;border-radius:999px;padding:9px;font-size:12px;font-weight:600;border:none;flex:1;">▶ Open Editor</button>
+                <button style="background:transparent;color:#374151;border:1.5px solid rgba(0,0,0,0.12);border-radius:999px;padding:9px;font-size:12px;flex:1;">Syntax →</button>
+              </div>
+            </div>
+
+            <!-- Prose section -->
+            <div style="padding:16px;">
+              <div style="font-size:9px;color:#5980a8;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">↓ Scroll to explore</div>
+              <div style="font-size:15px;font-weight:700;color:#111;letter-spacing:-0.03em;margin-bottom:6px;">One syntax. Any workout.</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;margin-bottom:12px;">WOD syntax is written like a coach describes a workout.</div>
+
+              <!-- Feature bullets (compact) -->
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:white;border-radius:12px;border:1px solid rgba(0,0,0,0.06);">
+                  <div style="width:30px;height:30px;border-radius:8px;background:rgba(89,128,168,0.1);border:1px solid rgba(89,128,168,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🔁</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:2px;">Rounds &amp; Sets</div>
+                    <div style="font-size:10px;color:#6b7280;line-height:1.5;">Parentheses create repeating blocks. Nesting supported.</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:white;border-radius:12px;border:1px solid rgba(0,0,0,0.06);">
+                  <div style="width:30px;height:30px;border-radius:8px;background:rgba(89,128,168,0.1);border:1px solid rgba(89,128,168,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">⏱️</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:2px;">Built-in timers</div>
+                    <div style="font-size:10px;color:#6b7280;line-height:1.5;">AMRAP, EMOM, countdown, and rest in one expression.</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:white;border-radius:12px;border:1px solid rgba(0,0,0,0.06);">
+                  <div style="width:30px;height:30px;border-radius:8px;background:rgba(89,128,168,0.1);border:1px solid rgba(89,128,168,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🏋️</div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:2px;">Smart loading</div>
+                    <div style="font-size:10px;color:#6b7280;line-height:1.5;">Weight, reps, and scaling are first-class.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Inline editor (after "Open Editor" tap) -->
+              <div style="margin-top:14px;background:white;border-radius:12px;overflow:hidden;border:1px solid rgba(89,128,168,0.15);">
+                <div style="background:#f4f4f4;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;">
+                  <div style="display:flex;align-items:center;gap:5px;">
+                    <div style="width:8px;height:8px;border-radius:50%;background:#ff5f57;"></div>
+                    <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e;"></div>
+                    <div style="width:8px;height:8px;border-radius:50%;background:#28c840;"></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:9px;font-weight:600;padding:2px 6px;background:rgba(89,128,168,0.12);color:#5980a8;border-radius:4px;">✏️ Editor</span>
+                    <span style="font-size:9px;font-weight:600;padding:2px 6px;color:#9ca3af;">▶ Timer</span>
+                  </div>
+                </div>
+                <div style="padding:10px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.8;">
+                  <div><span style="color:#5980a8;font-weight:600;">AMRAP</span> <span style="color:#d08770;">12:00</span></div>
+                  <div>&nbsp;&nbsp;<span style="color:#d08770;">10</span> <span style="color:#4c566a;">Kettlebell Swings</span> <span style="color:#a3be8c;">24kg</span></div>
+                  <div>&nbsp;&nbsp;<span style="color:#d08770;">8</span> <span style="color:#4c566a;">Burpees</span></div>
+                  <div>&nbsp;&nbsp;<span style="color:#5980a8;font-weight:600;">*:30</span> <span style="color:#4c566a;">Rest</span></div>
+                </div>
+                <div style="padding:8px 10px;background:#f9f8f6;border-top:1px solid rgba(0,0,0,0.05);display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:9px;color:#9ca3af;font-family:'Courier New',monospace;">4 movements</span>
+                  <button style="background:#5980a8;color:white;border-radius:999px;padding:6px 14px;font-size:11px;font-weight:600;border:none;">▶ Run Timer</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="height:20px;display:flex;align-items:center;justify-content:center;margin-top:4px;">
+            <div style="width:100px;height:4px;background:#333;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DARK PHONE — Timer state -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Dark Mode · Timer state</span>
+        <div style="width:375px; border-radius:40px; background:#1a1a1a; padding:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+          <div style="background:#111; border-radius:30px 30px 0 0; height:28px; display:flex; align-items:center; justify-content:center; margin-bottom:2px;">
+            <div style="width:80px; height:6px; background:#333; border-radius:3px;"></div>
+          </div>
+          <div style="background:#2e3440; border-radius:4px 4px 28px 28px; overflow:hidden; max-height:700px; overflow-y:auto; font-family:'Inter',sans-serif;">
+            <!-- Scroll progress bar (further along) -->
+            <div style="height:2px;background:linear-gradient(90deg,#81a1c1 70%,#4c566a 70%);"></div>
+            <!-- Dark hero -->
+            <div style="background:linear-gradient(180deg,rgba(24,226,153,0.1) 0%,transparent 55%);padding:16px 16px 12px;text-align:center;">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:#616e88;margin-bottom:4px;">WOD-WIKI PLAYGROUND</div>
+              <div style="font-size:20px;font-weight:700;color:#eceff4;line-height:1.2;letter-spacing:-0.04em;">Workouts that explain themselves.</div>
+            </div>
+            <!-- Editor in Timer state (dark) -->
+            <div style="margin:0 10px 10px;background:#3b4252;border-radius:12px;overflow:hidden;">
+              <div style="background:#434c5e;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:#ff5f57;"></div>
+                  <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e;"></div>
+                  <div style="width:8px;height:8px;border-radius:50%;background:#28c840;"></div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <span style="font-size:9px;font-weight:600;padding:2px 6px;color:#616e88;">✏️ Edit</span>
+                  <span style="font-size:9px;font-weight:600;padding:2px 6px;background:rgba(129,161,193,0.15);color:#81a1c1;border-radius:4px;">▶ Timer</span>
+                </div>
+              </div>
+              <!-- Timer panel content (compact) -->
+              <div style="padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <div style="width:90px;height:90px;border-radius:50%;background:conic-gradient(#81a1c1 0% 35%,#4c566a 35% 100%);display:flex;align-items:center;justify-content:center;">
+                  <div style="width:72px;height:72px;border-radius:50%;background:#3b4252;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <div style="font-family:'Courier New',monospace;font-size:18px;font-weight:700;color:#eceff4;letter-spacing:-0.04em;">10:24</div>
+                    <div style="font-size:9px;color:#616e88;">AMRAP</div>
+                  </div>
+                </div>
+                <div style="width:100%;background:rgba(129,161,193,0.1);border:1px solid rgba(129,161,193,0.2);border-radius:10px;padding:10px;text-align:center;">
+                  <div style="font-size:9px;color:#616e88;text-transform:uppercase;font-weight:600;margin-bottom:3px;">NOW</div>
+                  <div style="font-size:14px;font-weight:600;color:#eceff4;">Kettlebell Swings</div>
+                  <div style="font-size:11px;color:#8b949e;font-family:'Courier New',monospace;">10 reps · 24kg</div>
+                </div>
+                <div style="width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <button style="border:1px solid rgba(255,255,255,0.1);background:transparent;color:#d8dee9;border-radius:10px;padding:10px;font-size:12px;font-weight:600;">⏸ Pause</button>
+                  <button style="background:#eceff4;color:#2e3440;border-radius:10px;padding:10px;font-size:12px;font-weight:600;border:none;">Next →</button>
+                </div>
+                <!-- Upcoming (compact) -->
+                <div style="width:100%;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+                  <div style="font-size:9px;color:#616e88;text-transform:uppercase;font-weight:600;margin-bottom:6px;">COMING UP</div>
+                  <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:#d8dee9;">Burpees</span><span style="color:#616e88;font-family:'Courier New',monospace;">8 reps</span></div>
+                  <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#d8dee9;">Rest</span><span style="color:#616e88;font-family:'Courier New',monospace;">:30</span></div>
+                </div>
+              </div>
+            </div>
+            <!-- Prose continues below (visible in scroll) -->
+            <div style="padding:0 10px 16px;">
+              <div style="font-size:9px;color:#616e88;text-transform:uppercase;font-weight:600;margin-bottom:6px;">The HUD</div>
+              <div style="font-size:13px;font-weight:700;color:#eceff4;letter-spacing:-0.02em;margin-bottom:4px;">Parser → structure → timer.</div>
+              <div style="font-size:11px;color:#8b949e;line-height:1.6;">The playground parses your WOD and drives a live timer panel with round tracker and next-up queue.</div>
+            </div>
+          </div>
+          <div style="height:20px;display:flex;align-items:center;justify-content:center;margin-top:4px;">
+            <div style="width:100px;height:4px;background:#555;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-6 max-w-2xl">
+      <div class="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-3">📱 Mobile Behavior — Concept 3</div>
+      <ul class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
+        <li>• <strong>Two columns → single column</strong>: Prose collapses first. Sticky editor moves below prose at &lt;900px.</li>
+        <li>• <strong>"Open Editor" CTA</strong>: A sticky button at the bottom of screen lets user jump to the editor panel at any scroll position.</li>
+        <li>• <strong>Editor/Timer tabs preserved</strong>: The tab switcher (✏️ Editor / ▶ Timer) stays on mobile, full width.</li>
+        <li>• <strong>Prose scrolls above editor</strong>: Feature bullets use compact card rows (icon + text), not the 3-col grid.</li>
+        <li>• <strong>Scroll progress bar</strong>: Retained as a thin 2px bar at the top of the phone screen.</li>
+      </ul>
+    </div>
+  </section>
+

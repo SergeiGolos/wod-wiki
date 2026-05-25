@@ -3,10 +3,12 @@ import { getMetricColorClasses, getMetricIcon, metricColorMap } from '../../view
 
 describe('Visual Fragment Colors Test Suite', () => {
   describe('metricColorMap constant', () => {
-    it('should have color classes for all 10 metric types', () => {
+    it('should have color classes for all core metric types', () => {
       const expectedTypes = [
         'time', 'rep', 'effort', 'distance', 'rounds',
-        'action', 'increment', 'lap', 'text', 'resistance'
+        'action', 'increment', 'lap', 'text', 'resistance',
+        'duration', 'spans', 'elapsed', 'total', 'system-time',
+        'metric', 'rest',
       ];
 
       expectedTypes.forEach(type => {
@@ -17,10 +19,14 @@ describe('Visual Fragment Colors Test Suite', () => {
       });
     });
 
-    it('should have unique colors for each metric type', () => {
+    it('allows semantically-related types to share color families', () => {
+      // The design system has 7 metric color families; newer types map to
+      // existing families (e.g., volume → rep, load → resistance).
       const colors = Object.values(metricColorMap);
       const uniqueColors = new Set(colors);
-      expect(uniqueColors.size).toBe(colors.length);
+      // With 24+ entries and intentional reuse, uniqueness is < length.
+      expect(uniqueColors.size).toBeGreaterThanOrEqual(7);
+      expect(colors.length).toBeGreaterThanOrEqual(24);
     });
   });
 

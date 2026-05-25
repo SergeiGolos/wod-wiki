@@ -9,12 +9,17 @@
  * driven by the real stack state, without needing a Chromecast device.
  *
  * States illustrated:
- *  1. Idle          — no runtime, "waiting for cast" style placeholder
- *  2. Preview       — a note loaded but no runtime started (workout selection list)
- *  3. ReadyToStart  — WaitingToStart block on the stack
- *  4. ActiveFran    — 21-15-9 Thrusters & Pull-ups, first block active
- *  5. ActiveAmrap   — 20-minute AMRAP running
- *  6. ActiveEmom    — 10-minute EMOM running
+ *  1. Idle             — no runtime, "waiting for cast" style placeholder
+ *  2. Preview          — a note loaded but no runtime started (workout selection list)
+ *  3. ReadyToStart     — WaitingToStart block on the stack
+ *  4. ActiveFran       — 21-15-9 Thrusters & Pull-ups, first block active
+ *  5. ActiveAmrap      — 20-minute AMRAP running
+ *  6. ActiveEmom       — 10-minute EMOM running
+ *  7. DeepNesting      — nested groups/loops to test tree depth
+ *  8. PausedState      — workout paused mid-segment
+ *  9. InterleavedHistory — completed blocks mixed with active stack
+ *  10. LongLabels      — very long block labels to test truncation
+ *  11. NoMetrics       — bodyweight workout with no tracked metrics
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -336,12 +341,14 @@ export interface TrackerChromecastHarnessProps {
   script: string;
   /**
    * Initial stack state:
-   *  - 'idle'   : no runtime pushed — shows waiting screen
-   *  - 'preview': no runtime, shows a preview-mode selection screen
-   *  - 'ready'  : StartSessionAction pushed so WaitingToStart is on the stack
-   *  - 'active' : StartSessionAction + NextAction to move past WaitingToStart
+   *  - 'idle'        : no runtime pushed — shows waiting screen
+   *  - 'preview'     : no runtime, shows a preview-mode selection screen
+   *  - 'ready'       : StartSessionAction pushed so WaitingToStart is on the stack
+   *  - 'active'      : StartSessionAction + NextAction to move past WaitingToStart
+   *  - 'paused'      : active then pause event dispatched
+   *  - 'interleaved' : several NextActions to create completion outputs
    */
-  initialState: 'idle' | 'preview' | 'ready' | 'active';
+  initialState: 'idle' | 'preview' | 'ready' | 'active' | 'paused' | 'interleaved';
   /** Label shown in the preview panel workout list */
   previewTitle?: string;
   /** Height of the story canvas */
@@ -390,6 +397,17 @@ const TrackerChromecastHarness: React.FC<TrackerChromecastHarnessProps> = ({
     rt.do(new StartSessionAction({ label: previewTitle }));
 
     if (initialState === 'active') {
+      rt.do(new NextAction());
+    }
+
+    if (initialState === 'paused') {
+      rt.do(new NextAction());
+      rt.handle({ name: 'pause', timestamp: new Date() });
+    }
+
+    if (initialState === 'interleaved') {
+      rt.do(new NextAction());
+      rt.do(new NextAction());
       rt.do(new NextAction());
     }
 
@@ -516,7 +534,7 @@ const meta: Meta<typeof TrackerChromecastHarness> = {
     },
     initialState: {
       control: { type: 'select' },
-      options: ['idle', 'preview', 'ready', 'active'],
+      options: ['idle', 'preview', 'ready', 'active', 'paused', 'interleaved'],
       description: 'Stack / connection state to initialise the harness with',
     },
     previewTitle: {
@@ -633,6 +651,104 @@ export const ActiveRounds: Story = {
     script: '5x\n10 Thrusters @95lb',
     initialState: 'active',
     previewTitle: '5×10 Thrusters',
+    height: '700px',
+  },
+};
+
+/**
+ * Deep Nesting — nested loop blocks to exercise tree depth in the stack panel.
+ * Verifies that parent→child nesting renders correctly at multiple levels.
+ */
+export const DeepNesting: Story = {
+  name: 'Edge: Deep Nesting (3×2×)',
+  args: {
+    script: [
+      '3x',
+      '  2x',
+      '    10 Push-ups',
+      '    5 Pull-ups',
+      '    15 Air Squats',
+    ].join('\n'),
+    initialState: 'active',
+    previewTitle: 'Nested Intervals',
+    height: '700px',
+  },
+};
+
+/**
+ * Paused State — active workout with pause event dispatched.
+ * Verifies timer styling and control states when paused.
+ */
+export const PausedState: Story = {
+  name: 'Edge: Paused Mid-Workout',
+  args: {
+    script: [
+      '21 Thrusters @95lb',
+      '21 Pull-ups',
+      '15 Thrusters @95lb',
+      '15 Pull-ups',
+    ].join('\n'),
+    initialState: 'paused',
+    previewTitle: 'Fran (Paused)',
+    height: '700px',
+  },
+};
+
+/**
+ * Interleaved History — several blocks completed, one active.
+ * Exercises completion-summary interleaving in the stack panel.
+ */
+export const InterleavedHistory: Story = {
+  name: 'Edge: Interleaved History',
+  args: {
+    script: [
+      '21 Thrusters @95lb',
+      '21 Pull-ups',
+      '15 Thrusters @95lb',
+      '15 Pull-ups',
+      '9 Thrusters @95lb',
+      '9 Pull-ups',
+    ].join('\n'),
+    initialState: 'interleaved',
+    previewTitle: 'Fran (Partial)',
+    height: '700px',
+  },
+};
+
+/**
+ * Long Labels — block labels that exceed typical width.
+ * Verifies truncation and layout stability at TV distance.
+ */
+export const LongLabels: Story = {
+  name: 'Edge: Very Long Labels',
+  args: {
+    script: [
+      'Overhead Squat with PVC Pipe for Mobility and Technique Development @45lb',
+      'Snatch Balance Drop from the Rack Position with Full Extension and Turnover @135lb',
+      'Deficit Handstand Push-ups on Parallettes with Full Range of Motion',
+    ].join('\n'),
+    initialState: 'active',
+    previewTitle: 'Complex Labels',
+    height: '700px',
+  },
+};
+
+/**
+ * No Metrics — bodyweight exercises with no weight/distance units.
+ * Verifies MetricTrackerCard is absent and the layout still holds.
+ */
+export const NoMetrics: Story = {
+  name: 'Edge: No Metrics (Bodyweight)',
+  args: {
+    script: [
+      '50 Air Squats',
+      '40 Sit-ups',
+      '30 Push-ups',
+      '20 Pull-ups',
+      '10 Burpees',
+    ].join('\n'),
+    initialState: 'active',
+    previewTitle: 'Bodyweight WOD',
     height: '700px',
   },
 };

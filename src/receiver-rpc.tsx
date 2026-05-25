@@ -17,6 +17,7 @@ import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';
 import { ReceiverReviewPanel } from '@/panels/review-panel-chromecast';
 import { useSpatialNavigation } from '@/hooks/useSpatialNavigation';
+import { audioService } from '@/services/AudioService';
 import '@/index.css';
 
 const ReceiverApp: React.FC = () => {
@@ -62,14 +63,18 @@ const ReceiverApp: React.FC = () => {
         setProxyRuntime(null);
     }, [sendEvent]);
 
-    const { getFocusProps, setFocusedId } = useSpatialNavigation({
+    const { getFocusProps, setFocusedId, reset } = useSpatialNavigation({
         enabled: !!proxyRuntime,
         initialFocusId: workbenchState.mode === 'preview'
             ? 'preview-block-0'
             : workbenchState.mode === 'review'
                 ? 'btn-dismiss'
                 : 'btn-next',
+        onFocusChanged: useCallback((_elementId: string | null, _element: HTMLElement | null) => {
+            audioService.playSound('click', 0.3);
+        }, []),
         onSelect: useCallback((elementId: string, element: HTMLElement) => {
+            audioService.playSound('select', 0.5);
             flash();
             if (elementId.startsWith('preview-block-')) {
                 const index = parseInt(elementId.replace('preview-block-', ''), 10);
@@ -78,8 +83,16 @@ const ReceiverApp: React.FC = () => {
                 return;
             }
 
+            if (elementId.startsWith('secondary-timer-')) {
+                // Non-interactive display element — just visual focus
+                return;
+            }
+
             switch (elementId) {
                 case 'timer-main':
+                    element.click();
+                    break;
+                case 'btn-pause':
                     element.click();
                     break;
                 case 'btn-stop':
@@ -98,15 +111,34 @@ const ReceiverApp: React.FC = () => {
         }, [sendEvent, flash, dismissToWaiting]),
     });
 
+    /**
+     * Cross-mode focus reset strategy (WOD-662):
+     * When the receiver transitions between modes (preview → active → review),
+     * the entire focusable surface changes. We reset the spatial navigation
+     * registry to purge stale elements from the previous mode, then set focus
+     * to the primary action element for the new mode.
+     *
+     * This prevents:
+     *   - Ghost elements from the previous mode interfering with arrow-key nav
+     *   - Focus traps on elements that no longer exist in the DOM
+     *   - Visual focus indicators lingering on unmounted components
+     */
     useEffect(() => {
         if (workbenchState.mode === 'preview') {
-            setFocusedId('preview-block-0');
+            const targetId =
+                workbenchState.previewData && workbenchState.previewData.blocks.length > 0
+                    ? 'preview-block-0'
+                    : null;
+            reset(targetId);
         } else if (workbenchState.mode === 'active') {
-            setFocusedId('btn-next');
+            reset('btn-next');
         } else if (workbenchState.mode === 'review') {
-            setFocusedId('btn-dismiss');
+            reset('btn-dismiss');
+        } else {
+            // idle / unknown — clear everything so no phantom focus remains
+            reset(null);
         }
-    }, [workbenchState.mode, setFocusedId]);
+    }, [workbenchState.mode, workbenchState.previewData, reset]);
 
     useEffect(() => {
         (window as any).__chromecast_senderClockTimeMs = runtimeRef.current?.getSenderClockTimeMs?.bind(runtimeRef.current) ?? (() => Date.now());
@@ -174,6 +206,9 @@ const ReceiverApp: React.FC = () => {
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape' || e.key === 'Backspace') {
+                // Only trigger stop in active mode; preview/review have their own
+                // spatial-navigation dismiss paths (btn-dismiss, block-select).
+                if (workbenchStateRef.current.mode !== 'active') return;
                 e.preventDefault();
                 sendEvent('stop');
                 flash();
@@ -193,8 +228,14 @@ const ReceiverApp: React.FC = () => {
 
     if (workbenchState.mode === 'preview' && workbenchState.previewData) {
         return (
-            <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
-                <ReceiverPreviewPanel previewData={workbenchState.previewData} getFocusProps={getFocusProps} />
+            <div key="preview" className="h-screen w-screen bg-background text-foreground overflow-hidden">
+                <ReceiverPreviewPanel
+                    previewData={workbenchState.previewData}
+                    getFocusProps={getFocusProps}
+                    onBlockSelect={(_blockId, index) => {
+                        sendEvent('select-block', { index, blockId: _blockId });
+                    }}
+                />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}
                 </div>
@@ -204,7 +245,7 @@ const ReceiverApp: React.FC = () => {
 
     if (workbenchState.mode === 'review' && workbenchState.reviewData) {
         return (
-            <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
+            <div key="review" className="h-screen w-screen bg-background text-foreground overflow-hidden">
                 <ReceiverReviewPanel
                     reviewData={workbenchState.reviewData}
                     analyticsSummary={workbenchState.analyticsSummary}
@@ -219,7 +260,7 @@ const ReceiverApp: React.FC = () => {
     }
 
     return (
-        <ScriptRuntimeProvider runtime={proxyRuntime}>
+        <ScriptRuntimeProvider key="active" runtime={proxyRuntime}>
             <PanelSizeProvider>
                 <div className="h-screen w-screen bg-background text-foreground overflow-hidden">
                     <TrackViewShell

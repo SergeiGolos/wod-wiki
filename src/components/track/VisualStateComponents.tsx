@@ -240,6 +240,34 @@ const StackBlockItem: React.FC<{
     );
 };
 
+/**
+ * Determine which completed segment outputs should appear as history
+ * underneath a given visible block in the RuntimeStackView.
+ *
+ * Each output is assigned to the closest visible ancestor still on the
+ * stack. This ensures that when intermediate blocks are popped, deeper
+ * descendant outputs "bubble up" and remain visible rather than being
+ * orphaned.
+ *
+ * @param outputs     All output statements
+ * @param blockIndex  Index of the visible block (0 = root)
+ * @param totalVisible Total number of blocks currently visible
+ */
+export function getOutputsForHistoryBlock(
+    outputs: IOutputStatement[],
+    blockIndex: number,
+    totalVisible: number
+): IOutputStatement[] {
+    return outputs.filter(o => {
+        if (o.outputType !== 'segment') return false;
+        // The output's parent was at depth stackLevel - 1. If that parent is
+        // no longer on the stack, the closest visible ancestor is the deepest
+        // block still visible (totalVisible - 1).
+        const closestAncestorDepth = Math.min(o.stackLevel - 1, totalVisible - 1);
+        return blockIndex === closestAncestorDepth;
+    });
+}
+
 export const RuntimeStackView: React.FC<{
     runtime: IScriptRuntime;
     outputs: IOutputStatement[];
@@ -256,9 +284,9 @@ export const RuntimeStackView: React.FC<{
         );
     }
 
-    // Helper to render history summary for a specific level
-    const renderHistorySummary = (level: number) => {
-        const levelOutputs = outputs.filter(o => o.stackLevel === level && o.outputType === 'segment');
+    // Helper to render history summary for a specific block
+    const renderHistorySummary = (blockIndex: number, totalVisible: number) => {
+        const levelOutputs = getOutputsForHistoryBlock(outputs, blockIndex, totalVisible);
 
         if (levelOutputs.length === 0) return null;
 
@@ -295,11 +323,6 @@ export const RuntimeStackView: React.FC<{
             {visibleBlocks.map((block, index) => {
                 const isLeaf = index === visibleBlocks.length - 1; // Last item is the active leaf
 
-                // Level: Root is 0, Children of Root are 1.
-                // We want to show history for children of THIS block.
-                // So if this is Root (Level 0), we show history for Level 1.
-                const childLevel = index + 1;
-
                 return (
                     <React.Fragment key={block.key.toString()}>
                         {/* Block Card */}
@@ -310,7 +333,7 @@ export const RuntimeStackView: React.FC<{
                         />
 
                         {/* Interleaved History: Children of this block */}
-                        {renderHistorySummary(childLevel)}
+                        {renderHistorySummary(index, visibleBlocks.length)}
                     </React.Fragment>
                 );
             })}

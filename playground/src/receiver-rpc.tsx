@@ -62,6 +62,9 @@ const ReceiverApp: React.FC = () => {
         setTimeout(() => setDpadFlash(false), 200);
     }, []);
 
+    const workbenchStateRef = useRef(workbenchState);
+    workbenchStateRef.current = workbenchState;
+
     const dismissToWaiting = useCallback(() => {
         // Best effort: notify sender so it can react while still connected.
         sendEvent('dismiss');
@@ -98,6 +101,9 @@ const ReceiverApp: React.FC = () => {
                     // Toggle play/pause
                     element.click();
                     break;
+                case 'btn-pause':
+                    element.click();
+                    break;
                 case 'btn-stop':
                     sendEvent('stop');
                     break;
@@ -118,13 +124,17 @@ const ReceiverApp: React.FC = () => {
     // Programmatically focus the correct element when the workbench mode changes
     useEffect(() => {
         if (workbenchState.mode === 'preview') {
-            setFocusedId('preview-block-0');
+            // Only focus first block when blocks exist; otherwise leave focus
+            // unset so spatial nav can fall back to the first registered element.
+            if (workbenchState.previewData && workbenchState.previewData.blocks.length > 0) {
+                setFocusedId('preview-block-0');
+            }
         } else if (workbenchState.mode === 'active') {
             setFocusedId('btn-next');
         } else if (workbenchState.mode === 'review') {
             setFocusedId('btn-dismiss');
         }
-    }, [workbenchState.mode, setFocusedId]);
+    }, [workbenchState.mode, workbenchState.previewData, setFocusedId]);
 
     // Global click listener for on-screen interactions on receiver
     useEffect(() => {
@@ -306,6 +316,9 @@ const ReceiverApp: React.FC = () => {
     useEffect(() => {
         const handleEscape = (e: KeyboardEvent) => {
             if (e.key === 'Escape' || e.key === 'Backspace') {
+                // Only trigger stop in active mode; preview/review have their own
+                // spatial-navigation dismiss paths (btn-dismiss, block-select).
+                if (workbenchStateRef.current.mode !== 'active') return;
                 e.preventDefault();
                 sendEvent('stop');
                 flash();
@@ -332,7 +345,11 @@ const ReceiverApp: React.FC = () => {
                 {dpadFlash && (
                     <div className="fixed inset-0 bg-primary/10 pointer-events-none z-50 animate-in fade-in duration-150" />
                 )}
-                <ReceiverPreviewPanel previewData={workbenchState.previewData} getFocusProps={getFocusProps} />
+                <ReceiverPreviewPanel
+                    previewData={workbenchState.previewData}
+                    getFocusProps={getFocusProps}
+                    onBlockSelect={() => sendEvent('next')}
+                />
                 <div className="absolute bottom-2 right-2 opacity-10 text-[8px] font-mono tracking-tighter uppercase">
                     {connectionStatus}
                 </div>

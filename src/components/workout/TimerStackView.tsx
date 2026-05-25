@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useCallback } from 'react';
-import { Play, Pause, SkipForward, Square } from 'lucide-react';
+import { Play, Pause, SkipForward, Square, Timer } from 'lucide-react';
 import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/DisplayTypes';
 import { formatTimeMMSS } from '../../lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
@@ -54,6 +54,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     compact = false,
     subLabel,
     subLabels,
+    secondaryTimers,
 
     timerStates,
     getFocusProps,
@@ -160,6 +161,31 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         return effectiveTimerState.elapsed;
     }, [effectiveTimerState]);
 
+    // --- Secondary Timers ---
+    // Compute live display values for each secondary timer, handling edge cases:
+    // - missing timerStates entry → fallback to accumulatedMs
+    // - countdown format → show remaining time (clamped to 0)
+    // - null/undefined/empty secondaryTimers → hide section entirely
+    const secondaryTimerData = useMemo(() => {
+        if (!secondaryTimers || secondaryTimers.length === 0) return [];
+        return secondaryTimers.map(st => {
+            const state = timerStates?.get(st.ownerId);
+            const elapsed = state?.elapsed ?? st.accumulatedMs ?? 0;
+            const duration = state?.duration ?? st.durationMs;
+            const format = state?.format ?? st.format ?? 'up';
+            const displayMs = format === 'down' && duration
+                ? Math.max(0, duration - elapsed)
+                : elapsed;
+            return {
+                id: st.id,
+                ownerId: st.ownerId,
+                label: st.label || 'Timer',
+                displayMs,
+                format,
+            };
+        });
+    }, [secondaryTimers, timerStates]);
+
     // --- Responsive layout classes ---
     // compact = mobile/narrow container (from PanelSizeContext)
     // We use different layouts for compact vs wide
@@ -238,6 +264,28 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             </div>
                         </button>
                     </div>
+
+                    {/* Secondary Timers — smaller context clocks for parent intervals */}
+                    {secondaryTimerData.length > 0 && (
+                        <div className={`w-full ${compact ? 'mt-3' : 'mt-6'}`}>
+                            <div className={`flex items-center justify-center gap-2 ${compact ? 'flex-wrap' : 'gap-4'}`}>
+                                {secondaryTimerData.map((st, index) => (
+                                    <div
+                                        key={st.id}
+                                        {...(getFocusProps ? getFocusProps(`secondary-timer-${index}`) : {})}
+                                        className={`tv-focusable flex items-center gap-2 rounded-lg border bg-muted/40 text-muted-foreground ${compact ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
+                                        title={st.label}
+                                    >
+                                        <Timer className={`shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                                        <span className="font-medium truncate max-w-[120px]">{st.label}</span>
+                                        <span className="font-mono font-semibold tabular-nums">
+                                            {formatTime(st.displayMs)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

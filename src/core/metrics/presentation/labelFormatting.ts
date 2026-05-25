@@ -94,6 +94,12 @@ const COLUMN_LABEL_MAP: Partial<Record<string, string>> = {
   'system-time':   'System Time',
   spans:           'Spans',
   system:          'System',
+  rir:             'RIR',
+  'session-rpe':   'Session RPE',
+  'session-load':  'Session Load',
+  'met-score':     'MET Score',
+  tis:             'TIS',
+  sound:           'Sound',
 };
 
 export function computeColumnLabel(type: MetricType | string): string {

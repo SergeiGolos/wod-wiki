@@ -35,3 +35,52 @@ export type {
   GridViewPreset,
 } from './types';
 export { FIXED_COLUMN_IDS } from './types';
+
+// ─── CDL (Column Definition Language) ────────────────────────────
+
+export type {
+  ColumnDef,
+  ColumnSource,
+  ColumnFormat,
+  ColumnSortConfig,
+  ColumnGraphConfig,
+  ColumnFilterConfig,
+  ColumnMetadata,
+  ColumnSetConfig,
+  ColumnSetPreset,
+  FixedFieldSource,
+  MetricTypeSource,
+  DerivedSource,
+  FallbackSource,
+  DerivedSourceContext,
+} from './column-definition-language';
+
+export {
+  resolveColumnSource,
+} from './interpreters';
+
+export {
+  extractSortValue,
+  compareSortValues,
+  compareRowsByColumn,
+} from './interpreters';
+
+export {
+  extractGraphValue,
+  buildGraphDataPoint,
+} from './interpreters';
+
+export {
+  extractFilterText,
+  matchColumnFilter,
+  matchGlobalSearch,
+} from './interpreters';
+
+export {
+  UnifiedCellRenderer,
+  inferColumnDefFromGridColumn,
+} from './interpreters';
+
+export type {
+  UnifiedCellRendererProps,
+} from './interpreters';

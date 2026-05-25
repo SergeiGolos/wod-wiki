@@ -144,6 +144,13 @@ export class AudioService {
                 this.playNote(now + 0.2, 783.99, 'sine', 0.5, volume); // G5
                 break;
 
+            case 'select': {
+                // Pleasant confirmation tone — two ascending sine beeps
+                this.playNote(now, 880, 'sine', 0.08, volume); // A5
+                this.playNote(now + 0.08, 1200, 'sine', 0.12, volume); // ~D6
+                break;
+            }
+
             case 'start':
                 // Ascending sequence
                 this.playNote(now, 440, 'square', 0.1, volume); // A4
