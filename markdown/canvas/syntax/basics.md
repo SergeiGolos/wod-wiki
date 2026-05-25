@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/basics
+route: /guide/syntax/basics
 type: syntax
 ---
 
@@ -148,12 +148,12 @@ pipeline:
 label:  ← Back to Syntax Index
 target: ex
 pipeline:
-  - navigate: /syntax
+  - navigate: /guide/syntax
 ```
 
 ```button
 label:  Structure & Reps →
 target: ex
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```

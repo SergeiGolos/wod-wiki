@@ -82,7 +82,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ["Inter", "Inter Fallback", "system-ui", "-apple-system", "sans-serif"],
-        mono: ["Geist Mono", "Geist Mono Fallback", "ui-monospace", "SFMono-Regular", "monospace"],
+        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       letterSpacing: {
         "display": "-0.08em",   /* hero headlines — tight compression */

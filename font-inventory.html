@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WOD Wiki — Font Inventory (Consolidated)</title>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.css">
+  <style>
+    :root {
+      --bg: #f8f7f4;
+      --fg: #1a1a1a;
+      --muted: #6b6560;
+      --border: #d4cfc8;
+      --card: #ffffff;
+      --accent: #5980a8;
+      --accent-bg: rgba(89,128,168,0.08);
+      --success: #508860;
+      --success-bg: rgba(80,136,96,0.10);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.5;
+    }
+    header {
+      padding: 3rem 2rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin: 0 0 0.5rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .summary {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .summary-pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .summary-pill strong { color: var(--fg); }
+    .summary-pill.done {
+      background: var(--success-bg);
+      border-color: rgba(80,136,96,0.25);
+      color: var(--success);
+    }
+    .summary-pill.done strong { color: var(--success); }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 2.5rem 0 1rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-title .count {
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    .font-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .font-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .font-name {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .font-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+    }
+    .font-usage {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+    }
+    .font-usage code {
+      background: var(--accent-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .size-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    .size-cell {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      background: var(--bg);
+    }
+    .size-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+    }
+    .size-sample {
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .mono-section .size-sample { font-family: "JetBrains Mono", ui-monospace, monospace; }
+    .inter-section .size-sample { font-family: "Inter", system-ui, sans-serif; }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+    }
+    .tag-primary { background: #e8f0e8; color: #3d7a3d; }
+    .tag-editor { background: #f0e8e0; color: #8a5a3a; }
+
+    .font-list {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .font-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .font-list-item:last-child { border-bottom: none; }
+    .font-list-name { font-weight: 500; }
+    .font-list-files { font-size: 0.75rem; color: var(--muted); font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+    .dark-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      z-index: 100;
+    }
+    .dark-toggle:hover { background: var(--accent-bg); }
+
+    body.dark {
+      --bg: #1e1e24;
+      --fg: #e4e4e7;
+      --muted: #a0a0a8;
+      --border: #3a3a42;
+      --card: #2a2a32;
+      --accent: #81a1c1;
+      --accent-bg: rgba(129,161,193,0.12);
+      --success: #a3be8c;
+      --success-bg: rgba(163,190,140,0.12);
+    }
+
+    .checklist {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .checklist-item.done { color: var(--success); }
+    .checkmark {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--success-bg);
+      color: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <button class="dark-toggle" onclick="document.body.classList.toggle('dark')">Toggle Dark</button>
+
+  <header>
+    <h1>WOD Wiki Font Inventory</h1>
+    <p class="subtitle">Consolidated to two fonts: Inter (sans) + JetBrains Mono (mono).</p>
+    <div class="summary">
+      <div class="summary-pill done"><strong>2</strong> fonts total</div>
+      <div class="summary-pill done"><strong>2</strong> loaded via CDN</div>
+      <div class="summary-pill done"><strong>1</strong> Tailwind sans family</div>
+      <div class="summary-pill done"><strong>1</strong> Tailwind mono family</div>
+      <div class="summary-pill done"><strong>0</strong> orphaned stacks</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── PRIMARY SANS ── -->
+    <div class="section-title">
+      Primary Sans — Inter
+      <span class="count">Tailwind + App</span>
+    </div>
+    <div class="font-card inter-section">
+      <div class="font-header">
+        <span class="font-name">Inter</span>
+        <span class="font-meta">font-family: "Inter", "Inter Fallback", system-ui, -apple-system, sans-serif</span>
+      </div>
+      <div class="font-usage">
+        Loaded via <code>&lt;link&gt;</code> in <code>playground/index.html</code> &middot;
+        Tailwind theme <code>fontFamily.sans</code> in <code>tailwind.config.cjs</code> &middot;
+        Default body text across the app
+      </div>
+      <div class="size-grid">
+        <div class="size-cell">
+          <div class="size-label">Hero / 48px</div>
+          <div class="size-sample" style="font-size:48px;font-weight:700;letter-spacing:-0.08em;">WOD</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">H1 / 32px</div>
+          <div class="size-sample" style="font-size:32px;font-weight:700;letter-spacing:-0.05em;">Workout Timer</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">H2 / 24px</div>
+          <div class="size-sample" style="font-size:24px;font-weight:600;letter-spacing:-0.03em;">AMRAP 20:00</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">Body / 16px</div>
+          <div class="size-sample" style="font-size:16px;">Complete as many rounds as possible in 20 minutes.</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">Small / 14px</div>
+          <div class="size-sample" style="font-size:14px;color:var(--muted);">Rest 2 min between rounds</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">Label / 12px</div>
+          <div class="size-sample" style="font-size:12px;text-transform:uppercase;letter-spacing:0.065em;">Round 3 of 5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PRIMARY MONO ── -->
+    <div class="section-title">
+      Primary Mono — JetBrains Mono
+      <span class="count">Tailwind + App</span>
+    </div>
+    <div class="font-card mono-section">
+      <div class="font-header">
+        <span class="font-name">JetBrains Mono</span>
+        <span class="font-meta">font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace</span>
+      </div>
+      <div class="font-usage">
+        Loaded via <code>&lt;link&gt;</code> in <code>playground/index.html</code> &middot;
+        Tailwind theme <code>fontFamily.mono</code> in <code>tailwind.config.cjs</code> &middot;
+        Editor content, code blocks, inline code, technical tags, preview decorations, widgets
+      </div>
+      <div class="size-grid">
+        <div class="size-cell">
+          <div class="size-label">Large / 20px</div>
+          <div class="size-sample" style="font-size:20px;">10:00 Run<br>5 Rounds For Time</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">Body / 16px</div>
+          <div class="size-sample" style="font-size:16px;">const timer = new Timer("up");</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">Small / 14px</div>
+          <div class="size-sample" style="font-size:14px;">effort: 85% HRmax</div>
+        </div>
+        <div class="size-cell">
+          <div class="size-label">Tag / 12px</div>
+          <div class="size-sample" style="font-size:12px;letter-spacing:0.06em;">METRIC_TIME</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COMPLETE REFERENCE ── -->
+    <div class="section-title">
+      Every File Reference
+      <span class="count">Consolidated</span>
+    </div>
+    <div class="font-list">
+      <div class="font-list-item">
+        <span class="font-list-name">Inter (sans)</span>
+        <span class="font-list-files">tailwind.config.cjs, playground/index.html, src/index.css</span>
+      </div>
+      <div class="font-list-item">
+        <span class="font-list-name">JetBrains Mono (mono)</span>
+        <span class="font-list-files">tailwind.config.cjs, playground/index.html, src/index.css, src/components/Editor/extensions/theme.ts, preview-decorations.ts, markdown-tables.ts, playground/src/components/widgets/CodeExampleWidget.tsx, playground/receiver-rpc.html, playground/prototypes/*.html</span>
+      </div>
+    </div>
+
+    <!-- ── CHANGELOG ── -->
+    <div class="section-title">
+      Consolidation Checklist
+      <span class="count">Done</span>
+    </div>
+    <div class="checklist">
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>Tailwind <code>fontFamily.mono</code>: Geist Mono → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>CDN link in <code>playground/index.html</code>: Geist Mono → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>Monaco Editor theme (<code>theme.ts</code>): Monaco/Menlo/Consolas → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>Preview decorations (<code>preview-decorations.ts</code>): <code>var(--font-mono)</code> → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>Markdown tables (<code>markdown-tables.ts</code>): <code>var(--font-mono)</code> → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>CodeMirror widget (<code>CodeExampleWidget.tsx</code>): ui-monospace stack → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>Receiver RPC (<code>receiver-rpc.html</code>): ui-monospace stack → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>CSS <code>.wod-code-text</code>: Monaco/Menlo → JetBrains Mono</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>CSS <code>.inline-widget-card-zone</code>: <code>var(--font-sans)</code> → Inter</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>Playground prototypes: Geist Mono → JetBrains Mono (all 4 concepts + index)</span>
+      </div>
+      <div class="checklist-item done">
+        <div class="checkmark">✓</div>
+        <span>POC-Code <code>results-mobile.html</code>: Geist Mono → JetBrains Mono</span>
+      </div>
+    </div>
+
+    <div style="margin-top:3rem; padding:1.5rem; background:var(--card); border:1px solid var(--border); border-radius:12px;">
+      <div class="font-name" style="margin-bottom:0.5rem;">Result</div>
+      <ul style="margin:0; padding-left:1.2rem; color:var(--muted); font-size:0.9rem;">
+        <li><strong>One sans family</strong>: Inter, loaded from rsms.me CDN, declared in Tailwind theme.</li>
+        <li><strong>One mono family</strong>: JetBrains Mono, loaded from jsDelivr CDN, declared in Tailwind theme.</li>
+        <li><strong>No orphaned stacks</strong> — every <code>font-family</code> declaration in <code>src/</code> and <code>playground/</code> now resolves to Inter or JetBrains Mono.</li>
+        <li><strong>Build artifacts</strong> (<code>dist/</code>, <code>storybook-static/</code>) still contain old font names — these regenerate on next build.</li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>

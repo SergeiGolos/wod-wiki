@@ -12,6 +12,7 @@
  *  3. Completed        — final session totals after workout ends
  *  4. SingleMetric     — only one metric bubble (e.g., total distance)
  *  5. CompactVariant   — compact className override
+ *  6. AllMetricTypes   — comprehensive coverage of every metric type
  */
 
 import React, { useEffect } from 'react';
@@ -264,6 +265,74 @@ export const LiveUpdates: Story = {
           <p className="text-xs text-muted-foreground text-center max-w-64">
             Reps increment by 5 each second to simulate a live workout.
           </p>
+        </CardWrapper>
+      </ScriptRuntimeProvider>
+    );
+  },
+};
+
+/** All metric types — comprehensive coverage of every supported metric type. */
+export const AllMetricTypes: Story = {
+  name: 'All metric types',
+  render: () => {
+    const runtime = React.useMemo(
+      () =>
+        buildRuntimeWithMetrics([
+          // Core strength
+          { key: 'Reps', value: 135, unit: 'reps' },
+          { key: 'Volume', value: 12825, unit: 'lb' },
+          { key: 'Sets', value: 12, unit: 'sets' },
+          { key: 'Load', value: 225, unit: 'lb' },
+          { key: 'Resistance', value: 185, unit: 'kg' },
+          // Cardio / endurance
+          { key: 'Distance', value: 5.2, unit: 'km' },
+          { key: 'Rounds', value: 8, unit: 'rounds' },
+          { key: 'Current Round', value: 3, unit: 'round' },
+          // Time
+          { key: 'Elapsed', value: 1250000, unit: 'ms' },
+          { key: 'Total Time', value: 1380000, unit: 'ms' },
+          // Energy / work
+          { key: 'Energy', value: 312, unit: 'kcal' },
+          { key: 'Work', value: 450, unit: 'kcal' },
+          // Intensity scores
+          { key: 'Intensity', value: 8.5, unit: 'au' },
+          { key: 'RIR', value: 2, unit: 'reps' },
+          { key: 'Session RPE', value: 7, unit: 'rpe' },
+          { key: 'Session Load', value: 945, unit: 'au' },
+          { key: 'MET Score', value: 12.4, unit: 'mets' },
+          { key: 'TIS', value: 85, unit: 'pts' },
+        ]),
+      [],
+    );
+    return (
+      <ScriptRuntimeProvider runtime={runtime}>
+        <CardWrapper label="All supported metric types">
+          <MetricTrackerCard />
+        </CardWrapper>
+      </ScriptRuntimeProvider>
+    );
+  },
+};
+
+/** Time formatting — validates ms → MM:SS and HH:MM:SS rendering. */
+export const TimeFormatting: Story = {
+  name: 'Time formatting — durations',
+  render: () => {
+    const runtime = React.useMemo(
+      () =>
+        buildRuntimeWithMetrics([
+          { key: 'Short', value: 45000, unit: 'ms' },
+          { key: 'Medium', value: 325000, unit: 'ms' },
+          { key: 'Long', value: 5461000, unit: 'ms' },
+          { key: 'In Secs', value: 90, unit: 'sec' },
+          { key: 'In Mins', value: 15, unit: 'min' },
+        ]),
+      [],
+    );
+    return (
+      <ScriptRuntimeProvider runtime={runtime}>
+        <CardWrapper label="Time formatting">
+          <MetricTrackerCard />
         </CardWrapper>
       </ScriptRuntimeProvider>
     );

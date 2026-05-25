@@ -29,6 +29,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 export interface SpatialNavigationOptions {
     /** Called when the user presses Enter/Select on the focused element. */
     onSelect?: (elementId: string, element: HTMLElement) => void;
+    /** Called whenever focus moves to a different element (including programmatic changes). */
+    onFocusChanged?: (elementId: string | null, element: HTMLElement | null) => void;
     /** When false, the hook is inert and does not intercept key events. */
     enabled?: boolean;
     /** Optional initial element to focus. */
@@ -131,6 +133,7 @@ function findNearest(
 export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
     const {
         onSelect,
+        onFocusChanged,
         enabled = true,
         initialFocusId,
         focusClassName = 'tv-focus',
@@ -140,10 +143,14 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
     const elementsRef = useRef<Map<string, HTMLElement>>(new Map());
     const focusedIdRef = useRef<string | null>(focusedId);
 
-    // Keep ref in sync
+    // Keep ref in sync and notify listener
     useEffect(() => {
         focusedIdRef.current = focusedId;
-    }, [focusedId]);
+        if (onFocusChanged) {
+            const el = focusedId ? elementsRef.current.get(focusedId) ?? null : null;
+            onFocusChanged(focusedId, el);
+        }
+    }, [focusedId, onFocusChanged]);
 
     // ── Element registration via ref callback ────────────────────────────────
 
@@ -178,6 +185,10 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
             if (id === focusedId) {
                 el.classList.add(focusClassName);
                 el.setAttribute('data-nav-focused', 'true');
+                // Scroll focused element into view for TV/10-foot UIs.
+                // 'nearest' avoids unnecessary scrolling when the element is
+                // already fully visible; 'auto' keeps D-Pad navigation snappy.
+                el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
             } else {
                 el.classList.remove(focusClassName);
                 el.setAttribute('data-nav-focused', 'false');
@@ -282,6 +293,24 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
      * <button {...getFocusProps('my-btn')}>Click me</button>
      * ```
      */
+    /**
+     * Clear all registered elements and optionally reset focus.
+     * Use this when the entire focusable surface changes (e.g. cross-mode
+     * transitions in the Chromecast receiver) so stale elements from the
+     * previous mode don't pollute spatial navigation in the new mode.
+     */
+    const reset = useCallback((newInitialFocusId?: string | null) => {
+        // Clean up focus classes from all tracked elements before clearing
+        for (const [_id, el] of elementsRef.current.entries()) {
+            el.classList.remove(focusClassName);
+            el.setAttribute('data-nav-focused', 'false');
+        }
+        elementsRef.current.clear();
+        const nextId = newInitialFocusId ?? null;
+        setFocusedId(nextId);
+        focusedIdRef.current = nextId;
+    }, [focusClassName]);
+
     const getFocusProps = useCallback(
         (id: string): FocusProps => ({
             'data-nav-id': id,
@@ -299,5 +328,7 @@ export function useSpatialNavigation(options: SpatialNavigationOptions = {}) {
         setFocusedId,
         /** Spread these props onto any element that should participate in navigation. */
         getFocusProps,
+        /** Clear the registry and optionally reset focus — useful on mode transitions. */
+        reset,
     } as const;
 }

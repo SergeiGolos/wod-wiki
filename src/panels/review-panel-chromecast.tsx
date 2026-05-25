@@ -17,7 +17,98 @@ import {
     X,
 } from 'lucide-react';
 
+interface ProjectionLike {
+    name: string;
+    value: number;
+    unit: string;
+    metricType?: string;
+}
 
+/**
+ * Aggregate projections by metricType, summing values.
+ *
+ * Projections that share a metricType (e.g. per-exercise volume cards) are
+ * merged into a single session-level card so the TV grid stays compact
+ * (design limit: ≤6 cards visible, 2-column layout).
+ *
+ * Projections without a metricType are kept as-is (treated as unique).
+ */
+/**
+ * @internal Exported for unit testing only.
+ */
+export function aggregateProjections(projections: ProjectionLike[]): ProjectionLike[] {
+    const grouped = new Map<string, ProjectionLike[]>();
+    const ungrouped: ProjectionLike[] = [];
+
+    for (const proj of projections) {
+        const type = proj.metricType?.toString().toLowerCase();
+        if (type) {
+            if (!grouped.has(type)) grouped.set(type, []);
+            grouped.get(type)!.push(proj);
+        } else {
+            ungrouped.push(proj);
+        }
+    }
+
+    const aggregated: ProjectionLike[] = [];
+
+    for (const [type, items] of grouped.entries()) {
+        const totalValue = items.reduce((sum, p) => sum + p.value, 0);
+        // Use the most common unit; fallback to the first item's unit.
+        const unitCounts = new Map<string, number>();
+        for (const item of items) {
+            unitCounts.set(item.unit, (unitCounts.get(item.unit) ?? 0) + 1);
+        }
+        let bestUnit = items[0].unit;
+        let bestCount = 0;
+        for (const [unit, count] of unitCounts.entries()) {
+            if (count > bestCount) {
+                bestCount = count;
+                bestUnit = unit;
+            }
+        }
+        aggregated.push({
+            name: aggregatedName(type, items[0].name),
+            value: totalValue,
+            unit: bestUnit,
+            metricType: type,
+        });
+    }
+
+    // Preserve original order: interleave ungrouped projections in their
+    // original positions relative to aggregated groups.
+    const result: ProjectionLike[] = [];
+    const seenTypes = new Set<string>();
+    for (const proj of projections) {
+        const type = proj.metricType?.toString().toLowerCase();
+        if (!type) {
+            result.push(proj);
+        } else if (!seenTypes.has(type)) {
+            seenTypes.add(type);
+            const agg = aggregated.find(a => a.metricType === type);
+            if (agg) result.push(agg);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * @internal Exported for unit testing only.
+ */
+export function aggregatedName(metricType: string, fallback: string): string {
+    switch (metricType) {
+        case 'volume': return 'Total Volume';
+        case 'rep':
+        case 'repetitions': return 'Total Reps';
+        case 'distance': return 'Total Distance';
+        case 'work': return 'Total Energy';
+        case 'load': return 'Total Load';
+        case 'elapsed': return 'Total Time';
+        case 'duration': return 'Total Duration';
+        default: return fallback;
+    }
+}
 
 export const ReceiverReviewPanel: React.FC<{
     reviewData: NonNullable<WorkbenchDisplayState['reviewData']>;
@@ -28,7 +119,8 @@ export const ReceiverReviewPanel: React.FC<{
     getFocusProps?: (id: string) => FocusProps;
 }> = ({ reviewData, analyticsSummary, onDismiss, getFocusProps }) => {
     // Prefer analytics summary if available, otherwise fall back to simple rows
-    const projections = analyticsSummary?.projections ?? [];
+    const rawProjections = analyticsSummary?.projections ?? [];
+    const projections = rawProjections.length > 0 ? aggregateProjections(rawProjections) : [];
     const totalDurationMs = analyticsSummary?.totalDurationMs ?? reviewData?.totalDurationMs ?? 0;
     const completedSegments = analyticsSummary?.completedSegments ?? reviewData?.completedSegments ?? 0;
 
@@ -83,9 +175,6 @@ export const ReceiverReviewPanel: React.FC<{
                                 >
                                     {/* Metric Value */}
                                     <div className="flex flex-col items-center gap-1">
-                                        <span className="text-lg font-bold text-foreground font-mono">
-                                            {proj.value.toLocaleString()}
-                                        </span>
                                         <span className="text-2xl font-bold text-foreground font-mono">
                                             {proj.value.toLocaleString()}
                                             <span className="text-sm font-medium text-muted-foreground ml-1">

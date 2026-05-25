@@ -2,13 +2,14 @@
  * Review Grid — useGridData Hook
  *
  * Transforms Segment[] (from AnalyticsTransformer) + user overrides into
- * GridRow[] / GridColumn[] ready for table rendering.
+ * GridRow[] / ColumnDef[] ready for table rendering via the CDL ColumnSet.
  *
  * Responsibilities:
  * - Pivot metrics from each segment into column-keyed cells
  * - Merge user overrides on top of runtime metric
  * - Apply preset filters, column filters, and global search
  * - Apply sorting (single or multi-column)
+ * - Use ColumnSet for visibility, ordering, and discoverability
  */
 
 import { useMemo } from 'react';
@@ -18,14 +19,19 @@ import type { Segment } from '@/core/models/AnalyticsModels';
 import type {
   GridRow,
   GridCell,
-  GridColumn,
   GridFilterConfig,
   GridSortConfig,
 } from './types';
-import { FIXED_COLUMN_IDS } from './types';
-import { getPreset, buildAllColumns } from './gridPresets';
-import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
-import { metricPresentation } from '@/core/metrics/presentation';
+import { GRID_COLUMN_SET_CONFIG } from './cdlColumnDefinitions';
+import { ColumnSet } from './ColumnSet';
+import type { ColumnSetContext } from './ColumnSet';
+import type { ColumnDef, ComputeContext } from './column-definition-language';
+import {
+  extractSortValue,
+  compareSortValues,
+  extractFilterText,
+  matchColumnFilter,
+} from './interpreters';
 
 // ─── Public Hook ───────────────────────────────────────────────
 
@@ -46,16 +52,25 @@ export interface UseGridDataOptions {
   graphTaggedColumns?: Set<string>;
   /** User-added metric types to show as columns even when no segment data exists */
   extraMetricTypes?: Set<MetricType>;
+  /** Per-column visibility overrides from user (id → forced visible/hidden) */
+  columnVisibilityOverrides?: Record<string, boolean>;
+  /** Column IDs explicitly added by the user */
+  addedColumnIds?: Set<string>;
 }
 
 export interface UseGridDataReturn {
   /** Filtered and sorted rows ready for rendering */
   rows: GridRow[];
-  /** Complete column definitions with visibility applied */
-  columns: GridColumn[];
+  /** Columns currently visible in the grid, in display order */
+  visibleColumns: ColumnDef[];
+  /** Columns the user can toggle on (not currently visible but available) */
+  availableColumns: ColumnDef[];
   /** Column ids currently tagged for graphing */
   graphTaggedColumnIds: string[];
 }
+
+// Singleton ColumnSet — config is immutable
+const globalColumnSet = new ColumnSet(GRID_COLUMN_SET_CONFIG);
 
 export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
   const {
@@ -67,155 +82,70 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
     filterOverrides,
     graphTaggedColumns,
     extraMetricTypes,
+    columnVisibilityOverrides,
+    addedColumnIds,
   } = options;
 
-  const preset = useMemo(() => getPreset(presetId), [presetId]);
-
-  // 1. Identify which metrics types actually exist in the data
-  //    (We check both runtime segments AND user overrides)
-  const activeMetricTypes = useMemo(() => {
-    const types = new Set<MetricType>();
-
-    const addType = (ft: MetricType) => {
-      // Guard: skip undefined/null metricType (defensive against malformed metric)
-      if (ft == null) return;
-
-      const surface = isDebugMode ? 'debug' as const : 'review-grid-column' as const;
-      if (metricPresentation.isHidden({ type: ft, origin: 'runtime' }, surface)) return;
-
-      types.add(ft);
-    };
-
-    // Check runtime segments
-    for (const seg of segments) {
-      if (seg.metrics) {
-        for (const f of seg.metrics) {
-          addType(f.type as MetricType);
-        }
-      }
-    }
-
-    // Check user overrides
-    for (const metrics of userOutputOverrides.values()) {
-      for (const f of metrics) {
-        addType(f.type as MetricType);
-      }
-    }
-
-    // Merge user-added columns (shown even when no data exists)
-    if (extraMetricTypes) {
-      for (const ft of extraMetricTypes) {
-        addType(ft);
-      }
-    }
-
-    return types;
-  }, [segments, userOutputOverrides, extraMetricTypes]);
-
-  // Build column definitions
-  const columns = useMemo(
-    () => {
-      const cols = buildAllColumns(preset, isDebugMode);
-
-      // Filter: Only keep metrics columns that have data
-      const activeCols = cols.filter((col) => {
-        // Always keep structural columns (no metricType)
-        if (!col.type) return true;
-
-        // Strict debug check: 'system' columns are hidden unless in debug mode
-        if (col.type === MetricType.System && !isDebugMode) {
-          return false;
-        }
-
-        // EXCEPTION: Always keep structural columns (no metricType)
-        // or specifically requested columns like Timestamp/Spans
-        if (
-          !col.type ||
-          col.id === FIXED_COLUMN_IDS.TIMESTAMP ||
-          col.id === FIXED_COLUMN_IDS.SPANS
-        ) {
-          return true;
-        }
-
-        // Only keep metrics columns if that type exists in the data
-        return activeMetricTypes.has(col.type);
-      });
-
-      // Map: Force visibility for active metrics columns (auto-select)
-      // and apply graph tags
-      const mappedCols = activeCols.map((col) => {
-        let newCol = { ...col };
-
-        // If it's an active metrics column, ensure it's visible by default
-        if (col.type && activeMetricTypes.has(col.type)) {
-          // System metric columns only auto-show in debug mode
-          // (Does not affect Timestamp/Spans as they use different MetricTypes)
-          if (col.type === MetricType.System) {
-            newCol.visible = isDebugMode;
-          } else {
-            newCol.visible = true;
-          }
-        }
-
-        // Apply graph tags
-        if (graphTaggedColumns && graphTaggedColumns.has(col.id)) {
-          newCol.isGraphed = true;
-        }
-
-        return newCol;
-      });
-
-      // 3. Identify and add "orphan" columns
-      // (Fragment types present in data but not in ALL_FRAGMENT_COLUMNS)
-      const knownTypes = new Set(mappedCols.map(c => c.type).filter(Boolean));
-
-      const orphanTypes = Array.from(activeMetricTypes).filter(ft => {
-        if (knownTypes.has(ft)) return false;
-
-        const surface = isDebugMode ? 'debug' as const : 'review-grid-column' as const;
-        if (metricPresentation.isHidden({ type: ft, origin: 'runtime' }, surface)) return false;
-
-        return true;
-      });
-
-      const orphanCols: GridColumn[] = orphanTypes.map(ft => ({
-        id: ft,
-        type: ft,
-        label: ft.charAt(0).toUpperCase() + ft.slice(1),
-        sortable: true,
-        filterable: true,
-        graphable: false, // Assume false for unknown types
-        isGraphed: false,
-        visible: true, // Always show orphans if they have data
-      }));
-
-      return [...mappedCols, ...orphanCols];
-    },
-    [preset, isDebugMode, graphTaggedColumns, activeMetricTypes],
-  );
-
-  // Merge filter: preset filters + user overrides
-  const mergedFilter = useMemo<GridFilterConfig>(
-    () => ({
-      ...preset.filters,
-      ...filterOverrides,
-    }),
-    [preset.filters, filterOverrides],
-  );
-
-  // Transform segments → rows, merge user overrides, filter, sort
+  // 1. Build rows from segments + overrides
   const rows = useMemo(() => {
     const rawRows = segmentsToRows(segments, userOutputOverrides);
-    const filtered = applyFilters(rawRows, mergedFilter, columns);
-    return applySorting(filtered, sortConfigs, columns);
-  }, [segments, userOutputOverrides, mergedFilter, sortConfigs, columns]);
+    // Derive Volume (reps × weight) when both Rep and Resistance are known.
+    for (const row of rawRows) {
+      deriveVolumeCell(row.cells);
+    }
+    return rawRows;
+  }, [segments, userOutputOverrides]);
 
-  const graphTaggedColumnIds = useMemo(
-    () => columns.filter((c) => c.isGraphed).map((c) => c.id),
-    [columns],
+  // 2. Build ColumnSetContext
+  const columnSetContext = useMemo<ColumnSetContext>(
+    () => ({
+      rows,
+      activePresetId: presetId,
+      isDebugMode,
+      graphTaggedColumnIds: graphTaggedColumns,
+      visibilityOverrides: columnVisibilityOverrides,
+      addedColumnIds,
+    }),
+    [rows, presetId, isDebugMode, graphTaggedColumns, columnVisibilityOverrides, addedColumnIds],
   );
 
-  return { rows, columns, graphTaggedColumnIds };
+  // 3. Compute visible and available columns via ColumnSet
+  const visibleColumns = useMemo(
+    () => globalColumnSet.getVisibleColumns(columnSetContext),
+    [columnSetContext],
+  );
+
+  const availableColumns = useMemo(
+    () => globalColumnSet.getAvailableColumns(columnSetContext),
+    [columnSetContext],
+  );
+
+  // 4. Merge filter: preset filters + user overrides
+  const mergedFilter = useMemo<GridFilterConfig>(
+    () => ({
+      ...(globalColumnSet.getPreset(presetId).filters ?? {}),
+      ...filterOverrides,
+    }),
+    [presetId, filterOverrides],
+  );
+
+  // 5. Apply filters and sorting
+  const filteredSortedRows = useMemo(() => {
+    const filtered = applyFilters(rows, mergedFilter, visibleColumns, globalColumnSet.definitions);
+    return applySorting(filtered, sortConfigs, visibleColumns, globalColumnSet.definitions);
+  }, [rows, mergedFilter, sortConfigs, visibleColumns]);
+
+  const graphTaggedColumnIds = useMemo(
+    () => Array.from(graphTaggedColumns ?? []),
+    [graphTaggedColumns],
+  );
+
+  return {
+    rows: filteredSortedRows,
+    visibleColumns,
+    availableColumns,
+    graphTaggedColumnIds,
+  };
 }
 
 // ─── Row Construction ──────────────────────────────────────────
@@ -235,14 +165,12 @@ function segmentsToRows(
   return segments.map((seg, idx) => {
     const cells = new Map<MetricType, GridCell>();
 
-    // Group runtime metrics by MetricType
     if (seg.metrics) {
       for (const frag of seg.metrics) {
         groupFragmentIntoCell(cells, frag);
       }
     }
 
-    // Merge user overrides for this segment's block key
     const blockKey = extractBlockKey(seg);
     const overrides = blockKey ? userOverrides.get(blockKey) : undefined;
     if (overrides) {
@@ -251,16 +179,11 @@ function segmentsToRows(
       }
     }
 
-    // Mark cells that contain user overrides
     for (const [, cell] of cells) {
       (cell as { hasUserOverride: boolean }).hasUserOverride = cell.metrics.some(
         (f) => f.origin === 'user',
       );
     }
-
-    // Derive Volume (reps × weight) when both Rep and Resistance are known.
-    // This re-runs whenever user overrides supply a missing rep or weight value.
-    deriveVolumeCell(cells);
 
     const outputType = ((seg as SegmentWithContext).context?.outputType as string) ?? seg.type;
 
@@ -282,11 +205,6 @@ function segmentsToRows(
   });
 }
 
-/**
- * Extract the source block key from a segment.
- * Segments carry a `name` that's often the block key or effort label.
- * We also check context for an explicit sourceBlockKey.
- */
 function extractBlockKey(seg: Segment): string | undefined {
   const ctx = (seg as SegmentWithContext).context;
   if (ctx?.sourceBlockKey) return ctx.sourceBlockKey as string;
@@ -295,11 +213,9 @@ function extractBlockKey(seg: Segment): string | undefined {
 
 /**
  * Derive a Volume cell (reps × weight kg) when both Rep and Resistance cells
- * are present with numeric values.  Skips if a Volume cell already exists or
- * either source cell is missing.
+ * are present with numeric values.
  */
 function deriveVolumeCell(cells: Map<MetricType, GridCell>): void {
-  // Already have a computed volume — don't overwrite
   if (cells.has(MetricType.Volume)) return;
 
   const repCell = cells.get(MetricType.Rep);
@@ -337,17 +253,12 @@ function deriveVolumeCell(cells: Map<MetricType, GridCell>): void {
   });
 }
 
-/**
- * Group a single metrics into the cells map.
- * NO LONGER combining Label/Text/CurrentRound into Effort.
- */
 function groupFragmentIntoCell(
   cells: Map<MetricType, GridCell>,
   frag: IMetric,
 ): void {
   const ft = frag.type as MetricType;
 
-  // Hide noise: Sounds are no longer displayed in the grid
   if (ft === MetricType.Sound) {
     return;
   }
@@ -371,17 +282,16 @@ function groupFragmentIntoCell(
 function applyFilters(
   rows: GridRow[],
   filter: GridFilterConfig,
-  columns: GridColumn[],
+  columns: ColumnDef[],
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
 ): GridRow[] {
   let result = rows;
 
-  // Filter by output type
   if (filter.outputTypes && filter.outputTypes.length > 0) {
     const allowed = new Set<string>(filter.outputTypes);
     result = result.filter((r) => allowed.has(r.outputType));
   }
 
-  // Filter by metrics origin
   if (filter.origins && filter.origins.length > 0) {
     const allowed = new Set(filter.origins);
     result = result.filter((r) => {
@@ -394,23 +304,37 @@ function applyFilters(
     });
   }
 
-  // Global text search
   if (filter.searchText && filter.searchText.trim().length > 0) {
     const needle = filter.searchText.trim().toLowerCase();
-    result = result.filter((r) => rowMatchesSearch(r, needle));
+    result = result.filter((r) => {
+      for (const col of columns) {
+        if (!col.filter) continue;
+        const ctx: ComputeContext = {
+          allRows: rows,
+          rowIndex: rows.indexOf(r),
+          columnDef: col,
+          dependencies: new Map(),
+        };
+        const cellText = extractFilterText(r, col, ctx, definitionMap).toLowerCase();
+        if (cellText.includes(needle)) return true;
+      }
+      return false;
+    });
   }
 
-  // Per-column filters
   if (filter.columnFilters) {
     for (const [colId, filterText] of Object.entries(filter.columnFilters)) {
       if (!filterText || filterText.trim().length === 0) continue;
-      const needle = filterText.trim().toLowerCase();
       const col = columns.find((c) => c.id === colId);
       if (!col) continue;
-
       result = result.filter((r) => {
-        const cellText = getCellTextForColumn(r, col);
-        return cellText.toLowerCase().includes(needle);
+        const ctx: ComputeContext = {
+          allRows: rows,
+          rowIndex: rows.indexOf(r),
+          columnDef: col,
+          dependencies: new Map(),
+        };
+        return matchColumnFilter(r, col, filterText, ctx, definitionMap);
       });
     }
   }
@@ -418,32 +342,13 @@ function applyFilters(
   return result;
 }
 
-/**
- * Check if any cell in the row contains the search text.
- */
-function rowMatchesSearch(row: GridRow, needle: string): boolean {
-  // Check fixed fields
-  if (row.sourceBlockKey.toLowerCase().includes(needle)) return true;
-  if (row.outputType.toLowerCase().includes(needle)) return true;
-  if (row.completionReason?.toLowerCase().includes(needle)) return true;
-
-  // Check metrics cells (visible ownership layer only)
-  for (const [metricType, cell] of row.cells) {
-    const visible = cell.metrics.getDisplayMetrics({ types: [metricType] });
-    for (const frag of visible) {
-      const text = metricToText(frag);
-      if (text.toLowerCase().includes(needle)) return true;
-    }
-  }
-  return false;
-}
-
 // ─── Sorting ───────────────────────────────────────────────────
 
 function applySorting(
   rows: GridRow[],
   sortConfigs: GridSortConfig[],
-  columns: GridColumn[],
+  columns: ColumnDef[],
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
 ): GridRow[] {
   if (sortConfigs.length === 0) return rows;
 
@@ -451,159 +356,27 @@ function applySorting(
   sorted.sort((a, b) => {
     for (const config of sortConfigs) {
       const col = columns.find((c) => c.id === config.columnId);
-      if (!col) continue;
+      if (!col || !col.sort) continue;
 
-      const valA = getSortValue(a, col);
-      const valB = getSortValue(b, col);
+      const ctxA: ComputeContext = {
+        allRows: rows,
+        rowIndex: rows.indexOf(a),
+        columnDef: col,
+        dependencies: new Map(),
+      };
+      const ctxB: ComputeContext = {
+        allRows: rows,
+        rowIndex: rows.indexOf(b),
+        columnDef: col,
+        dependencies: new Map(),
+      };
+      const valA = extractSortValue(a, col, ctxA, definitionMap);
+      const valB = extractSortValue(b, col, ctxB, definitionMap);
       const cmp = compareSortValues(valA, valB);
-
-      if (cmp !== 0) {
-        return config.direction === 'asc' ? cmp : -cmp;
-      }
+      if (cmp !== 0) return config.direction === 'asc' ? cmp : -cmp;
     }
-    // Stable fallback: sort by index
     return a.index - b.index;
   });
 
   return sorted;
-}
-
-/**
- * Extract a comparable value from a row for a given column.
- */
-function getSortValue(row: GridRow, col: GridColumn): string | number {
-  // Fixed columns
-  switch (col.id) {
-    case FIXED_COLUMN_IDS.INDEX:
-      return row.index;
-    case FIXED_COLUMN_IDS.BLOCK_KEY:
-      return row.sourceBlockKey;
-    case FIXED_COLUMN_IDS.OUTPUT_TYPE:
-      return row.outputType;
-    case FIXED_COLUMN_IDS.STACK_LEVEL:
-      return row.stackLevel;
-    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
-      return row.elapsed;
-    case FIXED_COLUMN_IDS.DURATION:
-      return row.duration ?? Infinity;
-    case FIXED_COLUMN_IDS.SPANS:
-      return row.spans?.[0]?.started ?? 0;
-    case FIXED_COLUMN_IDS.COMPLETION_REASON:
-      return row.completionReason ?? '';
-    case FIXED_COLUMN_IDS.TIMESTAMP:
-      return row.absoluteStartTime ?? 0;
-  }
-
-  // Fragment columns — sort by first metrics's value
-  if (col.type) {
-    const cell = row.cells.get(col.type);
-    const visible = cell?.metrics.getDisplayMetrics({ types: [col.type] }) ?? [];
-    if (visible.length === 0) return '';
-
-    const first = visible[0];
-    if (typeof first.value === 'number') return first.value;
-    return metricToText(first);
-  }
-
-  return '';
-}
-
-function compareSortValues(a: string | number, b: string | number): number {
-  if (typeof a === 'number' && typeof b === 'number') return a - b;
-  return String(a).localeCompare(String(b));
-}
-
-// ─── Helpers ───────────────────────────────────────────────────
-
-/**
- * Get display text for a cell in a specific column.
- */
-function getCellTextForColumn(row: GridRow, col: GridColumn): string {
-  switch (col.id) {
-    case FIXED_COLUMN_IDS.INDEX:
-      return String(row.index);
-    case FIXED_COLUMN_IDS.BLOCK_KEY:
-      return row.sourceBlockKey;
-    case FIXED_COLUMN_IDS.OUTPUT_TYPE:
-      return row.outputType;
-    case FIXED_COLUMN_IDS.STACK_LEVEL:
-      return String(row.stackLevel);
-    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
-      return row.elapsed === row.total
-        ? formatDuration(row.elapsed)
-        : `${formatDuration(row.elapsed)} / ${formatDuration(row.total)}`;
-    case FIXED_COLUMN_IDS.DURATION:
-      return formatDuration(row.duration);
-    case FIXED_COLUMN_IDS.SPANS:
-      return formatSpans(row.spans, row.duration);
-    case FIXED_COLUMN_IDS.COMPLETION_REASON:
-      return row.completionReason ?? '';
-    case FIXED_COLUMN_IDS.TIMESTAMP:
-      return String(row.absoluteStartTime);
-  }
-
-  if (col.type) {
-    const cell = row.cells.get(col.type);
-    if (!cell) return '';
-    const visible = cell.metrics.getDisplayMetrics({ types: [col.type] });
-    return visible.map(metricToText).join(', ');
-  }
-
-  return '';
-}
-
-/**
- * Convert a metrics to its display text.
- */
-function metricToText(frag: IMetric): string {
-  if (frag.image) return frag.image;
-  if (frag.value !== undefined && frag.value !== null) {
-    if (typeof frag.value === 'object') {
-      const val = frag.value as any;
-      if ('text' in val) return val.text;
-      if ('current' in val) return `Round ${val.current}`;
-      
-      return JSON.stringify(frag.value);
-    }
-    return String(frag.value);
-  }
-  return frag.type;
-}
-
-/**
- * Format duration (in seconds) into a human-readable duration (M:SS or H:MM:SS).
- */
-function formatDuration(seconds?: number): string {
-  if (seconds === undefined || seconds === null || isNaN(seconds) || seconds <= 0) {
-    return '';
-  }
-  
-  if (seconds >= 3600) {
-    return formatSecondsHHMMSS(seconds);
-  }
-  return formatSecondsMMSS(seconds);
-}
-
-/**
- * Format spans into a human-readable string.
- * "start - finish" across spans, or just "timestamp" if duration is 0.
- */
-function formatSpans(spans?: { started: number; ended?: number }[], durationSeconds: number = 0): string {
-  if (!spans || spans.length === 0) return '';
-
-  const format = (s: number) => formatDuration(s);
-
-  // If duration is 0 and we have at least one span, show it as a relative time
-  if (durationSeconds === 0 && spans.length > 0) {
-    const first = spans[0];
-    return format(first.started);
-  }
-
-  // Otherwise show the bracket across all spans
-  const first = spans[0];
-  const last = spans[spans.length - 1];
-  const start = format(first.started);
-  const end = last.ended !== undefined ? format(last.ended) : '...';
-
-  return `${start} — ${end}`;
 }

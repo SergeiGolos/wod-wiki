@@ -10,7 +10,7 @@
  *  AddColumnButton – ＋ button dropdown for adding metric columns
  *
  * Source: `src/components/review-grid/GridHeader.tsx`
- * Types:  `src/components/review-grid/types.ts`
+ * Types:  `src/components/review-grid/column-definition-language.ts`
  *
  * Stories:
  *  1. HeaderCellVariants  – unsorted / sorted asc / sorted desc / graphed
@@ -22,7 +22,8 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { MetricType } from '@/core/models/Metric';
-import type { GridColumn, GridSortConfig } from '@/components/review-grid/types';
+import type { GridSortConfig } from '@/components/review-grid/types';
+import type { ColumnDef } from '@/components/review-grid/column-definition-language';
 import { HeaderCell, FilterCell, AddColumnButton } from '@/components/review-grid/GridHeader';
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
@@ -36,13 +37,41 @@ const meta: Meta<typeof HeaderCell> = {
 export default meta;
 type Story = StoryObj<typeof HeaderCell>;
 
-// ─── Sample columns ───────────────────────────────────────────────────────────
+// ─── Sample columns (CDL ColumnDef) ───────────────────────────────────────────
 
-const COLUMNS: GridColumn[] = [
-  { id: 'action', label: 'Action', sortable: true,  filterable: true,  graphable: false, isGraphed: false, visible: true },
-  { id: 'reps',   label: 'Reps',   sortable: true,  filterable: true,  graphable: true,  isGraphed: false, visible: true },
-  { id: 'time',   label: 'Time',   sortable: true,  filterable: false, graphable: true,  isGraphed: true,  visible: true },
-  { id: 'notes',  label: 'Notes',  sortable: false, filterable: true,  graphable: false, isGraphed: false, visible: true },
+const COLUMNS: ColumnDef[] = [
+  {
+    id: 'action',
+    label: 'Action',
+    source: { type: 'metric-type', metricType: MetricType.Action },
+    format: { type: 'text' },
+    sort: { type: 'text', extractor: (c) => (c as any)?.metrics?.[0]?.value ?? '' },
+    filter: { extractor: (c) => (c as any)?.metrics?.[0]?.value ?? '', caseInsensitive: true },
+  },
+  {
+    id: 'reps',
+    label: 'Reps',
+    source: { type: 'metric-type', metricType: MetricType.Rep },
+    format: { type: 'number' },
+    sort: { type: 'numeric', extractor: (c) => (c as any)?.metrics?.[0]?.value ?? 0 },
+    filter: { extractor: (c) => String((c as any)?.metrics?.[0]?.value ?? ''), caseInsensitive: true },
+    graph: { extractor: (c) => (c as any)?.metrics?.[0]?.value, axisLabel: 'Reps', unit: 'reps' },
+  },
+  {
+    id: 'time',
+    label: 'Time',
+    source: { type: 'metric-type', metricType: MetricType.Duration },
+    format: { type: 'time' },
+    sort: { type: 'numeric', extractor: (c) => (c as any)?.metrics?.[0]?.value ?? 0 },
+    graph: { extractor: (c) => (c as any)?.metrics?.[0]?.value, axisLabel: 'Duration', unit: 's' },
+  },
+  {
+    id: 'notes',
+    label: 'Notes',
+    source: { type: 'metric-type', metricType: MetricType.Text },
+    format: { type: 'text' },
+    filter: { extractor: (c) => (c as any)?.metrics?.[0]?.value ?? '', caseInsensitive: true },
+  },
 ];
 
 // ─── Stories ──────────────────────────────────────────────────────────────────
@@ -53,10 +82,10 @@ export const HeaderCellVariants: Story = {
     <table className="border-collapse">
       <thead>
         <tr className="bg-muted/50 border-b border-border">
-          <HeaderCell column={COLUMNS[0]}                            sortConfig={undefined}                           onSort={() => {}} onToggleGraph={() => {}} />
-          <HeaderCell column={COLUMNS[1]}                            sortConfig={{ columnId: 'reps', direction: 'asc' }} onSort={() => {}} onToggleGraph={() => {}} />
-          <HeaderCell column={COLUMNS[2]}                            sortConfig={{ columnId: 'time', direction: 'desc' }} onSort={() => {}} onToggleGraph={() => {}} />
-          <HeaderCell column={{ ...COLUMNS[1], isGraphed: true }}    sortConfig={undefined}                           onSort={() => {}} onToggleGraph={() => {}} />
+          <HeaderCell column={COLUMNS[0]}                            sortConfig={undefined}                           onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+          <HeaderCell column={COLUMNS[1]}                            sortConfig={{ columnId: 'reps', direction: 'asc' }} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+          <HeaderCell column={COLUMNS[2]}                            sortConfig={{ columnId: 'time', direction: 'desc' }} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+          <HeaderCell column={COLUMNS[1]}                            sortConfig={undefined}                           onSort={() => {}} onToggleGraph={() => {}} isGraphed={true} />
         </tr>
       </thead>
     </table>
@@ -111,7 +140,7 @@ export const FullHeaderRow: Story = {
   render: () => {
     const [sortConfigs, setSortConfigs] = React.useState<GridSortConfig[]>([]);
     const [filters, setFilters] = React.useState<Record<string, string>>({});
-    const [columns, setColumns] = React.useState(COLUMNS);
+    const [graphedIds, setGraphedIds] = React.useState<Set<string>>(new Set());
 
     const handleSort = (columnId: string) => {
       setSortConfigs(prev => {
@@ -123,20 +152,26 @@ export const FullHeaderRow: Story = {
     };
 
     const handleToggleGraph = (columnId: string) => {
-      setColumns(cols => cols.map(c => c.id === columnId ? { ...c, isGraphed: !c.isGraphed } : c));
+      setGraphedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(columnId)) next.delete(columnId);
+        else next.add(columnId);
+        return next;
+      });
     };
 
     return (
       <table className="border-collapse w-[560px]">
         <thead className="bg-muted/50 sticky top-0 z-10">
           <tr className="border-b border-border">
-            {columns.map(col => (
+            {COLUMNS.map(col => (
               <HeaderCell
                 key={col.id}
                 column={col}
                 sortConfig={sortConfigs.find(s => s.columnId === col.id)}
                 onSort={handleSort}
                 onToggleGraph={handleToggleGraph}
+                isGraphed={graphedIds.has(col.id)}
               />
             ))}
             <th className="py-2 px-1 w-8">
@@ -147,7 +182,7 @@ export const FullHeaderRow: Story = {
             </th>
           </tr>
           <tr className="border-b border-border/50 bg-muted/20">
-            {columns.map(col => (
+            {COLUMNS.map(col => (
               <FilterCell
                 key={col.id}
                 column={col}
@@ -170,27 +205,28 @@ export const AllMetricsVisible: Story = {
       <thead>
         <tr className="bg-muted/50 border-b border-border">
           {[
-            { id: 'action', label: 'Action' },
-            { id: 'reps', label: 'Reps' },
-            { id: 'time', label: 'Time' },
-            { id: 'distance', label: 'Distance' },
-            { id: 'resistance', label: 'Load' },
-            { id: 'rounds', label: 'Rounds' },
+            { id: 'action', label: 'Action', type: MetricType.Action as MetricType },
+            { id: 'reps', label: 'Reps', type: MetricType.Rep as MetricType },
+            { id: 'time', label: 'Time', type: MetricType.Duration as MetricType },
+            { id: 'distance', label: 'Distance', type: MetricType.Distance as MetricType },
+            { id: 'resistance', label: 'Load', type: MetricType.Resistance as MetricType },
+            { id: 'rounds', label: 'Rounds', type: MetricType.Rounds as MetricType },
           ].map((col) => (
             <HeaderCell
               key={col.id}
               column={{
-                ...COLUMNS[1],
-                ...col,
-                sortable: true,
-                filterable: true,
-                graphable: true,
-                isGraphed: col.id === 'time' || col.id === 'distance',
-                visible: true,
+                id: col.id,
+                label: col.label,
+                source: { type: 'metric-type', metricType: col.type },
+                format: { type: 'text' },
+                sort: { type: 'numeric', extractor: (c) => (c as any)?.metrics?.[0]?.value ?? 0 },
+                filter: { extractor: (c) => String((c as any)?.metrics?.[0]?.value ?? ''), caseInsensitive: true },
+                graph: { extractor: (c) => (c as any)?.metrics?.[0]?.value, axisLabel: col.label, unit: '' },
               }}
               sortConfig={col.id === 'reps' ? { columnId: 'reps', direction: 'asc' } : undefined}
               onSort={() => {}}
               onToggleGraph={() => {}}
+              isGraphed={col.id === 'time' || col.id === 'distance'}
             />
           ))}
         </tr>
@@ -207,9 +243,9 @@ export const ErrorState: Story = {
       <table className="border-collapse w-full opacity-70">
         <thead>
           <tr className="bg-muted/40 border-b border-border">
-            <HeaderCell column={COLUMNS[0]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
-            <HeaderCell column={COLUMNS[1]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
-            <HeaderCell column={COLUMNS[2]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+            <HeaderCell column={COLUMNS[0]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+            <HeaderCell column={COLUMNS[1]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+            <HeaderCell column={COLUMNS[2]} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
           </tr>
         </thead>
       </table>
@@ -224,9 +260,9 @@ export const NarrowViewport: Story = {
       <table className="border-collapse min-w-[420px]">
         <thead>
           <tr className="bg-muted/50 border-b border-border">
-            <HeaderCell column={{ ...COLUMNS[0], label: 'Action / Movement Name' }} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
-            <HeaderCell column={{ ...COLUMNS[1], label: 'Repetitions Total' }} sortConfig={{ columnId: 'reps', direction: 'asc' }} onSort={() => {}} onToggleGraph={() => {}} />
-            <HeaderCell column={{ ...COLUMNS[2], label: 'Elapsed Time (mm:ss)' }} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} />
+            <HeaderCell column={{ ...COLUMNS[0], label: 'Action / Movement Name' }} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+            <HeaderCell column={{ ...COLUMNS[1], label: 'Repetitions Total' }} sortConfig={{ columnId: 'reps', direction: 'asc' }} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
+            <HeaderCell column={{ ...COLUMNS[2], label: 'Elapsed Time (mm:ss)' }} sortConfig={undefined} onSort={() => {}} onToggleGraph={() => {}} isGraphed={false} />
           </tr>
         </thead>
       </table>

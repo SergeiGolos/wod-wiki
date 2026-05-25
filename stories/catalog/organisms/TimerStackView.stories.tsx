@@ -207,3 +207,37 @@ export const CompactMode: Story = {
     </div>
   ),
 };
+
+// ── Mobile width variants for acceptance criteria ────────────────────────────
+
+const MobileWidthStory: React.FC<{ width: number; height?: number }> = ({ width, height = 600 }) => (
+  <div style={{ width, height }} className="border border-border rounded-lg overflow-hidden bg-background mx-auto">
+    <TimerStackView
+      elapsedMs={45_000}
+      hasActiveBlock
+      isRunning={true}
+      primaryTimer={franCountdownTimer(45_000)}
+      subLabel="Round 1 of 3"
+      compact
+      onStart={() => {}}
+      onPause={() => {}}
+      onStop={() => {}}
+      onNext={() => {}}
+    />
+  </div>
+);
+
+export const Compact320px: Story = {
+  name: 'Compact — 320px width',
+  render: () => <MobileWidthStory width={320} />,
+};
+
+export const Compact375px: Story = {
+  name: 'Compact — 375px width',
+  render: () => <MobileWidthStory width={375} />,
+};
+
+export const Compact480px: Story = {
+  name: 'Compact — 480px width',
+  render: () => <MobileWidthStory width={480} />,
+};

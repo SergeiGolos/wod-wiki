@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/complex
+route: /guide/syntax/complex
 type: syntax
 ---
 
@@ -95,14 +95,14 @@ You've seen the full syntax. Time to write your own.
 label:  ← Timers & Protocols
 target: ex
 pipeline:
-  - navigate: /syntax/protocols
+  - navigate: /guide/syntax/protocols
 ```
 
 ```button
 label:  ← Back to Syntax Index
 target: ex
 pipeline:
-  - navigate: /syntax
+  - navigate: /guide/syntax
 ```
 
 ```button

@@ -131,8 +131,8 @@ export interface GridViewPreset {
   readonly label: string;
   /** Filter configuration for this preset */
   readonly filters: GridFilterConfig;
-  /** Which metrics-type columns are visible in this preset */
-  readonly visibleColumns: MetricType[];
+  /** Column ids visible in this preset (legacy compatibility wrapper) */
+  readonly visibleColumns: string[];
   /** Whether this preset is the default */
   readonly isDefault?: boolean;
 }

@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/structure
+route: /guide/syntax/structure
 type: syntax
 ---
 
@@ -145,12 +145,12 @@ pipeline:
 label:  ← Core Concepts
 target: ex
 pipeline:
-  - navigate: /syntax/basics
+  - navigate: /guide/syntax/basics
 ```
 
 ```button
 label:  Timers & Protocols →
 target: ex
 pipeline:
-  - navigate: /syntax/protocols
+  - navigate: /guide/syntax/protocols
 ```

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WOD-Wiki · Concept 1: Editor + Live HUD Split-Pane</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              bg: '#f5f2ed',
+              surface: '#ede9e2',
+              primary: '#5980a8',
+              dark: {
+                bg: '#2e3440',
+                surface: '#3b4252',
+                primary: '#81a1c1',
+              }
+            }
+          },
+          letterSpacing: {
+            headline: '-0.08em',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { font-family: 'Inter', sans-serif; }
+    .dark body { background: #2e3440; color: #eceff4; }
+    body { background: #f5f2ed; color: #1a1a1a; }
+
+    /* Green atmospheric gradient */
+    .hero-glow {
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(24,226,153,0.18) 0%, transparent 70%);
+    }
+
+    /* Editor mock styles */
+    .editor-chrome {
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+    .dark .editor-chrome { background: #3b4252; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+    .traffic-light { width: 12px; height: 12px; border-radius: 50%; }
+    .tl-red { background: #ff5f57; }
+    .tl-yellow { background: #ffbd2e; }
+    .tl-green { background: #28c840; }
+
+    .code-line {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .wod-keyword { color: #5980a8; font-weight: 600; }
+    .dark .wod-keyword { color: #81a1c1; }
+    .wod-number { color: #d08770; }
+    .dark .wod-number { color: #d08770; }
+    .wod-unit { color: #a3be8c; }
+    .dark .wod-unit { color: #a3be8c; }
+    .wod-movement { color: #4c566a; }
+    .dark .wod-movement { color: #d8dee9; }
+    .wod-comment { color: #8b949e; font-style: italic; }
+
+    /* HUD styles */
+    .hud-card {
+      background: white;
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .dark .hud-card { background: #3b4252; border-color: rgba(255,255,255,0.06); }
+
+    .round-progress {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: conic-gradient(#5980a8 0% 40%, #ede9e2 40% 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dark .round-progress { background: conic-gradient(#81a1c1 0% 40%, #4c566a 40% 100%); }
+    .round-inner {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: white;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dark .round-inner { background: #3b4252; }
+
+    .movement-active {
+      background: linear-gradient(135deg, rgba(89,128,168,0.12) 0%, rgba(24,226,153,0.08) 100%);
+      border: 1px solid rgba(89,128,168,0.25);
+      border-radius: 12px;
+    }
+    .dark .movement-active {
+      background: linear-gradient(135deg, rgba(129,161,193,0.15) 0%, rgba(24,226,153,0.1) 100%);
+      border-color: rgba(129,161,193,0.3);
+    }
+
+    .run-btn {
+      background: #5980a8;
+      color: white;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 12px 28px;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: opacity 0.15s;
+      width: 100%;
+      justify-content: center;
+    }
+    .run-btn:hover { opacity: 0.88; }
+    .dark .run-btn { background: #81a1c1; color: #2e3440; }
+
+    /* Annotation badges */
+    .annotation {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      background: rgba(89,128,168,0.12);
+      color: #5980a8;
+      border: 1px solid rgba(89,128,168,0.2);
+      border-radius: 4px;
+      padding: 1px 6px;
+      white-space: nowrap;
+    }
+    .dark .annotation { background: rgba(129,161,193,0.15); color: #81a1c1; border-color: rgba(129,161,193,0.25); }
+
+    .divider { 
+      width: 6px; 
+      background: #ede9e2; 
+      border-radius: 3px; 
+      cursor: col-resize; 
+      flex-shrink: 0;
+      position: relative;
+    }
+    .dark .divider { background: #4c566a; }
+    .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 32px;
+      background: rgba(0,0,0,0.15);
+      border-radius: 1px;
+    }
+  </style>
+</head>
+<body class="min-h-screen transition-colors duration-200">
+  <!-- Theme toggle -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 backdrop-blur px-4 py-2.5 shadow-sm">
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+    <button onclick="toggleDark()" class="relative w-10 h-5 rounded-full bg-zinc-200 dark:bg-zinc-600 transition-colors">
+      <span id="toggle-thumb" class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform dark:translate-x-5"></span>
+    </button>
+    <svg class="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+    <span class="ml-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 font-mono">Concept 1</span>
+  </div>
+
+  <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+    <!-- Annotation header -->
+    <div class="mb-6 flex items-center gap-3">
+      <span class="annotation">CONCEPT 1</span>
+      <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Editor + Live HUD Split-Pane</span>
+      <span class="text-xs text-zinc-400 dark:text-zinc-500">True split sandbox · Equal visual weight · Live HUD preview</span>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-glow relative rounded-3xl overflow-hidden mb-8 px-8 py-10 sm:px-12 sm:py-14 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50">
+      <div class="max-w-2xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 mb-3">wod-wiki playground</p>
+        <h1 class="text-3xl sm:text-4xl font-semibold text-zinc-950 dark:text-zinc-100" style="letter-spacing: -0.04em; line-height: 1.15;">
+          Write workouts. <br/>See them live.
+        </h1>
+        <p class="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-300 max-w-lg">
+          The WOD syntax is readable by design. Edit a workout below and watch the structured HUD update in real time.
+        </p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <button class="run-btn" style="width:auto">▶ Try the Sandbox</button>
+          <button class="inline-flex items-center gap-2 rounded-full border border-zinc-300 dark:border-zinc-600 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">Read the Docs →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Split-Pane Sandbox -->
+    <section class="rounded-3xl border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-white dark:bg-zinc-800/40">
+      <!-- Sandbox header bar -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 dark:border-zinc-700/60 bg-zinc-50/80 dark:bg-zinc-800/60">
+        <div class="flex items-center gap-2.5">
+          <div class="traffic-light tl-red"></div>
+          <div class="traffic-light tl-yellow"></div>
+          <div class="traffic-light tl-green"></div>
+          <span class="ml-2 text-xs font-mono text-zinc-400 dark:text-zinc-500">amrap-12.wod</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="annotation">CodeMirror 6</span>
+          <span class="annotation">WOD Syntax</span>
+        </div>
+      </div>
+
+      <!-- Split content -->
+      <div class="flex" style="min-height: 420px;">
+        <!-- LEFT: Editor -->
+        <div class="flex-1 p-5 border-r border-zinc-100 dark:border-zinc-700/40 min-w-0">
+          <div class="h-full">
+            <!-- Line numbers + code -->
+            <div class="space-y-0.5">
+              <!-- Editor toolbar -->
+              <div class="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-700/40">
+                <span class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">EDITOR</span>
+                <span class="text-xs text-zinc-400 dark:text-zinc-500">· editable</span>
+              </div>
+
+              <div class="flex items-start gap-4 code-line">
+                <span class="text-zinc-300 dark:text-zinc-600 select-none w-5 text-right flex-shrink-0">1</span>
+                <span><span class="wod-keyword">AMRAP</span> <span class="wod-number">12:00</span></span>
+              </div>
+              <div class="flex items-start gap-4 code-line">
+                <span class="text-zinc-300 dark:text-zinc-600 select-none w-5 text-right flex-shrink-0">2</span>
+                <span>  <span class="wod-number">10</span> <span class="wod-movement">Kettlebell Swings</span> <span class="wod-unit">24kg</span></span>
+              </div>
+              <div class="flex items-start gap-4 code-line">
+                <span class="text-zinc-300 dark:text-zinc-600 select-none w-5 text-right flex-shrink-0">3</span>
+                <span>  <span class="wod-number">8</span> <span class="wod-movement">Burpees</span></span>
+              </div>
+              <div class="flex items-start gap-4 code-line">
+                <span class="text-zinc-300 dark:text-zinc-600 select-none w-5 text-right flex-shrink-0">4</span>
+                <span>  <span class="wod-keyword">*:30</span> <span class="wod-movement">Rest</span></span>
+              </div>
+
+              <!-- Cursor line (active) -->
+              <div class="flex items-start gap-4 code-line bg-zinc-50 dark:bg-zinc-700/30 rounded px-0 -mx-1 px-1">
+                <span class="text-zinc-300 dark:text-zinc-600 select-none w-5 text-right flex-shrink-0">5</span>
+                <span class="inline-flex items-center gap-1 text-zinc-400 dark:text-zinc-500 italic text-xs">
+                  <span>|</span><span class="text-xs">type here…</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Annotation tags -->
+            <div class="mt-6 space-y-2">
+              <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <span class="annotation">WodCompanion</span>
+                <span>Overlay system — action buttons &amp; metric chips</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <span class="annotation">CodeMirror 6</span>
+                <span>WOD syntax highlighting + completion</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drag handle -->
+        <div class="divider hidden sm:block"></div>
+
+        <!-- RIGHT: Live HUD -->
+        <div class="flex-1 p-5 bg-zinc-50/50 dark:bg-zinc-800/20 min-w-0">
+          <div class="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-700/40">
+            <span class="text-xs font-semibold text-zinc-500 dark:text-zinc-400">LIVE HUD</span>
+            <span class="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              parsing
+            </span>
+          </div>
+
+          <!-- Round progress -->
+          <div class="hud-card p-4 mb-3">
+            <div class="flex items-center gap-4">
+              <div class="round-progress flex-shrink-0">
+                <div class="round-inner">
+                  <div class="text-center">
+                    <div class="text-base font-bold text-zinc-800 dark:text-zinc-100" style="font-family: 'JetBrains Mono', monospace;">2</div>
+                    <div class="text-xs text-zinc-400 leading-none">of 5</div>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">AMRAP · 12:00</div>
+                <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100" style="font-family: 'JetBrains Mono', monospace; letter-spacing: -0.04em;">10:24</div>
+                <div class="text-xs text-zinc-400 dark:text-zinc-500">remaining</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active movement -->
+          <div class="movement-active p-4 mb-3">
+            <div class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">NOW</div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Kettlebell Swings</div>
+                <div class="text-sm text-zinc-500 dark:text-zinc-400 font-mono">10 reps · 24kg</div>
+              </div>
+              <div class="text-2xl">🏋️</div>
+            </div>
+          </div>
+
+          <!-- Next up -->
+          <div class="hud-card p-4 mb-3">
+            <div class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">NEXT UP</div>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-zinc-700 dark:text-zinc-300">Burpees</span>
+                <span class="font-mono text-xs text-zinc-500">8 reps</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-zinc-700 dark:text-zinc-300">Rest</span>
+                <span class="font-mono text-xs text-zinc-500">:30</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Run button -->
+          <button class="run-btn mt-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Run Workout Timer
+          </button>
+
+          <!-- Annotation -->
+          <div class="mt-4 space-y-1.5">
+            <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+              <span class="annotation">RuntimeTimerPanel</span>
+              <span>VisualStatePanel + TimerDisplay</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+              <span class="annotation">FullscreenTimer</span>
+              <span>Dialog-based immersive timer on Run</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mobile responsive note -->
+    <div class="mt-4 flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+      <span>On mobile: editor and HUD stack vertically · HUD collapses to compact summary bar</span>
+    </div>
+
+    <!-- Syntax reference cards -->
+    <div class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-5">
+        <div class="text-xl mb-2">🔁</div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">Structure</div>
+        <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Rounds</div>
+        <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Use parenthesis to repeat grouped blocks.</div>
+        <pre class="text-xs font-mono bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-3 text-zinc-700 dark:text-zinc-300 overflow-x-auto">(3)
+  8 Front Squats 95lb
+  *:45 Rest</pre>
+      </div>
+      <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-5">
+        <div class="text-xl mb-2">⏱️</div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">Timing</div>
+        <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Timers</div>
+        <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Countdowns and rest timers can mix in one block.</div>
+        <pre class="text-xs font-mono bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-3 text-zinc-700 dark:text-zinc-300 overflow-x-auto">2:00 Row
+*:30 Rest</pre>
+      </div>
+      <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-5">
+        <div class="text-xl mb-2">🏋️</div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">Loading</div>
+        <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Rep Schemes</div>
+        <div class="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Comma-separated reps compress descending sets.</div>
+        <pre class="text-xs font-mono bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-3 text-zinc-700 dark:text-zinc-300 overflow-x-auto">21,15,9 Thrusters 95lb</pre>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function toggleDark() {
+      document.documentElement.classList.toggle('dark');
+    }
+    // Reflect initial dark mode preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+</body>
+</html>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- 📱 MOBILE VIEWS (Concept 1 — Split-Pane, stacked)  -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 py-14">
+    <div class="mb-8">
+      <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        📱 Mobile Views — Concept 1
+      </span>
+      <h2 class="mt-2 text-xl font-bold text-zinc-900 dark:text-zinc-100" style="letter-spacing:-0.03em;">Split-Pane → Stacked Single Column</h2>
+      <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">On mobile the two panes stack vertically: editor first, then the HUD panel collapses to a compact summary strip with a single Run button.</p>
+    </div>
+
+    <div class="flex flex-wrap gap-8 justify-center">
+
+      <!-- LIGHT MODE PHONE -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Light Mode · 375px</span>
+        <div style="width:375px; border-radius:40px; background:#e5e7eb; padding:12px; box-shadow:0 8px 40px rgba(0,0,0,0.18);">
+          <!-- Phone notch bar -->
+          <div style="background:#1a1a1a; border-radius:30px 30px 0 0; height:28px; display:flex; align-items:center; justify-content:center; margin-bottom:2px;">
+            <div style="width:80px; height:6px; background:#333; border-radius:3px;"></div>
+          </div>
+          <!-- Phone screen -->
+          <div style="background:#f5f2ed; border-radius:4px 4px 28px 28px; overflow:hidden; max-height:700px; overflow-y:auto; font-family:'Inter',sans-serif;">
+            <!-- Hero (stacked) -->
+            <div style="background:linear-gradient(180deg,rgba(24,226,153,0.14) 0%,transparent 60%); padding:20px 16px 16px;">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:#8b949e;margin-bottom:6px;">WOD-WIKI PLAYGROUND</div>
+              <div style="font-size:20px;font-weight:700;color:#111;line-height:1.2;letter-spacing:-0.04em;margin-bottom:8px;">Write workouts.<br/>See them live.</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;margin-bottom:12px;">The WOD syntax is readable by design. Edit below and watch the HUD update.</div>
+              <button style="background:#1a1a1a;color:white;border-radius:999px;padding:9px 16px;font-size:12px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center;">▶ Try the Sandbox</button>
+            </div>
+
+            <!-- MacOS Chrome (full width, no split) -->
+            <div style="margin:0 8px 8px; background:white; border-radius:12px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.08);">
+              <div style="background:#f4f4f4;padding:8px 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(0,0,0,0.06);">
+                <div style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#ffbd2e;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#28c840;"></div>
+                <span style="font-family:'Courier New',monospace;font-size:9px;color:#9ca3af;margin-left:4px;">amrap-12.wod</span>
+              </div>
+              <div style="padding:12px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.8;">
+                <div><span style="color:#5980a8;font-weight:600;">AMRAP</span> <span style="color:#d08770;">12:00</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">10</span> <span style="color:#4c566a;">Kettlebell Swings</span> <span style="color:#a3be8c;">24kg</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">8</span> <span style="color:#4c566a;">Burpees</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#5980a8;font-weight:600;">*:30</span> <span style="color:#4c566a;">Rest</span></div>
+              </div>
+            </div>
+
+            <!-- HUD — compact summary strip (collapsed, mobile) -->
+            <div style="margin:0 8px 8px; background:white; border-radius:12px; padding:12px; box-shadow:0 1px 4px rgba(0,0,0,0.07);">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="width:44px;height:44px;border-radius:50%;background:conic-gradient(#5980a8 0% 38%,#ede9e2 38% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div style="width:34px;height:34px;border-radius:50%;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <div style="font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#111;line-height:1;">2</div>
+                    <div style="font-size:8px;color:#9ca3af;line-height:1;">of 5</div>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:9px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">AMRAP · 12:00</div>
+                  <div style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#111;letter-spacing:-0.04em;">10:24</div>
+                </div>
+              </div>
+              <!-- Active movement (compact) -->
+              <div style="background:linear-gradient(135deg,rgba(89,128,168,0.1),rgba(24,226,153,0.07));border:1px solid rgba(89,128,168,0.18);border-radius:10px;padding:10px;margin-bottom:8px;">
+                <div style="font-size:9px;color:#8b949e;font-weight:600;text-transform:uppercase;margin-bottom:3px;">NOW</div>
+                <div style="font-size:13px;font-weight:600;color:#111;">Kettlebell Swings</div>
+                <div style="font-size:11px;color:#8b949e;font-family:'Courier New',monospace;">10 reps · 24kg</div>
+              </div>
+              <!-- Run button -->
+              <button style="background:#5980a8;color:white;border-radius:999px;padding:10px;font-size:13px;font-weight:600;border:none;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;">▶ Run Workout Timer</button>
+            </div>
+
+            <!-- Syntax cards (1 col) -->
+            <div style="padding:0 8px 16px;display:flex;flex-direction:column;gap:8px;">
+              <div style="background:white;border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,0.06);">
+                <div style="font-size:14px;margin-bottom:4px;">🔁</div>
+                <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Structure</div>
+                <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:4px;">Rounds</div>
+                <pre style="font-size:10px;background:#f9f9f8;border-radius:8px;padding:8px;color:#374151;overflow-x:auto;margin:0;">(3)
+  8 Front Squats 95lb
+  *:45 Rest</pre>
+              </div>
+              <div style="background:white;border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,0.06);">
+                <div style="font-size:14px;margin-bottom:4px;">⏱️</div>
+                <div style="font-size:10px;color:#9ca3af;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Timing</div>
+                <div style="font-size:12px;font-weight:600;color:#111;margin-bottom:4px;">Timers</div>
+                <pre style="font-size:10px;background:#f9f9f8;border-radius:8px;padding:8px;color:#374151;overflow-x:auto;margin:0;">2:00 Row
+*:30 Rest</pre>
+              </div>
+            </div>
+          </div>
+          <!-- Home bar -->
+          <div style="height:20px;display:flex;align-items:center;justify-content:center;margin-top:4px;">
+            <div style="width:100px;height:4px;background:#333;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DARK MODE PHONE -->
+      <div class="flex flex-col items-center gap-3">
+        <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Dark Mode · 375px</span>
+        <div style="width:375px; border-radius:40px; background:#1a1a1a; padding:12px; box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+          <div style="background:#111; border-radius:30px 30px 0 0; height:28px; display:flex; align-items:center; justify-content:center; margin-bottom:2px;">
+            <div style="width:80px; height:6px; background:#333; border-radius:3px;"></div>
+          </div>
+          <div style="background:#2e3440; border-radius:4px 4px 28px 28px; overflow:hidden; max-height:700px; overflow-y:auto; font-family:'Inter',sans-serif;">
+            <!-- Hero -->
+            <div style="background:linear-gradient(180deg,rgba(24,226,153,0.12) 0%,transparent 60%); padding:20px 16px 16px;">
+              <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;color:#616e88;margin-bottom:6px;">WOD-WIKI PLAYGROUND</div>
+              <div style="font-size:20px;font-weight:700;color:#eceff4;line-height:1.2;letter-spacing:-0.04em;margin-bottom:8px;">Write workouts.<br/>See them live.</div>
+              <div style="font-size:11px;color:#8b949e;line-height:1.6;margin-bottom:12px;">The WOD syntax is readable by design. Edit below and watch the HUD update.</div>
+              <button style="background:#eceff4;color:#2e3440;border-radius:999px;padding:9px 16px;font-size:12px;font-weight:600;border:none;display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center;">▶ Try the Sandbox</button>
+            </div>
+            <!-- Editor -->
+            <div style="margin:0 8px 8px; background:#3b4252; border-radius:12px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.3);">
+              <div style="background:#434c5e;padding:8px 12px;display:flex;align-items:center;gap:5px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="width:9px;height:9px;border-radius:50%;background:#ff5f57;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#ffbd2e;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#28c840;"></div>
+              </div>
+              <div style="padding:12px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.8;">
+                <div><span style="color:#81a1c1;font-weight:600;">AMRAP</span> <span style="color:#d08770;">12:00</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">10</span> <span style="color:#d8dee9;">Kettlebell Swings</span> <span style="color:#a3be8c;">24kg</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#d08770;">8</span> <span style="color:#d8dee9;">Burpees</span></div>
+                <div>&nbsp;&nbsp;<span style="color:#81a1c1;font-weight:600;">*:30</span> <span style="color:#d8dee9;">Rest</span></div>
+              </div>
+            </div>
+            <!-- HUD (dark) -->
+            <div style="margin:0 8px 8px; background:#3b4252; border-radius:12px; padding:12px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="width:44px;height:44px;border-radius:50%;background:conic-gradient(#81a1c1 0% 38%,#4c566a 38% 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div style="width:34px;height:34px;border-radius:50%;background:#3b4252;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <div style="font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#eceff4;line-height:1;">2</div>
+                    <div style="font-size:8px;color:#616e88;line-height:1;">of 5</div>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:9px;color:#616e88;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">AMRAP · 12:00</div>
+                  <div style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;color:#eceff4;letter-spacing:-0.04em;">10:24</div>
+                </div>
+              </div>
+              <div style="background:linear-gradient(135deg,rgba(129,161,193,0.15),rgba(24,226,153,0.08));border:1px solid rgba(129,161,193,0.25);border-radius:10px;padding:10px;margin-bottom:8px;">
+                <div style="font-size:9px;color:#616e88;font-weight:600;text-transform:uppercase;margin-bottom:3px;">NOW</div>
+                <div style="font-size:13px;font-weight:600;color:#eceff4;">Kettlebell Swings</div>
+                <div style="font-size:11px;color:#8b949e;font-family:'Courier New',monospace;">10 reps · 24kg</div>
+              </div>
+              <button style="background:#81a1c1;color:#2e3440;border-radius:999px;padding:10px;font-size:13px;font-weight:600;border:none;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;">▶ Run Workout Timer</button>
+            </div>
+            <!-- Syntax cards (dark) -->
+            <div style="padding:0 8px 16px;">
+              <div style="background:#3b4252;border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.06);">
+                <div style="font-size:14px;margin-bottom:4px;">🔁</div>
+                <div style="font-size:10px;color:#616e88;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Structure</div>
+                <div style="font-size:12px;font-weight:600;color:#eceff4;margin-bottom:4px;">Rounds</div>
+                <pre style="font-size:10px;background:#2e3440;border-radius:8px;padding:8px;color:#d8dee9;overflow-x:auto;margin:0;">(3)
+  8 Front Squats 95lb
+  *:45 Rest</pre>
+              </div>
+            </div>
+          </div>
+          <div style="height:20px;display:flex;align-items:center;justify-content:center;margin-top:4px;">
+            <div style="width:100px;height:4px;background:#555;border-radius:2px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Behavior notes -->
+    <div class="mt-10 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 p-6 max-w-2xl">
+      <div class="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-3">📱 Mobile Behavior — Concept 1</div>
+      <ul class="text-sm text-zinc-600 dark:text-zinc-400 space-y-2">
+        <li>• <strong>Split pane → stacked</strong>: The two equal columns collapse into a single vertical stack at &lt;768px. Editor appears first.</li>
+        <li>• <strong>HUD compact strip</strong>: The full HUD collapses to: round indicator + countdown + active movement card + Run button. Next-up list is hidden by default, expandable via tap.</li>
+        <li>• <strong>Drag handle removed</strong>: The vertical divider disappears on mobile. Full-width editor fills the viewport.</li>
+        <li>• <strong>Syntax cards</strong>: 3-column grid → 1 column. Cards expand to full width.</li>
+        <li>• <strong>Run button</strong>: Pinned at bottom of HUD section, full width, 48px tap target.</li>
+      </ul>
+    </div>
+  </section>
+

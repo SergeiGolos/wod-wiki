@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WOD.Wiki Mobile Tracker</title>
+<!-- Tailwind CSS v3 CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Custom Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              green: '#18E299',
+              blue: '#4A6FA5',
+              muted: '#F4F1EA',
+              card: '#F0EBE3',
+              border: '#DED9D1',
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Menlo', 'monospace'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- Google Fonts for Typography -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="layout-adjustments">
+    body {
+      background-color: #FAF9F6;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .status-bar-spacer {
+      height: 44px; /* Standard iOS notch area */
+    }
+    .home-indicator {
+      width: 134px;
+      height: 5px;
+      background-color: #000;
+      border-radius: 100px;
+      margin: 20px auto 8px;
+    }
+    /* Specific styling for the circular timer ring */
+    .timer-ring {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen max-w-md mx-auto overflow-hidden">
+<!-- BEGIN: Status Bar Area -->
+<div class="status-bar-spacer flex justify-between items-end px-6 pb-2">
+<span class="text-sm font-bold">9:41</span>
+<div class="flex gap-1.5 items-center">
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"></path></svg>
+<svg class="w-4 h-4" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M17.944 11c.052.332.056.666.014.996l-1.025 7.427A1.5 1.5 0 0115.449 21H4.551a1.5 1.5 0 01-1.484-1.577l-1.025-7.427a3.5 3.5 0 116.692-1.477 3.5 3.5 0 116.692 1.477zM10 13a1 1 0 100-2 1 1 0 000 2z" fill-rule="evenodd"></path></svg>
+<div class="w-6 h-3 border-2 border-current rounded-sm relative after:content-[''] after:absolute after:-right-1 after:top-0.5 after:w-1 after:h-1 after:bg-current"></div>
+</div>
+</div>
+<!-- END: Status Bar Area -->
+<!-- BEGIN: MainHeader -->
+<header class="px-6 py-4 flex items-center justify-between" data-purpose="app-navigation">
+<div class="flex items-center gap-1">
+<h1 class="text-2xl font-black tracking-tight flex items-center">
+        WOD<span class="text-gray-400">.WIKI</span>
+</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-gray-600">
+<svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<nav class="flex bg-gray-100 p-1 rounded-lg text-sm font-semibold">
+<span class="px-3 py-1 text-gray-400">[Plan]</span>
+<span class="px-3 py-1 bg-white shadow-sm rounded-md text-brand-blue border border-gray-100">[Track]</span>
+<span class="px-3 py-1 text-gray-400">[Review]</span>
+</nav>
+</div>
+</header>
+<!-- END: MainHeader -->
+<!-- BEGIN: ContentContainer -->
+<main class="flex-1 px-4 pb-4 overflow-hidden flex flex-col gap-4">
+<!-- BEGIN: WorkoutVisualState -->
+<section class="bg-brand-muted rounded-[32px] p-4 border border-brand-border flex flex-col gap-3" data-purpose="active-session-info">
+<!-- Session Breadcrumb -->
+<div class="bg-brand-card/60 rounded-xl px-4 py-3 flex justify-between items-center">
+<span class="text-gray-500 font-medium">Session</span>
+<div class="flex items-center gap-1 text-gray-400 font-mono text-sm">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          00:15
+        </div>
+</div>
+<!-- Round Info -->
+<div class="bg-brand-card rounded-xl px-4 py-3 border border-brand-border/50">
+<span class="text-gray-600 font-semibold">Round 1 of 3</span>
+</div>
+<!-- Completed Stats -->
+<div class="bg-brand-card/40 rounded-xl px-4 py-2 border border-brand-border/30 flex items-center gap-3 text-xs text-gray-500 font-medium">
+<div class="flex items-center gap-1">
+<svg class="w-3.5 h-3.5" fill="currentColor" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" fill-rule="evenodd"></path></svg>
+          1 Completed
+        </div>
+<div class="h-3 w-px bg-gray-300"></div>
+<div class="flex items-center gap-1">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          0:00
+        </div>
+</div>
+<!-- Active Exercise Card -->
+<div class="bg-white rounded-xl p-3 border-2 border-brand-blue shadow-sm flex items-center justify-between" data-purpose="current-exercise">
+<div class="flex items-center gap-3">
+<div class="bg-brand-card px-3 py-1.5 rounded-lg font-mono font-bold text-lg text-amber-800 border border-brand-border">
+            15
+          </div>
+<div class="flex items-center gap-2">
+<span class="text-xl">🏃</span>
+<span class="font-bold text-black tracking-tight">Goblet Squats @ <span class="text-red-900">24kg</span></span>
+</div>
+</div>
+<div class="bg-brand-blue/10 px-2 py-1 rounded-md flex items-center gap-1 text-brand-blue font-mono text-xs font-bold">
+<svg class="w-3 h-3" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          00:13
+        </div>
+</div>
+<!-- Upcoming Section -->
+<div class="border-2 border-dashed border-gray-300 rounded-2xl p-4 mt-2" data-purpose="next-up-preview">
+<h3 class="text-[10px] font-black text-gray-400 tracking-widest mb-2">UP NEXT</h3>
+<div class="bg-brand-card/50 rounded-xl px-4 py-3 flex items-center gap-3 border border-brand-border/30">
+<div class="flex items-center gap-1 text-brand-blue font-mono text-sm">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            00:30
+          </div>
+<span class="font-bold text-gray-700">Rest</span>
+</div>
+</div>
+</section>
+<!-- END: WorkoutVisualState -->
+<!-- BEGIN: TimerDisplay -->
+<section class="flex-1 flex flex-col items-center justify-center relative bg-brand-muted/40 rounded-[32px] border border-brand-border" data-purpose="active-timer">
+<div class="relative h-64 flex items-center justify-center">
+<!-- Background Circle -->
+<!-- Progress Ring SVG -->
+<!-- Timer Values -->
+<div class="relative flex flex-col items-center"><span class="text-[92px] leading-none font-black font-mono tracking-tighter text-black">00:13</span></div>
+</div>
+</section>
+<!-- END: TimerDisplay -->
+</main>
+<!-- END: ContentContainer -->
+<!-- BEGIN: BottomControls -->
+<footer class="px-6 py-6 flex items-center justify-between bg-white gap-4" data-purpose="action-buttons"><button class="flex flex-col items-center justify-center w-14 h-14 rounded-full border border-gray-200 text-gray-400"><svg class="w-5 h-5" fill="currentColor" viewbox="0 0 24 24"><rect height="12" rx="1" width="12" x="6" y="6"></rect></svg><span class="text-[8px] font-bold uppercase tracking-widest">STOP</span></button><button class="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-brand-green text-white shadow-lg shadow-brand-green/20"><svg class="w-8 h-8" fill="currentColor" viewbox="0 0 24 24"><rect height="16" rx="1" width="5" x="6" y="4"></rect><rect height="16" rx="1" width="5" x="13" y="4"></rect></svg></button><button class="flex-1 h-16 bg-black rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg shadow-black/10"><span class="text-white text-xl font-black tracking-widest">NEXT</span><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="3" viewbox="0 0 24 24"><path d="M13 5l7 7-7 7M5 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></footer>
+<!-- END: BottomControls -->
+<!-- iOS Home Indicator Space -->
+<div class="home-indicator"></div>
+</body></html>

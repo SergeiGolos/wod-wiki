@@ -55,13 +55,15 @@ import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
 import { getWorkbenchDocumentTitle, loadWorkbenchDisplayEntry } from '@/app/workbench/workbenchEntryLoader';
 import { WorkbenchCastBridge } from '@/components/cast/WorkbenchCastBridge';
 import { useScreenMode } from '@/panels/panel-system/useScreenMode';
+import { MetricType } from '@/core/models/Metric';
+import { type ProjectionResult } from '@/core/analytics/ProjectionResult';
 
 declare const __APP_VERSION__: string | undefined;
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.dev';
 
 import { PlanPanel } from '@/panels/plan-panel';
 import { TimerScreen } from '@/panels/track-panel';
-import { ReviewGrid } from '../review-grid';
+import { ResultsView } from '../review-grid';
 
 export interface WorkbenchProps extends Omit<NoteEditorProps, 'onBlocksChange' | 'onActiveBlockChange' | 'onCursorPositionChange' | 'highlightedLine' | 'value' | 'onChange' | 'mode'> {
   initialContent?: string;
@@ -381,12 +383,13 @@ const WorkbenchContent: React.FC<WorkbenchProps> = ({
 
   const reviewGridPanel = (
     <div id="tutorial-review-grid" className="h-full">
-      <ReviewGrid
+      <ResultsView
         runtime={runtime}
         segments={analyticsSegments}
         selectedSegmentIds={selectedAnalyticsIds}
         onSelectSegment={toggleAnalyticsSegment}
         groups={analyticsGroups}
+        projections={extractProjections(analyticsSegments)}
         hoveredBlockKey={hoveredBlockKey}
         onHoverBlockKey={setHoveredBlockKey}
       />
@@ -712,3 +715,24 @@ export const Workbench: React.FC<WorkbenchProps> = (props) => {
 };
 
 export default Workbench;
+
+// ─── Helper: Extract projections from analytics segments ───────
+
+function extractProjections(segments: import('@/core/models/AnalyticsModels').Segment[]): ProjectionResult[] {
+  return segments
+    .filter(s => (s as any).context?.outputType === 'analytics')
+    .map(s => {
+      const metrics = s.metrics?.toArray() || [];
+      const labelMetric = metrics.find(m => m.type === MetricType.Label);
+      const valueMetric = metrics.find(m => m.type !== MetricType.Label);
+      
+      return {
+        name: labelMetric?.value?.toString() || labelMetric?.image || 'Stat',
+        value: (valueMetric?.value as number) || 0,
+        unit: valueMetric?.unit || '',
+        metricType: valueMetric?.type,
+        origin: valueMetric?.origin || 'analyzed',
+        timeSpan: { started: s.startTime, ended: s.endTime }
+      } as ProjectionResult;
+    });
+}

@@ -12,8 +12,9 @@
 import { useMemo } from 'react';
 import { MetricType } from '@/core/models/Metric';
 import type { AnalyticsGraphConfig } from '@/core/models/AnalyticsModels';
-import type { GridRow, GridColumn } from './types';
-import { FIXED_COLUMN_IDS } from './types';
+import type { GridRow } from './types';
+import type { ColumnDef, ComputeContext } from './column-definition-language';
+import { extractGraphValue } from './interpreters';
 
 // ─── Public Interface ──────────────────────────────────────────
 
@@ -30,11 +31,13 @@ export interface UseGraphDataOptions {
   /** Filtered/sorted grid rows */
   rows: GridRow[];
   /** Column definitions (all, including hidden) */
-  columns: GridColumn[];
+  columns: ColumnDef[];
   /** IDs of columns tagged for graphing */
   graphTaggedColumnIds: string[];
   /** Currently selected row/segment IDs (for highlight) */
   selectedIds: Set<number>;
+  /** Optional definition map for dependency resolution on derived columns */
+  definitionMap?: ReadonlyMap<string, ColumnDef>;
 }
 
 export interface UseGraphDataReturn {
@@ -47,7 +50,7 @@ export interface UseGraphDataReturn {
 }
 
 export function useGraphData(options: UseGraphDataOptions): UseGraphDataReturn {
-  const { rows, columns, graphTaggedColumnIds } = options;
+  const { rows, columns, graphTaggedColumnIds, definitionMap } = options;
 
   const graphConfigs = useMemo(
     () => buildGraphConfigs(graphTaggedColumnIds, columns),
@@ -55,8 +58,8 @@ export function useGraphData(options: UseGraphDataOptions): UseGraphDataReturn {
   );
 
   const data = useMemo(
-    () => buildDataPoints(rows, graphTaggedColumnIds, columns),
-    [rows, graphTaggedColumnIds, columns],
+    () => buildDataPoints(rows, graphTaggedColumnIds, columns, definitionMap),
+    [rows, graphTaggedColumnIds, columns, definitionMap],
   );
 
   const hasData = graphConfigs.length > 0 && data.length > 0;
@@ -66,13 +69,9 @@ export function useGraphData(options: UseGraphDataOptions): UseGraphDataReturn {
 
 // ─── Graph Config Builder ──────────────────────────────────────
 
-/**
- * Map each tagged column into an AnalyticsGraphConfig with an appropriate
- * color and label.
- */
 function buildGraphConfigs(
   taggedIds: string[],
-  columns: GridColumn[],
+  columns: ColumnDef[],
 ): AnalyticsGraphConfig[] {
   const configs: AnalyticsGraphConfig[] = [];
   for (const colId of taggedIds) {
@@ -92,88 +91,62 @@ function buildGraphConfigs(
 
 // ─── Data Point Builder ────────────────────────────────────────
 
-/**
- * Build one data point per row, extracting numeric values for each
- * tagged column.
- */
 function buildDataPoints(
   rows: GridRow[],
   taggedIds: string[],
-  columns: GridColumn[],
+  columns: ColumnDef[],
+  definitionMap?: ReadonlyMap<string, ColumnDef>,
 ): GraphDataPoint[] {
   if (taggedIds.length === 0) return [];
 
-  return rows.map((row) => {
+  return rows.map((row, rowIndex) => {
     const point: GraphDataPoint = {
       index: row.index,
       label: row.sourceBlockKey,
     };
 
     for (const colId of taggedIds) {
-      point[colId] = getNumericValue(row, colId, columns);
+      const col = columns.find((c) => c.id === colId);
+      if (!col || !col.graph) {
+        point[colId] = 0;
+        continue;
+      }
+      const ctx: ComputeContext = {
+        allRows: rows,
+        rowIndex,
+        columnDef: col,
+        dependencies: new Map(),
+      };
+      point[colId] = extractGraphValue(row, col, ctx, definitionMap) ?? 0;
     }
 
     return point;
   });
 }
 
-/**
- * Extract a numeric value from a row for a given column.
- * Fixed columns return their scalar value; metrics columns return
- * the first numeric metric value (or 0).
- */
-function getNumericValue(
-  row: GridRow,
-  columnId: string,
-  columns: GridColumn[],
-): number {
-  // Fixed numeric columns
-  switch (columnId) {
-    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
-      return row.elapsed;
-    case FIXED_COLUMN_IDS.STACK_LEVEL:
-      return row.stackLevel;
-    case FIXED_COLUMN_IDS.INDEX:
-      return row.index;
-  }
-
-  // Fragment columns — find first numeric value
-  const col = columns.find((c) => c.id === columnId);
-  if (col?.type) {
-    const cell = row.cells.get(col.type);
-    if (cell) {
-      for (const frag of cell.metrics) {
-        if (typeof frag.value === 'number') return frag.value;
-      }
-    }
-  }
-
-  return 0;
-}
-
 // ─── Helpers ───────────────────────────────────────────────────
 
-/**
- * Assign a distinct color to each column based on its metrics type.
- */
-function getColorForColumn(col: GridColumn): string {
-  if (col.type) {
-    return FRAGMENT_GRAPH_COLORS[col.type] ?? '#888888';
+function getColorForColumn(col: ColumnDef): string {
+  const metricType = getMetricTypeFromColumn(col);
+  if (metricType) {
+    return FRAGMENT_GRAPH_COLORS[metricType] ?? '#888888';
   }
 
-  // Fixed columns
   switch (col.id) {
-    case FIXED_COLUMN_IDS.ELAPSED_TOTAL:
+    case 'elapsedTotal':
       return '#14b8a6'; // teal
     default:
       return '#888888';
   }
 }
 
-/**
- * Hex colors for graph lines per metrics type.
- * These complement the Tailwind classes in metricColorMap.
- */
+function getMetricTypeFromColumn(col: ColumnDef): MetricType | undefined {
+  if (col.source.type === 'metric-type') {
+    return col.source.metricType;
+  }
+  return undefined;
+}
+
 const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
   [MetricType.Time]: '#3b82f6',      // blue
   [MetricType.Rep]: '#22c55e',        // green
@@ -185,16 +158,14 @@ const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
   [MetricType.Action]: '#ec4899',     // pink
 };
 
-/**
- * Unit label for graph Y-axis.
- */
-function getUnitForColumn(col: GridColumn): string {
-  if (!col.type) {
-    if (col.id === FIXED_COLUMN_IDS.ELAPSED_TOTAL) return 'ms';
+function getUnitForColumn(col: ColumnDef): string {
+  const metricType = getMetricTypeFromColumn(col);
+  if (!metricType) {
+    if (col.id === 'elapsedTotal') return 's';
     return '';
   }
 
-  switch (col.type) {
+  switch (metricType) {
     case MetricType.Time:
       return 'ms';
     case MetricType.Rep:

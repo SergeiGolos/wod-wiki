@@ -18,6 +18,7 @@
  *  7. EmptyReview        — reviewData present but zero rows / projections
  *  8. WithDismissButton  — dismiss button focused (D-Pad Select affordance)
  *  9. DismissButtonActive — dismiss button in active/pressed state
+ * 10. AggregatedStats    — per-exercise projections merged by metricType (WOD-656)
  */
 
 import React, { useState } from 'react';
@@ -308,11 +309,91 @@ const ROUNDS_ANALYTICS: AnalyticsSummary = {
   ],
 };
 
+/** Multi-exercise workout with per-exercise volume projections — triggers aggregation */
+const AGGREGATED_REVIEW_DATA: ReviewData = {
+  totalDurationMs: 22 * 60_000 + 15_000,
+  completedSegments: 8,
+  rows: [
+    { label: 'Total Time', value: '22:15' },
+    { label: 'Deadlifts', value: '30 reps @ 225 lb' },
+    { label: 'Bench Press', value: '30 reps @ 185 lb' },
+    { label: 'Squats', value: '30 reps @ 205 lb' },
+  ],
+};
+
+const AGGREGATED_ANALYTICS: AnalyticsSummary = {
+  totalDurationMs: 22 * 60_000 + 15_000,
+  completedSegments: 8,
+  projections: [
+    // Per-exercise volume cards — ReceiverReviewPanel aggregates these by metricType
+    { name: 'Deadlift Volume', value: 6750, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Bench Volume', value: 5550, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Squat Volume', value: 6150, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Total Reps', value: 90, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+    { name: 'Work Time', value: 1335, unit: 's', metricType: 'elapsed', color: '#3b82f6' },
+  ],
+};
+
 /** Zero rows / projections — defensive empty state */
 const EMPTY_REVIEW_DATA: ReviewData = {
   totalDurationMs: 0,
   completedSegments: 0,
   rows: [],
+};
+
+/** Many projections — forces the 2-column grid to wrap */
+const MANY_PROJECTIONS_DATA: AnalyticsSummary = {
+  totalDurationMs: 45 * 60_000,
+  completedSegments: 24,
+  projections: [
+    { name: 'Total Reps', value: 1240, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+    { name: 'Total Volume', value: 28500, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Distance', value: 3200, unit: 'm', metricType: 'distance', color: '#10b981' },
+    { name: 'Work Time', value: 2340, unit: 's', metricType: 'elapsed', color: '#3b82f6' },
+    { name: 'Rest Time', value: 360, unit: 's', metricType: 'elapsed', color: '#8b5cf6' },
+    { name: 'Avg Power', value: 185, unit: 'W', metricType: 'work', color: '#ef4444' },
+    { name: 'Rounds', value: 8, unit: 'rounds', metricType: 'rounds', color: '#ec4899' },
+    { name: 'Load', value: 225, unit: 'lb', metricType: 'resistance', color: '#14b8a6' },
+  ],
+};
+
+/** Long projection names — tests text wrapping and layout stability */
+const LONG_NAMES_DATA: AnalyticsSummary = {
+  totalDurationMs: 15 * 60_000,
+  completedSegments: 6,
+  projections: [
+    { name: 'Overhead Squat Volume (Snatch Balance)', value: 6750, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Average Time Per Round Including Rest', value: 225, unit: 's', metricType: 'elapsed', color: '#3b82f6' },
+  ],
+};
+
+/** Large numbers — tests formatting and overflow */
+const LARGE_NUMBERS_DATA: AnalyticsSummary = {
+  totalDurationMs: 120 * 60_000,
+  completedSegments: 50,
+  projections: [
+    { name: 'Total Reps', value: 999999, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+    { name: 'Total Volume', value: 1500000, unit: 'lb', metricType: 'volume', color: '#f59e0b' },
+    { name: 'Distance', value: 42195, unit: 'm', metricType: 'distance', color: '#10b981' },
+  ],
+};
+
+/** Zero duration but some segments — edge case for duration formatting */
+const ZERO_DURATION_DATA: ReviewData = {
+  totalDurationMs: 0,
+  completedSegments: 3,
+  rows: [
+    { label: 'Total Time', value: '0:00' },
+    { label: 'Segments', value: '3' },
+  ],
+};
+
+const ZERO_DURATION_ANALYTICS: AnalyticsSummary = {
+  totalDurationMs: 0,
+  completedSegments: 3,
+  projections: [
+    { name: 'Total Reps', value: 0, unit: 'reps', metricType: 'repetitions', color: '#6366f1' },
+  ],
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -413,6 +494,71 @@ export const LightBackground: Story = {
     reviewData: FRAN_REVIEW_DATA,
     analyticsSummary: FRAN_ANALYTICS,
     darkBackground: false,
+  },
+};
+
+/**
+ * Aggregated stats — per-exercise volume projections are merged into a
+ * single session-level card by metricType.  This keeps the TV grid compact
+ * (≤6 cards) when multiple exercises emit projections of the same type.
+ * AC: WOD-656 — stats aggregation in ReceiverReviewPanel.
+ */
+export const AggregatedStats: Story = {
+  name: 'Aggregated Stats (WOD-656)',
+  args: {
+    reviewData: AGGREGATED_REVIEW_DATA,
+    analyticsSummary: AGGREGATED_ANALYTICS,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Many projections — 8 cards in a 2-column grid to verify wrapping.
+ * AC: Grid stays readable when projections exceed typical count.
+ */
+export const ManyProjections: Story = {
+  name: 'Edge: Many Projections (8 Cards)',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: MANY_PROJECTIONS_DATA,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Long projection names — exercises text wrapping and truncation.
+ */
+export const LongProjectionNames: Story = {
+  name: 'Edge: Long Projection Names',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: LONG_NAMES_DATA,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Large numbers — 6-7 digit values to verify formatting and overflow.
+ */
+export const LargeNumbers: Story = {
+  name: 'Edge: Large Numbers',
+  args: {
+    reviewData: FRAN_REVIEW_DATA,
+    analyticsSummary: LARGE_NUMBERS_DATA,
+    darkBackground: true,
+  },
+};
+
+/**
+ * Zero duration — workout completed instantly (edge case).
+ * Verifies duration formatter handles 0 ms gracefully.
+ */
+export const ZeroDuration: Story = {
+  name: 'Edge: Zero Duration',
+  args: {
+    reviewData: ZERO_DURATION_DATA,
+    analyticsSummary: ZERO_DURATION_ANALYTICS,
+    darkBackground: true,
   },
 };
 

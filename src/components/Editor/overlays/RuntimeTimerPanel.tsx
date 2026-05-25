@@ -87,14 +87,14 @@ const RuntimeTimerBody: React.FC<RuntimeTimerBodyProps> = ({
         <div className={`overflow-hidden bg-secondary/10 ${
           isCompact
             ? "flex-1 min-h-0 border-b border-border"
-            : "min-w-0 flex-1 border-r border-border"
+            : "min-w-0 w-1/3 border-r border-border"
         }`}>
           <VisualStatePanel />
         </div>
 
         {/* Timer — bottom on mobile, right on desktop */}
         <div className={`flex flex-col justify-center overflow-hidden bg-background ${
-          isCompact ? "shrink-0" : "w-[48%]"
+          isCompact ? "shrink-0" : "w-2/3"
         }`}>
           <TimerDisplay
             elapsedMs={execution.elapsedTime}

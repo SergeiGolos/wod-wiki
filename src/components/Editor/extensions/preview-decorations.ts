@@ -113,7 +113,7 @@ const wodBlockBaseTheme = EditorView.baseTheme({
     fontSize: "10px",
     lineHeight: "22px",
     opacity: "0.35",
-    fontFamily: "var(--font-mono, monospace)",
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     color: "inherit",
     // Indent to align with inner content
     paddingLeft: "24px",
@@ -137,7 +137,7 @@ const wodBlockBaseTheme = EditorView.baseTheme({
 
   // ── Inner WOD lines (the card body) ─────────────────────────────
   ".cm-wod-inner": {
-    fontFamily: "var(--font-mono, monospace)",
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace",
     // Left indent so content is visually inset from surrounding markdown
     paddingLeft: "24px",
     // Continuous card background — no side shadows (they were distracting)

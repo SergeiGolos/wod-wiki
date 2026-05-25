@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /syntax/protocols
+route: /guide/syntax/protocols
 type: syntax
 ---
 
@@ -232,12 +232,12 @@ pipeline:
 label:  ← Structure & Rep Schemes
 target: ex
 pipeline:
-  - navigate: /syntax/structure
+  - navigate: /guide/syntax/structure
 ```
 
 ```button
 label:  Complex Workouts →
 target: ex
 pipeline:
-  - navigate: /syntax/complex
+  - navigate: /guide/syntax/complex
 ```

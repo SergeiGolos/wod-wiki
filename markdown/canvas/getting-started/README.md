@@ -1,7 +1,7 @@
 ---
 search: hidden
 template: canvas
-route: /getting-started
+route: /guide/getting-started
 type: syntax
 ---
 
@@ -146,7 +146,7 @@ You know the fundamentals. Dive deeper into the full syntax or open a blank note
 label:  Explore the Full Syntax →
 target: z2h
 pipeline:
-  - navigate: /syntax
+  - navigate: /guide/syntax
 ```
 
 ```button

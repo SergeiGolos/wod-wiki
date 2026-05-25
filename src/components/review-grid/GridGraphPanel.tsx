@@ -21,7 +21,8 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import type { GridRow, GridColumn } from './types';
+import type { GridRow } from './types';
+import type { ColumnDef } from './column-definition-language';
 import { useGraphData, type GraphDataPoint } from './useGraphData';
 
 // ─── Props ─────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ interface GridGraphPanelProps {
   /** Filtered/sorted grid rows */
   rows: GridRow[];
   /** All column definitions */
-  columns: GridColumn[];
+  columns: ColumnDef[];
   /** IDs of columns currently tagged for graphing */
   graphTaggedColumnIds: string[];
   /** Selected segment/row IDs */

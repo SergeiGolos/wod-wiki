@@ -1,295 +1,79 @@
 /**
- * Review Grid — View Presets
+ * Review Grid — Preset Compatibility Wrapper
  *
- * Pre-populated filter configurations for default and debug views.
- * The active preset is driven by the workbench debug toggle.
+ * Legacy preset helpers now proxy to the CDL ColumnSet config so the toolbar
+ * and older exports stay aligned with the canonical preset definitions.
  */
 
 import { MetricType } from '@/core/models/Metric';
 import type { GridViewPreset, GridColumn } from './types';
-import { FIXED_COLUMN_IDS } from './types';
-import { getMetricIcon } from '@/views/runtime/metricColorMap';
+import { GRID_COLUMN_SET_CONFIG } from './cdlColumnDefinitions';
+import type { ColumnDef, ColumnSetPreset } from './column-definition-language';
 
-// ─── Preset Definitions ───────────────────────────────────────
+function toLegacyPreset(id: string, preset: ColumnSetPreset): GridViewPreset {
+  return {
+    id,
+    label: preset.label,
+    filters: preset.filters ?? {},
+    visibleColumns: [...preset.visibleColumnIds],
+    isDefault: id === GRID_COLUMN_SET_CONFIG.defaultPreset,
+  };
+}
 
-/**
- * All available metrics-type columns.
- * Order here determines default column order in the grid.
- *
- * NOTE: Elapsed, Total, and Spans are EXCLUDED here because
- * they are handled as FIXED_COLUMNS with special rendering and ordering.
- */
-export const ALL_FRAGMENT_COLUMNS: MetricType[] = [
-  MetricType.Effort,
-  MetricType.Duration,
-  MetricType.Rep,
-  MetricType.Rounds,
-  MetricType.Distance,
-  MetricType.Resistance,
-  MetricType.Action,
-  MetricType.Increment,
-  MetricType.Metric,
-  MetricType.Group,
-  MetricType.System,
-  MetricType.Label,
-  MetricType.Text,
-  MetricType.CurrentRound,
-  MetricType.Volume,
-  MetricType.Intensity,
-  MetricType.Load,
-  MetricType.Work,
-];
+function toLegacyGridColumn(
+  def: ColumnDef,
+  preset: GridViewPreset,
+  isDebugMode: boolean,
+): GridColumn {
+  return {
+    id: def.id,
+    type: def.source.type === 'metric-type' ? def.source.metricType : undefined,
+    label: def.label,
+    icon: def.icon,
+    sortable: def.sort !== undefined,
+    filterable: def.filter !== undefined,
+    graphable: def.graph !== undefined,
+    isGraphed: false,
+    visible:
+      preset.visibleColumns.includes(def.id) &&
+      (!def.meta?.debugOnly || isDebugMode),
+    meta: def.meta,
+  };
+}
 
-/**
- * Fragment columns shown in the default (non-debug) view.
- * Excludes System, Sound, Group which are typically noise.
- */
-const DEFAULT_VISIBLE_COLUMNS: MetricType[] = [
-  MetricType.Effort,
-  MetricType.Duration,
-  MetricType.Rep,
-  MetricType.Rounds,
-  MetricType.Distance,
-  MetricType.Resistance,
-  MetricType.Action,
-  MetricType.Increment,
-  MetricType.Metric,
-  MetricType.Label,
-  MetricType.Text,
-  MetricType.CurrentRound,
-  MetricType.Volume,
-  MetricType.Intensity,
-  MetricType.Load,
-  MetricType.Work,
-];
+/** All simple metric-type columns retained for legacy call sites. */
+export const ALL_FRAGMENT_COLUMNS: MetricType[] = GRID_COLUMN_SET_CONFIG.definitions
+  .flatMap((def) => (def.source.type === 'metric-type' ? [def.source.metricType] : []));
 
-/**
- * Default preset — normal user view.
- * Hides milestone, label, event, and system output types.
- */
-export const DEFAULT_PRESET: GridViewPreset = {
-  id: 'default',
-  label: 'Default',
-  filters: {
-    outputTypes: ['segment', 'milestone', 'group', 'analytics'],
-  },
-  visibleColumns: DEFAULT_VISIBLE_COLUMNS,
-  isDefault: true,
-};
+/** All presets indexed by id, backed by CDL definitions. */
+export const GRID_PRESETS: Record<string, GridViewPreset> = Object.fromEntries(
+  Object.entries(GRID_COLUMN_SET_CONFIG.presets).map(([id, preset]) => [id, toLegacyPreset(id, preset)]),
+);
 
-/**
- * Debug preset — shows everything including system events.
- * Activated automatically when the workbench debug toggle is on.
- */
-export const DEBUG_PRESET: GridViewPreset = {
-  id: 'debug',
-  label: 'Debug',
-  filters: {
-    // No output type filter — show everything
-  },
-  visibleColumns: ALL_FRAGMENT_COLUMNS,
-};
+export const DEFAULT_PRESET = GRID_PRESETS.default;
+export const DEBUG_PRESET = GRID_PRESETS.debug;
+export const STRENGTH_PRESET = GRID_PRESETS.strength;
+export const ENDURANCE_PRESET = GRID_PRESETS.endurance;
 
-/** All presets indexed by id */
-export const GRID_PRESETS: Record<string, GridViewPreset> = {
-  [DEFAULT_PRESET.id]: DEFAULT_PRESET,
-  [DEBUG_PRESET.id]: DEBUG_PRESET,
-};
-
-/**
- * Look up a preset by id, falling back to default.
- */
+/** Look up a preset by id, falling back to default. */
 export function getPreset(id: string): GridViewPreset {
   return GRID_PRESETS[id] ?? DEFAULT_PRESET;
 }
 
-// ─── Column Definitions ───────────────────────────────────────
-
 /**
- * Fixed (always-present) column definitions.
- */
-export const FIXED_COLUMNS: GridColumn[] = [
-  {
-    id: FIXED_COLUMN_IDS.TIMESTAMP,
-    label: 'Timestamp',  // TimeStamp: system Date.now() when logged
-    sortable: true,
-    filterable: false,
-    graphable: false,
-    isGraphed: false,
-    visible: true,
-    type: MetricType.SystemTime,
-  },
-  {
-    id: FIXED_COLUMN_IDS.SPANS,
-    label: 'Time',  // Time: session-relative span ranges (:00 → 2:30)
-    sortable: true,
-    filterable: false,
-    graphable: false,
-    isGraphed: false,
-    visible: true,
-    type: MetricType.Spans,
-  },
-  {
-    id: FIXED_COLUMN_IDS.INDEX,
-    label: '#',
-    sortable: true,
-    filterable: false,
-    graphable: false,
-    isGraphed: false,
-    visible: true,
-  },
-  {
-    id: FIXED_COLUMN_IDS.BLOCK_KEY,
-    label: 'Block',
-    sortable: true,
-    filterable: true,
-    graphable: false,
-    isGraphed: false,
-    visible: false,
-  },
-  {
-    id: FIXED_COLUMN_IDS.OUTPUT_TYPE,
-    label: 'Type',
-    sortable: true,
-    filterable: true,
-    graphable: false,
-    isGraphed: false,
-    visible: false,
-  },
-  {
-    id: FIXED_COLUMN_IDS.STACK_LEVEL,
-    label: 'Depth',
-    sortable: true,
-    filterable: false,
-    graphable: false,
-    isGraphed: false,
-    visible: false, // hidden by default, visible in debug
-  },
-  {
-    id: FIXED_COLUMN_IDS.ELAPSED_TOTAL,
-    label: 'Elapsed',  // Combined Elapsed/Total
-    sortable: true,
-    filterable: false,
-    graphable: true,
-    isGraphed: false,
-    visible: true,
-  },
-  {
-    id: FIXED_COLUMN_IDS.COMPLETION_REASON,
-    label: 'Reason',
-    sortable: true,
-    filterable: true,
-    graphable: false,
-    isGraphed: false,
-    visible: false, // debug-only
-  },
-];
-
-/**
- * Build metrics-type column definitions for the given preset.
+ * Legacy metric-column builder. Prefer ColumnSet + GRID_COLUMN_SET_CONFIG.
  */
 export function buildFragmentColumns(preset: GridViewPreset): GridColumn[] {
-  return ALL_FRAGMENT_COLUMNS.map((ft) => ({
-    id: ft,
-    type: ft,
-    label: ft.charAt(0).toUpperCase() + ft.slice(1),
-    icon: getMetricIcon(ft) ?? undefined,
-    sortable: true,
-    filterable: true,
-    graphable: isNumericMetricType(ft),
-    isGraphed: false,
-    visible: preset.visibleColumns.includes(ft),
-  }));
+  return GRID_COLUMN_SET_CONFIG.definitions
+    .filter((def) => def.source.type === 'metric-type')
+    .map((def) => toLegacyGridColumn(def, preset, preset.id === 'debug'));
 }
 
 /**
- * Build the complete column set (fixed + metrics) for a preset.
- * In debug mode, the stackLevel and completionReason columns become visible.
+ * Legacy all-column builder. Prefer ColumnSet + GRID_COLUMN_SET_CONFIG.
  */
 export function buildAllColumns(preset: GridViewPreset, isDebugMode: boolean): GridColumn[] {
-  // Helpers to find columns by ID or Type
-  const getFixed = (id: string) => FIXED_COLUMNS.find(c => c.id === id)!;
-  const getFragmentCol = (type: MetricType) => {
-    return buildFragmentColumns(preset).find(c => c.type === type);
-  }
-
-  const metricCols = buildFragmentColumns(preset);
-
-  // Define strict order based on mode
-  const order: GridColumn[] = [];
-  const addedIds = new Set<string>();
-
-  const add = (col: GridColumn | undefined) => {
-    if (!col || addedIds.has(col.id)) return;
-    order.push(col);
-    addedIds.add(col.id);
-  };
-
-  // 1. Index (#)
-  add(getFixed(FIXED_COLUMN_IDS.INDEX));
-
-  // 2. Timestamp
-  const timestampCol = getFixed(FIXED_COLUMN_IDS.TIMESTAMP);
-  add({
-    ...timestampCol,
-    visible: true,
-    meta: { hideMs: !isDebugMode }
-  });
-
-  // 3. Time (Spans)
-  add(getFixed(FIXED_COLUMN_IDS.SPANS));
-
-  if (isDebugMode) {
-    // 4. System Fragment (Debug Only)
-    const sysCol = getFragmentCol(MetricType.System);
-    add(sysCol ? { ...sysCol, visible: true } : undefined);
-  }
-
-  // 3/5. Effort (Primary Descriptor) - ALWAYS next to timestamps
-  add(getFragmentCol(MetricType.Effort));
-
-  // 4/6. Text (Secondary Descriptor)
-  add(getFragmentCol(MetricType.Text));
-
-  // Label
-  add(getFragmentCol(MetricType.Label));
-
-  // 5/7. All other Fragments (Data)
-  // We want the workout data (Reps, Load, Dist) to appear before the meta-stats (Elapsed/Total)
-  metricCols.forEach(col => add(col));
-
-  // 6/8. Meta Stats (Elapsed/Total) - Moved to end "after a certain point"
-  add(getFixed(FIXED_COLUMN_IDS.ELAPSED_TOTAL));
-
-  // 7/9. Debug extras
-  if (isDebugMode) {
-    add({ ...getFixed(FIXED_COLUMN_IDS.COMPLETION_REASON), visible: true });
-  }
-
-  return order;
-}
-
-/**
- * Whether a metrics type holds numeric values suitable for graphing.
- */
-function isNumericMetricType(ft: MetricType): boolean {
-  switch (ft) {
-    case MetricType.Spans:
-    case MetricType.Elapsed:
-    case MetricType.Duration:
-    case MetricType.Total:
-    case MetricType.Rep:
-    case MetricType.Distance:
-    case MetricType.Rounds:
-    case MetricType.Resistance:
-    case MetricType.Increment:
-    case MetricType.Metric:
-    case MetricType.Volume:
-    case MetricType.Intensity:
-    case MetricType.Load:
-    case MetricType.Work:
-      return true;
-    default:
-      return false;
-  }
+  return GRID_COLUMN_SET_CONFIG.definitions.map((def) =>
+    toLegacyGridColumn(def, preset, isDebugMode),
+  );
 }
