@@ -312,6 +312,311 @@
     </div>
   </div>
 
+  <!-- ── WOD-694: Effort Widget Prototypes ───────────────────────── -->
+  <div class="max-w-5xl mx-auto px-6 pt-4 pb-16">
+    <div class="mb-2 flex items-center gap-2">
+      <span class="badge badge-blue">WOD-694</span>
+      <span class="text-xs text-zinc-400 dark:text-zinc-500">Designer · Effort Widget Prototype</span>
+    </div>
+    <h2 class="text-2xl sm:text-3xl font-bold text-zinc-950 dark:text-zinc-50 mb-3" style="letter-spacing: -0.04em;">
+      Effort Frontmatter Widget Designs
+    </h2>
+    <p class="text-base text-zinc-600 dark:text-zinc-400 max-w-xl mb-8 leading-7">
+      Three design variants for an inline frontmatter editing widget in the CodeMirror 6 editor.
+      Each shows the full page context (note page → editor → widget). All are interactive prototypes.
+    </p>
+
+    <div class="flex flex-wrap gap-3 mb-10">
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full" style="background: #508860;"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">#508860 effort</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full" style="background: #a87040;"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">#a87040 rep/MET</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <div class="w-4 h-4 rounded-full" style="background: #5980a8;"></div>
+        <span class="text-xs text-zinc-600 dark:text-zinc-400 font-mono">#5980a8 primary</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/40 px-3 py-1.5">
+        <span class="text-xs text-zinc-500 font-mono">JetBrains Mono editor font</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+      <!-- Variant A -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: #2e3440; flex-direction:column; align-items:flex-start; padding: 12px 10px; gap:0; justify-content:flex-start; font-size:10px;">
+          <div style="font-family:monospace; font-size:9px; color:#3f4859; margin-bottom:4px; align-self:stretch">1  <span style="color:#81a1c1">slug</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">box-jump</span></div>
+          <div style="background:rgba(129,161,193,0.08); border-radius:8px; border:1px solid #3f4859; padding:8px; width:90%; box-shadow:0 8px 24px rgba(0,0,0,0.5); margin-left:16px; margin-top:2px;">
+            <div style="font-family:monospace; font-size:8px; color:#9099ab; margin-bottom:5px; display:flex; align-items:center; gap:6px;"><span style="background:rgba(163,190,140,0.15); color:#a3be8c; padding:1px 5px; border-radius:3px; font-weight:700;">slug</span><span>Effort Picker</span></div>
+            <div style="background:#353c4a; border-radius:4px; height:14px; margin-bottom:4px;"></div>
+            <div style="background:rgba(163,190,140,0.12); border-radius:4px; padding:4px 6px; display:flex; align-items:center; gap:6px;">
+              <span style="font-family:monospace; font-size:8px; color:#a3be8c;">box-jump</span>
+              <span style="font-family:monospace; font-size:7px; background:rgba(208,135,112,0.15); color:#d08770; padding:1px 4px; border-radius:2px; margin-left:auto;">8.0</span>
+              <span style="font-size:7px; background:rgba(191,97,106,0.15); color:#bf616a; padding:1px 4px; border-radius:2px;">high</span>
+            </div>
+            <div style="background:#353c4a; border-radius:4px; padding:3px 6px; margin-top:3px; font-family:monospace; font-size:7px; color:#5a6478; display:flex; gap:8px;"><span>↑↓ navigate</span><span>↵ apply</span></div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="badge badge-blue mb-2">Variant A</div>
+          <h3 class="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2" style="letter-spacing: -0.02em;">Smart Chip</h3>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Cursor-triggered inline tooltip below the active frontmatter line. Field-aware: slug → effort picker, met → stepper, tier → chips.
+          </p>
+          <div class="flex flex-col gap-1 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ Zero chrome — appears exactly where needed</span>
+            <span>✓ Keyboard-navigable (↑↓ + Enter)</span>
+            <span>✓ Closest to CodeMirror tooltip pattern</span>
+          </div>
+          <a href="effort-widget-a-smart-chip.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+      <!-- Variant B -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: #2e3440; flex-direction:row; padding:0; gap:0; justify-content:flex-start; align-items:stretch;">
+          <div style="flex:1; padding:10px 8px; font-family:monospace; font-size:8.5px; display:flex; flex-direction:column; gap:2px;">
+            <div style="color:#3f4859">1  <span style="color:#4a5568">---</span></div>
+            <div style="color:#3f4859">2  <span style="color:#81a1c1">id</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">effort-bundled-...</span></div>
+            <div style="background:rgba(129,161,193,0.07); border-radius:3px;">3  <span style="color:#81a1c1">slug</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c;text-decoration:underline;text-decoration-color:#a3be8c">box-jump</span></div>
+            <div style="color:#3f4859">4  <span style="color:#81a1c1">label</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">Box Jump</span></div>
+            <div style="color:#3f4859">5  <span style="color:#81a1c1">met</span><span style="color:#d8dee9">: </span><span style="color:#d08770">8.0</span></div>
+            <div style="color:#3f4859">6  <span style="color:#81a1c1">discipline</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">bodyweight</span></div>
+            <div style="color:#3f4859">7  <span style="color:#81a1c1">intensityTier</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">high</span></div>
+            <div style="color:#3f4859">8  <span style="color:#4a5568">---</span></div>
+          </div>
+          <div style="width:90px; background:#32394a; border-left:1px solid #3f4859; padding:8px 7px; display:flex; flex-direction:column; gap:5px;">
+            <div style="font-size:8px; font-weight:700; color:#a3be8c; margin-bottom:2px;">Effort Metadata</div>
+            <div>
+              <div style="font-size:7px; color:#5a6478; margin-bottom:2px; font-family:monospace;">slug</div>
+              <div style="background:#262c38; border-radius:3px; padding:2px 4px; font-family:monospace; font-size:7px; color:#a3be8c; border:1px solid #a3be8c;">box-jump</div>
+            </div>
+            <div>
+              <div style="font-size:7px; color:#5a6478; margin-bottom:2px; font-family:monospace;">met</div>
+              <div style="display:flex; align-items:center; gap:2px;">
+                <div style="font-size:7px; padding:2px 3px; background:#262c38; border-radius:2px; color:#d08770; font-family:monospace; border:1px solid #3f4859;">−</div>
+                <div style="font-size:8px; color:#d08770; font-weight:700; font-family:monospace; flex:1; text-align:center;">8.0</div>
+                <div style="font-size:7px; padding:2px 3px; background:#262c38; border-radius:2px; color:#d08770; font-family:monospace; border:1px solid #3f4859;">+</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:7px; color:#5a6478; margin-bottom:3px; font-family:monospace;">intensityTier</div>
+              <div style="background:rgba(191,97,106,0.12); border:1px solid rgba(191,97,106,0.3); border-radius:3px; padding:2px 5px; font-size:7px; color:#bf616a; font-weight:600;">🔥 high</div>
+            </div>
+            <div style="margin-top:auto; background:#a3be8c; border-radius:4px; padding:3px 0; font-size:7px; font-weight:700; color:#2e3440; text-align:center;">Save</div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="badge badge-blue mb-2">Variant B</div>
+          <h3 class="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2" style="letter-spacing: -0.02em;">Side Companion</h3>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Right-rail companion panel with structured form. Extends the existing FrontmatterCompanion pattern with full edit capability.
+          </p>
+          <div class="flex flex-col gap-1 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ All fields visible at once</span>
+            <span>✓ Click-to-focus field sync</span>
+            <span>✓ Reuses existing overlay track</span>
+          </div>
+          <a href="effort-widget-b-side-companion.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+      <!-- Variant C -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background:#2e3440; flex-direction:column; padding:0; gap:0; justify-content:flex-end; align-items:stretch; position:relative;">
+          <!-- Editor bg -->
+          <div style="position:absolute; inset:0; padding:10px 8px; font-family:monospace; font-size:8.5px; display:flex; flex-direction:column; gap:2px; opacity:0.4;">
+            <div style="color:#3f4859">1  <span style="color:#4a5568">---  </span><span style="background:#a3be8c; color:#2e3440; border-radius:8px; padding:1px 6px; font-size:7px; font-weight:700;">✏ Edit metadata</span></div>
+            <div style="color:#3f4859">3  <span style="color:#81a1c1">slug</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">box-jump</span></div>
+            <div style="color:#3f4859">4  <span style="color:#81a1c1">label</span><span style="color:#d8dee9">: </span><span style="color:#a3be8c">Box Jump</span></div>
+          </div>
+          <!-- Bottom drawer -->
+          <div style="background:#3b4252; border-radius:10px 10px 0 0; border:1px solid #3f4859; border-bottom:none; padding:10px; position:relative; margin-top:auto;">
+            <div style="width:28px; height:3px; background:#4a5568; border-radius:2px; margin:0 auto 8px;"></div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px;">
+              <div style="width:26px; height:26px; background:rgba(163,190,140,0.15); border:1px solid rgba(163,190,140,0.3); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px;">🏋</div>
+              <div>
+                <div style="font-size:10px; font-weight:700; color:#d8dee9;">Box Jump</div>
+                <div style="font-size:8px; color:#9099ab;">effort · <span style="color:#a3be8c;">box-jump</span></div>
+              </div>
+            </div>
+            <!-- Tabs -->
+            <div style="display:flex; gap:0; border-bottom:1px solid #353d4e; margin-bottom:7px;">
+              <div style="font-size:8px; color:#a3be8c; border-bottom:2px solid #a3be8c; padding:2px 8px; font-weight:600;">Identity</div>
+              <div style="font-size:8px; color:#5a6478; padding:2px 8px;">Metrics</div>
+              <div style="font-size:8px; color:#5a6478; padding:2px 8px;">Aliases</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px;">
+              <div>
+                <div style="font-size:7px; color:#5a6478; text-transform:uppercase; margin-bottom:2px;">SLUG</div>
+                <div style="background:#262c38; border-radius:4px; padding:4px 6px; font-family:monospace; font-size:8px; color:#a3be8c; border:1px solid #a3be8c; box-shadow:0 0 0 2px rgba(163,190,140,0.15);">box-jump</div>
+              </div>
+              <div>
+                <div style="font-size:7px; color:#5a6478; text-transform:uppercase; margin-bottom:2px;">LABEL</div>
+                <div style="background:#262c38; border-radius:4px; padding:4px 6px; font-family:monospace; font-size:8px; color:#d8dee9; border:1px solid #3f4859;">Box Jump</div>
+              </div>
+            </div>
+            <div style="background:#a3be8c; border-radius:6px; padding:5px 0; font-size:8px; font-weight:700; color:#2e3440; text-align:center;">✓ Save to frontmatter</div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="badge badge-blue mb-2">Variant C</div>
+          <h3 class="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2" style="letter-spacing: -0.02em;">Floating Drawer</h3>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Bottom drawer with tabs (Identity / Metrics / Aliases). Triggered by hovering the --- fence. Most immersive form experience.
+          </p>
+          <div class="flex flex-col gap-1 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ Most room for complex fields</span>
+            <span>✓ Tabbed sections prevent overwhelm</span>
+            <span>✓ Sheet/drawer is familiar mobile UX</span>
+          </div>
+          <a href="effort-widget-c-floating-drawer.html" target="_blank" class="open-btn">Open prototype →</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Design notes -->
+    <div class="mt-10 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800/30 p-6">
+      <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-3">Designer Notes — WOD-694</h3>
+      <div class="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <p><strong>What problem this solves:</strong> Effort pages have YAML frontmatter with structured fields (slug, label, met, discipline, intensityTier, aliases). Editing raw YAML is error-prone. These widgets provide field-aware UI within the editor context.</p>
+        <p><strong>Variant A (Smart Chip)</strong> is the lowest-footprint option — builds on the CodeMirror tooltip pattern already used by the autocomplete system. Best for quick slug corrections and familiar to power users.</p>
+        <p><strong>Variant B (Side Companion)</strong> extends the existing <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">FrontmatterCompanion</code> component which already exists in the codebase — lowest implementation cost. Shows all fields simultaneously.</p>
+        <p><strong>Variant C (Floating Drawer)</strong> provides the richest experience with tabs, a MET slider, and per-field UI controls. Best for infrequent but thorough edits. The bottom-sheet pattern is widely understood.</p>
+        <p><strong>Recommendation:</strong> Variant B for immediate implementation (reuses FrontmatterCompanion, low risk). Variant C for V2 once the pattern is validated.</p>
+      </div>
+    </div>
+
+    <div class="mt-4 text-xs text-zinc-400 dark:text-zinc-500 pb-8">
+      Generated by Designer Agent · <a href="/WOD/issues/WOD-694" class="hover:underline">WOD-694</a> · Interactive HTML prototypes — all controls functional.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       WOD-695 — Canvas-Aligned Effort Frontmatter Widget
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="max-w-5xl mx-auto px-6 pt-14 pb-4">
+    <div class="mb-2 flex items-center gap-2">
+      <span class="badge badge-blue">WOD-695</span>
+      <span class="text-xs text-zinc-400 dark:text-zinc-500">Designer · Canvas-Aligned Prototype</span>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-bold text-zinc-950 dark:text-zinc-50 mb-3" style="letter-spacing: -0.05em;">
+      Effort Frontmatter Widget — Canvas Shell
+    </h1>
+    <p class="text-base text-zinc-600 dark:text-zinc-400 max-w-xl mb-8 leading-7">
+      Variant B (Side Companion) placed inside the real Canvas page shell. Shows the two-column layout (40% prose + 60% sticky editor rail), correct sticky header, mobile single-column treatment, and four interaction states: Default · Triggered · Focused · Dismissed.
+    </p>
+
+    <div class="grid grid-cols-1 gap-6 mb-10">
+      <!-- Canvas-aligned prototype -->
+      <div class="concept-card">
+        <div class="concept-preview" style="background: #2e3440; flex-direction:row; padding:0; gap:0; align-items:stretch; justify-content:flex-start; min-height: 180px;">
+          <!-- Sidebar -->
+          <div style="width:70px; background:#3b4252; border-right:1px solid #3f4859; padding:8px 6px; display:flex; flex-direction:column; gap:4px;">
+            <div style="font-family:monospace; font-size:7px; font-weight:700; color:#81a1c1; margin-bottom:4px;">wod.wiki</div>
+            <div style="font-size:7px; color:#5a6478; padding:2px 4px; border-radius:3px;">🏠 Home</div>
+            <div style="font-size:7px; color:#5a6478; padding:2px 4px; border-radius:3px;">📅 Journal</div>
+            <div style="font-size:7px; color:#a3be8c; background:rgba(163,190,140,0.1); padding:2px 4px; border-radius:3px; font-weight:600;">⚡ Efforts</div>
+            <div style="font-size:7px; color:#5a6478; padding:2px 4px; border-radius:3px;">🗂️ Collections</div>
+          </div>
+          <!-- Canvas area -->
+          <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+            <!-- Sticky header -->
+            <div style="background:rgba(46,52,64,0.85); border-bottom:1px solid #3f4859; padding:7px 10px; display:flex; align-items:center; gap:6px;">
+              <div style="width:3px; height:16px; background:#81a1c1; border-radius:2px; flex-shrink:0;"></div>
+              <span style="font-size:10px; font-weight:900; color:#d8dee9; letter-spacing:-0.04em;">Fran</span>
+              <div style="margin-left:auto; display:flex; gap:4px;">
+                <div style="padding:2px 6px; border-radius:4px; border:1px solid #3f4859; font-size:7px; color:#9099ab;">Share</div>
+                <div style="padding:2px 6px; border-radius:4px; background:#81a1c1; font-size:7px; color:#2e3440; font-weight:700;">▶ Run</div>
+              </div>
+            </div>
+            <!-- Two-column body -->
+            <div style="display:flex; flex:1;">
+              <!-- Prose 40% -->
+              <div style="width:40%; padding:8px; border-right:1px solid #353d4e; display:flex; flex-direction:column; gap:4px;">
+                <div style="background:rgba(163,190,140,0.1); border:1px solid rgba(163,190,140,0.2); border-radius:8px; padding:2px 6px; font-size:7px; color:#a3be8c; font-weight:700; width:fit-content;">⚡ Effort Page</div>
+                <div style="font-size:10px; font-weight:800; color:#d8dee9;">Fran</div>
+                <div style="font-size:7px; color:#9099ab;">21-15-9 · Thrusters + Pull-ups</div>
+                <div style="height:1px; background:#353d4e; margin:2px 0;"></div>
+                <div style="font-size:7px; color:#9099ab; line-height:1.6;">Classic CrossFit benchmark combining barbell thrusters and pull-ups.</div>
+              </div>
+              <!-- Editor 60% -->
+              <div style="flex:1; display:flex; flex-direction:column; background:#32394a;">
+                <!-- Toolbar -->
+                <div style="background:#2a3040; border-bottom:1px solid #353d4e; padding:4px 8px; display:flex; align-items:center; gap:4px; height:24px;">
+                  <span style="font-size:7px; font-weight:600; color:#d8dee9; background:#32394a; border:1px solid #3f4859; padding:1px 5px; border-radius:3px;">Frontmatter</span>
+                  <span style="font-size:7px; color:#5a6478;">Body</span>
+                  <div style="margin-left:auto; background:rgba(163,190,140,0.12); border:1px solid rgba(163,190,140,0.25); border-radius:3px; padding:1px 5px; font-size:6px; font-weight:700; color:#a3be8c;">Editing</div>
+                </div>
+                <!-- YAML + companion -->
+                <div style="display:flex; flex:1;">
+                  <div style="flex:1; padding:6px 4px; font-family:monospace; font-size:7px; display:flex; flex-direction:column; gap:2px; background:rgba(163,190,140,0.04);">
+                    <div style="color:#5a6478;">1  <span style="color:#4a5568;">---</span></div>
+                    <div style="background:rgba(163,190,140,0.08); border-left:1.5px solid #a3be8c; padding-left:3px;">3  <span style="color:#81a1c1;">slug</span><span style="color:#d8dee9;">: </span><span style="color:#a3be8c;">fran</span></div>
+                    <div style="color:#5a6478;">5  <span style="color:#81a1c1;">met</span><span style="color:#d8dee9;">: </span><span style="color:#d08770;">8.5</span></div>
+                    <div style="color:#5a6478;">7  <span style="color:#81a1c1;">discipline</span><span style="color:#d8dee9;">: </span><span style="color:#a3be8c;">[Weightlifting]</span></div>
+                    <div style="color:#5a6478;">9  <span style="color:#4a5568;">---</span></div>
+                  </div>
+                  <!-- Companion -->
+                  <div style="width:70px; background:#2e3440; border-left:1px solid #353d4e; padding:5px; display:flex; flex-direction:column; gap:3px;">
+                    <div style="font-size:7px; font-weight:700; color:#a3be8c; margin-bottom:2px;">⚡ Effort Metadata</div>
+                    <div><div style="font-size:6px; color:#5a6478; margin-bottom:1px;">SLUG</div><div style="background:#32394a; border-radius:3px; padding:2px 4px; font-family:monospace; font-size:6px; color:#a3be8c; border:1px solid rgba(163,190,140,0.4);">fran</div></div>
+                    <div><div style="font-size:6px; color:#5a6478; margin-bottom:1px;">MET</div><div style="display:flex; align-items:center; gap:2px;"><span style="font-size:6px; color:#d08770; background:#32394a; border:1px solid #3f4859; border-radius:2px; padding:1px 2px;">−</span><span style="font-size:7px; font-weight:700; color:#d08770; font-family:monospace;">8.5</span><span style="font-size:6px; color:#d08770; background:#32394a; border:1px solid #3f4859; border-radius:2px; padding:1px 2px;">+</span></div></div>
+                    <div style="margin-top:auto; background:#a3be8c; border-radius:3px; padding:2px 0; text-align:center; font-size:6px; font-weight:700; color:#2e3440;">Apply</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <div class="badge badge-blue mb-2">Canvas-Aligned · WOD-695</div>
+              <h2 class="text-base font-bold text-zinc-900 dark:text-zinc-100" style="letter-spacing: -0.02em;">Variant B — Side Companion in Canvas Shell</h2>
+            </div>
+            <div style="background:rgba(80,136,96,0.1); color:#508860; border:1px solid rgba(80,136,96,0.25); border-radius:6px; padding:2px 8px; font-size:10px; font-weight:700; flex-shrink:0;" class="dark:text-green-400">CTO Choice · v1</div>
+          </div>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-5">
+            Prototype updated to show the companion inside the real Canvas shell: sticky z-30 header, 40% prose + 60% sticky editor rail, correct mobile single-column reorder. Four states: Default, Triggered (cursor enters frontmatter), Focused (companion open), Dismissed.
+          </p>
+          <div class="flex flex-col gap-1 mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            <span>✓ CanvasPage title-bar mode — sticky header z-30</span>
+            <span>✓ Desktop 40/60 prose + editor split</span>
+            <span>✓ Mobile single-column reorder</span>
+            <span>✓ All four interaction states interactive</span>
+            <span>✓ Write-through: edits update YAML in real time</span>
+            <span>✓ Implementation notes embedded in prototype</span>
+          </div>
+          <div class="flex gap-2">
+            <a href="effort-widget-canvas-aligned.html" target="_blank" class="open-btn">Open prototype →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Implementation handoff notes -->
+    <div class="mt-2 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800/30 p-6 mb-4">
+      <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-3">Implementation Handoff — WOD-695 → WOD-696</h3>
+      <div class="space-y-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <p><strong>Canvas shell constraints honored:</strong> The prototype uses the real CanvasPage layout model — sticky header (<code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">data-page-sticky-boundary="true"</code>, z-30), two-column body (40% prose + 60% sticky editor via <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">position:sticky, align-self:flex-start</code>), and mobile reorder (single column, companion expands below editor).</p>
+        <p><strong>Extend FrontmatterCompanion.tsx:</strong> Add <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">effortMode: boolean</code> prop. When true, render <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">EffortCompanionContent</code> sub-component. Width: 220px on desktop, full-width below editor on mobile.</p>
+        <p><strong>Navigation invariants:</strong> <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">?h=</code> section tracking must not break. No new routing model. Companion open/close state is purely local (not persisted to URL). StickyNavPanel / IntersectionObserver continues to drive active section.</p>
+        <p><strong>Write-through:</strong> Edits in the companion must update the YAML source in real time via CodeMirror transactions. The raw YAML remains the source of truth; the companion is a structured view over it.</p>
+        <p><strong>Exit triggers:</strong> Clicking back into prose, Escape key, explicit Discard button, or navigating away collapses the companion. Save writes + collapses.</p>
+      </div>
+    </div>
+
+    <div class="mt-2 text-xs text-zinc-400 dark:text-zinc-500 pb-12">
+      Generated by Designer Agent · <a href="/WOD/issues/WOD-695" class="hover:underline">WOD-695</a> · Canvas-aligned interactive prototype.
+    </div>
+  </div>
+
   <script>
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
   </script>
