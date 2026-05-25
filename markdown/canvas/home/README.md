@@ -17,6 +17,11 @@ align:   right
 width:   45%
 ```
 
+## Try the live editor {sticky}
+
+The script on the right is part of this wiki, not a screenshot. Click into it,
+change the reps, movements, weights, or rest, and use the examples as a safe
+scratchpad while you learn how WOD Wiki works.
 
 ### 📺 Chromecast & Big Clock Integration
 Cast the timer to any TV or monitor in your home gym with one click. Get a full-screen display readable from across the room, ensuring you stay on pace without squinting at your phone.

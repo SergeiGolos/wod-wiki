@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import { useNavigate } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { ArrowLeft, Eye, Maximize2, Play } from 'lucide-react'
+import type { EditorView } from '@codemirror/view'
 import { useQueryState } from 'nuqs'
 import { NoteEditor } from '@/components/Editor/NoteEditor'
 import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
@@ -46,6 +47,12 @@ const MOBILE_STICKY_TOP = 65
 // Matches Tailwind's `lg` breakpoint (1024px).  Used to select the correct
 // IntersectionObserver rootMargin for mobile vs desktop — mirrors ParallaxSection.
 const MOBILE_BREAKPOINT_PX = 1023
+const INITIAL_SOURCE_KEY = '__initial__'
+
+interface EditableSourceState {
+  original: string
+  current: string
+}
 
 function getPageStickyOffset(fallback: number): number {
   if (typeof document === 'undefined') return fallback
@@ -388,9 +395,16 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // Keep editor source in both state (for the NoteEditor value prop) and a ref
   // (so the observer callback never closes over a stale string).
   const initialSource = viewDef?.source ? resolveSource(viewDef.source, wodFiles) : ''
+  const initialSourceKey = viewDef?.source || INITIAL_SOURCE_KEY
   const [editorSource, setEditorSource] = useState(initialSource)
   const [editorOpacity, setEditorOpacity] = useState(1)
+  const [activeSourceKey, setActiveSourceKey] = useState(initialSourceKey)
+  const [activeOriginalSource, setActiveOriginalSource] = useState(initialSource)
   const editorSourceRef = useRef(initialSource)
+  const editorViewRef = useRef<EditorView | null>(null)
+  const sourceEditsRef = useRef<Map<string, EditableSourceState>>(new Map([
+    [initialSourceKey, { original: initialSource, current: initialSource }],
+  ]))
   const swapTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Panel state machine ────────────────────────────────────────────────────
@@ -430,25 +444,73 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     }
   }, [canvasNoteId])
 
-  // Fade-swap the editor content — clears any pending swap before starting
-  const swapSource = useCallback((raw: string) => {
-    if (raw === editorSourceRef.current) return
+  const focusEditor = useCallback(() => {
+    requestAnimationFrame(() => editorViewRef.current?.focus())
+  }, [])
+
+  // Fade-swap the editor content — clears any pending swap before starting.
+  // Each source path keeps its own current edit, so switching examples is
+  // predictable and never discards an experiment.
+  const swapSource = useCallback((raw: string, sourceKey = raw) => {
+    const saved = sourceEditsRef.current.get(sourceKey)
+    const nextSource = saved?.current ?? raw
+    const originalSource = saved?.original ?? raw
+
+    if (!saved) {
+      sourceEditsRef.current.set(sourceKey, {
+        original: raw,
+        current: raw,
+      })
+    }
+
+    setActiveSourceKey(sourceKey)
+    setActiveOriginalSource(originalSource)
+    focusEditor()
+
+    if (nextSource === editorSourceRef.current) return
     if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
     setEditorOpacity(0)
     swapTimerRef.current = setTimeout(() => {
-      editorSourceRef.current = raw
-      setEditorSource(raw)
+      editorSourceRef.current = nextSource
+      setEditorSource(nextSource)
       setEditorOpacity(1)
       swapTimerRef.current = null
+      focusEditor()
     }, 180)
-  }, [])
+  }, [focusEditor])
+
+  const handleEditorChange = useCallback((value: string) => {
+    setEditorSource(value)
+    editorSourceRef.current = value
+    const sourceState = sourceEditsRef.current.get(activeSourceKey) ?? {
+      original: activeOriginalSource,
+      current: activeOriginalSource,
+    }
+    sourceEditsRef.current.set(activeSourceKey, {
+      ...sourceState,
+      current: value,
+    })
+  }, [activeOriginalSource, activeSourceKey])
+
+  const resetActiveSource = useCallback(() => {
+    const sourceState = sourceEditsRef.current.get(activeSourceKey)
+    const original = sourceState?.original ?? activeOriginalSource
+    sourceEditsRef.current.set(activeSourceKey, {
+      original,
+      current: original,
+    })
+    editorSourceRef.current = original
+    setEditorSource(original)
+    setActiveOriginalSource(original)
+    focusEditor()
+  }, [activeOriginalSource, activeSourceKey, focusEditor])
 
   // When a content override arrives (e.g. from search bar workout selection), swap it in.
   const prevContentOverride = useRef<string | undefined>(undefined)
   useEffect(() => {
     if (contentOverride && contentOverride !== prevContentOverride.current) {
       prevContentOverride.current = contentOverride
-      swapSource(contentOverride)
+      swapSource(contentOverride, `content-override:${contentOverride}`)
     }
   }, [contentOverride, swapSource])
 
@@ -537,7 +599,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       const h = params['h']
       if (h !== undefined) setHeadingParam(h, { history: replace ? 'replace' : 'push' })
     },
-    swapSource: (source: string) => swapSource(resolveSource(source, wodFilesRef.current)),
+    swapSource: (source: string) => swapSource(resolveSource(source, wodFilesRef.current), source),
     setPanelState: (state, open) => {
       if (state === 'note') {
         closeViewRuntime()
@@ -803,23 +865,39 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       )
     }
     // Default: editor
+    const isEditorDirty = editorSource !== activeOriginalSource
     return (
-      <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }}>
-        <NoteEditor
-          noteId={canvasNoteId}
-          value={editorSource}
-          onChange={v => { setEditorSource(v); editorSourceRef.current = v }}
-          onBlocksChange={blocks => { wodBlocksRef.current = blocks }}
-          theme={theme}
-          readonly={false}
-          showLineNumbers={false}
-          enableOverlay={false}
-          enableInlineRuntime={false}
-          extendedResults={persistedResults}
-          commands={[]}
-          hideDefaultCommands={true}
-          className="h-full"
-        />
+      <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }} className="flex flex-col">
+        <div className="flex items-center justify-between gap-3 border-b border-border/40 bg-primary/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+          <span>Try editing this example ↓</span>
+          {isEditorDirty ? (
+            <button
+              type="button"
+              onClick={resetActiveSource}
+              className="rounded-full border border-primary/30 px-3 py-1 text-[10px] font-black text-primary transition-colors hover:bg-primary/10"
+            >
+              Reset to example
+            </button>
+          ) : null}
+        </div>
+        <div className="min-h-0 flex-1">
+          <NoteEditor
+            noteId={canvasNoteId}
+            value={editorSource}
+            onChange={handleEditorChange}
+            onBlocksChange={blocks => { wodBlocksRef.current = blocks }}
+            onViewCreated={view => { editorViewRef.current = view }}
+            theme={theme}
+            readonly={false}
+            showLineNumbers={false}
+            enableOverlay={false}
+            enableInlineRuntime={false}
+            extendedResults={persistedResults}
+            commands={[]}
+            hideDefaultCommands={true}
+            className="h-full"
+          />
+        </div>
       </div>
     )
   })()
