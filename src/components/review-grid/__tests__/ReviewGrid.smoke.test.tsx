@@ -169,7 +169,8 @@ describe('ReviewGrid smoke', () => {
       if (!firstRowToSelect) throw new Error('Expected first body row');
       fireEvent.click(firstRowToSelect);
       expect(onSelectSegment.mock.calls.length).toBe(1);
-      expect(onSelectSegment.mock.calls[0][0]).toBe(3);
+      const firstCall = onSelectSegment.mock.calls[0] as unknown as [number, unknown?, unknown?];
+      expect(firstCall[0]).toBe(3);
     } finally {
       console.error = originalConsoleError;
     }
