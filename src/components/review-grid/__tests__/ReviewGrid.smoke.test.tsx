@@ -1,4 +1,3 @@
-import React from 'react';
 import { afterEach, describe, expect, it, mock } from 'bun:test';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { ReviewGrid } from '../ReviewGrid';
@@ -125,10 +124,24 @@ describe('ReviewGrid smoke', () => {
     try {
       const { container, onSelectSegment } = renderReviewGrid(fixtureSegments);
 
-      const getBodyRows = () => Array.from(container.querySelectorAll('tbody tr'));
+      const table = container.querySelector('table');
+      expect(table?.className.includes('w-full')).toBe(false);
+
+      const getBodyRows = () => container.querySelectorAll<HTMLTableRowElement>('tbody tr');
 
       expect(getBodyRows()).toHaveLength(3);
       expect(screen.getByText('3 rows')).toBeDefined();
+
+      const hashHeader = screen.getByText('#').closest('th');
+      expect(hashHeader?.style.minWidth).toBe('40px');
+
+      const repsWidthHeader = screen.getByText('Reps').closest('th');
+      expect(repsWidthHeader?.style.minWidth).toBe('72px');
+
+      const firstRow = getBodyRows().item(0);
+      if (!firstRow) throw new Error('Expected first body row');
+      const firstRowCells = firstRow.querySelectorAll<HTMLTableCellElement>('td');
+      expect(firstRowCells.item(0)?.style.minWidth).toBe('40px');
 
       const searchInput = screen.getByPlaceholderText('MQL (not current implement)');
       fireEvent.change(searchInput, { target: { value: 'Pull-ups' } });
@@ -152,8 +165,9 @@ describe('ReviewGrid smoke', () => {
       fireEvent.click(graphToggle);
       expect(screen.getByText(/Graph — Reps/i)).toBeDefined();
 
-      const firstRow = getBodyRows()[0];
-      fireEvent.click(firstRow);
+      const firstRowToSelect = getBodyRows().item(0);
+      if (!firstRowToSelect) throw new Error('Expected first body row');
+      fireEvent.click(firstRowToSelect);
       expect(onSelectSegment.mock.calls.length).toBe(1);
       expect(onSelectSegment.mock.calls[0][0]).toBe(3);
     } finally {

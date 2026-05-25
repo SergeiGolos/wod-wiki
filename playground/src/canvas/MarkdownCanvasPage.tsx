@@ -155,7 +155,13 @@ const getSectionThemeStyles = (s: CanvasSection) => SECTION_THEME_STYLES[getSect
 /** Convert a single stringly-typed PipelineStep to a typed INavAction. */
 function pipelineStepToNavAction(step: PipelineStep, open: OpenMode = 'dialog'): INavAction {
   if (step.action === 'set-source') return { type: 'view-source', source: step.value }
-  if (step.action === 'navigate')   return { type: 'route', to: step.value }
+  if (step.action === 'navigate') {
+    // External URLs (http://, https://) open in a new tab
+    if (/^https?:\/\//.test(step.value)) {
+      return { type: 'external', href: step.value }
+    }
+    return { type: 'route', to: step.value }
+  }
   if (step.action === 'set-state') {
     if (step.value === 'note')   return { type: 'view-state', state: 'note' }
     if (step.value === 'review') return { type: 'view-state', state: 'review' }

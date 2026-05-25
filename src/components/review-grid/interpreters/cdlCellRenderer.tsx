@@ -13,6 +13,7 @@
  */
 
 import React, { useCallback, useRef, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
 import { MetricType } from '@/core/models/Metric';
@@ -49,6 +50,8 @@ export interface UnifiedCellRendererProps {
   onDoubleClick?: (blockKey: string, metricType: MetricType, anchorRect: DOMRect) => void;
   /** Optional additional CSS classes for the <td> */
   className?: string;
+  /** Optional inline styles for the <td> */
+  style?: CSSProperties;
   /** Optional definition map for dependency resolution */
   definitionMap?: ReadonlyMap<string, ColumnDef>;
 }
@@ -66,6 +69,7 @@ export const UnifiedCellRenderer: React.FC<UnifiedCellRendererProps> = ({
   indent = 0,
   onDoubleClick,
   className,
+  style,
   definitionMap,
 }) => {
   const tdRef = useRef<HTMLTableCellElement>(null);
@@ -107,6 +111,7 @@ export const UnifiedCellRenderer: React.FC<UnifiedCellRendererProps> = ({
     <td
       ref={tdRef}
       className={cn('py-1 px-2', isMetricColumn && 'cursor-cell', className)}
+      style={style}
       onDoubleClick={handleDoubleClick}
     >
       {content}

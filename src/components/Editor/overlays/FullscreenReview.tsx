@@ -13,7 +13,6 @@ import { CastButtonRpc } from "@/components/cast/CastButtonRpc";
 import { AudioToggle } from "@/components/audio/AudioToggle";
 import { MetricType } from "@/core/models/Metric";
 import { type ProjectionResult } from "@/core/analytics/ProjectionResult";
-import { cn } from "@/lib/utils";
 
 export interface FullscreenReviewProps {
   segments: Segment[];
@@ -92,12 +91,11 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
       onClose={onClose} 
       variant="minimal" 
       actions={<><CastButtonRpc /><AudioToggle /></>}
-      className="p-0 flex flex-col h-full bg-background"
     >
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-6 py-6">
         {/* Panel 4: Collection Banner */}
         {collectionItems.length > 0 && (
-          <div className="px-6 py-4 border-b border-border bg-warning/5">
+          <div className="shrink-0 mb-4 border-b border-border bg-warning/5 -mx-6 px-6 py-4">
             <CollectionWizard
               items={collectionItems}
               onSave={handleCollectionSave}
@@ -107,37 +105,33 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="max-w-7xl mx-auto p-6 space-y-8">
-            {/* Panel 2: Analytics Scorecard */}
-            {projections.length > 0 && (
-              <section>
-                <AnalyticsScorecard projections={projections} />
-              </section>
-            )}
+        {/* Panel 2: Analytics Scorecard */}
+        {projections.length > 0 && (
+          <section className="shrink-0 mb-4">
+            <AnalyticsScorecard projections={projections} />
+          </section>
+        )}
 
-            {/* Panel 1: Workout Log */}
-            <section className="flex flex-col min-h-[500px]">
-              <h3 className="text-[11px] font-bold tracking-label text-muted-foreground uppercase mb-4">
-                📋 Workout Log
-              </h3>
-              <div className="flex-1 border border-border rounded-2xl overflow-hidden bg-card">
-                <ReviewGrid
-                  runtime={null}
-                  segments={segments}
-                  selectedSegmentIds={selectedSegmentIds}
-                  onSelectSegment={handleSelectSegment}
-                  groups={[]}
-                  userOutputOverrides={overrides}
-                />
-              </div>
-            </section>
+        {/* Panel 1: Workout Log */}
+        <section className="flex min-h-0 flex-1 flex-col">
+          <h3 className="mb-4 text-[11px] font-bold tracking-label text-muted-foreground uppercase">
+            📋 Workout Log
+          </h3>
+          <div className="flex-1 min-h-0 border border-border rounded-2xl bg-card">
+            <ReviewGrid
+              runtime={null}
+              segments={segments}
+              selectedSegmentIds={selectedSegmentIds}
+              onSelectSegment={handleSelectSegment}
+              groups={[]}
+              userOutputOverrides={overrides}
+            />
           </div>
-        </div>
+        </section>
 
         {/* Panel 3: Debug Trace (Sticky at bottom) */}
         {isDebugMode && (
-          <DebugTraceViewer rows={rows} className="shrink-0" />
+          <DebugTraceViewer rows={rows} className="shrink-0 mt-4" />
         )}
       </div>
     </FocusedDialog>

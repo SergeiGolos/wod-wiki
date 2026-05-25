@@ -221,3 +221,4 @@ The dialect pages explain which Markdown fence wraps that grammar and what inten
 - [WOD dialect](./dialect-wod.md)
 - [Log dialect](./dialect-log.md)
 - [Plan dialect](./dialect-plan.md)
+- [Climb dialect](./dialect-climb.md)

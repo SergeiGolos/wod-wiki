@@ -37,6 +37,23 @@ pipeline:
   - navigate: /guide/syntax/basics
 ```
 
+## Dialect Examples {sticky}
+
+Scroll through the main fence types: `wod` for workout definitions, `log` for completed sessions, `plan` for templates, and `climb` for climbing-specific logs.
+
+```command
+target: preview
+pipeline:
+  - set-source: wods/examples/syntax/dialect-climb-bouldering.md
+```
+
+```button
+label:  Open Dialect Examples →
+target: preview
+pipeline:
+  - navigate: /guide/syntax/dialects
+```
+
 ## Structure & Rep Schemes {sticky}
 
 Organise movements into repeating blocks, named sections, or nested groups. Define how many reps you perform for each movement.

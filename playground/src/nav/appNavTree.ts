@@ -105,15 +105,6 @@ export function buildAppNavTree(_openSearch: () => void): NavItem[] {
     },
 
     {
-      id: 'ai-first',
-      label: 'AI First',
-      level: 1,
-      icon: SparklesIcon,
-      action: { type: 'route', to: ROUTE_PATTERNS.aiFirst },
-      isActive: (loc: Location) => loc.pathname === ROUTE_PATTERNS.aiFirst || loc.pathname.startsWith('/ai-first/'),
-    },
-
-    {
       id: 'journal',
       label: 'Journal',
       level: 1,

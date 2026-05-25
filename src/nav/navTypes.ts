@@ -56,6 +56,12 @@ export interface CallAction {
   label?: string
 }
 
+/** Open an external URL in a new tab. */
+export interface ExternalLinkAction {
+  type: 'external'
+  href: string
+}
+
 /** No-op — for group headers. */
 export interface NoneAction {
   type: 'none'
@@ -69,6 +75,7 @@ export type INavAction =
   | ViewStateAction
   | PipelineAction
   | CallAction
+  | ExternalLinkAction
   | NoneAction
 
 // ─── INavActivation — base interface for every activatable UI element ─────────
@@ -115,6 +122,9 @@ export function executeNavAction(action: INavAction, deps: NavActionDeps): void 
       break
     case 'call':
       action.handler()
+      break
+    case 'external':
+      window.open(action.href, '_blank', 'noopener,noreferrer')
       break
     case 'none':
       break
