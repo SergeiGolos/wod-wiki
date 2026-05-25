@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 import type { NoteEditorProps } from '@/components/Editor/NoteEditor'
 import type { WorkoutResult } from '@/types/storage'
@@ -12,6 +12,7 @@ const editorSnapshots: Array<{ noteId?: string; resultCount: number; source?: st
 const storedResults: WorkoutResult[] = []
 const saveResultCalls: WorkoutResult[] = []
 const editorFocusCalls: string[] = []
+let nextEditorInstanceId = 0
 
 const sampleWorkoutResults = {
   completed: true,
@@ -72,6 +73,9 @@ mock.module('@/services/persistence', () => ({
 
 mock.module('@/components/Editor/NoteEditor', () => ({
   NoteEditor: (props: NoteEditorProps) => {
+    const instanceIdRef = useRef(0)
+    if (instanceIdRef.current === 0) instanceIdRef.current = ++nextEditorInstanceId
+
     useEffect(() => {
       props.onViewCreated?.({
         focus: () => editorFocusCalls.push(props.value),
@@ -96,6 +100,7 @@ mock.module('@/components/Editor/NoteEditor', () => ({
         data-note-id={props.noteId}
         data-result-count={String(props.extendedResults?.length ?? 0)}
         data-editor-source={typeof props.value === 'string' ? props.value : ''}
+        data-editor-instance={String(instanceIdRef.current)}
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
       />
@@ -126,9 +131,11 @@ mock.module('@/services/AnalyticsTransformer', () => ({
 }))
 
 mock.module('../components/MacOSChrome', () => ({
-  MacOSChrome: ({ title, children }: { title: string; children: React.ReactNode }) => (
+  MacOSChrome: ({ title, children, onReset, headerActions }: { title: string; children: React.ReactNode; onReset?: () => void; headerActions?: React.ReactNode }) => (
     <div data-testid="chrome">
       <div data-testid="chrome-title">{title}</div>
+      {headerActions}
+      {onReset ? <button onClick={onReset}>Reset</button> : null}
       {children}
     </div>
   ),
@@ -257,6 +264,7 @@ describe('MarkdownCanvasPage result persistence', () => {
     storedResults.length = 0
     saveResultCalls.length = 0
     editorFocusCalls.length = 0
+    nextEditorInstanceId = 0
     Object.defineProperty(window, 'scrollY', {
       value: 0,
       writable: true,
@@ -309,10 +317,56 @@ describe('MarkdownCanvasPage result persistence', () => {
     })
 
     act(() => {
-      panelActions?.reset()
+      screen.getAllByRole('button', { name: 'Back to editor' })[0].click()
     })
 
     await waitFor(() => expect(getRenderedEditors().every((editor) => editor.getAttribute('data-result-count') === '1')).toBe(true))
+  })
+
+  it('resets runtime, review data, results, source, and editor instance from the chrome reset action', async () => {
+    const { MarkdownCanvasPage } = await markdownCanvasPageModule
+    let panelActions: PanelActions | null = null
+
+    render(
+      <MarkdownCanvasPage
+        page={page}
+        wodFiles={{ '../../markdown/home-source.md': '10 thrusters' }}
+        theme="light"
+        onPanelActionsReady={(actions) => {
+          panelActions = actions
+        }}
+      />,
+    )
+
+    await waitFor(() => expect(panelActions).toBeTruthy())
+    await waitFor(() => expect(getRenderedEditors()).toHaveLength(2))
+    expect(screen.queryAllByRole('button', { name: 'Reset' })).toHaveLength(0)
+
+    const initialEditorInstance = getRenderedEditors()[0].getAttribute('data-editor-instance')
+    fireEvent.change(getRenderedEditors()[0], { target: { value: 'edited source' } })
+    expect(screen.getAllByRole('button', { name: 'Reset' })).toHaveLength(2)
+
+    act(() => {
+      panelActions?.run()
+    })
+    await waitFor(() => expect(getRenderedRuntimeButtons()).toHaveLength(2))
+
+    act(() => {
+      getRenderedRuntimeButtons()[0].click()
+    })
+
+    await waitFor(() => expect(saveResultCalls).toHaveLength(1))
+    await waitFor(() => expect(screen.getAllByTestId('review-grid')).toHaveLength(2))
+
+    act(() => {
+      screen.getAllByRole('button', { name: 'Reset' })[0].click()
+    })
+
+    await waitFor(() => expect(screen.queryAllByTestId('review-grid')).toHaveLength(0))
+    await waitFor(() => expect(getRenderedEditors().every((editor) => editor.getAttribute('data-result-count') === '0')).toBe(true))
+    expect(getEditorValue()).toBe('10 thrusters')
+    expect(getRenderedEditors()[0].getAttribute('data-editor-instance')).not.toBe(initialEditorInstance)
+    expect(screen.queryAllByRole('button', { name: 'Reset' })).toHaveLength(0)
   })
 
   it('hydrates stored canvas results on initial load', async () => {

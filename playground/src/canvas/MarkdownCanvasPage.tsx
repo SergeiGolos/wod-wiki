@@ -494,6 +494,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const [selectedExamples, setSelectedExamples] = useState<Record<string, number>>({})
   const [activeSourceKey, setActiveSourceKey] = useState(initialSourceKey)
   const [activeOriginalSource, setActiveOriginalSource] = useState(initialSource)
+  const [editorResetVersion, setEditorResetVersion] = useState(0)
   const editorSourceRef = useRef(initialSource)
   const editorViewRef = useRef<EditorView | null>(null)
   const sourceEditsRef = useRef<Map<string, EditableSourceState>>(new Map([
@@ -602,6 +603,39 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     editorSourceRef.current = original
     setEditorSource(original)
     setActiveOriginalSource(original)
+    focusEditor()
+  }, [activeOriginalSource, activeSourceKey, focusEditor])
+
+  const handlePanelReset = useCallback(() => {
+    const block = activeViewBlockRef.current
+    if (block) activeRuntimes.delete(block.id)
+    activeViewBlockRef.current = null
+
+    if (swapTimerRef.current) {
+      clearTimeout(swapTimerRef.current)
+      swapTimerRef.current = null
+    }
+
+    const sourceState = sourceEditsRef.current.get(activeSourceKey)
+    const original = sourceState?.original ?? activeOriginalSource
+    sourceEditsRef.current.set(activeSourceKey, {
+      original,
+      current: original,
+    })
+    editorSourceRef.current = original
+    editorViewRef.current = null
+
+    setActiveViewRuntimeId(null)
+    setViewTimerBlock(null)
+    setReviewSegments([])
+    setSelectedSegmentIds(new Set())
+    setPersistedResults([])
+    setPanelMode('editor')
+    setIsEditorLoading(false)
+    setEditorOpacity(1)
+    setEditorSource(original)
+    setActiveOriginalSource(original)
+    setEditorResetVersion(version => version + 1)
     focusEditor()
   }, [activeOriginalSource, activeSourceKey, focusEditor])
 
@@ -775,10 +809,12 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // but always calls the *current* function — avoids stale-closure bugs.
   const launchViewRuntimeRef  = useRef(launchViewRuntime)
   const closeViewRuntimeRef   = useRef(closeViewRuntime)
+  const handlePanelResetRef   = useRef(handlePanelReset)
   const setPanelModeRef       = useRef(setPanelMode)
   const setFullscreenBlockRef = useRef(setFullscreenBlock)
   launchViewRuntimeRef.current  = launchViewRuntime
   closeViewRuntimeRef.current   = closeViewRuntime
+  handlePanelResetRef.current   = handlePanelReset
   setPanelModeRef.current       = setPanelMode
   setFullscreenBlockRef.current = setFullscreenBlock
 
@@ -790,7 +826,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         const block = wodBlocksRef.current[0] ?? null
         if (block) launchViewRuntimeRef.current(block)
       },
-      reset: () => closeViewRuntimeRef.current(),
+      reset: () => handlePanelResetRef.current(),
       results: () => setPanelModeRef.current('review'),
       fullscreen: () => {
         const block = wodBlocksRef.current[0] ?? null
@@ -956,6 +992,15 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     panelMode === 'review' ? 'Review' :
     isEditorLoading ? `${activeSectionTitle} · loading` : activeSectionTitle
 
+  const isEditorDirty = editorSource !== activeOriginalSource
+  const canResetPanel =
+    hasActiveViewRuntime ||
+    panelMode !== 'editor' ||
+    reviewSegments.length > 0 ||
+    selectedSegmentIds.size > 0 ||
+    persistedResults.length > 0 ||
+    isEditorDirty
+
   const panelContent = (() => {
     if (panelMode === 'running' && viewTimerBlock) {
       return (
@@ -1011,7 +1056,6 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       )
     }
     // Default: editor
-    const isEditorDirty = editorSource !== activeOriginalSource
     return (
       <div style={{ opacity: editorOpacity, transition: 'opacity 180ms ease', height: '100%' }} className="flex flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-border/40 bg-primary/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
@@ -1028,6 +1072,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         </div>
         <div className="min-h-0 flex-1">
           <NoteEditor
+            key={`${activeSourceKey}:${editorResetVersion}`}
             noteId={canvasNoteId}
             value={editorSource}
             onChange={handleEditorChange}
@@ -1056,7 +1101,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       style={{ top: `${STICKY_NAV_HEIGHT}px`, height: `calc(100vh - ${STICKY_NAV_HEIGHT}px)` }}
     >
       <div className="flex-1 min-h-0">
-        <MacOSChrome title={panelTitle} headerActions={panelHeaderActions} className={cn('transition-colors duration-300', activePanelTheme.panel)}>
+        <MacOSChrome title={panelTitle} onReset={canResetPanel ? handlePanelReset : undefined} headerActions={panelHeaderActions} className={cn('transition-colors duration-300', activePanelTheme.panel)}>
           {panelContent}
         </MacOSChrome>
       </div>
@@ -1077,7 +1122,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     >
       <div className="flex flex-col gap-2" style={{ height: '100%' }}>
         <div className="flex-1 min-h-0">
-          <MacOSChrome title={panelTitle} headerActions={panelHeaderActions} className={cn('transition-colors duration-300', activePanelTheme.panel)}>
+          <MacOSChrome title={panelTitle} onReset={canResetPanel ? handlePanelReset : undefined} headerActions={panelHeaderActions} className={cn('transition-colors duration-300', activePanelTheme.panel)}>
             {panelContent}
           </MacOSChrome>
         </div>
