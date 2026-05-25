@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script>
-    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter'], mono: ['Geist Mono'] } } } }
+    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter'], mono: ['JetBrains Mono'] } } } }
   </script>
   <style>
     body { font-family: 'Inter', sans-serif; background: #f5f2ed; }
@@ -70,7 +70,7 @@
       Landing Page Prototypes
     </h1>
     <p class="text-base text-zinc-600 dark:text-zinc-400 max-w-xl mb-8 leading-7">
-      Four design directions for the playground landing page interactive sandbox. All use the WOD design system: mineral earth tones (light) / Arctic Frost Nord (dark), Inter + Geist Mono, and map to existing components.
+      Four design directions for the playground landing page interactive sandbox. All use the WOD design system: mineral earth tones (light) / Arctic Frost Nord (dark), Inter + JetBrains Mono, and map to existing components.
     </p>
 
     <!-- Design tokens reference -->
@@ -299,7 +299,7 @@
     <div class="mt-10 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800/30 p-6">
       <h3 class="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-3">Designer Notes</h3>
       <div class="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-        <p><strong>All 4 concepts</strong> use the WOD design system verbatim: <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">#f5f2ed</code> light, <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">#2e3440</code> dark, Inter + Geist Mono, pill CTAs, <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">rounded-2xl</code> cards, and the green radial gradient wash.</p>
+        <p><strong>All 4 concepts</strong> use the WOD design system verbatim: <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">#f5f2ed</code> light, <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">#2e3440</code> dark, Inter + JetBrains Mono, pill CTAs, <code class="text-xs bg-zinc-100 dark:bg-zinc-700 px-1 rounded">rounded-2xl</code> cards, and the green radial gradient wash.</p>
         <p><strong>Component coverage:</strong> Every concept maps to existing components (AttentionWidget, CodeExampleWidget, SyntaxGroupWidget, WodCompanion, MacOSChrome, RuntimeTimerPanel, FullscreenTimer, MarkdownCanvasPage). Implementation should reuse rather than rebuild.</p>
         <p><strong>Mobile:</strong> Each prototype includes a responsive note. Default behavior is single-column stacking.</p>
         <p><strong>Recommendation:</strong> Concept 4 (Minimalist Hero + Expandable Sandbox) has the strongest first impression and most app-like HUD — best alignment with the storytelling flow in <strong>WOD-634</strong>. Concept 1 (Split-Pane) is the most direct sandbox feel and easiest to implement. Consider CEO/Serge preference as tiebreaker.</p>

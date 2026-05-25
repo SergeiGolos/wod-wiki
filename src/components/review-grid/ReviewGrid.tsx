@@ -323,7 +323,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
       {/* Grid table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-left text-sm border-collapse">
+        <table className="w-full text-left text-sm border-collapse min-w-[700px]">
           <GridHeader
             columns={displayColumns}
             sortConfigs={sortConfigs}

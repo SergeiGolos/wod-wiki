@@ -94,7 +94,7 @@ function renderFixedCell(col: GridColumn, row: GridRowData): React.ReactNode | n
     case FIXED_COLUMN_IDS.INDEX:
       return (
         <td
-          className={`py-1 pl-3 pr-2 font-mono text-xs w-10 text-right ${outputTypeBadgeClass(row.outputType)}`}
+          className={`py-1 pl-2 pr-1.5 font-mono text-[11px] w-8 text-right ${outputTypeBadgeClass(row.outputType)}`}
           title={`Type: ${row.outputType}\nBlock: ${row.sourceBlockKey}`}
         >
           {row.index}

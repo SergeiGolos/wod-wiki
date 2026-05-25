@@ -5,6 +5,9 @@
 export { ReviewGrid } from './ReviewGrid';
 export type { ReviewGridProps } from './ReviewGrid';
 
+export { ResultsView } from './ResultsView';
+export type { ResultsViewProps } from './ResultsView';
+
 export { MetricPill } from './MetricPill';
 export { GridCell } from './GridCell';
 export { GridRow } from './GridRow';

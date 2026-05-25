@@ -47,7 +47,7 @@ export function CodeExampleWidget({ config, isDarkMode, onRun }: CodeExampleWidg
             },
             '.cm-scroller': {
               fontFamily:
-                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
               lineHeight: '1.6',
               minHeight: '180px',
             },

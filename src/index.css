@@ -303,7 +303,7 @@ th {
 
 /* View zone containers */
 .inline-widget-card-zone {
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: "Inter", system-ui, sans-serif;
   font-size: 14px;
   width: 100%;
   box-sizing: border-box;
@@ -399,7 +399,7 @@ th {
 }
 
 .wod-code-text {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 }
 
 /* WOD Preview Panel */

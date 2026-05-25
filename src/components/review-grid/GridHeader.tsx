@@ -121,7 +121,7 @@ export const HeaderCell: React.FC<HeaderCellProps> = ({
   return (
     <th
       className={[
-        'py-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap select-none',
+        'py-1.5 px-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap select-none',
         column.sortable ? 'cursor-pointer hover:text-foreground transition-colors' : '',
       ].join(' ')}
       onClick={handleClick}
