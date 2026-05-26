@@ -12,6 +12,7 @@
 import type { NavigateFunction } from 'react-router-dom'
 import type { WodBlock } from '@/components/Editor/types'
 import { encodeZip } from './encodeZip'
+import { buildPlaygroundLoadUrl } from '../lib/routes'
 import { toast } from '@/hooks/use-toast'
 
 /** Build the /load?zip= URL for a WOD block. */
@@ -19,7 +20,7 @@ async function buildZipUrl(block: WodBlock): Promise<string> {
   const dialect = block.dialect || 'wod'
   const markdown = `\`\`\`${dialect}\n${block.content.trimEnd()}\n\`\`\`\n`
   const encoded = await encodeZip(markdown)
-  return `${window.location.origin}/load?zip=${encoded}`
+  return `${window.location.origin}${buildPlaygroundLoadUrl({ zip: encoded })}`
 }
 
 /**

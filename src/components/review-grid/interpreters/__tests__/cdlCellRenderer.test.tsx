@@ -3,12 +3,11 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import {
   UnifiedCellRenderer,
-  inferColumnDefFromGridColumn,
 } from '../cdlCellRenderer';
+import { elapsedTotalColumn, indexColumn, outputTypeColumn } from '../../cdlColumnDefinitions';
 import { makeGridRow, makeGridCell } from './test-helpers';
 import { MetricType } from '@/core/models/Metric';
 import type { ColumnDef } from '../../column-definition-language';
-import type { GridColumn } from '../../types';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -517,103 +516,17 @@ describe('UnifiedCellRenderer', () => {
   });
 });
 
-// ─── GridColumn → ColumnDef Bridge ─────────────────────────────
-
-describe('inferColumnDefFromGridColumn', () => {
-  it('should infer INDEX column', () => {
-    const col: GridColumn = {
-      id: '#',
-      label: '#',
-      sortable: true,
-      filterable: false,
-      graphable: false,
-      isGraphed: false,
-      visible: true,
-    };
-    const def = inferColumnDefFromGridColumn(col);
-    expect(def.id).toBe('#');
-    expect(def.source.type).toBe('derived');
-    expect(def.format.type).toBe('custom');
+describe('canonical CDL column definitions', () => {
+  it('should define the elapsedTotal graph metadata canonically', () => {
+    expect(elapsedTotalColumn.graph?.unit).toBe('s');
+    expect(elapsedTotalColumn.graph?.color).toBe('#14b8a6');
+    expect(elapsedTotalColumn.graph?.axisLabel).toBe('Elapsed');
   });
 
-  it('should infer BLOCK_KEY column', () => {
-    const col: GridColumn = {
-      id: 'blockKey',
-      label: 'Block',
-      sortable: true,
-      filterable: true,
-      graphable: false,
-      isGraphed: false,
-      visible: true,
-    };
-    const def = inferColumnDefFromGridColumn(col);
-    expect(def.source.type).toBe('fixed-field');
-    expect((def.source as any).field).toBe('sourceBlockKey');
-    expect(def.format.type).toBe('text');
-  });
-
-  it('should infer metric-type column', () => {
-    const col: GridColumn = {
-      id: MetricType.Rep,
-      type: MetricType.Rep,
-      label: 'Reps',
-      sortable: true,
-      filterable: true,
-      graphable: true,
-      isGraphed: false,
-      visible: true,
-    };
-    const def = inferColumnDefFromGridColumn(col);
-    expect(def.source.type).toBe('metric-type');
-    expect((def.source as any).metricType).toBe(MetricType.Rep);
-    expect(def.format.type).toBe('custom');
-  });
-
-  it('should infer TIMESTAMP column with hideMs meta', () => {
-    const col: GridColumn = {
-      id: 'timestamp',
-      label: 'Timestamp',
-      sortable: true,
-      filterable: false,
-      graphable: false,
-      isGraphed: false,
-      visible: true,
-      meta: { hideMs: true },
-    };
-    const def = inferColumnDefFromGridColumn(col);
-    expect(def.source.type).toBe('fixed-field');
-    expect((def.source as any).field).toBe('absoluteStartTime');
-    expect(def.format.type).toBe('custom');
-  });
-
-  it('should infer ELAPSED_TOTAL column', () => {
-    const col: GridColumn = {
-      id: 'elapsedTotal',
-      label: 'Elapsed',
-      sortable: true,
-      filterable: false,
-      graphable: true,
-      isGraphed: false,
-      visible: true,
-    };
-    const def = inferColumnDefFromGridColumn(col);
-    expect(def.source.type).toBe('derived');
-    expect(def.format.type).toBe('custom');
-  });
-
-  it('should infer OUTPUT_TYPE column as badge', () => {
-    const col: GridColumn = {
-      id: 'outputType',
-      label: 'Type',
-      sortable: true,
-      filterable: true,
-      graphable: false,
-      isGraphed: false,
-      visible: true,
-    };
-    const def = inferColumnDefFromGridColumn(col);
-    expect(def.source.type).toBe('fixed-field');
-    expect((def.source as any).field).toBe('outputType');
-    expect(def.format.type).toBe('custom');
+  it('should keep fixed columns declarative', () => {
+    expect(indexColumn.source.type).toBe('derived');
+    expect(indexColumn.format.type).toBe('custom');
+    expect(outputTypeColumn.source.type).toBe('fixed-field');
+    expect(outputTypeColumn.format.type).toBe('custom');
   });
 });

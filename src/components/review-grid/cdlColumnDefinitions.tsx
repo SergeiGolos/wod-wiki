@@ -2,8 +2,8 @@
  * CDL Column Definitions
  *
  * Canonical ColumnDef declarations for every column in the review grid.
- * Replaces the imperative GridColumn building in gridPresets.ts and the
- * runtime inference in inferColumnDefFromGridColumn().
+ * Replaces the imperative GridColumn building in gridPresets.ts with
+ * declarative ColumnDef instances.
  *
  * @see docs/adr/0011-column-definition-language.md
  */
@@ -557,6 +557,7 @@ export const elapsedTotalColumn: ColumnDef = {
     extractor: (row) => (row as any)?.elapsed,
     axisLabel: 'Elapsed',
     unit: 's',
+    color: '#14b8a6',
   },
   meta: {
     tags: ['timing'],

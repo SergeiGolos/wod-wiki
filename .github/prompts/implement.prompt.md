@@ -53,7 +53,7 @@ Before proceeding, confirm:
 ```bash
 # Confirm project setup
 bun install              # Install/refresh dependencies
-bun x tsc --noEmit      # Verify type checking works
+bun x tsc --noEmit      # Verify the narrowest relevant TypeScript surface; see docs/typecheck-policy.md
 bun run test --run      # Verify test runner works
 ```
 
@@ -225,7 +225,7 @@ bun test [test file] --run
 **Expected outcome**: Task is complete when:
 - ✅ Code written and follows project conventions
 - ✅ Tests passing for this task
-- ✅ Type checker clean (no new errors)
+- ✅ Type checker clean for the affected surface
 - ✅ Code compiles and can be imported
 
 ---
@@ -238,7 +238,7 @@ bun test [test file] --run
 
 - [ ] All implementation tasks completed
 - [ ] All new files created and properly exported
-- [ ] No TypeScript errors: `bun x tsc --noEmit`
+- [ ] Type checker clean for the affected surface (use the narrowest relevant tsconfig; see `docs/typecheck-policy.md`)
 - [ ] All unit tests passing: `bun run test --run`
 - [ ] All integration tests passing: `bun run test:components --run`
 - [ ] Component tests passing (if UI components created)
@@ -261,7 +261,7 @@ bun run storybook
 
 ```bash
 # Type check and build
-bun x tsc --noEmit
+# Use the narrowest relevant tsconfig; the repo-wide root command is diagnostic-only while WOD-733 is open.
 
 # Verify storybook builds (takes ~30s, don't cancel!)
 bun run build-storybook
@@ -290,7 +290,7 @@ Criterion: "Unit tests written and passing"
 → Validation: Run `bun test [new test file]` and verify all pass ✅
 
 Criterion: "Type checking clean"
-→ Validation: Run `bun x tsc --noEmit` and verify no new errors ✅
+→ Validation: Run the narrowest relevant TypeScript check for the changed surface and verify no new errors ✅
 
 Criterion: "Storybook stories updated/created if needed"
 → Validation: Run `bun run storybook` and verify new stories render ✅
@@ -454,7 +454,7 @@ Phase [N+1] is unblocked and ready to begin.
 Phase is ready for code review when:
 1. ✅ All implementation tasks completed
 2. ✅ All tests passing
-3. ✅ Type checker clean
+3. ✅ Type checker clean for the affected surface
 4. ✅ Code quality reviewed
 5. ✅ Storybook builds successfully
 6. ✅ Completion report prepared
@@ -651,7 +651,7 @@ Use this before marking phase complete:
 - [ ] All new code uses existing patterns from AGENTS.md
 - [ ] Unit tests written and passing (`bun run test --run`)
 - [ ] Integration tests passing (`bun run test:components --run`)
-- [ ] Type checker clean (`bun x tsc --noEmit`)
+- [ ] Type checker clean for the affected surface (see `docs/typecheck-policy.md`)
 - [ ] No test regressions (`bun run test:all --run`)
 - [ ] Storybook builds successfully (`bun run build-storybook`)
 - [ ] Component stories render correctly (if UI changes)
@@ -803,7 +803,7 @@ assignees: []
 ## Validation Results
 
 ✅ All unit tests passing (`bun run test:all`)
-✅ Type checking clean (`bun x tsc --noEmit`)
+✅ Type checking clean for the affected surface
 ✅ Storybook builds successfully
 ✅ No regressions in existing tests
 ✅ All acceptance criteria from plan met

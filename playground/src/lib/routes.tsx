@@ -36,6 +36,8 @@ export const ROUTE_PATTERNS = {
   run: '/run/:runtimeId',
   review: '/review/:runtimeId',
   load: '/load',
+  loadJournal: '/load/journal',
+  loadJournalDate: '/load/journal/:date',
   efforts: '/efforts',
   effort: '/effort/:slug',
   effortDetail: '/effort/:slug',
@@ -103,6 +105,26 @@ export function reviewPath(runtimeId: string): string {
 /** /load */
 export function loadPath(): string {
   return '/load';
+}
+
+export interface PlaygroundLoadUrlOptions {
+  zip: string;
+}
+
+/** /load?zip=<encoded> */
+export function buildPlaygroundLoadUrl({ zip }: PlaygroundLoadUrlOptions): string {
+  return `/load?zip=${encodeURIComponent(zip)}`;
+}
+
+export interface JournalLoadUrlOptions {
+  zip: string;
+  date?: string;
+}
+
+/** /load/journal?zip=<encoded> or /load/journal/:date?zip=<encoded> */
+export function buildJournalLoadUrl({ zip, date }: JournalLoadUrlOptions): string {
+  const basePath = date ? `/load/journal/${encodeURIComponent(date)}` : '/load/journal';
+  return `${basePath}?zip=${encodeURIComponent(zip)}`;
 }
 
 export function effortsPath(): string {

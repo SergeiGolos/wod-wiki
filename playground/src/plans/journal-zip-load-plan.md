@@ -1,4 +1,4 @@
-# Journal Zip-Load Implementation Plan
+# Journal Zip-Load Implementation Plan v2
 
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 

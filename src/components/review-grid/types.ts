@@ -137,28 +137,3 @@ export interface GridViewPreset {
   readonly isDefault?: boolean;
 }
 
-// ─── Fixed Column IDs ──────────────────────────────────────────
-
-/**
- * Identifiers for the non-metrics fixed columns.
- *
- * Column names follow the glossary in docs/architecture/time-terminology.md:
- * - TIMESTAMP → **TimeStamp** (system Date.now())
- * - SPANS     → **Time** (session-relative span ranges)
- * - ELAPSED   → **Elapsed** (Σ span durations)
- * - DURATION  → **Duration** (parser-defined target)
- * - TOTAL     → **Total** (wall-clock bracket)
- */
-export const FIXED_COLUMN_IDS = {
-  INDEX: '#',
-  BLOCK_KEY: 'blockKey',
-  OUTPUT_TYPE: 'outputType',
-  STACK_LEVEL: 'stackLevel',
-  ELAPSED: 'elapsed',
-  DURATION: 'duration',
-  TOTAL: 'total',
-  ELAPSED_TOTAL: 'elapsedTotal',
-  SPANS: 'spans',
-  COMPLETION_REASON: 'completionReason',
-  TIMESTAMP: 'timestamp',
-} as const;
