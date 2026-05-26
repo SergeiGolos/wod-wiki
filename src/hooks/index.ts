@@ -48,3 +48,8 @@ export {
   type UseWorkbenchServicesReturn,
 } from './useWorkbenchServices';
 
+export {
+  useActiveScrollSection,
+  type UseActiveScrollSectionOptions,
+} from './useActiveScrollSection';
+

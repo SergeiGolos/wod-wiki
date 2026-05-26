@@ -39,6 +39,7 @@ import type { DocsSection } from './types';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { StickyNavPanel } from './StickyNavPanel';
 import { ScopedRuntimeProvider } from './ScopedRuntimeProvider';
+import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 import type { NavActionDeps } from '@/nav/navTypes';
 
 export interface CanvasPageProps {
@@ -129,73 +130,32 @@ export function CanvasPage({
 
   // ── Sections mode: local active section tracking ───────────────────────
   const [activeSection, setActiveSection] = useState(sections?.[0]?.id ?? '');
-  const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // IntersectionObserver — title-bar mode (tracks index links by element id).
-  // Uses a persistent ratioMap so the winner is the most-visible of ALL currently
-  // intersecting sections, not just the batch in the current callback — prevents
-  // oscillation when multiple threshold crossings fire in quick succession.
+  // Shared IntersectionObserver — title-bar mode (tracks index links by element id).
   // Observer-driven writes are suppressed during programmatic smooth-scroll until
   // the target section becomes most-visible (prevents nav flicker mid-animation).
-  useEffect(() => {
-    if (useStickyNavMode || index.length === 0) return;
-    const ratioMap = new Map<string, number>();
-    const lastActiveRef = { current: '' };
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) ratioMap.set(e.target.id, e.intersectionRatio);
-          else ratioMap.delete(e.target.id);
-        });
-        let bestId = '';
-        let bestRatio = -1;
-        ratioMap.forEach((ratio, id) => {
-          if (ratio > bestRatio) { bestRatio = ratio; bestId = id; }
-        });
-        if (!bestId || bestId === lastActiveRef.current) return;
-        // During programmatic scroll, only allow the target section to win.
-        const target = programmaticScrollTargetRef.current;
-        if (target && bestId !== target) return;
-        lastActiveRef.current = bestId;
-        setActiveId(bestId);
-      },
-      { rootMargin: '-10% 0px -40% 0px', threshold: [0, 0.3, 1.0] },
-    );
-    index.forEach((link) => {
-      const el = document.getElementById(link.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [index, setActiveId, useStickyNavMode]);
+  useActiveScrollSection({
+    ids: index.map((link) => link.id),
+    enabled: !useStickyNavMode && index.length > 0,
+    rootMargin: '-10% 0px -40% 0px',
+    threshold: [0, 0.3, 1.0],
+    onChange: (id) => {
+      setActiveId(id);
+    },
+    shouldAcceptChange: (id) => {
+      const target = programmaticScrollTargetRef.current;
+      return !target || id === target;
+    },
+  });
 
-  // IntersectionObserver — sections mode (tracks section divs via refs).
-  // Same ratioMap pattern to prevent oscillation.
-  useEffect(() => {
-    if (!useStickyNavMode) return;
-    const ratioMap = new Map<string, number>();
-    const lastActiveRef = { current: '' };
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          const id = e.target.getAttribute('data-section-id') ?? '';
-          if (e.isIntersecting) ratioMap.set(id, e.intersectionRatio);
-          else ratioMap.delete(id);
-        });
-        let bestId = '';
-        let bestRatio = -1;
-        ratioMap.forEach((ratio, id) => {
-          if (ratio > bestRatio) { bestRatio = ratio; bestId = id; }
-        });
-        if (bestId && bestId !== lastActiveRef.current) {
-          lastActiveRef.current = bestId;
-          setActiveSection(bestId);
-        }
-      },
-      { rootMargin: '-20% 0px -50% 0px', threshold: [0, 0.25, 0.5, 0.75] },
-    );
-    sectionRefs.current.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, [sections, useStickyNavMode]);
+  // Shared IntersectionObserver — sections mode.
+  useActiveScrollSection({
+    ids: sections?.map((section) => section.id) ?? [],
+    enabled: useStickyNavMode,
+    rootMargin: '-20% 0px -50% 0px',
+    threshold: [0, 0.25, 0.5, 0.75],
+    onChange: setActiveSection,
+  });
 
   const scrollToSection = (id: string) => {
     onScrollToSection?.(id);
@@ -252,9 +212,6 @@ export function CanvasPage({
                 key={section.id}
                 id={section.id}
                 data-section-id={section.id}
-                ref={(el) => {
-                  if (el) sectionRefs.current.set(section.id, el);
-                }}
                 className="py-12 lg:py-16 px-6 lg:px-10 border-b border-border/30"
               >
                 {section.content}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { useActiveScrollSection } from '@/hooks/useActiveScrollSection'
 import {
   Dropdown,
   DropdownButton,
@@ -47,25 +48,13 @@ export function PageNavDropdown({
     }
   }, [links, activeSectionId])
 
-  // Track the visible section via IntersectionObserver (if not controlled)
-  useEffect(() => {
-    if (links.length === 0 || activeSectionId) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
-            setInternalActiveId(entry.target.id)
-          }
-        })
-      },
-      { rootMargin: '-60px 0px -40% 0px', threshold: [0, 0.3, 1.0] }
-    )
-    links.forEach(link => {
-      const el = document.getElementById(link.id)
-      if (el) observer.observe(el)
-    })
-    return () => observer.disconnect()
-  }, [links, activeSectionId])
+  useActiveScrollSection({
+    ids: links.map((link) => link.id),
+    enabled: links.length > 0 && !activeSectionId,
+    rootMargin: '-60px 0px -40% 0px',
+    threshold: [0, 0.3, 1.0],
+    onChange: setInternalActiveId,
+  })
 
   if (links.length === 0) return null
 
