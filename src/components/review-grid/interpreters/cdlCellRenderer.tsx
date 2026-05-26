@@ -2,7 +2,7 @@
  * CDL Unified Cell Renderer
  *
  * Renders a single table cell from a ColumnDef + GridRow.
- * Replaces both renderFixedCell() and the GridCell component.
+ * Replaces the old fixed-cell and metric-cell renderers.
  *
  * Responsibilities:
  * - Resolve the column source via cdlSourceResolver
@@ -13,6 +13,7 @@
  */
 
 import React, { useCallback, useRef, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { formatSecondsMMSS, formatSecondsHHMMSS } from '@/lib/formatTime';
 import { MetricType } from '@/core/models/Metric';
@@ -49,6 +50,8 @@ export interface UnifiedCellRendererProps {
   onDoubleClick?: (blockKey: string, metricType: MetricType, anchorRect: DOMRect) => void;
   /** Optional additional CSS classes for the <td> */
   className?: string;
+  /** Optional inline styles for the <td> */
+  style?: CSSProperties;
   /** Optional definition map for dependency resolution */
   definitionMap?: ReadonlyMap<string, ColumnDef>;
 }
@@ -66,6 +69,7 @@ export const UnifiedCellRenderer: React.FC<UnifiedCellRendererProps> = ({
   indent = 0,
   onDoubleClick,
   className,
+  style,
   definitionMap,
 }) => {
   const tdRef = useRef<HTMLTableCellElement>(null);
@@ -107,6 +111,7 @@ export const UnifiedCellRenderer: React.FC<UnifiedCellRendererProps> = ({
     <td
       ref={tdRef}
       className={cn('py-1 px-2', isMetricColumn && 'cursor-cell', className)}
+      style={style}
       onDoubleClick={handleDoubleClick}
     >
       {content}
@@ -382,7 +387,7 @@ function renderFallback(value: unknown, indent: number): React.ReactNode {
 
 /**
  * Render a GridCell value as a stack of MetricPill components.
- * This replaces the old GridCell component.
+ * This replaces the old metric-cell component.
  */
 export function renderMetricCell(cell: any, indent: number): React.ReactNode {
   const metrics = cell.metrics;
@@ -479,8 +484,8 @@ import { FIXED_COLUMN_IDS } from '../types';
  * Infer a CDL ColumnDef from the legacy GridColumn interface.
  * This is a compatibility bridge during Phase 2 migration.
  *
- * Fixed columns get custom renderers that replicate the existing
- * renderFixedCell() behavior. Metric columns get metric-type sources
+ * Fixed columns get custom renderers that replicate the legacy
+ * fixed-cell behavior. Metric columns get metric-type sources
  * with custom format (MetricPill rendering).
  */
 export function inferColumnDefFromGridColumn(col: GridColumn): ColumnDef {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { afterEach, describe, expect, it } from 'bun:test';
-import { cleanup, render, screen } from '@testing-library/react';
-import { TimerStackView } from '../TimerStackView';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { TimerStackView, getPrimaryTimerFontSizePx } from '../TimerStackView';
 
 describe('TimerStackView', () => {
   afterEach(() => {
@@ -17,6 +17,14 @@ describe('TimerStackView', () => {
     onNext: () => {},
     isRunning: false,
   };
+
+  it('increases the primary timer font as the panel gets wider', () => {
+    const mediumPanelFont = getPrimaryTimerFontSizePx(800, false);
+    const widePanelFont = getPrimaryTimerFontSizePx(1400, false);
+
+    expect(widePanelFont).toBeGreaterThan(mediumPanelFont);
+    expect(mediumPanelFont).toBeGreaterThanOrEqual(128);
+  });
 
   // ── Primary timer rendering ──
   it('renders primary timer label and time', () => {
@@ -290,5 +298,74 @@ describe('TimerStackView', () => {
     for (let i = 0; i < 10; i++) {
       expect(screen.getByText(`Timer ${i}`)).toBeDefined();
     }
+  });
+
+  it('shows Continue controls when the workout is paused', () => {
+    render(
+      <TimerStackView
+        {...baseProps}
+        isPaused
+        primaryTimer={{
+          id: 'timer-1',
+          ownerId: 'block-1',
+          timerMemoryId: '',
+          label: 'Workout',
+          format: 'up',
+          accumulatedMs: 65000,
+        }}
+      />,
+    );
+
+    expect(screen.getAllByTitle('Continue').length).toBeGreaterThan(0);
+    expect(screen.getByText('Continue')).toBeDefined();
+  });
+
+  it('uses primary styling for the compact Next button', () => {
+    render(
+      <TimerStackView
+        {...baseProps}
+        compact
+        primaryTimer={{
+          id: 'timer-1',
+          ownerId: 'block-1',
+          timerMemoryId: '',
+          label: 'Workout',
+          format: 'up',
+          accumulatedMs: 65000,
+        }}
+      />,
+    );
+
+    const nextButton = screen.getByTitle('Next Block');
+    expect(nextButton.className).toContain('bg-primary');
+    expect(nextButton.className).toContain('text-primary-foreground');
+  });
+
+  it('disables Next while paused and blocks click dispatch', () => {
+    let nextCalls = 0;
+
+    render(
+      <TimerStackView
+        {...baseProps}
+        onNext={() => {
+          nextCalls += 1;
+        }}
+        isPaused
+        primaryTimer={{
+          id: 'timer-1',
+          ownerId: 'block-1',
+          timerMemoryId: '',
+          label: 'Workout',
+          format: 'up',
+          accumulatedMs: 65000,
+        }}
+      />,
+    );
+
+    const nextButton = screen.getByTitle('Next Block') as HTMLButtonElement;
+    expect(nextButton.disabled).toBe(true);
+
+    fireEvent.click(nextButton);
+    expect(nextCalls).toBe(0);
   });
 });

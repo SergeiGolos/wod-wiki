@@ -14,6 +14,7 @@ import type { GridSortConfig, SortDirection } from './types';
 import type { ColumnDef } from './column-definition-language';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
 import { metricPresentation } from '@/core/metrics/presentation';
+import { getGridAddColumnMinWidth, getGridColumnMinWidth } from './gridWidthPolicy';
 
 interface GridHeaderProps {
   /** Column definitions (only visible columns) */
@@ -66,7 +67,7 @@ export const GridHeader: React.FC<GridHeaderProps> = ({
         ))}
         {/* ＋ Add column button */}
         {onAddColumn && (
-          <th className="py-2 px-1 w-8">
+          <th className="py-2 px-1" style={{ minWidth: getGridAddColumnMinWidth() }}>
             <AddColumnButton availableToAdd={availableToAdd ?? []} onAddColumn={onAddColumn} />
           </th>
         )}
@@ -84,7 +85,7 @@ export const GridHeader: React.FC<GridHeaderProps> = ({
             />
           ))}
           {/* Blank cell under the + button */}
-          {onAddColumn && <th className="py-1 px-1" />}
+          {onAddColumn && <th className="py-1 px-1" style={{ minWidth: getGridAddColumnMinWidth() }} />}
         </tr>
       )}
     </thead>
@@ -134,6 +135,7 @@ export const HeaderCell: React.FC<HeaderCellProps> = ({
         'py-1.5 px-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap select-none',
         sortable ? 'cursor-pointer hover:text-foreground transition-colors' : '',
       ].join(' ')}
+      style={{ minWidth: getGridColumnMinWidth(column) }}
       onClick={handleClick}
     >
       <div className="flex items-center gap-1">
@@ -182,11 +184,11 @@ export interface FilterCellProps {
 
 export const FilterCell: React.FC<FilterCellProps> = ({ column, value, onChange }) => {
   if (!column.filter) {
-    return <th className="py-1 px-2" />;
+    return <th className="py-1 px-2" style={{ minWidth: getGridColumnMinWidth(column) }} />;
   }
 
   return (
-    <th className="py-1 px-2">
+    <th className="py-1 px-2" style={{ minWidth: getGridColumnMinWidth(column) }}>
       <input
         type="text"
         className="w-full px-1.5 py-0.5 text-xs rounded border border-border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"

@@ -10,6 +10,7 @@ import { createPlaygroundPage } from '../services/createPlaygroundPage'
 import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/widgets/AttentionWidget'
 import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/widgets/CodeExampleWidget'
 import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/widgets/SyntaxGroupWidget'
+import { syntaxGuideReference } from '@/content/syntaxGuideReference'
 import { playgroundPath, reviewPath, workoutPath } from '../lib/routes'
 
 const ATTENTION_CONFIG: AttentionWidgetConfig = {
@@ -39,12 +40,20 @@ const ATTENTION_CONFIG: AttentionWidgetConfig = {
   ],
 }
 
+const classicAmrapLines = syntaxGuideReference.classicAmrap.workout.split('\n')
+
 const CODE_EXAMPLE_CONFIG: CodeExampleWidgetConfig = {
   lines: [
-    { code: 'AMRAP 12:00', annotation: 'Run this block for 12 minutes.' },
-    { code: '  10 Kettlebell Swings 24kg', annotation: 'Power hinge + posterior chain volume.' },
-    { code: '  8 Burpees', annotation: 'Conditioning burst each round.' },
-    { code: '  *:30 Rest', annotation: 'Keep transitions deliberate and repeatable.' },
+    {
+      code: classicAmrapLines[0] ?? '20:00 AMRAP',
+      annotation: 'Classic AMRAP from the guide — fixed time window with unbounded rounds.',
+    },
+    { code: classicAmrapLines[1] ?? '  5 Pullups', annotation: 'Start each round with five pullups.' },
+    { code: classicAmrapLines[2] ?? '  10 Pushups', annotation: 'Then move into ten pushups.' },
+    {
+      code: classicAmrapLines[3] ?? '  15 Air Squats',
+      annotation: 'Finish the round with fifteen air squats before looping.',
+    },
   ],
   cta: 'Run this example',
 }
@@ -53,26 +62,26 @@ const SYNTAX_GROUP_CONFIGS: SyntaxGroupWidgetConfig[] = [
   {
     category: 'Structure',
     icon: '🔁',
-    title: 'Rounds',
-    description: 'Use parenthesis to repeat grouped blocks.',
-    example: '(3)\n  8 Front Squats 95lb\n  *:45 Rest',
-    docsPath: '/guide/syntax?h=groups',
+    title: syntaxGuideReference.simpleRounds.title,
+    description: syntaxGuideReference.simpleRounds.subtitle,
+    example: syntaxGuideReference.simpleRounds.workout,
+    docsPath: syntaxGuideReference.simpleRounds.docsPath,
   },
   {
     category: 'Timing',
     icon: '⏱️',
-    title: 'Timers',
-    description: 'Countdowns and rest timers can mix in one block.',
-    example: '2:00 Row\n*:30 Rest',
-    docsPath: '/guide/syntax?h=timers',
+    title: syntaxGuideReference.timersAndRest.title,
+    description: syntaxGuideReference.timersAndRest.subtitle,
+    example: syntaxGuideReference.timersAndRest.workout,
+    docsPath: syntaxGuideReference.timersAndRest.docsPath,
   },
   {
-    category: 'Loading',
+    category: 'Structure',
     icon: '🏋️',
-    title: 'Rep schemes',
-    description: 'Comma-separated reps compress descending sets.',
-    example: '21,15,9 Thrusters 95lb',
-    docsPath: '/guide/syntax?h=metrics',
+    title: 'Rep Schemes',
+    description: syntaxGuideReference.repSchemes.subtitle,
+    example: syntaxGuideReference.repSchemes.workout,
+    docsPath: syntaxGuideReference.repSchemes.docsPath,
   },
 ]
 

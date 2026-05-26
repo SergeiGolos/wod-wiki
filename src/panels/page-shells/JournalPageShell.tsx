@@ -10,11 +10,13 @@
  * Uses useWorkbenchRuntime for workout lifecycle + analytics.
  */
 
-import React, { useState, useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import { PlayIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
+import type { PageNavLink } from '@/components/playground/PageNavDropdown';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
+import { useActiveScrollSection } from '@/hooks/useActiveScrollSection';
 
 export interface JournalPageShellProps {
   /** Editor panel content — typically a PlanPanel with stored note */
@@ -88,26 +90,15 @@ export function JournalPageShell({
     history: 'replace',
   });
 
-  // Internal scroll tracking if not controlled
-  useEffect(() => {
-    if (index.length === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id);
-        }
-      },
-      { rootMargin: '-10% 0px -40% 0px', threshold: [0, 0.3, 1.0] }
-    );
-    index.forEach(link => {
-      const el = document.getElementById(link.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
-  }, [index, setActiveId]);
+  useActiveScrollSection({
+    ids: index.map((link) => link.id),
+    enabled: index.length > 0,
+    rootMargin: '-10% 0px -40% 0px',
+    threshold: [0, 0.3, 1.0],
+    onChange: (id) => {
+      setActiveId(id);
+    },
+  });
 
   const scrollToSection = (id: string) => {
     onScrollToSection?.(id);

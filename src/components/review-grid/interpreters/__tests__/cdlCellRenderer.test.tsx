@@ -136,7 +136,7 @@ describe('UnifiedCellRenderer', () => {
         source: { type: 'fixed-field', field: 'outputType' },
         format: {
           type: 'badge',
-          styleResolver: (v) => ({ className: 'bg-blue-100', icon: '●', title: 'Segment' }),
+          styleResolver: (_v) => ({ className: 'bg-blue-100', icon: '●', title: 'Segment' }),
           textResolver: (v) => String(v).toUpperCase(),
         },
       };

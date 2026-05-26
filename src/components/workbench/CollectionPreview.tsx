@@ -7,6 +7,8 @@ import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { parseFrontmatter, extractLinkWidgets } from '@/lib/frontmatter';
+import { LinkChip } from '@/components/collections/LinkChip';
 import type { WodCollectionItem } from '@/repositories/wod-collections';
 
 export interface CollectionPreviewProps {
@@ -21,6 +23,8 @@ export const CollectionPreview: React.FC<CollectionPreviewProps> = ({
     onStartWorkout,
 }) => {
     const { isCompact: mobile } = usePanelSize();
+    const meta = parseFrontmatter(item.content);
+    const linkWidgets = extractLinkWidgets(meta);
 
     return (
         <div className={cn("h-full bg-background flex flex-col overflow-hidden", !mobile && "border-l border-border")}>
@@ -28,7 +32,7 @@ export const CollectionPreview: React.FC<CollectionPreviewProps> = ({
                 {/* Header */}
                 <div className="flex items-center gap-3 text-foreground flex-shrink-0">
                     <Dumbbell className="h-6 w-6" />
-                    <div className="flex flex-col min-w-0">
+                    <div className="flex flex-col min-w-0 gap-1">
                         <h2 className="text-xl font-semibold truncate">
                             {item.name}
                         </h2>
@@ -36,6 +40,13 @@ export const CollectionPreview: React.FC<CollectionPreviewProps> = ({
                             <span className="text-xs text-muted-foreground">
                                 {collectionName}
                             </span>
+                        )}
+                        {linkWidgets.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-0.5">
+                                {linkWidgets.map((widget, i) => (
+                                    <LinkChip key={`${widget.kind}-${i}`} widget={widget} />
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>

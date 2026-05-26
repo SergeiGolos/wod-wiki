@@ -1,23 +1,13 @@
-```markdown
 ---
 template: canvas
 collection: true
-category: zombie-fit, parkour
-type: Intervals
-difficulty: Intermediate
+category:
+  - parkour
 ---
+# ZombieFit Dec 2009
 
-# ZombieFit.org Dec 2009
+December 2009 features 20 ZombieFit workouts built around for time efforts. Programming rotates through for time, amrap, intervals, emom and max weight formats to keep sessions varied and progressive. Athletes can expect for time, amrap, intervals, max effort and emom work across the training block.
 
-Welcome to the December collection! This month's programming focuses heavily on high-intensity bodyweight movements and foundational strength endurance, perfect for pushing your limits in a controlled environment. Expect challenging AMRAPs and timed efforts designed to build explosive power and resilience.
+The movement emphasis this month falls on push ups, air squats, pull ups. Supporting elements include sit ups, precision, quadrupedal movement, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-## Monthly Overview
-This month’s workouts featured varied intensity, starting with max effort circuits (WOD 34), moving into structured rounds (WOD 35), incorporating ladder challenges (WOD 36), classic CrossFit-style AMRAPs (WOD 37), and finishing with skill/strength focus (WOD 38).
-
-### Week Summary
-*   **Week of Dec 1:** Focused on max effort bodyweight circuits.
-*   **Week of Dec 2:** Structured rounds combining running and specific repetitions.
-*   **Week of Dec 4:** Introduced a precision ladder challenge for continuous work capacity.
-*   **Week of Dec 5:** Classic AMRAP format (Cindy style) emphasizing pull-up strength.
-*   **Week of Dec 7:** A blend of cardio warmups followed by skill and strength sets on a rail/bar.
-```
+Standout themes this month include parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. The 20 sessions form a solid training block with steady volume and progressive demand.

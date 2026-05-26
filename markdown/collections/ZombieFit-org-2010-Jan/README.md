@@ -1,22 +1,13 @@
-```markdown
 ---
 template: canvas
 collection: true
-category: zombie-fit, parkour
-title: "ZombieFit.org Jan 2010"
+category:
+  - parkour
 ---
+# ZombieFit Jan 2010
 
-Welcome to the January 2010 ZombieFit collection! This month's programming focused on building foundational endurance and mastering core movements, incorporating elements of running, bodyweight strength, and explosive cardio drills suitable for all levels of fitness. Get ready to move like a zombie athlete!
+January 2010 features 26 ZombieFit workouts built around for time efforts. Programming rotates through for time, amrap, intervals, emom and skill formats to keep sessions varied and progressive. Athletes can expect for time, amrap, tabata, intervals, emom and skill work work across the training block.
 
-### Workouts
+The movement emphasis this month falls on burpee, push ups, air squats. Supporting elements include sit ups, quadrupedal movement, precision, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-*   [wod-010210](link_to_wod) (Jan 2nd): Focus on general conditioning with a mile run or equivalent cardio effort.
-*   [wod-010310](link_to_wod) (Jan 3rd): A challenging endurance test featuring lunges and pushups, incorporating quadrupedal movement drills.
-*   [wod-010410](link_to_wod) (Jan 4th): Dedicated to practicing press progressions and overall functional strength.
-*   [wod-010610](link_to_wod) (Jan 6th): A high-intensity session utilizing EMOM structure for jumping pullups, pushups, and squats.
-*   [wod-010710](link_to_wod) (Jan 7th): Focused on time trials over multiple rounds of explosive movements.
-
-### Weekly Summary
-
-**Week 1:** A strong start to the year focusing on building aerobic capacity and mastering fundamental bodyweight movements. Themes included general conditioning, endurance testing, and press progression drills.
-```
+Standout themes this month include high-intensity conditioning, parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. At 26 sessions, this is a high-volume month that rewards consistent attendance and recovery discipline.

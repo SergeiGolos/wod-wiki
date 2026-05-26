@@ -4,6 +4,8 @@
  *
  * Vite resolves the glob at compile time so the final bundle contains the
  * markdown content as inlined strings — no runtime file I/O is required.
+ *
+ * @updated WOD-712 home page content fix
  */
 
 import { parseCanvasMarkdown, type ParsedCanvasPage } from './parseCanvasMarkdown'

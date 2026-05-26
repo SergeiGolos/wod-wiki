@@ -1,3 +1,5 @@
+import { syntaxGuideReference } from '@/content/syntaxGuideReference'
+
 export interface DocumentationLinkItem {
   id: string
   label: string
@@ -13,7 +15,7 @@ export const HOME_WORKFLOW_DOC_LINKS = {
   run: {
     id: 'home-doc-run',
     label: 'Timers and groups',
-    to: '/guide/syntax?h=groups',
+    to: syntaxGuideReference.simpleRounds.docsPath,
   },
   analyze: {
     id: 'home-doc-analyze',
@@ -31,16 +33,16 @@ export const HOME_SYNTAX_DEEP_LINKS: DocumentationLinkItem[] = [
   {
     id: 'syntax-deep-anatomy',
     label: 'Statement anatomy',
-    to: '/guide/syntax?h=anatomy',
+    to: syntaxGuideReference.coreRules.docsPath,
   },
   {
     id: 'syntax-deep-groups',
     label: 'Groups and repeaters',
-    to: '/guide/syntax?h=groups',
+    to: syntaxGuideReference.simpleRounds.docsPath,
   },
   {
     id: 'syntax-deep-protocols',
     label: 'Protocols',
-    to: '/guide/syntax?h=protocols',
+    to: syntaxGuideReference.classicAmrap.docsPath,
   },
 ]

@@ -155,11 +155,11 @@ No parallel `FIXED_COLUMN_IDS` system.
 - [ ] CTO approval of implementation approach
 
 ### Phase 3: Advanced Features
-- [ ] Implement fallback chains (first-present, all-present-joined)
-- [ ] Implement derived columns with context
-- [ ] Implement groupings with combined formats
-- [ ] Add all preset definitions using CDL
-- [ ] Test fallback chain edge cases
+- [x] Implement fallback chains (first-present, all-present-joined / all-present-combined)
+- [x] Implement derived columns with context
+- [x] Implement groupings with combined formats
+- [x] Add all preset definitions using CDL
+- [x] Test fallback chain edge cases
 
 ### Phase 4: Cleanup & Migration
 - [ ] Remove FIXED_COLUMN_IDS from GridRow.tsx
@@ -176,10 +176,10 @@ No parallel `FIXED_COLUMN_IDS` system.
 2. ✅ Fallback chain semantics documented with 3+ examples (first-present, all-present-joined, derived)
 3. ✅ Grouping semantics documented with 3+ examples (Effort+Text, combined layouts, vertical/horizontal)
 4. ✅ ADR complete and ready for CTO review
-5. ⏳ (Phase 2) No switch statements in renderers, sorters, or graphers
-6. ⏳ (Phase 2) Existing functionality preserved (sort, filter, graph, presets, debug mode)
-7. ⏳ (Phase 2) All dead code removed
-8. ⏳ (Phase 2) Test coverage maintained or improved
+5. ✅ No switch statements in renderers, sorters, or graphers
+6. ✅ Existing functionality preserved (sort, filter, graph, presets, debug mode)
+7. ⏳ Cleanup remains for legacy compatibility paths and residual dead code
+8. ✅ Test coverage maintained or improved
 
 ## Dead Code to Remove
 

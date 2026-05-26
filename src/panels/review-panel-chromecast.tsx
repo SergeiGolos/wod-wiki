@@ -1,7 +1,11 @@
 /**
  * review-panel-chromecast.tsx — Chromecast receiver review panel.
- * Shown after a workout completes with analytics projections grid,
- * duration, and segment counts.
+ *
+ * Intentionally separate from `ReviewGrid`: the receiver is a 10-foot TV
+ * surface that needs large cards, D-pad navigation, and no inline editing.
+ * It still consumes the shared summary payload (`reviewData.rows` and
+ * `analyticsSummary.projections`) so the data contract stays aligned even
+ * though the presentation stays TV-specific.
  *
  * Extracted from receiver-rpc.tsx ReceiverReviewPanel.
  */

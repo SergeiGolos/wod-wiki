@@ -15,6 +15,7 @@ import { CrossFitDialect } from '../CrossFitDialect';
 import { CardioDialect } from '../CardioDialect';
 import { YogaDialect } from '../YogaDialect';
 import { HabitsDialect } from '../HabitsDialect';
+import { ClimbDialect } from '../ClimbDialect';
 
 // ──────────────────────────────────────────────────────────
 // Dialect factory
@@ -41,6 +42,11 @@ const DIALECT_MAP: Record<string, () => DialectRegistry> = {
     r.register(new HabitsDialect());
     return r;
   },
+  climb: () => {
+    const r = new DialectRegistry();
+    r.register(new ClimbDialect());
+    return r;
+  },
   none: () => new DialectRegistry(),
 };
 
@@ -61,7 +67,7 @@ export interface DialectFixtureResult {
  * Parse a wod block through the dialect pipeline.
  *
  * @param block   Raw wod block text (multiline OK)
- * @param dialect One of: 'crossfit' | 'cardio' | 'yoga' | 'habits' | 'none'
+ * @param dialect One of: 'crossfit' | 'cardio' | 'yoga' | 'habits' | 'climb' | 'none'
  */
 export function parseWithDialect(
   block: string,

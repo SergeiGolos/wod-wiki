@@ -11,6 +11,7 @@ import type { GridRow as GridRowData } from './types';
 import type { ColumnDef } from './column-definition-language';
 import { UnifiedCellRenderer } from './interpreters/cdlCellRenderer';
 import { cn } from '@/lib/utils';
+import { getGridColumnMinWidth } from './gridWidthPolicy';
 
 interface GridRowProps {
   /** The row data to render */
@@ -81,6 +82,7 @@ export const GridRow: React.FC<GridRowProps> = ({
             rowIndex={rowIndex}
             indent={isEffort ? row.stackLevel : 0}
             onDoubleClick={onCellDoubleClick}
+            style={{ minWidth: getGridColumnMinWidth(colDef) }}
           />
         );
       })}

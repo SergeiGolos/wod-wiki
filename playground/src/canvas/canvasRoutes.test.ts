@@ -9,16 +9,18 @@ const homeMarkdown = readFileSync(new URL('../../../markdown/canvas/home/README.
 const homePage = parseCanvasMarkdown(homeMarkdown)
 
 describe('home route governance', () => {
-  it('keeps / owned by the playground redirect route', () => {
+  it('keeps / owned by the canvas home page', () => {
     expect(ROUTE_PATTERNS.home).toBe('/')
-    expect(appSource).toMatch(
-      /<Route\s+path=\{ROUTE_PATTERNS\.home\}[\s\S]*?<PlaygroundRedirect template="home"\s*\/>/,
+    // The root route should NOT have a hardcoded React component —
+    // it flows through the dynamic canvasRoutes generated from markdown.
+    expect(appSource).not.toMatch(
+      /<Route\s+path=\{ROUTE_PATTERNS\.home\}[\s\S]*?Concept3LandingPage/,
     )
   })
 
-  it('moves the editorial home canvas off the root route onto /tour', () => {
+  it('places the editorial home canvas on the root route', () => {
     expect(homePage).not.toBeNull()
-    expect(homePage?.route).toBe('/tour')
-    expect(homePage?.route).not.toBe(ROUTE_PATTERNS.home)
+    expect(homePage?.route).toBe('/')
+    expect(homePage?.route).toBe(ROUTE_PATTERNS.home)
   })
 })

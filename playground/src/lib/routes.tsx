@@ -25,6 +25,7 @@ export const ROUTE_PATTERNS = {
   plan: '/plan',
   guideGettingStarted: '/guide/getting-started',
   guideSyntax: '/guide/syntax',
+  aiFirst: '/ai-first',
   feeds: '/feeds',
   feedDetail: '/feeds/:feedSlug',
   feedItem: '/feeds/:feedSlug/:feedDate/:feedItem',
@@ -312,4 +313,9 @@ export function isEffortsPath(pathname: string): boolean {
 /** Detect whether a location pathname belongs to the effort family. */
 export function isEffortPath(pathname: string): boolean {
   return pathname.startsWith('/effort/') || pathname === '/efforts';
+}
+
+/** Detect whether a location pathname belongs to the ai-first family. */
+export function isAiFirstPath(pathname: string): boolean {
+  return pathname === '/ai-first' || pathname.startsWith('/ai-first/');
 }

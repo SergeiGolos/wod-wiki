@@ -1,40 +1,13 @@
 ---
 template: canvas
 collection: true
-category: [zombie-fit, parkour]
+category:
+  - parkour
 ---
+# ZombieFit Sep 2010
 
-# ZombieFit.org Sep 2010
+September 2010 features 23 ZombieFit workouts built around for time efforts. Programming rotates through for time, emom, intervals and amrap formats to keep sessions varied and progressive. Athletes can expect for time, emom, intervals, max effort, amrap and tabata work across the training block.
 
-September programming focuses on blending traditional CrossFit strength and endurance with dynamic parkour movements. Athletes will find a mix of sprints, bodyweight circuits, and conditioning designed to test both raw power and agility across the urban landscape.
+The movement emphasis this month falls on push ups, air squats, pull ups. Supporting elements include sit ups, precision, quadrupedal movement, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-## Workouts
-
-### September 17th (WOD 224)
-*   **Warm Up:** Run 1/4 mile OR row 250m OR bike 2 miles. Complete 3 rounds of: 25m quadrupedal movement, 10 dips, 10 five-foot precisions, and 10 push ups.
-*   **Étudiant (Beginner):** For time, complete 6 rounds of:
-    ```wod
-    100m Run Sprint
-    Rest 1 minute
-    ```
-*   **Avancée (Advanced):** For time, complete 10 rounds of:
-    ```wod
-    100m Run Sprint
-    [...]
-    ```
-
-### September 18th (WOD 225)
-*   **Warm Up:** Run 1/4 mile OR row 250m OR bike 2 miles. Complete 3 rounds of: 25m quadrupedal movement, 10 dips, 10 five-foot precisions, and 10 push ups.
-*   **Étudiant (Beginner):** AMRAP in 20 minutes:
-    ```wod
-    5 Jumping Pullups
-    10 Pushups
-    15 Air Squats
-    ```
-*   **Avancée (Advanced):** [WOD content placeholder]
-
-*(More workouts for the month will be listed here)*
-
-## Monthly Summary
-
-This month featured a mix of conditioning and skill work. The first half focused heavily on running endurance combined with foundational bodyweight movements, while later weeks introduced more complex parkour-specific circuits to build explosive power.
+Standout themes this month include high-intensity conditioning, parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. At 23 sessions, this is a high-volume month that rewards consistent attendance and recovery discipline.

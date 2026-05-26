@@ -31,6 +31,39 @@ const AMRAP_WORKOUT = `# AMRAP 20
 
 const EMPTY_WORKOUT = '';
 
+const EFFORT_FRONTMATTER_WORKOUT = `---
+id: effort-rowing-intervals
+slug: rowing-intervals
+label: Rowing Intervals
+aliases:
+  - row
+  - erg
+baseAttributes:
+  met: 7.0
+  discipline: rowing
+  intensityTier: high
+registrySource: bundled
+---
+
+# Rowing Intervals
+
+**Category**: CrossFit | **Type**: Intervals | **Difficulty**: Intermediate
+
+## Description
+High-intensity rowing intervals for metabolic conditioning.
+
+\`\`\`wod
+(5)
+  500m Row @hard
+  1:00 Rest
+\`\`\`
+
+## Target Times
+- **Elite**: Under 1:30 per 500m
+- **Advanced**: 1:30–1:45
+- **Intermediate**: 1:45–2:00
+`;
+
 const PlannerPageShell: React.FC<{ initialContent?: string }> = ({
   initialContent = SAMPLE_WORKOUT,
 }) => {
@@ -111,4 +144,26 @@ export const NoteEditorAmrap: StoryObj = {
 export const NoteEditorEmpty: StoryObj = {
   name: 'NoteEditor — Empty',
   render: () => <NoteEditorShell initialContent={EMPTY_WORKOUT} />,
+};
+
+const NoteEditorWithOverlayShell: React.FC<{ initialContent?: string }> = ({
+  initialContent = SAMPLE_WORKOUT,
+}) => {
+  const [content, setContent] = useState(initialContent);
+  return (
+    <div className="w-full h-screen bg-background overflow-hidden">
+      <NoteEditor
+        value={content}
+        onChange={setContent}
+        onStartWorkout={() => {}}
+        enableOverlay={true}
+        className="h-full w-full"
+      />
+    </div>
+  );
+};
+
+export const NoteEditorEffortFrontmatter: StoryObj = {
+  name: 'NoteEditor — Effort Frontmatter',
+  render: () => <NoteEditorWithOverlayShell initialContent={EFFORT_FRONTMATTER_WORKOUT} />,
 };

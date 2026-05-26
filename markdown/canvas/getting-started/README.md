@@ -20,7 +20,7 @@ align:   right
 width:   48%
 ```
 
-## Step 1: Movements {sticky #statement}
+## Step 1: Movements {sticky #statement theme:violet}
 
 A WOD block is a fenced code block tagged `wod`. The simplest possible workout is a single movement on one line.
 
@@ -40,15 +40,23 @@ pipeline:
   - set-state: track
 ```
 
-## Step 2: Metrics {sticky #metrics}
+## Step 2: Metrics {sticky #metrics density:compact theme:emerald}
 
 Put a number before the exercise name for a rep count. Add a weight after for load tracking.
 
-```command
-target: z2h
-pipeline:
-  - set-source: wods/examples/getting-started/metrics-1.md
-  - set-state: note
+```example
+label: Reps only
+source: wods/examples/getting-started/metrics-1.md
+```
+
+```example
+label: With weight
+source: wods/examples/getting-started/metrics-2.md
+```
+
+```example
+label: With distance
+source: wods/examples/getting-started/metrics-3.md
 ```
 
 `10 Pushups`, `5 Deadlift 225lb`, `Run 400m` — all valid. The parser understands reps, weights, and distances.
@@ -60,7 +68,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 3: Timers {sticky #timer}
+## Step 3: Timers {sticky #timer theme:amber}
 
 Prefix a movement with a time like `5:00` to run it as a countdown.
 
@@ -80,7 +88,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 4: Groups {sticky #groups}
+## Step 4: Groups {sticky #groups theme:sky}
 
 Wrap movements in `(N Rounds)` to repeat them. Indent everything inside the group.
 
@@ -100,7 +108,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 5: Protocols {sticky #protocols}
+## Step 5: Protocols {sticky #protocols theme:rose}
 
 AMRAP — As Many Rounds As Possible. Set a time cap, mark the block `(AMRAP)`, and race the clock.
 
@@ -120,7 +128,7 @@ pipeline:
   - set-state: track
 ```
 
-## Step 6: Review {sticky #review}
+## Step 6: Review {sticky #review density:compact theme:slate}
 
 Every session you track is stored in your Journal. Open Review to see reps, times, and load side by side across sessions.
 

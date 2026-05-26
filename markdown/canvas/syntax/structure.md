@@ -43,7 +43,7 @@ Name a group with any label in parentheses: `(Warmup)`, `(Strength)`, `(Cool-dow
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/groups-1.md
+  - set-source: wods/examples/syntax/named-groups.md
 ```
 
 ```button
@@ -55,12 +55,12 @@ pipeline:
 
 ## Nested Groups {sticky}
 
-Groups can nest inside groups. An outer `(3 Rounds)` containing an inner `(Tabata)` block runs the whole tabata three times.
+Groups can nest inside groups. An outer rounds group can contain an inner interval block or another repeated section.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/syntax/groups.md
+  - set-source: wods/examples/syntax/groups-4.md
 ```
 
 ```button
@@ -77,7 +77,7 @@ Chain several named groups to describe a full training session in one note: warm
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/groups-2.md
+  - set-source: wods/examples/syntax/mixed-sections.md
 ```
 
 ```button
@@ -89,12 +89,12 @@ pipeline:
 
 ## Rep Schemes {sticky}
 
-Put a number before a movement to set its rep count: `10 Pushups` means 10 reps. The runtime tracks your count as you do them and logs the total.
+Rep schemes use dash-separated values inside parentheses. `(21-15-9)` creates three rounds and applies those rep targets to every movement in the block.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/getting-started/metrics-1.md
+  - set-source: wods/examples/syntax/groups-2.md
 ```
 
 ```button
@@ -107,12 +107,12 @@ pipeline:
 ## Descending Reps — (21-15-9) {sticky}
 
 The `(21-15-9)` syntax creates three rounds automatically — 21 reps, then 15, then 9 — for every movement in the block.
-The classic "Fran" uses this format: `(21-15-9)` Thrusters and Pullups.
+The classic "Fran" uses this format with Thrusters and Pullups nested under the same group.
 
 ```command
 target: ex
 pipeline:
-  - set-source: wods/syntax/repeaters.md
+  - set-source: wods/examples/syntax/groups-2.md
 ```
 
 ```button
@@ -129,7 +129,7 @@ pipeline:
 ```command
 target: ex
 pipeline:
-  - set-source: wods/examples/syntax/metrics-2.md
+  - set-source: wods/examples/syntax/multiple-sets.md
 ```
 
 ```button

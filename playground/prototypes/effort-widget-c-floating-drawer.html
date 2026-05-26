@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Effort Widget — Variant C: Floating Drawer | WOD-694</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f2ed;
+      --bg2: #faf8f4;
+      --fg: #2a221a;
+      --fg2: #6a5f52;
+      --card: #fff;
+      --border: #cdc5b8;
+      --border2: #e8e2d8;
+      --primary: #5980a8;
+      --muted: #ede9e2;
+      --effort-color: #508860;
+      --effort-bg: rgba(80,136,96,0.10);
+      --effort-border: rgba(80,136,96,0.28);
+      --rep-color: #a87040;
+      --rep-bg: rgba(168,112,64,0.10);
+      --gutter-fg: #aaa09a;
+      --accent: #8c7040;
+      --radius: 10px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.09);
+      --shadow-xl: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10);
+    }
+    .dark {
+      --bg: #2e3440;
+      --bg2: #353c4a;
+      --fg: #d8dee9;
+      --fg2: #9099ab;
+      --card: #3b4252;
+      --border: #3f4859;
+      --border2: #353d4e;
+      --primary: #81a1c1;
+      --muted: #262c38;
+      --effort-color: #a3be8c;
+      --effort-bg: rgba(163,190,140,0.12);
+      --effort-border: rgba(163,190,140,0.28);
+      --rep-color: #d08770;
+      --rep-bg: rgba(208,135,112,0.12);
+      --gutter-fg: #5a6478;
+      --accent: #ebcb8b;
+      --shadow-xl: 0 20px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Topbar ──────────────────────────────────────────────────── */
+    .topbar {
+      height: 44px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 16px; flex-shrink: 0; z-index: 10;
+    }
+    .topbar-logo { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 13px; color: var(--primary); }
+    .topbar-sep { width: 1px; height: 20px; background: var(--border); }
+    .topbar-title { font-size: 13px; font-weight: 500; color: var(--fg); opacity: 0.7; }
+    .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--fg2); font-size: 14px; transition: background 0.12s; }
+    .icon-btn:hover { background: var(--muted); }
+
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ───────────────────────────────────────────────── */
+    .sidebar { width: 200px; background: var(--card); border-right: 1px solid var(--border); padding: 12px 0; flex-shrink: 0; overflow-y: auto; }
+    .sidebar-section { padding: 4px 12px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg2); margin-top: 12px; }
+    .sidebar-item { display: flex; align-items: center; gap: 8px; padding: 5px 12px; font-size: 12.5px; color: var(--fg2); cursor: pointer; }
+    .sidebar-item:hover { background: var(--muted); }
+    .sidebar-item.active { background: var(--effort-bg); color: var(--effort-color); font-weight: 500; }
+    .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .sidebar-item.active .sidebar-dot { background: var(--effort-color); }
+
+    /* ── Editor ─────────────────────────────────────────────────── */
+    .editor-area { flex: 1; overflow-y: auto; padding: 24px 0; position: relative; }
+    .editor-content { max-width: 680px; margin: 0 auto; padding: 0 48px; }
+    .cm-editor { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 22px; }
+    .cm-line { display: flex; align-items: baseline; position: relative; }
+    .cm-gutter { width: 32px; flex-shrink: 0; text-align: right; padding-right: 8px; font-size: 11px; color: var(--gutter-fg); opacity: 0.6; user-select: none; }
+    .cm-text { flex: 1; white-space: pre; }
+    .cm-active-line { background: rgba(129,161,193,0.07); }
+    .cm-cursor { display: inline-block; width: 2px; height: 14px; background: var(--primary); vertical-align: middle; margin-left: 1px; animation: blink 1.1s step-end infinite; border-radius: 1px; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .cm-fm-fence { color: var(--fg2); }
+    .cm-yaml-key { color: var(--primary); }
+    .cm-yaml-val { color: var(--fg); }
+    .cm-yaml-str { color: var(--effort-color); }
+    .cm-yaml-num { color: var(--rep-color); }
+    .cm-yaml-list { color: var(--fg2); }
+    .cm-h1 { font-size: 17px; font-weight: 700; }
+    .cm-h2 { font-size: 15px; font-weight: 600; }
+    .cm-wod-fence { color: var(--accent); }
+    .cm-wod-effort { color: var(--effort-color); font-weight: 500; }
+    .cm-wod-num { color: var(--rep-color); }
+    .cm-wod-unit { color: var(--fg2); }
+
+    /* ── Frontmatter Block "Edit" Trigger ────────────────────────
+     *
+     * DESIGN CONCEPT:
+     * The frontmatter block looks like a normal YAML block. When the
+     * user hovers the opening or closing --- fence, a pill button appears
+     * anchored to the bottom-left of the fence: "Edit metadata ↗"
+     * Clicking it opens a floating drawer that centers in the editor,
+     * positioned near (but not over) the frontmatter block.
+     *
+     * The drawer is a polished multi-step form (tabs for each field group)
+     * that provides rich editing without being on top of the raw YAML.
+     *
+     * TRIGGER: hover over --- fence line → click "Edit metadata"
+     * DISMISS: click ✕, press Esc, or click outside
+     * ──────────────────────────────────────────────────────────── */
+
+    /* The fence lines have a trigger button */
+    .fm-fence-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .edit-trigger-pill {
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: var(--effort-color);
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+      white-space: nowrap;
+      border: none;
+      transform: translateY(-50%) translateX(-4px);
+      pointer-events: none;
+    }
+    .dark .edit-trigger-pill { color: #2e3440; }
+    .cm-line:hover .edit-trigger-pill,
+    .edit-trigger-pill.visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%) translateX(0);
+    }
+    .edit-trigger-pill:hover { opacity: 0.85 !important; }
+
+    /* Frontmatter section bracket — subtle left border */
+    .fm-section {
+      border-left: 2px solid var(--effort-border);
+      margin-left: 32px;
+      padding-left: 0;
+    }
+    .fm-section .cm-gutter { width: 0; padding: 0; }
+    .fm-section .cm-text { padding-left: 8px; }
+
+    /* ── Floating Drawer ─────────────────────────────────────────── */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      z-index: 100;
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 24px 0;
+      animation: fade-in 0.2s ease;
+    }
+    .dark .drawer-backdrop { background: rgba(0,0,0,0.5); }
+    @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+
+    .drawer {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 16px 16px 0 0;
+      width: 100%;
+      max-width: 680px;
+      box-shadow: var(--shadow-xl);
+      display: flex;
+      flex-direction: column;
+      max-height: 82vh;
+      animation: drawer-up 0.28s cubic-bezier(0.2,0,0,1);
+      overflow: hidden;
+    }
+    @keyframes drawer-up {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    /* Drag handle */
+    .drawer-handle {
+      display: flex;
+      justify-content: center;
+      padding: 12px 0 8px;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+    .drawer-handle-bar {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .drawer-header {
+      padding: 0 20px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .drawer-effort-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      background: var(--effort-bg);
+      border: 1px solid var(--effort-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .drawer-title-block { flex: 1; }
+    .drawer-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--fg);
+      line-height: 1.2;
+    }
+    .drawer-subtitle {
+      font-size: 12px;
+      color: var(--fg2);
+      margin-top: 3px;
+    }
+    .drawer-subtitle code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--effort-color);
+    }
+    .drawer-close {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      color: var(--fg2);
+      transition: background 0.1s;
+      flex-shrink: 0;
+    }
+    .drawer-close:hover { background: var(--muted); }
+
+    /* Tabs */
+    .drawer-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+    .drawer-tab {
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--fg2);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .drawer-tab:hover { color: var(--fg); }
+    .drawer-tab.active {
+      color: var(--effort-color);
+      border-bottom-color: var(--effort-color);
+    }
+
+    /* Drawer body */
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 20px 4px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Form fields */
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .form-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--fg2);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .form-label span {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--fg2);
+      opacity: 0.7;
+      font-size: 10.5px;
+    }
+    .form-input {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 8px 12px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--fg);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-input:focus {
+      border-color: var(--effort-color);
+      box-shadow: 0 0 0 3px var(--effort-bg);
+    }
+    .form-hint { font-size: 10.5px; color: var(--fg2); }
+
+    /* MET slider section */
+    .met-section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .met-top-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .met-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--rep-color);
+      line-height: 1;
+    }
+    .met-unit { font-size: 12px; color: var(--fg2); }
+    .met-comparison { font-size: 11px; color: var(--fg2); margin-left: auto; }
+    .met-comparison strong { color: var(--fg); }
+    .met-slider {
+      width: 100%;
+      appearance: none;
+      height: 5px;
+      border-radius: 3px;
+      background: linear-gradient(to right, var(--effort-color) 40%, var(--muted) 40%);
+      outline: none;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+    .met-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--rep-color);
+      border: 2px solid var(--card);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      cursor: grab;
+    }
+    .met-scale-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--fg2);
+    }
+
+    /* Intensity tier buttons */
+    .tier-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .tier-btn {
+      padding: 14px 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg2);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .tier-btn .tier-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+    .tier-btn .tier-name { font-size: 12px; font-weight: 600; color: var(--fg2); }
+    .tier-btn .tier-desc { font-size: 10px; color: var(--fg2); margin-top: 3px; }
+    .tier-btn.active-low { background: var(--effort-bg); border-color: var(--effort-color); }
+    .tier-btn.active-low .tier-name { color: var(--effort-color); }
+    .tier-btn.active-moderate { background: rgba(235,203,139,0.12); border-color: rgba(235,203,139,0.4); }
+    .tier-btn.active-moderate .tier-name { color: var(--accent); }
+    .tier-btn.active-high { background: rgba(191,97,106,0.12); border-color: rgba(191,97,106,0.35); }
+    .tier-btn.active-high .tier-name { color: #bf616a; }
+
+    /* Discipline grid */
+    .discipline-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .disc-option {
+      padding: 10px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s;
+    }
+    .disc-option .disc-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+    .disc-option .disc-name { font-size: 11px; color: var(--fg2); }
+    .disc-option:hover { background: var(--muted); }
+    .disc-option.selected { background: var(--effort-bg); border-color: var(--effort-border); }
+    .disc-option.selected .disc-name { color: var(--effort-color); font-weight: 500; }
+
+    /* Aliases tab */
+    .alias-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .alias-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .alias-row input {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      padding: 7px 10px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--fg);
+      outline: none;
+    }
+    .alias-row input:focus { border-color: var(--effort-color); box-shadow: 0 0 0 2px var(--effort-bg); }
+    .alias-remove-btn {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      color: var(--fg2);
+      flex-shrink: 0;
+    }
+    .alias-remove-btn:hover { background: rgba(191,97,106,0.12); color: #bf616a; border-color: rgba(191,97,106,0.3); }
+    .alias-add-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      border: 1px dashed var(--border);
+      background: transparent;
+      font-size: 12px;
+      color: var(--primary);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .alias-add-row:hover { background: var(--muted); }
+
+    /* Drawer footer */
+    .drawer-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--border2);
+      flex-shrink: 0;
+    }
+    .btn-primary {
+      flex: 1;
+      padding: 9px 18px;
+      border-radius: 8px;
+      background: var(--effort-color);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: flex; align-items: center; gap: 8px; justify-content: center;
+    }
+    .dark .btn-primary { color: #2e3440; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary {
+      padding: 9px 16px;
+      border-radius: 8px;
+      background: var(--bg2);
+      color: var(--fg2);
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .btn-secondary:hover { background: var(--muted); }
+    .footer-hint {
+      font-size: 10.5px;
+      color: var(--fg2);
+      margin-left: auto;
+    }
+    .key-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: var(--fg2);
+    }
+
+    /* Theme toggle */
+    .theme-toggle { position: fixed; top: 52px; right: 12px; z-index: 999; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 11px; cursor: pointer; color: var(--fg2); font-family: inherit; }
+    .theme-toggle:hover { background: var(--muted); }
+
+    /* Annotation */
+    .annotation { position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; max-width: 260px; box-shadow: var(--shadow); z-index: 50; }
+    .annotation-title { font-size: 11px; font-weight: 700; color: var(--primary); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .annotation-body { font-size: 11.5px; color: var(--fg2); line-height: 1.5; }
+    .annotation-body strong { color: var(--fg); }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Met slider dynamic fill */
+    input[type=range].met-slider { --fill: 40%; }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')">☀/☾ theme</button>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <span class="topbar-logo">wod-wiki</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-title">efforts / bodyweight / box-jump.md</span>
+    <div class="topbar-actions">
+      <button class="icon-btn">💾</button>
+      <button class="icon-btn">🕐</button>
+      <button class="icon-btn" onclick="openDrawer('identity')" title="Edit metadata">✏</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">Efforts</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>bodyweight</div>
+      <div class="sidebar-item active"><div class="sidebar-dot"></div>box-jump.md</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>sit-up.md</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>lunge.md</div>
+      <div class="sidebar-section" style="margin-top:16px">Categories</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>cycling</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>kettlebell</div>
+      <div class="sidebar-item"><div class="sidebar-dot"></div>running</div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-area" id="editor-area">
+      <div class="editor-content">
+        <div class="cm-editor">
+
+          <!-- Frontmatter open fence — trigger here -->
+          <div class="cm-line" style="position:relative" id="line-fence-open">
+            <div class="cm-gutter">1</div>
+            <div class="cm-text">
+              <span class="fm-fence-wrap">
+                <span class="cm-fm-fence">---</span>
+                <button class="edit-trigger-pill visible" onclick="openDrawer('identity')">
+                  ✏ Edit metadata
+                </button>
+              </span>
+            </div>
+          </div>
+
+          <!-- Frontmatter fields (read-only view, editable via drawer) -->
+          <div class="fm-section">
+            <div class="cm-line">
+              <div class="cm-text">
+                <span class="cm-yaml-key">id</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="view-id">effort-bundled-box-jump</span>
+              </div>
+            </div>
+            <div class="cm-line cm-active-line">
+              <div class="cm-text">
+                <span class="cm-yaml-key">slug</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="view-slug">box-jump<span class="cm-cursor"></span></span>
+              </div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text">
+                <span class="cm-yaml-key">label</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="view-label">Box Jump</span>
+              </div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text"><span class="cm-yaml-key">aliases</span><span class="cm-yaml-val">:</span></div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text"><span class="cm-yaml-list">  - </span><span class="cm-yaml-str">box jumps</span></div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text"><span class="cm-yaml-list">  - </span><span class="cm-yaml-str">jump to box</span></div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text"><span class="cm-yaml-list">  - </span><span class="cm-yaml-str">box</span></div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text">
+                <span class="cm-yaml-key">met</span><span class="cm-yaml-val">: </span><span class="cm-yaml-num" id="view-met">8.0</span>
+              </div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text">
+                <span class="cm-yaml-key">discipline</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="view-discipline">bodyweight</span>
+              </div>
+            </div>
+            <div class="cm-line">
+              <div class="cm-text">
+                <span class="cm-yaml-key">intensityTier</span><span class="cm-yaml-val">: </span><span class="cm-yaml-str" id="view-tier">high</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frontmatter close fence -->
+          <div class="cm-line" style="position:relative">
+            <div class="cm-gutter">12</div>
+            <div class="cm-text cm-fm-fence">---</div>
+          </div>
+
+          <div class="cm-line"><div class="cm-gutter">13</div><div class="cm-text">&nbsp;</div></div>
+          <div class="cm-line"><div class="cm-gutter">14</div><div class="cm-text cm-h1"># Box Jump</div></div>
+          <div class="cm-line"><div class="cm-gutter">15</div><div class="cm-text">&nbsp;</div></div>
+          <div class="cm-line"><div class="cm-gutter">16</div><div class="cm-text">An explosive plyometric movement. Jump onto an elevated box and step down.</div></div>
+          <div class="cm-line"><div class="cm-gutter">17</div><div class="cm-text">&nbsp;</div></div>
+          <div class="cm-line"><div class="cm-gutter">18</div><div class="cm-text cm-h2">## Example workout</div></div>
+          <div class="cm-line"><div class="cm-gutter">19</div><div class="cm-text">&nbsp;</div></div>
+          <div class="cm-line"><div class="cm-gutter">20</div><div class="cm-text cm-wod-fence">```wod</div></div>
+          <div class="cm-line"><div class="cm-gutter">21</div><div class="cm-text"><span class="cm-wod-num">3</span><span class="cm-wod-unit">x</span><span class="cm-wod-num">10</span> <span class="cm-wod-effort">box-jump</span></div></div>
+          <div class="cm-line"><div class="cm-gutter">22</div><div class="cm-text cm-wod-fence">```</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FLOATING DRAWER ─────────────────────────────────────────── -->
+  <div class="drawer-backdrop" id="drawer-backdrop" style="display:none" onclick="handleBackdropClick(event)">
+    <div class="drawer">
+      <!-- Handle -->
+      <div class="drawer-handle"><div class="drawer-handle-bar"></div></div>
+
+      <!-- Header -->
+      <div class="drawer-header">
+        <div class="drawer-effort-icon">🏋</div>
+        <div class="drawer-title-block">
+          <div class="drawer-title" id="drawer-title">Box Jump</div>
+          <div class="drawer-subtitle">
+            Effort · <code id="drawer-slug-display">box-jump</code> · bodyweight
+          </div>
+        </div>
+        <button class="drawer-close" onclick="closeDrawer()">✕</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="drawer-tabs">
+        <div class="drawer-tab active" onclick="switchTab('identity', this)">Identity</div>
+        <div class="drawer-tab" onclick="switchTab('metrics', this)">Metrics</div>
+        <div class="drawer-tab" onclick="switchTab('aliases', this)">Aliases</div>
+      </div>
+
+      <!-- Body -->
+      <div class="drawer-body">
+
+        <!-- Identity tab -->
+        <div class="tab-panel active" id="tab-identity">
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-label">Slug <span>· unique identifier, used in wod blocks</span></div>
+              <input class="form-input" id="input-slug" value="box-jump"
+                oninput="syncSlug()" />
+              <div class="form-hint">Use kebab-case. Referenced as <code style="font-family:monospace;font-size:10.5px;color:var(--effort-color)">box-jump</code> in WOD blocks.</div>
+            </div>
+            <div class="form-col">
+              <div class="form-label">Label <span>· display name</span></div>
+              <input class="form-input" id="input-label" value="Box Jump"
+                oninput="document.getElementById('view-label').textContent=this.value; document.getElementById('drawer-title').textContent=this.value" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-col">
+              <div class="form-label">Discipline <span>· training category</span></div>
+              <div class="discipline-grid">
+                <div class="disc-option selected" onclick="selectDisc(this,'bodyweight')">
+                  <span class="disc-icon">🤸</span>
+                  <span class="disc-name">Bodyweight</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'kettlebell')">
+                  <span class="disc-icon">🔔</span>
+                  <span class="disc-name">Kettlebell</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'running')">
+                  <span class="disc-icon">🏃</span>
+                  <span class="disc-name">Running</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'cycling')">
+                  <span class="disc-icon">🚴</span>
+                  <span class="disc-name">Cycling</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'rowing')">
+                  <span class="disc-icon">🚣</span>
+                  <span class="disc-name">Rowing</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'strength')">
+                  <span class="disc-icon">🏋</span>
+                  <span class="disc-name">Strength</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'swimming')">
+                  <span class="disc-icon">🏊</span>
+                  <span class="disc-name">Swimming</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'gymnastics')">
+                  <span class="disc-icon">🤼</span>
+                  <span class="disc-name">Gymnastics</span>
+                </div>
+                <div class="disc-option" onclick="selectDisc(this,'recovery')">
+                  <span class="disc-icon">🧘</span>
+                  <span class="disc-name">Recovery</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics tab -->
+        <div class="tab-panel" id="tab-metrics">
+          <div class="met-section">
+            <div class="met-top-row">
+              <div class="met-value" id="met-display">8.0</div>
+              <div class="met-unit">MET</div>
+              <div class="met-comparison">≈ <strong>Vigorous cycling</strong> (8.0)</div>
+            </div>
+            <input type="range" class="met-slider" id="met-slider"
+              min="1" max="20" step="0.5" value="8"
+              oninput="updateMet(this.value)" />
+            <div class="met-scale-labels">
+              <span>1 — Rest</span>
+              <span>5 — Moderate</span>
+              <span>10 — Vigorous</span>
+              <span>20 — Max</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom:8px">
+            <div class="form-label" style="margin-bottom:10px">Intensity Tier <span>· classification for session planning</span></div>
+            <div class="tier-buttons">
+              <div class="tier-btn" onclick="selectTier(this,'low')">
+                <span class="tier-icon">🌱</span>
+                <span class="tier-name">Low</span>
+                <span class="tier-desc">MET 1–4</span>
+              </div>
+              <div class="tier-btn" onclick="selectTier(this,'moderate')">
+                <span class="tier-icon">⚡</span>
+                <span class="tier-name">Moderate</span>
+                <span class="tier-desc">MET 4–7</span>
+              </div>
+              <div class="tier-btn active-high" onclick="selectTier(this,'high')">
+                <span class="tier-icon">🔥</span>
+                <span class="tier-name">High</span>
+                <span class="tier-desc">MET 7+</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aliases tab -->
+        <div class="tab-panel" id="tab-aliases">
+          <div class="form-label" style="margin-bottom:12px">Aliases <span>· fuzzy match terms for auto-resolution</span></div>
+          <div class="alias-list" id="alias-list">
+            <div class="alias-row">
+              <input value="box jumps" class="form-input" style="padding:7px 10px;font-size:12.5px" />
+              <button class="alias-remove-btn" onclick="removeAlias(this)">🗑</button>
+            </div>
+            <div class="alias-row">
+              <input value="jump to box" class="form-input" style="padding:7px 10px;font-size:12.5px" />
+              <button class="alias-remove-btn" onclick="removeAlias(this)">🗑</button>
+            </div>
+            <div class="alias-row">
+              <input value="box" class="form-input" style="padding:7px 10px;font-size:12.5px" />
+              <button class="alias-remove-btn" onclick="removeAlias(this)">🗑</button>
+            </div>
+          </div>
+          <div class="alias-add-row" onclick="addAlias()">
+            <span>＋</span> Add alias
+          </div>
+          <div class="form-hint" style="margin-top:12px">
+            These strings are matched against effort names in WOD blocks using fuzzy matching.
+            Shorter aliases (e.g. <code style="font-family:monospace;font-size:10.5px">box</code>) match broadly — use with care.
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="drawer-footer">
+        <button class="btn-primary" onclick="saveDrawer()">
+          <span>✓</span> Save to frontmatter
+        </button>
+        <button class="btn-secondary" onclick="closeDrawer()">Cancel</button>
+        <div class="footer-hint"><span class="key-badge">⌘S</span> save</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Annotation (hidden when drawer open) -->
+  <div class="annotation" id="annotation">
+    <div class="annotation-title">Variant C — Floating Drawer</div>
+    <div class="annotation-body">
+      <strong>Trigger:</strong> "Edit metadata" pill on <code>---</code> fence, or toolbar button.<br><br>
+      <strong>Pattern:</strong> bottom drawer with tabs — Identity, Metrics, Aliases. Rich form controls, no YAML editing needed.<br><br>
+      <strong>Saves:</strong> explicit save writes YAML back and closes drawer.
+    </div>
+  </div>
+
+  <script>
+    function openDrawer(tab) {
+      document.getElementById('drawer-backdrop').style.display = 'flex';
+      document.getElementById('annotation').style.display = 'none';
+      switchTab(tab, document.querySelector(`.drawer-tab:nth-child(${tab==='identity'?1:tab==='metrics'?2:3})`));
+      document.addEventListener('keydown', handleKey);
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer-backdrop').style.display = 'none';
+      document.getElementById('annotation').style.display = '';
+      document.removeEventListener('keydown', handleKey);
+    }
+
+    function handleBackdropClick(e) {
+      if (e.target === document.getElementById('drawer-backdrop')) closeDrawer();
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Escape') closeDrawer();
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveDrawer(); }
+    }
+
+    function switchTab(name, el) {
+      document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      if (el) el.classList.add('active');
+      else document.querySelector(`.drawer-tab:nth-child(${name==='identity'?1:name==='metrics'?2:3})`).classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    function syncSlug() {
+      const val = document.getElementById('input-slug').value;
+      const slug = document.getElementById('view-slug');
+      slug.childNodes[0].textContent = val;
+      document.getElementById('drawer-slug-display').textContent = val;
+    }
+
+    function updateMet(val) {
+      const v = parseFloat(val).toFixed(1);
+      document.getElementById('met-display').textContent = v;
+      document.getElementById('view-met').textContent = v;
+      const slider = document.getElementById('met-slider');
+      const pct = ((parseFloat(val) - 1) / 19 * 100).toFixed(1);
+      slider.style.background = `linear-gradient(to right, var(--effort-color) ${pct}%, var(--muted) ${pct}%)`;
+    }
+
+    function selectDisc(el, name) {
+      document.querySelectorAll('.disc-option').forEach(d => d.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('view-discipline').textContent = name;
+    }
+
+    function selectTier(el, tier) {
+      document.querySelectorAll('.tier-btn').forEach(b => b.className = 'tier-btn');
+      el.classList.add('active-' + tier);
+      document.getElementById('view-tier').textContent = tier;
+    }
+
+    function removeAlias(btn) {
+      btn.closest('.alias-row').remove();
+    }
+
+    function addAlias() {
+      const list = document.getElementById('alias-list');
+      const row = document.createElement('div');
+      row.className = 'alias-row';
+      row.innerHTML = `<input value="" class="form-input" style="padding:7px 10px;font-size:12.5px" placeholder="New alias…" />
+        <button class="alias-remove-btn" onclick="removeAlias(this)">🗑</button>`;
+      list.appendChild(row);
+      row.querySelector('input').focus();
+    }
+
+    function saveDrawer() {
+      closeDrawer();
+    }
+
+    // Initialize slider gradient
+    updateMet(8);
+  </script>
+</body>
+</html>

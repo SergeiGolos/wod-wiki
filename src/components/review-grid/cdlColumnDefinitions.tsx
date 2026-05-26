@@ -8,6 +8,7 @@
  * @see docs/adr/0011-column-definition-language.md
  */
 
+import React from 'react';
 import { MetricType } from '@/core/models/Metric';
 import { formatSecondsMMSS } from '@/lib/formatTime';
 import { getMetricIcon } from '@/views/runtime/metricColorMap';
@@ -201,6 +202,67 @@ function formatTimestamp(ts?: number, withMs: boolean = true): string {
   return `${h}:${m}:${s}.${ms}`;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Time Display Helpers — :00 notation with visual highlight
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Renders a time string in :00 notation with visual emphasis.
+ * Minutes are bold/foreground; seconds and colon are muted.
+ * e.g., "05:23" → **05**:23 (05 bold, :23 dimmed)
+ */
+function TimePart({ value }: { value: string }): React.ReactElement {
+  // Match patterns like "05:23", "1:05:23", "05:23.456"
+  const match = value.match(/^(-?)(\d+)(:\d{2})(?::\d{2})?(\.\d+)?$/);
+  if (!match) {
+    return <span className="font-mono text-xs whitespace-nowrap">{value}</span>;
+  }
+
+  const [, sign, major, minorWithColon, extraColonSecs, msPart] = match;
+  const minor = minorWithColon.slice(1); // strip leading colon
+
+  return (
+    <span className="font-mono text-xs whitespace-nowrap inline-flex items-baseline">
+      {sign && <span className="text-muted-foreground">{sign}</span>}
+      <span className="font-semibold text-foreground">{major}</span>
+      <span className="text-muted-foreground/60">:{minor}</span>
+      {extraColonSecs && (
+        <span className="text-muted-foreground/40">{extraColonSecs}</span>
+      )}
+      {msPart && <span className="text-muted-foreground/30 text-[10px]">{msPart}</span>}
+    </span>
+  );
+}
+
+/**
+ * Renders elapsed time, optionally with duration as "elapsed / duration".
+ * Both values use the :00 notation with visual highlight.
+ */
+function ElapsedDurationPart({
+  elapsed,
+  duration,
+}: {
+  elapsed: number;
+  duration?: number;
+}): React.ReactElement {
+  const elapsedStr = formatSecondsMMSS(elapsed);
+  const hasDuration = duration !== undefined && duration > 0 && duration !== elapsed;
+
+  return (
+    <span className="inline-flex items-baseline gap-0.5">
+      <TimePart value={elapsedStr} />
+      {hasDuration && (
+        <>
+          <span className="text-muted-foreground/40 mx-0.5">/</span>
+          <span className="opacity-60">
+            <TimePart value={formatSecondsMMSS(duration)} />
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
 /** Index (#) column */
 export const indexColumn: ColumnDef = {
   id: '#',
@@ -306,6 +368,82 @@ export const spansColumn: ColumnDef = {
   meta: {
     tags: ['timing', 'layout'],
     defaultVisible: true,
+  },
+};
+
+/** Compound TimeSpan column: timestamp + elapsed (+ duration if present). */
+export const timeSpanColumn: ColumnDef = {
+  id: 'timeSpan',
+  label: 'Time',
+  source: {
+    type: 'derived',
+    compute: (row) => ({
+      timestamp: row.absoluteStartTime,
+      elapsed: row.elapsed,
+      duration: row.duration,
+    }),
+  },
+  format: {
+    type: 'custom',
+    render: (value) => {
+      const { timestamp, elapsed, duration } = (value as {
+        timestamp?: number;
+        elapsed?: number;
+        duration?: number;
+      }) ?? {};
+
+      if (elapsed === undefined) {
+        return <span className="text-muted-foreground opacity-40">—</span>;
+      }
+
+      return (
+        <div className="flex flex-col items-start gap-0 leading-tight">
+          {/* Timestamp — small, muted */}
+          {timestamp !== undefined && timestamp > 0 && (
+            <span className="text-muted-foreground/50 font-mono text-[10px] whitespace-nowrap">
+              {formatTimestamp(timestamp, false)}
+            </span>
+          )}
+          {/* Elapsed / Duration — :00 notation with visual highlight */}
+          <ElapsedDurationPart elapsed={elapsed} duration={duration} />
+        </div>
+      );
+    },
+  },
+  sort: {
+    type: 'numeric',
+    extractor: (row) => (row as any)?.elapsed ?? 0,
+  },
+  graph: {
+    extractor: (row) => (row as any)?.elapsed,
+    axisLabel: 'Elapsed',
+    unit: 's',
+  },
+  filter: {
+    extractor: (value) => {
+      const { timestamp, elapsed, duration } = (value as {
+        timestamp?: number;
+        elapsed?: number;
+        duration?: number;
+      }) ?? {};
+      const parts: string[] = [];
+      if (timestamp !== undefined && timestamp > 0) {
+        parts.push(formatTimestamp(timestamp, false));
+      }
+      if (elapsed !== undefined) {
+        parts.push(formatSecondsMMSS(elapsed));
+      }
+      if (duration !== undefined && duration > 0 && duration !== elapsed) {
+        parts.push(formatSecondsMMSS(duration));
+      }
+      return parts.join(' ');
+    },
+    caseInsensitive: true,
+  },
+  meta: {
+    tags: ['timing', 'compound'],
+    defaultVisible: true,
+    width: '100px',
   },
 };
 
@@ -454,10 +592,10 @@ export const completionReasonColumn: ColumnDef = {
 // Metric-Type Columns
 // ═══════════════════════════════════════════════════════════════
 
-export const effortColumn = makeMetricColumn(MetricType.Effort);
+export const effortColumn = makeMetricColumn(MetricType.Effort, { defaultVisible: false });
 export const durationColumn = makeMetricColumn(MetricType.Duration);
 export const repColumn = makeMetricColumn(MetricType.Rep);
-export const roundsColumn = makeMetricColumn(MetricType.Rounds);
+export const roundsColumn = makeMetricColumn(MetricType.Rounds, { defaultVisible: false });
 export const distanceColumn = makeMetricColumn(MetricType.Distance);
 export const resistanceColumn = makeMetricColumn(MetricType.Resistance);
 export const actionColumn = makeMetricColumn(MetricType.Action);
@@ -465,9 +603,9 @@ export const incrementColumn = makeMetricColumn(MetricType.Increment);
 export const metricColumn = makeMetricColumn(MetricType.Metric);
 export const groupColumn = makeMetricColumn(MetricType.Group, { defaultVisible: false });
 export const systemColumn = makeMetricColumn(MetricType.System, { defaultVisible: false });
-export const labelColumn = makeMetricColumn(MetricType.Label);
+export const labelColumn = makeMetricColumn(MetricType.Label, { defaultVisible: false });
 export const textColumn = makeMetricColumn(MetricType.Text);
-export const currentRoundColumn = makeMetricColumn(MetricType.CurrentRound);
+export const currentRoundColumn = makeMetricColumn(MetricType.CurrentRound, { defaultVisible: false });
 export const volumeColumn = makeMetricColumn(MetricType.Volume);
 export const intensityColumn = makeMetricColumn(MetricType.Intensity);
 export const loadColumn = makeMetricColumn(MetricType.Load);
@@ -512,6 +650,39 @@ export const exerciseColumn: ColumnDef = {
   },
   meta: {
     defaultVisible: false,
+    tags: ['grouping', 'fallback', 'descriptor'],
+  },
+};
+
+/** Composed descriptor column: effort | label | rounds | current-round — first present wins. */
+export const descriptorColumn: ColumnDef = {
+  id: 'descriptor',
+  label: 'Descriptor',
+  icon: getMetricIcon(MetricType.Effort) ?? undefined,
+  source: {
+    type: 'fallback',
+    semantics: 'first-present',
+    sources: [
+      { type: 'metric-type', metricType: MetricType.Effort },
+      { type: 'metric-type', metricType: MetricType.Label },
+      { type: 'metric-type', metricType: MetricType.Rounds },
+      { type: 'metric-type', metricType: MetricType.CurrentRound },
+    ],
+  },
+  format: {
+    type: 'custom',
+    render: (value) => renderMetricCell(value, 0),
+  },
+  sort: {
+    type: 'text',
+    extractor: (value) => extractResolvedText(value),
+  },
+  filter: {
+    extractor: (value) => extractResolvedText(value),
+    caseInsensitive: true,
+  },
+  meta: {
+    defaultVisible: true,
     tags: ['grouping', 'fallback', 'descriptor'],
   },
 };
@@ -612,6 +783,7 @@ export const paceColumn: ColumnDef = {
 export const ALL_COLUMN_DEFINITIONS: ColumnDef[] = [
   // Layout / fixed columns
   indexColumn,
+  timeSpanColumn,      // compound: timestamp + elapsed + duration
   timestampColumn,
   spansColumn,
   blockKeyColumn,
@@ -621,6 +793,7 @@ export const ALL_COLUMN_DEFINITIONS: ColumnDef[] = [
   completionReasonColumn,
   // Primary descriptors
   exerciseColumn,
+  descriptorColumn,
   effortColumn,
   textColumn,
   labelColumn,
@@ -655,20 +828,15 @@ export const CDL_PRESET_DEFAULT: ColumnSetPreset = {
   filters: DEFAULT_PRESET_FILTERS,
   visibleColumnIds: [
     '#',
-    'timestamp',
-    'spans',
-    'effort',
-    'text',
-    'label',
+    'timeSpan',     // compound: timestamp + elapsed + duration
+    'descriptor',
     'duration',
     'rep',
-    'rounds',
     'distance',
     'resistance',
     'action',
     'increment',
     'metric',
-    'current-round',
     'volume',
     'intensity',
     'load',
@@ -683,23 +851,20 @@ export const CDL_PRESET_DEBUG: ColumnSetPreset = {
   filters: {},
   visibleColumnIds: [
     '#',
+    'timeSpan',     // compound: timestamp + elapsed + duration
     'timestamp',
     'spans',
     'blockKey',
     'outputType',
     'stackLevel',
-    'effort',
-    'text',
-    'label',
+    'descriptor',
     'duration',
     'rep',
-    'rounds',
     'distance',
     'resistance',
     'action',
     'increment',
     'metric',
-    'current-round',
     'volume',
     'intensity',
     'load',
@@ -717,8 +882,7 @@ export const CDL_PRESET_STRENGTH: ColumnSetPreset = {
   filters: DEFAULT_PRESET_FILTERS,
   visibleColumnIds: [
     '#',
-    'timestamp',
-    'spans',
+    'timeSpan',     // compound: timestamp + elapsed + duration
     'exercise',
     'rep',
     'loadFocus',
@@ -736,8 +900,7 @@ export const CDL_PRESET_ENDURANCE: ColumnSetPreset = {
   filters: DEFAULT_PRESET_FILTERS,
   visibleColumnIds: [
     '#',
-    'timestamp',
-    'spans',
+    'timeSpan',     // compound: timestamp + elapsed + duration
     'exercise',
     'distance',
     'duration',

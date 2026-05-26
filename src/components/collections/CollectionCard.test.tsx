@@ -404,6 +404,153 @@ describe('CollectionCard', () => {
     });
   });
 
+  describe('Link chips', () => {
+    it('renders youtube link chip when frontmatter contains youtube url', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const itemWithYoutube: WodCollectionItem = {
+        ...mockItem,
+        content: '---\nDifficulty: beginner\nyoutube: https://www.youtube.com/watch?v=dQw4w9WgXcQ\n---\nContent here',
+      };
+
+      const { container } = render(
+        <CollectionCard item={itemWithYoutube} collectionName="Test" collectionId="test" onClick={onClick} />
+      );
+
+      expect(screen.getByText('Video')).toBeDefined();
+      const youtubeLink = container.querySelector('a[href*="youtube.com"]');
+      expect(youtubeLink).toBeTruthy();
+      expect(youtubeLink?.getAttribute('target')).toBe('_blank');
+      expect(youtubeLink?.getAttribute('rel')).toBe('noopener noreferrer');
+    });
+
+    it('renders amazon link chip when frontmatter contains amazon url', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const itemWithAmazon: WodCollectionItem = {
+        ...mockItem,
+        content: '---\nDifficulty: beginner\namazon: https://www.amazon.com/dp/B08N5WRWNW\n---\nContent here',
+      };
+
+      const { container } = render(
+        <CollectionCard item={itemWithAmazon} collectionName="Test" collectionId="test" onClick={onClick} />
+      );
+
+      expect(screen.getByText('Amazon')).toBeDefined();
+      const amazonLink = container.querySelector('a[href*="amazon.com"]');
+      expect(amazonLink).toBeTruthy();
+    });
+
+    it('renders website link chip when frontmatter contains website', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const itemWithWebsite: WodCollectionItem = {
+        ...mockItem,
+        content: '---\nDifficulty: beginner\nwebsite: https://example.com\n---\nContent here',
+      };
+
+      render(<CollectionCard item={itemWithWebsite} collectionName="Test" collectionId="test" onClick={onClick} />);
+
+      expect(screen.getByText('Website')).toBeDefined();
+    });
+
+    it('renders source link chip when frontmatter contains source_url', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const itemWithSource: WodCollectionItem = {
+        ...mockItem,
+        content: '---\nDifficulty: beginner\nsource_url: https://source.com\n---\nContent here',
+      };
+
+      render(<CollectionCard item={itemWithSource} collectionName="Test" collectionId="test" onClick={onClick} />);
+
+      expect(screen.getByText('Source')).toBeDefined();
+    });
+
+    it('renders book link chip when frontmatter contains book', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const itemWithBook: WodCollectionItem = {
+        ...mockItem,
+        content: '---\nDifficulty: beginner\nbook: Kettlebell Simple \u0026 Sinister\n---\nContent here',
+      };
+
+      render(<CollectionCard item={itemWithBook} collectionName="Test" collectionId="test" onClick={onClick} />);
+
+      expect(screen.getByText('Kettlebell Simple \u0026 Sinister')).toBeDefined();
+    });
+
+    it('does not render link chips when no link fields are present', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const { container } = render(
+        <CollectionCard item={mockItem} collectionName="Test" collectionId="test" onClick={onClick} />
+      );
+
+      const linkAnchors = container.querySelectorAll('a[rel="noopener noreferrer"]');
+      expect(linkAnchors.length).toBe(0);
+    });
+
+    it('stops propagation when clicking a link chip', () => {
+      let cardClicked = false;
+      const onClick = () => {
+        cardClicked = true;
+      };
+
+      const itemWithLinks: WodCollectionItem = {
+        ...mockItem,
+        content: '---\nDifficulty: beginner\nyoutube: https://www.youtube.com/watch?v=dQw4w9WgXcQ\n---\nContent here',
+      };
+
+      const { container } = render(
+        <CollectionCard item={itemWithLinks} collectionName="Test" collectionId="test" onClick={onClick} />
+      );
+
+      const youtubeLink = container.querySelector('a[href*="youtube.com"]');
+      expect(youtubeLink).toBeTruthy();
+
+      fireEvent.click(youtubeLink!);
+      expect(cardClicked).toBe(false);
+    });
+
+    it('renders multiple link chips', () => {
+      let clicked = false;
+      const onClick = () => {
+        clicked = true;
+      };
+
+      const itemWithMultipleLinks: WodCollectionItem = {
+        ...mockItem,
+        content:
+          '---\nDifficulty: beginner\nyoutube: https://www.youtube.com/watch?v=dQw4w9WgXcQ\namazon: https://www.amazon.com/dp/B08N5WRWNW\nwebsite: https://example.com\n---\nContent here',
+      };
+
+      render(<CollectionCard item={itemWithMultipleLinks} collectionName="Test" collectionId="test" onClick={onClick} />);
+
+      expect(screen.getByText('Video')).toBeDefined();
+      expect(screen.getByText('Amazon')).toBeDefined();
+      expect(screen.getByText('Website')).toBeDefined();
+    });
+  });
+
   describe('Click handling', () => {
     it('calls onClick when card is clicked', () => {
       let clicked = false;

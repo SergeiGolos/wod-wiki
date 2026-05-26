@@ -49,15 +49,21 @@ export interface ButtonBlock {
   pipeline: PipelineStep[]
 }
 
+export interface ExampleBlock {
+  label: string
+  source: string
+}
+
 export interface CanvasSection {
   id: string
   heading: string
   level: number
-  attrs: string[]         // e.g. ['sticky', 'dark', 'full-bleed']
+  attrs: string[]         // e.g. ['sticky', 'dark', 'full-bleed', 'density:compact']
   prose: string
   view?: ViewBlock
   commands: CommandBlock[]
   buttons: ButtonBlock[]
+  examples?: ExampleBlock[]
 }
 
 export interface ParsedCanvasPage {
@@ -169,10 +175,19 @@ function parseButtonBlock(content: string): ButtonBlock {
   return { label, target, open, pipeline: parsePipelineSteps(lines) }
 }
 
+function parseExampleBlock(content: string): ExampleBlock {
+  const lines = content.split('\n')
+  const kv = parseKeyValue(lines)
+  return {
+    label: kv['label'] ?? 'Example',
+    source: kv['source'] ?? '',
+  }
+}
+
 /** Canvas-DSL block types — these are stripped from prose; all other fenced
  *  blocks (javascript, bash, etc.) are preserved so markdown renderers can
  *  display them as styled code blocks. */
-const CANVAS_BLOCK_TYPES = new Set(['view', 'command', 'button'])
+const CANVAS_BLOCK_TYPES = new Set(['view', 'command', 'button', 'example'])
 
 /**
  * Extract view / command / button fenced blocks from section text,
@@ -187,6 +202,7 @@ function extractBlocks(text: string): {
   view?: ViewBlock
   commands: CommandBlock[]
   buttons: ButtonBlock[]
+  examples: ExampleBlock[]
 } {
   // NOTE: the backtick sequences in these strings intentionally delimit fenced
   // blocks in the DSL — they are NOT nested markdown fences.
@@ -220,14 +236,16 @@ function extractBlocks(text: string): {
   let view: ViewBlock | undefined
   const commands: CommandBlock[] = []
   const buttons: ButtonBlock[] = []
+  const examples: ExampleBlock[] = []
 
   for (const { type, content } of fences) {
     if (type === 'view')         view = parseViewBlock(content)
     else if (type === 'command') commands.push(parseCommandBlock(content))
     else if (type === 'button')  buttons.push(parseButtonBlock(content))
+    else if (type === 'example') examples.push(parseExampleBlock(content))
   }
 
-  return { prose, view, commands, buttons }
+  return { prose, view, commands, buttons, examples }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -243,11 +261,11 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
   let cur: Acc | null = null
 
   const flush = (acc: Acc) => {
-    const { prose, view, commands, buttons } = extractBlocks(acc.lines.join('\n'))
-    
+    const { prose, view, commands, buttons, examples } = extractBlocks(acc.lines.join('\n'))
+
     // Support explicit ID in attributes (e.g. {#statement})
     const explicitId = acc.attrs.find(a => a.startsWith('#'))?.slice(1)
-    
+
     sections.push({
       id:       explicitId || slugify(acc.heading) || `section-${sections.length}`,
       heading:  acc.heading,
@@ -257,6 +275,7 @@ export function parseCanvasMarkdown(raw: string, defaultRoute: string = '/'): Pa
       view,
       commands,
       buttons,
+      examples,
     })
   }
 

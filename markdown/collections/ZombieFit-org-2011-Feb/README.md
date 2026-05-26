@@ -1,22 +1,13 @@
-```markdown
 ---
 template: canvas
 collection: true
-category: [zombie-fit, parkour]
+category:
+  - parkour
 ---
+# ZombieFit Feb 2011
 
-# ZombieFit.org Feb 2011
+February 2011 features 20 ZombieFit workouts built around for time efforts. Programming rotates through for time, amrap and emom formats to keep sessions varied and progressive. Athletes can expect for time, amrap and emom work across the training block.
 
-Welcome back to the zombie apocalypse training regimen! February programming focused heavily on building foundational endurance and mastering movement patterns under fatigue. Expect a mix of cardio challenges and bodyweight strength circuits designed to keep you moving when the horde is closest.
+The movement emphasis this month falls on air squats, push ups, pull ups. Supporting elements include sit ups, burpee, jumping pull ups, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-***
-
-## Featured Workouts
-{workouts}
-
-## Monthly Summary
-This month's workouts provided consistent, high-volume training across several weeks:
-
-*   **Week 1 (Feb 7 - Feb 11):** Focused on general conditioning and establishing movement proficiency with repetitive bodyweight circuits.
-*   **Week 2 (Feb 19):** Increased the intensity of warmups and introduced structured AMRAP/EMOM style workouts, emphasizing core stability and explosive power.
-```
+Standout themes this month include high-intensity conditioning, parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. The 20 sessions form a solid training block with steady volume and progressive demand.

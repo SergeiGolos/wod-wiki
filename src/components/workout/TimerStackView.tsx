@@ -4,6 +4,7 @@ import { ITimerDisplayEntry, IDisplayCardEntry } from '../../clock/types/Display
 import { formatTimeMMSS } from '../../lib/formatTime';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';
 import { useAudio } from '@/components/audio/AudioContext';
+import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 
 export interface TimerStackViewProps {
     elapsedMs: number;
@@ -13,6 +14,8 @@ export interface TimerStackViewProps {
     onStop: () => void;
     onNext: () => void;
     isRunning: boolean;
+    isPaused?: boolean;
+    disableNext?: boolean;
     primaryTimer?: ITimerDisplayEntry;
     currentCard?: IDisplayCardEntry;
     compact?: boolean;
@@ -42,6 +45,15 @@ export interface TimerStackViewProps {
 
 const formatTime = formatTimeMMSS;
 
+export function getPrimaryTimerFontSizePx(panelWidth: number, compact: boolean): number {
+    const width = panelWidth > 0 ? panelWidth : 800;
+
+    if (compact) {
+        return Math.round(Math.min(Math.max(width * 0.14, 56), 72));
+    }
+
+    return Math.round(Math.min(Math.max(width * 0.18, 128), 320));
+}
 
 export const TimerStackView: React.FC<TimerStackViewProps> = ({
     elapsedMs,
@@ -50,6 +62,8 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     onStop,
     onNext,
     isRunning,
+    isPaused = false,
+    disableNext,
     primaryTimer,
     compact = false,
     subLabel,
@@ -62,11 +76,18 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
     skipFlash = false,
     skipFlashKey = 0,
 }) => {
+    const { width: panelWidth } = usePanelSize();
+
     let audio: any = null;
     try {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         audio = useAudio();
     } catch { /* ignore if provider missing */ }
+
+    const primaryTimerFontSizePx = useMemo(
+        () => getPrimaryTimerFontSizePx(panelWidth, compact),
+        [panelWidth, compact],
+    );
 
     const handleStart = useCallback(() => {
         audio?.playClick();
@@ -83,10 +104,14 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         onStop();
     }, [audio, onStop]);
 
+    const isNextDisabled = disableNext ?? isPaused;
+    const primaryControlLabel = isPaused ? 'Continue' : isRunning ? 'Pause' : 'Start';
+
     const handleNext = useCallback(() => {
+        if (isNextDisabled) return;
         audio?.playClick();
         onNext();
-    }, [audio, onNext]);
+    }, [audio, isNextDisabled, onNext]);
 
     // --- Swipe Gesture Logic ---
     const touchStart = useRef<number | null>(null);
@@ -119,6 +144,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
 
         if (!isTyping) {
             if (isLeftSwipe) {
+                if (isNextDisabled) return;
                 console.log('Swipe Left -> Next');
                 handleNext();
             } else if (isRightSwipe) {
@@ -129,7 +155,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
         
         touchStart.current = null;
         touchEnd.current = null;
-    }, [enableGestures, handleNext, handleStop]);
+    }, [enableGestures, handleNext, handleStop, isNextDisabled]);
 
     // Determine which timer is "Focused" for the big ring
     // Default to the primaryTimer (usually the leaf) if no focus override
@@ -252,16 +278,14 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             onClick={isRunning ? handlePause : handleStart}
                             {...(getFocusProps ? getFocusProps('timer-main') : {})}
                             className={`tv-focusable relative z-10 flex flex-col items-center justify-center focus:outline-none focus-visible:outline-2 focus-visible:outline-ring group min-h-[48px] min-w-[48px] ${compact ? 'py-2' : 'py-8'}`}
+                            title={primaryControlLabel}
                         >
-                            <span className={`font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none ${compact ? 'text-[3.5rem]' : 'text-[8rem] lg:text-[12rem]'}`}>
+                            <span
+                                className="font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none"
+                                style={{ fontSize: `${primaryTimerFontSizePx}px` }}
+                            >
                                 {formatTime(displayTimeMs)}
                             </span>
-                            <div className={`text-primary group-hover:opacity-80 transition-opacity ${compact ? 'mt-2' : 'mt-4'}`}>
-                                {isRunning 
-                                    ? <Pause className={`title-pause ${compact ? 'w-8 h-8' : 'w-14 h-14 lg:w-16 lg:h-16'}`} /> 
-                                    : <Play className={`ml-1 title-play ${compact ? 'w-8 h-8' : 'w-14 h-14 lg:w-16 lg:h-16'}`} />
-                                }
-                            </div>
                         </button>
                     </div>
 
@@ -310,14 +334,14 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         onClick={isRunning ? handlePause : handleStart}
                         {...(getFocusProps ? getFocusProps('btn-pause') : {})}
                         className={`tv-focusable group flex items-center justify-center rounded-full transition-all active:scale-95 ${compact ? 'w-14 h-14 bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'w-20 h-20 bg-surface-container-low border border-outline-variant hover:bg-surface-variant shadow-sm'}`}
-                        title={isRunning ? 'Pause' : 'Resume'}
+                        title={primaryControlLabel}
                     >
-                        {isRunning 
+                        {isRunning
                             ? <Pause className={`${compact ? 'w-6 h-6 text-white' : 'w-8 h-8 text-on-surface-variant'}`} />
                             : <Play className={`${compact ? 'w-6 h-6 text-white ml-0.5' : 'w-8 h-8 text-on-surface-variant ml-1'}`} />
                         }
                     </button>
-                    {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">{isRunning ? 'Pause' : 'Resume'}</span>}
+                    {!compact && <span className="font-mono text-[10px] font-medium uppercase tracking-widest text-secondary">{primaryControlLabel}</span>}
                 </div>
 
                 {/* Next Button */}
@@ -325,8 +349,9 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     /* Mobile: wide pill button */
                     <button
                         onClick={handleNext}
+                        disabled={isNextDisabled}
                         {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                        className="tv-focusable flex-1 h-14 bg-foreground text-background rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg"
+                        className={`tv-focusable flex-1 h-14 rounded-2xl flex items-center justify-center gap-2 transition-transform shadow-lg ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary text-primary-foreground shadow-primary/20 active:scale-[0.98]'}`}
                         title="Next Block"
                     >
                         <span className="text-base font-bold tracking-widest uppercase">Next</span>
@@ -337,8 +362,9 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     <div className="flex flex-col items-center gap-2">
                         <button
                             onClick={handleNext}
+                            disabled={isNextDisabled}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
-                            className="tv-focusable flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary hover:text-white transition-all active:scale-90 shadow-xl w-24 h-24"
+                            className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl w-24 h-24 ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-white active:scale-90'}`}
                             title="Next Block"
                         >
                             <SkipForward className="font-bold w-10 h-10" />

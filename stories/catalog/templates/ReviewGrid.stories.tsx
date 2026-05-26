@@ -105,12 +105,15 @@ export interface ReviewGridHarnessProps {
   stepMs?: number;
   /** CSS height of the story canvas. */
   height?: string;
+  /** Initial ReviewGrid preset to showcase in the story. */
+  gridViewPreset?: 'default' | 'debug' | 'strength' | 'endurance';
 }
 
 const ReviewGridHarness: React.FC<ReviewGridHarnessProps> = ({
   script,
   stepMs = 30_000,
   height = '600px',
+  gridViewPreset = 'default',
 }) => {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [groups, setGroups] = useState<AnalyticsGroup[]>([]);
@@ -166,6 +169,7 @@ const ReviewGridHarness: React.FC<ReviewGridHarnessProps> = ({
           selectedSegmentIds={selectedIds}
           onSelectSegment={handleSelect}
           groups={groups}
+          gridViewPreset={gridViewPreset}
         />
       </div>
     </DebugModeProvider>
@@ -200,6 +204,11 @@ const meta: Meta<typeof ReviewGridHarness> = {
     height: {
       control: 'text',
       description: 'CSS height of the story canvas',
+    },
+    gridViewPreset: {
+      control: 'select',
+      options: ['default', 'debug', 'strength', 'endurance'],
+      description: 'Initial grid preset shown in the toolbar/grid',
     },
   },
 };
@@ -274,6 +283,42 @@ export const RoundsComplete: Story = {
     script: '5x\n10 Thrusters @95lb',
     stepMs: 45_000,
     height: '600px',
+  },
+};
+
+/**
+ * Strength preset — showcases grouped descriptors and load-focused fallback chains.
+ */
+export const StrengthPreset: Story = {
+  name: 'Preset — Strength',
+  args: {
+    script: [
+      '5 Back Squat @225lb',
+      '5 Back Squat @235lb',
+      '5 Back Squat @245lb',
+      '5 Back Squat @255lb',
+    ].join('\n'),
+    stepMs: 45_000,
+    height: '620px',
+    gridViewPreset: 'strength',
+  },
+};
+
+/**
+ * Endurance preset — showcases derived pace plus grouped exercise descriptors.
+ */
+export const EndurancePreset: Story = {
+  name: 'Preset — Endurance',
+  args: {
+    script: [
+      '400m Run',
+      '500m Row',
+      '800m Run',
+      '1000m Bike',
+    ].join('\n'),
+    stepMs: 120_000,
+    height: '620px',
+    gridViewPreset: 'endurance',
   },
 };
 

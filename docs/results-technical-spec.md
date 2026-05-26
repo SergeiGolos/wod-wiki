@@ -53,6 +53,22 @@ ReceiverReviewPanel           ← Chromecast receiver review view
 | `ReceiverReviewPanel` | `src/panels/review-panel-chromecast.tsx` |
 | `GridToolbar` / `GridHeader` / `GridRow` / `GridGraphPanel` | `src/components/review-grid/` |
 
+### 1.4 Results Display Path Decision Matrix
+
+| Path | Component | Primary contract | Decision | Why |
+|------|-----------|------------------|----------|-----|
+| Workbench Review tab | `ReviewGrid` | `Segment[]` pivoted into rows/cells by `useGridData` | **Unify** | Already consolidated with `FullscreenReview` by [WOD-710](/WOD/issues/WOD-710). |
+| FullscreenReview overlay | `ReviewGrid` | Same `Segment[]` contract as the workbench tab | **Unify** | Same grid, same row/column contract, just different shell chrome. |
+| Inline editor widget | `wodResultsWidget` | `WorkoutResult[]` rendered as compact inline result rows | **Keep separate** | CM6 widget decorations cannot host the grid's sort/filter/column UI without breaking the inline document flow. |
+| Chromecast receiver | `ReceiverReviewPanel` | `reviewData.rows` + `analyticsSummary.projections` summary payload | **Keep separate** | TV receiver needs large-card, D-pad-friendly presentation; this is an explicit exception confirmed by [WOD-709](/WOD/issues/WOD-709). |
+
+**Shared summary contract:**
+
+- `totalDurationMs` and `completedSegments` are the common session-level totals.
+- `rows: Array<{ label: string; value: string }>` is the fallback textual summary for compact / receiver views.
+- `projections: Array<{ name: string; value: number; unit: string; metricType?: string }>` carries the richer analytics cards used by Chromecast.
+- The grid path keeps its richer row/column model (`Segment[]` → `GridRow[]`) because it owns sorting, filtering, and user overrides.
+
 ---
 
 ## 2. TypeScript Interfaces / Models

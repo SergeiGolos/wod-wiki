@@ -5,7 +5,6 @@
  * and older exports stay aligned with the canonical preset definitions.
  */
 
-import { MetricType } from '@/core/models/Metric';
 import type { GridViewPreset, GridColumn } from './types';
 import { GRID_COLUMN_SET_CONFIG } from './cdlColumnDefinitions';
 import type { ColumnDef, ColumnSetPreset } from './column-definition-language';
@@ -41,10 +40,6 @@ function toLegacyGridColumn(
   };
 }
 
-/** All simple metric-type columns retained for legacy call sites. */
-export const ALL_FRAGMENT_COLUMNS: MetricType[] = GRID_COLUMN_SET_CONFIG.definitions
-  .flatMap((def) => (def.source.type === 'metric-type' ? [def.source.metricType] : []));
-
 /** All presets indexed by id, backed by CDL definitions. */
 export const GRID_PRESETS: Record<string, GridViewPreset> = Object.fromEntries(
   Object.entries(GRID_COLUMN_SET_CONFIG.presets).map(([id, preset]) => [id, toLegacyPreset(id, preset)]),
@@ -58,15 +53,6 @@ export const ENDURANCE_PRESET = GRID_PRESETS.endurance;
 /** Look up a preset by id, falling back to default. */
 export function getPreset(id: string): GridViewPreset {
   return GRID_PRESETS[id] ?? DEFAULT_PRESET;
-}
-
-/**
- * Legacy metric-column builder. Prefer ColumnSet + GRID_COLUMN_SET_CONFIG.
- */
-export function buildFragmentColumns(preset: GridViewPreset): GridColumn[] {
-  return GRID_COLUMN_SET_CONFIG.definitions
-    .filter((def) => def.source.type === 'metric-type')
-    .map((def) => toLegacyGridColumn(def, preset, preset.id === 'debug'));
 }
 
 /**

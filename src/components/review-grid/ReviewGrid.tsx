@@ -13,6 +13,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import type { Segment, AnalyticsGroup } from '@/core/models/AnalyticsModels';
 import type { IScriptRuntime } from '@/hooks/useRuntimeTimer';
 import { MetricType, type IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import type { GridSortConfig, GridFilterConfig, SortDirection } from './types';
 import { useGridData } from './useGridData';
 import { getPreset } from './gridPresets';
@@ -38,7 +39,7 @@ export interface ReviewGridProps {
   /** Analytics groups (reserved for Phase 3 graph panel) */
   groups: AnalyticsGroup[];
   /** User override map from the store */
-  userOutputOverrides?: Map<string, IMetric[]>;
+  userOutputOverrides?: Map<string, IMetric[] | MetricContainer>;
   /** Active grid preset id from the store */
   gridViewPreset?: string;
   /** Callback to update the preset in the store */
@@ -96,10 +97,19 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
   // Merge store overrides + local overrides (local wins)
   const mergedOverrides = useMemo(() => {
-    const merged = new Map(userOutputOverrides);
+    const merged = new Map<string, MetricContainer>();
+
+    for (const [key, frags] of userOutputOverrides) {
+      merged.set(
+        key,
+        frags instanceof MetricContainer ? frags : MetricContainer.from(frags, key),
+      );
+    }
+
     for (const [key, frags] of overrides) {
       merged.set(key, frags);
     }
+
     return merged;
   }, [userOutputOverrides, overrides]);
 
@@ -311,7 +321,7 @@ export const ReviewGrid: React.FC<ReviewGridProps> = ({
 
       {/* Grid table */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-left text-sm border-collapse min-w-[700px]">
+        <table className="text-left text-sm border-collapse min-w-[700px]">
           <GridHeader
             columns={displayColumns}
             sortConfigs={sortConfigs}

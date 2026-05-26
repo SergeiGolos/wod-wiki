@@ -1,27 +1,13 @@
-```markdown
 ---
 template: canvas
 collection: true
-category: zombie-fit
+category:
+  - parkour
 ---
+# ZombieFit Jun 2013
 
-# ZombieFit.org Jun 2013
+June 2013 features 4 ZombieFit workouts built around for time efforts. Programming rotates through for time, emom and amrap formats to keep sessions varied and progressive. Athletes can expect for time, emom and amrap work across the training block.
 
-Welcome to our June collection! This month's programming focuses heavily on foundational endurance, explosive bodyweight movements, and simulating the unpredictable demands of surviving a zombie outbreak. Expect challenging warm-ups involving running/rowing/biking, combined with high-volume AMRAPs and time challenges utilizing squats, pull-ups, and sprints to keep your fitness sharp and adaptable.
+The movement emphasis this month falls on air squats, pull ups, push ups. Supporting elements include jumping pull ups, sit ups, box jumps, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-## 🗓️ Weekly Summary
-*   **June 23:** Focus on short, intense metabolic conditioning (AMRAP style).
-*   **June 27:** Emphasis on sprinting and high-rep bodyweight endurance challenges.
-*   **June 28:** Pure strength endurance day featuring escalating air squat time trials across all levels.
-
-## 💪 Featured Workouts
-
-### WOD 756 (June 23)
-[WOD Wiki Script Block for wod-062313.md]
-
-### WOD 756 (June 27)
-[WOD Wiki Script Block for wod-062713.md]
-
-### WOD 757 (June 28)
-[WOD Wiki Script Block for wod-062813.md]
-```
+Standout themes this month include high-intensity conditioning, parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. With only 4 workouts on record, this is a lighter month—useful for deload or supplementary training.

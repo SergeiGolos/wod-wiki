@@ -13,6 +13,10 @@
  *   - `wodResultsExpandedField`: Stores the toggle state (expanded or not) per section.
  *   - `WodResultsBadgeWidget`: The clickable UI in the header.
  *   - `WodResultsBarWidget`: The expandable table at the bottom.
+ *
+ * This path intentionally stays separate from `ReviewGrid`: CM6 widget
+ * decorations are inline-document primitives, so the editor uses a compact
+ * result-row surface instead of the grid's sortable/filterable table contract.
  */
 
 import {
@@ -89,6 +93,8 @@ function formatTime(ts: number): string {
 }
 
 // ── Table Widget (Bottom) ───────────────────────────────────────────
+// Reuses the compact result-row DOM contract so the inline editor surface stays
+// lightweight while still matching the shared compact-result visuals.
 
 class WodResultsBarWidget extends WidgetType {
   constructor(
