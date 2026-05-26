@@ -4,6 +4,7 @@ collection: true
 category:
   - parkour
 ---
+
 # ZombieFit Mar 2012
 
 March 2012 features 4 ZombieFit workouts built around for time efforts. Programming rotates through for time, skill and intervals formats to keep sessions varied and progressive. Athletes can expect for time, max effort, skill work and intervals work across the training block.
