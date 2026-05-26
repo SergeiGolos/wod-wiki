@@ -1,3 +1,11 @@
+---
+template: canvas
+collection: true
+category:
+  - parkour
+---
+# ZombieFit Apr 2010
+
 April 2010 features 3 ZombieFit workouts built around tabata efforts. Programming rotates through intervals and for time formats to keep sessions varied and progressive. Athletes can expect tabata, intervals and for time work across the training block.
 
 The movement emphasis this month falls on quadrupedal movement, pull ups, push ups. Supporting elements include sit ups, air squats, precision, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
