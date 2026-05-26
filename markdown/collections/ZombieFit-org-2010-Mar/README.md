@@ -1,19 +1,13 @@
 ---
 template: canvas
 collection: true
-category: [zombie-fit, parkour]
-title: "ZombieFit.org Mar 2010"
+category:
+  - parkour
 ---
+# ZombieFit Mar 2010
 
-# ZombieFit.org Mar 2010
+March 2010 features 22 ZombieFit workouts built around for time efforts. Programming rotates through for time, amrap and emom formats to keep sessions varied and progressive. Athletes can expect for time, amrap, tabata and emom work across the training block.
 
-Welcome to the March collection! This month's programming focuses on combining foundational bodyweight strength with explosive parkour movements. Expect a mix of endurance challenges and skill-based circuits designed to keep you moving through the urban jungle.
+The movement emphasis this month falls on push ups, air squats, pull ups. Supporting elements include sit ups, quadrupedal movement, jumping pull ups, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-{workouts}
-
-### Monthly Summary
-*   **Week of Mar 1:** Focus on core conditioning and basic plyometrics (WOD 99).
-*   **Week of Mar 4:** Endurance circuit emphasizing cardio flow and high rep counts (WOD 101).
-*   **Week of Mar 5:** Full-body strength test combining jumping, squatting, and pulling movements (WOD 102).
-*   **Week of Mar 8:** Repetition challenges focusing on explosive movement patterns (WOD 103).
-*   **Week of Mar 9:** AMRAP style workout testing overall stamina and precision skills (WOD 104).
+Standout themes this month include parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. At 22 sessions, this is a high-volume month that rewards consistent attendance and recovery discipline.

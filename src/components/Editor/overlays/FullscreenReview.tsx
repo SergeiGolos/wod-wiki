@@ -125,6 +125,7 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
               onSelectSegment={handleSelectSegment}
               groups={[]}
               userOutputOverrides={overrides}
+              gridViewPreset={isDebugMode ? 'debug' : 'default'}
             />
           </div>
         </section>

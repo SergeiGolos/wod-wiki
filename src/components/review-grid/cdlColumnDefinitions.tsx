@@ -592,10 +592,10 @@ export const completionReasonColumn: ColumnDef = {
 // Metric-Type Columns
 // ═══════════════════════════════════════════════════════════════
 
-export const effortColumn = makeMetricColumn(MetricType.Effort);
+export const effortColumn = makeMetricColumn(MetricType.Effort, { defaultVisible: false });
 export const durationColumn = makeMetricColumn(MetricType.Duration);
 export const repColumn = makeMetricColumn(MetricType.Rep);
-export const roundsColumn = makeMetricColumn(MetricType.Rounds);
+export const roundsColumn = makeMetricColumn(MetricType.Rounds, { defaultVisible: false });
 export const distanceColumn = makeMetricColumn(MetricType.Distance);
 export const resistanceColumn = makeMetricColumn(MetricType.Resistance);
 export const actionColumn = makeMetricColumn(MetricType.Action);
@@ -603,9 +603,9 @@ export const incrementColumn = makeMetricColumn(MetricType.Increment);
 export const metricColumn = makeMetricColumn(MetricType.Metric);
 export const groupColumn = makeMetricColumn(MetricType.Group, { defaultVisible: false });
 export const systemColumn = makeMetricColumn(MetricType.System, { defaultVisible: false });
-export const labelColumn = makeMetricColumn(MetricType.Label);
+export const labelColumn = makeMetricColumn(MetricType.Label, { defaultVisible: false });
 export const textColumn = makeMetricColumn(MetricType.Text);
-export const currentRoundColumn = makeMetricColumn(MetricType.CurrentRound);
+export const currentRoundColumn = makeMetricColumn(MetricType.CurrentRound, { defaultVisible: false });
 export const volumeColumn = makeMetricColumn(MetricType.Volume);
 export const intensityColumn = makeMetricColumn(MetricType.Intensity);
 export const loadColumn = makeMetricColumn(MetricType.Load);

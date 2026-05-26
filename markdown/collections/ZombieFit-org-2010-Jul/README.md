@@ -1,22 +1,13 @@
 ---
 template: canvas
 collection: true
-category: [zombie-fit, parkour]
-title: "ZombieFit.org Jul 2010"
+category:
+  - parkour
 ---
+# ZombieFit Jul 2010
 
-# ZombieFit.org Jul 2010
+July 2010 features 20 ZombieFit workouts built around for time efforts. Programming rotates through for time, emom, amrap and intervals formats to keep sessions varied and progressive. Athletes can expect for time, emom, amrap, tabata, intervals and max effort work across the training block.
 
-Welcome to the July collection! This month's programming focuses on building endurance and mastering functional movements inspired by urban survival and parkour principles. Expect a mix of timed efforts, AMRAP challenges, and mobility drills designed to keep you moving through any environment.
+The movement emphasis this month falls on push ups, air squats, precision. Supporting elements include quadrupedal movement, pull ups, sit ups, creating a balanced mix of pushing, pulling, squatting, and parkour-specific patterns. All workouts are tiered across three levels—Étudiant (Beginner), Avancée (Advanced), and Traceur (Expert)—so scaling is built in from the ground up.
 
-***
-
-{workouts}
-
-***
-
-### 🗓️ Monthly Overview
-
-**Week 1 (July 3 - July 5):** The month kicks off with foundational conditioning, focusing on basic movement patterns like quadrupedal locomotion and core stability across multiple formats.
-**Week 2 (July 7):** A focus on continuous effort and precision movements, challenging athletes to maintain speed over time using ladder-style progression.
-**Week 3 & 4 (Late July - July 28):** The programming ramps up intensity with longer endurance efforts and complex circuit training designed for maximum metabolic output until failure.
+Standout themes this month include high-intensity conditioning, parkour-specific skill work, timed interval protocols, density-based AMRAP sessions. The 20 sessions form a solid training block with steady volume and progressive demand.

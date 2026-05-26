@@ -3,6 +3,7 @@ import type { EditorView } from "@codemirror/view";
 import { RuntimeTimerPanel } from "./RuntimeTimerPanel";
 import type { WodBlock, WorkoutResults } from "../types";
 import { ReviewGrid } from "@/components/review-grid/ReviewGrid";
+import { useDebugMode } from "@/components/layout/DebugModeContext";
 import { getAnalyticsFromLogs } from "@/hooks/useWorkbenchServices";
 import type { Segment } from "@/core/models/AnalyticsModels";
 import { FocusedDialog } from "./FocusedDialog";
@@ -27,6 +28,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
 }) => {
   const [completedSegments, setCompletedSegments] = useState<Segment[] | null>(null);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<Set<number>>(new Set());
+  const { isDebugMode } = useDebugMode();
 
   const handleClose = () => {
     // Dismiss immediately so the runner closes on the same tick the user
@@ -94,6 +96,7 @@ export const FullscreenTimer: React.FC<FullscreenTimerProps> = ({
         selectedSegmentIds={selectedSegmentIds}
         onSelectSegment={handleSelectSegment}
         groups={[]}
+        gridViewPreset={isDebugMode ? 'debug' : 'default'}
       />
     </FocusedDialog>
   ) : (
