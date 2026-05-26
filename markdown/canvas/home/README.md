@@ -19,11 +19,9 @@ width:   45%
 
 ## The Whiteboard Script {sticky #statement theme:violet}
 
-The script on the right is part of this wiki, not a screenshot. Click into it,
-change the reps, movements, weights, or rest, and use the examples as a safe
-scratchpad while you learn how WOD Wiki works.
+The script on the right is part of this wiki, not a screenshot. Click into it, change the reps, movements, weights, or rest, and use the examples as a safe scratchpad while you learn how WOD Wiki works.
 
-Write workouts in plain text. The parser turns your notes into live timers, round counters, and session logs.
+Write workouts in plain text — the parser turns notes into live timers, round counters, and session logs.
 
 ```command
 target: home-demo
@@ -32,7 +30,7 @@ pipeline:
   - set-state: note
 ```
 
-A single movement on one line is a complete workout statement.
+**Try it:** A single movement on one line is a complete workout statement.
 
 ```button
 label:  Try This →
@@ -43,7 +41,7 @@ pipeline:
 
 ## Metrics {sticky #metrics density:compact theme:emerald}
 
-Add reps, load, and distance. The parser understands all three.
+Add reps, load, and distance to any movement — the parser understands all three.
 
 ```example
 label: Reps only
@@ -71,7 +69,7 @@ pipeline:
 
 ## Timers {sticky #timer theme:amber}
 
-Prefix a movement with a time to run it as a countdown.
+Prefix a movement with a time to run it as a countdown timer.
 
 ```command
 target: home-demo
@@ -91,7 +89,7 @@ pipeline:
 
 ## Groups {sticky #groups theme:sky}
 
-Wrap movements in `(N Rounds)` to repeat them. Indent everything inside the group.
+Wrap movements in `(N Rounds)` to repeat them — indent everything inside the group.
 
 ```command
 target: home-demo
@@ -100,7 +98,7 @@ pipeline:
   - set-state: note
 ```
 
-The runtime counts rounds automatically and shows you where you are in the sequence.
+The runtime counts rounds automatically and shows your position in the sequence.
 
 ```button
 label:  Try This →
@@ -120,7 +118,7 @@ pipeline:
   - set-state: note
 ```
 
-When the time is up the runtime stops and logs completed rounds and partial reps.
+When the cap hits, the runtime stops and logs completed rounds and partial reps.
 
 ```button
 label:  Try This →
@@ -131,7 +129,7 @@ pipeline:
 
 ## What's Next {sticky full-bleed dark}
 
-Go from zero to hero in six steps, or dive straight into the full syntax reference.
+Ready to go deeper? Work through the six-step guide or explore the full syntax reference.
 
 ```button
 label:  Zero to Hero →
