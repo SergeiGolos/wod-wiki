@@ -727,6 +727,13 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   const depsRef = useRef(deps)
   depsRef.current = deps
 
+  // Refs for activateSection dependencies so the IntersectionObserver effect
+  // doesn't re-create on every selectedExamples / swapSource change.
+  const selectedExamplesRef = useRef(selectedExamples)
+  selectedExamplesRef.current = selectedExamples
+  const swapSourceRef = useRef(swapSource)
+  swapSourceRef.current = swapSource
+
   const activateSection = useCallback((section: CanvasSection) => {
     setActiveSectionId(section.id)
     setActiveSectionTitle(section.heading)
@@ -734,10 +741,10 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
     const sectionExamples = section.examples ?? []
     if (sectionExamples.length > 0) {
-      const selectedIndex = selectedExamples[section.id] ?? 0
+      const selectedIndex = selectedExamplesRef.current[section.id] ?? 0
       const example = sectionExamples[selectedIndex] ?? sectionExamples[0]
       if (example?.source) {
-        swapSource(resolveSource(example.source, wodFilesRef.current), example.source)
+        swapSourceRef.current(resolveSource(example.source, wodFilesRef.current), example.source)
       }
     }
 
@@ -753,7 +760,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
         depsRef.current,
       )
     }
-  }, [selectedExamples, swapSource])
+  }, [])
 
   const handleExampleSelect = useCallback((section: CanvasSection, index: number) => {
     setSelectedExamples((previous) => ({ ...previous, [section.id]: index }))
@@ -826,7 +833,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
 
   const logSectionObserver = useCallback((event: string, details: Record<string, unknown>) => {
     if (!isDebugMode) return
-    console.debug('[MarkdownCanvasPage][section-observer]', event, details)
+    console.log('[MarkdownCanvasPage][section-observer]', event, details)
   }, [isDebugMode])
 
   const setStepRef = useCallback((id: string) => (el: HTMLDivElement | null) => {

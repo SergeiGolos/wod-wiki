@@ -37,6 +37,7 @@ import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton'
 import { playgroundDB } from '../../services/playgroundDB'
 import type { NavItemL3 } from '../../nav/navTypes'
 import { useAudio } from '@/components/audio/AudioContext'
+import { useDebugMode } from '@/components/layout/DebugModeContext'
 
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 
@@ -85,17 +86,9 @@ export function ActionsMenu({
   const { l3Items: contextL3, scrollToSection } = useNav()
   const { theme, setTheme } = useTheme()
   const { isEnabled: isAudioEnabled, toggleAudio } = useAudio()
+  const { isDebugMode, toggleDebugMode } = useDebugMode()
   
   const l3Items = items || contextL3
-  const [debugMode, setDebugMode] = useState(
-    () => localStorage.getItem('debugMode') === 'true'
-  )
-
-  const handleToggleDebug = () => {
-    const next = !debugMode
-    setDebugMode(next)
-    localStorage.setItem('debugMode', String(next))
-  }
 
   const handleResetData = async () => {
     localStorage.clear()
@@ -177,10 +170,10 @@ export function ActionsMenu({
           <BuyMeACoffeeIcon data-slot="icon" className="size-5" />
           <DropdownLabel>Buy Me a Coffee</DropdownLabel>
         </DropdownItem>
-        <DropdownItem onClick={handleToggleDebug}>
+        <DropdownItem onClick={toggleDebugMode}>
           <BugAntIcon data-slot="icon" />
           <DropdownLabel>Debug Mode</DropdownLabel>
-          {debugMode && <span className="col-start-5 text-blue-500">✓</span>}
+          {isDebugMode && <span className="col-start-5 text-blue-500">✓</span>}
         </DropdownItem>
         <DropdownDivider />
         <DropdownItem onClick={handleResetData}>
