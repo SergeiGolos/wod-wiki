@@ -116,6 +116,20 @@ function classifyPrimitive(primitive: SyntaxPrimitive, statement: ParsedCodeStat
         meta: primitive.meta,
       }];
     }
+
+    case 'metric_object': {
+      const pairs = primitive.pairs;
+      return pairs.map((pair) => {
+        const metricType = PROPERTY_KEY_TO_METRIC_TYPE[pair.key.toLowerCase()] ?? MetricType.Custom;
+        return {
+          metrics: new PropertyMetric(pair.key, pair.value, {
+            type: metricType,
+            image: `${pair.key}: ${pair.value}`,
+          }),
+          meta: primitive.meta,
+        };
+      });
+    }
   }
 }
 

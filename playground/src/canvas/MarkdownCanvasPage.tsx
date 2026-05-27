@@ -824,6 +824,11 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
   // initial layout pass before any scrolling has occurred.
   const hasUserScrolledRef  = useRef(false)
 
+  const logSectionObserver = useCallback((event: string, details: Record<string, unknown>) => {
+    if (!isDebugMode) return
+    console.debug('[MarkdownCanvasPage][section-observer]', event, details)
+  }, [isDebugMode])
+
   const setStepRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) stepRefs.current.set(id, el)
     else    stepRefs.current.delete(id)
@@ -841,6 +846,11 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
       if (y !== lastScrollY) {
         scrollDirRef.current = y > lastScrollY ? 1 : -1
         hasUserScrolledRef.current = true
+        logSectionObserver('scroll', {
+          y,
+          previousY: lastScrollY,
+          direction: scrollDirRef.current === 1 ? 'down' : 'up',
+        })
       }
       lastScrollY = y
     }
@@ -849,18 +859,50 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
     // Use a tighter top dead-zone on mobile to account for the sticky panel
     // sitting below the global nav bar (mirrors the ParallaxSection pattern).
     const isMobile = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX}px)`).matches
-    const rootMargin = isMobile ? `-${MOBILE_STICKY_TOP}px 0px -20% 0px` : '-30% 0px -30% 0px'
+    const rootMargin = isMobile
+      ? `-${MOBILE_STICKY_TOP}px 0px -20% 0px`
+      : `-${STICKY_NAV_HEIGHT}px 0px -30% 0px`
+
+    logSectionObserver('observer:init', {
+      rootMargin,
+      isMobile,
+      sectionIds: contentSections.map((section) => section.id),
+      initialScrollY: window.scrollY,
+      hasUserScrolled: hasUserScrolledRef.current,
+    })
 
     const observer = new IntersectionObserver(
       (entries) => {
+        const entrySummary: Array<Record<string, unknown>> = []
+
         entries.forEach(entry => {
           const id = entry.target.getAttribute('data-section-id')
           if (!id) return
           if (entry.isIntersecting) ratioMap.current.set(id, entry.intersectionRatio)
           else                      ratioMap.current.delete(id)
+          entrySummary.push({
+            id,
+            isIntersecting: entry.isIntersecting,
+            ratio: Number(entry.intersectionRatio.toFixed(3)),
+            top: Number(entry.boundingClientRect.top.toFixed(1)),
+            height: Number(entry.boundingClientRect.height.toFixed(1)),
+          })
         })
 
-        if (ratioMap.current.size === 0) return
+        logSectionObserver('observer:entries', {
+          entries: entrySummary,
+          visibleRatios: Object.fromEntries(
+            Array.from(ratioMap.current.entries()).map(([id, ratio]) => [id, Number(ratio.toFixed(3))]),
+          ),
+          direction: scrollDirRef.current === 1 ? 'down' : 'up',
+        })
+
+        if (ratioMap.current.size === 0) {
+          logSectionObserver('observer:no-visible-sections', {
+            reason: 'ratio-map-empty',
+          })
+          return
+        }
 
         let bestId: string | null = null
         if (scrollDirRef.current === -1) {
@@ -870,45 +912,93 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
             const order = contentSections.findIndex(s => s.id === id)
             if (order >= 0 && order < bestOrder) { bestOrder = order; bestId = id }
           })
+          logSectionObserver('observer:candidate', {
+            strategy: 'topmost-when-scrolling-up',
+            bestId,
+          })
         } else {
           // Scrolling down: pick the section with the highest intersection ratio
           let bestRatio = -1
           ratioMap.current.forEach((ratio, id) => {
             if (ratio > bestRatio) { bestRatio = ratio; bestId = id }
           })
+          logSectionObserver('observer:candidate', {
+            strategy: 'highest-ratio-when-scrolling-down',
+            bestId,
+            bestRatio: bestId ? Number((ratioMap.current.get(bestId) ?? 0).toFixed(3)) : null,
+          })
         }
 
         if (bestId && bestId !== lastActiveSectionId.current) {
+          logSectionObserver('observer:schedule-activation', {
+            bestId,
+            previousActiveSectionId: lastActiveSectionId.current,
+            debounceMs: 50,
+          })
           lastActiveSectionId.current = bestId
 
-          if (activationTimerRef.current) clearTimeout(activationTimerRef.current)
+          if (activationTimerRef.current) {
+            clearTimeout(activationTimerRef.current)
+            logSectionObserver('observer:clear-pending-activation', {
+              nextBestId: bestId,
+            })
+          }
           activationTimerRef.current = setTimeout(() => {
             // Guard: only update URL and fire scroll-commands after the user (or a
             // programmatic restore-scroll) has actually moved the page. This
             // prevents the initial layout pass from immediately writing ?h= and
             // triggering view-source swaps before any interaction.
-            if (!hasUserScrolledRef.current) return
+            if (!hasUserScrolledRef.current) {
+              logSectionObserver('observer:skip-activation', {
+                bestId,
+                reason: 'user-has-not-scrolled',
+              })
+              activationTimerRef.current = null
+              return
+            }
 
             const section = contentSections.find(s => s.id === bestId)
-            if (!section) return
+            if (!section) {
+              logSectionObserver('observer:skip-activation', {
+                bestId,
+                reason: 'section-not-found',
+              })
+              activationTimerRef.current = null
+              return
+            }
 
+            logSectionObserver('observer:activate', {
+              bestId,
+              heading: section.heading,
+            })
             executeNavAction({ type: 'query', params: { h: bestId }, pushHistory: false }, depsRef.current)
             activateSection(section)
             activationTimerRef.current = null
-          }, 200)
+          }, 50)
+        } else if (bestId) {
+          logSectionObserver('observer:skip-activation', {
+            bestId,
+            reason: 'already-active',
+          })
         }
       },
       { rootMargin, threshold: [0, 0.1, 0.25, 0.5, 0.75] },
     )
 
-    stepRefs.current.forEach(el => observer.observe(el))
+    stepRefs.current.forEach((el, id) => {
+      observer.observe(el)
+      logSectionObserver('observer:observe-section', { id })
+    })
     return () => {
       observer.disconnect()
       if (activationTimerRef.current) clearTimeout(activationTimerRef.current)
       window.removeEventListener('scroll', trackScroll)
+      logSectionObserver('observer:cleanup', {
+        activeSectionId: lastActiveSectionId.current,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activateSection, contentSections])
+  }, [activateSection, contentSections, logSectionObserver])
 
   // ── Initial scroll-to from ?h= query param ────────────────────────────────
   // Runs once after refs are populated (next frame after first render).
@@ -1036,6 +1126,7 @@ export function MarkdownCanvasPage({ page, wodFiles, theme, workoutItems, onSele
             onChange={handleEditorChange}
             onBlocksChange={blocks => { wodBlocksRef.current = blocks }}
             onViewCreated={view => { editorViewRef.current = view }}
+            activeSectionId={activeSectionId}
             theme={theme}
             readonly={false}
             showLineNumbers={false}

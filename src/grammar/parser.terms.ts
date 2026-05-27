@@ -21,4 +21,8 @@ export const
   Question = 19,
   DistanceUnit = 20,
   WeightUnit = 21,
-  Effort = 22
+  Effort = 22,
+  MetricObject = 23,
+  True = 24,
+  False = 25,
+  Null = 26

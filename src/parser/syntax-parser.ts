@@ -7,6 +7,7 @@ import {
   DurationPrimitive,
   EffortPrimitive,
   LapPrimitive,
+  MetricObjectPrimitive,
   PropertyPrimitive,
   QuantityPrimitive,
   RoundsPrimitive,
@@ -132,7 +133,7 @@ function parsePropertyValue(rawValue: string): string | number | boolean | null 
 function mapFragmentToPrimitive(
   state: EditorState,
   source: string,
-  node: { from: number; to: number; type: { id: number }; getChild: (name: string) => any }
+  node: { from: number; to: number; type: { id: number }; getChild: (name: string) => any; cursor: () => { firstChild: () => boolean; node: { name: string; from: number; to: number }; nextSibling: () => boolean } }
 ): SyntaxPrimitive | null {
   const raw = source.slice(node.from, node.to);
   const meta = createMeta(state, node.from, node.to, raw);
@@ -211,6 +212,29 @@ function mapFragmentToPrimitive(
         kind: 'effort',
         raw,
         meta,
+      };
+      return primitive;
+    }
+
+    case terms.MetricObject: {
+      let pairs: Array<{ key: string; value: string | number | boolean | null }> = [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          pairs = Object.entries(parsed).map(([key, value]) => ({
+            key,
+            value: value as string | number | boolean | null,
+          }));
+        }
+      } catch {
+        // Malformed JSON — emit empty pairs; the raw text is still preserved
+      }
+
+      const primitive: MetricObjectPrimitive = {
+        kind: 'metric_object',
+        raw,
+        meta,
+        pairs,
       };
       return primitive;
     }

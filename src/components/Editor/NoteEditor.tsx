@@ -168,6 +168,8 @@ export interface NoteEditorProps {
   onButtonAction?: ButtonAction;
   /** ID of section to scroll into view (matches IDs from lineIdsExtension) */
   scrollToSectionId?: string;
+  /** External active section ID supplied by a parent scroll observer */
+  activeSectionId?: string | null;
 }
 
 export const NoteEditor: React.FC<NoteEditorProps> = ({
@@ -199,6 +201,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   widgetComponents,
   onButtonAction,
   scrollToSectionId,
+  activeSectionId: externalActiveSectionId,
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -215,10 +218,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const notePersistence = resolveNotePersistence(defaultNotePersistenceRef, providedNotePersistence);
 
   // Overlay track state
-  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [cursorSectionId, setCursorSectionId] = useState<string | null>(null);
   const [sections, setSections] = useState<EditorSection[]>([]);
   const [cursorLine, setCursorLine] = useState(1);
-  const overlayState = useOverlayWidthState(sections, activeSectionId);
+  const effectiveActiveSectionId = externalActiveSectionId ?? cursorSectionId;
+  const overlayState = useOverlayWidthState(sections, effectiveActiveSectionId);
 
   // Full-screen timer block: when set, the FullscreenTimer overlay is shown.
   const [fullscreenTimerBlock, setFullscreenTimerBlock] = useState<WodBlock | null>(null);
@@ -557,7 +561,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
 
           // Update overlay track state
           const cursorSec = activeCursorSection(update.state);
-          setActiveSectionId(cursorSec?.id ?? null);
+          setCursorSectionId(cursorSec?.id ?? null);
           setCursorLine(line.number);
           const { sections: secs } = update.state.field(sectionField);
           setSections(secs);
@@ -623,7 +627,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     ).number;
     setCursorLine(initialLine);
     const initialSection = activeCursorSection(view.state);
-    setActiveSectionId(initialSection?.id ?? null);
+    setCursorSectionId(initialSection?.id ?? null);
 
     // Seed block list so onBlocksChange fires on initial mount (not just on edits)
     notifyBlockChanges(view.state, onBlocksChange);
@@ -780,7 +784,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         <OverlayTrack
           view={viewRef.current}
           widths={overlayState.widths}
-          activeSectionId={activeSectionId}
+          activeSectionId={effectiveActiveSectionId}
           renderSlot={renderSlot}
           cursorLine={cursorLine}
         />

@@ -197,6 +197,101 @@ describe('classifyStatements', () => {
     expect((custom[0] as any).key).toBe('location');
   });
 
+  it('maps metric_object primitives into known and custom property metrics', () => {
+    const facts: SyntaxFacts = {
+      statements: [
+        statement([
+          {
+            kind: 'metric_object',
+            raw: '{"intensity": 80, "rpe": 8, "focus": "hamstrings"}',
+            meta: meta(0, 45, '{"intensity": 80, "rpe": 8, "focus": "hamstrings"}'),
+            pairs: [
+              { key: 'intensity', value: 80 },
+              { key: 'rpe', value: 8 },
+              { key: 'focus', value: 'hamstrings' },
+            ],
+          },
+        ]),
+      ],
+    };
+
+    const [result] = classifyStatements(facts);
+
+    expect(result.getMetric(MetricType.Intensity)).toMatchObject({
+      key: 'intensity',
+      value: 80,
+      type: 'intensity',
+    });
+
+    expect(result.getMetric(MetricType.SessionRPE)).toMatchObject({
+      key: 'rpe',
+      value: 8,
+      type: 'session-rpe',
+    });
+
+    const custom = result.getAllMetricsByType(MetricType.Custom);
+    expect(custom).toHaveLength(1);
+    expect(custom[0]).toMatchObject({
+      key: 'focus',
+      value: 'hamstrings',
+      type: 'custom',
+    });
+  });
+
+  it('maps metric_object primitives alongside other primitives on the same statement', () => {
+    const facts: SyntaxFacts = {
+      statements: [
+        statement([
+          {
+            kind: 'quantity',
+            raw: '5',
+            meta: meta(0, 1, '5'),
+            value: 5,
+            unit: '',
+            hasAtSign: false,
+            hasWeightUnit: false,
+            hasDistanceUnit: false,
+          },
+          {
+            kind: 'effort',
+            raw: 'Back Squat',
+            meta: meta(2, 12, 'Back Squat'),
+          },
+          {
+            kind: 'metric_object',
+            raw: '{"rpe": 8}',
+            meta: meta(13, 23, '{"rpe": 8}'),
+            pairs: [{ key: 'rpe', value: 8 }],
+          },
+        ]),
+      ],
+    };
+
+    const [result] = classifyStatements(facts);
+
+    expect(result.getMetric(MetricType.Rep)).toMatchObject({ value: 5 });
+    expect(result.getMetric(MetricType.Effort)).toMatchObject({ effort: 'Back Squat' });
+    expect(result.getMetric(MetricType.SessionRPE)).toMatchObject({ value: 8 });
+  });
+
+  it('handles empty metric_object primitives', () => {
+    const facts: SyntaxFacts = {
+      statements: [
+        statement([
+          {
+            kind: 'metric_object',
+            raw: '{}',
+            meta: meta(0, 2, '{}'),
+            pairs: [],
+          },
+        ]),
+      ],
+    };
+
+    const [result] = classifyStatements(facts);
+    expect(result.metrics).toHaveLength(0);
+  });
+
   it('maps lap primitives and keeps child grouping semantics from syntax facts', () => {
     const facts: SyntaxFacts = {
       statements: [
