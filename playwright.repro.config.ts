@@ -7,7 +7,7 @@ loadDotenv({ path: resolve(__dirname, '.env.local'), override: true });
 const httpsHost = process.env.HTTPS_HOST;
 const appBaseURL = httpsHost
   ? `https://${httpsHost}:5173`
-  : 'http://localhost:5173';
+  : process.env.PLAYGROUND_BASE_URL ?? 'http://localhost:5173';
 
 export default defineConfig({
   testDir: './e2e',

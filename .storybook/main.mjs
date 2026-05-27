@@ -8,6 +8,21 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const codemirrorSingletonDeps = [
+  '@codemirror/autocomplete',
+  '@codemirror/commands',
+  '@codemirror/lang-markdown',
+  '@codemirror/language',
+  '@codemirror/lint',
+  '@codemirror/search',
+  '@codemirror/state',
+  '@codemirror/view',
+  '@lezer/common',
+  '@lezer/highlight',
+  '@lezer/lr',
+  '@lezer/markdown',
+];
+
 /** @type { import('@storybook/react-vite').StorybookConfig } */
 const config = {
   "stories": [
@@ -67,7 +82,7 @@ const config = {
     // Deduplicate React to avoid multiple copies during Vitest/Storybook tests
     config.resolve = config.resolve || {};
     config.resolve.dedupe = Array.from(
-      new Set([...(config.resolve.dedupe || []), 'react', 'react-dom'])
+      new Set([...(config.resolve.dedupe || []), 'react', 'react-dom', ...codemirrorSingletonDeps])
     );
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
@@ -88,6 +103,9 @@ const config = {
       'lucide-react',
       'cmdk',
     ];
+    config.optimizeDeps.exclude = Array.from(
+      new Set([...(config.optimizeDeps.exclude || []), '@lezer/common'])
+    );
 
     // Allow all hosts (for Tailscale / LAN access)
     config.server = config.server || {};

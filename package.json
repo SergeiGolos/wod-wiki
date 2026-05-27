@@ -173,6 +173,10 @@
     "@codemirror/view": "^6.41.1",
     "@codemirror/language": "^6.12.3",
     "@codemirror/autocomplete": "^6.20.1",
-    "@codemirror/commands": "^6.10.3"
+    "@codemirror/commands": "^6.10.3",
+    "@lezer/common": "^1.5.2",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/lr": "^1.4.10",
+    "@lezer/markdown": "^1.6.3"
   }
 }

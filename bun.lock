@@ -94,15 +94,9 @@
         "@rollup/rollup-win32-x64-msvc": "^4.60.4",
       },
       "peerDependencies": {
-        "@monaco-editor/react": "*",
-        "monaco-editor": "*",
         "react": "^19.2.6",
         "react-dom": "^19.2.6",
       },
-      "optionalPeers": [
-        "@monaco-editor/react",
-        "monaco-editor",
-      ],
     },
   },
   "overrides": {
@@ -111,6 +105,10 @@
     "@codemirror/language": "^6.12.3",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.41.1",
+    "@lezer/common": "^1.5.2",
+    "@lezer/highlight": "^1.2.3",
+    "@lezer/lr": "^1.4.10",
+    "@lezer/markdown": "^1.6.3",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],

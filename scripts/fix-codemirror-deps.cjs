@@ -79,7 +79,25 @@ function fixDependencies(dirs, targetPath, label) {
   return failureCount === 0;
 }
 
+function clearViteDependencyCaches() {
+  const cacheDirs = [
+    'node_modules/.vite',
+    'playground/node_modules/.vite',
+  ];
+
+  cacheDirs.forEach((dir) => {
+    const fullPath = path.join(process.cwd(), dir);
+    if (!fs.existsSync(fullPath)) {
+      return;
+    }
+
+    fs.rmSync(fullPath, { recursive: true, force: true });
+    console.log(`✓ Cleared stale Vite dependency cache: ${dir}`);
+  });
+}
+
 // Run the fix
 const cmSuccess = fixDependencies(CODEMIRROR_DIRS, path.join(process.cwd(), 'node_modules/@codemirror'), 'CodeMirror');
 const lezerSuccess = fixDependencies(LEZER_DIRS, path.join(process.cwd(), 'node_modules/@lezer'), 'Lezer');
+clearViteDependencyCaches();
 process.exit(cmSuccess && lezerSuccess ? 0 : 1);
