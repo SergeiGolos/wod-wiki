@@ -455,7 +455,7 @@ class FloatingEditControls extends WidgetType {
   }
 
   ignoreEvent(): boolean {
-    return false;
+    return true;
   }
 }
 
@@ -512,9 +512,8 @@ class ReactWidgetBlock extends WidgetType {
     }
   }
 
-  /** Allow pointer events inside the widget. */
   ignoreEvent(): boolean {
-    return false;
+    return true;
   }
 
   get estimatedHeight(): number {

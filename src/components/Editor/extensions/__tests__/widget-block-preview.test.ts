@@ -167,6 +167,41 @@ describe("widgetBlockPreview — decoration building", () => {
     view.destroy();
   });
 
+  it("should ignore outer editor selection handling for widget internals", async () => {
+    const registry = makeInteractiveRegistry();
+    const ext = widgetBlockPreview(registry);
+    const doc = "Lead\n\n```widget:test-widget\n{\"title\":\"Selectable\"}\n```\n\nTail";
+    const view = createView(doc, 1, [sectionField, ext]);
+
+    await flushWidgetRender();
+
+    const mounted = document.querySelector('[data-testid="widget-config"]');
+    expect(mounted?.firstChild).toBeTruthy();
+
+    const observer = (view as unknown as { observer: { flush: (...args: unknown[]) => boolean } }).observer;
+    const originalFlush = observer.flush.bind(observer);
+    let flushCount = 0;
+    observer.flush = (...args: unknown[]) => {
+      flushCount++;
+      return originalFlush(...args);
+    };
+
+    try {
+      view.focus();
+      const range = document.createRange();
+      range.selectNodeContents(mounted as Node);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new window.Event("selectionchange"));
+
+      expect(flushCount).toBe(0);
+    } finally {
+      observer.flush = originalFlush;
+      view.destroy();
+    }
+  });
+
   it("should enter edit mode when the edit button is clicked", async () => {
     const registry = makeInteractiveRegistry();
     const ext = widgetBlockPreview(registry);
