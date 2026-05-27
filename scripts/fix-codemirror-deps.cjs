@@ -22,12 +22,23 @@ const CODEMIRROR_DIRS = [
   'node_modules/@codemirror/lang-javascript/node_modules/@codemirror'
 ];
 
-function fixCodeMirrorDependencies() {
+const LEZER_DIRS = [
+  'node_modules/@codemirror/lang-css/node_modules/@lezer',
+  'node_modules/@codemirror/lang-html/node_modules/@lezer',
+  'node_modules/@codemirror/lang-markdown/node_modules/@lezer',
+  'node_modules/@lezer/generator/node_modules/@lezer',
+  'node_modules/@lezer/highlight/node_modules/@lezer',
+  'node_modules/@lezer/html/node_modules/@lezer',
+  'node_modules/@lezer/javascript/node_modules/@lezer',
+  'node_modules/@lezer/markdown/node_modules/@lezer'
+];
+
+function fixDependencies(dirs, targetPath, label) {
   let handledCount = 0;
   let missingCount = 0;
   let failureCount = 0;
 
-  CODEMIRROR_DIRS.forEach((dir) => {
+  dirs.forEach((dir) => {
     const fullPath = path.join(process.cwd(), dir);
 
     if (fs.existsSync(fullPath)) {
@@ -35,8 +46,7 @@ function fixCodeMirrorDependencies() {
         // Remove the nested directory
         fs.rmSync(fullPath, { recursive: true, force: true });
 
-        // Create symlink to top-level @codemirror
-        const targetPath = path.join(process.cwd(), 'node_modules/@codemirror');
+        // Create symlink to top-level
         fs.symlinkSync(targetPath, fullPath, 'dir');
 
         console.log(`✓ Fixed: ${dir}`);
@@ -51,8 +61,8 @@ function fixCodeMirrorDependencies() {
 
     // Check if symlink already exists
     try {
-      const targetPath = fs.readlinkSync(fullPath);
-      if (targetPath.includes('node_modules/@codemirror')) {
+      const linkTarget = fs.readlinkSync(fullPath);
+      if (linkTarget.includes(targetPath.replace(process.cwd() + '/', ''))) {
         console.log(`○ Already symlinked: ${dir}`);
         handledCount++;
         return;
@@ -65,10 +75,11 @@ function fixCodeMirrorDependencies() {
     missingCount++;
   });
 
-  console.log(`\nHandled ${handledCount} CodeMirror dependency dirs; skipped ${missingCount} missing dirs; failures ${failureCount}.`);
+  console.log(`\n${label}: Handled ${handledCount} dirs; skipped ${missingCount} missing dirs; failures ${failureCount}.`);
   return failureCount === 0;
 }
 
 // Run the fix
-const success = fixCodeMirrorDependencies();
-process.exit(success ? 0 : 1);
+const cmSuccess = fixDependencies(CODEMIRROR_DIRS, path.join(process.cwd(), 'node_modules/@codemirror'), 'CodeMirror');
+const lezerSuccess = fixDependencies(LEZER_DIRS, path.join(process.cwd(), 'node_modules/@lezer'), 'Lezer');
+process.exit(cmSuccess && lezerSuccess ? 0 : 1);
