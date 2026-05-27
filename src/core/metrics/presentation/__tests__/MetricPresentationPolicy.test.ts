@@ -199,8 +199,61 @@ describe('columnLabel', () => {
   it('returns canonical label for rounds', () => {
     expect(policy.columnLabel(MetricType.Rounds)).toBe('Rounds');
   });
-  it('returns title-cased fallback for unknown type', () => {
-    expect(policy.columnLabel('custom-metric' as any)).toBe('Custom-metric');
+  it('returns humanized fallback for unknown type', () => {
+    expect(policy.columnLabel('custom-metric' as any)).toBe('Custom Metric');
+    expect(policy.columnLabel('totalLoad' as any)).toBe('Total Load');
+  });
+});
+
+// ─── custom / calculated metrics (ADR-0009) ─────────────────────────────────
+
+describe('ADR-0009 custom and calculated metric presentation', () => {
+  it('does NOT hide Custom on review-grid-column', () => {
+    expect(policy.isHidden(m({ type: MetricType.Custom }), 'review-grid-column')).toBe(false);
+  });
+
+  it('does NOT hide Calculated on review-grid-column', () => {
+    expect(policy.isHidden(m({ type: MetricType.Calculated }), 'review-grid-column')).toBe(false);
+  });
+
+  it('does NOT hide Custom on runtime-badge', () => {
+    expect(policy.isHidden(m({ type: MetricType.Custom }), 'runtime-badge')).toBe(false);
+  });
+
+  it('does NOT hide Calculated on runtime-badge', () => {
+    expect(policy.isHidden(m({ type: MetricType.Calculated }), 'runtime-badge')).toBe(false);
+  });
+
+  it('presents Custom metric with muted tone', () => {
+    const token = policy.present(m({ type: MetricType.Custom, value: 'Zone 2' }), 'runtime-badge');
+    expect(token.tone).toBe('muted');
+    expect(token.visible).toBe(true);
+    expect(token.renderKind).toBe('badge');
+  });
+
+  it('presents Calculated metric with effort tone', () => {
+    const token = policy.present(m({ type: MetricType.Calculated, value: 420 }), 'runtime-badge');
+    expect(token.tone).toBe('effort');
+    expect(token.visible).toBe(true);
+    expect(token.renderKind).toBe('badge');
+  });
+
+  it('returns canonical columnLabel for Custom', () => {
+    expect(policy.columnLabel(MetricType.Custom)).toBe('Custom');
+  });
+
+  it('returns canonical columnLabel for Calculated', () => {
+    expect(policy.columnLabel(MetricType.Calculated)).toBe('Calculated');
+  });
+
+  it('labels Custom metric with its value/image', () => {
+    const token = policy.present(m({ type: MetricType.Custom, value: 'Zone 2', image: 'Zone 2' }), 'runtime-badge');
+    expect(token.label).toBe('Zone 2');
+  });
+
+  it('labels Calculated metric with its numeric value', () => {
+    const token = policy.present(m({ type: MetricType.Calculated, value: 81.4 }), 'runtime-badge');
+    expect(token.label).toBe('81.4');
   });
 });
 
@@ -216,5 +269,18 @@ describe('presentGroup', () => {
     const visible = policy.presentGroup(metrics, 'runtime-badge').filter(t => t.visible);
     expect(visible).toHaveLength(1);
     expect(visible[0].label).toBe('Run');
+  });
+
+  it('keeps custom and calculated metrics visible in presentGroup', () => {
+    const metrics: IMetric[] = [
+      m({ type: MetricType.Custom, value: 'Zone 2' }),
+      m({ type: MetricType.Calculated, value: 420 }),
+      m({ type: MetricType.Rep, value: 10 }),
+    ];
+    const tokens = policy.presentGroup(metrics, 'runtime-badge');
+    const visible = tokens.filter(t => t.visible);
+    expect(visible).toHaveLength(3);
+    expect(visible.map(t => t.metric.type)).toContain(MetricType.Custom);
+    expect(visible.map(t => t.metric.type)).toContain(MetricType.Calculated);
   });
 });

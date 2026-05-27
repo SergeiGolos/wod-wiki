@@ -4,7 +4,7 @@ title: "Dialect: Climb Bouldering"
 ---
 ```climb
 date: 2026-05-26
-location: Sender One LAX
+location: "Sender One LAX"
 discipline: bouldering
 duration: 2.5
 rpe: 8

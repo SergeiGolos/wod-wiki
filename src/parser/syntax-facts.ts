@@ -9,7 +9,7 @@ export interface SyntaxMeta {
 }
 
 interface BasePrimitive {
-  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'quantity' | 'effort';
+  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'quantity' | 'effort' | 'property';
   raw: string;
   meta: SyntaxMeta;
 }
@@ -54,6 +54,13 @@ export interface EffortPrimitive extends BasePrimitive {
   kind: 'effort';
 }
 
+export interface PropertyPrimitive extends BasePrimitive {
+  kind: 'property';
+  key: string;
+  valueRaw: string;
+  value: string | number | boolean | null;
+}
+
 export type SyntaxPrimitive =
   | LapPrimitive
   | DurationPrimitive
@@ -61,7 +68,8 @@ export type SyntaxPrimitive =
   | ActionPrimitive
   | TextPrimitive
   | QuantityPrimitive
-  | EffortPrimitive;
+  | EffortPrimitive
+  | PropertyPrimitive;
 
 export interface SyntaxStatement {
   id: number;

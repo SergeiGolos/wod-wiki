@@ -23,6 +23,8 @@ describe('inferMetricType', () => {
         expect(inferMetricType('Session Load')).toBe('session-load');
         expect(inferMetricType('MET Score')).toBe('met-score');
         expect(inferMetricType('TIS')).toBe('tis');
+        expect(inferMetricType('Calculated Load')).toBe('calculated');
+        expect(inferMetricType('Custom Metric')).toBe('custom');
         expect(inferMetricType('Volume')).toBe('volume');
         expect(inferMetricType('Intensity')).toBe('intensity');
         expect(inferMetricType('Load')).toBe('load');

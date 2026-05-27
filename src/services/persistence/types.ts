@@ -1,3 +1,5 @@
+import type { IMetric } from '@/core/models/Metric';
+import { MetricContainer } from '@/core/models/MetricContainer';
 import type { WorkoutResults } from '@/components/Editor/types';
 import type { HistoryEntry } from '@/types/history';
 import type { Attachment, AnalyticsDataPoint, Note, NoteSegment, WorkoutResult } from '@/types/storage';
@@ -54,6 +56,7 @@ export interface AnalyticsSegmentInput {
   id: string | number;
   elapsed?: number;
   metric: Record<string, unknown>;
+  metrics?: MetricContainer | IMetric[];
   name?: string;
   absoluteStartTime?: number;
 }

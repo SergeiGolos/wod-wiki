@@ -155,6 +155,48 @@ describe('classifyStatements', () => {
     expect(effort[1].effort).toBe('clean');
   });
 
+  it('maps property primitives into known and custom metrics', () => {
+    const facts: SyntaxFacts = {
+      statements: [
+        statement([
+          {
+            kind: 'property',
+            raw: 'rpe: 8',
+            meta: meta(0, 6, 'rpe: 8'),
+            key: 'rpe',
+            valueRaw: '8',
+            value: 8,
+          },
+          {
+            kind: 'property',
+            raw: 'location: Sender One',
+            meta: meta(7, 27, 'location: Sender One'),
+            key: 'location',
+            valueRaw: 'Sender One',
+            value: 'Sender One',
+          },
+        ]),
+      ],
+    };
+
+    const [result] = classifyStatements(facts);
+
+    expect(result.getMetric(MetricType.SessionRPE)).toMatchObject({
+      value: 8,
+      image: 'rpe: 8',
+      origin: 'parser',
+    });
+
+    const custom = result.getAllMetricsByType(MetricType.Custom);
+    expect(custom).toHaveLength(1);
+    expect(custom[0]).toMatchObject({
+      value: 'Sender One',
+      image: 'location: Sender One',
+      origin: 'parser',
+    });
+    expect((custom[0] as any).key).toBe('location');
+  });
+
   it('maps lap primitives and keeps child grouping semantics from syntax facts', () => {
     const facts: SyntaxFacts = {
       statements: [

@@ -93,6 +93,14 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
   );
 
   // 2. Build ColumnSetContext
+  const effectiveAddedColumnIds = useMemo(() => {
+    const merged = new Set<string>(addedColumnIds ?? []);
+    for (const metricType of extraMetricTypes ?? []) {
+      merged.add(metricType);
+    }
+    return merged;
+  }, [addedColumnIds, extraMetricTypes]);
+
   const columnSetContext = useMemo<ColumnSetContext>(
     () => ({
       rows,
@@ -100,9 +108,9 @@ export function useGridData(options: UseGridDataOptions): UseGridDataReturn {
       isDebugMode,
       graphTaggedColumnIds: graphTaggedColumns,
       visibilityOverrides: columnVisibilityOverrides,
-      addedColumnIds,
+      addedColumnIds: effectiveAddedColumnIds,
     }),
-    [rows, presetId, isDebugMode, graphTaggedColumns, columnVisibilityOverrides, addedColumnIds],
+    [rows, presetId, isDebugMode, graphTaggedColumns, columnVisibilityOverrides, effectiveAddedColumnIds],
   );
 
   // 3. Compute visible and available columns via ColumnSet

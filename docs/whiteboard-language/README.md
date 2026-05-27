@@ -27,6 +27,7 @@ flowchart TD
 ## Pages
 
 - [Core syntax](./core-syntax.md)
+- [Custom & Calculated Metrics](./custom-and-calculated-metrics.md)
 - [WOD dialect](./dialect-wod.md)
 - [Log dialect](./dialect-log.md)
 - [Plan dialect](./dialect-plan.md)

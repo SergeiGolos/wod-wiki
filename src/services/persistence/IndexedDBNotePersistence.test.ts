@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test';
+import { MetricContainer } from '@/core/models/MetricContainer';
 
 import type { HistoryEntry } from '@/types/history';
 import type { AnalyticsDataPoint, Note, NoteSegment, WorkoutResult } from '@/types/storage';
@@ -113,6 +114,40 @@ describe('IndexedDBNotePersistence', () => {
     expect(points.every(point => point.noteId === note.id)).toBe(true);
     expect(points.every(point => point.resultId === 'result-a')).toBe(true);
     expect(points.every(point => point.segmentVersion === 0)).toBe(true);
+    expect(points.find(point => point.type === 'reps')?.metricKey).toBe('reps');
+    expect(points.find(point => point.type === 'reps')?.label).toBe('AMRAP – Reps');
+  });
+
+  it('preserves custom and calculated metric keys, labels, and units', async () => {
+    const { normalizeAnalyticsSegments } = await persistenceModule;
+
+    const points = normalizeAnalyticsSegments([
+      {
+        id: 'segment-b',
+        elapsed: 45,
+        name: 'Fran',
+        absoluteStartTime: 456,
+        metric: {},
+        metrics: MetricContainer.from([
+          { type: 'custom', key: 'zone2', value: 2, unit: 'pts', origin: 'runtime' } as any,
+          { type: 'calculated', value: 420, unit: 'pts', origin: 'runtime', metadata: { target: 'totalLoad' } } as any,
+        ]),
+      },
+    ], note.id, 'result-b');
+
+    expect(points.map(point => point.type)).toEqual(['elapsed', 'zone2', 'totalLoad']);
+    expect(points.find(point => point.metricKey === 'zone2')).toMatchObject({
+      label: 'Fran – Zone 2',
+      unit: 'pts',
+      metricLabel: 'Zone 2',
+      metricUnit: 'pts',
+    });
+    expect(points.find(point => point.metricKey === 'totalLoad')).toMatchObject({
+      label: 'Fran – Total Load',
+      unit: 'pts',
+      metricLabel: 'Total Load',
+      metricUnit: 'pts',
+    });
   });
 
   it('persists analytics with the latest segment version', async () => {

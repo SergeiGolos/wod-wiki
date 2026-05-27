@@ -2,7 +2,7 @@
 search: hidden
 template: canvas
 route: /ai-first
-type: ai-first
+type: syntax
 ---
 
 # AI-First Workouts {sticky dark full-bleed}

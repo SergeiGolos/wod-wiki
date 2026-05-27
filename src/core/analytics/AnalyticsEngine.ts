@@ -101,7 +101,8 @@ export class AnalyticsEngine implements IAnalyticsEngine {
           unit: p.unit,
           origin: p.origin ?? 'analyzed',
           timestamp: new Date(now),
-        }
+          ...(p.metadata ? { metadata: p.metadata } : {}),
+        } as any
       );
       return new OutputStatement({
         outputType: 'analytics',

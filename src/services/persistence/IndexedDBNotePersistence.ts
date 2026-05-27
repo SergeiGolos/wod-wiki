@@ -5,6 +5,7 @@ import { IndexedDBContentProvider } from '@/services/content/IndexedDBContentPro
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { HistoryEntry } from '@/types/history';
 import type { AnalyticsDataPoint, Attachment, Note, WorkoutResult } from '@/types/storage';
+import { MetricContainer } from '@/core/models/MetricContainer';
 
 import { resolveAttachmentInput } from './attachmentInput';
 import type { INotePersistence } from './INotePersistence';
@@ -29,6 +30,92 @@ function limitResults(results: WorkoutResult[], limit?: number): WorkoutResult[]
 
 function sameNote(resultNoteId: string, noteId: string): boolean {
   return resultNoteId === noteId || resultNoteId.endsWith(`-${noteId}`) || noteId.endsWith(`-${resultNoteId}`);
+}
+
+interface PersistableMetricSource {
+  readonly type: string;
+  readonly value?: unknown;
+  readonly key?: string;
+  readonly unit?: string;
+  readonly image?: string;
+  readonly metadata?: { label?: string; unit?: string; target?: string };
+}
+
+function humanizeMetricKey(key: string): string {
+  return key
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Za-z])(\d)/g, '$1 $2')
+    .replace(/(\d)([A-Za-z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^./, first => first.toUpperCase());
+}
+
+function extractMetricValue(metric: PersistableMetricSource): number | undefined {
+  if (typeof metric.value === 'number' && Number.isFinite(metric.value)) {
+    return metric.value;
+  }
+
+  if (metric.value && typeof metric.value === 'object') {
+    const amount = (metric.value as { amount?: unknown }).amount;
+    if (typeof amount === 'number' && Number.isFinite(amount)) {
+      return amount;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveMetricKey(metric: PersistableMetricSource): string {
+  const rawKey = metric.key ?? metric.metadata?.target ?? metric.type;
+  return String(rawKey);
+}
+
+function resolveMetricLabel(metric: PersistableMetricSource, metricKey: string): string {
+  const explicit = metric.metadata?.label;
+  return explicit && explicit.trim().length > 0 ? explicit : humanizeMetricKey(metricKey);
+}
+
+function resolveMetricUnit(metric: PersistableMetricSource): string {
+  return metric.unit ?? metric.metadata?.unit ?? '';
+}
+
+function appendMetricPoints(
+  points: AnalyticsDataPoint[],
+  segment: AnalyticsSegmentInput,
+  noteId: string,
+  resultId: string,
+  segmentId: string,
+  segmentVersion: number,
+  now: number,
+  source: PersistableMetricSource,
+): void {
+  const value = extractMetricValue(source);
+  if (value === undefined) return;
+
+  const metricKey = resolveMetricKey(source);
+  const metricLabel = resolveMetricLabel(source, metricKey);
+  const metricUnit = resolveMetricUnit(source);
+  const segmentLabel = segment.name ?? 'Segment';
+  const label = `${segmentLabel} – ${metricLabel}`;
+
+  points.push({
+    id: `${segmentId}-${metricKey}-${now}`,
+    noteId,
+    segmentId,
+    segmentVersion,
+    resultId,
+    type: metricKey,
+    value,
+    unit: metricUnit,
+    label,
+    metricKey,
+    metricLabel,
+    metricUnit,
+    timestamp: segment.absoluteStartTime ?? now,
+    createdAt: now,
+  });
 }
 
 /**
@@ -68,26 +155,24 @@ export function normalizeAnalyticsSegments(
         value: segment.elapsed,
         unit: 's',
         label: `${segment.name ?? 'Segment'} – Elapsed`,
+        metricKey: 'elapsed',
+        metricLabel: 'Elapsed',
+        metricUnit: 's',
         timestamp: segment.absoluteStartTime ?? now,
         createdAt: now,
       });
     }
 
-    for (const [key, value] of Object.entries(segment.metric)) {
-      if (typeof value !== 'number') continue;
-      points.push({
-        id: `${segmentId}-${key}-${now}`,
-        noteId,
-        segmentId,
-        segmentVersion,
-        resultId: resolvedResultId,
-        type: key,
-        value,
-        unit: '',
-        label: `${segment.name ?? 'Segment'} – ${key}`,
-        timestamp: segment.absoluteStartTime ?? now,
-        createdAt: now,
-      });
+    const metricSources = segment.metrics
+      ? MetricContainer.from(segment.metrics, segmentId).toArray()
+      : Object.entries(segment.metric).map(([key, value]) => ({
+          type: key,
+          key,
+          value,
+        }));
+
+    for (const source of metricSources as PersistableMetricSource[]) {
+      appendMetricPoints(points, segment, noteId, resolvedResultId, segmentId, segmentVersion, now, source);
     }
   }
 

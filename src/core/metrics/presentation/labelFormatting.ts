@@ -81,6 +81,8 @@ const COLUMN_LABEL_MAP: Partial<Record<string, string>> = {
   metric:          'Metric',
   label:           'Label',
   text:            'Text',
+  custom:          'Custom',
+  calculated:      'Calculated',
   'current-round': 'Current Round',
   volume:          'Volume',
   intensity:       'Intensity',
@@ -102,7 +104,27 @@ const COLUMN_LABEL_MAP: Partial<Record<string, string>> = {
   sound:           'Sound',
 };
 
+export function humanizeMetricKey(value: string): string {
+  const spaced = value
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .trim();
+
+  if (spaced.length === 0) return '';
+
+  return spaced
+    .split(/\s+/)
+    .map((word) => {
+      if (word === word.toUpperCase()) return word;
+      if (/^[A-Z]{2,}$/.test(word)) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 export function computeColumnLabel(type: MetricType | string): string {
-  const key = (type as string).toLowerCase();
-  return COLUMN_LABEL_MAP[key] ?? (key.charAt(0).toUpperCase() + key.slice(1));
+  const key = String(type).trim();
+  const normalized = key.toLowerCase();
+  return COLUMN_LABEL_MAP[normalized] ?? humanizeMetricKey(key);
 }

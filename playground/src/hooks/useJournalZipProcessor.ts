@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useQueryState } from 'nuqs';
 import { decodeZip } from '../services/decodeZip';
 import { parseJournalDate } from '../services/parseJournalDate';
@@ -41,6 +41,7 @@ export interface JournalZipProcessorState {
 
 export function useJournalZipProcessor(): JournalZipProcessorState {
   const navigate = useNavigate();
+  const location = useLocation();
   const { date: dateParam } = useParams<{ date?: string }>();
   const [zip] = useQueryState('zip');
 
@@ -49,6 +50,12 @@ export function useJournalZipProcessor(): JournalZipProcessorState {
   });
 
   useEffect(() => {
+    // Only run on journal zip-load routes — avoid redirecting on every page
+    const isJournalLoadRoute = location.pathname === '/load/journal' || location.pathname.startsWith('/load/journal/');
+    if (!isJournalLoadRoute) {
+      return;
+    }
+
     if (!zip) {
       // No zip parameter on initial mount — redirect to journal
       navigate(ROUTE_PATTERNS.journal, { replace: true });

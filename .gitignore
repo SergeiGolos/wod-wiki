@@ -168,3 +168,5 @@ e2e/screenshots/
 .env.development
 src/graphify-out/
 .playwright-cli/
+e2e/acceptance/visual-regression-edge-cases.e2e.ts
+e2e/**/*.png

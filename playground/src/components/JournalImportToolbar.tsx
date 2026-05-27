@@ -15,9 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { CalendarCard } from '@/components/ui/CalendarCard';
-import { Button } from '@/components/ui/button';
 import { usePopoverAlign } from '@/hooks/usePopoverAlign';
-import { getTodayDateKey } from '../services/dateUtils';
 
 export interface JournalImportToolbarProps {
   /** Currently selected date (for pre-selection in picker) */
@@ -45,7 +43,7 @@ export const JournalImportToolbar: React.FC<JournalImportToolbarProps> = ({
   const [open, setOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const { triggerRef, align, recompute } = usePopoverAlign('end');
-
+  
   const handleImportToday = async () => {
     setImporting(true);
     try {

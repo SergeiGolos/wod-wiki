@@ -73,6 +73,7 @@ function isNumericMetricType(ft: MetricType): boolean {
     case MetricType.Load:
     case MetricType.Work:
     case MetricType.CurrentRound:
+    case MetricType.Calculated:
       return true;
     default:
       return false;
@@ -93,6 +94,9 @@ function getUnitForMetricType(ft: MetricType): string {
       return 'kg';
     case MetricType.Increment:
       return 'Δ';
+    case MetricType.Calculated:
+    case MetricType.Custom:
+      return '';
     default:
       return '';
   }
@@ -602,6 +606,8 @@ export const resistanceColumn = makeMetricColumn(MetricType.Resistance);
 export const actionColumn = makeMetricColumn(MetricType.Action);
 export const incrementColumn = makeMetricColumn(MetricType.Increment);
 export const metricColumn = makeMetricColumn(MetricType.Metric);
+export const calculatedColumn = makeMetricColumn(MetricType.Calculated);
+export const customColumn = makeMetricColumn(MetricType.Custom, { defaultVisible: false });
 export const groupColumn = makeMetricColumn(MetricType.Group, { defaultVisible: false });
 export const systemColumn = makeMetricColumn(MetricType.System, { defaultVisible: false });
 export const labelColumn = makeMetricColumn(MetricType.Label, { defaultVisible: false });
@@ -808,6 +814,8 @@ export const ALL_COLUMN_DEFINITIONS: ColumnDef[] = [
   actionColumn,
   incrementColumn,
   metricColumn,
+  calculatedColumn,
+  customColumn,
   currentRoundColumn,
   volumeColumn,
   intensityColumn,
@@ -838,6 +846,8 @@ export const CDL_PRESET_DEFAULT: ColumnSetPreset = {
     'action',
     'increment',
     'metric',
+    'calculated',
+    'custom',
     'volume',
     'intensity',
     'load',
@@ -866,6 +876,8 @@ export const CDL_PRESET_DEBUG: ColumnSetPreset = {
     'action',
     'increment',
     'metric',
+    'calculated',
+    'custom',
     'volume',
     'intensity',
     'load',

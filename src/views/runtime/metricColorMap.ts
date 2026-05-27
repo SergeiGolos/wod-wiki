@@ -40,6 +40,8 @@ export const metricColorMap: FragmentColorMap = {
   total:       'bg-muted border-border text-foreground',
   'system-time': 'bg-muted/60 border-border/60 text-muted-foreground',
   metric:      'bg-metric-effort/10 border-metric-effort/30 text-metric-effort',
+  custom:      'bg-muted/70 border-muted-foreground/30 text-muted-foreground',
+  calculated:  'bg-metric-effort/12 border-metric-effort/35 text-metric-effort',
   // Rest blocks use a muted treatment to distinguish them from active work sets (UX-04)
   rest:        'bg-muted/70 border-muted-foreground/30 text-muted-foreground',
   // Volume & load map to rep/resistance families (work output)
@@ -123,6 +125,8 @@ const metricIconMap: Record<string, string> = {
   'session-load': '📊',
   'met-score': '🫀',
   'tis': '📈',
+  calculated: '🧮',
+  custom: '✳️',
   'current-round': '🔄',
   'label': '🏷️',
   'system': '⚙️',

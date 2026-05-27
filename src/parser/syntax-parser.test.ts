@@ -72,6 +72,27 @@ describe('extractSyntaxFacts', () => {
     });
   });
 
+  it('extracts property statements as standalone metrics', () => {
+    const state = buildState(`rpe: 8\nlocation: "Sender One"\n5 Pushups\n`);
+    const facts = extractSyntaxFacts(state);
+
+    expect(facts.statements).toHaveLength(3);
+    expect(facts.statements[0].primitives).toHaveLength(1);
+    expect(facts.statements[0].primitives[0]).toMatchObject({
+      kind: 'property',
+      key: 'rpe',
+      valueRaw: '8',
+      value: 8,
+    });
+    expect(facts.statements[1].primitives[0]).toMatchObject({
+      kind: 'property',
+      key: 'location',
+      valueRaw: '"Sender One"',
+      value: 'Sender One',
+    });
+    expect(facts.statements[2].primitives.map((primitive) => primitive.kind)).toEqual(['quantity', 'effort']);
+  });
+
   it('preserves indentation-based ancestry and compose grouping', () => {
     const state = buildState(`- warmup\n  - squat\n  + press\n    - run\n`);
     const facts = extractSyntaxFacts(state);

@@ -7,6 +7,7 @@ import {
   DurationPrimitive,
   EffortPrimitive,
   LapPrimitive,
+  PropertyPrimitive,
   QuantityPrimitive,
   RoundsPrimitive,
   SyntaxFacts,
@@ -23,6 +24,22 @@ export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
 
   tree.iterate({
     enter(node) {
+      if (node.name === 'Property') {
+        const primitive = createPropertyPrimitive(state, source, node.from, node.to);
+        if (primitive) {
+          const meta = primitive.meta;
+          statements.push({
+            id: meta.line,
+            line: meta.line,
+            meta,
+            primitives: [primitive],
+            children: [],
+            isLeaf: true,
+          });
+        }
+        return;
+      }
+
       if (node.name !== 'Block') return;
 
       const statementMeta = createMeta(state, node.from, node.to, source.slice(node.from, node.to));
@@ -69,6 +86,47 @@ export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
   applyIndentationNesting(statements);
 
   return { statements };
+}
+
+function createPropertyPrimitive(
+  state: EditorState,
+  source: string,
+  from: number,
+  to: number,
+): PropertyPrimitive | null {
+  const raw = source.slice(from, to);
+  const meta = createMeta(state, from, to, raw);
+  const match = raw.match(/^\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*(.*?)\s*$/);
+
+  if (!match) return null;
+
+  const [, key, rawValue] = match;
+  return {
+    kind: 'property',
+    raw,
+    meta,
+    key,
+    valueRaw: rawValue,
+    value: parsePropertyValue(rawValue),
+  };
+}
+
+function parsePropertyValue(rawValue: string): string | number | boolean | null {
+  const trimmed = rawValue.trim();
+
+  if (/^"(?:[^"\\]|\\.)*"$/.test(trimmed)) {
+    return trimmed.slice(1, -1).replace(/\\(["\\/bfnrt])/g, '$1');
+  }
+
+  if (/^-?(?:\d+\.\d+|\d+)$/.test(trimmed)) {
+    return Number(trimmed);
+  }
+
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed === 'null') return null;
+
+  return trimmed;
 }
 
 function mapFragmentToPrimitive(
