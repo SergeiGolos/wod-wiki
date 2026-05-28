@@ -244,6 +244,8 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         <div
                             key={skipFlashKey}
                             className="animate-skip-flash absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-amber-500 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-lg pointer-events-none z-20"
+                            role="status"
+                            aria-live="polite"
                         >
                             Timer can&#39;t be skipped!
                         </div>
@@ -283,6 +285,9 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                             <span
                                 className="font-mono font-bold tracking-tighter text-foreground tabular-nums leading-none"
                                 style={{ fontSize: `${primaryTimerFontSizePx}px` }}
+                                role="timer"
+                                aria-live="polite"
+                                aria-atomic="true"
                             >
                                 {formatTime(displayTimeMs)}
                             </span>
@@ -299,6 +304,9 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                                         {...(getFocusProps ? getFocusProps(`secondary-timer-${index}`) : {})}
                                         className={`tv-focusable flex items-center gap-2 rounded-lg border bg-muted/40 text-muted-foreground ${compact ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'}`}
                                         title={st.label}
+                                        role="timer"
+                                        aria-label={`${st.label} ${formatTime(st.displayMs)}`}
+                                        aria-atomic="true"
                                     >
                                         <Timer className={`shrink-0 ${compact ? 'w-3 h-3' : 'w-4 h-4'}`} />
                                         <span className="font-medium truncate max-w-[120px]">{st.label}</span>
@@ -350,6 +358,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                     <button
                         onClick={handleNext}
                         disabled={isNextDisabled}
+                        aria-disabled={isNextDisabled ? 'true' : undefined}
                         {...(getFocusProps ? getFocusProps('btn-next') : {})}
                         className={`tv-focusable flex-1 h-14 rounded-2xl flex items-center justify-center gap-2 transition-transform shadow-lg ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary text-primary-foreground shadow-primary/20 active:scale-[0.98]'}`}
                         title="Next Block"
@@ -363,6 +372,7 @@ export const TimerStackView: React.FC<TimerStackViewProps> = ({
                         <button
                             onClick={handleNext}
                             disabled={isNextDisabled}
+                            aria-disabled={isNextDisabled ? 'true' : undefined}
                             {...(getFocusProps ? getFocusProps('btn-next') : {})}
                             className={`tv-focusable flex items-center justify-center rounded-full transition-all shadow-xl w-24 h-24 ${isNextDisabled ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60' : 'bg-primary-container text-on-primary-container hover:bg-primary hover:text-white active:scale-90'}`}
                             title="Next Block"

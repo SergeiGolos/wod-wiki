@@ -344,6 +344,8 @@ const ReceiverApp: React.FC = () => {
                     <TrackViewShell
                         leftPanel={<ReceiverStackPanel />}
                         rightPanelClassName="relative"
+                        leftPanelAriaLabel="Receiver stack panel"
+                        rightPanelAriaLabel="Receiver timer panel"
                         rightPanel={(
                             <>
                                 <ReceiverTimerPanel eventProvider={eventProviderRef.current!} getFocusProps={getFocusProps} />

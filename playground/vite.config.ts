@@ -15,6 +15,21 @@ const https = certFiles.length > 0 && keyFiles.length > 0
 
 const hmrHost = certFiles.length > 0 ? certFiles[0].replace('.crt', '') : undefined;
 
+const codemirrorSingletonDeps = [
+    '@codemirror/autocomplete',
+    '@codemirror/commands',
+    '@codemirror/lang-markdown',
+    '@codemirror/language',
+    '@codemirror/lint',
+    '@codemirror/search',
+    '@codemirror/state',
+    '@codemirror/view',
+    '@lezer/common',
+    '@lezer/highlight',
+    '@lezer/lr',
+    '@lezer/markdown',
+];
+
 // Dev plugin: intercept receiver URLs and serve the RPC version through Vite's
 // transform pipeline so that @vitejs/plugin-react injects its JSX preamble.
 const receiverRedirectPlugin: Plugin = {
@@ -53,6 +68,7 @@ export default defineConfig({
     },
     plugins: [react(), receiverRedirectPlugin],
     resolve: {
+        dedupe: codemirrorSingletonDeps,
         alias: {
             '@': resolve(__dirname, '../src'),
         },
@@ -89,5 +105,8 @@ export default defineConfig({
     },
     css: {
         devSourcemap: true,
+    },
+    optimizeDeps: {
+        exclude: ['@lezer/common'],
     },
 });

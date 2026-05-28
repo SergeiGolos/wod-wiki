@@ -23,6 +23,33 @@ function formatMetricLabel(key: string): string {
 }
 
 /**
+ * Extract a stable analytics key from a metric.
+ *
+ * Preference order:
+ *   1. Explicit metric key / calculated target
+ *   2. Canonical metric type mapping used by graph surfaces
+ *   3. Raw metric type as a safe fallback
+ */
+function resolveAnalyticsMetricKey(metric: IMetric): string {
+  const enrichedMetric = metric as IMetric & { key?: string; metadata?: { target?: string } };
+  const explicitKey = enrichedMetric.key ?? enrichedMetric.metadata?.target;
+  if (typeof explicitKey === 'string' && explicitKey.trim().length > 0) {
+    return explicitKey;
+  }
+
+  switch (metric.type) {
+    case 'rep':
+      return 'repetitions';
+    case 'distance':
+      return 'distance';
+    case 'resistance':
+      return 'resistance';
+    default:
+      return metric.type;
+  }
+}
+
+/**
  * Extract numeric metrics from metric groups.
  */
 function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, number> {
@@ -31,11 +58,7 @@ function extractMetricsFromGroups(metricsGroups: IMetric[][]): Record<string, nu
 
   for (const f of flat) {
     if (f.value !== undefined && typeof f.value === 'number') {
-      let key = f.type;
-      if (f.type === 'rep') key = 'repetitions';
-      if (f.type === 'distance') key = 'distance';
-      if (f.type === 'resistance') key = 'resistance';
-
+      const key = resolveAnalyticsMetricKey(f);
       let val = f.value;
       // Convert time-based metrics (except elapsed/total which are handled separately)
       // from milliseconds to seconds for consistency in the analytics data points.

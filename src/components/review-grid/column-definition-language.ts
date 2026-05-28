@@ -298,6 +298,8 @@ export interface ColumnGraphConfig {
   readonly axisLabel?: string;
   /** Optional unit (e.g., 'seconds', 'reps') */
   readonly unit?: string;
+  /** Optional line color for graph rendering */
+  readonly color?: string;
 }
 
 // ─── Column Filter ─────────────────────────────────────────────

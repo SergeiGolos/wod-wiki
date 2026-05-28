@@ -127,17 +127,16 @@ function buildDataPoints(
 // ─── Helpers ───────────────────────────────────────────────────
 
 function getColorForColumn(col: ColumnDef): string {
+  if (col.graph?.color) {
+    return col.graph.color;
+  }
+
   const metricType = getMetricTypeFromColumn(col);
   if (metricType) {
     return FRAGMENT_GRAPH_COLORS[metricType] ?? '#888888';
   }
 
-  switch (col.id) {
-    case 'elapsedTotal':
-      return '#14b8a6'; // teal
-    default:
-      return '#888888';
-  }
+  return '#888888';
 }
 
 function getMetricTypeFromColumn(col: ColumnDef): MetricType | undefined {
@@ -159,9 +158,12 @@ const FRAGMENT_GRAPH_COLORS: Record<string, string> = {
 };
 
 function getUnitForColumn(col: ColumnDef): string {
+  if (col.graph?.unit) {
+    return col.graph.unit;
+  }
+
   const metricType = getMetricTypeFromColumn(col);
   if (!metricType) {
-    if (col.id === 'elapsedTotal') return 's';
     return '';
   }
 

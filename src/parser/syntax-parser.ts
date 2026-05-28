@@ -7,6 +7,8 @@ import {
   DurationPrimitive,
   EffortPrimitive,
   LapPrimitive,
+  MetricObjectPrimitive,
+  PropertyPrimitive,
   QuantityPrimitive,
   RoundsPrimitive,
   SyntaxFacts,
@@ -23,6 +25,22 @@ export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
 
   tree.iterate({
     enter(node) {
+      if (node.name === 'Property') {
+        const primitive = createPropertyPrimitive(state, source, node.from, node.to);
+        if (primitive) {
+          const meta = primitive.meta;
+          statements.push({
+            id: meta.line,
+            line: meta.line,
+            meta,
+            primitives: [primitive],
+            children: [],
+            isLeaf: true,
+          });
+        }
+        return;
+      }
+
       if (node.name !== 'Block') return;
 
       const statementMeta = createMeta(state, node.from, node.to, source.slice(node.from, node.to));
@@ -71,10 +89,51 @@ export function extractSyntaxFacts(state: EditorState): SyntaxFacts {
   return { statements };
 }
 
+function createPropertyPrimitive(
+  state: EditorState,
+  source: string,
+  from: number,
+  to: number,
+): PropertyPrimitive | null {
+  const raw = source.slice(from, to);
+  const meta = createMeta(state, from, to, raw);
+  const match = raw.match(/^\s*([A-Za-z][A-Za-z0-9]*)\s*:\s*(.*?)\s*$/);
+
+  if (!match) return null;
+
+  const [, key, rawValue] = match;
+  return {
+    kind: 'property',
+    raw,
+    meta,
+    key,
+    valueRaw: rawValue,
+    value: parsePropertyValue(rawValue),
+  };
+}
+
+function parsePropertyValue(rawValue: string): string | number | boolean | null {
+  const trimmed = rawValue.trim();
+
+  if (/^"(?:[^"\\]|\\.)*"$/.test(trimmed)) {
+    return trimmed.slice(1, -1).replace(/\\(["\\/bfnrt])/g, '$1');
+  }
+
+  if (/^-?(?:\d+\.\d+|\d+)$/.test(trimmed)) {
+    return Number(trimmed);
+  }
+
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed === 'null') return null;
+
+  return trimmed;
+}
+
 function mapFragmentToPrimitive(
   state: EditorState,
   source: string,
-  node: { from: number; to: number; type: { id: number }; getChild: (name: string) => any }
+  node: { from: number; to: number; type: { id: number }; getChild: (name: string) => any; cursor: () => { firstChild: () => boolean; node: { name: string; from: number; to: number }; nextSibling: () => boolean } }
 ): SyntaxPrimitive | null {
   const raw = source.slice(node.from, node.to);
   const meta = createMeta(state, node.from, node.to, raw);
@@ -153,6 +212,29 @@ function mapFragmentToPrimitive(
         kind: 'effort',
         raw,
         meta,
+      };
+      return primitive;
+    }
+
+    case terms.MetricObject: {
+      let pairs: Array<{ key: string; value: string | number | boolean | null }> = [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          pairs = Object.entries(parsed).map(([key, value]) => ({
+            key,
+            value: value as string | number | boolean | null,
+          }));
+        }
+      } catch {
+        // Malformed JSON — emit empty pairs; the raw text is still preserved
+      }
+
+      const primitive: MetricObjectPrimitive = {
+        kind: 'metric_object',
+        raw,
+        meta,
+        pairs,
       };
       return primitive;
     }

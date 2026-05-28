@@ -31,7 +31,7 @@
 | `MetricSourceRow` | `components/metrics/MetricSourceRow.tsx` | Renders a row of metric fragments (used inside block cards). |
 | `VisibilityBadge` | `components/metrics/VisibilityBadge.tsx` | Tiny badge for metric visibility tier (`display` / `promote` / `private`). |
 | `BlockDebugDialog` | `components/track/BlockDebugDialog.tsx` | Dialog with tabs: Statements, Behaviors, Memory. |
-| `MetricTrackerCard` | `components/track/MetricTrackerCard.tsx` | Floating analytics bubbles from `metrics['session-totals']`. |
+| `MetricTrackerCard` | `components/track/MetricTrackerCard.tsx` | Floating analytics bubbles from `metrics['session-totals']`; humanizes unknown keys and safely falls back for custom/calculated metrics. |
 
 ### 1.4 Right Panel — Timer / Controls
 

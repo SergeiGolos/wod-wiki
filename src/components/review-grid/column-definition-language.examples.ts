@@ -249,10 +249,8 @@ export const indexColumnFixed: ColumnDef = {
  * as a fixed switch in GridRow.tsx. CDL exposes it as a derived column
  * that accumulates elapsed time from all previous rows.
  *
- * Current broken implementation in GridRow.tsx:
- *   if (col.id === FIXED_COLUMN_IDS.ELAPSED_TOTAL) {
- *     return allRowsBefore.reduce((sum, r) => sum + r.elapsed, 0);
- *   }
+ * Current broken implementation in GridRow.tsx used a legacy fixed-column
+ * branch for cumulative elapsed time.
  *
  * CDL approach (cleaner):
  */

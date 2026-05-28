@@ -1,17 +1,27 @@
 import { ParsedCodeStatement } from '../core/models/CodeStatement';
-import { CodeMetadata } from '../core/models/CodeMetadata';
+import { MetricType } from '../core/models/Metric';
 import { ActionMetric } from '../runtime/compiler/metrics/ActionMetric';
 import { DistanceMetric } from '../runtime/compiler/metrics/DistanceMetric';
 import { DurationMetric } from '../runtime/compiler/metrics/DurationMetric';
 import { EffortMetric } from '../runtime/compiler/metrics/EffortMetric';
 import { GroupMetric } from '../runtime/compiler/metrics/GroupMetric';
+import { PropertyMetric } from '../runtime/compiler/metrics/PropertyMetric';
 import { RepMetric } from '../runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../runtime/compiler/metrics/RoundsMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
-import { SyntaxFacts, SyntaxPrimitive } from './syntax-facts';
+import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive } from './syntax-facts';
 
-type MetricPair = { metrics: any; meta: CodeMetadata };
+type MetricPair = { metrics: any; meta: SyntaxMeta };
+
+const PROPERTY_KEY_TO_METRIC_TYPE: Record<string, MetricType> = {
+  rpe: MetricType.SessionRPE,
+  rir: MetricType.RIR,
+  intensity: MetricType.Intensity,
+  load: MetricType.Load,
+  volume: MetricType.Volume,
+  work: MetricType.Work,
+};
 
 export function classifyStatements(facts: SyntaxFacts): ParsedCodeStatement[] {
   return facts.statements.map((fact) => {
@@ -95,6 +105,31 @@ function classifyPrimitive(primitive: SyntaxPrimitive, statement: ParsedCodeStat
 
     case 'effort':
       return [{ metrics: new EffortMetric(primitive.raw), meta: primitive.meta }];
+
+    case 'property': {
+      const metricType = PROPERTY_KEY_TO_METRIC_TYPE[primitive.key.toLowerCase()] ?? MetricType.Custom;
+      return [{
+        metrics: new PropertyMetric(primitive.key, primitive.value, {
+          type: metricType,
+          image: primitive.raw,
+        }),
+        meta: primitive.meta,
+      }];
+    }
+
+    case 'metric_object': {
+      const pairs = primitive.pairs;
+      return pairs.map((pair) => {
+        const metricType = PROPERTY_KEY_TO_METRIC_TYPE[pair.key.toLowerCase()] ?? MetricType.Custom;
+        return {
+          metrics: new PropertyMetric(pair.key, pair.value, {
+            type: metricType,
+            image: `${pair.key}: ${pair.value}`,
+          }),
+          meta: primitive.meta,
+        };
+      });
+    }
   }
 }
 
@@ -114,7 +149,7 @@ function mergeFragments(pairs: MetricPair[]): MetricPair[] {
     if (current.metrics instanceof EffortMetric && next.metrics instanceof EffortMetric) {
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) {
-        const mergedMeta: CodeMetadata = {
+        const mergedMeta: SyntaxMeta = {
           ...current.meta,
           endOffset: next.meta.endOffset,
           columnEnd: next.meta.columnEnd,
@@ -132,7 +167,7 @@ function mergeFragments(pairs: MetricPair[]): MetricPair[] {
     if (current.metrics instanceof RepMetric && (next.metrics instanceof ResistanceMetric || next.metrics instanceof DistanceMetric)) {
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) {
-        const mergedMeta: CodeMetadata = {
+        const mergedMeta: SyntaxMeta = {
           ...current.meta,
           endOffset: next.meta.endOffset,
           columnEnd: next.meta.columnEnd,

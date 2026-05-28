@@ -107,6 +107,23 @@ pipeline:
   - navigate: /guide/syntax/complex
 ```
 
+## Custom Metrics & Calculations {sticky}
+
+Attach line-local properties to a workout and derive summary values with a document-level `calculate` block.
+
+```command
+target: preview
+pipeline:
+  - set-source: wods/examples/syntax/custom-metrics.md
+```
+
+```button
+label:  Open Custom Metrics & Calculations →
+target: preview
+pipeline:
+  - navigate: /guide/syntax/custom-and-calculated-metrics
+```
+
 ## Start Writing {sticky full-bleed dark}
 
 Open a new note and try the syntax for yourself.

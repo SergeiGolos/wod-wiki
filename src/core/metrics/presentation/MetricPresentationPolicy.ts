@@ -33,6 +33,7 @@ function computeTone(metric: IMetric, rest: boolean): MetricTone {
     volume: 'rep', intensity: 'effort', load: 'resistance', work: 'effort',
     rir: 'effort', 'session-rpe': 'effort', 'session-load': 'resistance',
     'met-score': 'distance', tis: 'action', sound: 'system', metric: 'effort',
+    custom: 'muted', calculated: 'effort',
   };
   return toneMap[t] ?? 'unknown';
 }

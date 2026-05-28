@@ -30,7 +30,8 @@ export const whiteboardScriptLanguage = LRLanguage.define({
     ]
   }),
   languageData: {
-    commentTokens: { line: "//" }
+    commentTokens: { line: "//" },
+    closeBrackets: { brackets: ["(", "[", "'", '"'] },
   }
 });
 

@@ -277,8 +277,9 @@ After making changes, always validate:
    - Accept existing 4 module failures and 1 integration test failure as baseline
 
 2. **Type Check**:
-   - Run `bun x tsc --noEmit`
-   - No new type errors from your changes (369 baseline errors exist)
+   - Run the narrowest relevant `tsc` command for the touched surface
+   - The repo-wide command (`bun x tsc --noEmit -p tsconfig.json`) is currently diagnostic-only while [WOD-733](/WOD/issues/WOD-733) remains open
+   - No new type errors from your changes within the scoped surface
 
 3. **E2E Acceptance Tests** (required for UI/layout/interaction changes):
    - Ensure Storybook is running: `bun run storybook`

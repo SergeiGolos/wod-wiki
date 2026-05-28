@@ -109,10 +109,13 @@ export interface AnalyticsDataPoint {
     segmentVersion: number;
     resultId: string;     // Link to raw WorkoutResult
 
-    type: string;   // 'total_reps', 'avg_hr', 'pace', etc.
+    type: string;         // Stable metric key or derived family (e.g. 'totalLoad', 'elapsed')
     value: number | any;
     unit?: string;
     label: string;        // Human readable, e.g. "Average Heart Rate"
+    metricKey?: string;    // Original key emitted by the runtime / calculator
+    metricLabel?: string;  // Original human-readable metric label, when available
+    metricUnit?: string;   // Original metric unit, when available
 
     timestamp: number;    // Effective workout date
     createdAt: number;    // Generation date

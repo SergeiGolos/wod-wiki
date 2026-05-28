@@ -133,6 +133,9 @@ export enum MetricType {
   Label = 'label',
   Lap = 'lap',
   Metric = 'metric',
+
+  /** Generic custom metric bucket for parser-owned property metrics. */
+  Custom = 'custom',
   Volume = 'volume',
   Intensity = 'intensity',
   Load = 'load',
@@ -152,4 +155,7 @@ export enum MetricType {
 
   /** Training Intensity Score (composite) */
   TIS = 'tis',
+
+  /** Runtime-layer calculated metric emitted from declarative formulas */
+  Calculated = 'calculated',
 }

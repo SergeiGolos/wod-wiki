@@ -12,6 +12,7 @@ A statement may contain:
 
 - an optional **lap marker** (`-` or `+`)
 - one or more **fragments**
+- a top-level **property** line (`key: value`)
 - implicit hierarchy from **indentation**
 
 ## Grammar map
@@ -33,6 +34,24 @@ flowchart TD
   Fragments --> Quantity[quantity]
   Fragments --> Effort[effort text]
 ```
+
+## Property statements
+
+Property lines attach a single key/value metric at the statement level.
+They use the same statement hierarchy as blocks, but do not contain fragments.
+
+Examples:
+
+- `rpe: 8`
+- `discipline: bouldering`
+- `location: "Sender One"`
+
+Notes:
+
+- values may be numbers, bare identifiers, or quoted strings
+- quoted strings are required for multi-word values
+- property statements are parsed as standalone metrics and participate in ownership resolution like other parser-owned values
+- for custom metrics and document-level formulas, see [Custom & Calculated Metrics](../../markdown/canvas/syntax/custom-and-calculated-metrics.md)
 
 ## Fragment graphs
 

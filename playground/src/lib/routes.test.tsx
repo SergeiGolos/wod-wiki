@@ -33,6 +33,8 @@ import {
   reviewPath,
   trackerPath,
   loadPath,
+  buildPlaygroundLoadUrl,
+  buildJournalLoadUrl,
   feedDetailPath,
   feedItemPath,
   collectionDetailPath,
@@ -195,6 +197,20 @@ describe('path builders', () => {
 
   it('loadPath returns static path', () => {
     expect(loadPath()).toBe('/load')
+  })
+
+  it('buildPlaygroundLoadUrl encodes zip query', () => {
+    expect(buildPlaygroundLoadUrl({ zip: 'abc 123' })).toBe('/load?zip=abc%20123')
+  })
+
+  it('buildJournalLoadUrl builds journal load path without date', () => {
+    expect(buildJournalLoadUrl({ zip: 'abc 123' })).toBe('/load/journal?zip=abc%20123')
+  })
+
+  it('buildJournalLoadUrl builds journal load path with date', () => {
+    expect(buildJournalLoadUrl({ zip: 'abc 123', date: '2024-06-15' })).toBe(
+      '/load/journal/2024-06-15?zip=abc%20123',
+    )
   })
 
   it('feedDetailPath encodes slug', () => {
@@ -396,6 +412,8 @@ describe('ROUTE_PATTERNS', () => {
     expect(ROUTE_PATTERNS.run).toBe('/run/:runtimeId')
     expect(ROUTE_PATTERNS.review).toBe('/review/:runtimeId')
     expect(ROUTE_PATTERNS.load).toBe('/load')
+    expect(ROUTE_PATTERNS.loadJournal).toBe('/load/journal')
+    expect(ROUTE_PATTERNS.loadJournalDate).toBe('/load/journal/:date')
   })
 })
 

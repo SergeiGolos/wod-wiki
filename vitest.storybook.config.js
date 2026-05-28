@@ -3,6 +3,21 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 
+const codemirrorSingletonDeps = [
+  '@codemirror/autocomplete',
+  '@codemirror/commands',
+  '@codemirror/lang-markdown',
+  '@codemirror/language',
+  '@codemirror/lint',
+  '@codemirror/search',
+  '@codemirror/state',
+  '@codemirror/view',
+  '@lezer/common',
+  '@lezer/highlight',
+  '@lezer/lr',
+  '@lezer/markdown',
+];
+
 export default defineConfig({
   plugins: [
     react(),
@@ -23,9 +38,10 @@ export default defineConfig({
       'react-dom',
       'react/jsx-runtime',
     ],
+    exclude: ['@lezer/common'],
   },
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', ...codemirrorSingletonDeps],
     alias: {
       '@': path.resolve(__dirname, 'src'),
       react: path.resolve(process.cwd(), 'node_modules/react'),

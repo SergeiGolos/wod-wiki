@@ -72,6 +72,75 @@ describe('extractSyntaxFacts', () => {
     });
   });
 
+  it('extracts property statements as standalone metrics', () => {
+    const state = buildState(`rpe: 8\nlocation: "Sender One"\n5 Pushups\n`);
+    const facts = extractSyntaxFacts(state);
+
+    expect(facts.statements).toHaveLength(3);
+    expect(facts.statements[0].primitives).toHaveLength(1);
+    expect(facts.statements[0].primitives[0]).toMatchObject({
+      kind: 'property',
+      key: 'rpe',
+      valueRaw: '8',
+      value: 8,
+    });
+    expect(facts.statements[1].primitives[0]).toMatchObject({
+      kind: 'property',
+      key: 'location',
+      valueRaw: '"Sender One"',
+      value: 'Sender One',
+    });
+    expect(facts.statements[2].primitives.map((primitive) => primitive.kind)).toEqual(['quantity', 'effort']);
+  });
+
+  it('extracts inline metric objects as metric_object primitives', () => {
+    const state = buildState(`10 Pushups {"intensity": 80}\n5 Back Squat 225lb {"rpe": 8, "rir": 2}\n:30 Plank {"hrZone": 4, "focus": "core"}\n`);
+    const facts = extractSyntaxFacts(state);
+
+    expect(facts.statements).toHaveLength(3);
+
+    const [first, second, third] = facts.statements;
+
+    expect(first.primitives.map((p) => p.kind)).toEqual(['quantity', 'effort', 'metric_object']);
+    expect(second.primitives.map((p) => p.kind)).toEqual(['quantity', 'effort', 'effort', 'quantity', 'quantity', 'metric_object']);
+    expect(third.primitives.map((p) => p.kind)).toEqual(['duration', 'effort', 'metric_object']);
+
+    const firstMetricObj = first.primitives.find((p) => p.kind === 'metric_object') as any;
+    expect(firstMetricObj.pairs).toEqual([{ key: 'intensity', value: 80 }]);
+
+    const secondMetricObj = second.primitives.find((p) => p.kind === 'metric_object') as any;
+    expect(secondMetricObj.pairs).toEqual([
+      { key: 'rpe', value: 8 },
+      { key: 'rir', value: 2 },
+    ]);
+
+    const thirdMetricObj = third.primitives.find((p) => p.kind === 'metric_object') as any;
+    expect(thirdMetricObj.pairs).toEqual([
+      { key: 'hrZone', value: 4 },
+      { key: 'focus', value: 'core' },
+    ]);
+  });
+
+  it('extracts metric objects with boolean and null values', () => {
+    const state = buildState(`Run 400m {"record": true, "fast": false, "notes": null}\n`);
+    const facts = extractSyntaxFacts(state);
+
+    const metricObj = facts.statements[0].primitives.find((p) => p.kind === 'metric_object') as any;
+    expect(metricObj.pairs).toEqual([
+      { key: 'record', value: true },
+      { key: 'fast', value: false },
+      { key: 'notes', value: null },
+    ]);
+  });
+
+  it('handles empty metric objects', () => {
+    const state = buildState(`10 Pushups {}\n`);
+    const facts = extractSyntaxFacts(state);
+
+    const metricObj = facts.statements[0].primitives.find((p) => p.kind === 'metric_object') as any;
+    expect(metricObj.pairs).toEqual([]);
+  });
+
   it('preserves indentation-based ancestry and compose grouping', () => {
     const state = buildState(`- warmup\n  - squat\n  + press\n    - run\n`);
     const facts = extractSyntaxFacts(state);

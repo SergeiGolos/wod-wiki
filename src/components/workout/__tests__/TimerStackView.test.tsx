@@ -26,6 +26,39 @@ describe('TimerStackView', () => {
     expect(mediumPanelFont).toBeGreaterThanOrEqual(128);
   });
 
+  // ── Responsive font sizing across viewports ──
+
+  it('scales font for mobile viewport width (375px)', () => {
+    const mobileFont = getPrimaryTimerFontSizePx(375, false);
+    expect(mobileFont).toBeGreaterThanOrEqual(128);
+    expect(mobileFont).toBeLessThanOrEqual(320);
+  });
+
+  it('scales font for tablet viewport width (768px)', () => {
+    const tabletFont = getPrimaryTimerFontSizePx(768, false);
+    expect(tabletFont).toBeGreaterThanOrEqual(138);
+    expect(tabletFont).toBeLessThanOrEqual(320);
+  });
+
+  it('scales font for desktop viewport width (1280px)', () => {
+    const desktopFont = getPrimaryTimerFontSizePx(1280, false);
+    expect(desktopFont).toBeGreaterThanOrEqual(230);
+    expect(desktopFont).toBeLessThanOrEqual(320);
+  });
+
+  it('uses smaller font in compact mode than default mode at same width', () => {
+    const width = 768;
+    const compactFont = getPrimaryTimerFontSizePx(width, true);
+    const defaultFont = getPrimaryTimerFontSizePx(width, false);
+
+    expect(compactFont).toBeLessThan(defaultFont);
+  });
+
+  it('caps mobile compact font at 72px', () => {
+    const compactMobile = getPrimaryTimerFontSizePx(375, true);
+    expect(compactMobile).toBeLessThanOrEqual(72);
+  });
+
   // ── Primary timer rendering ──
   it('renders primary timer label and time', () => {
     render(

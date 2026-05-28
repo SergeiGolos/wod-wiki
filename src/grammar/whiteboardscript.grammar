@@ -21,8 +21,11 @@ Fragment {
   Action |
   Text |
   Quantity |
-  Effort
+  Effort |
+  MetricObject
 }
+
+MetricObject { objectOpen (Identifier | Number | String | colon | comma | True | False | Null | allowedSymbol)* objectClose }
 
 AtSign { atSign }
 Question { question }
@@ -57,6 +60,12 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   String { '"' (![\\\n\r] | "\\" _) * '"' }
   textComment { "//" ![\n\r]* }
   allowedSymbol { $[\\/.,@!$%^*=&]+ }
+  objectOpen { "{" }
+  objectClose { "}" }
+  comma { "," }
+  True { "true" }
+  False { "false" }
+  Null { "null" }
   minus { "-" }
   plus { "+" }
   trend { "^" }
@@ -81,6 +90,12 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
     rest,
     colon,
     allowedSymbol,
+    objectOpen,
+    objectClose,
+    comma,
+    True,
+    False,
+    Null,
     Identifier, 
     minus, 
     plus, 

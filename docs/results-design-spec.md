@@ -73,7 +73,7 @@ ReceiverReviewPanel
 
 #### [P1] Workout Log (`ReviewGrid`) — Always Visible
 
-**Purpose:** The primary data table. Shows every recorded segment (effort, timer, or group) as a row, with pivoted metric columns.
+**Purpose:** The primary data table. Shows every recorded segment (effort, timer, or group) as a row, with pivoted metric columns, including custom and calculated metrics when present.
 
 **Content:**
 - One row per `Segment` from `AnalyticsTransformer`
@@ -188,6 +188,7 @@ Start a workout to see results here.
 
 **Chart types:**
 - **Bar chart** (`GridGraphPanel`): per-column visualization for tagged columns; horizontal bars with relative sizing; rendered below the grid rows when any column is graph-tagged.
+- Metric columns include canonical types plus custom/calculated metrics, with user overrides applied through the same row cell model.
 
 **Triggering charts:** User clicks the graph icon on a column header to "tag" it for visualization. Multiple columns can be tagged simultaneously.
 

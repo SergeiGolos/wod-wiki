@@ -43,7 +43,6 @@ export {
 
 export {
   UnifiedCellRenderer,
-  inferColumnDefFromGridColumn,
   renderMetricCell,
   renderIndent,
 } from './cdlCellRenderer';

@@ -43,7 +43,6 @@ export type {
   GridFilterConfig,
   GridViewPreset,
 } from './types';
-export { FIXED_COLUMN_IDS } from './types';
 
 // ─── CDL (Column Definition Language) ────────────────────────────
 
@@ -88,7 +87,6 @@ export {
 
 export {
   UnifiedCellRenderer,
-  inferColumnDefFromGridColumn,
   renderMetricCell,
   renderIndent,
 } from './interpreters';

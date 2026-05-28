@@ -2,6 +2,7 @@ import React from 'react';
 import { useWorkoutTracker } from '@/hooks/useRuntimeTimer';
 import { Sigma } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { computeColumnLabel } from '@/core/metrics/presentation';
 import { getMetricColorClasses, getMetricIcon } from '@/views/runtime/metricColorMap';
 import { formatDurationSmart } from '@/lib/formatTime';
 
@@ -52,6 +53,8 @@ export function inferMetricType(key: string, unit?: string): string {
     if (normalized.includes('sessionload')) return 'session-load';
     if (normalized.includes('metscore') || normalized === 'met') return 'met-score';
     if (normalized === 'tis') return 'tis';
+    if (normalized.includes('calculated') || normalized.includes('calc')) return 'calculated';
+    if (normalized.includes('custom')) return 'custom';
     if (normalized.includes('volume')) return 'volume';
     if (normalized.includes('intensity')) return 'intensity';
     if (normalized.includes('load')) return 'load';
@@ -137,7 +140,7 @@ export const MetricTrackerCard: React.FC<MetricTrackerCardProps> = ({ className 
                                 <span className="text-[10px] leading-none" aria-hidden="true">{icon}</span>
                             )}
                             <span className="text-[8px] font-black uppercase tracking-tighter group-hover:opacity-100 transition-opacity">
-                                {key}
+                                {computeColumnLabel(key)}
                             </span>
                         </div>
                         <div className="flex items-baseline gap-0.5">

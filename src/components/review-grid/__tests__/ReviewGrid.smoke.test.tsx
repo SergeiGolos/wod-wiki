@@ -69,6 +69,8 @@ const fixtureSegments: Segment[] = [
       makeMetric(MetricType.Text, 'Thrusters'),
       makeMetric(MetricType.Rep, 21),
       makeMetric(MetricType.Resistance, 95, '95 lb'),
+      makeMetric(MetricType.Calculated, 420),
+      makeMetric(MetricType.Custom, 'Zone 2'),
     ]),
   }),
   makeSegment({
@@ -137,6 +139,11 @@ describe('ReviewGrid smoke', () => {
 
       const repsWidthHeader = screen.getByText('Reps').closest('th');
       expect(repsWidthHeader?.style.minWidth).toBe('72px');
+
+      expect(screen.getByText('Calculated')).toBeDefined();
+      expect(screen.getByText('Custom')).toBeDefined();
+      expect(screen.getByText('420')).toBeDefined();
+      expect(screen.getByText('Zone 2')).toBeDefined();
 
       const firstRow = getBodyRows().item(0);
       if (!firstRow) throw new Error('Expected first body row');
