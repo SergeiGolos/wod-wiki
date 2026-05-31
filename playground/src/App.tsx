@@ -30,7 +30,6 @@ import {
   SyntaxRedirect,
   TrackerRedirect,
 } from './lib/routes'
-import { HomeView as _HomeView } from './views/HomeView' // kept for potential re-use; not rendered on '/' anymore
 import { Concept3LandingPage } from './pages/Concept3LandingPage'
 import { PlaygroundLandingPage } from './pages/PlaygroundLandingPage'
 import { findCanvasPage, canvasRoutes } from './canvas/canvasRoutes'
