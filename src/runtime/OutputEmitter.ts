@@ -271,16 +271,18 @@ export class OutputEmitter {
         if (resultLocs.length === 0) return;
 
         for (let i = 0; i < resultLocs.length; i++) {
-            const resultFragments = resultLocs[i].metrics ?? MetricContainer.empty();
-            const sourceFragments = displayLocs[i]?.metrics ?? MetricContainer.empty();
+            const resultFragments = MetricContainer.from(resultLocs[i].metrics, block.key.toString());
 
-            // Runtime results override source definitions for same type
-            const resultTypes = new Set(resultFragments.map(f => f.type));
-            const effectiveSource = sourceFragments.filter(f => !resultTypes.has(f.type));
+            // Match with corresponding display metrics if available
+            // (Assumes 1:1 pairing from ReportOutputBehavior)
+            const sourceFragments = MetricContainer.from(displayLocs[i]?.metrics, block.key.toString());
 
-            const metrics = MetricContainer
-                .from(effectiveSource, block.key.toString())
-                .merge(resultFragments);
+            // Keep source + result contributions as raw metrics.
+            // Visibility winners are resolved downstream by ownership-aware
+            // display reads — do NOT pre-filter source by result type here.
+            const metrics = MetricContainer.empty(block.key.toString())
+                .add(...sourceFragments.toArray())
+                .add(...resultFragments.toArray());
 
             if (metrics.length === 0) continue;
 
