@@ -7,7 +7,7 @@ executing, and analyzing workouts written in a compact `wod` block syntax embedd
 ordinary Markdown. It ships a Monaco/CodeMirror editor integration, a Just-In-Time
 compiler, a clock-driven execution runtime, and a training-analytics engine.
 
-> 📚 **Full documentation:** [`new-docs/`](./new-docs/README.md) — architecture, domain
+> 📚 **Full documentation:** [`docs/`](./docs/README.md) — architecture, domain
 > model, the metric lifecycle, syntax reference, the extensible interfaces, the
 > screens/workflow, and analytics.
 
@@ -23,7 +23,7 @@ At each stage the system **adds metrics** — it never overwrites. A metric reco
 `origin` (`parser`, `dialect`, `compiler`, `runtime`, `user`, `analyzed`), and a
 precedence rule decides which one is shown. That single idea lets the app overlay the
 **planned** target, the **tracked** actual, and the **analyzed** projection in one view.
-See [`new-docs/04-metric-lifecycle.md`](./new-docs/04-metric-lifecycle.md).
+See [`docs/04-metric-lifecycle.md`](./docs/04-metric-lifecycle.md).
 
 ---
 
@@ -99,7 +99,7 @@ hierarchy**.
 
 Dialects recognize keywords like `EMOM`, `AMRAP`, `FOR TIME`, `TABATA`, `STRENGTH`,
 `RUN/ROW/BIKE/SWIM` and tag blocks accordingly. Full reference:
-[`new-docs/02-syntax-reference.md`](./new-docs/02-syntax-reference.md). Sample workout
+[`docs/02-syntax-reference.md`](./docs/02-syntax-reference.md). Sample workout
 libraries live in [`markdown/collections/`](./markdown/collections).
 
 ---
@@ -130,8 +130,8 @@ The app is a continuous loop. The same metric flows through every phase.
 Analytics combine your tracked metrics with effort physiology to compute **volume**,
 **pace**, **power**, **MET-minutes**, **session-load**, and a composite **Training
 Intensity Score (TIS)** — all stored as `analyzed` metrics you can chart.
-Details: [`new-docs/07-screens-and-workflow.md`](./new-docs/07-screens-and-workflow.md),
-[`new-docs/08-analytics.md`](./new-docs/08-analytics.md).
+Details: [`docs/07-screens-and-workflow.md`](./docs/07-screens-and-workflow.md),
+[`docs/08-analytics.md`](./docs/08-analytics.md).
 
 ---
 
@@ -156,7 +156,7 @@ markdown ─▶ PARSE (lezer grammar)          → CodeStatements   (parser metr
 | UI | `src/components/**`, `src/clock/**`, `playground/src/**` | screens |
 | Persistence | `src/services/db/**` | IndexedDB: `notes`, `segments`, `results`, `analytics`, `efforts` |
 
-Full map: [`new-docs/05-architecture.md`](./new-docs/05-architecture.md).
+Full map: [`docs/05-architecture.md`](./docs/05-architecture.md).
 
 ### Extensible seams
 
@@ -170,7 +170,7 @@ Most extension is "add an implementation and register it":
 | `IRealtimeProcessor` / `ISummaryProcessor` | pace, power, volume, MET-min, session-load, TIS | analytics metric |
 | `IEffortRegistry` | InMemory, IndexedDB, Composite | effort source |
 
-Conventions + full inventory: [`new-docs/06-interfaces-and-implementations.md`](./new-docs/06-interfaces-and-implementations.md).
+Conventions + full inventory: [`docs/06-interfaces-and-implementations.md`](./docs/06-interfaces-and-implementations.md).
 
 ---
 
@@ -209,7 +209,7 @@ playground/     Reference application (routing, journal, tracker, review)
 markdown/       Sample workout collections (ZombieFit, Steve Cotter, swimming…)
 stories/        Storybook stories
 tests/, e2e/    Integration & acceptance tests
-new-docs/       📚 Holistic documentation (start here)
+docs/       📚 Holistic documentation (start here)
 ```
 
 ---
