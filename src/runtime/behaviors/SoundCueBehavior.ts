@@ -1,7 +1,7 @@
 import { IRuntimeBehavior } from '../contracts/IRuntimeBehavior';
 import { IBehaviorContext } from '../contracts/IBehaviorContext';
 import { IRuntimeAction } from '../contracts/IRuntimeAction';
-import { TimerState } from '../memory/MemoryTypes';
+import { readTimer } from '../time/TimerSpans';
 import { SoundMetric } from '../compiler/metrics/SoundMetric';
 import type { SoundTrigger } from '../compiler/metrics/SoundMetric';
 
@@ -69,7 +69,7 @@ export class SoundCueBehavior implements IRuntimeBehavior {
             const playedSeconds = new Set<number>();
 
             ctx.subscribe('tick', (_event, tickCtx) => {
-                const timer = tickCtx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
+                const timer = readTimer(tickCtx);
                 if (!timer || timer.direction !== 'down' || !timer.durationMs) return [];
 
                 // Calculate remaining seconds using TimeSpan properties

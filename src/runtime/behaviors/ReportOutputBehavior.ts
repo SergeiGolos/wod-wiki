@@ -5,6 +5,7 @@ import { MetricType } from '../../core/models/Metric';
 import { MetricContainer } from '../../core/models/MetricContainer';
 import { RoundState, TimerState } from '../memory/MemoryTypes';
 import { TimeSpan } from '../models/TimeSpan';
+import { readTimer } from '../time/TimerSpans';
 import { calculateElapsed } from '../time/calculateElapsed';
 import { CurrentRoundMetric } from '../compiler/metrics/CurrentRoundMetric';
 import { ElapsedMetric } from '../compiler/metrics/ElapsedMetric';
@@ -77,7 +78,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
     }
 
     onUnmount(ctx: IBehaviorContext): IRuntimeAction[] {
-        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
+        const timer = readTimer(ctx);
         const round = ctx.getMemoryByTag('round')[0]?.metrics[0] as unknown as RoundState | undefined;
         const shouldComputeTimeResults = this.config.computeTimeResults ?? true;
 
@@ -169,7 +170,7 @@ export class ReportOutputBehavior implements IRuntimeBehavior {
             ),
         );
 
-        const timer = ctx.getMemoryByTag('time')[0]?.metrics[0]?.value as TimerState | undefined;
+        const timer = readTimer(ctx);
         if (timer) {
             const nowMs = ctx.clock.now.getTime();
             const elapsed = calculateElapsed(timer, nowMs);

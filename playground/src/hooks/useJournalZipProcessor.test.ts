@@ -47,6 +47,16 @@ let mockDateParam = undefined;
 mock.module('react-router-dom', () => ({
   useNavigate: mock(() => mockNavigate),
   useParams: mock(() => ({ date: mockDateParam })),
+  // The hook reads `location.pathname` to confirm it is on the /load/journal
+  // route. Provide a complete stub so this file passes in isolation rather than
+  // depending on another test file's react-router-dom mock leaking in.
+  useLocation: mock(() => ({
+    pathname: '/load/journal',
+    search: '',
+    hash: '',
+    state: null,
+    key: 'test',
+  })),
 }));
 
 // Mock nuqs (query state)

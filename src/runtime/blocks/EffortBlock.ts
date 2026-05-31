@@ -84,16 +84,14 @@ export class EffortBlock extends RuntimeBlock {
     private readonly config: EffortBlockConfig,
     metrics?: MetricContainer[]
   ) {
-    super(
+    super({
       runtime,
       sourceIds,
-      [], // Behaviors added below
-      undefined, // context
-      undefined, // key
-      "Effort", // blockType
-      `${config.targetReps} ${config.exerciseName}`, // label
-      metrics
-    );
+      behaviors: [], // Behaviors added below
+      blockType: 'Effort',
+      label: `${config.targetReps} ${config.exerciseName}`,
+      metrics,
+    });
 
     // Validate configuration
     if (!config.exerciseName || config.exerciseName.trim() === '') {

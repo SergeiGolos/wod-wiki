@@ -41,15 +41,15 @@ export class WaitingToStartBlock extends RuntimeBlock {
         const context = new BlockContext(runtime, blockKey.toString(), 'WaitingToStart');
         const behaviors = WaitingToStartBlock.buildBehaviors();
 
-        super(
+        super({
             runtime,
-            [], // No source IDs for idle block
+            sourceIds: [], // No source IDs for idle block
             behaviors,
             context,
-            blockKey,
-            'WaitingToStart',
-            'Ready to Start'
-        );
+            key: blockKey,
+            blockType: 'WaitingToStart',
+            label: 'Ready to Start',
+        });
     }
 
     /**

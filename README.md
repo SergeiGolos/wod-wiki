@@ -1,101 +1,219 @@
 # WOD Wiki
 
-A React component library for parsing, displaying, and executing workout definitions using a specialized syntax. Features include a Monaco Editor integration for editing workout scripts, a runtime engine for execution, and components styled with Tailwind CSS.
+**Write workouts as Markdown. Run them on a clock. Analyze what actually happened.**
 
-## 📚 Documentation
+WOD Wiki is a TypeScript + React toolkit (`@bitcobblers/wod-wiki-library`) for parsing,
+executing, and analyzing workouts written in a compact `wod` block syntax embedded in
+ordinary Markdown. It ships a Monaco/CodeMirror editor integration, a Just-In-Time
+compiler, a clock-driven execution runtime, and a training-analytics engine.
 
-[![Powered by Bun](https://img.shields.io/badge/Powered%20by-Bun-000?logo=bun&logoColor=white)](https://bun.sh)
-[![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=for-the-badge&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/SergeiGolos/wod-wiki)
+> 📚 **Full documentation:** [`docs/`](./docs/README.md) — architecture, domain
+> model, the metric lifecycle, syntax reference, the extensible interfaces, the
+> screens/workflow, and analytics.
 
-Documentation is now managed in a centralized Obsidian vault and published to the GitHub Wiki:
+---
 
-### Guides
-- **[Architecture](https://github.com/SergeiGolos/wod-wiki/wiki/Architecture)**: High-level overview of the system components and data flow.
-- **[UI Overview](https://github.com/SergeiGolos/wod-wiki/wiki/UI-Overview)**: Guide to the editor and runtime visualization interface.
-- **[Whiteboard Script](https://github.com/SergeiGolos/wod-wiki/wiki/Whiteboard-Script)**: detailed explanation of the workout definition language.
-- **[Metrics Collection](https://github.com/SergeiGolos/wod-wiki/wiki/Metrics-Collection)**: How performance data is tracked and stored.
-- **[Widget Authoring Guide](./docs/widget-authoring-guide.md)**: Contract, validation pattern, and performance constraints for fenced editor widgets.
-- **[Widget Catalog](./docs/widget-catalog.md)**: Current Phase 1C playground widget inventory and example widget names.
-- **[Chromecast Receiver Browser Testing](./docs/chromecast-receiver-browser-testing.md)**: How to run the receiver waiting shell without Chromecast hardware and validate offline/no-CAF fallback behaviour.
+## The big idea: everything is a metric
 
-### Features
-- **[Exercise Typeahead](https://github.com/SergeiGolos/wod-wiki/wiki/Exercise-Typeahead)**: Details on the intelligent exercise suggestion system.
-- **Runtime execution UI**: Active runtime controls now live in the main editor/workbench surfaces rather than a separate `runtime-test-bench` subsystem.
-
-### Code Quality
-- **[Code Quality Summary](https://github.com/SergeiGolos/wod-wiki/wiki/Code-Quality-Summary)**: Overview of code quality metrics and improvements
-- **[Code Analysis](https://github.com/SergeiGolos/wod-wiki/wiki/Code-Analysis)**: Detailed analysis of anti-patterns and code smells
-- **[Refactoring Plan](https://github.com/SergeiGolos/wod-wiki/wiki/Refactoring-Plan)**: Prioritized roadmap for code improvements
-- **[Architecture Regression Checks](https://github.com/SergeiGolos/wod-wiki/wiki/Architecture-Regression-Checks)**: CI guardrails for circular dependencies, retired runtime-test-bench imports, and protected barrels
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Bun (v1.0+ recommended)
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/SergeiGolos/wod-wiki.git
-    cd wod-wiki
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    bun install
-    ```
-
-3.  **Setup environment:**
-    ```bash
-    bun run setup
-    ```
-    *Note: This step installs Playwright browsers. Errors during download are expected/handled.*
-
-### Running Locally
-
-To start the development environment with Storybook:
-
-```bash
-bun run storybook
+```
+Markdown  →  Metrics (the plan)  →  Tracking metrics (what happened)  →  Analyzed metrics (insight)
 ```
 
-This will launch the interface at `http://localhost:6006`.
+At each stage the system **adds metrics** — it never overwrites. A metric records its
+`origin` (`parser`, `dialect`, `compiler`, `runtime`, `user`, `analyzed`), and a
+precedence rule decides which one is shown. That single idea lets the app overlay the
+**planned** target, the **tracked** actual, and the **analyzed** projection in one view.
+See [`docs/04-metric-lifecycle.md`](./docs/04-metric-lifecycle.md).
 
-## 🛠️ Contributing
+---
 
-### Project Structure
+## Quick start
 
-- `src/parser/`: Chevrotain-based parser logic.
-- `src/runtime/`: JIT compiler and execution engine.
-- `src/editor/`: Monaco Editor integration.
-- `wod/`: Example workout files.
-- `stories/`: Storybook stories for component development.
-
-### Testing
-
-- **Unit Tests**: `bun run test`
-- **End-to-End Tests**: `bun run test:e2e`
-- **Storybook Tests**: `bun run test:storybook`
-- **Architecture Guardrails**: `bun run check:architecture`
-
-### Build
-
-To build the library and Storybook:
+**Prerequisites:** [Bun](https://bun.sh) (the package manager and test runner — *not*
+npm/yarn).
 
 ```bash
-bun run build
+bun install            # install dependencies
+bun run playground     # run the reference app (Vite)  → http://localhost:5173
+bun run storybook      # browse components in isolation → http://localhost:6006
+bun run test           # unit tests (src/)
 ```
 
-## 📊 Current Status
+---
 
-As of v0.5.0, the project includes:
+## The `wod` block syntax
 
-- **Parser**: Fully functional grammar for complex workouts.
-- **Editor**: Monaco integration with syntax highlighting and exercise suggestions.
-- **Runtime**: JIT compiler architecture with basic block execution.
-- **Metrics**: Foundation for tracking reps, time, and load.
+A workout is plain Markdown; WOD Wiki only interprets fenced ` ```wod ` blocks. Each
+line is a statement of `[lap] fragment fragment …`, and **indentation creates
+hierarchy**.
+
+````markdown
+## WOD
+
+```wod
+(10) :60 EMOM      ← 10 intervals of 60 seconds (Every Minute On the Minute)
+  + 2 Burpees      ← composed set performed each interval
+  + 5 Push Ups
+  + 7 Air Squats
+```
+````
+
+### Fragments at a glance
+
+| You write | It means |
+|-----------|----------|
+| `5:00`, `1:00`, `:60`, `:30` | **Duration** — a planned timer |
+| `(3)`, `(10)` | **Rounds** — repeat the child block N times |
+| `(21-15-9)`, `(100-80-60-40-20)` | **Rep ladder** — a sequence of round sizes |
+| `10`, `50` | **Reps** for the effort on the line |
+| `400m`, `1000m`, `0.5mile` | **Distance** (units: `m`, `km`, `ft`, `mile`) |
+| `16kg`, `225lb`, `bw` | **Load** (units: `kg`, `lb`, `bw` = bodyweight) |
+| `Burpees`, `KB Deadlift` | **Effort** — the movement name |
+| `?` | an athlete-chosen value to fill in (`10:00 ? KB Snatch 16kg`) |
+| `:?` | a **collectible** timer (value recorded, not counted down) |
+| `+` / `-` | **lap** markers (compose / superset siblings) |
+| `@` | binds a quantity as resistance |
+| `*` | a **rest** marker (Tabata-style) |
+| `// note` | a comment |
+
+### A few real shapes
+
+```wod
+(3)                        # 3 rounds of…
+  10 Air Squats
+  10 Push Ups
+
+10:00 AMRAP                # as many rounds as possible in 10:00
+  5 Pull Ups
+  10 Push Ups
+  15 Air Squats
+
+(8) Power Sprints          # 8 rounds: sprint then rest
+  25m Freestyle Sprint
+  1:30 Rest
+
+(5)                        # 5×8 kettlebell deadlifts @16kg
+  8 KB Deadlift 16kg
+  :30 Rest
+```
+
+Dialects recognize keywords like `EMOM`, `AMRAP`, `FOR TIME`, `TABATA`, `STRENGTH`,
+`RUN/ROW/BIKE/SWIM` and tag blocks accordingly. Full reference:
+[`docs/02-syntax-reference.md`](./docs/02-syntax-reference.md). Sample workout
+libraries live in [`markdown/collections/`](./markdown/collections).
+
+---
+
+## The Plan → Track → Analyze workflow
+
+The app is a continuous loop. The same metric flows through every phase.
+
+### 1. PLAN — author & choose the work
+- **Editor** (`/note/:category/:name`, `/playground/:id`) — write Markdown + `wod`
+  blocks with live highlighting and suggestions.
+- **Plan** (`/plan`) — assemble a session.
+- **Collections** (`/collections`) — browse workout libraries; pick one to run.
+- **Efforts** (`/efforts`, `/effort/:slug`) — define exercises (MET, discipline,
+  aliases) that power analytics and autocomplete.
+- **Feeds** (`/feeds`) — date-indexed streams of sessions.
+
+### 2. TRACK — execute on the clock
+- **Tracker / Run** (`/run/:runtimeId`) — the JIT-compiled blocks run on the runtime
+  clock: timers count, rounds advance, sound cues fire, and you log actual
+  reps/load/RPE. Each segment emits results recorded as `runtime`/`user` metrics.
+
+### 3. ANALYZE — review & derive insight
+- **Review** (`/review/:runtimeId`) — per-segment results + derived analytics.
+- **Review grid** — sort/filter/chart your results.
+- **Journal** (`/journal`) — long-term history that informs the next plan.
+
+Analytics combine your tracked metrics with effort physiology to compute **volume**,
+**pace**, **power**, **MET-minutes**, **session-load**, and a composite **Training
+Intensity Score (TIS)** — all stored as `analyzed` metrics you can chart.
+Details: [`docs/07-screens-and-workflow.md`](./docs/07-screens-and-workflow.md),
+[`docs/08-analytics.md`](./docs/08-analytics.md).
+
+---
+
+## How it works (architecture in one screen)
+
+```
+markdown ─▶ PARSE (lezer grammar)          → CodeStatements   (parser metrics)
+         ─▶ SEMANTICS (dialects)            → hints + dialect metrics
+         ─▶ COMPILE (JIT strategies)        → runtime blocks + behaviors
+         ─▶ RUNTIME (stack + clock)         → OutputStatements (runtime/user metrics)
+         ─▶ ANALYTICS (enrich + project)    → compound metrics (analyzed)
+         ─▶ PRESENTATION (editor/clock/grid/journal)
+```
+
+| Layer | Source | Adds |
+|-------|--------|------|
+| Domain | `src/core/**` | shared `Metric` / `CodeStatement` / `OutputStatement` types |
+| Parse | `src/grammar/**`, `src/parser/**` | `parser` metrics |
+| Semantics | `src/dialects/**` | hints + `dialect` metrics |
+| Runtime | `src/runtime/**` | JIT compiler, blocks, behaviors → `runtime` metrics |
+| Analytics | `src/core/analytics/**`, `src/effort-registry/**` | `analyzed` metrics |
+| UI | `src/components/**`, `src/clock/**`, `playground/src/**` | screens |
+| Persistence | `src/services/db/**` | IndexedDB: `notes`, `segments`, `results`, `analytics`, `efforts` |
+
+Full map: [`docs/05-architecture.md`](./docs/05-architecture.md).
+
+### Extensible seams
+
+Most extension is "add an implementation and register it":
+
+| Interface | Implementations | Add a… |
+|-----------|-----------------|--------|
+| `IRuntimeBehavior` | 15+ behaviors (timer, rounds, sound, report…) | block capability |
+| `IRuntimeBlockStrategy` | 13 strategies (priority-banded) | compiler rule |
+| `IDialect` | CrossFit, WOD, Cardio, Yoga, Habits, Climb | pattern recognizer |
+| `IRealtimeProcessor` / `ISummaryProcessor` | pace, power, volume, MET-min, session-load, TIS | analytics metric |
+| `IEffortRegistry` | InMemory, IndexedDB, Composite | effort source |
+
+Conventions + full inventory: [`docs/06-interfaces-and-implementations.md`](./docs/06-interfaces-and-implementations.md).
+
+---
+
+## Development
+
+```bash
+bun install                  # ~15s
+bun run playground           # reference app (Vite)
+bun run storybook            # component workshop
+bun run test                 # unit tests (src/)
+bun run test:playground      # reference-app tests (isolated per file)
+bun run test:components      # integration tests (tests/)
+bun run test:e2e             # Playwright acceptance tests (needs Storybook running)
+bun x tsc --noEmit           # type check
+bun run build-storybook      # static Storybook build
+```
+
+See [`AGENTS.md`](./AGENTS.md) for the full development guide (test harness, e2e
+patterns, code style, and validation requirements).
+
+---
+
+## Repository layout
+
+```
+src/            Library source (domain, parser, dialects, runtime, analytics, UI)
+  core/         Shared metric & statement model + analytics
+  grammar/      lezer grammar for the wod language
+  parser/       Parser wrapper (WhiteboardScript)
+  dialects/     Semantic pattern recognizers
+  runtime/      JIT compiler, blocks, behaviors, stack, clock, memory
+  effort-registry/  Exercise definitions (MET/discipline) + fuzzy resolver
+  components/   React components (editor, clock, review-grid, …)
+  services/     Persistence (IndexedDB), cast, content
+playground/     Reference application (routing, journal, tracker, review)
+markdown/       Sample workout collections (ZombieFit, Steve Cotter, swimming…)
+stories/        Storybook stories
+tests/, e2e/    Integration & acceptance tests
+docs/       📚 Holistic documentation (start here)
+```
+
+---
 
 ## License
 
-This project is licensed under the MIT License.
+See [`LICENSE`](./LICENSE).

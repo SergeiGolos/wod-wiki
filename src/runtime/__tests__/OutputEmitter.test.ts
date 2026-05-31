@@ -389,7 +389,7 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
         expect(emitter.getAll()).toHaveLength(0);
     });
 
-    it('overrides source display metrics with result metrics of same type', () => {
+    it('keeps both source display and result metrics as raw (visibility resolved downstream)', () => {
         const emitter = new OutputEmitter();
         const resultMetric = {
             type: MetricType.Label,
@@ -399,7 +399,7 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
             timestamp: new Date(),
         };
         const displayMetric = {
-            type: MetricType.Label, // same type — should be overridden
+            type: MetricType.Label, // same type — both are kept as raw metrics
             image: 'Display',
             value: 'display',
             origin: 'runtime' as any,
@@ -415,11 +415,11 @@ describe('OutputEmitter — emitSegmentFromResultMemory', () => {
 
         const segments = emitter.getAll();
         expect(segments).toHaveLength(1);
-        // Only result metric should survive (display has same type — filtered out)
+        // Both source + result are emitted raw; downstream visibility reads pick the winner
         const types = segments[0].metrics.toArray().map(m => m.type);
-        expect(types.filter(t => t === MetricType.Label)).toHaveLength(1);
+        expect(types.filter(t => t === MetricType.Label)).toHaveLength(2);
         expect(segments[0].metrics.toArray().find(m => m.image === 'Result')).toBeDefined();
-        expect(segments[0].metrics.toArray().find(m => m.image === 'Display')).toBeUndefined();
+        expect(segments[0].metrics.toArray().find(m => m.image === 'Display')).toBeDefined();
     });
 });
 

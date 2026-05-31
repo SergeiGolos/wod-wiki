@@ -39,7 +39,7 @@ describe('RuntimeBlock Lifecycle', () => {
             onDispose: vi.fn()
         };
 
-        block = new RuntimeBlock(runtime, [], [behavior]);
+        block = new RuntimeBlock({ runtime, behaviors: [behavior] });
     });
 
     describe('mount', () => {

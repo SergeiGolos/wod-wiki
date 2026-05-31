@@ -62,7 +62,10 @@ describe('usePlaygroundContent', () => {
 
     unmount();
 
-    expect(savedPages).toHaveLength(1);
+    // The unmount cleanup calls flush(), which persists on a microtask (the save
+    // is fire-and-forget by design so navigation guards never await React
+    // cleanup). Wait for that microtask rather than asserting synchronously.
+    await waitFor(() => expect(savedPages).toHaveLength(1));
     expect(savedPages[0]).toMatchObject({
       id: 'journal/2099-06-03',
       category: 'journal',
