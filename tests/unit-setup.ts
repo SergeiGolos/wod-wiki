@@ -2,6 +2,14 @@ import { vi } from 'bun:test';
 import { mock } from 'bun:test';
 import { JSDOM } from 'jsdom';
 
+// ── IndexedDB polyfill ──────────────────────────────────────────────────────
+// jsdom does not implement IndexedDB. Several modules construct an IndexedDB
+// singleton at import time (e.g. `@/services/db/IndexedDBService` calls
+// `openDB(...)` in its constructor), which throws `ReferenceError: indexedDB is
+// not defined` and surfaces as an unhandled rejection between tests. Registering
+// fake-indexeddb's globals gives those modules a real in-memory backing store.
+import 'fake-indexeddb/auto';
+
 // ── Pre-mock Vite-specific modules ──────────────────────────────────────────
 // These modules use `import.meta.glob` which is only available in Vite builds.
 // Registering stubs here prevents the "import.meta.glob is not a function"
