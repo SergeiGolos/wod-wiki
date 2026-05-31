@@ -67,15 +67,15 @@ export class SessionRootBlock extends RuntimeBlock {
 
         const behaviors = SessionRootBlock.buildBehaviors(config, runtime);
 
-        super(
+        super({
             runtime,
-            config.childGroups.flat(), // sourceIds - Flatten child groups to provide identity
+            sourceIds: config.childGroups.flat(), // Flatten child groups to provide identity
             behaviors,
             context,
-            blockKey,
-            'SessionRoot',
-            sessionLabel
-        );
+            key: blockKey,
+            blockType: 'SessionRoot',
+            label: sessionLabel,
+        });
     }
 
     /**

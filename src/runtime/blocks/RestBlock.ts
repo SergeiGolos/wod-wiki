@@ -59,15 +59,15 @@ export class RestBlock extends RuntimeBlock {
         const context = new BlockContext(runtime, blockKey.toString(), 'Rest');
         const behaviors = RestBlock.buildBehaviors(config);
 
-        super(
+        super({
             runtime,
-            [], // No source IDs for auto-generated block
+            sourceIds: [], // No source IDs for auto-generated block
             behaviors,
             context,
-            blockKey,
-            'Rest',
-            restLabel
-        );
+            key: blockKey,
+            blockType: 'Rest',
+            label: restLabel,
+        });
     }
 
     /**

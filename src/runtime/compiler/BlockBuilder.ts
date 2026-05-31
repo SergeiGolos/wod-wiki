@@ -269,15 +269,15 @@ export class BlockBuilder {
         // These behaviors are added implicitly and don't require strategy opt-in
         this.addBehaviorIfMissing(new CompletionTimestampBehavior());
 
-        const block = new RuntimeBlock(
-            this.runtime,
-            this.sourceIds,
-            Array.from(this.behaviors.values()),
-            this.context,
-            this.key,
-            this.blockType
+        const block = new RuntimeBlock({
+            runtime: this.runtime,
+            sourceIds: this.sourceIds,
+            behaviors: Array.from(this.behaviors.values()),
+            context: this.context,
+            key: this.key,
+            blockType: this.blockType,
             // label is NOT passed here — it's pushed as a Label metrics below
-        );
+        });
 
         // Push metrics memory preserving group structure from strategies
         if (this.metrics && this.metrics.length > 0) {

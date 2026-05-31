@@ -121,7 +121,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     }
 
     it('should return display-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('metric:label', [createFragment('label', 'My Block')]));
         block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
@@ -132,7 +132,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should return promote-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('metric:rep-target', [createFragment('rep', 21)]));
         block.pushMemory(new MemoryLocation('metric:promote', [createFragment('effort', 'Heavy')]));
@@ -143,7 +143,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should return private-tier locations only', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Squats')]));
         block.pushMemory(new MemoryLocation('metric:tracked', [createFragment('duration', 5000)]));
         block.pushMemory(new MemoryLocation('metric:label', [createFragment('label', 'Timer')]));
@@ -154,7 +154,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should return empty array when no matching tier exists', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('time', [createFragment('timer', { direction: 'up' })]));
         block.pushMemory(new MemoryLocation('round', [createFragment('round', { current: 1 })]));
 
@@ -164,7 +164,7 @@ describe('RuntimeBlock.getMetricMemoryByVisibility', () => {
     });
 
     it('should handle blocks with all three tiers', () => {
-        const block = new RuntimeBlock(runtime);
+        const block = new RuntimeBlock({ runtime });
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('action', 'Run')]));
         block.pushMemory(new MemoryLocation('metric:display', [createFragment('rep', '21')]));
         block.pushMemory(new MemoryLocation('metric:rep-target', [createFragment('rep', 15)]));

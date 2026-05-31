@@ -17,6 +17,33 @@ import { IRuntimeClock } from './contracts/IRuntimeClock';
 import { PopBlockAction } from './actions/stack/PopBlockAction';
 
 /**
+ * Options for constructing a {@link RuntimeBlock}.
+ *
+ * Construction goes through a single options object — there is no positional
+ * overload. The sanctioned way to build a block is {@link BlockBuilder.build},
+ * and the four block subclasses (RestBlock, EffortBlock, SessionRootBlock,
+ * WaitingToStartBlock) forward their own config into this shape.
+ */
+export interface RuntimeBlockOptions {
+    /** The owning runtime. */
+    runtime: IScriptRuntime;
+    /** Source statement ids this block was compiled from. Defaults to `[]`. */
+    sourceIds?: number[];
+    /** Behaviors composed onto this block. Defaults to `[]`. */
+    behaviors?: IRuntimeBehavior[];
+    /** Block context. A {@link BlockContext} is created from the key when omitted. */
+    context?: IBlockContext;
+    /** Block key. A fresh {@link BlockKey} is created when omitted. */
+    key?: BlockKey;
+    /** Stable type tag (e.g. 'Rest', 'SessionRoot'). */
+    blockType?: string;
+    /** Optional label, stored as a `metric:label` memory location. */
+    label?: string;
+    /** Optional display metric groups, each stored as a `metric:display` location. */
+    metrics?: MetricContainer[] | IMetric[][];
+}
+
+/**
  * RuntimeBlock represents an executable unit in the workout runtime.
  * 
  * Blocks are composed of behaviors that handle specific aspects (time, iteration, completion, etc.)
@@ -72,30 +99,24 @@ export class RuntimeBlock implements IRuntimeBlock {
     // Runtime reference (set during mount)
     protected _runtime?: IScriptRuntime;
 
-    constructor(
-        runtime: IScriptRuntime,
-        sourceIds: number[] = [],
-        behaviors: IRuntimeBehavior[] = [],
-        contextOrBlockType?: IBlockContext | string,
-        blockKey?: BlockKey,
-        blockTypeParam?: string,
-        label?: string,
-        metrics?: MetricContainer[] | IMetric[][]
-    ) {
+    constructor(options: RuntimeBlockOptions) {
+        const {
+            runtime,
+            sourceIds = [],
+            behaviors = [],
+            context,
+            key,
+            blockType,
+            label,
+            metrics,
+        } = options;
+
         this._runtime = runtime;
         this.sourceIds = sourceIds;
         this.behaviors = behaviors;
-
-        // Handle backward compatibility: if contextOrBlockType is a string, it's the old blockType parameter
-        if (typeof contextOrBlockType === 'string' || contextOrBlockType === undefined) {
-            this.key = blockKey ?? new BlockKey();
-            this.blockType = contextOrBlockType as string | undefined;
-            this.context = new BlockContext(runtime, this.key.toString());
-        } else {
-            this.key = blockKey ?? new BlockKey();
-            this.context = contextOrBlockType;
-            this.blockType = blockTypeParam;
-        }
+        this.key = key ?? new BlockKey();
+        this.blockType = blockType;
+        this.context = context ?? new BlockContext(runtime, this.key.toString());
 
         // Store label as a Label metrics in memory (only if explicitly provided)
         if (label) {
