@@ -5,6 +5,7 @@ import { DistanceMetric } from "../../runtime/compiler/metrics/DistanceMetric";
 import { ResistanceMetric } from "../../runtime/compiler/metrics/ResistanceMetric";
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { MeasuredMetric } from "../../runtime/compiler/metrics/MeasuredMetric";
+import { SlashMetric } from "../../runtime/compiler/metrics/SlashMetric";
 
 /** Source location carried alongside a metric (the parser's SyntaxMeta, which
  *  includes `raw`). Optional because the pure helper is used meta-less in tests. */
@@ -43,6 +44,11 @@ function metricForUnit(amount: number | undefined, token: string, dimension: Dim
 function isBareNumber(m: IMetric): boolean {
   // RepMetric carries a number, or `undefined` for a collectible `?` quantity.
   return m.type === MetricType.Rep && (typeof m.value === 'number' || m.value === undefined);
+}
+
+/** Whether a metric is a dedicated SlashMetric (grammar separator, never an effort). */
+function isSlashSeparator(m: IMetric): boolean {
+  return m.type === MetricType.Slash;
 }
 
 function effortText(m: IMetric): string | null {
@@ -113,6 +119,62 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
     const cur = pairs[i];
     const next = pairs[i + 1];
 
+    // ── effort/effort split: Effort(A) Slash Effort(B) → two separate efforts ──
+    // The SlashMetric is consumed as a separator; both effort tokens are preserved.
+    // e.g. "Run/Walk" → EffortMetric("Run") + EffortMetric("Walk")
+    if (next) {
+      const curText = effortText(cur.metric);
+      const thirdText = pairs[i + 2] ? effortText(pairs[i + 2].metric) : null;
+      if (
+        curText !== null &&
+        isSlashSeparator(next.metric) &&
+        thirdText !== null
+      ) {
+        out.push(cur);   // keep Effort(A)
+        i += 1;          // consume the SlashMetric
+        continue;        // Effort(B) at i+2 is picked up in next iteration
+      }
+    }
+
+    // ── {number}/{number} {unit} → two dimensioned metrics ──────────────────
+    // Detect the 4-token sequence: bareNumber  "/"  bareNumber  unitText
+    // e.g. "135/185 kg" → ResistanceMetric(135,"kg") + ResistanceMetric(185,"kg")
+    if (next && pairs[i + 2] && pairs[i + 3]) {
+      const second = pairs[i + 2];
+      const fourth = pairs[i + 3];
+      const fusable1 = isBareNumber(cur.metric) || hasEmptyUnit(cur.metric);
+      const fusable2 = isBareNumber(second.metric) || hasEmptyUnit(second.metric);
+
+      if (fusable1 && isSlashSeparator(next.metric) && fusable2) {
+        const text = effortText(fourth.metric);
+        const match = text !== null ? units.consumeLeading(text) : null;
+        if (match) {
+          const amount1 = isBareNumber(cur.metric)
+            ? (cur.metric.value as number | undefined)
+            : (cur.metric.value as { amount?: number }).amount;
+          const amount2 = isBareNumber(second.metric)
+            ? (second.metric.value as number | undefined)
+            : (second.metric.value as { amount?: number }).amount;
+          out.push({
+            metric: metricForUnit(amount1, match.token, match.unit.dimension),
+            meta: fusedMeta(cur.meta, fourth.meta, match.token),
+          });
+          out.push({
+            metric: metricForUnit(amount2, match.token, match.unit.dimension),
+            meta: fusedMeta(second.meta, fourth.meta, match.token),
+          });
+          if (match.rest) {
+            out.push({
+              metric: new EffortMetric(match.rest),
+              meta: residualMeta(fourth.meta, match.rest),
+            });
+          }
+          i += 3; // consume next ("/"), second (number), fourth (unit text)
+          continue;
+        }
+      }
+    }
+
     if (next) {
       const fusable = isBareNumber(cur.metric) || hasEmptyUnit(cur.metric);
       if (fusable) {
@@ -139,7 +201,7 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
     }
 
     out.push(cur);
-  }
+  } // end for
 
   return out;
 }

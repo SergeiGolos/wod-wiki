@@ -11,6 +11,7 @@ import {
   PropertyPrimitive,
   QuantityPrimitive,
   RoundsPrimitive,
+  SlashPrimitive,
   SyntaxFacts,
   SyntaxMeta,
   SyntaxPrimitive,
@@ -204,6 +205,19 @@ function mapFragmentToPrimitive(
     case terms.Effort: {
       const primitive: EffortPrimitive = {
         kind: 'effort',
+        raw,
+        meta,
+      };
+      return primitive;
+    }
+
+    case terms.Slash: {
+      // A bare "/" is emitted as a dedicated SlashPrimitive.
+      // The fuseUnits dialect uses it to expand `N/N unit` into two dimensioned metrics.
+      // Adjacent Effort tokens with gap=0 (e.g. "Run/Walk") are later merged back
+      // by mergeFragments into a single EffortMetric("Run/Walk").
+      const primitive: SlashPrimitive = {
+        kind: 'slash',
         raw,
         meta,
       };

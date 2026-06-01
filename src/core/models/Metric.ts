@@ -167,4 +167,13 @@ export enum MetricType {
 
   /** Runtime-layer calculated metric emitted from declarative formulas */
   Calculated = 'calculated',
+
+  /**
+   * **Slash** (Parser) — the "/" separator between paired quantities.
+   *
+   * A grammar-level token (`185/125 lb`) that the fuseUnits dialect consumes
+   * to produce two dimensioned metrics or to split adjacent effort tokens.
+   * Never surfaces in compiled blocks or display output.
+   */
+  Slash = 'slash',
 }

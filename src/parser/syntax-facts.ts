@@ -9,7 +9,7 @@ export interface SyntaxMeta {
 }
 
 interface BasePrimitive {
-  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'quantity' | 'effort' | 'property' | 'metric_object';
+  kind: 'lap' | 'duration' | 'rounds' | 'action' | 'text' | 'quantity' | 'effort' | 'slash' | 'property' | 'metric_object';
   raw: string;
   meta: SyntaxMeta;
 }
@@ -56,6 +56,14 @@ export interface EffortPrimitive extends BasePrimitive {
   kind: 'effort';
 }
 
+/**
+ * Slash primitive — emitted for a bare "/" between quantities.
+ * The fuseUnits dialect uses this to expand `N/N unit` into two dimensioned metrics.
+ */
+export interface SlashPrimitive extends BasePrimitive {
+  kind: 'slash';
+}
+
 export interface PropertyPrimitive extends BasePrimitive {
   kind: 'property';
   key: string;
@@ -71,6 +79,7 @@ export type SyntaxPrimitive =
   | TextPrimitive
   | QuantityPrimitive
   | EffortPrimitive
+  | SlashPrimitive
   | PropertyPrimitive
   | MetricObjectPrimitive;
 

@@ -16,6 +16,7 @@ export const whiteboardScriptLanguage = LRLanguage.define({
         plus: t.operator,
         trend: t.operator,
         atSign: t.operator,
+        "Slash/slash": t.operator,
         question: t.keyword,
         actionOpen: t.bracket,
         actionClose: t.bracket,

@@ -150,4 +150,31 @@ describe('extractSyntaxFacts', () => {
     expect(byId.get(3)?.children).toEqual([[4]]);
     expect(byId.get(2)?.children).toEqual([]);
   });
+
+  describe('Slash token — "/" independent of Effort', () => {
+    it('emits a slash primitive for a bare "/" between quantities', () => {
+      const state = buildState(`185/125 lb\n`);
+      const facts = extractSyntaxFacts(state);
+      const kinds = facts.statements[0].primitives.map((p) => p.kind);
+      expect(kinds).toContain('slash');
+      const slash = facts.statements[0].primitives.find((p) => p.kind === 'slash')!;
+      expect(slash.raw).toBe('/');
+    });
+
+    it('does NOT emit a slash primitive for "//" (comment)', () => {
+      const state = buildState(`Run // at pace\n`);
+      const facts = extractSyntaxFacts(state);
+      const kinds = facts.statements[0].primitives.map((p) => p.kind);
+      expect(kinds).not.toContain('slash');
+      expect(kinds).toContain('text');
+    });
+
+    it('emits effort primitives on both sides of "/" in "Run/Walk"', () => {
+      const state = buildState(`Run/Walk\n`);
+      const facts = extractSyntaxFacts(state);
+      const kinds = facts.statements[0].primitives.map((p) => p.kind);
+      // slash appears as its own primitive between the two effort primitives
+      expect(kinds).toEqual(['effort', 'slash', 'effort']);
+    });
+  });
 });

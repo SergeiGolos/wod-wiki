@@ -9,6 +9,7 @@ import { PropertyMetric } from '../runtime/compiler/metrics/PropertyMetric';
 import { RepMetric } from '../runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../runtime/compiler/metrics/RoundsMetric';
+import { SlashMetric } from '../runtime/compiler/metrics/SlashMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
 import { hintMetric } from '../core/metrics/hints';
 import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive } from './syntax-facts';
@@ -107,6 +108,11 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
     case 'effort':
       return [{ metrics: new EffortMetric(primitive.raw), meta: primitive.meta }];
 
+    case 'slash':
+      // A dedicated SlashMetric — never an effort, never displayed.
+      // fuseUnits consumes it to expand N/N unit or split Effort/Effort.
+      return [{ metrics: new SlashMetric(), meta: primitive.meta }];
+
     case 'property': {
       const metricType = PROPERTY_KEY_TO_METRIC_TYPE[primitive.key.toLowerCase()] ?? MetricType.Custom;
       return [{
@@ -148,6 +154,8 @@ function mergeFragments(pairs: MetricPair[]): MetricPair[] {
     const next = pairs[index];
 
     if (current.metrics instanceof EffortMetric && next.metrics instanceof EffortMetric) {
+      // SlashMetric (now its own type) sits between efforts as a separate pair,
+      // so the instanceof check already ensures we never merge across a slash.
       const gap = next.meta.startOffset - current.meta.endOffset;
       if (gap <= 1) {
         const mergedMeta: SyntaxMeta = {
