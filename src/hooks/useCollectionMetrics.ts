@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { MetricType, type IMetric } from '@/core/models/Metric';
 import { type Segment } from '@/core/models/AnalyticsModels';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import { WhiteboardScript } from '@/parser/WhiteboardScript';
+import type { WhiteboardScript } from '@/parser/WhiteboardScript';
 import { ChoiceGroupMetric } from '@/runtime/compiler/metrics/ChoiceGroupMetric';
 import { writeChoiceSelection } from '@/runtime/compiler/metrics/ChoiceResolution';
 
@@ -37,6 +37,7 @@ export interface ChoiceCollectionItem {
 }
 
 export type CollectionItem = ValueCollectionItem | ChoiceCollectionItem;
+type CollectionScript = Pick<WhiteboardScript, 'statements'>;
 
 /**
  * Facade: collapse a {@link ChoiceCollectionItem}'s selection into the script
@@ -46,7 +47,7 @@ export type CollectionItem = ValueCollectionItem | ChoiceCollectionItem;
  * `@/runtime/*` directly (components-layer boundary, WOD-225).
  */
 export function resolveChoiceSelection(
-  script: WhiteboardScript | null | undefined,
+  script: CollectionScript | null | undefined,
   item: ChoiceCollectionItem,
   selectedIndex: number,
 ): void {
@@ -58,7 +59,7 @@ export function resolveChoiceSelection(
 export function useCollectionMetrics(
   segments: Segment[],
   userOverrides: Map<string, MetricContainer>,
-  script?: WhiteboardScript | null
+  script?: CollectionScript | null
 ) {
   const collectionItems = useMemo(() => {
     const items: CollectionItem[] = [];
@@ -76,21 +77,14 @@ export function useCollectionMetrics(
           // Choice Group: slash-separated OR expression needing pre-run resolution
           if (metric.type === MetricType.Choice) {
             const choice = metric as ChoiceGroupMetric;
-            // Already resolved at user-plan level? (first alternative type written back)
-            const resolvedType = choice.alternatives[0]?.type;
-            const alreadyResolved = resolvedType
-              ? overrides?.some(o => o.type === resolvedType && o.origin === 'user-plan')
-              : false;
-            if (!alreadyResolved) {
-              items.push({
-                kind: 'choice',
-                blockKey,
-                exerciseLabel,
-                alternatives: choice.alternatives,
-                selectedIndex: 0,
-                statementIndex: i,
-              } satisfies ChoiceCollectionItem);
-            }
+            items.push({
+              kind: 'choice',
+              blockKey,
+              exerciseLabel,
+              alternatives: choice.alternatives,
+              selectedIndex: 0,
+              statementIndex: i,
+            } satisfies ChoiceCollectionItem);
             continue;
           }
 

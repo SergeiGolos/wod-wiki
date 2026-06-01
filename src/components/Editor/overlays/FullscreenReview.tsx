@@ -77,6 +77,7 @@ export const FullscreenReview: React.FC<FullscreenReviewProps> = ({
   };
 
   const handleCollectionSave = (item: CollectionItem, value: any) => {
+    if (item.kind !== 'value') return;
     setOverride(item.blockKey, item.metricType, value);
   };
 

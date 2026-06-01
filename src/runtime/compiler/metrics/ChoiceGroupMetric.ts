@@ -12,13 +12,10 @@ import { IMetric, MetricType, MetricOrigin } from "../../../core/models/Metric";
  * 1. `fuseUnits` emits one ChoiceGroupMetric per homogeneous slash group, at origin `parser`.
  * 2. The Pre-Run Wizard finds it via `useCollectionMetrics` (scans for `MetricType.Choice`).
  * 3. The first alternative is pre-selected; the user may change it.
- * 4. On "Start Workout", the chosen alternative is written into the same Statement's
- *    MetricContainer at origin `user-plan`, shadowing this group via ownership-layer
- *    precedence (`user-plan` tier 2 > `parser` tier 3).
- * 5. The JIT compiler filters `MetricType.Choice` from its cache key (same as Hint)
- *    and strategies ignore it naturally — no strategy handles `MetricType.Choice`.
- * 6. Post-run, the group is never shown in display output (suppressed by the ownership
- *    ledger once the user-plan metric is present).
+ * 4. On "Start Workout", the selected alternative replaces this Choice group in
+ *    the same Statement's MetricContainer at origin `user-plan`.
+ * 5. The runtime/compiler must not consume `MetricType.Choice`; any non-wizard
+ *    entry point defaults unresolved choices before runtime creation.
  */
 export class ChoiceGroupMetric implements IMetric {
   readonly type = MetricType.Choice;

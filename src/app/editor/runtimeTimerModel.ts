@@ -6,12 +6,15 @@ import { toStoredOutputStatement } from '@/components/Editor/types';
 
 const factory = runtimeFactory;
 
-export function createRuntimeForBlock(block: WodBlock): IScriptRuntime | null {
-  const blockWithStatements = block.statements?.length
-    ? block
-    : { ...block, statements: globalParser.read(block.content).statements };
+export function prepareRuntimeBlock(block: WodBlock): WodBlock & { statements: NonNullable<WodBlock['statements']> } {
+  if (block.statements?.length) {
+    return block as WodBlock & { statements: NonNullable<WodBlock['statements']> };
+  }
+  return { ...block, statements: globalParser.read(block.content).statements };
+}
 
-  return factory.createRuntime(blockWithStatements) ?? null;
+export function createRuntimeForBlock(block: WodBlock): IScriptRuntime | null {
+  return factory.createRuntime(prepareRuntimeBlock(block)) ?? null;
 }
 
 export function buildWorkoutResults(

@@ -32,7 +32,7 @@ import type { WodBlock, WorkoutResults } from "../types";
 import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-unified";
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
-import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock } from "@/app/editor/runtimeTimerModel";
+import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock, prepareRuntimeBlock } from "@/app/editor/runtimeTimerModel";
 import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
 import { CollectionWizard } from "@/components/review/CollectionWizard";
 import { MetricContainer } from "@/core/models/MetricContainer";
@@ -146,21 +146,30 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   autoStart,
   onRuntimeReady,
 }) => {
+  const [runtimeBlock] = useState(() => prepareRuntimeBlock(block));
+  const [preRunScript] = useState(() => ({ statements: runtimeBlock.statements }));
   const [runtime, setRuntime] = useState<IScriptRuntime | null>(null);
   const [ready, setReady] = useState(false);
   const [outputCount, setOutputCount] = useState(0);
   const [completedAt, setCompletedAt] = useState<Date | null>(null);
+  const [wizardDone, setWizardDone] = useState(false);
+  const [pendingStart, setPendingStart] = useState(false);
 
   // Gutter base: 0-indexed block.startLine → 1-based fence line
   // statement sourceId = 1-based line within content
   // document line = (block.startLine + 1) + sourceId
   const gutterBase = block.startLine + 1;
 
-  // Create runtime on mount; clean up on unmount
+  const emptyOverrides = React.useMemo(() => new Map<string, MetricContainer>(), []);
+  const { collectionItems } = useCollectionMetrics([], emptyOverrides, preRunScript);
+
+  // Create runtime only after pre-run collection has been resolved. This keeps
+  // ChoiceGroupMetric out of RuntimeFactory unless the entry point has no wizard,
+  // where the factory's safety net defaults it.
   useEffect(() => {
-    // Parse content if statements aren't already populated (sectionToWodBlock
-    // doesn't run the parser, so statements is typically undefined here).
-    const rt = createRuntimeForBlock(block);
+    if (!wizardDone && collectionItems.length > 0) return;
+
+    const rt = createRuntimeForBlock(runtimeBlock);
     if (!rt) {
       // Block has no compilable statements — nothing to run
       return;
@@ -201,21 +210,23 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
       unsubStack();
       unsubOutput();
       if (view) dispatchGutterHighlights(view, []); // clear gutter on unmount
-      rt?.dispose();
+      rt.dispose();
     };
 
-    // Block identity pinned at mount — do not re-run on block changes
+    // Block identity pinned at mount; pre-run collection is the only creation gate.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wizardDone, collectionItems.length]);
 
   const execution = useRuntimeExecution(runtime as ScriptRuntime | null);
 
-  // Auto-start workout if requested via props
+  // Auto-start only after the runtime exists; if collection is required, the
+  // wizard's Start button sets pendingStart after resolving the choices.
   useEffect(() => {
-    if (autoStart && ready && execution.status === 'idle') {
+    if ((autoStart || pendingStart) && ready && execution.status === 'idle') {
       execution.start();
+      setPendingStart(false);
     }
-  }, [autoStart, ready, execution.status, execution.start]);
+  }, [autoStart, pendingStart, ready, execution.status, execution.start]);
 
   const handleComplete = useCallback((completed: boolean) => {
     if (!runtime) return;
@@ -225,7 +236,7 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     const allOutputs = runtime.getOutputStatements();
 
     const results: WorkoutResults = buildWorkoutResults(allOutputs, {
-      startTime: execution.startTime,
+      startTime: execution.startTime ?? undefined,
       elapsedTime: execution.elapsedTime,
       completed,
     });
@@ -272,22 +283,19 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
   };
 
   // ── Pre-run Choice Wizard ─────────────────────────────────────────────────
-  // Scan the parsed script for ChoiceGroupMetric entries and present the
-  // selection dialog before the workout starts. The wizard's "Start Workout"
-  // button resolves all choices (writing the chosen metric at origin
-  // 'user-plan' into stmt.metrics) then calls execution.start().
-  const emptyOverrides = React.useMemo(() => new Map<string, MetricContainer>(), []);
-  const { collectionItems } = useCollectionMetrics([], emptyOverrides, runtime?.script ?? null);
-  const [wizardDone, setWizardDone] = useState(false);
-  const showChoiceWizard = ready && execution.status === 'idle' && !wizardDone && collectionItems.length > 0;
+  // Scan the parsed block before RuntimeFactory can default unresolved choices.
+  // The wizard's Start button resolves all choices into the same statements,
+  // then runtime creation proceeds from those collapsed statements.
+  const showChoiceWizard = !wizardDone && collectionItems.length > 0;
 
   const handleWizardStart = () => {
     setWizardDone(true);
-    handleStart();
+    setPendingStart(true);
+    if (!isExpanded) onToggleExpand?.();
   };
 
   const resolveChoice = (item: ChoiceCollectionItem, selectedIndex: number) => {
-    resolveChoiceSelection(runtime?.script, item, selectedIndex);
+    resolveChoiceSelection(preRunScript, item, selectedIndex);
   };
 
   const handleNext = () => {
@@ -339,17 +347,9 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     // Only re-run when transport connection changes or runtime is created
   }, [castTransport?.connected, runtime, execution, handleStop, ready]);
 
-  if (!ready || !runtime) {
+  if (showChoiceWizard) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Initializing…
-      </div>
-    );
-  }
-
-  return (
-    <PanelSizeProvider>
-      {showChoiceWizard && (
+      <PanelSizeProvider>
         <CollectionWizard
           items={collectionItems}
           onSave={(item, val) => {
@@ -363,19 +363,30 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
           onStart={handleWizardStart}
           mode="pre-run"
         />
-      )}
-      {!showChoiceWizard && (
-        <ScriptRuntimeProvider runtime={runtime}>
-          <RuntimeTimerBody
-            execution={execution}
-            outputCount={outputCount}
-            completedAt={completedAt}
-            handleStart={handleStart}
-            handleStop={handleStop}
-            handleNext={handleNext}
-          />
-        </ScriptRuntimeProvider>
-      )}
+      </PanelSizeProvider>
+    );
+  }
+
+  if (!ready || !runtime) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        Initializing…
+      </div>
+    );
+  }
+
+  return (
+    <PanelSizeProvider>
+      <ScriptRuntimeProvider runtime={runtime}>
+        <RuntimeTimerBody
+          execution={execution}
+          outputCount={outputCount}
+          completedAt={completedAt}
+          handleStart={handleStart}
+          handleStop={handleStop}
+          handleNext={handleNext}
+        />
+      </ScriptRuntimeProvider>
     </PanelSizeProvider>
   );
 };

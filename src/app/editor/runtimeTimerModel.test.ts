@@ -1,8 +1,29 @@
 import { describe, expect, it } from 'bun:test';
 import { MetricContainer } from '@/core/models/MetricContainer';
-import { buildWorkoutResults, countSegmentOutputs } from './runtimeTimerModel';
+import { MetricType } from '@/core/models/Metric';
+import { buildWorkoutResults, countSegmentOutputs, prepareRuntimeBlock } from './runtimeTimerModel';
+import type { WodBlock } from '@/components/Editor/types';
+
+function makeBlock(content: string): WodBlock {
+  return {
+    id: 'block-1',
+    startLine: 0,
+    endLine: 2,
+    content,
+    state: 'parsed',
+    widgetIds: {},
+    version: 1,
+    createdAt: Date.now(),
+  };
+}
 
 describe('runtimeTimerModel', () => {
+  it('prepares parsed statements without collapsing choices', () => {
+    const block = prepareRuntimeBlock(makeBlock('135/185 lbs'));
+
+    expect(block.statements.length).toBeGreaterThan(0);
+    expect(block.statements.some(stmt => stmt.metrics.some(m => m.type === MetricType.Choice))).toBe(true);
+  });
   it('counts only segment outputs', () => {
     const outputs = [
       { outputType: 'segment' },

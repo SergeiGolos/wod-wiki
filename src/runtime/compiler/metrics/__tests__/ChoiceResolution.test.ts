@@ -38,8 +38,8 @@ describe('ChoiceResolution', () => {
     expect(userPlan).toHaveLength(1);
     expect(userPlan[0].type).toBe(MetricType.Resistance);
     expect((userPlan[0].value as any).amount).toBe(125);
-    // The Choice Group itself is left in place (shadowed by ownership precedence).
-    expect(s.metrics.some((m: IMetric) => m.type === MetricType.Choice)).toBe(true);
+    // The Choice Group itself is removed; runtime code only sees the concrete pick.
+    expect(s.metrics.some((m: IMetric) => m.type === MetricType.Choice)).toBe(false);
     expect(isChoiceResolved(s, choice)).toBe(true);
   });
 
@@ -53,6 +53,7 @@ describe('ChoiceResolution', () => {
     const userPlan = s.metrics.filter((m: IMetric) => m.origin === 'user-plan');
     expect(userPlan).toHaveLength(1);
     expect((userPlan[0].value as any).amount).toBe(125);
+    expect(s.metrics.some((m: IMetric) => m.type === MetricType.Choice)).toBe(false);
   });
 
   it('out-of-range selection falls back to the first alternative', () => {
@@ -70,18 +71,22 @@ describe('ChoiceResolution', () => {
     const collapsed = collapseUnresolvedChoices([s1, s2]);
     expect(collapsed).toBe(2);
     expect(findUnresolvedChoices([s1, s2])).toHaveLength(0);
+    expect(s1.metrics.some((m: IMetric) => m.type === MetricType.Choice)).toBe(false);
+    expect(s2.metrics.some((m: IMetric) => m.type === MetricType.Choice)).toBe(false);
     expect((s1.metrics.find((m: IMetric) => m.origin === 'user-plan')!.value as any).amount).toBe(185);
   });
 
-  it('collapseUnresolvedChoices leaves already-resolved groups untouched', () => {
+  it('collapseUnresolvedChoices removes stale Choice groups without resetting an existing pick', () => {
     const choice = new ChoiceGroupMetric([resistance(185), resistance(125)]);
     const s = stmt(1, [choice]);
-    writeChoiceSelection(s, choice.alternatives, 1); // user already picked 125
+    s.metrics.add({ ...resistance(125), origin: 'user-plan' });
 
     const collapsed = collapseUnresolvedChoices([s]);
-    expect(collapsed).toBe(0);
+
+    expect(collapsed).toBe(1);
+    expect(s.metrics.some((m: IMetric) => m.type === MetricType.Choice)).toBe(false);
     const userPlan = s.metrics.filter((m: IMetric) => m.origin === 'user-plan');
     expect(userPlan).toHaveLength(1);
-    expect((userPlan[0].value as any).amount).toBe(125); // not reset to default 185
+    expect((userPlan[0].value as any).amount).toBe(125);
   });
 });
