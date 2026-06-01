@@ -53,6 +53,19 @@ export interface IDialect {
   /** Display name */
   name: string;
   /**
+   * Optionally rewrite the statement's metrics in place before {@link analyze}.
+   *
+   * This is the transform half of the Dialect contract (the {@link DialectAnalysis}
+   * return value is the append half). The base Units Dialect implements this to
+   * fuse bare Number + unit-word metrics into dimensioned metrics; most dialects
+   * leave it undefined and only append hints.
+   *
+   * Dialects run in registration order and each observes the previous dialects'
+   * output, so a sport dialect's `transform` sees units already fused by the base
+   * Units Dialect (the Dialect Stack). Implementations must be idempotent.
+   */
+  transform?(statement: ICodeStatement): void;
+  /**
    * Analyze a statement and return emitted metrics (hint markers + values).
    * Called after parsing, before JIT compilation.
    */

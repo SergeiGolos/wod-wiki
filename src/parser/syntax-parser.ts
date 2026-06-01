@@ -189,20 +189,14 @@ function mapFragmentToPrimitive(
 
     case terms.Quantity: {
       const hasAtSign = !!node.getChild('AtSign');
-      const hasWeightUnit = !!node.getChild('WeightUnit');
-      const hasDistanceUnit = !!node.getChild('DistanceUnit');
       const numberNode = node.getChild('Number');
-      const unitNode = node.getChild('WeightUnit') || node.getChild('DistanceUnit');
 
       const primitive: QuantityPrimitive = {
         kind: 'quantity',
         raw,
         meta,
         value: numberNode ? parseFloat(source.slice(numberNode.from, numberNode.to)) : undefined,
-        unit: unitNode ? source.slice(unitNode.from, unitNode.to) : '',
         hasAtSign,
-        hasWeightUnit,
-        hasDistanceUnit,
       };
       return primitive;
     }

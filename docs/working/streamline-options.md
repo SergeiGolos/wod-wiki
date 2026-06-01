@@ -9,6 +9,33 @@ vocabulary from `CONTEXT.md`.
 
 ## Completed
 
+### ✅ Move units out of the grammar into a core Unit Registry + Dialect fusion (2026-05)
+
+**What changed.** Units of measurement used to be baked into the Lezer grammar as
+two tokens (`distanceUnit`, `weightUnit`) — incomplete (no `in`, `lbs`, `cal`,
+`pood`…), alias-less, and impossible for a Dialect to extend. They are gone.
+
+- **Core `UnitRegistry`** (`src/core/metrics/units/`) — a pure, importable catalog:
+  `UnitDef { canonical, dimension, aliases }`, a composable `UnitSet`
+  (`get` / `has` / `consumeLeading` / `extend`), and `UnitRegistry.standard()`.
+  Complete base set across length / mass / energy with acronyms.
+- **`fuseUnits` pass** (`src/dialects/units/fuseUnits.ts`) — the one shared,
+  idempotent, metricMeta-aware rewrite that turns a bare Number + unit-word
+  (`Rep(100)` + `Effort("m Run")`) into a dimensioned Metric + residual Effort
+  (`Distance(100,"m")` + `Effort("Run")`).
+- **Dialect contract grew a transform half.** `IDialect.transform?(statement)` runs
+  before `analyze` in `DialectRegistry.process`; the **Dialect Stack** composes in
+  registration order so later dialects see fused units (Shape B).
+- **`UnitsDialect`** — the base dialect; `transform` calls `fuseUnits` with the
+  standard set. Sport/personal dialects pass an extended `UnitSet`.
+- **Parser is unit-free.** Grammar tokens removed and `parser.ts` regenerated; the
+  classifier emits bare Rep/Effort (and `Resistance` for the `@` load marker). The
+  base `UnitsDialect` runs as the final layer inside `extractStatements`, so every
+  parse consumer (read, editor preview, tests) gets units uniformly.
+
+Non-length/mass dimensions (e.g. energy `cal`) fuse into a generic
+`MeasuredMetric`. A future deepening would give energy a first-class metric type.
+
 ### ✅ Unify dialect hints + metrics onto a single metric channel (2026-05)
 
 **What changed.** Dialects and the parser used to attach semantic markers through a
@@ -32,6 +59,24 @@ metrics or block fragments):
 ---
 
 ## Open candidates
+
+### 0. Wire sport/personal unit sets into real dialects + give energy a metric type
+
+**Files.** `src/dialects/CrossFitDialect.ts` (and other sports), `src/core/models/Metric.ts`,
+`src/runtime/compiler/metrics/MeasuredMetric.ts`, analytics engines.
+
+**Problem.** The unit-fusion machinery composes per dialect (Shape B), but only the
+base `UnitsDialect` is wired in today. `pood` and other domain units live only in
+tests. Separately, energy (`cal`) fuses into a generic `MeasuredMetric` with string
+type `'energy'`, so calorie analytics can't find it through the `MetricType` enum.
+
+**Solution.** (a) Give `CrossFitDialect` (and rower/cardio) a `transform` that runs
+`fuseUnits` with `UnitRegistry.standard().extend(…)` for its domain units — proving
+the stack end-to-end. (b) Add `MetricType.Calorie` (or `Energy`) and a `CalorieMetric`,
+and map the energy dimension to it in `fuseUnits`.
+
+**Benefit.** Locality: domain units sit with the domain dialect. Leverage: analytics
+reads calories through the same typed channel as distance/resistance.
 
 ### 1. Complete the ownership-ledger migration (retire `MetricContainer` precedence)
 

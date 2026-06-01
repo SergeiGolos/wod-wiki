@@ -50,6 +50,11 @@ export class DialectRegistry {
    */
   process(statement: ICodeStatement): void {
     for (const dialect of this.dialects.values()) {
+      // Transform half: rewrite metrics in place (e.g. the base Units Dialect
+      // fuses Number + unit-word into dimensioned metrics). Runs before this
+      // dialect's analyze so its own append step sees the rewritten metrics.
+      dialect.transform?.(statement);
+
       const analysis: DialectAnalysis = dialect.analyze(statement);
 
       // Append dialect metrics (hint markers + domain values) onto the

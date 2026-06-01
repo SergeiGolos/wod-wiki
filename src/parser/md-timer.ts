@@ -27,7 +27,7 @@ export class MdTimerRuntime {
       });
 
       const statements = extractStatements(state);
-      
+
       // Lezer doesn't provide a list of ParseErrors in the same way Chevrotain does,
       // it produces a tree with error nodes. For now, we return empty errors list.
       return new WhiteboardScript(inputText, statements, []);

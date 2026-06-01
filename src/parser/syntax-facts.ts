@@ -49,10 +49,7 @@ export interface TextPrimitive extends BasePrimitive {
 export interface QuantityPrimitive extends BasePrimitive {
   kind: 'quantity';
   value?: number;
-  unit: string;
   hasAtSign: boolean;
-  hasWeightUnit: boolean;
-  hasDistanceUnit: boolean;
 }
 
 export interface EffortPrimitive extends BasePrimitive {

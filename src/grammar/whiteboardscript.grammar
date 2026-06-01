@@ -29,13 +29,11 @@ MetricObject { objectOpen (Identifier | Number | String | colon | comma | True |
 
 AtSign { atSign }
 Question { question }
-DistanceUnit { distanceUnit }
-WeightUnit { weightUnit }
 Trend { trend }
 CollectibleTimer { collectibleTimer }
 
 Quantity {
-  (AtSign)? ( (Question | Number) (DistanceUnit | WeightUnit)? !quantity | (DistanceUnit | WeightUnit) )
+  (AtSign)? (Question | Number) !quantity
 }
 
 Duration { (Trend | rest)? (CollectibleTimer | Timer) }
@@ -54,8 +52,6 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
   Number { $[0-9]* "." $[0-9]+ | $[0-9]+ }
   Timer { (":" $[0-9]+) | ($[0-9]+ ":")+ $[0-9]+ }
   collectibleTimer { ":?" }
-  distanceUnit { ("m" | "ft" | "mile" | "km" | "miles") }
-  weightUnit { ("kg" | "lb" | "bw") }
   Identifier { $[a-zA-Z] $[a-zA-Z0-9]* }
   String { '"' (![\\\n\r] | "\\" _) * '"' }
   textComment { "//" ![\n\r]* }
@@ -83,8 +79,6 @@ Effort { (Identifier | allowedSymbol | minus)+ !effort }
     textComment, 
     collectibleTimer, 
     Timer, 
-    weightUnit, 
-    distanceUnit, 
     atSign,
     trend,
     rest,

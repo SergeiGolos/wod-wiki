@@ -93,12 +93,12 @@ function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
     }
 
     case 'quantity': {
-      if (primitive.hasWeightUnit || primitive.hasAtSign) {
-        return [{ metrics: new ResistanceMetric(primitive.value, primitive.unit), meta: primitive.meta }];
-      }
-
-      if (primitive.hasDistanceUnit) {
-        return [{ metrics: new DistanceMetric(primitive.value, primitive.unit), meta: primitive.meta }];
+      // Units are no longer a parser concept: a bare number is a Rep, and the
+      // `@` marker denotes a load (Resistance with an as-yet-empty unit). The
+      // base Units Dialect later fuses any following unit word (e.g. "kg") into
+      // a dimensioned metric (see dialects/units/fuseUnits).
+      if (primitive.hasAtSign) {
+        return [{ metrics: new ResistanceMetric(primitive.value, ''), meta: primitive.meta }];
       }
 
       return [{ metrics: new RepMetric(primitive.value), meta: primitive.meta }];
