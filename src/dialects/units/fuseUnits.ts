@@ -6,6 +6,7 @@ import { ResistanceMetric } from "../../runtime/compiler/metrics/ResistanceMetri
 import { EffortMetric } from "../../runtime/compiler/metrics/EffortMetric";
 import { MeasuredMetric } from "../../runtime/compiler/metrics/MeasuredMetric";
 import { SlashMetric } from "../../runtime/compiler/metrics/SlashMetric";
+import { ChoiceGroupMetric } from "../../runtime/compiler/metrics/ChoiceGroupMetric";
 
 /** Source location carried alongside a metric (the parser's SyntaxMeta, which
  *  includes `raw`). Optional because the pure helper is used meta-less in tests. */
@@ -119,9 +120,17 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
     const cur = pairs[i];
     const next = pairs[i + 1];
 
-    // ── effort/effort split: Effort(A) Slash Effort(B) → two separate efforts ──
-    // The SlashMetric is consumed as a separator; both effort tokens are preserved.
-    // e.g. "Run/Walk" → EffortMetric("Run") + EffortMetric("Walk")
+    // ── SlashMetric guard: a bare slash that no pattern consumed is silently dropped ──
+    // This handles heterogeneous slash (e.g. "Run/5" — Effort + Rep) where no
+    // ChoiceGroup is emitted. The slash token should never appear in output.
+    if (cur.metric.type === MetricType.Slash) {
+      continue;
+    }
+
+    // ── effort/effort choice: Effort(A) Slash Effort(B) → ChoiceGroupMetric ──────
+    // Homogeneous: both sides are Effort → emit a single ChoiceGroupMetric.
+    // Heterogeneous (e.g. Run/5): the slash guard above will drop the slash
+    // when it becomes cur in the next iteration.
     if (next) {
       const curText = effortText(cur.metric);
       const thirdText = pairs[i + 2] ? effortText(pairs[i + 2].metric) : null;
@@ -130,15 +139,30 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
         isSlashSeparator(next.metric) &&
         thirdText !== null
       ) {
-        out.push(cur);   // keep Effort(A)
-        i += 1;          // consume the SlashMetric
-        continue;        // Effort(B) at i+2 is picked up in next iteration
+        // Collect all consecutive slash-separated efforts into one group.
+        const alternatives: IMetric[] = [cur.metric];
+        let j = i + 1; // points at the SlashMetric
+        while (
+          j + 1 < pairs.length &&
+          isSlashSeparator(pairs[j].metric) &&
+          effortText(pairs[j + 1].metric) !== null
+        ) {
+          alternatives.push(pairs[j + 1].metric);
+          j += 2;
+        }
+        out.push({
+          metric: new ChoiceGroupMetric(alternatives),
+          meta: cur.meta,
+        });
+        i = j - 1; // consume all slash+effort pairs (for-loop does i++)
+        continue;
       }
     }
 
-    // ── {number}/{number} {unit} → two dimensioned metrics ──────────────────
-    // Detect the 4-token sequence: bareNumber  "/"  bareNumber  unitText
-    // e.g. "135/185 kg" → ResistanceMetric(135,"kg") + ResistanceMetric(185,"kg")
+    // ── {number}/{number} {unit} → ChoiceGroupMetric (homogeneous) ──────────────
+    // Detect the 4-token sequence: bareNumber  Slash  bareNumber  unitText
+    // Both numbers fuse to the same MetricType → ChoiceGroupMetric.
+    // e.g. "185/125 lb" → ChoiceGroupMetric([Resistance(185,"lb"), Resistance(125,"lb")])
     if (next && pairs[i + 2] && pairs[i + 3]) {
       const second = pairs[i + 2];
       const fourth = pairs[i + 3];
@@ -155,22 +179,26 @@ function fusePairs(pairs: MetaPair[], units: UnitSet): MetaPair[] {
           const amount2 = isBareNumber(second.metric)
             ? (second.metric.value as number | undefined)
             : (second.metric.value as { amount?: number }).amount;
-          out.push({
-            metric: metricForUnit(amount1, match.token, match.unit.dimension),
-            meta: fusedMeta(cur.meta, fourth.meta, match.token),
-          });
-          out.push({
-            metric: metricForUnit(amount2, match.token, match.unit.dimension),
-            meta: fusedMeta(second.meta, fourth.meta, match.token),
-          });
-          if (match.rest) {
+
+          const alt1 = metricForUnit(amount1, match.token, match.unit.dimension);
+          const alt2 = metricForUnit(amount2, match.token, match.unit.dimension);
+
+          // Homogeneous check: both alternatives must resolve to the same MetricType.
+          if (alt1.type === alt2.type) {
+            const choiceMeta = fusedMeta(cur.meta, fourth.meta, match.token);
             out.push({
-              metric: new EffortMetric(match.rest),
-              meta: residualMeta(fourth.meta, match.rest),
+              metric: new ChoiceGroupMetric([alt1, alt2]),
+              meta: choiceMeta,
             });
+            if (match.rest) {
+              out.push({
+                metric: new EffortMetric(match.rest),
+                meta: residualMeta(fourth.meta, match.rest),
+              });
+            }
+            i += 3; // consume Slash, second number, unit text
+            continue;
           }
-          i += 3; // consume next ("/"), second (number), fourth (unit text)
-          continue;
         }
       }
     }

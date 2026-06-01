@@ -33,6 +33,10 @@ import type { IOutputStatement } from "@/core/models/OutputStatement";
 import { dispatchGutterHighlights } from "../extensions/gutter-unified";
 import { buildCompletedRuntimeProjection } from "@/app/cast/workbenchProjection";
 import { buildWorkoutResults, countSegmentOutputs, createRuntimeForBlock } from "@/app/editor/runtimeTimerModel";
+import { useCollectionMetrics, resolveChoiceSelection } from "@/hooks/useCollectionMetrics";
+import { CollectionWizard } from "@/components/review/CollectionWizard";
+import { MetricContainer } from "@/core/models/MetricContainer";
+import type { ChoiceCollectionItem } from "@/hooks/useCollectionMetrics";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -267,6 +271,25 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
     if (!isExpanded) onToggleExpand?.();
   };
 
+  // ── Pre-run Choice Wizard ─────────────────────────────────────────────────
+  // Scan the parsed script for ChoiceGroupMetric entries and present the
+  // selection dialog before the workout starts. The wizard's "Start Workout"
+  // button resolves all choices (writing the chosen metric at origin
+  // 'user-plan' into stmt.metrics) then calls execution.start().
+  const emptyOverrides = React.useMemo(() => new Map<string, MetricContainer>(), []);
+  const { collectionItems } = useCollectionMetrics([], emptyOverrides, runtime?.script ?? null);
+  const [wizardDone, setWizardDone] = useState(false);
+  const showChoiceWizard = ready && execution.status === 'idle' && !wizardDone && collectionItems.length > 0;
+
+  const handleWizardStart = () => {
+    setWizardDone(true);
+    handleStart();
+  };
+
+  const resolveChoice = (item: ChoiceCollectionItem, selectedIndex: number) => {
+    resolveChoiceSelection(runtime?.script, item, selectedIndex);
+  };
+
   const handleNext = () => {
     runtime?.handle(new NextEvent());
   };
@@ -326,16 +349,33 @@ export const RuntimeTimerPanel: React.FC<RuntimeTimerPanelProps> = ({
 
   return (
     <PanelSizeProvider>
-      <ScriptRuntimeProvider runtime={runtime}>
-        <RuntimeTimerBody
-          execution={execution}
-          outputCount={outputCount}
-          completedAt={completedAt}
-          handleStart={handleStart}
-          handleStop={handleStop}
-          handleNext={handleNext}
+      {showChoiceWizard && (
+        <CollectionWizard
+          items={collectionItems}
+          onSave={(item, val) => {
+            if (item.kind === 'choice') {
+              resolveChoice(item as ChoiceCollectionItem, val as number);
+            } else {
+              // value items: no-op in inline timer (no override store)
+            }
+          }}
+          onSkip={() => {}}
+          onStart={handleWizardStart}
+          mode="pre-run"
         />
-      </ScriptRuntimeProvider>
+      )}
+      {!showChoiceWizard && (
+        <ScriptRuntimeProvider runtime={runtime}>
+          <RuntimeTimerBody
+            execution={execution}
+            outputCount={outputCount}
+            completedAt={completedAt}
+            handleStart={handleStart}
+            handleStop={handleStop}
+            handleNext={handleNext}
+          />
+        </ScriptRuntimeProvider>
+      )}
     </PanelSizeProvider>
   );
 };

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { MetricType } from '@/core/models/Metric';
-import { type CollectionItem } from '@/hooks/useCollectionMetrics';
+import { type CollectionItem, type ChoiceCollectionItem, type ValueCollectionItem } from '@/hooks/useCollectionMetrics';
 import { cn } from '@/lib/utils';
-import { AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface CollectionWizardProps {
   items: CollectionItem[];
@@ -14,21 +14,7 @@ interface CollectionWizardProps {
   className?: string;
 }
 
-const METRIC_ICONS: Record<string, string> = {
-  [MetricType.Duration]: '⏱️',
-  [MetricType.Rep]: '💪',
-  [MetricType.Distance]: '📏',
-  [MetricType.Resistance]: '💪',
-};
-
-const METRIC_LABELS: Record<string, string> = {
-  [MetricType.Duration]: 'Duration',
-  [MetricType.Rep]: 'Reps',
-  [MetricType.Distance]: 'Distance',
-  [MetricType.Resistance]: 'Weight',
-};
-
-export const CollectionWizard: React.FC<CollectionWizardProps> = ({
+const CollectionWizard: React.FC<CollectionWizardProps> = ({
   items,
   onSave,
   onSkip,
@@ -39,24 +25,31 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [inputValue, setInputValue] = useState('');
+  // Per-item selected index for choice items (keyed by item array index, default 0)
+  const [choiceSelections, setChoiceSelections] = useState<Record<number, number>>(() => {
+    const init: Record<number, number> = {};
+    items.forEach((item, idx) => { if (item.kind === 'choice') init[idx] = 0; });
+    return init;
+  });
   const [isExpanded, setIsExpanded] = useState(mode === 'pre-run');
 
   if (items.length === 0) return null;
 
   const currentItem = items[currentIndex];
-  const progress = Math.round(((items.length - items.length) / items.length) * 100); // Placeholder for actual progress if tracked externally
 
   const handleSave = () => {
-    if (!inputValue) return;
-    onSave(currentItem, inputValue);
-    setInputValue('');
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    if (currentItem.kind === 'choice') {
+      // No-op: selection tracked in choiceSelections state
+    } else {
+      if (!inputValue) return;
+      onSave(currentItem, inputValue);
+      setInputValue('');
     }
+    if (currentIndex < items.length - 1) setCurrentIndex(currentIndex + 1);
   };
 
   const handleSkip = () => {
-    onSkip(currentItem);
+    if (currentItem.kind !== 'choice') onSkip(currentItem);
     if (currentIndex < items.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setInputValue('');
@@ -64,18 +57,18 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
   };
 
   const handleStart = () => {
-    if (inputValue) {
+    // Flush any pending value-item input
+    if (currentItem.kind === 'value' && inputValue) {
       onSave(currentItem, inputValue);
       setInputValue('');
     }
+    // Resolve all choice items (first alternative pre-selected, user may have changed)
+    items.forEach((item, idx) => {
+      if (item.kind === 'choice') {
+        onSave(item, choiceSelections[idx] ?? 0);
+      }
+    });
     onStart?.();
-  };
-
-  const handleNext = () => {
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setInputValue('');
-    }
   };
 
   const handlePrev = () => {
@@ -85,9 +78,41 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
     }
   };
 
-  const renderInput = () => {
-    const placeholder = currentItem.metricType === MetricType.Duration ? 'MM:SS' : 'Value';
-    
+  // ── Choice item renderer ───────────────────────────────────────────────────
+  const renderChoiceInput = (item: ChoiceCollectionItem, itemIndex: number) => {
+    const selected = choiceSelections[itemIndex] ?? 0;
+    return (
+      <div className="flex flex-col gap-3 w-full">
+        {item.alternatives.map((alt, altIdx) => {
+          const isSelected = selected === altIdx;
+          const label = alt.image ?? String((alt.value as any)?.amount ?? alt.value ?? altIdx);
+          return (
+            <button
+              key={altIdx}
+              onClick={() => {
+                // No deselect: clicking an already-selected option is a no-op
+                if (!isSelected) {
+                  setChoiceSelections(prev => ({ ...prev, [itemIndex]: altIdx }));
+                }
+              }}
+              className={cn(
+                'w-full py-4 px-6 rounded-xl border-2 text-lg font-bold transition-all',
+                isSelected
+                  ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                  : 'border-border bg-background text-foreground hover:border-primary/50'
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ── Value item renderer ────────────────────────────────────────────────────
+  const renderValueInput = (item: ValueCollectionItem) => {
+    const placeholder = item.metricType === MetricType.Duration ? 'MM:SS' : 'Value';
     return (
       <input
         type="text"
@@ -100,7 +125,7 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
     );
   };
 
-  // Mode B: Post-run banner variant
+  // ── Post-run collapsed banner ──────────────────────────────────────────────
   if (mode === 'post-run' && !isExpanded) {
     return (
       <div className={cn("bg-warning/10 border border-warning/30 rounded-xl p-3 flex items-center justify-between", className)}>
@@ -118,6 +143,7 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
     );
   }
 
+  // ── Full wizard ────────────────────────────────────────────────────────────
   return (
     <div className={cn(
       "bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col",
@@ -126,8 +152,8 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
     )}>
       {/* Progress Bar */}
       <div className="h-1 bg-muted">
-        <div 
-          className="h-full bg-primary transition-all duration-300" 
+        <div
+          className="h-full bg-primary transition-all duration-300"
           style={{ width: `${((currentIndex + 1) / items.length) * 100}%` }}
         />
       </div>
@@ -151,30 +177,28 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
 
       {/* Content */}
       <div className="flex-1 p-8 flex flex-col items-center justify-center max-w-md mx-auto w-full">
-        {/* Item Card */}
         <div className="w-full space-y-6">
           <div className="flex flex-col items-center gap-2">
             <div className="px-3 py-1 rounded-pill bg-metric-effort/15 border border-metric-effort/40 text-metric-effort text-xs font-bold">
               🏃 {currentItem.exerciseLabel}
             </div>
-            {(currentItem.roundIndex || currentItem.setIndex) && (
+            {(currentItem.setIndex || currentItem.roundIndex) && (
               <div className="text-[10px] font-bold tracking-label uppercase text-muted-foreground">
                 {currentItem.roundIndex && `Round ${currentItem.roundIndex}`}
-                {currentItem.roundIndex && currentItem.setIndex && " · "}
+                {currentItem.roundIndex && currentItem.setIndex && ' · '}
                 {currentItem.setIndex && `Set ${currentItem.setIndex}`}
               </div>
+            )}
+            {currentItem.kind === 'choice' && (
+              <div className="text-sm text-muted-foreground font-medium">Choose one:</div>
             )}
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <span className="text-lg">{METRIC_ICONS[currentItem.metricType] || '📊'}</span>
-              <span className="text-sm font-medium uppercase tracking-label">
-                {METRIC_LABELS[currentItem.metricType] || 'Metric'}
-              </span>
-            </div>
-            
-            {renderInput()}
+            {currentItem.kind === 'choice'
+              ? renderChoiceInput(currentItem, currentIndex)
+              : renderValueInput(currentItem)
+            }
           </div>
         </div>
       </div>
@@ -191,22 +215,27 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
         </button>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleSkip}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Skip
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!inputValue}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-sm hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all"
-          >
-            {currentIndex === items.length - 1 ? 'Finish' : 'Save →'}
-          </button>
+          {currentItem.kind === 'value' && (
+            <button
+              onClick={handleSkip}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Skip
+            </button>
+          )}
+          {currentIndex < items.length - 1 && (
+            <button
+              onClick={handleSave}
+              disabled={currentItem.kind === 'value' && !inputValue}
+              className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-sm hover:brightness-110 disabled:opacity-50 disabled:grayscale transition-all"
+            >
+              Next →
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Start Workout — always enabled (choices are pre-selected) */}
       {mode === 'pre-run' && (
         <div className="p-4 bg-background border-t border-border mt-auto">
           <button
@@ -221,3 +250,5 @@ export const CollectionWizard: React.FC<CollectionWizardProps> = ({
     </div>
   );
 };
+
+export { CollectionWizard };
