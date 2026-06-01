@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { EditorState } from '@codemirror/state';
 
 import { extractStatements } from './lezer-mapper';
+import { getHints } from '../core/metrics/hints';
 import { MdTimerRuntime } from './md-timer';
 import { whiteboardScript } from './whiteboard-script-language';
 
@@ -20,7 +21,7 @@ function snapshotStatement(statement: any) {
       origin: metric.origin,
       meta: statement.metricMeta.get(metric),
     })),
-    hints: statement.hints ? Array.from(statement.hints).sort() : [],
+    hints: getHints(statement).sort(),
   };
 }
 

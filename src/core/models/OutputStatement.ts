@@ -161,9 +161,6 @@ export interface OutputStatementOptions {
 
     /** Child output statement groups (for hierarchy) */
     children?: number[][];
-
-    /** Optional hints from the source */
-    hints?: Set<string>;
 }
 
 /**
@@ -210,7 +207,6 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
     readonly parent?: number;
     readonly children: number[][];
     readonly isLeaf: boolean;
-    readonly hints?: Set<string>;
     readonly meta: CodeMetadata;
 
     constructor(options: OutputStatementOptions) {
@@ -227,7 +223,6 @@ export class OutputStatement implements IOutputStatement, IMetricSource {
         this.parent = options.parent;
         this.children = options.children ?? [];
         this.isLeaf = this.children.length === 0;
-        this.hints = options.hints;
 
         this.elapsed = this.calculateElapsed();
         this.total = this.calculateTotal();

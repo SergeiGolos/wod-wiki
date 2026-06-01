@@ -4,6 +4,7 @@ import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
 import { TimeSpan } from '../runtime/models/TimeSpan';
 import { IOutputStatement, OutputStatementType } from '../core/models/OutputStatement';
 import { MetricType, IMetric } from '../core/models/Metric';
+import { hintMetric } from '../core/metrics/hints';
 
 // Helper to create mock output statements
 function createMockOutput(options: {
@@ -18,6 +19,11 @@ function createMockOutput(options: {
 }): IOutputStatement {
   const now = Date.now();
   const timeSpan = new TimeSpan(options.started ?? now, options.ended ?? now + 60000);
+  // Hints now travel as Hint metrics within the metric list.
+  const metrics = [
+    ...(options.metrics ?? []),
+    ...((options.hints ?? []).map(h => hintMetric(h, 'runtime'))),
+  ];
   return {
     id: options.id ?? 1,
     outputType: options.outputType ?? 'segment',
@@ -27,8 +33,7 @@ function createMockOutput(options: {
     total: timeSpan.duration,
     sourceBlockKey: options.sourceBlockKey ?? 'block-1',
     stackLevel: options.stackLevel ?? 0,
-    metrics: options.metrics ?? [],
-    hints: options.hints ? new Set(options.hints) : undefined,
+    metrics,
     sourceStatementId: undefined,
     meta: { line: 0, columnStart: 0, columnEnd: 0, startOffset: 0, endOffset: 0, length: 0, raw: '' },
     isLeaf: true,

@@ -10,6 +10,7 @@ import { RepMetric } from '../runtime/compiler/metrics/RepMetric';
 import { ResistanceMetric } from '../runtime/compiler/metrics/ResistanceMetric';
 import { RoundsMetric } from '../runtime/compiler/metrics/RoundsMetric';
 import { TextMetric } from '../runtime/compiler/metrics/TextMetric';
+import { hintMetric } from '../core/metrics/hints';
 import { SyntaxFacts, SyntaxMeta, SyntaxPrimitive } from './syntax-facts';
 
 type MetricPair = { metrics: any; meta: SyntaxMeta };
@@ -29,7 +30,7 @@ export function classifyStatements(facts: SyntaxFacts): ParsedCodeStatement[] {
     const metricPairs: MetricPair[] = [];
 
     for (const primitive of fact.primitives) {
-      metricPairs.push(...classifyPrimitive(primitive, statement));
+      metricPairs.push(...classifyPrimitive(primitive));
     }
 
     const mergedPairs = mergeFragments(metricPairs);
@@ -46,20 +47,20 @@ export function classifyStatements(facts: SyntaxFacts): ParsedCodeStatement[] {
   });
 }
 
-function classifyPrimitive(primitive: SyntaxPrimitive, statement: ParsedCodeStatement): MetricPair[] {
+function classifyPrimitive(primitive: SyntaxPrimitive): MetricPair[] {
   switch (primitive.kind) {
     case 'lap':
       return [{ metrics: new GroupMetric(primitive.lapType, primitive.raw), meta: primitive.meta }];
 
     case 'duration': {
-      if (primitive.isRequired) {
-        if (!statement.hints) statement.hints = new Set();
-        statement.hints.add('behavior.required_timer');
+      const pairs: MetricPair[] = [];
+      if (primitive.timerRaw) {
+        pairs.push({ metrics: new DurationMetric(primitive.timerRaw, primitive.hasTrend, primitive.isRequired), meta: primitive.meta });
       }
-
-      return primitive.timerRaw
-        ? [{ metrics: new DurationMetric(primitive.timerRaw, primitive.hasTrend, primitive.isRequired), meta: primitive.meta }]
-        : [];
+      if (primitive.isRequired) {
+        pairs.push({ metrics: hintMetric('behavior.required_timer', 'parser'), meta: primitive.meta });
+      }
+      return pairs;
     }
 
     case 'rounds': {
@@ -92,12 +93,12 @@ function classifyPrimitive(primitive: SyntaxPrimitive, statement: ParsedCodeStat
     }
 
     case 'quantity': {
-      if (primitive.hasWeightUnit || primitive.hasAtSign) {
-        return [{ metrics: new ResistanceMetric(primitive.value, primitive.unit), meta: primitive.meta }];
-      }
-
-      if (primitive.hasDistanceUnit) {
-        return [{ metrics: new DistanceMetric(primitive.value, primitive.unit), meta: primitive.meta }];
+      // Units are no longer a parser concept: a bare number is a Rep, and the
+      // `@` marker denotes a load (Resistance with an as-yet-empty unit). The
+      // base Units Dialect later fuses any following unit word (e.g. "kg") into
+      // a dimensioned metric (see dialects/units/fuseUnits).
+      if (primitive.hasAtSign) {
+        return [{ metrics: new ResistanceMetric(primitive.value, ''), meta: primitive.meta }];
       }
 
       return [{ metrics: new RepMetric(primitive.value), meta: primitive.meta }];

@@ -11,6 +11,7 @@ import { MdTimerRuntime } from '../../parser/md-timer';
 import { ICodeStatement } from '../../core/models/CodeStatement';
 import { DialectRegistry } from '../../services/DialectRegistry';
 import { IMetric, MetricType } from '../../core/models/Metric';
+import { getHints, hasHint } from '../../core/metrics/hints';
 import { CrossFitDialect } from '../CrossFitDialect';
 import { CardioDialect } from '../CardioDialect';
 import { YogaDialect } from '../YogaDialect';
@@ -99,6 +100,16 @@ export function rawMetricsOfType(stmt: ICodeStatement, type: MetricType): IMetri
   return stmt.metrics.filter(m => m.type === type);
 }
 
+/** All hint marker strings on a statement. */
+export function hintsOf(stmt: ICodeStatement): string[] {
+  return getHints(stmt);
+}
+
+/** Whether a statement carries a given hint marker. */
+export function statementHasHint(stmt: ICodeStatement, hint: string): boolean {
+  return hasHint(stmt, hint);
+}
+
 /** Returns the display metrics of a given type (suppressed items hidden). */
 export function displayMetricsOfType(stmt: ICodeStatement, type: MetricType): IMetric[] {
   return stmt.getDisplayMetrics().filter(m => m.type === type);
@@ -169,6 +180,6 @@ export function snapshotMetrics(stmt: ICodeStatement): object {
       value: m.value,
       origin: m.origin,
     })),
-    hints: stmt.hints ? Array.from(stmt.hints) : [],
+    hints: getHints(stmt),
   };
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+import { hasHint } from '../../core/metrics/hints';
 import { MetricType } from '../../core/models/Metric';
 import { DistanceMetric } from '../../runtime/compiler/metrics/DistanceMetric';
 import { DurationMetric } from '../../runtime/compiler/metrics/DurationMetric';
@@ -29,7 +30,7 @@ const statement = (primitives: SyntaxPrimitive[]): SyntaxStatement => ({
 });
 
 describe('classifyStatements', () => {
-  it('classifies quantity primitives into resistance/distance/rep metrics', () => {
+  it('classifies bare quantities as Rep and @-quantities as Resistance (units fused later)', () => {
     const facts: SyntaxFacts = {
       statements: [
         statement([
@@ -38,50 +39,21 @@ describe('classifyStatements', () => {
             raw: '95',
             meta: meta(0, 2, '95'),
             value: 95,
-            unit: '',
             hasAtSign: false,
-            hasWeightUnit: false,
-            hasDistanceUnit: false,
-          },
-          {
-            kind: 'quantity',
-            raw: 'kg',
-            meta: meta(3, 5, 'kg'),
-            value: undefined,
-            unit: 'kg',
-            hasAtSign: false,
-            hasWeightUnit: true,
-            hasDistanceUnit: false,
           },
           {
             kind: 'quantity',
             raw: '400',
             meta: meta(6, 9, '400'),
             value: 400,
-            unit: '',
             hasAtSign: false,
-            hasWeightUnit: false,
-            hasDistanceUnit: false,
-          },
-          {
-            kind: 'quantity',
-            raw: 'm',
-            meta: meta(10, 11, 'm'),
-            value: undefined,
-            unit: 'm',
-            hasAtSign: false,
-            hasWeightUnit: false,
-            hasDistanceUnit: true,
           },
           {
             kind: 'quantity',
             raw: '@20',
             meta: meta(12, 15, '@20'),
             value: 20,
-            unit: '',
             hasAtSign: true,
-            hasWeightUnit: false,
-            hasDistanceUnit: false,
           },
         ]),
       ],
@@ -89,15 +61,16 @@ describe('classifyStatements', () => {
 
     const [result] = classifyStatements(facts);
 
+    // The classifier is unit-agnostic now: bare numbers are Reps; only the `@`
+    // load marker yields a Resistance (with an empty unit, filled by fusion).
+    const reps = result.getAllMetricsByType(MetricType.Rep);
     const resistance = result.getAllMetricsByType(MetricType.Resistance) as ResistanceMetric[];
     const distance = result.getAllMetricsByType(MetricType.Distance) as DistanceMetric[];
 
-    expect(resistance).toHaveLength(2);
-    expect(resistance[0].value).toEqual({ amount: 95, unit: 'kg' });
-    expect(resistance[1].value).toEqual({ amount: 20, unit: '' });
-
-    expect(distance).toHaveLength(1);
-    expect(distance[0].value).toEqual({ amount: 400, unit: 'm' });
+    expect(reps.map((m) => m.value)).toEqual([95, 400]);
+    expect(distance).toHaveLength(0);
+    expect(resistance).toHaveLength(1);
+    expect(resistance[0].value).toEqual({ amount: 20, unit: '' });
   });
 
   it('adds required timer behavior hint from duration primitives', () => {
@@ -121,7 +94,7 @@ describe('classifyStatements', () => {
 
     expect(duration).toBeInstanceOf(DurationMetric);
     expect(duration.required).toBe(true);
-    expect(result.hints?.has('behavior.required_timer')).toBe(true);
+    expect(hasHint(result, 'behavior.required_timer')).toBe(true);
   });
 
   it('merges contiguous fragments and preserves separated fragments', () => {
@@ -247,10 +220,7 @@ describe('classifyStatements', () => {
             raw: '5',
             meta: meta(0, 1, '5'),
             value: 5,
-            unit: '',
             hasAtSign: false,
-            hasWeightUnit: false,
-            hasDistanceUnit: false,
           },
           {
             kind: 'effort',

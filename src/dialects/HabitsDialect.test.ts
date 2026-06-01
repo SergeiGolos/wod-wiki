@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { HabitsDialect } from './HabitsDialect';
 import { MdTimerRuntime } from '../parser/md-timer';
 import { ICodeStatement } from '../core/models/CodeStatement';
+import { getHints } from '../core/metrics/hints';
 import { MetricType } from '../core/models/Metric';
 
 describe('HabitsDialect', () => {
@@ -21,30 +22,30 @@ describe('HabitsDialect', () => {
       const statement = parseStatement('Morning Journaling Daily');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.habits');
-      expect(analysis.hints).toContain('behavior.completable');
+      expect(getHints(analysis.metrics)).toContain('domain.habits');
+      expect(getHints(analysis.metrics)).toContain('behavior.completable');
     });
 
     it('should emit workout.habit_check for a check-off habit with no reps or duration', () => {
       const statement = parseStatement('Habit Daily');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.habit_check');
-      expect(analysis.hints).toContain('behavior.daily');
+      expect(getHints(analysis.metrics)).toContain('workout.habit_check');
+      expect(getHints(analysis.metrics)).toContain('behavior.daily');
     });
 
     it('should detect "Morning" routine keyword', () => {
       const statement = parseStatement('Morning Routine');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.habits');
+      expect(getHints(analysis.metrics)).toContain('domain.habits');
     });
 
     it('should detect "Evening" routine keyword', () => {
       const statement = parseStatement('Evening Routine');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.habits');
+      expect(getHints(analysis.metrics)).toContain('domain.habits');
     });
   });
 
@@ -55,15 +56,15 @@ describe('HabitsDialect', () => {
       expect(statement.metrics.some(m => m.type === MetricType.Duration)).toBe(true);
 
       const analysis = dialect.analyze(statement);
-      expect(analysis.hints).toContain('domain.habits');
-      expect(analysis.hints).toContain('workout.habit_timed');
+      expect(getHints(analysis.metrics)).toContain('domain.habits');
+      expect(getHints(analysis.metrics)).toContain('workout.habit_timed');
     });
 
     it('should emit workout.habit_timed for a "Morning" routine with a duration', () => {
       const statement = parseStatement('Morning Routine 5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('workout.habit_timed');
+      expect(getHints(analysis.metrics)).toContain('workout.habit_timed');
     });
   });
 
@@ -74,8 +75,8 @@ describe('HabitsDialect', () => {
       expect(statement.metrics.some(m => m.type === MetricType.Rep)).toBe(true);
 
       const analysis = dialect.analyze(statement);
-      expect(analysis.hints).toContain('domain.habits');
-      expect(analysis.hints).toContain('workout.habit_rep');
+      expect(getHints(analysis.metrics)).toContain('domain.habits');
+      expect(getHints(analysis.metrics)).toContain('workout.habit_rep');
     });
   });
 
@@ -84,9 +85,9 @@ describe('HabitsDialect', () => {
       const statement = parseStatement('Streak Running');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toContain('domain.habits');
-      expect(analysis.hints).toContain('behavior.streak');
-      expect(analysis.hints).toContain('behavior.recurring');
+      expect(getHints(analysis.metrics)).toContain('domain.habits');
+      expect(getHints(analysis.metrics)).toContain('behavior.streak');
+      expect(getHints(analysis.metrics)).toContain('behavior.recurring');
     });
   });
 
@@ -95,20 +96,20 @@ describe('HabitsDialect', () => {
       const statement = parseStatement('10 Pullups');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should return empty hints for a timer-only statement', () => {
       const statement = parseStatement('5:00');
       const analysis = dialect.analyze(statement);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
 
     it('should handle a statement with no metrics gracefully', () => {
       const analysis = dialect.analyze({ id: 1 } as any);
 
-      expect(analysis.hints).toHaveLength(0);
+      expect(getHints(analysis.metrics)).toHaveLength(0);
     });
   });
 

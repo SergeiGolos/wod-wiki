@@ -11,8 +11,6 @@ export const whiteboardScriptLanguage = LRLanguage.define({
         Number: t.number,
         Timer: t.keyword,
         collectibleTimer: t.keyword,
-        distanceUnit: t.unit,
-        weightUnit: t.unit,
         textComment: t.lineComment,
         minus: t.operator,
         plus: t.operator,

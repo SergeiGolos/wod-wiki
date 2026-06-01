@@ -2,6 +2,7 @@ import { ICodeStatement } from "../../../core/models/CodeStatement";
 import { MetricType } from "../../../core/models/Metric";
 import { MetricContainer } from "../../../core/models/MetricContainer";
 import { metricPresentation } from "../../../core/metrics/presentation";
+import { hasHint } from "../../../core/metrics/hints";
 
 export interface LabelOptions {
   includeMetric?: boolean;
@@ -33,7 +34,7 @@ export class LabelComposer {
 
     const allFragments = MetricContainer.from(statements
       .flatMap(s => MetricContainer.from(s.metrics).toArray())
-      .filter(f => f.origin !== 'runtime'));
+      .filter(f => f.origin !== 'runtime' && f.type !== MetricType.Hint));
 
     if (allFragments.length === 0) return defaultLabel;
 
@@ -92,10 +93,10 @@ export class LabelComposer {
 
   private static getLogicKeyword(statements: ICodeStatement[], metrics: MetricContainer): string | undefined {
     // Check hints first (from Dialect analysis)
-    if (statements.some(s => s.hints?.has('workout.amrap'))) return 'AMRAP';
-    if (statements.some(s => s.hints?.has('workout.emom'))) return 'EMOM';
-    if (statements.some(s => s.hints?.has('workout.tabata'))) return 'TABATA';
-    if (statements.some(s => s.hints?.has('workout.for_time'))) return 'FOR TIME';
+    if (statements.some(s => hasHint(s, 'workout.amrap'))) return 'AMRAP';
+    if (statements.some(s => hasHint(s, 'workout.emom'))) return 'EMOM';
+    if (statements.some(s => hasHint(s, 'workout.tabata'))) return 'TABATA';
+    if (statements.some(s => hasHint(s, 'workout.for_time'))) return 'FOR TIME';
 
     // Fallback: Check for keywords in metrics
     const keywords = ['AMRAP', 'EMOM', 'TABATA', 'FOR TIME'];

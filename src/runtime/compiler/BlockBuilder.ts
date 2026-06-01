@@ -137,7 +137,13 @@ export class BlockBuilder {
     }
 
     setFragments(metrics: IMetric[][] | MetricContainer[]): BlockBuilder {
-        this.metrics = metrics.map(group => MetricContainer.from(group));
+        // Hint metrics are semantic markers, not display fragments — drop them
+        // so they never surface as block metrics.
+        this.metrics = metrics.map(group => {
+            const container = MetricContainer.from(group);
+            container.removeByType(MetricType.Hint);
+            return container;
+        });
         return this;
     }
 

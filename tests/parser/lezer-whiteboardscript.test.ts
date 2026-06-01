@@ -3,6 +3,7 @@ import { EditorState } from "@codemirror/state";
 import { whiteboardScriptLanguage } from "../../src/parser/whiteboard-script-language";
 import { extractStatements } from "../../src/parser/lezer-mapper";
 import { MetricType } from "../../src/core/models/Metric";
+import { hasHint } from "../../src/core/metrics/hints";
 
 describe('Lezer WhiteboardScript Parser', () => {
   const parse = (code: string) => {
@@ -146,6 +147,6 @@ describe('Lezer WhiteboardScript Parser', () => {
     expect(statements.length).toBe(1);
     expect(statements[0].metrics[0].type).toBe(MetricType.Duration);
     expect(statements[0].metrics[0].image).toBe(":45");
-    expect(statements[0].hints?.has('behavior.required_timer')).toBe(true);
+    expect(hasHint(statements[0], 'behavior.required_timer')).toBe(true);
   });
 });

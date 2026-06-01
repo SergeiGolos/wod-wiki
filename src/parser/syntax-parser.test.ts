@@ -25,7 +25,7 @@ describe('extractSyntaxFacts', () => {
       'action',
       'rounds',
       'quantity',
-      'quantity',
+      'effort',
       'effort',
     ]);
 
@@ -56,18 +56,11 @@ describe('extractSyntaxFacts', () => {
     });
 
     const quantities = statement.primitives.filter((primitive) => primitive.kind === 'quantity');
+    // Units are no longer parsed: "95kg" yields a bare quantity (95) plus an
+    // "kg" effort that the base Units Dialect later fuses.
+    expect(quantities).toHaveLength(1);
     expect(quantities[0]).toMatchObject({
       value: 95,
-      unit: '',
-      hasWeightUnit: false,
-      hasDistanceUnit: false,
-      hasAtSign: false,
-    });
-    expect(quantities[1]).toMatchObject({
-      value: undefined,
-      unit: 'kg',
-      hasWeightUnit: true,
-      hasDistanceUnit: false,
       hasAtSign: false,
     });
   });
@@ -102,7 +95,7 @@ describe('extractSyntaxFacts', () => {
     const [first, second, third] = facts.statements;
 
     expect(first.primitives.map((p) => p.kind)).toEqual(['quantity', 'effort', 'metric_object']);
-    expect(second.primitives.map((p) => p.kind)).toEqual(['quantity', 'effort', 'effort', 'quantity', 'quantity', 'metric_object']);
+    expect(second.primitives.map((p) => p.kind)).toEqual(['quantity', 'effort', 'effort', 'quantity', 'effort', 'metric_object']);
     expect(third.primitives.map((p) => p.kind)).toEqual(['duration', 'effort', 'metric_object']);
 
     const firstMetricObj = first.primitives.find((p) => p.kind === 'metric_object') as any;

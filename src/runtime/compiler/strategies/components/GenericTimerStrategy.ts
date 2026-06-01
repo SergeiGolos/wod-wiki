@@ -8,6 +8,7 @@ import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
 import { MetricContainer } from "@/core/models/MetricContainer";
+import { hasHint } from "@/core/metrics/hints";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -81,7 +82,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Check for required-timer hint (user cannot skip with * prefix)
-        const isRequired = statements.some(s => s.hints?.has('behavior.required_timer'));
+        const isRequired = statements.some(s => hasHint(s, 'behavior.required_timer'));
 
         // Completion Aspect
         // For required timers, only exit when the timer:complete event fires (not on user next).
@@ -98,7 +99,7 @@ export class GenericTimerStrategy implements IRuntimeBlockStrategy {
         // =====================================================================
 
         // Check for inject-rest hint
-        const injectRest = statements.some(s => s.hints?.has('behavior.inject_rest'));
+        const injectRest = statements.some(s => hasHint(s, 'behavior.inject_rest'));
 
         // Timer Aspect - countdown or countup timer
         if (durationMs && direction === 'down') {

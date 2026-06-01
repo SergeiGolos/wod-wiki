@@ -39,39 +39,34 @@ export class DialectRegistry {
 
   /**
    * Process a statement through all registered dialects.
-   * Dialects are processed in registration order.
-   * Results are accumulated onto the statement's hints set.
-   * 
+   * Dialects are processed in registration order. Each dialect's emitted
+   * metrics (hint markers + values) are appended onto `statement.metrics`.
+   *
    * Note: Child statements (referenced by IDs in statement.children) are processed
    * separately when they are compiled through the JIT compiler, which calls
    * processAll() on each batch of statements being compiled.
-   * 
+   *
    * @param statement The statement to process
    */
   process(statement: ICodeStatement): void {
-    // Ensure hints set exists
-    if (!statement.hints) {
-      statement.hints = new Set();
-    }
-
     for (const dialect of this.dialects.values()) {
+      // Transform half: rewrite metrics in place (e.g. the base Units Dialect
+      // fuses Number + unit-word into dimensioned metrics). Runs before this
+      // dialect's analyze so its own append step sees the rewritten metrics.
+      dialect.transform?.(statement);
+
       const analysis: DialectAnalysis = dialect.analyze(statement);
 
-      // Add hints from dialect analysis
-      for (const hint of analysis.hints) {
-        statement.hints.add(hint);
-      }
-
-      // Apply dialect metrics (action-bearing) onto the statement's metric list.
-      // Keep this as a raw append (not precedence merge) so ownership resolution
-      // can reason over parser + dialect + runtime + user-entry contributions.
+      // Append dialect metrics (hint markers + domain values) onto the
+      // statement's metric list. Keep this as a raw append (not precedence
+      // merge) so ownership resolution can reason over parser + dialect +
+      // runtime + user-entry contributions.
       if (analysis.metrics?.length) {
         statement.metrics.add(...analysis.metrics);
       }
 
       // Note: Inheritance rules (analysis.inheritance) are designed for future use
       // to allow parent blocks to influence child behavior (see Dialect.ts for details).
-      // Current implementation focuses on hint generation only.
     }
   }
 
