@@ -12,9 +12,6 @@ export interface ICodeStatement extends IMetricSource {
   isLeaf?: boolean;
   meta: CodeMetadata;
   metricMeta: Map<IMetric, CodeMetadata>;
-
-  // Semantic hints from dialect processing
-  hints?: Set<string>;
 }
 
 export abstract class CodeStatement implements ICodeStatement, IMetricSource {
@@ -63,7 +60,6 @@ export class ParsedCodeStatement extends CodeStatement {
   private _metrics: MetricContainer = MetricContainer.empty();
   metricMeta: Map<IMetric, CodeMetadata> = new Map();
   isLeaf?: boolean;
-  hints?: Set<string>;
 
   get metrics(): MetricContainer {
     return this._metrics;

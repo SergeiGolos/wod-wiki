@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { JitCompiler } from "../JitCompiler";
 import { IScriptRuntime } from "../../contracts/IScriptRuntime";
 import { CodeStatement } from "@/core/models/CodeStatement";
+import { hintMetric } from '@/core/metrics/hints';
 import { TimerMetric } from "../metrics/TimerMetric";
 import { RoundsMetric } from "../metrics/RoundsMetric";
 import { RepMetric } from "../metrics/RepMetric";
@@ -57,7 +58,7 @@ describe("JIT Composition", () => {
             new MockTimerMetric(600000, true), // AMRAP implies 'up'
             new MockRoundsMetric(1),           // Required for AmrapLogicStrategy.match()
         ];
-        statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+        (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
         statement.children = [new CodeStatement()]; // Add children to trigger ChildrenStrategy
 
         compiler.registerStrategy(new AmrapLogicStrategy()); // Priority 90
@@ -95,7 +96,7 @@ describe("JIT Composition", () => {
             new MockTimerMetric(600000), // 10 min total (optional)
             new MockRoundsMetric(10) // 10 rounds
         ];
-        statement.hints = new Set(['behavior.repeating_interval']);
+        (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
 
         compiler.registerStrategy(new IntervalLogicStrategy());
         compiler.registerStrategy(new GenericTimerStrategy());

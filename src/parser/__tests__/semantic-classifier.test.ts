@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
+import { hasHint } from '../../core/metrics/hints';
 import { MetricType } from '../../core/models/Metric';
 import { DistanceMetric } from '../../runtime/compiler/metrics/DistanceMetric';
 import { DurationMetric } from '../../runtime/compiler/metrics/DurationMetric';
@@ -121,7 +122,7 @@ describe('classifyStatements', () => {
 
     expect(duration).toBeInstanceOf(DurationMetric);
     expect(duration.required).toBe(true);
-    expect(result.hints?.has('behavior.required_timer')).toBe(true);
+    expect(hasHint(result, 'behavior.required_timer')).toBe(true);
   });
 
   it('merges contiguous fragments and preserves separated fragments', () => {

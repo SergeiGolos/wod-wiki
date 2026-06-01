@@ -7,6 +7,7 @@ import type { ScriptRuntime } from '@/hooks/useRuntimeTimer';
 import type { MdTimerRuntime } from '@/hooks/useRuntimeParser';
 import { IMetric } from '../../../core/models/Metric';
 import { IOutputStatement, OutputStatementType } from '../../../core/models/OutputStatement';
+import { getHints } from '../../../core/metrics/hints';
 import type { ParseError } from '@/core';
 export * from './section';
 export type { WodDialect } from './section';
@@ -76,7 +77,7 @@ export function toStoredOutputStatement(output: IOutputStatement): StoredOutputS
     elapsed: output.elapsed,
     total: output.total,
     metrics: output.metrics.toArray(),
-    hints: output.hints ? Array.from(output.hints) : undefined,
+    hints: (() => { const h = getHints(output); return h.length ? h : undefined; })(),
     sourceBlockKey: output.sourceBlockKey,
     stackLevel: output.stackLevel,
     parent: output.parent,

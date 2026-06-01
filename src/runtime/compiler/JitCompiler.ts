@@ -5,6 +5,8 @@ import type { ICodeStatement } from "@/core/models/CodeStatement";
 import { DialectRegistry } from "../../services/DialectRegistry";
 import { BlockBuilder } from "./BlockBuilder";
 import { isFragmentPromoter } from "../contracts/behaviors/IMetricPromoter";
+import { getHints } from "@/core/metrics/hints";
+import { MetricType } from "@/core/models/Metric";
 import type { IJitCompiler } from "../contracts/IJitCompiler";
 
 /**
@@ -56,14 +58,16 @@ export class JitCompiler implements IJitCompiler {
    * same cache entry, which is both correct and more efficient.
    *
    * Note: `processAll()` must have been called on `nodes` before this
-   * method so that `n.hints` reflects any dialect-added semantic markers
-   * (e.g. 'rest').
+   * method so that the statement metrics reflect any dialect-added hint
+   * markers (e.g. 'workout.emom').
    */
   private _statementCacheKey(nodes: ICodeStatement[]): string {
     return nodes.map(n => {
-      const metricTypes = n.metrics.map(m => m.type).sort().join(',');
+      const metricTypes = n.metrics
+        .filter(m => m.type !== MetricType.Hint)
+        .map(m => m.type).sort().join(',');
       const hasChildren = n.children && n.children.length > 0 ? '1' : '0';
-      const hints = n.hints ? Array.from(n.hints).sort().join(',') : '';
+      const hints = getHints(n).sort().join(',');
       return `${metricTypes}:${hasChildren}:${hints}`;
     }).join('|');
   }

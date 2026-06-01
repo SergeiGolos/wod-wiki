@@ -2,6 +2,7 @@ import { IDialect, DialectAnalysis } from "../core/models/Dialect";
 import { ICodeStatement } from "../core/models/CodeStatement";
 import { IMetric, MetricType } from "../core/models/Metric";
 import { MetricContainer } from "../core/models/MetricContainer";
+import { hintsToContainer } from "../core/metrics/hints";
 
 export const ClimbMetricType = {
   Discipline: 'climb-discipline',
@@ -88,7 +89,7 @@ function normalizeText(value: string): string {
 }
 
 function addMetric(metrics: MetricContainer, type: string, value: unknown, unit?: string): void {
-  metrics.add({ type, value, origin: 'dialect', action: 'set', unit });
+  metrics.add({ type, value, origin: 'dialect', unit });
 }
 
 function uniquePush(values: string[], value: string): void {
@@ -153,7 +154,7 @@ export class ClimbDialect implements IDialect {
       hints.push(`climb.${discipline.replace('-', '_')}`);
     }
 
-    return { hints, metrics: dialectMetrics };
+    return { metrics: hintsToContainer(hints, dialectMetrics) };
   }
 
   private findRouteName(metrics: IMetric[]): string | undefined {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { JitCompiler } from '../../JitCompiler';
 import { IScriptRuntime } from '../../../contracts/IScriptRuntime';
 import { CodeStatement } from '@/core/models/CodeStatement';
+import { hintMetric } from '@/core/metrics/hints';
 import { TimerMetric } from '../../metrics/TimerMetric';
 import { RoundsMetric } from '../../metrics/RoundsMetric';
 import { AmrapLogicStrategy } from '../logic/AmrapLogicStrategy';
@@ -71,7 +72,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(600000, true), // 10 min countdown
                 new MockRoundsMetric(1)
             ];
-            statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+            (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -87,7 +88,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(1200000, true), // 20 min
                 new MockRoundsMetric(1)
             ];
-            statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+            (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -103,7 +104,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(600000, true),
                 new MockRoundsMetric(1)
             ];
-            statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+            (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -117,7 +118,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(600000, true),
                 new MockRoundsMetric(1)
             ];
-            statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+            (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -137,7 +138,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(600000, true),
                 new MockRoundsMetric(1)
             ];
-            statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+            (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -151,7 +152,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(600000, true),
                 new MockRoundsMetric(1)
             ];
-            statement.hints = new Set(['behavior.timer', 'behavior.rounds']);
+            (statement.metrics as any).push(hintMetric('behavior.timer'), hintMetric('behavior.rounds'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -176,7 +177,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(60000), // 1 min interval
                 new MockRoundsMetric(10)    // 10 rounds
             ];
-            statement.hints = new Set(['behavior.repeating_interval']);
+            (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -192,7 +193,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(60000),
                 new MockRoundsMetric(10)
             ];
-            statement.hints = new Set(['behavior.repeating_interval']);
+            (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -208,7 +209,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(60000),
                 new MockRoundsMetric(10)
             ];
-            statement.hints = new Set(['behavior.repeating_interval']);
+            (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -226,7 +227,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(60000),
                 new MockRoundsMetric(10)
             ];
-            statement.hints = new Set(['behavior.repeating_interval']);
+            (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
             statement.children = [new CodeStatement()];
 
             const block = compiler.compile([statement], runtime);
@@ -240,7 +241,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(60000),
                 new MockRoundsMetric(10)
             ];
-            statement.hints = new Set(['behavior.repeating_interval']);
+            (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
 
             const block = compiler.compile([statement], runtime);
 
@@ -253,7 +254,7 @@ describe('Phase 5: Strategy ChildSelectionBehavior Integration', () => {
                 new MockTimerMetric(60000),
                 new MockRoundsMetric(10)
             ];
-            statement.hints = new Set(['behavior.repeating_interval']);
+            (statement.metrics as any).push(hintMetric('behavior.repeating_interval'));
 
             const block = compiler.compile([statement], runtime);
 

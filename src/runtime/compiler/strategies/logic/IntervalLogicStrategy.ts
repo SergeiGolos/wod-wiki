@@ -9,6 +9,7 @@ import { RoundsMetric } from "../../metrics/RoundsMetric";
 import { BlockContext } from "../../../BlockContext";
 import { BlockKey } from "@/core/models/BlockKey";
 import { PassthroughMetricDistributor } from "../../../impl/PassthroughMetricDistributor";
+import { hasHint } from "@/core/metrics/hints";
 import { LabelComposer } from "../../utils/LabelComposer";
 
 // Specific behaviors not covered by aspect composers
@@ -37,7 +38,7 @@ export class IntervalLogicStrategy implements IRuntimeBlockStrategy {
         
         // Match if ANY statement has timer and (hint or EMOM keyword)
         const hasTimer = statements.some(s => s.metrics.some(f => f.type === MetricType.Duration));
-        const isInterval = statements.some(s => s.hints?.has('behavior.repeating_interval') ?? false);
+        const isInterval = statements.some(s => hasHint(s, 'behavior.repeating_interval'));
 
         // EMOM can be parsed as 'Action' OR 'Effort' depending on parser version
         const hasEmomAction = statements.some(s => s.metrics.some(

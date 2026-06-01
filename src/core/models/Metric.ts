@@ -15,13 +15,14 @@
  * - 'analyzed': Value is derived from analysis
  */
 /**
- * Compiler instruction attached by dialect-origin metrics.
- * - 'set':      inject this metric; precedence tier handles display resolution
- * - 'suppress': hide all metrics of this type from display (sentinel pattern)
- * - 'inherit':  propagate this metric value down to child statements
- * Parser metrics never carry an action (undefined = passive).
+ * Visibility instruction attached to a metric.
+ * - 'suppress': hide all metrics of this type from display (sentinel pattern,
+ *   resolved by the metric ownership ledger).
+ * Most metrics carry no action (undefined = passive). `suppress` is the only
+ * live action: it is the metrics-native way to express "hide this type",
+ * replacing the former hint-channel suppression.
  */
-export type MetricAction = 'set' | 'suppress' | 'inherit';
+export type MetricAction = 'suppress';
 
 export type MetricOrigin =
   | 'parser'
@@ -49,11 +50,9 @@ export interface IMetric {
   readonly unit?: string;
 
   /**
-   * Compiler instruction attached by dialect-origin metrics.
-   * - 'set':      inject this metric; precedence tier handles display resolution
-   * - 'suppress': hide all metrics of this type from display (sentinel pattern)
-   * - 'inherit':  propagate this metric value down to child statements
-   * Parser metrics never carry an action (undefined = passive).
+   * Visibility instruction. The only live value is `'suppress'`, which hides
+   * all metrics of this type from display (resolved by the ownership ledger).
+   * Most metrics carry no action (undefined = passive).
    */
   readonly action?: MetricAction;
 
@@ -133,6 +132,16 @@ export enum MetricType {
   Label = 'label',
   Lap = 'lap',
   Metric = 'metric',
+
+  /**
+   * **Hint** (Core) — a semantic marker emitted by a dialect or the parser.
+   *
+   * Dot-namespaced string markers (e.g. `workout.amrap`, `behavior.required_timer`)
+   * that strategies and the label composer query to drive compilation decisions.
+   * Hints are metrics so they flow through the single ownership channel, but they
+   * are excluded from display resolution and from runtime block fragments.
+   */
+  Hint = 'hint',
 
   /** Generic custom metric bucket for parser-owned property metrics. */
   Custom = 'custom',

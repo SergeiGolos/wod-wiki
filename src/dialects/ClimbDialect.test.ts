@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { ClimbDialect, ClimbMetricType } from './ClimbDialect';
-import { parseWithDialect, rawMetricsOfType } from './__tests__/dialect-test-helpers';
+import { parseWithDialect, rawMetricsOfType, statementHasHint } from './__tests__/dialect-test-helpers';
 
 describe('ClimbDialect', () => {
   const dialect = new ClimbDialect();
@@ -13,10 +13,10 @@ describe('ClimbDialect', () => {
   it('recognizes indoor bouldering route grade send type and attempts', () => {
     const { statement } = parseWithDialect('[The Shield] V7 redpoint @12 // engage core before crux reach', 'climb');
 
-    expect(statement.hints?.has('domain.climb')).toBe(true);
-    expect(statement.hints?.has('climb.bouldering')).toBe(true);
-    expect(statement.hints?.has('behavior.grade_based')).toBe(true);
-    expect(statement.hints?.has('behavior.attempt_based')).toBe(true);
+    expect(statementHasHint(statement, 'domain.climb')).toBe(true);
+    expect(statementHasHint(statement, 'climb.bouldering')).toBe(true);
+    expect(statementHasHint(statement, 'behavior.grade_based')).toBe(true);
+    expect(statementHasHint(statement, 'behavior.attempt_based')).toBe(true);
 
     expect(rawMetricsOfType(statement, ClimbMetricType.RouteName as any)[0]?.value).toBe('The Shield');
     expect(rawMetricsOfType(statement, ClimbMetricType.SendType as any)[0]?.value).toBe('redpoint');
@@ -31,8 +31,8 @@ describe('ClimbDialect', () => {
   it('reconstructs YDS grades split across parser rep and effort metrics', () => {
     const { statement } = parseWithDialect('[Black Magic] 5.11d redpoint @4 // crux at bolt 6', 'climb');
 
-    expect(statement.hints?.has('domain.climb')).toBe(true);
-    expect(statement.hints?.has('climb.sport')).toBe(true);
+    expect(statementHasHint(statement, 'domain.climb')).toBe(true);
+    expect(statementHasHint(statement, 'climb.sport')).toBe(true);
     expect(rawMetricsOfType(statement, ClimbMetricType.HighPoint as any)[0]?.value).toBe('bolt 6');
     expect(rawMetricsOfType(statement, ClimbMetricType.Grade as any)[0]?.value).toEqual({
       raw: '5.11d',
@@ -44,7 +44,7 @@ describe('ClimbDialect', () => {
   it('recognizes Fontainebleau grades split across parser rep and effort metrics', () => {
     const { statement } = parseWithDialect('[Purple Pinch] 7A flash @1', 'climb');
 
-    expect(statement.hints?.has('climb.bouldering')).toBe(true);
+    expect(statementHasHint(statement, 'climb.bouldering')).toBe(true);
     expect(rawMetricsOfType(statement, ClimbMetricType.SendType as any)[0]?.value).toBe('flash');
     expect(rawMetricsOfType(statement, ClimbMetricType.Grade as any)[0]?.value).toEqual({
       raw: '7A',
@@ -61,7 +61,7 @@ describe('ClimbDialect', () => {
   it('does not mark unrelated workout lines as climbing', () => {
     const { statement } = parseWithDialect('10 Pullups', 'climb');
 
-    expect(statement.hints?.has('domain.climb')).toBe(false);
+    expect(statementHasHint(statement, 'domain.climb')).toBe(false);
     expect(statement.metrics.filter(metric => metric.origin === 'dialect')).toHaveLength(0);
   });
 });

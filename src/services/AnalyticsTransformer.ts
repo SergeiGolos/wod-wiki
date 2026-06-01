@@ -4,6 +4,7 @@ import { AnalyticsGroup, AnalyticsGraphConfig, Segment } from '../core/models/An
 
 import { IMetric } from '../core/models/Metric';
 import { MetricContainer } from '../core/models/MetricContainer';
+import { getHints } from '../core/metrics/hints';
 import { IOutputStatement } from '../core/models/OutputStatement';
 import type { StoredOutputStatement } from '../components/Editor/types';
 import { IScriptRuntime } from '../runtime/contracts/IScriptRuntime';
@@ -164,7 +165,7 @@ export class AnalyticsTransformer {
         lane: output.stackLevel,
         spans,
         metrics: outputMetrics,
-        tags: output.hints ? Array.from(output.hints) : undefined,
+        tags: (() => { const h = getHints(output); return h.length ? h : undefined; })(),
         context: {
           outputType: output.outputType,
           sourceStatementId: output.sourceStatementId,

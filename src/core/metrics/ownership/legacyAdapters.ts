@@ -1,14 +1,22 @@
 import type { MetricType } from '../../models/Metric';
 import type { IMetric } from '../../models/Metric';
+import { MetricType as MetricTypeEnum } from '../../models/Metric';
 import type { MetricFilter } from '../../contracts/IMetricSource';
 import { createMetricOwnershipLedger } from './ledger';
 
 function applyLegacyMetricFilter(metrics: readonly IMetric[], filter?: MetricFilter): IMetric[] {
-  if (!filter) {
-    return [...metrics];
+  let filtered = [...metrics];
+
+  // Hint metrics are semantic markers, never display metrics. Drop them unless
+  // a caller explicitly asks for the Hint type.
+  const wantsHints = filter?.types?.includes(MetricTypeEnum.Hint) ?? false;
+  if (!wantsHints) {
+    filtered = filtered.filter((metric) => metric.type !== MetricTypeEnum.Hint);
   }
 
-  let filtered = [...metrics];
+  if (!filter) {
+    return filtered;
+  }
 
   if (filter.origins) {
     filtered = filtered.filter((metric) => filter.origins!.includes(metric.origin ?? 'parser'));

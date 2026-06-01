@@ -20,7 +20,8 @@ import {
   expectRawMetric,
   expectDisplayMetric,
   expectNotDisplayed,
-  snapshotMetrics,
+  statementHasHint,
+  hintsOf,
 } from './dialect-test-helpers';
 
 // ──────────────────────────────────────────────────────────
@@ -31,7 +32,7 @@ describe('CrossFitDialect — EMOM metrics', () => {
   describe('(20) EMOM — rounds present, no duration', () => {
     it('should emit hint workout.emom', () => {
       const { statement } = parseWithDialect('(20) EMOM', 'crossfit');
-      expect(statement.hints?.has('workout.emom')).toBe(true);
+      expect(statementHasHint(statement, 'workout.emom')).toBe(true);
     });
 
     it.failing('should synthesize Duration=60000ms at dialect origin', () => {
@@ -61,7 +62,7 @@ describe('CrossFitDialect — EMOM metrics', () => {
   describe('(20) EMOM :30 — both rounds and duration present', () => {
     it('should emit hint workout.emom', () => {
       const { statement } = parseWithDialect('(20) EMOM :30', 'crossfit');
-      expect(statement.hints?.has('workout.emom')).toBe(true);
+      expect(statementHasHint(statement, 'workout.emom')).toBe(true);
     });
 
     it('should NOT synthesize a Duration (one already exists)', () => {
@@ -85,7 +86,7 @@ describe('CrossFitDialect — EMOM metrics', () => {
   describe('EMOM 20 mins — total duration present, no explicit rounds', () => {
     it('should emit hint workout.emom', () => {
       const { statement } = parseWithDialect('EMOM 20 mins', 'crossfit');
-      expect(statement.hints?.has('workout.emom')).toBe(true);
+      expect(statementHasHint(statement, 'workout.emom')).toBe(true);
     });
 
     it.failing('should synthesize Rounds = total_duration_ms / 60000', () => {
@@ -107,13 +108,13 @@ describe('CrossFitDialect — EMOM metrics', () => {
 
     it('should detect implicit EMOM hint', () => {
       const { statement } = parseWithDialect(block, 'crossfit');
-      expect(statement.hints?.has('workout.emom')).toBe(true);
-      expect(statement.hints?.has('workout.implicit_emom')).toBe(true);
+      expect(statementHasHint(statement, 'workout.emom')).toBe(true);
+      expect(statementHasHint(statement, 'workout.implicit_emom')).toBe(true);
     });
 
     it('should NOT emit implicit EMOM for rounds + timer WITHOUT children', () => {
       const { statement } = parseWithDialect('(5) :60', 'crossfit');
-      expect(statement.hints?.has('workout.emom')).toBe(false);
+      expect(statementHasHint(statement, 'workout.emom')).toBe(false);
     });
 
     it('should NOT synthesize Duration when :60 is already present', () => {
@@ -132,8 +133,8 @@ describe('CrossFitDialect — EMOM metrics', () => {
 describe('CrossFitDialect — AMRAP metrics', () => {
   it('should emit hint workout.amrap', () => {
     const { statement } = parseWithDialect('AMRAP 20 mins', 'crossfit');
-    expect(statement.hints?.has('workout.amrap')).toBe(true);
-    expect(statement.hints?.has('behavior.time_bound')).toBe(true);
+    expect(statementHasHint(statement, 'workout.amrap')).toBe(true);
+    expect(statementHasHint(statement, 'behavior.time_bound')).toBe(true);
   });
 
   it('should suppress the AMRAP Action label from display', () => {
@@ -155,8 +156,8 @@ describe('CrossFitDialect — AMRAP metrics', () => {
 describe('CrossFitDialect — TABATA metrics', () => {
   it('should emit hint workout.tabata', () => {
     const { statement } = parseWithDialect('Tabata Squats', 'crossfit');
-    expect(statement.hints?.has('workout.tabata')).toBe(true);
-    expect(statement.hints?.has('behavior.repeating_interval')).toBe(true);
+    expect(statementHasHint(statement, 'workout.tabata')).toBe(true);
+    expect(statementHasHint(statement, 'behavior.repeating_interval')).toBe(true);
   });
 
   it.failing('should synthesize interval Duration=20000ms (20s work)', () => {
@@ -177,8 +178,8 @@ describe('CrossFitDialect — TABATA metrics', () => {
 describe('CrossFitDialect — FOR TIME metrics', () => {
   it('should emit hint workout.for_time', () => {
     const { statement } = parseWithDialect('For Time', 'crossfit');
-    expect(statement.hints?.has('workout.for_time')).toBe(true);
-    expect(statement.hints?.has('behavior.time_bound')).toBe(true);
+    expect(statementHasHint(statement, 'workout.for_time')).toBe(true);
+    expect(statementHasHint(statement, 'behavior.time_bound')).toBe(true);
   });
 
   it('should suppress the "For Time" Action label from display', () => {
@@ -194,7 +195,7 @@ describe('CrossFitDialect — FOR TIME metrics', () => {
 describe('CrossFitDialect — plain exercises (no dialect metrics)', () => {
   it('should not add any hints for 10 Pullups', () => {
     const { statement } = parseWithDialect('10 Pullups', 'crossfit');
-    expect(statement.hints?.size ?? 0).toBe(0);
+    expect(hintsOf(statement).length).toBe(0);
   });
 
   it('should not add any dialect metrics for 10 Pullups', () => {
@@ -205,7 +206,7 @@ describe('CrossFitDialect — plain exercises (no dialect metrics)', () => {
 
   it('should not add any hints for a timer-only statement', () => {
     const { statement } = parseWithDialect('1 min', 'crossfit');
-    expect(statement.hints?.size ?? 0).toBe(0);
+    expect(hintsOf(statement).length).toBe(0);
   });
 });
 
@@ -222,14 +223,14 @@ describe('CrossFitDialect — metric origin purity', () => {
     });
   });
 
-  it.failing('dialect metrics should always have an action field', () => {
+  it('dialect hint metrics are emitted with origin "dialect" and no action', () => {
     const { statement } = parseWithDialect('(20) EMOM', 'crossfit');
     const dialectMetrics = statement.metrics.filter(m => m.origin === 'dialect');
-    // If the dialect ran, we should have at least one dialect metric
+    // If the dialect ran, we should have at least one dialect (hint) metric
     expect(dialectMetrics.length).toBeGreaterThan(0);
+    // Hint markers are passive: they carry no MetricAction.
     dialectMetrics.forEach(m => {
-      expect(m.action).toBeDefined();
-      expect(['set', 'suppress', 'inherit']).toContain(m.action);
+      expect(m.action).toBeUndefined();
     });
   });
 });
