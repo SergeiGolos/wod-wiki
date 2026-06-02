@@ -56,8 +56,8 @@ import { cn } from "@/lib/utils";
 import { sectionField } from "./section-state";
 import type { EditorSection } from "./section-state";
 import type { WidgetConfig, WidgetRegistry, WidgetProps } from "../widgets/types";
-import { WidgetEditButton } from "./WidgetEditButton";
-import { EditableMarkdown } from "./EditableMarkdown";
+import { WidgetEditButton } from "@/components/atoms/WidgetEditButton";
+import { EditableMarkdown } from "@/components/atoms/EditableMarkdown";
 
 interface WidgetConfigParseFailure {
   ok: false;

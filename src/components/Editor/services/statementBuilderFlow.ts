@@ -9,8 +9,8 @@
  */
 
 import React from 'react';
-import { usePaletteStore } from '@/components/command-palette/palette-store';
-import { segmentSource, type SegmentType } from '@/components/command-palette/segmentSources';
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
+import { segmentSource, type SegmentType } from '@/components/organisms/command-palette/segmentSources';
 import type { CursorFocusState } from '@/components/Editor/extensions/cursor-focus-panel';
 import type { EditorView } from '@codemirror/view';
 

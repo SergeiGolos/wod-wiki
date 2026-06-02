@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, ChevronLeft, ChevronRight, Moon, Play, Sun } from 'lucide-react'
 
-import { NoteEditor } from '@/components/Editor/NoteEditor'
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor'
 import type { WodBlock } from '@/components/Editor/types'
-import { RuntimeTimerPanel } from '@/components/Editor/overlays/RuntimeTimerPanel'
+import { RuntimeTimerPanel } from '@/components/organisms/editor/RuntimeTimerPanel'
 import { useTheme } from '@/components/theme/ThemeProvider'
 import { cn } from '@/lib/utils'
 

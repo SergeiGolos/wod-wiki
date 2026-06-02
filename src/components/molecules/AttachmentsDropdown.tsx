@@ -1,7 +1,7 @@
 import React from 'react';
 import { Upload, Trash2, File } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/atoms/button';
+import { Badge } from '@/components/atoms/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/atoms/dropdown-menu';
 import type { Attachment } from '@/types/storage';
 
 interface AttachmentsDropdownProps {

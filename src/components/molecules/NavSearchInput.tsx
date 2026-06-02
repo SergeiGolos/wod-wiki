@@ -10,7 +10,7 @@
  */
 
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid'
-import { ShortcutBadge } from '@/components/list/ShortcutBadge'
+import { ShortcutBadge } from '@/components/atoms/ShortcutBadge'
 import { cn } from '@/lib/utils'
 
 export interface NavSearchInputProps {

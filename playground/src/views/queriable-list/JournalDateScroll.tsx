@@ -11,7 +11,7 @@ import React, {
 import { CalendarIcon, FileTextIcon, ChevronRightIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FilteredListItem } from './types';
-import { ResultListItem } from '@/components/results/ResultListItem';
+import { ResultListItem } from '@/components/molecules/ResultListItem';
 
 // ── Journal entry summary (note metadata for a given date) ─────────────────
 

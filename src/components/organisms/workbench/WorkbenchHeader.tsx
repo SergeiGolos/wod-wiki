@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HelpCircle, PanelRightOpen } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/atoms/button';
 import { cn } from '@/lib/utils';
 import { CommitGraph } from '@/components/organisms/CommitGraph';
-import { NotebookMenu } from '@/components/notebook/NotebookMenu';
+import { NotebookMenu } from '@/components/organisms/notebook/NotebookMenu';
 import { DebugButton } from '@/components/layout/DebugModeContext';
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc';
+import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc';
 import { SaveStateIndicator, type SaveState } from '@/components/molecules/SaveStateIndicator';
 import { SearchTrigger } from '@/components/molecules/SearchTrigger';
 import { ViewModeTabs, type ViewModeTab } from '@/components/molecules/ViewModeTabs';

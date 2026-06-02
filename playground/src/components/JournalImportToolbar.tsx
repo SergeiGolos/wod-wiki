@@ -13,8 +13,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { CalendarCard } from '@/components/ui/CalendarCard';
+} from '@/components/atoms/dropdown-menu';
+import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { usePopoverAlign } from '@/hooks/usePopoverAlign';
 
 export interface JournalImportToolbarProps {

@@ -1,8 +1,8 @@
 import React from 'react';
 import { useScriptRuntime } from '@/runtime/context/RuntimeContext';
-import { RuntimeStackView, LookaheadView } from '@/components/track/VisualStateComponents';
+import { RuntimeStackView, LookaheadView } from '@/components/atoms/VisualStateComponents';
 import { useOutputStatements } from '@/runtime/hooks/useOutputStatements';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { useDebugMode } from '@/components/layout/DebugModeContext';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';

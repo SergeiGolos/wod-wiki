@@ -22,7 +22,7 @@ let mockPaletteState = {
   open: mockPaletteOpen,
 };
 
-mock.module('@/components/command-palette/palette-store', () => ({
+mock.module('@/components/organisms/command-palette/palette-store', () => ({
   usePaletteStore: {
     getState: () => mockPaletteState,
   },

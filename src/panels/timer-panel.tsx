@@ -22,8 +22,8 @@ import {
 import { useRoundDisplay } from '@/runtime/hooks/useBlockMemory';
 import { calculateDuration } from '@/lib/timeUtils';
 
-import { TimerStackView } from '@/components/workout/TimerStackView';
-import { MetricTrackerCard } from '@/components/track/MetricTrackerCard';
+import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
+import { MetricTrackerCard } from '@/components/organisms/track/MetricTrackerCard';
 import { useWorkbenchSyncStore } from '@/components/layout/workbenchSyncStore';
 import { metricPresentation } from '@/core/metrics/presentation';
 import type { FocusProps } from '@/hooks/useSpatialNavigation';

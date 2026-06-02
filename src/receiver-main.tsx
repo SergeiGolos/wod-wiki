@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CAST_NAMESPACE } from '@/types/cast/messages';
 import { ReceiverCastSignaling } from '@/services/cast/CastSignaling';
 import { WebRTCTransport } from '@/services/cast/WebRTCTransport';
-import { TimerStackView } from '@/components/workout/TimerStackView';
+import { TimerStackView } from '@/components/organisms/workout/TimerStackView';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
 import { MetricSourceRow } from '@/components/molecules/MetricSourceRow'
 import { cn } from '@/lib/utils';

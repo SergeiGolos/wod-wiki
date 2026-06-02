@@ -73,7 +73,7 @@ vi.mock('@/repositories/wod-feeds', () => ({
   },
 }));
 
-vi.mock('@/components/ui/CalendarCard', () => ({
+vi.mock('@/components/atoms/CalendarCard', () => ({
   CalendarCard: ({ selectedDate, onDateSelect, entryDates, className }: any) => (
     <div data-testid="calendar-card" className={className}>
       <div>Calendar Mock</div>

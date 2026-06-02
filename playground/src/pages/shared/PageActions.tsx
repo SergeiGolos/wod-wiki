@@ -13,9 +13,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowPathIcon, PlusIcon } from '@heroicons/react/20/solid'
 
-import { CastButtonRpc } from '@/components/cast/CastButtonRpc'
+import { CastButtonRpc } from '@/components/organisms/cast/CastButtonRpc'
 import { ButtonGroup } from '@/components/molecules/ButtonGroup'
-import type { PageNavLink } from '@/components/layout/PageNavDropdown'
+import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { PageMode } from '@/types/content-type'
 
 import { NavSearchInput } from '@/components/molecules/NavSearchInput'

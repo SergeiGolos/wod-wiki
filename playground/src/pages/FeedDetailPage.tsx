@@ -15,7 +15,7 @@ import { appendWorkoutToJournal } from '../services/journalWorkout';
 import { useFeedsQueryState } from '../hooks/useFeedsQueryState';
 import { FeedFeed, type FeedItem } from '../views/FeedFeed';
 import { toast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
+import { ToastAction } from '@/components/atoms/toast';
 
 export interface FeedDetailPageProps {
   feedSlug: string;

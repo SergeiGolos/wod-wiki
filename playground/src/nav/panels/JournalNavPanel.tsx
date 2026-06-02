@@ -11,7 +11,7 @@
  */
 
 import { useMatch, useNavigate } from 'react-router-dom'
-import { CalendarCard } from '@/components/ui/CalendarCard'
+import { CalendarCard } from '@/components/atoms/CalendarCard'
 import { cn } from '@/lib/utils'
 import { useJournalQueryState } from '../../hooks/useJournalQueryState'
 import type { NavPanelProps } from '../navTypes'

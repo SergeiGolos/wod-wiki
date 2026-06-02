@@ -10,7 +10,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/atoms/button';
 import { Bug } from 'lucide-react';
 import { RuntimeLogger } from '@/hooks/useRuntimeDebug';
 

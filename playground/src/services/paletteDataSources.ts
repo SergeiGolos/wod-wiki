@@ -5,7 +5,7 @@
  * The caller receives the selected PaletteItem and decides what to do.
  */
 
-import type { PaletteDataSource, PaletteItem } from '@/components/command-palette/palette-types';
+import type { PaletteDataSource, PaletteItem } from '@/components/organisms/command-palette/palette-types';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { playgroundDB } from './playgroundDB';
 import type { CanvasRoute } from '../canvas/canvasRoutes';
@@ -142,8 +142,8 @@ export function collectionSource(
 
 // ── WOD block source (for statement builder) ───────────────────────────────
 
-export type { SegmentType } from '@/components/command-palette/segmentSources';
-export { segmentSource } from '@/components/command-palette/segmentSources';
+export type { SegmentType } from '@/components/organisms/command-palette/segmentSources';
+export { segmentSource } from '@/components/organisms/command-palette/segmentSources';
 
 // ── Collection drill-down sources ───────────────────────────────────────────
 

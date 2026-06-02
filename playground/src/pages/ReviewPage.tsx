@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { FullscreenReview } from '@/components/Editor/overlays/FullscreenReview'
+import { FullscreenReview } from '@/components/organisms/review/FullscreenReview'
 import { indexedDBService } from '@/services/db/IndexedDBService'
 import { getAnalyticsFromLogs } from '@/services/AnalyticsTransformer'
 import type { Segment } from '@/core/models/AnalyticsModels'

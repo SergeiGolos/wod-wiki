@@ -19,9 +19,9 @@ import {
   DocumentDuplicateIcon,
 } from '@heroicons/react/20/solid';
 import { Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { Button } from '@/components/atoms/button';
+import { Badge } from '@/components/atoms/badge';
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/components/theme/ThemeProvider';
 import { JournalPageShell } from '@/panels/page-shells';
 import type { WodBlock } from '@/components/Editor/types';
@@ -37,7 +37,7 @@ import { toast } from '@/hooks/use-toast';
 import { TEST_IDS } from '@/testing/contracts/TestIdContract';
 import { shareBlock } from '../services/openInPlayground';
 import { appendWorkoutToJournal } from '../services/journalWorkout';
-import { CalendarCard } from '@/components/ui/CalendarCard';
+import { CalendarCard } from '@/components/atoms/CalendarCard';
 
 /* ── Resolved view (inline widget) ─────────────────────────────────────────── */
 

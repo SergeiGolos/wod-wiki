@@ -13,7 +13,7 @@
  */
 
 import { useMatch, useNavigate } from 'react-router-dom';
-import { CalendarCard } from '@/components/ui/CalendarCard';
+import { CalendarCard } from '@/components/atoms/CalendarCard';
 import { cn } from '@/lib/utils';
 import { useFeedsQueryState } from '../../hooks/useFeedsQueryState';
 import { getWodFeeds, getWodFeed, getFeedDateKeys } from '@/repositories/wod-feeds';

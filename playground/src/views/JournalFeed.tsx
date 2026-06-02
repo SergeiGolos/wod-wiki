@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import { CalendarIcon, FileTextIcon, ChevronRightIcon, PlusIcon, CheckIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ResultListItem } from '@/components/results/ResultListItem';
+import { ResultListItem } from '@/components/molecules/ResultListItem';
 import type { FilteredListItem } from './queriable-list/types';
 import type { JournalEntrySummary } from './queriable-list/JournalDateScroll';
 import { localDateKey } from './queriable-list/JournalDateScroll';

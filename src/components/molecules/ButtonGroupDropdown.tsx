@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/atoms/dropdown-menu';
 import type { INavActivation, INavAction } from '@/nav/navTypes';
 
 export interface ButtonGroupDropdownProps {

@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/atoms/card';
+import { Button } from '@/components/atoms/button';
+import { Badge } from '@/components/atoms/badge';
+import { Progress } from '@/components/atoms/progress';
+import { Label } from '@/components/atoms/label';
 import { PlayIcon, PauseIcon, SquareIcon } from '@phosphor-icons/react';
 import { useTimerElapsed } from '../../runtime/hooks/useTimerElapsed';
 import { cn } from '@/lib/utils';

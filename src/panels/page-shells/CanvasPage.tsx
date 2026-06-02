@@ -34,7 +34,7 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useQueryState } from 'nuqs';
 import { PlayIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/20/solid';
-import type { PageNavLink } from '@/components/layout/PageNavDropdown';
+import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown';
 import type { DocsSection } from './types';
 import { PAGE_SHELL_CONTENT_SURFACE_CLASS } from './contentSurface';
 import { StickyNavPanel } from './StickyNavPanel';

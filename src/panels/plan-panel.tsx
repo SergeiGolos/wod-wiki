@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { WodBlock, WorkoutResults } from '@/components/Editor/types';
-import { NoteEditor } from '@/components/Editor/NoteEditor';
+import { NoteEditor } from '@/components/organisms/editor/NoteEditor';
 import { useTheme } from '@/components/theme/ThemeProvider';
 
 export interface PlanPanelProps {

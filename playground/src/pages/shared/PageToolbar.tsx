@@ -15,8 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuHeading,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
+} from '@/components/atoms/dropdown-menu'
+import { Button } from '@/components/atoms/button'
 import {
   EllipsisVerticalIcon,
   ArrowDownTrayIcon,
@@ -30,7 +30,7 @@ import {
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
 import { useTheme } from '@/components/theme/ThemeProvider'
-import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '@/components/ui/BuyMeACoffee'
+import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '@/components/atoms/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
 import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import { playgroundDB } from '../../services/playgroundDB'
