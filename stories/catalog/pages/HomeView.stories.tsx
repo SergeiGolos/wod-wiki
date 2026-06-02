@@ -6,7 +6,7 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { HomeView } from '../../../playground/src/pages/HomeView';
+import { HomeView } from '../../../playground/src/views/HomeView';
 import type { WorkoutItem } from '../../../playground/src/App';
 
 const markdownFilesByPath = import.meta.glob('../../../markdown/**/*.md', {

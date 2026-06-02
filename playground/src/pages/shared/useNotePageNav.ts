@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useMemo } from 'react'
-import type { PageNavLink } from '@/components/playground/PageNavDropdown'
+import type { PageNavLink } from '@/components/organisms/layout/PageNavDropdown'
 import type { WodBlock } from '@/components/Editor/types'
 import type { WorkoutResult } from '@/types/storage'
 import { useNav } from '../../nav/NavContext'

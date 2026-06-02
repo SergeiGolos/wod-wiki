@@ -12,8 +12,8 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import { PageNavDropdown } from '@/components/playground/PageNavDropdown';
-import type { PageNavLink } from '@/components/playground/PageNavDropdown';
+import { PageNavDropdown } from '@/components/layout/PageNavDropdown'
+import type { PageNavLink } from '@/components/layout/PageNavDropdown'
 
 const noop = () => {};
 

@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { ClockIcon } from '@heroicons/react/20/solid';
 import type { NavPanelProps } from '../navTypes';
 import { useEffortsQueryState } from '../../hooks/useEffortsQueryState';
-import { useEffortRegistry } from '../../components/efforts/EffortRegistryContext';
+import { useEffortRegistry } from '../../contexts/EffortRegistryContext';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import type { WorkoutResult } from '@/types/storage';
 import type { StoredOutputStatement } from '@/components/Editor/types';

@@ -23,7 +23,7 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import { CanvasPage } from '@/panels/page-shells/CanvasPage';
-import type { PageNavLink } from '@/components/playground/PageNavDropdown';
+import type { PageNavLink } from '@/components/layout/PageNavDropdown'
 import type { DocsSection } from '@/panels/page-shells/types';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────

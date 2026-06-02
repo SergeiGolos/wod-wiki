@@ -28,7 +28,7 @@ import {
 import { StateEffect, StateField, EditorState, Range } from "@codemirror/state";
 import { sectionField } from "./section-state";
 import type { WorkoutResult } from "@/types/storage";
-import { buildResultListItemDOM } from "@/components/results/resultListItemDOM";
+import { buildResultListItemDOM } from "@/components/molecules/resultListItemDOM";
 
 // ── Custom DOM event ─────────────────────────────────────────────────
 

@@ -14,17 +14,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { BookOpen, Dumbbell } from 'lucide-react'
 
-import {
-  Sidebar,
-  SidebarBody,
-  SidebarHeader,
-  SidebarItem,
-  SidebarLabel,
-  SidebarSection,
-} from '@/components/playground/sidebar'
-import { SidebarAccordion } from '@/components/playground/SidebarAccordion'
-import { ShortcutBadge } from '@/components/list/ShortcutBadge'
-import { ButtonLink } from '@/components/ui/ButtonLink'
+import { Sidebar, SidebarBody, SidebarHeader, SidebarItem, SidebarLabel, SidebarSection } from '@/components/organisms/layout/Sidebar'
+import { SidebarAccordion } from '@/components/organisms/layout/SidebarAccordion'
+import { ShortcutBadge } from '@/components/atoms/ShortcutBadge'
+import { ButtonLink } from '@/components/molecules/ButtonLink'
 
 import { useNav } from './NavContext'
 import { executeNavAction } from './navTypes'

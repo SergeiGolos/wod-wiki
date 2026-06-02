@@ -1,17 +1,18 @@
 import { useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Moon, Sun, Sparkles, PanelTop, LayoutGrid } from 'lucide-react'
-import { useTheme } from '@/components/theme/ThemeProvider'
-import { Switch } from '@/components/playground/switch'
-import { usePaletteStore } from '@/components/command-palette/palette-store'
+import { useTheme } from '@/contexts/ThemeProvider'
+import { Switch } from '@/components/atoms/primitives/switch'
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store'
 import { canvasRoutes } from '../canvas/canvasRoutes'
 import { globalSearchSource } from '../services/paletteDataSources'
 import { createPlaygroundPage } from '../services/createPlaygroundPage'
-import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/widgets/AttentionWidget'
-import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/widgets/CodeExampleWidget'
-import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/widgets/SyntaxGroupWidget'
+import { AttentionWidget, type AttentionActionType, type AttentionWidgetConfig } from '../components/molecules/AttentionWidget'
+import { CodeExampleWidget, type CodeExampleWidgetConfig } from '../components/molecules/CodeExampleWidget'
+import { SyntaxGroupWidget, type SyntaxGroupWidgetConfig } from '../components/molecules/SyntaxGroupWidget'
 import { syntaxGuideReference } from '@/content/syntaxGuideReference'
 import { playgroundPath, reviewPath, workoutPath } from '../lib/routes'
+import { LandingTemplate } from '../templates/LandingTemplate'
 
 const ATTENTION_CONFIG: AttentionWidgetConfig = {
   headline: 'Build and preview widget-driven workout pages.',
@@ -199,8 +200,8 @@ export function PlaygroundLandingPage() {
   )
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-12 lg:py-14">
-      <div className="mb-6 flex justify-end">
+    <LandingTemplate
+      actionsSlot={
         <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/70">
           <Sun className="size-4 text-zinc-500" aria-hidden="true" />
           <Switch
@@ -210,10 +211,9 @@ export function PlaygroundLandingPage() {
           />
           <Moon className="size-4 text-zinc-500" aria-hidden="true" />
         </div>
-      </div>
-
-      <AttentionWidget config={ATTENTION_CONFIG} onAction={handleAttentionAction} />
-
+      }
+      heroSlot={<AttentionWidget config={ATTENTION_CONFIG} onAction={handleAttentionAction} />}
+    >
       <section ref={workoutSectionRef} id="workout-widget-surface" className="mt-8 grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <CodeExampleWidget
@@ -222,13 +222,12 @@ export function PlaygroundLandingPage() {
             onRun={handleRunExample}
           />
         </div>
-
         <div className="space-y-4">
           {SYNTAX_GROUP_CONFIGS.map((config) => (
             <SyntaxGroupWidget key={config.title} config={config} onOpenDocs={handleOpenDocs} />
           ))}
         </div>
       </section>
-    </main>
+    </LandingTemplate>
   )
 }

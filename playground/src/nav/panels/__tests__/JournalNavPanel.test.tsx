@@ -30,7 +30,7 @@ vi.mock('../../../hooks/useJournalQueryState', () => ({
   })),
 }));
 
-vi.mock('@/components/ui/CalendarCard', () => ({
+vi.mock('@/components/atoms/CalendarCard', () => ({
   CalendarCard: ({ selectedDate, onDateSelect, className }: any) => (
     <div data-testid="calendar-card" className={className}>
       <div>Calendar Mock</div>

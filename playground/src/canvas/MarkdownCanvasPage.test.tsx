@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 
-import type { NoteEditorProps } from '@/components/Editor/NoteEditor'
+import type { NoteEditorProps } from '@/components/organisms/editor/NoteEditor'
 import type { WorkoutResult } from '@/types/storage'
 
 import type { PanelActions } from './MarkdownCanvasPage'
@@ -70,7 +70,7 @@ mock.module('@/services/persistence', () => ({
   },
 }))
 
-mock.module('@/components/Editor/NoteEditor', () => ({
+mock.module('@/components/organisms/editor/NoteEditor', () => ({
   NoteEditor: (props: NoteEditorProps) => {
     useEffect(() => {
       props.onViewCreated?.({
@@ -103,7 +103,7 @@ mock.module('@/components/Editor/NoteEditor', () => ({
   },
 }))
 
-mock.module('@/components/Editor/overlays/RuntimeTimerPanel', () => ({
+mock.module('@/components/organisms/editor/RuntimeTimerPanel', () => ({
   RuntimeTimerPanel: ({ onComplete }: { onComplete: (blockId: string, results: typeof sampleWorkoutResults) => void }) => (
     <button data-testid="complete-runtime" onClick={() => onComplete('block-1', sampleWorkoutResults)}>
       Complete runtime
@@ -111,11 +111,11 @@ mock.module('@/components/Editor/overlays/RuntimeTimerPanel', () => ({
   ),
 }))
 
-mock.module('@/components/Editor/overlays/FullscreenTimer', () => ({
+mock.module('@/components/organisms/review/FullscreenTimer', () => ({
   FullscreenTimer: () => null,
 }))
 
-mock.module('@/components/review-grid/ReviewGrid', () => ({
+mock.module('@/components/organisms/review/ReviewGrid', () => ({
   ReviewGrid: () => <div data-testid="review-grid" />,
 }))
 
@@ -125,7 +125,7 @@ mock.module('@/services/AnalyticsTransformer', () => ({
   }),
 }))
 
-mock.module('../components/MacOSChrome', () => ({
+mock.module('../components/atoms/MacOSChrome', () => ({
   MacOSChrome: ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div data-testid="chrome">
       <div data-testid="chrome-title">{title}</div>
@@ -134,7 +134,7 @@ mock.module('../components/MacOSChrome', () => ({
   ),
 }))
 
-mock.module('@/components/ui/ButtonGroup', () => ({
+mock.module('@/components/molecules/ButtonGroup', () => ({
   ButtonGroup: ({ primary }: { primary: { action: { handler: () => void } } }) => (
     <button onClick={primary.action.handler}>Run</button>
   ),

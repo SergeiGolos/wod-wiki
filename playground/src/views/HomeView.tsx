@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { Play, RotateCcw, Maximize2, BarChart2, Share2, FileText, Timer } from 'lucide-react'
-import { HomeWelcome } from '../components/HomeWelcome'
+import { HomeWelcome } from '../components/organisms/landing/HomeWelcome'
 import { MarkdownCanvasPage, type PanelActions } from '../canvas/MarkdownCanvasPage'
 import { findCanvasPage } from '../canvas/canvasRoutes'
 import { encodeZip } from '../services/encodeZip'

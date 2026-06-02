@@ -560,7 +560,7 @@ git commit -m "feat(hooks): branch useZipProcessor on /load/journal routes"
 **Step 1: Write the component**
 
 ```typescript
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/atoms/button';
 
 export interface BackdateConfirmModalProps {
   dateKey: string;

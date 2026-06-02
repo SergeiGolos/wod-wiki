@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import type { WorkoutResult } from '@/types/storage';
-import { useWorkbench } from '@/components/layout/WorkbenchContext';
+import { useWorkbench } from '@/contexts/WorkbenchContext';
 
 export interface UseWodBlockResultsReturn {
   /** All results for this section, sorted most recent first */

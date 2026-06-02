@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'bun:test'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import * as React from 'react'
 
-import { EditableMarkdown } from './EditableMarkdown'
+import { EditableMarkdown } from '@/components/atoms/EditableMarkdown'
 
 afterEach(() => {
   cleanup()

@@ -17,10 +17,10 @@ import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/atoms/primitives/button';
 import { useJournalZipProcessor } from '../hooks/useJournalZipProcessor';
-import { JournalImportToolbar } from '../components/JournalImportToolbar';
-import { BackdateConfirmModal } from '../components/BackdateConfirmModal';
+import { JournalImportToolbar } from '../components/organisms/journal/JournalImportToolbar';
+import { BackdateConfirmModal } from '../components/organisms/journal/BackdateConfirmModal';
 import type { Components } from 'react-markdown';
 
 // ── Markdown rendering components ─────────────────────────────────────────────

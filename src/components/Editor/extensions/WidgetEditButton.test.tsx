@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, mock } from 'bun:test'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 
-import { WidgetEditButton, WIDGET_EDIT_BUTTON_LABELS } from './WidgetEditButton'
+import { WidgetEditButton, WIDGET_EDIT_BUTTON_LABELS } from '@/components/atoms/WidgetEditButton'
 
 afterEach(() => {
   cleanup()

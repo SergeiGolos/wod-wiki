@@ -16,7 +16,7 @@
 
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import MetricSourceRow from '@/components/metrics/MetricSourceRow';
+import MetricSourceRow from '@/components/molecules/MetricSourceRow';
 import type { IMetric } from '@/core/models/Metric';
 import { MetricContainer } from '@/core/models/MetricContainer';
 

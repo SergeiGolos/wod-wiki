@@ -8,7 +8,7 @@ import { IScriptRuntime } from '../contracts/IScriptRuntime';
  * IScriptRuntime instance to children. No lifecycle management.
  * 
  * For lifecycle management (creation, disposal, error tracking),
- * use RuntimeLifecycleProvider from '@/components/layout/RuntimeLifecycleProvider' instead.
+ * use RuntimeLifecycleProvider from '@/contexts/RuntimeLifecycleProvider' instead.
  * 
  * Components can use useScriptRuntime() to access runtime memory and state.
  */

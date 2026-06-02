@@ -9,7 +9,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
+import { RuntimeLifecycleProvider } from '@/contexts/RuntimeLifecycleProvider';
 import type { IRuntimeFactory } from '@/runtime/compiler/RuntimeFactory';
 
 export interface ScopedRuntimeProviderProps {

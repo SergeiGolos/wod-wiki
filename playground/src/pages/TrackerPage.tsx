@@ -9,7 +9,7 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { reviewPath, playgroundPath, journalEntryPath, workoutPath } from '../lib/routes'
-import { FullscreenTimer } from '@/components/Editor/overlays/FullscreenTimer'
+import { FullscreenTimer } from '@/components/organisms/review/FullscreenTimer'
 import { notePersistence } from '@/services/persistence'
 import { pendingRuntimes } from '../runtimeStore'
 

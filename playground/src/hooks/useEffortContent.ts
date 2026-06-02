@@ -10,8 +10,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEditorSave } from './useEditorSave';
-import { effortToDocument, documentToEffort } from '../components/efforts/effortYaml';
-import { useEffortRegistry } from '../components/efforts/EffortRegistryContext';
+import { effortToDocument, documentToEffort } from '../lib/effortYaml';
+import { useEffortRegistry } from '../contexts/EffortRegistryContext';
 import { indexedDBService } from '@/services/db/IndexedDBService';
 import { getEffortMarkdown } from '@/repositories/effort-markdown';
 import type { IEffort } from '@/effort-registry';

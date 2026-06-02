@@ -9,15 +9,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
-  Dropdown,
-  DropdownButton,
-  DropdownDivider,
-  DropdownItem,
-  DropdownLabel,
   DropdownMenu,
-  DropdownSection,
-  DropdownHeading,
-} from '@/components/playground/dropdown'
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuHeading,
+} from '@/components/atoms/primitives/dropdown-menu'
+import { Button } from '@/components/atoms/primitives/button'
 import {
   EllipsisVerticalIcon,
   ArrowDownTrayIcon,
@@ -30,13 +29,13 @@ import {
   SpeakerXMarkIcon,
 } from '@heroicons/react/20/solid'
 import { PlusIcon } from '@heroicons/react/16/solid'
-import { useTheme } from '@/components/theme/ThemeProvider'
-import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '@/components/ui/BuyMeACoffee'
+import { useTheme } from '@/contexts/ThemeProvider'
+import { BUY_ME_A_COFFEE_URL, BuyMeACoffeeIcon } from '../../components/atoms/BuyMeACoffee'
 import { useNav } from '../../nav/NavContext'
-import { CalendarSplitButton } from '@/components/ui/CalendarSplitButton'
+import { CalendarSplitButton } from '@/components/molecules/CalendarSplitButton'
 import { playgroundDB } from '../../services/playgroundDB'
 import type { NavItemL3 } from '../../nav/navTypes'
-import { useAudio } from '@/components/audio/AudioContext'
+import { useAudio } from '@/contexts/AudioContext'
 
 // ── NewEntryButton ───────────────────────────────────────────────────────────
 
@@ -123,23 +122,29 @@ export function ActionsMenu({
   }
 
   return (
-    <Dropdown>
-      <DropdownButton plain>
-        <EllipsisVerticalIcon data-slot="icon" className="size-5 text-zinc-500" />
-      </DropdownButton>
-      <DropdownMenu className="min-w-56" anchor="bottom end">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground">
+          <EllipsisVerticalIcon className="size-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-56">
         {l3Items.length > 0 && (
           <>
-            <DropdownSection>
-              <DropdownHeading>On this page</DropdownHeading>
+            <div>
+              <DropdownMenuHeading>On this page</DropdownMenuHeading>
               {l3Items.map(item => (
-                <DropdownItem key={item.id} onClick={() => scrollToSection(item.id)}>
-                  <DropdownLabel className={cn(item.level === 3 && item.secondaryAction && 'pr-8')}>
+                <DropdownMenuItem
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className="gap-2"
+                >
+                  <span className={cn('flex-1 truncate', item.level === 3 && item.secondaryAction && 'pr-8')}>
                     {item.label}
-                  </DropdownLabel>
+                  </span>
                   {item.secondaryAction && (
                     <button
-                      className="col-start-5 flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
+                      className="ml-auto flex items-center justify-center size-5 rounded text-primary hover:bg-primary/10 transition-colors"
                       title={item.secondaryAction.label}
                       onClick={(e) => {
                         e.stopPropagation()
@@ -153,41 +158,48 @@ export function ActionsMenu({
                       )}
                     </button>
                   )}
-                </DropdownItem>
+                </DropdownMenuItem>
               ))}
-            </DropdownSection>
-            <DropdownDivider />
+            </div>
+            <DropdownMenuSeparator />
           </>
         )}
-        <DropdownItem onClick={toggleAudio}>
-          {isAudioEnabled ? <SpeakerWaveIcon data-slot="icon" /> : <SpeakerXMarkIcon data-slot="icon" />}
-          <DropdownLabel>Sound: {isAudioEnabled ? 'On' : 'Off'}</DropdownLabel>
-        </DropdownItem>
-        <DropdownItem onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}>
-          {theme === 'light' && <SunIcon data-slot="icon" />}
-          {theme === 'dark' && <MoonIcon data-slot="icon" />}
-          {theme === 'system' && <ComputerDesktopIcon data-slot="icon" />}
-          <DropdownLabel>Theme: {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}</DropdownLabel>
-        </DropdownItem>
-        <DropdownItem onClick={handleDownload}>
-          <ArrowDownTrayIcon data-slot="icon" />
-          <DropdownLabel>Download Markdown</DropdownLabel>
-        </DropdownItem>
-        <DropdownItem onClick={handleBuyMeACoffee}>
-          <BuyMeACoffeeIcon data-slot="icon" className="size-5" />
-          <DropdownLabel>Buy Me a Coffee</DropdownLabel>
-        </DropdownItem>
-        <DropdownItem onClick={handleToggleDebug}>
-          <BugAntIcon data-slot="icon" />
-          <DropdownLabel>Debug Mode</DropdownLabel>
-          {debugMode && <span className="col-start-5 text-blue-500">✓</span>}
-        </DropdownItem>
-        <DropdownDivider />
-        <DropdownItem onClick={handleResetData}>
-          <ArrowPathIcon data-slot="icon" className="text-red-500" />
-          <DropdownLabel className="text-red-500">Reset &amp; Clear Cache</DropdownLabel>
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
+        <DropdownMenuItem onClick={toggleAudio} className="gap-2">
+          <span className="flex size-4 items-center justify-center">
+            {isAudioEnabled ? <SpeakerWaveIcon className="size-4" /> : <SpeakerXMarkIcon className="size-4" />}
+          </span>
+          <span className="flex-1">Sound: {isAudioEnabled ? 'On' : 'Off'}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark')}
+          className="gap-2"
+        >
+          <span className="flex size-4 items-center justify-center">
+            {theme === 'light' && <SunIcon className="size-4" />}
+            {theme === 'dark' && <MoonIcon className="size-4" />}
+            {theme === 'system' && <ComputerDesktopIcon className="size-4" />}
+          </span>
+          <span className="flex-1">Theme: {theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System'}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleDownload} className="gap-2">
+          <ArrowDownTrayIcon className="size-4" />
+          <span className="flex-1">Download Markdown</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleBuyMeACoffee} className="gap-2">
+          <BuyMeACoffeeIcon className="size-5" />
+          <span className="flex-1">Buy Me a Coffee</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleToggleDebug} className="gap-2">
+          <BugAntIcon className="size-4" />
+          <span className="flex-1">Debug Mode</span>
+          {debugMode && <span className="text-blue-500 text-xs">✓</span>}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleResetData} className="gap-2">
+          <ArrowPathIcon className="size-4 text-red-500" />
+          <span className="flex-1 text-red-500">Reset & Clear Cache</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

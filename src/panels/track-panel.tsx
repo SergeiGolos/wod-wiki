@@ -1,5 +1,5 @@
 import React from 'react';
-import { TimerIndexPanel } from '@/components/layout/TimerIndexPanel';
+import { TimerIndexPanel } from '@/components/organisms/layout/TimerIndexPanel';
 import { TimerDisplay } from '@/panels/timer-panel';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { VisualStatePanel } from '@/panels/visual-state-panel';
@@ -8,13 +8,13 @@ import { IScriptRuntime } from '@/runtime/contracts/IScriptRuntime';
 import { UseRuntimeExecutionReturn } from '@/runtime/hooks/useRuntimeExecution';
 import { usePanelSize } from '@/panels/panel-system/PanelSizeContext';
 import { cn } from '@/lib/utils';
-import { WorkoutPreviewPanel } from '@/components/workbench/WorkoutPreviewPanel';
-import { TrackViewShell } from '@/components/workout/TrackViewShell';
+import { WorkoutPreviewPanel } from '@/components/organisms/workbench/WorkoutPreviewPanel';
+import { TrackViewShell } from '@/components/organisms/workout/TrackViewShell';
 import type { SectionType } from '@/components/Editor/types/section';
 import type { WodBlock } from '@/components/Editor/types';
-import { useUserOverrides } from '@/components/review-grid/useUserOverrides';
+import { useUserOverrides } from '@/components/organisms/review/useUserOverrides';
 import { useCollectionMetrics, type ChoiceCollectionItem, type ValueCollectionItem, resolveChoiceSelection } from '@/hooks/useCollectionMetrics';
-import { CollectionWizard } from '@/components/review/CollectionWizard';
+import { CollectionWizard } from '@/components/organisms/review/CollectionWizard';
 
 export interface TrackPanelProps {
   runtime: IScriptRuntime | null;

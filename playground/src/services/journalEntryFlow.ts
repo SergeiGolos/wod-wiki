@@ -13,7 +13,7 @@
  */
 
 import React from 'react';
-import { usePaletteStore } from '@/components/command-palette/palette-store';
+import { usePaletteStore } from '@/components/organisms/command-palette/palette-store';
 import {
   CREATE_FROM_SOURCE,
   collectionListSource,

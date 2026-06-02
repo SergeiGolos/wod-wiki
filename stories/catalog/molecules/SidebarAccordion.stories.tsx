@@ -11,8 +11,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { DocumentTextIcon, BoltIcon, CubeIcon } from '@heroicons/react/20/solid';
 
-import { SidebarAccordion } from '@/components/playground/SidebarAccordion';
-import { SidebarItem, SidebarLabel, SidebarSection } from '@/components/playground/sidebar';
+import { SidebarAccordion } from '@/components/layout/SidebarAccordion'
+import { SidebarItem, SidebarLabel, SidebarSection } from '@/components/layout/Sidebar'
 
 const meta: Meta<typeof SidebarAccordion> = {
   title: 'catalog/molecules/navigation/SidebarAccordion',

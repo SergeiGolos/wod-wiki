@@ -11,7 +11,7 @@ import type { WorkbenchDisplayState } from '@/services/cast/rpc/ChromecastProxyR
 import type { IRuntimeEventProvider } from '@/runtime/contracts/IRuntimeEventProvider';
 import { ScriptRuntimeProvider } from '@/runtime/context/RuntimeContext';
 import { PanelSizeProvider } from '@/panels/panel-system/PanelSizeContext';
-import { TrackViewShell } from '@/components/workout/TrackViewShell';
+import { TrackViewShell } from '@/components/organisms/workout/TrackViewShell';
 import { ReceiverStackPanel } from '@/panels/track-panel-chromecast';
 import { ReceiverTimerPanel } from '@/panels/timer-panel-chromecast';
 import { ReceiverPreviewPanel } from '@/panels/preview-panel-chromecast';

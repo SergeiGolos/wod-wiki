@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HistoryLayout } from '@/components/history/HistoryLayout';
+import { HistoryLayout } from '@/components/organisms/history/HistoryLayout';
 import { useWodCollections } from '@/hooks/useWodCollections';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/atoms/primitives/card';
+import { Button } from '@/components/atoms/primitives/button';
 import { ArrowLeft, FolderOpen, Play, Copy } from 'lucide-react';
-import { ListOfNotes } from '@/components/workbench/ListOfNotes';
-import { NotePreview } from '@/components/workbench/NotePreview';
+import { ListOfNotes } from '@/components/organisms/workbench/ListOfNotes';
+import { NotePreview } from '@/components/organisms/workbench/NotePreview';
 import type { IContentProvider } from '@/types/content-provider';
 import type { HistoryEntry } from '@/types/history';
 import { toShortId } from '@/lib/idUtils';
@@ -14,7 +14,7 @@ import { planPath, trackPath } from '@/lib/routes';
 import { createHistoryView } from '@/panels/panel-system/viewDescriptors';
 import { PanelGrid } from '@/panels/panel-system/PanelGrid';
 import type { PanelSpan } from '@/panels/panel-system/types';
-import { CollectionsFilter } from '@/components/history/CollectionsFilter';
+import { CollectionsFilter } from '@/components/organisms/history/CollectionsFilter';
 
 export const CollectionsPage: React.FC<{ provider: IContentProvider }> = ({ provider }) => {
     const navigate = useNavigate();

@@ -2,7 +2,7 @@
  * Catalog / Atoms / Navbar + Sidebar
  *
  * Horizontal Navbar and vertical Sidebar are the two layout atoms that compose
- * the app shell. Both live in src/components/playground/ and follow the Catalyst
+ * the app shell. Both live in src/components/layout/ and follow the Catalyst
  * Headless UI pattern.
  *
  * Navbar sub-components: NavbarSection, NavbarItem, NavbarSpacer, NavbarDivider, NavbarLabel
@@ -27,7 +27,7 @@ import {
   NavbarLabel,
   NavbarSection,
   NavbarSpacer,
-} from '@/components/playground/navbar';
+} from '@/components/layout/Navbar';
 
 import {
   Sidebar,
@@ -40,9 +40,8 @@ import {
   SidebarLabel,
   SidebarSection,
   SidebarSpacer,
-} from '@/components/playground/sidebar';
+} from '@/components/layout/Sidebar';
 
-// Sentinel for meta
 function NavbarAtoms() { return <div />; }
 
 const meta: Meta<typeof NavbarAtoms> = {

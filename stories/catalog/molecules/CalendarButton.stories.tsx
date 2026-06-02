@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { CalendarButton } from '@/components/ui/CalendarButton';
+import { CalendarButton } from '@/components/molecules/CalendarButton';
 import { FIXTURE_ENTRY_DATES } from '../../_shared/fixtures';
 
 const meta: Meta<typeof CalendarButton> = {

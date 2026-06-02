@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'bun:test';
 import { ScopedRuntimeProvider } from '@/panels/page-shells/ScopedRuntimeProvider';
-import { RuntimeLifecycleProvider } from '@/components/layout/RuntimeLifecycleProvider';
+import { RuntimeLifecycleProvider } from '@/contexts/RuntimeLifecycleProvider';
 
 describe('ScopedRuntimeProvider', () => {
   it('should export ScopedRuntimeProvider component', () => {
